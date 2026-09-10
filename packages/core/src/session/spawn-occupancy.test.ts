@@ -637,8 +637,8 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     });
     expect(consult.allow).toBe(false);
     if (consult.allow) return;
-    expect(consult.reason).not.toBeUndefined();
-    expect(consult.message).not.toMatch(/process-only critic/);
+    expect(consult.reason).toBe("destination-missing");
+    expect(consult.message).not.toMatch(/skipped dest occupancy consult/);
   });
 
   it("cwd-without-occupy shares one dest for process_only siblings (#4296)", () => {

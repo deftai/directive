@@ -97,8 +97,8 @@ export function isReadOnlyHookContext(
  */
 export const SPAWN_CLASS_RECOVERY =
   "Continue in the parent, or spawn with assist / ephemeral markers for scratch, " +
-  "or subagent_type plan / process_only for process-only critic spawns. Use subagent_type " +
-  "explore only when the spawn is actually read-only research.";
+  "or subagent_type plan. Use subagent_type explore only when the spawn is actually " +
+  "read-only research.";
 
 /** Explore sub-agent spawns are exempt from the implementation gate stack (#1185). */
 export function isExploreSpawn(payload: unknown): boolean {
