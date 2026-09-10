@@ -962,4 +962,20 @@ describe("runSessionStart mutation HEAD orientation (#4291)", () => {
     expect(text).toContain("behind=unknown");
     expect(text).toContain("refresh");
   });
+
+  it("prints orientation even when branch_policy is deferred", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      deferrals: { branch_policy: "ok" },
+      runGit: headSyncGit(root, "0 64"),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const text = result.lines.join("\n");
+    expect(text).toContain(`checkout=${root}`);
+    expect(text).toContain("HEAD=fix/stale");
+    expect(text).toContain("ahead=0");
+    expect(text).toContain("behind=64");
+  });
 });

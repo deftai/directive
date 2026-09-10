@@ -1537,11 +1537,6 @@ export function runSessionStart(
     if (humanMergeLine !== null) {
       lines.push(humanMergeLine);
     }
-    const branchSync = defaultBranchSync(projectRoot, runGit);
-    lines.push(branchSync.orientation);
-    if (branchSync.warning) {
-      lines.push(branchSync.warning);
-    }
     const durationMs = elapsedMs(stepStarted);
     quickSteps.branch_policy = ritualStep({
       ok,
@@ -1553,6 +1548,12 @@ export function runSessionStart(
     stepTimings.push({ name: "branch_policy", duration_ms: durationMs });
   } else {
     stepTimings.push({ name: "branch_policy", duration_ms: 0, skipped: true });
+  }
+  // Orientation is independent of branch_policy deferral (#4291 / Greptile).
+  const branchSync = defaultBranchSync(projectRoot, runGit);
+  lines.push(branchSync.orientation);
+  if (branchSync.warning) {
+    lines.push(branchSync.warning);
   }
   // Standing disclosure is independent of branch_policy deferral (#3314 / Greptile).
   pushCoverageCheckResumeDisclosure(lines, projectRoot);
