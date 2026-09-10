@@ -1,0 +1,204 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4293",
+    "updated": "2026-09-10T16:59:32Z"
+  },
+  "plan": {
+    "title": "bug(pr,docs-impact): custom --body-file PRs skip the template declaration and fail merge-gate",
+    "status": "completed",
+    "narratives": {
+      "Description": "Custom gh pr create bodies skip the GitHub PR template, so verify:docs-impact first fails in CI. The local verifier already exists; every explicit-body opener must seed the template block and verify those same bytes before upload.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4293",
+      "Overview": "## Problem\n\n`verify:docs-impact` (#4099) is a merge-gate fail-closed check. The GitHub PR template already contains the required block (`change_class` / `surfaces` / `rationale`). Agents still open PRs without it.\n\nCause: `gh pr create --body-file` (and Windows UTF-8 body files) replace the template instead of filling it. Pre-PR (`deft-directive-pre-pr`) never runs `verify:docs-impact`. Local `task check` does not require a PR body. First failure is CI merge-gate, then a body PATCH + job re-run.\n\n#4099 shipped the gate. This is the recurrence that the template-only contract does not catch.\n\n## Recurrence\n\n- PR 4292 (2026-09-09): TypeScript green after leftover #3785 complete; merge-gate `verify:docs-impact` failed `missing documentation-impact declaration`. Body patched after the fact; failed jobs re-run.\n- Same search class on leftover-complete / lifecycle PRs that use a custom `--body-file` (e.g. 4280, 4282, 4287, 4256, 4262). Operator report: this has happened a number of times.\n\n## Acceptance\n\n- Opening a PR (or the body-file passed to `gh pr create` / `deft scm` PR create) MUST carry a parseable docs-impact declaration before CI. `task verify:docs-impact --body-file` on that file is the local gate.\n- Pre-PR / review-cycle / swarm PR-open path names that check. A custom `--body-file` is not an exemption.\n- Merge-gate stays fail-closed. Do not weaken `verify:docs-impact` or accept a missing block because the GitHub template exists.\n- Regression: a body with Summary/Closes but no `change_class` / `no user-doc impact` fails locally the same way CI does.\n\n## Non-goals\n\n- Reopening #4099 (the declared-versus-touched contract).\n- Auto-inventing `change_class` from the diff (still a human/agent declaration).\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-10T02:11:11Z)\n\nmodel: grok-4.6\r\nrole: triage\r\n\r\nmechanism-shaped: true\r\ndesign-critique: warranted, because the lean is a PR-open gate recording obligation (local verify:docs-impact on the body-file before CI)\r\nrefutation-target: custom --body-file on gh pr create / deft scm PR create replaces the GitHub PR template, so a parseable docs-impact declaration is absent until CI verify:docs-impact fails; Pre-PR never runs that check and local task check does not require a PR body.\r\narc-mode: no-ingest\r\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4293\r\norigin-ref: origin/HEAD\r\ndispatch-sha: 50f62f76b85b97f69377e96575b5567101903133\r\n\r\ncharter: refutation\r\nspend: N=1\r\nwhy: the body names a defensible presumption with a refutation target; default motion\r\ntarget shape: single issue\r\n\r\n## Scope recorded\r\n\r\nIssue 4293. Dest created this session: git fetch origin; git worktree add --detach at origin/HEAD. Parent unclaimed on primary. Ingest is not this motion.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:28:23Z)\n\nmodel: grok-4.6\nrole: critic\n\nPin: dest HEAD 50f62f76b85b97f69377e96575b5567101903133. Ceiling: triage 5611613768. Charter: refutation.\n\n## Refutation verdict\n\nThe recorded target survives as a factual claim. It is incomplete as a causal account.\n\nRe-verified at the pin:\n\n- `content/scm/github.md` Standing gh CLI Rules require `--body-file` for any multi-line PR body. GitHub CLI uses that file as the whole body; it does not fill `.github/PULL_REQUEST_TEMPLATE.md`.\n- `content/skills/deft-directive-pre-pr/SKILL.md` never names `verify:docs-impact`. Phase 4 names `task pr:check-closing-keywords` with `--body-file` as the existing PR-body local gate.\n- `Taskfile.yml` `check:framework-source` wires `verify:closing-keywords` and `docs:capability-map:check`. It does not wire `verify:docs-impact`. That CLI refuses a missing `--pr` / `--body-file` (`docs-impact.ts` `docsImpactMain`, exit 2).\n- `.github/workflows/ci.yml` runs `task verify:docs-impact -- --pr` after `task check:merge` on `pull_request`.\n\nThe local verifier already exists. `--body-file` transport is in `packages/core/src/docs/docs-impact.ts`. A Summary-only body fails that parser (`missing documentation-impact declaration`); unit coverage is `docs-impact.test.ts` \"rejects missing declaration\".\n\n## 1. Named paths miss the measured openers\n\n`sharpens-framing`\n\nEvidence: Issue 4293 names leftover-complete / lifecycle PRs (4292, 4280, 4282, 4287, 4256, 4262) and then asks Pre-PR / review-cycle / swarm PR-open to name the check. PR 4292 and PR 4280 are operator leftover-complete bodies, not swarm-story pre-pr. `packages/core/src/swarm/finalize-cohort.ts` `pushAndOpenPr` builds a Summary/Test-plan string and calls `gh pr create --body` with no declaration. `content/scm/github.md` standing example is `gh pr create --body-file` with agent-authored content. Review-cycle Phase 1 item 5 already asks that the GitHub PR template checklist be satisfied, after the PR exists. Hooks have no docs-impact scan.\n\nFailure mode: implementers add the check to those three skills and treat AC as done. Leftover-complete and finalize-cohort still open PRs without the block. CI still fails. The named recurrence class does not run pre-pr.\n\nDisposition: bind the opening-PR MUST onto every opener that supplies an explicit body, including the github.md standing recipe, leftover-complete, and finalize-cohort. Do not treat skill naming in pre-pr / review-cycle / swarm story-open as the remedy.\n\n## 2. The hole is invocation and byte identity, not a missing verifier; deft scm PR create is not a current opener\n\n`sharpens-framing`\n\nEvidence: `task verify:docs-impact` already accepts `--body-file` (`tasks/verify.yml` docs-impact). `tasks/scm.yml` has `body:pr:edit`. It has no PR create. `scm:pr:create` appears only in historical `docs/harness-is-everything-deft-plan.md`. Closing-keywords already shows the analog: skill `--body-file` first, then mechanical wiring into the check graph and branch-gate because skill-only did not hold.\n\nFailure mode: AC names `gh pr create / deft scm PR create` as if the second verb exists. A two-step run-the-check then create lets an agent verify file A and upload file B. A new create verb is a new mechanism, not an inventory hit.\n\nDisposition: keep the existing verifier. If the lean wants fail-closed before CI, bind one path object that is both the verified bytes and the create/edit payload. Do not write AC as if `scm:pr:create` already opens PRs.\n\n## 3. The template is the unused seed; --body and --fill also replace it\n\n`sharpens-framing`\n\nEvidence: `.github/PULL_REQUEST_TEMPLATE.md` and `content/templates/PULL_REQUEST_TEMPLATE.md` already ship `change_class` / `surfaces` / quoted `rationale`. github.md forbids dropping `--body-file`, so the template never loads unless that file starts from the template. `finalize-cohort.ts` uses `--body`. `packages/core/src/init-deposit/hygiene.ts` prints `gh pr create --fill`. Parser accepts `no user-doc impact` anywhere; leftover-complete diffs typically do not add or remove a closed surface, so a seeded `change_class: none` would pass declared-versus-touched.\n\nFailure mode: verify-only still requires every opener to remember the block. Agents keep writing Summary/Closes, fail, then PATCH. `--body-file` is not a special exemption; any explicit body skips the template. Seeding `none` and never updating it still fails closed when a closed surface actually moves, because `evaluateDocsImpact` refuses `no user-doc impact` on add/remove.\n\nDisposition: compose the existing template into the body-file (or `--body` payload), then run the existing `--body-file` verifier on those same bytes. Do not treat name-the-check as a substitute for seeding the block that #4099 already put in the template.\n\n## Injection / swarm lens\n\nTriggered: PR-open envelopes, untrusted body text, swarm finalize-cohort shared create path.\n\nThe body is untrusted data. The current parser already treats rationale as length-bounded data and never as a gate input; keep that. Do not add prompt-like interpretation of rationale. A skill-only envelope change is skippable and is not a concurrency control. finalize-cohort is the code path that will keep shipping declaration-free bodies under parallel cohort close unless that function changes. Check-file-A / create-file-B is the identity split under concurrent workers.\n\n## Road not taken\n\nVerify-only (reuse `verify:docs-impact --body-file`, same parser as CI) versus seed-from-template then verify versus a new create wrapper.\n\nSteelman of verify-only: it is method-identical to CI and matches the closing-keywords pre-pr slot. What flips it: the named recurrence is leftover-complete / finalize-cohort, which do not run that slot. Seed-then-verify uses a mechanism that already exists and still fails closed on a real closed-surface add/remove.\n\n## Footnotes\n\n- `footnote` PR 4292 first SHA `2122527f` merge-gate annotation is `verify:completed-write-guard` (exit 201), not docs-impact. docs-impact is the next step in the same job; a red `check:merge` skips it. The missing-declaration class remains real in the parser; this exemplar first red merge-gate was a different gate.\n- `footnote` Review-cycle Phase 1 template-checklist audit is post-create. It cannot fail-left, and leftover-complete often never enters that skill.\n\nCensus: 0 `blocks-the-design`, 3 `sharpens-framing`, 2 `footnote`.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:29:02Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe recorded cause is true as far as it goes: an explicit PR body skips the GitHub template, so `verify:docs-impact` first fails in CI. It is not the whole account. The local verifier and `--body-file` transport already exist. Pre-PR never names that check, and leftover-complete plus `finalize-cohort` open PRs without running Pre-PR at all. `deft scm PR create` is not a current opener. `--body` and `--fill` skip the template the same way `--body-file` does.\n\nConfirming this map recuts 4293. Keep the existing verifier. Bind the opening-PR MUST onto every opener that supplies an explicit body, including the github.md standing recipe, leftover-complete, and finalize-cohort. Seed the existing template block into those bytes, then run `verify:docs-impact --body-file` on the same object that is uploaded. Do not treat naming the check in three skills as the remedy, and do not write AC as if a create verb already exists.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4293 after critic 5611744798. Round 1 siblings dispatched: 1. Supersedes write-back 5611613768.\n\nTarget-digest: sha256:7d8c89b33b9633a0c1b0c3f51cb234f2231e3cdda85c11e21d8b320e5980691c\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4293\ndispatch-sha: 50f62f76b85b97f69377e96575b5567101903133\n\n## Bound remedy\n\n- Bind the opening-PR MUST onto every opener that supplies an explicit body, including the github.md standing recipe, leftover-complete, and finalize-cohort. Do not treat skill naming in pre-pr / review-cycle / swarm story-open as the remedy.\n- Keep the existing `verify:docs-impact` verifier and `--body-file` transport. Fail-closed before CI means one path object that is both the verified bytes and the create/edit payload. Do not write AC as if `scm:pr:create` already opens PRs.\n- Compose the existing PR template (`change_class` / `surfaces` / `rationale`) into that body-file or `--body` payload, then run `verify:docs-impact --body-file` on those same bytes. Do not treat name-the-check as a substitute for seeding the block #4099 already put in the template.\n\n### Takes (critic 5611744798)\n\n- 1 Named paths miss the measured openers — accept-into-contract\n- 2 The hole is invocation and byte identity, not a missing verifier; deft scm PR create is not a current opener — accept-into-contract\n- 3 The template is the unused seed; --body and --fill also replace it — accept-into-contract\n\nAccepted set: 1-3. Still-open residual: none. Footnotes are census only.\n\nNon-self-arbitration: this parent authored Stop 1 5611613768. The critic was a same-family grok-4.6 plan child; parent posted the critic body after the skip-class seat could not shell. These takes are not independent confirmation.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:38:27Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Pre-PR never names verify:docs-impact. Leftover-complete PRs and finalize-cohort `pushAndOpenPr` open with Summary/Test-plan and `gh pr create --body`, not the template block | Critic git show 50f62f76:content/skills/deft-directive-pre-pr/SKILL.md, packages/core/src/swarm/finalize-cohort.ts, content/scm/github.md; parent re-read pre-pr this session | measured |\n| 2 | `verify:docs-impact --body-file` already exists. `tasks/scm.yml` has `body:pr:edit` and no PR create. `scm:pr:create` is historical only | Critic git show 50f62f76:tasks/verify.yml, tasks/scm.yml, packages/core/src/docs/docs-impact.ts | measured |\n| 3 | `.github/PULL_REQUEST_TEMPLATE.md` already ships `change_class` / `surfaces` / `rationale`. Standing `--body-file` and `--body` / `--fill` skip that seed. Parser already refuses a missing declaration | Critic git show 50f62f76:.github/PULL_REQUEST_TEMPLATE.md, packages/core/src/init-deposit/hygiene.ts, packages/core/src/docs/docs-impact.test.ts | measured |\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1 5611613768. Critic 5611744798 was a same-family plan child; parent posted that body after the skip-class seat could not shell.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:38:48Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe recorded cause is true and incomplete. Confirming the map recuts 4293: keep the existing verifier, bind every explicit-body opener (github.md standing recipe, leftover-complete, finalize-cohort), seed the template block into those bytes, and run verify:docs-impact on the same object that is uploaded. Naming the check in three skills is not the remedy. scm:pr:create is not a current opener.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5611749608 and verified-claims table 5611822631.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1 5611613768. Critic 5611744798 was a same-family plan child. Yolo with empty parent-critic disagreement is the confirm. Round 1 complete, N=1, ceiling 5611613768.",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a maintainer, I want every explicit PR body to carry a parseable docs-impact declaration before CI, so that leftover-complete and finalize-cohort PRs do not fail the merge-gate after open.",
+      "ImplementationPlan": "1. Compose the existing PULL_REQUEST_TEMPLATE docs-impact block into the github.md standing --body-file recipe and finalize-cohort pushAndOpenPr body file. 2. Run task verify:docs-impact --body-file on that same file object before gh pr create, and add a regression test that a Summary-only body fails the parser."
+    },
+    "items": [
+      {
+        "title": "Bind opening-PR MUST onto every explicit-body opener",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an explicit PR body from github.md standing recipe leftover-complete or finalize-cohort, when the opener runs, then those same bytes include a parseable docs-impact declaration and verify:docs-impact --body-file on that file returns 0.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/docs/docs-impact.test.ts",
+          "recorded_at": "2026-09-10T16:43:37Z",
+          "recorded_by": "leaf-implementation/4293"
+        }
+      },
+      {
+        "title": "Keep existing verifier and same-object byte identity",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the existing verify:docs-impact --body-file transport, when a PR is created or edited, then the verified file object is the payload uploaded; the path does not invent scm:pr:create.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/docs/docs-impact.test.ts",
+          "recorded_at": "2026-09-10T16:43:37Z",
+          "recorded_by": "leaf-implementation/4293"
+        }
+      },
+      {
+        "title": "Seed template block then verify the same bytes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given .github/PULL_REQUEST_TEMPLATE.md change_class surfaces rationale, when an opener supplies --body-file or --body or --fill, then it composes that block into the payload and the same bytes pass verify:docs-impact.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-09-10T16:43:37Z",
+          "recorded_by": "leaf-implementation/4293"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4293",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4293: bug(pr,docs-impact): custom --body-file PRs skip the template declaration and fail merge-gate"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "verify:docs-impact --body-file",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/scm/github.md",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/docs/docs-impact.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/docs/docs-impact.test.ts"
+        ],
+        "expected_outputs": [
+          "github.md standing recipe seeds the template docs-impact block into the body file",
+          "finalize-cohort pushAndOpenPr verifies the same body bytes before gh pr create",
+          "Summary-only body fails verify:docs-impact --body-file locally the same way CI does"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-impact-pr-open",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from GitHub issue #4293 bound-remedy harvest; no spec-section requirement trace applies."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5402010933,
+        "origin": "deftai/directive#4293",
+        "id": "github.issue.5402010933"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7d8c89b33b9633a0c1b0c3f51cb234f2231e3cdda85c11e21d8b320e5980691c"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4312,
+        "prBase": null,
+        "mergeCommit": "353305616e238ad97a39c5854e8c778cc8785d11",
+        "deliveryBranch": "master",
+        "deliveryCommit": "353305616e238ad97a39c5854e8c778cc8785d11",
+        "verifiedAt": "2026-09-10T16:59:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhjMDUtNGQ1NS03YjMxLThkZmEtZjVlNThkNDdlNDM2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T16:59:32Z"
+      },
+      "completedAt": "2026-09-10T16:59:32Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhjMDUtNGQ1NS03YjMxLThkZmEtZjVlNThkNDdlNDM2",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bind the opening-PR MUST onto every opener that supplies an explicit body, including the github.md standing recipe, leftover-complete, and finalize-cohort. Do not treat skill naming in pre-pr / review-cycle / swarm story-open as the remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep the existing `verify:docs-impact` verifier and `--body-file` transport. Fail-closed before CI means one path object that is both the verified bytes and the create/edit payload. Do not write AC as if `scm:pr:create` already opens PRs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Compose the existing PR template (`change_class` / `surfaces` / `rationale`) into that body-file or `--body` payload, then run `verify:docs-impact --body-file` on those same bytes. Do not treat name-the-check as a substitute for seeding the block #4099 already put in the template.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "1 Named paths miss the measured openers — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "2 The hole is invocation and byte identity, not a missing verifier; deft scm PR create is not a current opener — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "3 The template is the unused seed; --body and --fill also replace it — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5402010933",
+    "updated": "2026-09-10T16:59:32Z"
+  }
+}
