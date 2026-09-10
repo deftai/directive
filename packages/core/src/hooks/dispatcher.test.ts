@@ -20,8 +20,11 @@ import {
 } from "../session/occupancy.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
+import { SPAWN_CLASS_RECOVERY } from "./readonly.js";
 import {
   ASSIST_SESSION_POSTURE_ENV,
+  CURSOR_TASK_SPAWN_CLASS_RECOVERY,
+  CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
   DIRECT_WRITE_TOOL_NAMES,
   decideHook,
   type HookPolicySeams,
@@ -4728,5 +4731,106 @@ describe("git-destructive fence (#3917)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "git-destructive-deny" });
+  });
+});
+
+describe('Cursor Task parallel review spawn class (#4321)', () => {
+  function destMissingTask(subagentType: string, extraInput: Record<string, unknown> = {}) {
+    return decideHook(
+      {
+        host: 'cursor',
+        event: 'tool.before',
+        projectRoot: '/project',
+        payload: {
+          cwd: '/linked/worktree',
+          tool_name: 'Task',
+          tool_input: {
+            subagent_type: subagentType,
+            prompt: 'Review Full Repository Path: /linked/worktree at SHA abc',
+            ...extraInput,
+          },
+        },
+        environ: { DEFT_SESSION_ID: 'parent-1' },
+      },
+      readySeams(),
+    );
+  }
+
+  it('does not dest-skip bugbot, security-review, or unmarked generalPurpose', () => {
+    for (const type of ['bugbot', 'security-review', 'generalPurpose']) {
+      const decision = destMissingTask(type);
+      expect(decision).toMatchObject({ verdict: 'deny', code: 'spawn-not-ready' });
+      expect(decision.code).not.toBe('spawn-explore-ready');
+      expect(decision.code).not.toBe('spawn-ephemeral-ready');
+      expect(decision.message).toContain('no worktree destination');
+    }
+  });
+
+  it('does not bind prompt-path dest or inherited parent cwd', () => {
+    const decision = destMissingTask('bugbot');
+    expect(decision).toMatchObject({ verdict: 'deny', code: 'spawn-not-ready' });
+    expect(decision.message).toContain('no worktree destination');
+  });
+
+  it('keeps implement-class dest fail-closed', () => {
+    const decision = destMissingTask('generalPurpose', { prompt: 'implement the story' });
+    expect(decision).toMatchObject({ verdict: 'deny', code: 'spawn-not-ready' });
+    expect(decision.message).toContain('own worktree');
+  });
+
+  it('allows explore as the Cursor Task read-only hatch without dest', () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => READY_SCOPE);
+    const decision = decideHook(
+      {
+        host: 'cursor',
+        event: 'tool.before',
+        projectRoot: '/project',
+        payload: { tool_name: 'Task', tool_input: { subagent_type: 'explore' } },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: 'allow', code: 'spawn-explore-ready' });
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it('does not advertise Grok-only plan as a Cursor Task dest-missing recovery', () => {
+    const decision = destMissingTask('generalPurpose');
+    expect(decision.message).toContain(CURSOR_TASK_SPAWN_CLASS_RECOVERY);
+    expect(decision.message).not.toContain(SPAWN_CLASS_RECOVERY);
+    expect(decision.message).toMatch(/read-only spawn/);
+    expect(decision.message).not.toMatch(/read-only research/);
+    expect(decision.message).toMatch(/Do not retry subagent_type plan on Cursor Task/);
+    const parentIdx = decision.message.indexOf('Continue in the parent');
+    const exploreIdx = decision.message.search(/subagent_type explore/i);
+    expect(parentIdx).toBeGreaterThanOrEqual(0);
+    expect(exploreIdx).toBeGreaterThan(parentIdx);
+    expect(decision.message).not.toMatch(/DEFT_SESSION_POSTURE/);
+  });
+
+  it('points read-only Cursor Task deny at explore, not plan', () => {
+    const decision = decideHook(
+      {
+        host: 'cursor',
+        event: 'tool.before',
+        projectRoot: '/project',
+        payload: {
+          tool_name: 'Task',
+          tool_input: { subagent_type: 'generalPurpose', isolation: 'worktree' },
+        },
+        environ: { [READ_ONLY_HOOK_ENV]: '1' },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: 'deny', code: 'read-only-deny' });
+    expect(decision.message).toContain(CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY);
+    expect(decision.message).toMatch(/read-only spawn/);
+    expect(decision.message).toMatch(/Do not retry subagent_type plan on Cursor Task/);
+    expect(decision.message).not.toMatch(/or subagent_type plan/);
+    const parentIdx = decision.message.indexOf('Continue in the parent');
+    const exploreIdx = decision.message.search(/subagent_type explore/i);
+    expect(exploreIdx).toBeGreaterThanOrEqual(0);
+    expect(parentIdx).toBeGreaterThan(exploreIdx);
   });
 });

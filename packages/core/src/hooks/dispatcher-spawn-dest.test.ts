@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { readSpawnReservationIncarnation } from "../session/spawn-occupancy.js";
-import { decideHook, type HookPolicySeams, spawnToolArgUpdatedInput } from "./index.js";
-import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
+import { CURSOR_TASK_SPAWN_CLASS_RECOVERY, CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY, decideHook, type HookPolicySeams, spawnToolArgUpdatedInput } from "./index.js";
+import { isExploreSpawn } from "./readonly.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -632,7 +632,7 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
       readySeams({ inspectRitual }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
-    expect(decision.message).toContain(SPAWN_CLASS_RECOVERY);
+    expect(decision.message).toContain(CURSOR_TASK_SPAWN_CLASS_RECOVERY);
     const parentIdx = decision.message.indexOf("Continue in the parent");
     const exploreIdx = decision.message.search(/subagent_type explore/i);
     expect(parentIdx).toBeGreaterThanOrEqual(0);
@@ -694,9 +694,10 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
+    expect(decision.message).toContain(CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY);
     expect(decision.message).toMatch(/subagent_type explore/);
-    expect(decision.message).toMatch(/subagent_type plan/);
-    expect(decision.message).toMatch(/assist \/ ephemeral/);
+    expect(decision.message).toMatch(/Do not retry subagent_type plan on Cursor Task/);
+    expect(decision.message).not.toMatch(/or subagent_type plan/);
     const parentIdx = decision.message.indexOf("Continue in the parent");
     const exploreIdx = decision.message.search(/subagent_type explore/i);
     expect(exploreIdx).toBeGreaterThanOrEqual(0);
