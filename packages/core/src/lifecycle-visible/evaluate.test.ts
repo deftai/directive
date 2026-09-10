@@ -740,6 +740,8 @@ describe("formatLifecycleVisibleSessionLines (#3505)", () => {
           line: 33,
           rule: "xbrief/active/",
           raw: ".git/info/exclude:33:xbrief/active/\txbrief/active/",
+          probe: "xbrief/active/story.xbrief.json",
+          candidateRule: "xbrief/active/",
         },
         {
           path: "xbrief/active/story.xbrief.json",
@@ -754,7 +756,7 @@ describe("formatLifecycleVisibleSessionLines (#3505)", () => {
       failOpen: true,
     });
     expect(lines[0]).toBe(
-      "[deft lifecycle-visible] hidden xbrief/active/  (.git/info/exclude:33:xbrief/active/)",
+      "[deft lifecycle-visible] hidden xbrief/active/  (.git/info/exclude:33:xbrief/active/; probe xbrief/active/story.xbrief.json; candidate xbrief/active/)",
     );
     expect(lines[1]).toBe(
       "[deft lifecycle-visible] skip-worktree on xbrief/active/story.xbrief.json",
@@ -781,7 +783,7 @@ describe("formatLifecycleVisibleSessionLines (#3505)", () => {
       failOpen: true,
     });
     expect(lines[0]).toBe(
-      "[deft lifecycle-visible] hidden xbrief/active/  (.gitignore:xbrief/active/)",
+      "[deft lifecycle-visible] hidden xbrief/active/  (.gitignore:xbrief/active/; probe xbrief/active/; candidate xbrief/active/)",
     );
   });
 });
@@ -1116,6 +1118,8 @@ describe("convention-valid derived probes (#4310)", () => {
   });
 
   it("rejects a derived probe whose expanded name is not convention-valid", () => {
+    expect(derivedProbeIsEmitable("")).toBe(false);
+    expect(derivedProbeIsEmitable("/")).toBe(false);
     expect(derivedProbeIsEmitable(`xbrief/pending/${LIFECYCLE_PROBE_STEM}.xbrief.json`)).toBe(
       false,
     );

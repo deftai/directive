@@ -514,11 +514,9 @@ function formatFinding(finding: LifecycleHideFinding): string {
       finding.line === null
         ? `${finding.source}:${finding.rule}`
         : `${finding.source}:${finding.line}:${finding.rule}`;
-    const extras: string[] = [];
-    if (finding.probe) extras.push(`derived probe ${finding.probe}`);
-    if (finding.candidateRule) extras.push(`candidate rule ${finding.candidateRule}`);
-    const suffix = extras.length > 0 ? ` (${extras.join("; ")})` : "";
-    return `  ${finding.path}  ignored by ${loc}${suffix}`;
+    const probe = finding.probe ?? finding.path;
+    const candidate = finding.candidateRule ?? finding.rule;
+    return `  ${finding.path}  ignored by ${loc} (derived probe ${probe}; candidate rule ${candidate})`;
   }
   return `  ${finding.path}  ${finding.kind} (${finding.source})`;
 }
@@ -674,9 +672,7 @@ function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleH
   const derived = derivedRecords.map((record) => record.path);
   const candidateByProbe = new Map<string, string>();
   for (const record of derivedRecords) {
-    if (!candidateByProbe.has(record.path)) {
-      candidateByProbe.set(record.path, record.candidateRule);
-    }
+    candidateByProbe.set(record.path, record.candidateRule);
   }
   const probes = [
     ...new Set([
@@ -765,11 +761,9 @@ export function formatLifecycleVisibleSessionLines(result: LifecycleVisibleResul
         finding.line === null
           ? `${finding.source}:${finding.rule}`
           : `${finding.source}:${finding.line}:${finding.rule}`;
-      const extras: string[] = [];
-      if (finding.probe) extras.push(`probe ${finding.probe}`);
-      if (finding.candidateRule) extras.push(`candidate ${finding.candidateRule}`);
-      const suffix = extras.length > 0 ? `; ${extras.join("; ")}` : "";
-      return `[deft lifecycle-visible] hidden ${finding.path}  (${loc}${suffix})`;
+      const probe = finding.probe ?? finding.path;
+      const candidate = finding.candidateRule ?? finding.rule;
+      return `[deft lifecycle-visible] hidden ${finding.path}  (${loc}; probe ${probe}; candidate ${candidate})`;
     }
     return `[deft lifecycle-visible] ${finding.kind} on ${finding.path}`;
   });
