@@ -175,15 +175,18 @@ task test:coverage
 
 ### The `task check` Gate
 
-! `task check` is the **authoritative pre-commit gate**. It runs validation, linting, and the full test suite in sequence:
+! `task check` is the **merge chokepoint**. Run the full suite once before push/PR (and again after a review-cycle fix batch). It runs validation, linting, and the full test suite:
 
 ```bash
 task check    # runs: validate + lint + test
 ```
 
-! A passing `task check` is the **definition of ready-to-commit**. Do not commit unless `task check` passes.
+! Checkpoint commits use the iteration lane (`vitest run` on changed paths, `task coverage:hotspots`, `task verify:forward-coverage`). Full `task check` is the push/PR chokepoint, not a per-commit gate (#1704). The MUST/forbids per-commit gate that used to sit here was a #4135 regression: that refresh added the iteration-lane SHOULD beside an older ready-to-commit MUST, so RFC2119 still required the full suite before every commit.
 
-⊗ Commit code that has not passed `task check`.
+! Re-run full `task check` only after a red merge chokepoint or a new commit.
+
+⊗ Require full `task check` before every checkpoint commit.
+⊗ Skip the merge-chokepoint `task check` because the iteration lane passed.
 
 ### Telemetry coverage (#3362)
 
@@ -210,8 +213,6 @@ pnpm exec vitest run --coverage <paths>   # iteration lane on changed modules
 
 ! When a test you write exceeds ~1s, refactor it to use injected clocks / fake timers so it runs in milliseconds. Do not add a pytest slow marker; that lane does not exist on this tree.
 
-~ During implementation, use the iteration lane (`vitest run` on changed paths, `task coverage:hotspots`, `task verify:forward-coverage`) rather than full `task check` on every commit (#1704). Run full `task check` once before push/PR.
-
 ~ When profiling a suite that feels slow, run `pnpm exec vitest run <file> --reporter=verbose` (or the equivalent `task` invocation) and look at wall-clock. If a single test exceeds 1s, refactor it before merging.
 
 ⊗ Hide flaky tests behind a slow marker or skip -- flaky tests should be fixed at the root cause.
@@ -231,7 +232,7 @@ Useful local commands:
 ```bash
 task session:start             # Session ritual
 task doctor                    # Check system dependencies
-task check                     # Authoritative pre-commit gate
+task check                     # merge chokepoint -- full gate
 task project:render            # Refresh project definition exports
 ```
 

@@ -277,7 +277,9 @@ Multi-iteration implement-fix and pre-PR polish loops MUST carry **both** a succ
 |------------|--------------|----------------------|
 | Implement / quality fix (tests, lint, typecheck, coverage, AC) | Affected/static gates green for the change; AC met | **max 5** fix iterations **or** **3** consecutive identical outcomes (same failing command + same primary error class) with no material code/config change |
 | Pre-PR polish (`deft-directive-pre-pr` Read-Write-Lint-Diff) | Full pass with zero further edits | **max 3** polish passes **or** **2** consecutive no-diff / same-diff outcomes |
-| Full `task check` re-run after a red merge chokepoint | `task check` green | Counts toward the implement/quality fix envelope above (do not open a separate unbounded check-retry loop) |
+| Full `task check` re-run | `task check` green after a red merge chokepoint or a new commit | Counts toward the implement/quality fix envelope above (do not open a separate unbounded check-retry loop) |
+
+- ! Re-run full `task check` only after a red merge chokepoint or a new commit.
 
 **On failure stop:**
 

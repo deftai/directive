@@ -64,11 +64,12 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 
 > **Invariant:** every change MUST pass the full gate at least once before merge. Pre-PR is the merge chokepoint — NOT every iteration commit.
 
-- ! **Iteration lane (Phases 2–3 loop):** use affected/static gates on changed paths — `vitest run --coverage <paths>`, relevant `verify:*` on touched files, `task coverage:hotspots` — instead of full `task check` on every pre-PR iteration.
-- ! **Merge chokepoint (Phase 3 Lint exit + final confirm):** run full `task check` once before push/PR; Phase 3c targeted coverage precedes but does not replace the full gate.
+- ! **Iteration lane (Phases 2–3 loop):** use affected/static gates on changed paths — `vitest run --coverage <paths>`, relevant `verify:*` on touched files, `task coverage:hotspots` — instead of full `task check` on every pre-PR iteration. Phase 3 sits inside this loop, so it uses the iteration lane, not a full suite.
+- ! **Merge chokepoint (once after the loop, before push/PR):** run full `task check` once before push/PR. This is a #1704 revision of the prior Phase 3 Lint exit + final confirm (two runs, one inside every iteration). The escape-rate guard below still applies; do not invent a separate surface.
 - ! **Escape-rate safety (#1703 Tier-1):** before recommending fleet-wide fast-lane tightening, cite `#1703` Tier-1 telemetry (`helped/crud-metrics.jsonl`) and `task eval:health` — do NOT invent a separate escape-rate surface.
 - ~ **In-engine incrementality (#1713):** content-hash cache + runner-delegated affected selection are sibling work (#1713).
 - ⊗ Treat Phase 3c targeted coverage alone as PR-ready without full `task check` at the merge chokepoint.
+- ⊗ Run full `task check` inside every pre-PR Phase 3 iteration — Phase 3 is inside the loop; the chokepoint is once after exit.
 
 ## When to Use
 
@@ -90,6 +91,7 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 - ~ If changed files include `xbrief/PROJECT-DEFINITION.xbrief.json`, a configured `codebase-map` provider artifact, or `.planning/codebase/MAP.md`, read the MAP and canonical metadata together. The MAP is orientation; `plan.architecture.codeStructure` and provider artifacts remain authoritative.
 - ! When adding a `!` or `⊗` rule that prohibits a specific command, pattern, or behavior, search the same file for any `~`, `≉`, or prose that recommends or permits the same command/pattern -- resolve all contradictions in the same commit before pushing
 - ! When strengthening a rule (e.g. upgrading `~` to `!`), grep for the term in the full file and verify no weaker-strength duplicate remains
+- ! When adding a weaker rule (`~`, `≉`, or prose that recommends or permits a command/pattern) beside an existing `!` or `⊗` for the same command/pattern in the same file, resolve the contradiction in the same commit — weaken-beside-a-MUST is the same-commit reconcile as adding or strengthening a MUST (#4135 / #4324)
 - ~ Note any inconsistencies, missing RFC2119 markers, stale cross-references, or incomplete sections
 - ~ Check that CHANGELOG.md entries match the actual changes made
 - ! If the change alters **user-visible behavior**, apply [coding/docs.md](../../coding/docs.md) (#447): update the matching user-facing surface (CHANGELOG when user/operator-visible, CLI help / commands.md for new or changed verbs/flags, README/getting-started for install/first-run, skill/strategy triggers when entry points change) in this PR
@@ -108,9 +110,9 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 
 ### Phase 3 -- Lint
 
-! Run the merge-chokepoint gate and fix any failures (#1704).
+! Run the iteration-lane gates and fix any failures (#1704). Full `task check` is the post-loop merge chokepoint, not this per-iteration phase.
 
-- ! Run full `task check` (fmt + lint + typecheck + tests + coverage + verify:*) — the merge chokepoint, not every pre-PR iteration
+- ! Run affected/static gates on changed paths (`vitest run --coverage <paths>`, relevant `verify:*`, `task coverage:hotspots`) — not full `task check` inside the loop
 - ! Fix all failures before proceeding to Phase 3b
 - ~ If a lint fix requires changing a file, that counts as a change for the Loop phase
 
@@ -210,7 +212,10 @@ A red product verification may be resolved only by a product change or an indepe
 ! Exit when a complete Read-Write-Lint-Diff cycle produces **zero changes** -- no file edits in Write, no lint fixes in Lint, and no scope issues in Diff.
 
 After exiting:
-- ! Run `task check` one final time to confirm clean state
+- ! Run full `task check` once — the merge chokepoint. Phase 3 used the iteration lane, so this is the first full suite in the loop, not a second run.
+- ! If that post-loop `task check` is red and the fix changes files, restart from Phase 1 (Read). Do not only re-run the gate — those edits must pass Read and Diff (#4324).
+- ! After that restart exits with zero changes, run full `task check` once again (recovery after a red merge chokepoint).
+- ! Re-run the full gate only after a red merge chokepoint or a new commit.
 - ~ The branch is now ready for push and PR creation
 
 
@@ -233,6 +238,8 @@ Docs: `docs/decision-log.md`.
 - ⊗ Make out-of-scope fixes during Write -- this introduces scope creep that Diff will flag, forcing another iteration
 - ⊗ Ignore the iteration count -- more than 3 iterations usually indicates oscillating fixes or an unclear spec task
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term
+- ⊗ Add a weaker rule (`~` / `≉`) beside an existing `!` / `⊗` for the same command/pattern without reconciling in the same commit
+- ⊗ After a red post-loop `task check`, fix files and re-run only the gate without restarting Read-Write-Lint-Diff
 - ⊗ Skip `task pr:check-closing-keywords` (#737) before pushing a PR. Intent mode (#3015) also refuses bare/conditional real `Closes #N` without `--allow-close`. The negation-context substring match is the Layer 0 (prevention) gate that prevents the recurring auto-close of umbrella / staying-OPEN issues observed in #697 (closed #642), #401 (closed #642), #700 (closed #233), and #735 (closed #734) -- each incident required manual reopen and downstream cleanup. The lint's three-state exit (0 clean / 1 hits found / 2 config error) MUST be treated as a hard refusal: rewrite the PR body / commit messages until clean, OR pass `--allow-known-false-positives` ONLY for legitimately-quoted occurrences (test fixtures, documentation that discusses the trigger token literally). See `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 for the corresponding Layer 3 (recovery) `pr:check-protected-issues` rule (#701)
 - ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
 - ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)
