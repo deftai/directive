@@ -233,6 +233,10 @@ export interface DefaultBranchSync {
   readonly ahead: number | null;
   readonly behind: number | null;
   readonly warning: string | null;
+  /** Pretty HEAD name (git rev-parse --abbrev-ref HEAD); not the default branch. */
+  readonly head: string | null;
+  /** Always-printed mutation orientation: checkout, HEAD, ahead/behind vs default upstream. */
+  readonly orientation: string;
 }
 
 export interface SessionStartResult {
@@ -566,39 +570,99 @@ function defaultBranchCandidates(projectRoot: string, runGit: GitRunner): string
   return candidates;
 }
 
+function checkoutOrientationLine(
+  checkout: string,
+  head: string | null,
+  ahead: number | null,
+  behind: number | null,
+  upstream: string | null,
+): string {
+  const aheadText = ahead === null ? "unknown" : String(ahead);
+  const behindText = behind === null ? "unknown" : String(behind);
+  const headText = head ?? "unknown";
+  const upstreamText = upstream ?? "unresolved";
+  return (
+    "[deft branch] checkout=" +
+    checkout +
+    " HEAD=" +
+    headText +
+    " ahead=" +
+    aheadText +
+    " behind=" +
+    behindText +
+    " vs " +
+    upstreamText
+  );
+}
+
+function packDefaultBranchSync(
+  projectRoot: string,
+  head: string | null,
+  fields: {
+    branch: string | null;
+    upstream: string | null;
+    ahead: number | null;
+    behind: number | null;
+    warning: string | null;
+  },
+): DefaultBranchSync {
+  return {
+    ...fields,
+    head,
+    orientation: checkoutOrientationLine(
+      projectRoot,
+      head,
+      fields.ahead,
+      fields.behind,
+      fields.upstream,
+    ),
+  };
+}
+
+/** #4291: retarget at HEAD vs the default upstream. Warn when behind, diverged, or 0-ahead/N-behind. Do not refuse on the body's "merged and finished" predicate. Do not add a second ahead/behind helper. */
 export function defaultBranchSync(
   projectRoot: string,
   runGit: GitRunner = defaultGitRunner,
 ): DefaultBranchSync {
+  const headResult = runGit(projectRoot, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const head =
+    headResult.code === 0 && headResult.stdout.trim() !== "" ? headResult.stdout.trim() : null;
+  const pack = (fields: {
+    branch: string | null;
+    upstream: string | null;
+    ahead: number | null;
+    behind: number | null;
+    warning: string | null;
+  }): DefaultBranchSync => packDefaultBranchSync(projectRoot, head, fields);
   const candidates = defaultBranchCandidates(projectRoot, runGit);
   if (candidates.length === 0) {
-    return {
+    return pack({
       branch: null,
       upstream: null,
       ahead: null,
       behind: null,
       warning: "[deft branch] Could not resolve a local default branch (`main` or `master`).",
-    };
+    });
   }
   const branch = candidates[0] ?? null;
   if (!branch) {
-    return {
+    return pack({
       branch: null,
       upstream: null,
       ahead: null,
       behind: null,
       warning: "[deft branch] Could not resolve a local default branch (`main` or `master`).",
-    };
+    });
   }
   const upstreamResult = runGit(projectRoot, ["rev-parse", "--abbrev-ref", `${branch}@{upstream}`]);
   if (upstreamResult.code !== 0 || !upstreamResult.stdout) {
-    return {
+    return pack({
       branch,
       upstream: null,
       ahead: null,
       behind: null,
       warning: `[deft branch] Local ${branch} has no upstream tracking branch.`,
-    };
+    });
   }
   const upstream = upstreamResult.stdout;
   const slash = upstream.indexOf("/");
@@ -607,71 +671,67 @@ export function defaultBranchSync(
   const fetch = runGit(projectRoot, ["fetch", "--quiet", remote, remoteBranch]);
   if (fetch.code !== 0) {
     const detail = fetch.stderr || "remote refresh failed";
-    return {
+    return pack({
       branch,
       upstream,
       ahead: null,
       behind: null,
-      warning: `[deft branch] Could not refresh ${upstream} for local ${branch}: ${detail}`,
-    };
+      warning: `[deft branch] Could not refresh ${upstream} for HEAD: ${detail}`,
+    });
   }
-  const counts = runGit(projectRoot, [
-    "rev-list",
-    "--left-right",
-    "--count",
-    `${branch}...${upstream}`,
-  ]);
+  const counts = runGit(projectRoot, ["rev-list", "--left-right", "--count", `HEAD...${upstream}`]);
   if (counts.code !== 0 || !counts.stdout) {
     const detail = counts.stderr || "ahead/behind count failed";
-    return {
+    return pack({
       branch,
       upstream,
       ahead: null,
       behind: null,
-      warning: `[deft branch] Could not compare local ${branch} with ${upstream}: ${detail}`,
-    };
+      warning: `[deft branch] Could not compare HEAD with ${upstream}: ${detail}`,
+    });
   }
   const parts = counts.stdout.trim().split(/\s+/);
   if (parts.length !== 2) {
-    return {
+    return pack({
       branch,
       upstream,
       ahead: null,
       behind: null,
       warning:
-        `[deft branch] Could not parse branch sync counts for ${branch} ` +
+        `[deft branch] Could not parse branch sync counts for HEAD ` +
         `and ${upstream}: ${counts.stdout}`,
-    };
+    });
   }
   const ahead = Number.parseInt(parts[0] ?? "", 10);
   const behind = Number.parseInt(parts[1] ?? "", 10);
   if (Number.isNaN(ahead) || Number.isNaN(behind)) {
-    return {
+    return pack({
       branch,
       upstream,
       ahead: null,
       behind: null,
       warning:
-        `[deft branch] Could not parse branch sync counts for ${branch} ` +
+        `[deft branch] Could not parse branch sync counts for HEAD ` +
         `and ${upstream}: ${counts.stdout}`,
-    };
+    });
   }
+  const headName = head ?? "HEAD";
   if (ahead === 0 && behind === 0) {
-    return { branch, upstream, ahead, behind, warning: null };
+    return pack({ branch, upstream, ahead, behind, warning: null });
   }
   let warning: string;
   if (ahead > 0 && behind > 0) {
     warning =
-      `[deft branch] Local ${branch} has diverged from ${upstream} ` +
+      `[deft branch] HEAD ${headName} has diverged from ${upstream} ` +
       `(${ahead} ahead, ${behind} behind).`;
-  } else if (behind > 0) {
+  } else if (ahead === 0 && behind > 0) {
     const plural = behind === 1 ? "commit" : "commits";
-    warning = `[deft branch] Local ${branch} is behind ${upstream} by ${behind} ${plural}.`;
+    warning = `[deft branch] HEAD ${headName} is 0 ahead and ${behind} ${plural} behind ${upstream}.`;
   } else {
     const plural = ahead === 1 ? "commit" : "commits";
-    warning = `[deft branch] Local ${branch} is ahead of ${upstream} by ${ahead} ${plural}.`;
+    warning = `[deft branch] HEAD ${headName} is ahead of ${upstream} by ${ahead} ${plural}.`;
   }
-  return { branch, upstream, ahead, behind, warning };
+  return pack({ branch, upstream, ahead, behind, warning });
 }
 
 /**
@@ -1477,10 +1537,6 @@ export function runSessionStart(
     if (humanMergeLine !== null) {
       lines.push(humanMergeLine);
     }
-    const branchSync = defaultBranchSync(projectRoot, runGit);
-    if (branchSync.warning) {
-      lines.push(branchSync.warning);
-    }
     const durationMs = elapsedMs(stepStarted);
     quickSteps.branch_policy = ritualStep({
       ok,
@@ -1492,6 +1548,12 @@ export function runSessionStart(
     stepTimings.push({ name: "branch_policy", duration_ms: durationMs });
   } else {
     stepTimings.push({ name: "branch_policy", duration_ms: 0, skipped: true });
+  }
+  // Orientation is independent of branch_policy deferral (#4291 / Greptile).
+  const branchSync = defaultBranchSync(projectRoot, runGit);
+  lines.push(branchSync.orientation);
+  if (branchSync.warning) {
+    lines.push(branchSync.warning);
   }
   // Standing disclosure is independent of branch_policy deferral (#3314 / Greptile).
   pushCoverageCheckResumeDisclosure(lines, projectRoot);

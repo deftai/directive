@@ -119,6 +119,87 @@ describe("defaultBranchSync branch coverage", () => {
   });
 });
 
+it("prints orientation with checkout, HEAD, and ahead/behind vs default upstream", () => {
+  const root = tmpRoot();
+  let revListSpec: string | undefined;
+  const sync = defaultBranchSync(
+    root,
+    gitStub((args) => {
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "origin/main", stderr: "" };
+      if (args[0] === "rev-parse" && args[2] === "HEAD") {
+        return { code: 0, stdout: "fix/stale", stderr: "" };
+      }
+      if (args[0] === "rev-parse" && args[1] === "--abbrev-ref") {
+        return { code: 0, stdout: "origin/main", stderr: "" };
+      }
+      if (args[0] === "fetch") return { code: 0, stdout: "", stderr: "" };
+      if (args[0] === "rev-list") {
+        revListSpec = args[3];
+        return { code: 0, stdout: "0 64", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    }),
+  );
+  expect(revListSpec).toBe("HEAD...origin/main");
+  expect(sync.head).toBe("fix/stale");
+  expect(sync.ahead).toBe(0);
+  expect(sync.behind).toBe(64);
+  expect(sync.orientation).toContain(`checkout=${root}`);
+  expect(sync.orientation).toContain("HEAD=fix/stale");
+  expect(sync.orientation).toContain("ahead=0");
+  expect(sync.orientation).toContain("behind=64");
+  expect(sync.orientation).toContain("vs origin/main");
+  expect(sync.warning).toContain("0 ahead");
+  expect(sync.warning).toContain("64");
+  expect(sync.warning).toContain("behind");
+});
+
+it("warns on fetch-fail with null counts and does not refuse", () => {
+  const root = tmpRoot();
+  const sync = defaultBranchSync(
+    root,
+    gitStub((args) => {
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "origin/main", stderr: "" };
+      if (args[0] === "rev-parse" && args[2] === "HEAD") {
+        return { code: 0, stdout: "feature", stderr: "" };
+      }
+      if (args[0] === "rev-parse" && args[1] === "--abbrev-ref") {
+        return { code: 0, stdout: "origin/main", stderr: "" };
+      }
+      if (args[0] === "fetch") return { code: 1, stdout: "", stderr: "offline" };
+      return { code: 0, stdout: "", stderr: "" };
+    }),
+  );
+  expect(sync.ahead).toBeNull();
+  expect(sync.behind).toBeNull();
+  expect(sync.warning).toContain("refresh");
+  expect(sync.orientation).toContain("ahead=unknown");
+  expect(sync.orientation).toContain("behind=unknown");
+  expect(sync.orientation).toContain("HEAD=feature");
+});
+
+it("warns when HEAD has diverged from the default upstream", () => {
+  const root = tmpRoot();
+  const sync = defaultBranchSync(
+    root,
+    gitStub((args) => {
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "origin/main", stderr: "" };
+      if (args[0] === "rev-parse" && args[2] === "HEAD") {
+        return { code: 0, stdout: "topic", stderr: "" };
+      }
+      if (args[0] === "rev-parse" && args[1] === "--abbrev-ref") {
+        return { code: 0, stdout: "origin/main", stderr: "" };
+      }
+      if (args[0] === "fetch") return { code: 0, stdout: "", stderr: "" };
+      if (args[0] === "rev-list") return { code: 0, stdout: "2 3", stderr: "" };
+      return { code: 0, stdout: "", stderr: "" };
+    }),
+  );
+  expect(sync.warning).toContain("diverged");
+  expect(sync.orientation).toContain("ahead=2");
+  expect(sync.orientation).toContain("behind=3");
+});
+
 describe("parseDeferrals branch coverage", () => {
   it("normalises step aliases and rejects bad input", () => {
     expect(parseDeferrals(["branch=ok"]).deferrals.branch_policy).toBe("ok");
