@@ -51,7 +51,7 @@ Multi-scope greenfield (app-bank pins, N story scopes) multiplies agent turns wh
 
 ### Quality check once at end of multi-scope batch (#3012)
 
-! On an approved multi-scope batch (operator-approved multi-story branch, swarm cohort, or pin walk): run full `deft check` first, then the tree-correct task form (`task deft:check` on include-only consumers; `task check` in framework source) (merge chokepoint) **once at the end of the batch** (or after the last scope), not after every scope.
+! On an approved multi-scope batch (operator-approved multi-story branch, swarm cohort, or pin walk): run the merge chokepoint **once at the end of the batch** (or after the last scope), not after every scope — prefer `deft check`; if the CLI is missing, use the tree-correct task form (`task deft:check` on include-only consumers; `task check` in framework source). Do not run both.
 ! Exception: if the last full check **failed**, fix loops MAY re-run check until green.
 ! Pre-PR / merge-ready gates remain end-of-unit — this does not weaken them.
 ! Iteration lane (affected tests / `verify:forward-coverage` / `coverage:hotspots`) still applies **per scope** during implementation (#1704).
@@ -259,7 +259,7 @@ All xBRIEFs (including those read from `xbrief/active/` and any new xBRIEFs this
 > **Invariant:** every change MUST pass the full gate at least once before merge. Iteration MAY use a cheaper proxy; the merge chokepoint MUST NOT be skipped.
 
 - ! **Iteration lane (agents + humans):** during implementation commits, use affected/static gates — targeted tests on changed paths (`vitest run --coverage <paths>` or project equivalent), static `verify:*` gates relevant to touched files, and `task coverage:hotspots` / `task verify:forward-coverage` — NOT full `task check` on every commit.
-- ! **Merge chokepoint:** run full `deft check` first, then the tree-correct task form (`task deft:check` on include-only consumers; `task check` / `task check:merge` in framework source) once before push/PR and again when CI merge gate runs. Do not add a fourth probe (#2893 / #4379). A bare `task check` miss on an include-only consumer is not "gate unavailable". Pre-PR skill exit and review-cycle fix batches still require a green full gate.
+- ! **Merge chokepoint:** prefer `deft check` once before push/PR (and again when CI merge gate runs). If the CLI is missing, use the tree-correct task form (`task deft:check` on include-only consumers; `task check` / `task check:merge` in framework source). These are one gate, not two sequential runs. Do not add a fourth probe (#2893 / #4379). A bare `task check` miss on an include-only consumer is not "gate unavailable". Pre-PR skill exit and review-cycle fix batches still require a green full gate.
 - ! **Escape-rate safety (#1703 Tier-1):** before tightening fast-lane defaults fleet-wide, consult `#1703` measurement — `task eval:health` (Tier 0) and Tier-1 session telemetry (`helped/crud-metrics.jsonl` via instrumented CRUD / workflow metrics). Do NOT invent a separate fast-lane escape-rate surface (#1704 LockedDecisions).
 - ~ **In-engine incrementality (#1713):** content-hash task cache and runner-delegated affected selection are sibling work — not required for this policy face.
 - ⊗ Run full `task check` on every iteration commit when a cheaper proxy suffices — reserve the full gate for PR/merge (#1704).
@@ -279,7 +279,7 @@ Multi-iteration implement-fix and pre-PR polish loops MUST carry **both** a succ
 | Pre-PR polish (`deft-directive-pre-pr` Read-Write-Lint-Diff) | Full pass with zero further edits | **max 3** polish passes **or** **2** consecutive no-diff / same-diff outcomes |
 | Full `deft check` re-run | tree-correct full gate green after a red merge chokepoint or a new commit | Counts toward the implement/quality fix envelope above (do not open a separate unbounded check-retry loop) |
 
-- ! Re-run the tree-correct full gate (`deft check` first, then `task deft:check` or `task check`) only after a red merge chokepoint or a new commit.
+- ! Re-run the full gate (prefer `deft check`; else the tree-correct task form) only after a red merge chokepoint or a new commit. Do not run both.
 
 **On failure stop:**
 
@@ -348,8 +348,8 @@ task verify:forward-coverage            # new-source coverage (#1310)
 Before PR / phase handoff (merge chokepoint):
 
 ```bash
-deft check          # Full gate first (getting-started / #2893)
-# then tree-correct: task deft:check on include-only consumers; task check in framework source
+deft check          # preferred full gate (getting-started / #2893)
+# else tree-correct: task deft:check on include-only consumers; task check in framework source
 task test:coverage  # >=85% or PROJECT-DEFINITION.xbrief.json override
 ```
 
@@ -424,7 +424,7 @@ Read full files when you need detail:
 - ~ Naming: hyphens for filenames unless language idiom dictates otherwise
 - ! Contracts first: define interfaces/types before implementation
 - ! Secrets: in `secrets/` dir with `.example` templates; ⊗ secrets in code
-- ! Commits: Conventional Commits format; ! use iteration fast lane before checkpoint commits; ! run full `deft check` (then tree-correct `task deft:check` / `task check`) at PR/merge chokepoint only (#1704 / #4379)
+- ! Commits: Conventional Commits format; ! use iteration fast lane before checkpoint commits; ! run full `deft check` (else tree-correct `task deft:check` / `task check`) at PR/merge chokepoint only (#1704 / #4379)
 
 See `deft/coding/coding.md` and `deft/coding/testing.md` for full rules.
 
@@ -446,7 +446,7 @@ See `deft/coding/coding.md` and `deft/coding/testing.md` for full rules.
 
 - ! Default to one story per branch/PR. Batching multiple stories in one branch requires explicit operator approval and a short rationale.
 - ! Create a checkpoint commit after each completed story before beginning another story.
-- ! Use iteration fast lane before checkpoint commits; run full `deft check` (then tree-correct `task deft:check` / `task check`) at PR/merge chokepoint (#1704 / #4379)
+- ! Use iteration fast lane before checkpoint commits; run full `deft check` (else tree-correct `task deft:check` / `task check`) at PR/merge chokepoint (#1704 / #4379)
 - ⊗ Claim checks passed without running them
 
 ```
