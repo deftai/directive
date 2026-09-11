@@ -1,0 +1,144 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #4399 Bound-remedy harvest (ingest gh-parse failed; REST+lean used)",
+    "updated": "2026-09-11T16:15:00Z"
+  },
+  "plan": {
+    "title": "bug(session,release): session:ready reports OK while cache_fresh is dirty, then task release Step 5 fails",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(session,release): session:ready reports OK while cache_fresh is dirty, then task release Step 5 fails",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4399",
+      "Overview": "Spec is Bound remedy lean 5637245965, not the filed body. session:ready prints OK on skip-drift verify while task check later fail-closes on stale-by-drift. Full thread: https://github.com/deftai/directive/issues/4399",
+      "Labels": "bug, agent-experience, area:cli, area:release, status:child, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Cannot bind until the bar is the check-class evaluate (age + live drift, no --skip-drift-probe), or session:ready verify is specified to use that argv so isCacheFreshFailure then fetch-all can fire. Do not weaken verify:cache-fresh inside task check to match the ritual argv.",
+        "status": "proposed"
+      },
+      {
+        "title": "Restate AC1 and the test lock around VERIFIED + the skip-drift argv, not around inspect-green after start.",
+        "status": "proposed"
+      },
+      {
+        "title": "AC2 must key off orientation-dirty / check-class stale-by-drift, distinct from ritual-stale. Substituting the old parallel-prep clause is not done.",
+        "status": "proposed"
+      },
+      {
+        "title": "Do not auto-defer cache_fresh. Do not fold occupancy (#4266). CHANGELOG.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:cli",
+      "area:release",
+      "status:child",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4399",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4399: bug(session,release): session:ready reports OK while cache_fresh is dirty, then task release Step 5 fails"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4399#issuecomment-5637245965",
+        "type": "x-xbrief/github-comment",
+        "title": "Issue #4399 comment 5637245965: Bound remedy"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from Bound remedy lean 5637245965 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Cannot bind until the bar is the check-class evaluate (age + live drift, no --skip-drift-probe), or session:ready verify is specified to use that argv so isCacheFreshFailure then fetch-all can fire. Do not weaken verify:cache-fresh inside task check to match the ritual argv.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Restate AC1 and the test lock around VERIFIED + the skip-drift argv, not around inspect-green after start.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "AC2 must key off orientation-dirty / check-class stale-by-drift, distinct from ritual-stale. Substituting the old parallel-prep clause is not done.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not auto-defer cache_fresh. Do not fold occupancy (#4266). CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5425987248,
+        "origin": "deftai/directive#4399",
+        "id": "github.issue.5425987248"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a9f8e56f474fd7a8297fe3fe622b90762488e320545f42ebe08f2201de09936a"
+      }
+    },
+    "id": "github.issue.5425987248",
+    "updated": "2026-09-11T16:20:58Z",
+    "architecture": {
+      "systemOfRecord": {
+        "note": "This story does not add durable product state. session:ready reuses existing ritual-state.json, occupancy.json, and github-issue cache write paths; the change is check-class cache_fresh argv so skip-drift cannot hide stale-by-drift. Occupancy write path stays on #4266.",
+        "stateSurfaces": [
+          {
+            "name": "GitHub-issue triage cache",
+            "classification": "cache",
+            "owner": "packages/core/src/cache/fetch.ts cacheFetchAll",
+            "approvedStorage": ["json_file", "filesystem"],
+            "invalidationRules": "verify:cache-fresh age + live drift; session:ready fetch-all --force on stale-by-drift"
+          },
+          {
+            "name": "Session ritual and occupancy (existing; not recut here)",
+            "classification": "auth_session_state",
+            "owner": "session:start / session:ready occupancy claim",
+            "approvedStorage": "external_service",
+            "forbiddenStorage": ["browser_storage", "in_memory"],
+            "permissionBoundary": "cooperative occupancy lease plus ritual-state bind",
+            "migrationRequired": false,
+            "auditRequired": false,
+            "concurrencyRequired": true,
+            "concurrencySemantics": "one mutation occupant per worktree",
+            "transactionBoundary": "one session:ready invocation",
+            "recoverySemantics": "session:ready check-class cache_fresh then fetch-all",
+            "conflictDetection": "occupancy claim; ritual owner alignment",
+            "deleteSemantics": "session:end / occupancy:release",
+            "migrationPath": "none; existing files only"
+          }
+        ]
+      }
+    }
+  }
+}

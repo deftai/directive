@@ -105,6 +105,13 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ⊗ Foreground-block the operator chat on reconcile / `release:e2e` when background dispatch is available (#1880 Gap D / #2692).
 
+### Orientation-dirty / check-class stale-by-drift (#4399)
+
+! Treat `[deft orientation] cache_fresh: dirty` or check-class `verify:cache-fresh` stale-by-drift as a hard Phase 1 preflight, distinct from ritual-stale (gated ritual age / compact stale). The parallel-prep ritual-stale cache refresh does not cover this class. Run `deft cache fetch-all --source github-issue --repo <owner>/<repo>` before `task release`. Skip-drift gated-verify green is not cache-ready.
+
+⊗ Proceed to `task release` when session:start printed `cache_fresh: dirty` or check-class `verify:cache-fresh` (no `--skip-drift-probe`) reports stale-by-drift.
+
+
 ### Fixable check failure — file-and-merge before resume (#2859)
 
 ! When **pipeline Step 5** fails on a **fixable product or test defect** (hang, failing test, validation bug — not operator env misconfiguration), the release cut MUST pause and route the blocker through normal issue → xBRIEF → feature branch → PR → merge before resuming Phase 1.
@@ -195,6 +202,10 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Routine vs hard cut for
 7. ! **Verify the npm credential path is configured before cutting the tag** (#1910, #1909). A `v*` tag now auto-triggers `.github/workflows/npm-publish.yml`, which publishes the four `@deftai/directive*` packages with `npm publish --provenance`. Confirm the publish path can authenticate: either the `NPM_TOKEN` repo secret is present (`gh secret list --repo <owner>/<repo>` shows `NPM_TOKEN`) OR an npm OIDC trusted publisher is configured for the `@deftai/directive*` packages. If neither is in place, WARN loudly that the tag will fire a publish job that fails (red X on the tag, no packages) -- the operator may still proceed for a GitHub-only release, but the npm channel will not land until #1909's credential is provisioned. Cross-reference #1909.
 8. ! **Disclose npm irrevocability before any tag push (#1972, #2002, #3527).** A `v<version>` tag push is the **real npm publish gate** -- NOT Phase 5 or `task release:publish`. Tag push fires `.github/workflows/npm-publish.yml` in a separate workflow that is NOT draft-gated; npm packages ship immediately and **cannot be retracted** (`npm unpublish` is forbidden). Recovery is forward-only: deprecate, dist-tag, or ship a patch. The last human gates before npm goes live are: (a) Phase 2 dry-run `yes`, (b) a human-origin closed-verb grant (`deft authz:grant -- --template release-publish --target <version> --confirm` or `DEFT_ALLOW_RELEASE_PUBLISH=1`). `task release` fails closed at the Step 10–11 tag-push boundary without that grant. Phase 5 only controls GitHub release visibility (draft → public); it does NOT gate npm. The draft-flip `release:publish` closed-verb check remains (#1095).
 9. ~ Ask the operator for an optional one-line release **summary** (recommended 80-160 chars; can be skipped). The summary is the canonical narrative for THIS release across three audiences: (a) injected as a Markdown blockquote at the top of the promoted `CHANGELOG.md [<version>]` section, (b) auto-flowed into the GitHub release body via the existing `_section_for_version` pickup, and (c) populated VERBATIM into the Phase 8 Slack `*Summary*:` slot. Capture the wording once here; do NOT regenerate per-audience downstream
+
+10. ! **Treat orientation-dirty `cache_fresh` or check-class stale-by-drift as a hard preflight (#4399).** Distinct from ritual-stale. If `session:start` printed `[deft orientation] cache_fresh: dirty`, or `deft verify:cache-fresh` (no `--skip-drift-probe`) reports stale-by-drift, run `deft cache fetch-all --source github-issue --repo <owner>/<repo>` before invoking `task release`. Do not treat skip-drift `verify:session-ritual` green as cache-ready.
+
+
 
 ⊗ Skip the version-bump magnitude check -- a patch release that ships breaking changes is the kind of regression that Repair Authority [AXIOM] (#709) is designed to prevent.
 
@@ -389,6 +400,8 @@ Where `<one-line guidance>` is one of:
 ## Anti-Patterns
 
 - ⊗ Foreground-block the operator chat on Phase 1 long prep (`reconcile:issues`, cache refresh) or Phase 3 `release:e2e` when background / subagent dispatch is available (#1880 Gap D / #2692) — the interactive channel must stay free for version confirmation, `--summary`, and the Phase 2 dry-run gate
+- ⊗ Proceed to `task release` on orientation-dirty `cache_fresh` or check-class stale-by-drift, or treat skip-drift ritual green / ritual-stale as that bar (#4399) — fetch-all first
+
 - ⊗ Wrap long release-prep task output in PowerShell `Select-Object -Last` — it buffers until exit and makes the session look hung (#2692)
 - ⊗ Run `task release` without a Phase 2 dry-run preview -- the dry-run is the only safe place to catch a bad version, malformed CHANGELOG, or wrong base branch
 - ⊗ Skip Phase 3 (e2e rehearsal) on the assumption that "the dry-run is enough" -- the e2e harness catches gh-CLI auth issues, repo permission gaps, and pipeline-shape regressions that the dry-run cannot detect

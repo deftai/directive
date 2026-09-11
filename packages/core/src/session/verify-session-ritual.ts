@@ -118,13 +118,23 @@ export function detectWorkSelection(projectRoot: string): WorkSelectionSignal {
   return { inPlay: false, kind: "none" };
 }
 
+export interface ResolveGatedEntrypointCommandOptions {
+  /**
+   * Check-class argv: age + live drift, no `--skip-drift-probe` (#4399).
+   * Matches `task check` / FRAMEWORK_CHECK_GATES `verify:cache-fresh`.
+   */
+  readonly checkClassCacheFresh?: boolean;
+}
+
 export function resolveGatedEntrypointCommand(
   stepName: GatedStepName,
   projectRoot: string,
   detect: DetectWorkSelection = detectWorkSelection,
+  options: ResolveGatedEntrypointCommandOptions = {},
 ): string[] {
   const base = [...GATED_ENTRYPOINT_COMMANDS[stepName]];
   if (stepName !== "cache_fresh") return base;
+  if (options.checkClassCacheFresh === true) return base;
   const selection = detect(projectRoot);
   if (selection.inPlay) {
     return [...base, WORK_SELECTION_FLAG];
@@ -248,8 +258,11 @@ function runGatedStep(
   now: Date,
   expected: { sessionId?: string; startedAt: Date },
   detect: DetectWorkSelection = detectWorkSelection,
+  checkClassCacheFresh = false,
 ): string | null {
-  const command = resolveGatedEntrypointCommand(stepName, projectRoot, detect);
+  const command = resolveGatedEntrypointCommand(stepName, projectRoot, detect, {
+    checkClassCacheFresh,
+  });
   const { code, stdout, stderr } = runner(command, projectRoot);
   const message = stdout.trim() || stderr.trim() || `${command[0] as string} exited ${code}`;
   const gated = (payload.gated_steps as Record<string, Record<string, unknown>> | undefined) ?? {};
@@ -437,6 +450,12 @@ export interface VerifySessionRitualOptions {
   ) => ActiveCliCheckResult;
   /** Injectable work-selection detector for gated `cache_fresh` (#3507). */
   readonly detectWorkSelection?: DetectWorkSelection;
+  /**
+   * session:ready check-class bar (#4399): gated `cache_fresh` uses
+   * `verify:cache-fresh` with age + live drift (no `--skip-drift-probe`).
+   * Does not change the ritual argv used by ordinary `verify:session-ritual`.
+   */
+  readonly checkClassCacheFresh?: boolean;
   /**
    * Required gated steps for this surface. Defaults to all {@link GATED_STEPS}
    * (session / full gated verify). Write dispatch uses
@@ -718,6 +737,7 @@ export function verifySessionRitual(
         instant,
         ownerAtVerify,
         detect,
+        options.checkClassCacheFresh === true,
       );
       if (writeError !== null) {
         return {
