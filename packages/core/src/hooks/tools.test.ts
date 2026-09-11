@@ -39,6 +39,8 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
   it("isDirectWriteTool and isSpawnTool stay narrow", () => {
     expect(isDirectWriteTool("Write")).toBe(true);
     expect(isDirectWriteTool("Edit")).toBe(true);
+    expect(isDirectWriteTool("EditNotebook")).toBe(true);
+    expect(isDirectWriteTool("edit_notebook")).toBe(true);
     expect(isDirectWriteTool("Shell")).toBe(false);
     expect(isSpawnTool("Task")).toBe(true);
     expect(isSpawnTool("Shell")).toBe(false);

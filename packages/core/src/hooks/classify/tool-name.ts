@@ -3,6 +3,7 @@
  * No process I/O.
  */
 
+import { isDirectWriteTool, isShellTool, isSpawnTool } from "../tools.js";
 import { hookWriteTargetPath } from "./paths.js";
 import {
   fieldPresent,
@@ -14,42 +15,53 @@ import {
 import type { ClassifyHookHost, HookPayloadContext } from "./types.js";
 
 /**
+ * Write-shaped payload fields only — not bare `file_path` (#4199).
+ * Used for omitted Cursor names and for unlisted named tools.
+ */
+export function inferWriteShapedDirectWriteToolName(
+  payload: Record<string, unknown>,
+): string | null {
+  const toolInput = toolInputRecord(payload);
+  if (toolInput === null) return null;
+  if (
+    fieldPresent(toolInput, "new_string") ||
+    fieldPresent(toolInput, "newString") ||
+    fieldPresent(toolInput, "old_string") ||
+    fieldPresent(toolInput, "oldString")
+  ) {
+    return "StrReplace";
+  }
+
+  if (
+    fieldString(toolInput, "contents") !== null ||
+    fieldString(toolInput, "content") !== null ||
+    fieldString(toolInput, "text") !== null
+  ) {
+    return "Write";
+  }
+
+  if (
+    fieldString(toolInput, "patch") !== null ||
+    fieldString(toolInput, "unified_diff") !== null ||
+    fieldString(toolInput, "diff") !== null
+  ) {
+    return "ApplyPatch";
+  }
+
+  if (Array.isArray(toolInput.edits)) return "MultiEdit";
+  if (Array.isArray(toolInput.cells) || toolInput.cell_id != null) {
+    return "NotebookEdit";
+  }
+  return null;
+}
+
+/**
  * Cursor preToolUse payloads sometimes omit `tool_name` even when the hook matcher
  * fired for a direct-write tool (#2628). Infer from nested tool input when possible.
  */
 export function inferCursorDirectWriteToolName(payload: Record<string, unknown>): string | null {
-  const toolInput = toolInputRecord(payload);
-  if (toolInput !== null) {
-    if (
-      fieldPresent(toolInput, "new_string") ||
-      fieldPresent(toolInput, "newString") ||
-      fieldPresent(toolInput, "old_string") ||
-      fieldPresent(toolInput, "oldString")
-    ) {
-      return "StrReplace";
-    }
-
-    if (
-      fieldString(toolInput, "contents") !== null ||
-      fieldString(toolInput, "content") !== null ||
-      fieldString(toolInput, "text") !== null
-    ) {
-      return "Write";
-    }
-
-    if (
-      fieldString(toolInput, "patch") !== null ||
-      fieldString(toolInput, "unified_diff") !== null ||
-      fieldString(toolInput, "diff") !== null
-    ) {
-      return "ApplyPatch";
-    }
-
-    if (Array.isArray(toolInput.edits)) return "MultiEdit";
-    if (Array.isArray(toolInput.cells) || toolInput.cell_id != null) {
-      return "NotebookEdit";
-    }
-  }
+  const shaped = inferWriteShapedDirectWriteToolName(payload);
+  if (shaped !== null) return shaped;
 
   // Cursor maps Claude Edit → Write; a write target without contents is still a direct write.
   if (hookWriteTargetPath(payload) !== null) return "Write";
@@ -69,7 +81,14 @@ export function hookToolName(payload: unknown, host?: ClassifyHookHost | string)
     fieldString(input, "tool") ??
     (toolObject !== null ? fieldString(toolObject, "name") : null) ??
     (toolCall !== null ? fieldString(toolCall, "name") : null);
-  if (direct !== null) return direct;
+  if (direct !== null) {
+    if (isDirectWriteTool(direct) || isShellTool(direct) || isSpawnTool(direct)) {
+      return direct;
+    }
+    const shaped = inferWriteShapedDirectWriteToolName(input);
+    if (shaped !== null) return shaped;
+    return direct;
+  }
   if (host === "cursor") return inferCursorDirectWriteToolName(input);
   return null;
 }

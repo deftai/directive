@@ -1651,3 +1651,34 @@ describe("classifyShellAuthzOps (#2944)", () => {
     }
   });
 });
+
+describe("classifyShellAuthzOps protected dest harvest (#4199)", () => {
+  const grant = ".deft/authz/grants/evil.json";
+  const scope = ".deft/approved-scope/evil.json";
+
+  it("classifies noclobber redirects onto authz and approved-scope as settings", () => {
+    for (const dest of [grant, scope]) {
+      expect(classifyShellAuthzOps(`echo x > ${dest}`)).toContain("settings");
+      expect(classifyShellAuthzOps(`echo x >! ${dest}`)).toContain("settings");
+      expect(classifyShellAuthzOps(`echo x >| ${dest}`)).toContain("settings");
+      expect(classifyShellAuthzOps(`echo x >&! ${dest}`)).toContain("settings");
+      expect(classifyShellAuthzOps(`echo x >& ${dest}`)).toContain("settings");
+    }
+  });
+
+  it("keeps ordinary dests and reads unclassifiable", () => {
+    expect(classifyShellAuthzOps("echo x > /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("git status")).toEqual([]);
+    expect(classifyShellAuthzOps("cat .deft/authz/state.json")).toEqual([]);
+  });
+
+  it("classifies dest-visible empty-ops writers as unknown, not []", () => {
+    expect(classifyShellAuthzOps(`makeself ./dir ${grant}`)).toContain("unknown");
+    expect(classifyShellAuthzOps(`yq -i '.a="x"' ${grant}`)).toContain("unknown");
+    expect(classifyShellAuthzOps(`dasel put -f ${grant} -v x '.a'`)).toContain("unknown");
+  });
+
+  it("does not treat kill-switch echo+redirect as a dest-harvest miss", () => {
+    expect(classifyShellAuthzOps("echo x >! .deft-directive-disable")).toContain("settings");
+  });
+});

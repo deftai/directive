@@ -1,11 +1,12 @@
 {
   "xBRIEFInfo": {
     "version": "0.8",
-    "description": "Scope xBRIEF ingested from GitHub issue #4199"
+    "description": "Scope xBRIEF ingested from GitHub issue #4199",
+    "updated": "2026-09-11T00:08:41Z"
   },
   "plan": {
     "title": "AppSec: 4 HIGH + 1 MEDIUM @ 346848c1 -- UAT **/evidence/** grant bypass; Cursor EditNotebook skip; Shell >! harvest evasion; residual writers (nomad/puppet/swift/yarn/makeself/guix/dasel/yq) plant authz + kill-switch; approved-scope mint",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
       "Description": "AppSec: 4 HIGH + 1 MEDIUM @ 346848c1 -- UAT **/evidence/** grant bypass; Cursor EditNotebook skip; Shell >! harvest evasion; residual writers (nomad/puppet/swift/yarn/makeself/guix/dasel/yq) plant authz + kill-switch; approved-scope mint",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4199",
@@ -104,6 +105,7 @@
         "sha256": "2aacaf5ff1841d88d86aa573ae7bfceb4ab7d683f646b221b22ed394b89f5f44"
       }
     },
-    "id": "github.issue.5352361936"
+    "id": "github.issue.5352361936",
+    "updated": "2026-09-11T00:08:41Z"
   }
 }

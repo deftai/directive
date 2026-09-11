@@ -82,6 +82,40 @@ describe("evaluateAuthzMutation UAT lease (#2944)", () => {
     expect(d.reason).toMatch(/Human action required|authz:grant|UAT/i);
   });
 
+  it("denies nested product evidence paths under UAT (#4199)", () => {
+    const root = tempRoot();
+    startUatLease({ projectRoot: root, campaignId: "uat-1", actor: "operator" });
+    const state = loadAuthzState(root);
+    const nested = evaluateAuthzMutation({
+      state,
+      grants: [],
+      op: "edit",
+      path: "src/evidence/backdoor.ts",
+    });
+    expect(nested.allowed).toBe(false);
+    const pkg = evaluateAuthzMutation({
+      state,
+      grants: [],
+      op: "edit",
+      path: "pkg/uat-evidence/note.md",
+    });
+    expect(pkg.allowed).toBe(false);
+  });
+
+  it("allows repo-root evidence capture under UAT (#4199)", () => {
+    const root = tempRoot();
+    startUatLease({ projectRoot: root, campaignId: "uat-1", actor: "operator" });
+    const state = loadAuthzState(root);
+    const d = evaluateAuthzMutation({
+      state,
+      grants: [],
+      op: "edit",
+      path: "evidence/capture.md",
+    });
+    expect(d.allowed).toBe(true);
+    expect(d.code).toBe("authz-allow");
+  });
+
   it("allows defect capture writes under xbrief/proposed during UAT", () => {
     const root = tempRoot();
     startUatLease({ projectRoot: root, campaignId: "uat-1", actor: "operator" });

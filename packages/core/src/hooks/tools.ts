@@ -8,6 +8,8 @@ export const DIRECT_WRITE_TOOL_NAMES = [
   "CreateFile",
   "MultiEdit",
   "NotebookEdit",
+  "EditNotebook",
+  "edit_notebook",
   "StrReplace",
   "SearchReplace",
   "Delete",

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **UAT authz: repo-root evidence globs, write-shaped unlisted tools, dest-visible empty-ops (#4199).** Nested `**/evidence/**` is no longer grant-free. `EditNotebook` is a direct write; unlisted write-shaped names infer. Noclobber redirects and dest-visible empty-ops classify instead of fail-open. Closes #4199.
+
 - **Dependabot high: brace-expansion DoS follow-ups (alerts #10/#13).** Pin `brace-expansion@5` to `5.0.9` (and `@2` to `2.1.4`) so the lockfile leaves CVE-2026-14257 / CVE-2026-69152. Closes #4348.
 
 ### Removed
