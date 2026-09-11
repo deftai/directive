@@ -279,6 +279,26 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     expect(acc.ambiguity_attestation).toBe("none_found");
   });
 
+  it("keeps statement provenance when declared list items use inline bold (#4374)", () => {
+    const plan: Record<string, unknown> = {
+      title: "phase-3 bold list",
+      narratives: {
+        AcceptanceCriteria: "- Login rejects **empty** passwords",
+      },
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(true);
+    expect(result.clauses.map((c) => c.text)).toEqual(["Login rejects empty passwords"]);
+    expect(result.clauses[0]?.provenance).toBe("statement");
+    expect(plan.acceptance).toEqual(
+      expect.objectContaining({
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+      }),
+    );
+  });
+
   it("defaults source_rung to stated when command-only acceptance omits it", () => {
     const plan: Record<string, unknown> = {
       narratives: { Overview: TRIAL_OVERVIEW },

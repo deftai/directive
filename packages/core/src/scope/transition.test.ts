@@ -179,6 +179,35 @@ describe("runTransition", () => {
     ]);
   });
 
+  it("activates heading-less AcceptanceCriteria list items with inline bold (#4374)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "bold-ac.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "pending",
+        narratives: {
+          AcceptanceCriteria: "- Login rejects **empty** passwords",
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "active", "bold-ac.xbrief.json");
+    expect(existsSync(dest)).toBe(true);
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { acceptance: { clauses: { text: string; provenance: string }[] } };
+    };
+    expect(data.plan.acceptance.clauses).toEqual([
+      expect.objectContaining({
+        text: "Login rejects empty passwords",
+        provenance: "statement",
+      }),
+    ]);
+  });
+
   it("surfaces a named 0-clause notice on promote of bare-prose AcceptanceCriteria (#4374)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "proposed", "bare-ac.xbrief.json");
