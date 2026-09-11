@@ -1,0 +1,145 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4389",
+    "updated": "2026-09-11T14:23:20Z"
+  },
+  "plan": {
+    "title": "deft update --dry-run fails closed with C3 live-procedure target validation error (25 unresolved helper targets) instead of printing a plan",
+    "status": "running",
+    "narratives": {
+      "Description": "deft update --dry-run fails closed with C3 live-procedure target validation error (25 unresolved helper targets) instead of printing a plan",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4389",
+      "Overview": "## Summary\n\n`deft update --dry-run` fails outright with a framework-internal validation error instead of printing a classified plan, when jumping from content v0.104.0 to engine v0.115.0.\n\n## Context\n\nConsumer repo (fermat) on a vendored deposit at `contentVersion: \"0.104.0\"` (`.deft/GENERATION.json`, stamped 2026-09-05), global engine `@deftai/directive-core@0.115.0`. Following the guidance already filed in #3437 (never run `deft update` blind; preview first), `--dry-run` was run on a dedicated branch, off the default branch, with a clean working tree.\n\n## Expected behavior\n\n`--dry-run` should classify and print the refresh plan (per its own `--help`: \"Classify and print the refresh plan without writing\"), or fail with a clear, actionable diagnostic if the deposit itself cannot be validated.\n\n## Actual behavior / gap\n\n`deft update --dry-run` exits with `success: false`, `error_code: \"refresh_deposit_failed\"`, and this message:\n\n```\ndirective update: C3 live-procedure target validation failed: 25 unique live-invalid helper target(s) (metric=unique-targets).\n  QUICK-START.md:71 -> scripts/_precutover.py\n  QUICK-START.md:172 -> run\n  SKILL.md:130 -> .deft/core/run\n  SKILL.md:161 -> .deft/core/run\n  SKILL.md:162 -> .deft/core/run\n  SKILL.md:163 -> .deft/core/run\n  SKILL.md:164 -> .deft/core/run\n  SKILL.md:168 -> .deft/core/run\n  SKILL.md:202 -> .deft/core/run\n  SKILL.md:203 -> .deft/core/run\n  SKILL.md:204 -> .deft/core/run\n  SKILL.md:205 -> .deft/core/run\n  coding/security.md:95 -> scripts/preflight_gh.py\n  coding/security.md:135 -> scripts/preflight_gh.py\n  coding/security.md:158 -> scripts/preflight_gh.py\n  commands.md:600 -> run\n  commands.md:608 -> run\n  commands.md:610 -> run\n  commands.md:612 -> .deft/core/run\n  commands.md:613 -> .deft/core/run\n  commands.md:614 -> .deft/core/run\n  commands.md:615 -> .deft/core/run\n  commands.md:617 -> .deft/core/run\n  commands.md:618 -> .deft/core/run\n  commands.md:656 -> run\n  conventions/references.md:66 -> scripts/vbrief_validate.py\n  conventions/references.md:81 -> scripts/issue_ingest.py\n  conventions/references.md:110 -> scripts/vbrief_validate.py\n  conventions/references.md:112 -> scripts/migrate_vbrief.py\n  conventions/vbrief-filenames.md:22 -> scripts/vbrief_validate.py\n  conventions/vbrief-filenames.md:28 -> scripts/slug_normalize.py\n  conventions/vbrief-filenames.md:70 -> scripts/slug_normalize.py\n  main.md:108 -> scripts/preflight_branch.py\n  main.md:213 -> scripts/vbrief_validate.py\n  main.md:214 -> scripts/migrate_vbrief.py\n  main.md:233 -> scripts/_precutover.py\n  meta/project.md:3 -> .deft/core/run\n  meta/project.md:49 -> .deft/core/run\n  meta/security.md:49 -> scripts/preflight_gh.py\n  patterns/executor-layer-credentials.md:172 -> scripts/preflight_gh.py\n  ... 70 more occurrence(s)\n```\n\nNo plan is printed before or after this error -- the command fails closed at what looks like a pre-deposit self-check (the referenced targets, e.g. `.deft/core/run`, `scripts/vbrief_validate.py`, `scripts/preflight_gh.py`, `scripts/slug_normalize.py`, `scripts/issue_ingest.py`, `scripts/migrate_vbrief.py`, `scripts/_precutover.py`, `scripts/preflight_branch.py`, appear to be paths the NEW (0.115.0) deposit's own docs reference internally, not anything in the consumer project). Since this reproduces identically on `--dry-run`, the real `deft update` was not attempted.\n\n## Session notes\n\nWorking tree was clean and the attempt was made on its own throwaway branch (per #3437's own remediation advice), so no damage was done -- but there is currently no way to preview or apply this particular update at all. If this is a real regression in what the 0.115.0 deposit ships (broken internal cross-references in its own docs/skills), it presumably reproduces for any consumer on an older deposit attempting to jump to 0.115.0, not just this repo. Filed as a straight repro rather than a guess at root cause, since the referenced targets are inside the framework's own deposit content, not consumer-authored.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T14:02:42Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because dry-run is supposed to classify and print a plan without writing, but emitDryRunPlan still runs dest C3 inside port-record refresh, so a version jump can fail closed with no plan.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4389-dc\norigin-ref: origin/master\ndispatch-sha: d8f17719e3538d1a0ab695c442477a4151c943b9\n\ncharter: refutation\nspend: N=1\nspend-why: default motion; the body names a defensible causal premise with a refutation target. Consumer-update blast radius permits N>=3; operator did not request a panel.\n\nrefutation-target: The C3 failure on `deft update --dry-run` (0.104.0 deposit -> engine 0.115.0) is caused by the incoming 0.115.0 deposit's own live procedures naming pruned helpers, so the new deposit cannot be validated and no plan can be printed.\n\ntarget: #4389\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This issue is mechanism-shaped: `--dry-run`/`--plan` is a classify-and-print front door that still executes `runRefreshDeposit` under `runInPortRecordMode`, and C3 dest validation is a fail-closed write-path assert. Voluntary critiques stay legal; the stamp is for the mandatory gate match.\n\nMeasured:\n\n- Error shape matches `formatLiveProcedureFailure` in `packages/core/src/deposit/live-procedure-targets.ts` (unique-targets metric, 40-hit cap, `... N more occurrence(s)`). Dry-run catch in `runRefreshDepositCli` maps the throw to `error_code: \"refresh_deposit_failed\"` and prints no plan.\n- `--help` text is `Classify and print the refresh plan without writing` (`packages/cli/src/init-cli/help.ts`).\n- `emitDryRunPlan` calls `runInPortRecordMode(() => runRefreshDeposit(...))`. `replaceTree` in port-record mode records dest writes and skips dest IO (`copy-tree.ts`). `assertLiveProcedureDepositClean(deftDir)` still runs after that no-op replace (`refresh.ts` file-swap branch).\n- First listed hit `QUICK-START.md:71 -> scripts/_precutover.py` is present in `v0.104.0:content/QUICK-START.md` and absent from published `@deftai/directive-content@0.115.0` `QUICK-START.md`.\n- Issue-eval Stage A (origin/master d8f17719e353, invocation ae90791c-b2c3-4052-bb08-f44631e91cd2): validity still-open, WIP empty, no open PRs, no duplicates. Value critique-recommend: false (no stamp yet). Clearance is this write-back.\n\nThis session did not re-run `deft update --dry-run` on the fermat consumer. Package/pin evidence is the measured basis for the path and message-shape claims.\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:13:38Z)\n\nmodel: grok-4.6\r\nrole: critic\r\n\r\nRefutation target does not hold.\r\n\r\nThe C3 failure on `deft update --dry-run` (0.104.0 dest, engine/content 0.115.0) is dest C3 after a port-record no-op replace, not incoming 0.115.0 live procedures naming pruned helpers. Incoming C3 is a different assert and it is clean.\r\n\r\n## 1. Incoming 0.115.0 is not the C3 object that failed\r\n\r\nclass: blocks-the-design\r\n\r\nEvidence (re-run, pin d8f17719e3538d1a0ab695c442477a4151c943b9 plus the published tarballs under %TEMP%\\deft-4389-content and %TEMP%\\deft-4356-pack):\r\n\r\n- File-swap refresh C3s `contentRoot` first, then `copyContent`/`replaceTree`, then prune, then C3s `deftDir` (`packages/core/src/init-deposit/refresh.ts`). Dry-run is `emitDryRunPlan` -> `runInPortRecordMode(() => runRefreshDeposit(...))`. Plan printf is after that call.\r\n- `replaceTree` in port-record records dest writes/removes and returns without dest IO (`packages/core/src/deposit/copy-tree.ts`). `containedWrite` / `containedRemove` do the same, so prune does not change dest either.\r\n- `resolveInstalledContentRoot` resolves `@deftai/directive-content/package.json` via Node module resolution, not `.deft/core`.\r\n- Published `@deftai/directive-content@0.115.0` evaluated with published `@deftai/directive-core@0.115.0` `evaluateLiveProcedureTargets`: unique=0, hits=0.\r\n- `git archive v0.104.0 content` evaluated with the same function: unique=25, hits=82, first lines `QUICK-START.md:71 -> scripts/_precutover.py` and `QUICK-START.md:172 -> run`. That is the issue's unique-target count and the issue's first two hits. `#3602` retarget (`886ca596a`) is not an ancestor of `v0.104.0`; it is in `v0.115.0`.\r\n- 0.115.0 `QUICK-START.md:71` is the Case G+H paragraph (no `_precutover.py`). 0.115.0 `SKILL.md:130` is the setup Phase 3 line, not `.deft/core/run`.\r\n\r\nFailure mode: a bound lean that treats 0.115.0 content as C3-dirty sends the fix at the wrong object. Incoming C3 already passes; dest C3 still reads the unreplaced 0.104.0 tree; dry-run still throws `refresh_deposit_failed` and prints no plan.\r\n\r\nDisposition: do not bind the recorded `refutation-target:`. The lean cannot say the new deposit cannot be validated. Keep incoming `assertLiveProcedureDepositClean(contentRoot)`. Change dest C3 / plan-print under port-record, using the existing skip-IO port (`isPortRecordMode` / `runInPortRecordMode`), not a new gate.\r\n\r\n## 2. \"No plan\" is real and independent of incoming dirt\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence: `classifyUpdateState` already ran before `emitDryRunPlan`. Help text is \"Classify and print the refresh plan without writing\" (`packages/cli/src/init-cli/help.ts`). Dest C3 throw is caught in `runRefreshDepositCli` as `error_code: \"refresh_deposit_failed\"`. `formatLiveProcedureFailure` matches the issue message (`unique-targets`, 40-hit cap, `... N more occurrence(s)`).\r\n\r\nFailure mode: retargeting 0.115.0 docs, or shipping a content hotfix, leaves dry-run red on any dest whose live procedures still name pruned helpers.\r\n\r\nDisposition: a successor lean that accepts finding 1 must still keep the classify-and-print contract. Printing the already-built classification before dest C3, or skipping dest C3 when dest IO was skipped, is in inventory. Do not invent a second classifier.\r\n\r\n## 3. Apply is not shown to share the dry-run reject\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence: live `update` is not wrapped in `runInPortRecordMode`. File-swap does real `replaceTree` before dest C3. Incoming 0.115.0 C3 is clean, so dest after replace is the clean tree. This session did not run live `deft update` on fermat.\r\n\r\nFailure mode: binding \"there is currently no way to preview or apply this particular update at all\" as a write-path C3 defect over-claims apply from a dry-run-only repro.\r\n\r\nDisposition: keep the preview defect. Do not bind write-path unusability without a live-path run.\r\n\r\n## 4. Dry-run tests never see dest-dirty + incoming-clean\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence: `refresh.test.ts` `--dry-run` cases use `installFakeContentPackage` / `writeInitializedProject` (`main.md` = `# Deft\\n`). They assert plan print, byte-identical dest, and dest-only delete recording. None plants live-invalid helper names on dest while incoming is clean.\r\n\r\nFailure mode: a content-only remedy stays green. The version-jump dry-run false-reject has no fixture.\r\n\r\nDisposition: any bound remedy must add that fixture (dest names pruned helpers, incoming unique=0, `--dry-run` prints a plan and leaves dest bytes). Closing this with reviewer attention is not a finding.\r\n\r\n## Injection / swarm\r\n\r\nThis target is a fail-closed consumer update gate and a shared deposit/runtime contract (`assertLiveProcedureDepositClean` is also the init write-path dest assert). `runInPortRecordMode` has one product caller: `emitDryRunPlan`.\r\n\r\n- Keep incoming C3 on dry-run. Skipping both C3s would let a dirty content package print `success: true` and a dest plan.\r\n- Do not skip dest C3 on the live write path. After a real replace, dest C3 is the post-swap integrity assert (\"skip-copy is not skip-validation\" is the already-current comment; file-swap dest C3 is the same idea after copy).\r\n- Dest C3 under port-record reads the pre-replace dest, including dest-only files replace would delete. That is stricter than post-swap dest, and it is the wrong tree.\r\n- Untrusted dest markdown is the input C3 scans. A false reject here is availability, not a bypass: the consumer cannot preview the refresh #3437 told them to preview.\r\n\r\n## Inventory (existing, not new)\r\n\r\n- Incoming C3 before replace (\"so a reject cannot leave a broken deposit\").\r\n- Port-record skip-IO (`replaceTree`, `containedWrite`, `containedRemove`).\r\n- Up-front four-state `classify` / `plan` (`#2266`) already in hand before dest C3.\r\n- `UPDATE_DRY_RUN_EXCLUSIONS` for dest effects the port cannot capture.\r\n- `#3602` content retarget, already in 0.115.0 (incoming unique=0).\r\n- Init write-path dest C3 after real copy; init has no `runInPortRecordMode` caller.\r\n\r\n## Road not taken\r\n\r\n- Skip both C3s on dry-run: rejected. Incoming dirt would print a plan.\r\n- Stage a temp dest and C3 that: heavier than the port that exists to avoid dest IO. Incoming C3 already validates the payload that would land; prune/reconcile under port-record also skip dest IO, so a staged dest is not what dry-run currently simulates.\r\n- Content hotfix to 0.115.0: rejected. Evaluator unique=0.\r\n\r\n## Steelman\r\n\r\nStrongest salvage of the recorded target: \"the new deposit cannot be validated\" meaning planned dest cannot be C3'd because replace is a no-op, so dry-run cannot certify post-update dest. That is a different claim than \"0.115.0 live procedures name pruned helpers.\"\r\n\r\nWhat would flip finding 1: published 0.115.0 `evaluateLiveProcedureTargets` unique>0 with those hits, or `contentRoot` resolving to the vendored 0.104.0 dest. The former is unique=0. The latter is not how `resolveInstalledContentRoot` works; a missing content package throws `ContentPackageNotFoundError`, not C3.\r\n\r\n## Footnote\r\n\r\nclass: footnote\r\n\r\nThe issue lists `SKILL.md:130 -> .deft/core/run` and `... 70 more occurrence(s)`. `v0.104.0:content/` has no deposit-root `SKILL.md` (flatten extra). Archive unique is still 25; extra SKILL.md occurrences do not change the unique-target metric or the first QUICK-START hits.\n\n### Comment by @MScottAdams (2026-09-11T14:14:43Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nDry-run is supposed to print a refresh plan without writing. It still runs dest C3 after a recorded no-op replace, so a jump from a 0.104.0 deposit to a clean 0.115.0 pack fails closed with no plan. The incoming pack is not dirty. The object C3 reads on dry-run is the unreplaced old dest.\n\nIf this map is confirmed, the next-build is not a 0.115.0 content hotfix. Keep incoming C3. Skip dest C3 when dest IO was skipped, or print the already-built classification before dest C3. Add a dest-dirty / incoming-clean dry-run fixture. Do not bind write-path unusability from a dry-run-only repro.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4389 after round 1 critic 5635742952. Supersedes write-back 5635565282.\n\nTarget-digest: sha256:841d4ab7b9f131ff3a1ed2c0ca29d51f3390ffea8334361b346852ca9e09cac2\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4389-dc\norigin-ref: origin/master\ndispatch-sha: d8f17719e3538d1a0ab695c442477a4151c943b9\n\nTakes:\n\n- 5635742952 1. Incoming 0.115.0 is not the C3 object that failed — accept-into-contract\n- 5635742952 2. \"No plan\" is real and independent of incoming dirt — accept-into-contract\n- 5635742952 3. Apply is not shown to share the dry-run reject — accept-into-contract\n- 5635742952 4. Dry-run tests never see dest-dirty + incoming-clean — accept-into-contract\n\n## Bound remedy\n\n- Do not bind the recorded refutation-target. Incoming 0.115.0 live procedures are C3-clean. The dry-run reject is dest C3 after port-record no-op replace, which still reads the unreplaced 0.104.0 dest.\n- Keep incoming `assertLiveProcedureDepositClean(contentRoot)` on dry-run. Do not skip both C3s.\n- Skip dest C3 when dest IO was skipped (`isPortRecordMode`), or print the already-built `classifyUpdateState` plan before dest C3 so a dest throw cannot hide the plan. Use the existing skip-IO port. Do not invent a second classifier or a staged dest.\n- Do not skip dest C3 on the live write path after a real replace.\n- Do not bind write-path unusability without a live `deft update` run. Keep the preview defect.\n- Add a dry-run fixture: dest names pruned helpers, incoming unique=0, `--dry-run` prints a plan and leaves dest bytes. A content-only remedy must not stay green.\n- CHANGELOG. Content hotfix of 0.115.0 is not the remedy.\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:14:58Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | emitDryRunPlan runs runRefreshDeposit inside runInPortRecordMode; plan printf is after that call | git show d8f17719e3538d1a0ab695c442477a4151c943b9:packages/core/src/init-deposit/refresh.ts | measured |\n| 2 | replaceTree in port-record records dest writes and returns without dest IO | git show packages/core/src/deposit/copy-tree.ts at the pin | measured |\n| 3 | formatLiveProcedureFailure unique-targets / 40-hit cap / more occurrence(s) matches the issue message; dry-run catch maps to refresh_deposit_failed | git show live-procedure-targets.ts and refresh.ts at the pin | measured |\n| 4 | v0.104.0 QUICK-START.md:71 names scripts/_precutover.py; published 0.115.0 QUICK-START.md:71 does not | git show v0.104.0:content/QUICK-START.md plus npm pack @deftai/directive-content@0.115.0 this session | measured |\n| 5 | published 0.115.0 evaluateLiveProcedureTargets unique=0 | critic re-ran evaluator against unpacked tarball; parent did not re-invoke the function this pass | endorsed |\n| 6 | refresh.test.ts dry-run fixtures use a clean fake dest (main.md = # Deft) and do not plant dest-dirty + incoming-clean | git show packages/core/src/init-deposit/refresh.test.ts dry-run cases at the pin | measured |\n| 7 | live update is not wrapped in runInPortRecordMode; file-swap replaceTree is real dest IO before dest C3 | git show refresh.ts file-swap branch at the pin | measured |\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:15:22Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nDry-run fails closed with no plan because dest C3 still reads the unreplaced old deposit after a recorded no-op replace. The incoming 0.115.0 pack is C3-clean. The accepted next-build keeps incoming C3, skips dest C3 when dest IO was skipped (or prints the already-built classification first), and adds a dest-dirty / incoming-clean dry-run fixture.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5635759722 and verified-claims table 5635763284.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1. Round 1 complete, N=1, critic 5635742952, ceiling 5635565282. Operator yolo-standing on the launching utterance.",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind the recorded refutation-target. Incoming 0.115.0 live procedures are C3-clean. The dry-run reject is dest C3 after port-record no-op replace, which still reads the unreplaced 0.104.0 dest.",
+        "status": "proposed"
+      },
+      {
+        "title": "Keep incoming `assertLiveProcedureDepositClean(contentRoot)` on dry-run. Do not skip both C3s.",
+        "status": "proposed"
+      },
+      {
+        "title": "Skip dest C3 when dest IO was skipped (`isPortRecordMode`), or print the already-built `classifyUpdateState` plan before dest C3 so a dest throw cannot hide the plan. Use the existing skip-IO port. Do not invent a second classifier or a staged dest.",
+        "status": "proposed"
+      },
+      {
+        "title": "Do not skip dest C3 on the live write path after a real replace.",
+        "status": "proposed"
+      },
+      {
+        "title": "Do not bind write-path unusability without a live `deft update` run. Keep the preview defect.",
+        "status": "proposed"
+      },
+      {
+        "title": "Add a dry-run fixture: dest names pruned helpers, incoming unique=0, `--dry-run` prints a plan and leaves dest bytes. A content-only remedy must not stay green.",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG. Content hotfix of 0.115.0 is not the remedy.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4389",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4389: deft update --dry-run fails closed with C3 live-procedure target validation error (25 unresolved helper targets) instead of printing a plan"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft update",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5424875471,
+        "origin": "deftai/directive#4389",
+        "id": "github.issue.5424875471"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "841d4ab7b9f131ff3a1ed2c0ca29d51f3390ffea8334361b346852ca9e09cac2"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind the recorded refutation-target. Incoming 0.115.0 live procedures are C3-clean. The dry-run reject is dest C3 after port-record no-op replace, which still reads the unreplaced 0.104.0 dest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep incoming `assertLiveProcedureDepositClean(contentRoot)` on dry-run. Do not skip both C3s.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Skip dest C3 when dest IO was skipped (`isPortRecordMode`), or print the already-built `classifyUpdateState` plan before dest C3 so a dest throw cannot hide the plan. Use the existing skip-IO port. Do not invent a second classifier or a staged dest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not skip dest C3 on the live write path after a real replace.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not bind write-path unusability without a live `deft update` run. Keep the preview defect.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Add a dry-run fixture: dest names pruned helpers, incoming unique=0, `--dry-run` prints a plan and leaves dest bytes. A content-only remedy must not stay green.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG. Content hotfix of 0.115.0 is not the remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5424875471",
+    "updated": "2026-09-11T14:23:20Z"
+  }
+}

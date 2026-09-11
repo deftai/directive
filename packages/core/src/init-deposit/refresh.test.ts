@@ -17,6 +17,7 @@ import { join } from "node:path";
 import type { ResolutionFacts } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { evaluateLiveProcedureTargets } from "../deposit/live-procedure-targets.js";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { runChecksImpl } from "../doctor/checks.js";
 import { emptyMutationSummary } from "../fs/mutation-ledger.js";
@@ -1626,6 +1627,117 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const payload = parseJsonObject(out.join(""));
     const deleted = (payload.mutations as { deleted: string[] }).deleted;
     expect(deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md"))).toBe(true);
+  });
+
+  it("dry-run prints a plan when dest names pruned helpers and incoming is C3-clean (#4389)", async () => {
+    const project = freshRoot("update-dryrun-dest-c3-");
+    const contentRoot = installFakeContentPackage(project, "0.115.0");
+    writeInitializedProject(project, { contentVersion: "0.104.0", pinVersion: "0.115.0" });
+    const destMain = join(project, ".deft", "core", "main.md");
+    const destDirty = "! run `scripts/_precutover.py`\n";
+    writeFileSync(destMain, destDirty, "utf8");
+    const destRoot = join(project, ".deft", "core");
+    expect(evaluateLiveProcedureTargets({ stagedRoot: contentRoot }).uniqueTargets).toEqual([]);
+    expect(evaluateLiveProcedureTargets({ stagedRoot: destRoot }).uniqueTargets).toEqual([
+      "scripts/_precutover.py",
+    ]);
+    const before = hashFixtureTree(project);
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.115.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.115.0",
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(readFileSync(destMain, "utf8")).toBe(destDirty);
+    expect(hashFixtureTree(project)).toBe(before);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.success).toBe(true);
+    expect(payload.dry_run).toBe(true);
+    expect(payload.deposit_refresh_pending).toBe(true);
+    expect(err.join("")).toContain(UPDATE_DRY_RUN_EXCLUSIONS_LABEL);
+    expect(err.join("")).not.toMatch(/live-procedure/);
+  });
+
+  it("dry-run still fail-closes incoming C3 when the content package is dirty (#4389)", async () => {
+    const project = freshRoot("update-dryrun-incoming-c3-");
+    const contentRoot = installFakeContentPackage(project, "0.115.0");
+    writeInitializedProject(project, { contentVersion: "0.104.0", pinVersion: "0.115.0" });
+    writeFileSync(join(contentRoot, "main.md"), "! run `scripts/_precutover.py`\n", "utf8");
+    const destMain = join(project, ".deft", "core", "main.md");
+    const beforeDest = readFileSync(destMain, "utf8");
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.115.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.115.0",
+      },
+    });
+
+    expect(code).toBe(1);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.success).toBe(false);
+    expect(payload.error_code).toBe("refresh_deposit_failed");
+    expect(err.join("")).toMatch(/live-procedure target validation failed/);
+    expect(err.join("")).toMatch(/scripts\/_precutover\.py/);
+    expect(readFileSync(destMain, "utf8")).toBe(beforeDest);
+  });
+
+  it("live update still C3s dest after a real replace of dest-dirty incoming-clean (#4389)", async () => {
+    const project = freshRoot("update-live-dest-c3-");
+    const contentRoot = installFakeContentPackage(project, "0.115.0");
+    writeInitializedProject(project, { contentVersion: "0.104.0", pinVersion: "0.115.0" });
+    const destMain = join(project, ".deft", "core", "main.md");
+    writeFileSync(destMain, "! run `scripts/_precutover.py`\n", "utf8");
+    const out: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.115.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.115.0",
+        nowIso: () => "2026-09-11T12:00:00Z",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        evaluateAgentHookReadiness: () => agentHookReadiness(),
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.update_state).toBe("updated");
+    expect(readFileSync(destMain, "utf8")).toBe("# Deft\n");
+    expect(
+      evaluateLiveProcedureTargets({ stagedRoot: join(project, ".deft", "core") }).uniqueTargets,
+    ).toEqual([]);
   });
 
   it("dry-run fails closed when content version cannot be read (#3437)", async () => {
