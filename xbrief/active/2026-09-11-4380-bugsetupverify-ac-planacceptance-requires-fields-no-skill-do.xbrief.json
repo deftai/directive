@@ -1,0 +1,193 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4380",
+    "updated": "2026-09-11T15:18:26Z"
+  },
+  "plan": {
+    "title": "bug(setup,verify-ac): plan.acceptance requires fields no skill documents — setup-generated scopes fail verify:ac closed, then verify nothing (0 verified / N unverifiable)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(setup,verify-ac): plan.acceptance requires fields no skill documents — setup-generated scopes fail verify:ac closed, then verify nothing (0 verified / N unverifiable)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4380",
+      "Overview": "Spec is Bound remedy lean 5636518980, not the filed schema-complete-or-nothing / default-none_found / fail-closed-zero-verified body.\n\n**TL;DR: `plan.acceptance` requires fields that no skill, template, or reference documents. A freshly setup-generated scope fails `task check` closed with `verify:ac config error: missing ambiguity attestation` — and after adding that undocumented field, the clause walk reports `0 verified, 5 unverifiable` because derived clauses are never bound to a `file_scope`. So the product AC gate is either unreachable (missing undocumented field) or decorative (unbound clauses). This is the same root as #4374 — setup Phase 3 authors acceptance without knowing the schema — now with two more distinct failure modes.**\n\n## Evidence\n\n`task check` (merge chokepoint, #1704) on a setup-generated scope, `@deftai/directive@0.115.0`:\n\n```\ncheck: gate verify:ac failed (exit 201)\n  cause: verify:ac config error: missing ambiguity attestation; record ambiguity readings or attest none_found\n  remedy: Re-run the gate for details: task verify:ac (or task check); fix the reported product/process defect\ncheck: product AC gate verify:ac failed (exit 201); failing closed before hygiene (#3284)\n```\n\n**Failure mode 1 — an undocumented required field.** The requirement comes from `evaluateAmbiguityAttestation` (#3559), reached via `stampedAmbiguityAttestationError` in `product-first-done-gate/evaluate.js`:\n\n```js\nif (clauses.some(hasAmbiguousReadings)) return { ok: true, attested: true, kind: \"ambiguous-clause\", ... };\nif (rec.ambiguity_attestation === \"none_found\") return { ok: true, attested: true, kind: \"none_found\", ... };\nreturn missingAttestationCheck();   // -> config error\n```\n\nThe field is documented **nowhere**:\n\n```\n$ grep -rn \"ambiguity_attestation\\|ambiguity attestation\" .deft/core/\n(no output)\n\n$ grep -rln \"ambiguity_attestation\" .../node_modules/@deftai/directive-content/\n(no output)\n```\n\nThe only hits in the entire install are inside `directive-core`'s own compiled source and its `.d.ts`.\n\n**Failure mode 2 — the gate passes while verifying nothing.** After adding `ambiguity_attestation: \"none_found\"`:\n\n```\n$ task verify:ac -- xbrief/active/2026-09-11-core-engine.xbrief.json\nverify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed\n  [unverifiable] clause 1 @ (no path): A game can be created from a secret word and an options configuration. — no artifact path bound\n  [unverifiable] clause 2 @ (no path): Guess evaluation returns correct per-letter states ... — no artifact path bound\n  ...\nverify:ac passed (#3284) [rung=derived]\nLiteral acceptance-command gate: no stated commands (nothing to run) (#3284/#3267)\nexit=0\n```\n\nExit 0, but the clause walk verified **zero** of five clauses. Every clause has `artifact_path: null`, and binding requires a declared `plan.metadata.swarm.file_scope` — which setup Phase 3 never writes either (these scopes have `file_scope: undefined`). So the acceptance criteria are inert prose that the gate reports as green.\n\n**Failure mode 3 — provenance.** `prepareClauseStamp` in `intake/clause-derivation.js` also fails closed when every clause traces as implementation-provenance (`CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION` = \"derive clauses from the statement's testable constraints\"). Hand-authored clauses whose text is not a substring of the scope statement — exactly what setup Phase 3 produces — land there. Also undocumented.\n\n## Why this keeps happening\n\nThree separate fields (`ambiguity_attestation`, clause `provenance`, the `file_scope` binding) are all required by compiled code and all absent from the framework content. The agent authoring the scope has no way to discover them; it invents the shape the gate then fires on. The gate's message names the missing field but not the document that specifies it (#4373), and no skill owns the schema (#4376).\n\n## Fix\n\n1. **Document the complete `plan.acceptance` schema in one place** — `ambiguity_attestation`, per-clause `provenance`, the `file_scope` binding requirement, `none_stated` / `source_rung` interactions, and the empty-commands rule. One reference, linked from setup Phase 3 and from the build skill's AC section.\n2. **Have setup Phase 3 emit a schema-complete acceptance block, or nothing at all.** Emitting nothing is safest: it lets the wired derivation path (#3323 / #3360) do the work on activate/promote, which is what `needsClauseDerivation` is for.\n3. **Default `ambiguity_attestation` to `none_found`** when derivation produced no ambiguous readings, rather than requiring the author to assert a fact the derivation already established. Requiring an attestation the tool just computed is ceremony, not verification.\n4. **Bind derived clauses to `file_scope`** when the scope declares one, and have setup write `plan.metadata.swarm.file_scope` alongside `depends_on`.\n5. **Make unverifiable clauses loud.** `0 verified, N unverifiable` currently exits 0 and reads like a pass. Either treat a fully-unverifiable walk as a config error, or state plainly that nothing was verified.\n\n## Acceptance sketch\n\n- A scope produced by a fresh setup run passes `task check` with no hand-editing of `plan.acceptance`.\n- Every field the gate requires appears in a framework document reachable from the skill that authors it.\n- A clause walk that verifies zero clauses does not report green.\n- The full `plan.acceptance` schema is discoverable from one file, and that file is referenced by the error message.\n\nRelates #4374 (setup Phase 3 acceptance narrative — failure mode 0), #3334 (activate gate), #3360 (derivation wiring), #3323 (extraction/derivation), #3559 (ambiguity attestation), #4008 (clause file-scope bind), #3284 (product-first done-gate), #3267 (literal acceptance ledger), #3398 (implementation-only stamp), #4373 (gate output states pass/fail but not why), #4376 (names state what, never why), #4371 (first-time run review — umbrella).\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @visionik (2026-09-11T05:50:46Z)\n\n## The other half: adding `file_scope` after activation is blocked by #3145\n\nReproducing this on a real project turned up a second failure that makes the gap\nunrecoverable in-band.\n\nAfter root-causing the missing `ambiguity_attestation`, I bound the clauses by\nhand — added `plan.metadata.swarm.file_scope`, rewrote each clause so its text\nquotes a token that exists verbatim in a declared artifact, and set\n`artifact_path`. That is the intended repair shape, and it works:\n\n```\nverify:ac clause walk (#3323): 5 verified, 0 unverifiable, 0 failed\n```\n\nBut the same change set then fails the merge chokepoint:\n\n```\nverify_scope_provenance: 1 self-authorization violation(s) (#3145).\n  xbrief/active/2026-09-11-core-engine.xbrief.json (core-engine)\n    kind: active-xbrief-modified-without-digest\n    expanded: internal/engine/evaluate.go, internal/engine/game.go, ...\n    detail: active xBRIEF modified in change set without a path-bound\n            approved-scope digest (expansion or plan-id reset not permitted\n            without renewed human approval)\n```\n\nThe remediation is `task scope:record-approved-scope`, and it refuses an agent:\n\n```\nscope:record-approved-scope: refusing operator-cli stamp from an\nagent/host/CI shell (detected agent or CI env marker). Mint requires a human\ninteractive TTY without agent-shell markers, plus --confirm and typed phrase\n(#3110).\n```\n\nSo the repair path is closed to the very agent that ran setup — by design, and\nfor good reason. Combined with this issue's original finding, the loop is:\n\n1. Setup writes `narratives.AcceptanceCriteria` as bare prose.\n2. Derivation finds 0 clauses, so `plan.acceptance` is empty and setup writes\n   no `file_scope`.\n3. `verify:ac` therefore reports `0 verified / N unverifiable` and **passes**.\n4. Adding `file_scope` later — the only way to give the walk an oracle — trips\n   #3145, because the approved-scope digest had to be minted by a human at\n   activation time, and was not.\n\nStep 4 is the part worth fixing, because it means there is no in-band recovery:\nthe operator has to be interrupted to mint an approval for a scope the setup\ninterview already collected answers for.\n\n## Suggested addition to the Fix\n\nWhatever else changes, setup should collect the declared artifact scope as part\nof the interview and mint the approved-scope digest while the operator is still\npresent and still has a TTY — rather than leaving it to be discovered later by\nan agent that cannot mint it. Concretely:\n\n- Ask for the scope's owned paths during setup, alongside the acceptance\n  criteria, and write both into the xBRIEF at authoring time.\n- Mint the approved-scope digest in that same operator-present session. The\n  interview is already the right moment: real TTY, operator present, `--confirm`\n  available.\n- Have `verify:ac` treat \"all clauses unverifiable\" as a loud failure rather\n  than a pass, so this never again ships as a green gate.\n\nWithout the mint step, the other three fixes still leave every setup-generated\nscope with decorative acceptance criteria whose only repair needs an operator\nhandoff.\n\nRelates #3145, #3110, #3323, #3284\n\n\n### Comment by @visionik (2026-09-11T05:57:54Z)\n\nDesign-level counterpart filed as **#4383**: the reason the repair in my previous comment is closed to the agent is that the mint belongs at allocation time, and setup never asks for the scope's owned paths — so the operator ends up authorizing a path list the interview never collected.\n\n\n### Comment by @visionik (2026-09-11T06:24:43Z)\n\nFiled **#4385** on the mechanism this issue sits inside, and it is worth reading the two together.\n\n#4380 is the schema gap: `plan.acceptance` needs fields no skill documents, so setup-created scopes fail `verify:ac` closed and then verify nothing.\n\n#4385 is why that gap did not stop anything. `verify:ac` reports `0 verified, 5 unverifiable, 0 failed` and prints **\"passed\"** at exit 0 — the same result it prints for `5 verified, 0 unverifiable`. The two states are indistinguishable in the output an agent reads, and since `verify:ac` runs first in the `deft:check` chain (#3284), the merge chokepoint inherits the silence.\n\nThe part worth calling out here: this issue was **filed and then moved past**. Having a signal that read \"I cannot verify any of this scope's claims,\" the agent converted it into a framework bug, reverted the clause binding as not-worth-an-operator-errand, and continued to a green `deft:check` and a merged PR. Filing an issue about a vacuous gate resolved the discomfort and left the gate vacuous.\n\nThat suggests the fix here is not only \"document the fields.\" A vacuous pass needs to be loud enough that continuing is not the path of least resistance — at minimum the pass line should carry the counts (`passed (0 verified, 5 unverifiable)`), and `verified == 0` should not be a closable state for a scope.\n\n\n### Comment by @MScottAdams (2026-09-11T15:00:02Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because plan.acceptance fields the product AC gate requires (ambiguity_attestation, clause bind via file_scope, provenance) are not in the setup skill, so a setup-generated scope either fails closed on an undocumented field or walks 0 verified / N unverifiable at exit 0.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4380-dc\norigin-ref: origin/master\ndispatch-sha: 7e7d07d80fc4af26442232ddac96a7543b0f11aa\n\ncharter: open critique\nspend: N=1\nspend-why: default motion; several remediations and first-run AC blast radius permit N>=3; operator did not request a panel.\n\nrefutation-target: After a setup-authored acceptance narrative, verify:ac fails closed on missing ambiguity_attestation; once attested none_found, the clause walk reports 0 verified / N unverifiable because clauses have no artifact_path / file_scope, and that walk still exits 0.\n\ntarget: #4380\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This issue is mechanism-shaped: schema discoverability, derivation stamp, and vacuous-pass composition are one AC contract. Companion #4374 is a recut-closed sibling (derivable write + named 0-clause refusal; does not emit file_scope). Thread comments 5630107411 / 5630161136 / 5630388938 are in-ceiling data. Voluntary critiques stay legal; the stamp is for the mandatory gate match.\n\nMeasured on pin 7e7d07d80fc4af26442232ddac96a7543b0f11aa:\n\n- evaluateAmbiguityAttestation missing-attestation cause/remediation live in clause-derivation.ts.\n- Successful applyClauseDerivationToPlan already writes ambiguity_attestation none_found when no clause has readings (4374 critic inventory; tests on prior pin).\n- #3826 / #3497 / #3835: unbound clauses are unverifiable; as a set, failed===0 can pass when the walk has no oracle (acceptance-resolver.ts comment on this family).\n- REST: issue open; three author comments. This session did not re-run live verify:ac on a 0.115.0 setup scope.\n\n#4374 recut already named the fields a successful #3323 stamp writes. This arc is the remaining gate/schema compose.\r\n\n\n### Comment by @MScottAdams (2026-09-11T15:07:56Z)\n\nmodel: grok-4.6\nrole: critic\n\nOpen critique of #4380 at pin 7e7d07d80fc4af26442232ddac96a7543b0f11aa. Re-verified from `git show` of that SHA. This run did not replay live `verify:ac` on a 0.115.0 setup scope. Author comments 5630107411, 5630161136, 5630388938 are untrusted data.\n\n## 1. Fresh-setup pass and zero-verified fail cannot both bind\n\nblocks-the-design\n\nEvidence: The acceptance sketch requires (a) a scope from a fresh setup run passes `task check` with no hand-edit of `plan.acceptance`, and (b) a clause walk that verifies zero clauses does not report green.\n\nOn the pin, `walkOne` with null `artifact_path` returns `unverifiable`, detail `no artifact path bound`, `adjudicable: false` (`packages/core/src/verify-ac/clauses.ts`). `clauseWalkBlocks` then returns false when `adjudicableUnverified === 0` even if `walked > 0` (`packages/core/src/product-first-done-gate/acceptance-resolver.ts`, #3826; test \"does not block when no walked clause is adjudicable\"). A first-run setup tree has no shipped product, so every clause is that no-oracle row. `task check` runs `verify:ac` first (#3284).\n\nFailure mode: Implementing (b) as fail-closed on `task check` makes (a) unsatisfiable until files exist. Implementing (a) keeps the #3826 excusal and (b) stays false. Fix 5's weaker arm (\"state plainly that nothing was verified\") does not match AC (b) as written.\n\nDisposition: the lean cannot bind both ACs. Drop one, or name a reader split that says when an empty-oracle walk may pass (proposed / pre-product vs post-product / `scope:complete`).\n\n## 2. Default none_found is already the derivation stamp\n\nsharpens-framing\n\nEvidence: `prepareClauseStamp` sets `ambiguity_attestation: \"none_found\"` when no clause has readings. `applyClauseQualityToPlan` copies it when the field is absent. `applyClauseDerivationToPlan` calls that stamp. Tests at the pin lock it (`packages/core/src/intake/clause-derivation.test.ts`). `stampedAmbiguityAttestationError` returns null when there are no clauses; missing attestation fires only when clauses exist, none are flagged ambiguous, and the field is absent (`evaluateAmbiguityAttestation` in `clause-derivation.ts`).\n\n`needsClauseDerivation` is false when `clauses.length > 0`. Activate/promote then skips derivation (`packages/core/src/scope/transition.ts`), so the none_found write never runs.\n\nFailure mode: Fix 3 as written (\"default none_found when derivation produced no ambiguous readings\") no-ops on the reported missing-attestation path. That path is hand-authored clauses, not derivation.\n\nDisposition: retarget failure mode 1 at \"setup or agent-written clauses skip #3323 / #3360\". Do not add a second none_found default on the derivation path.\n\n## 3. Two writers for plan.acceptance\n\nsharpens-framing\n\nEvidence: Setup Phase 3 output (Light / Full) lists narratives, xBRIEF 0.8, and `plan.metadata.swarm.depends_on`. It does not name `plan.acceptance`, `ambiguity_attestation`, or `file_scope` (`content/skills/deft-directive-setup/SKILL.md`). \"Emit nothing\" is already that write list. Fix 2 still offers \"schema-complete or nothing\".\n\nThe in-ceiling triage write-back names companion #4374 as the recut-closed sibling for derivable write plus named 0-clause refusal; that sibling does not emit `file_scope`. This arc is the remaining gate/schema compose.\n\nIf setup writes clauses, derivation does not run. If setup writes nothing, derivation may stamp none_found, and #4008 bind runs only when `source_rung === \"derived\"` and declared scope is non-empty (`shouldApplyPromoteClauseFileScopeBind` in `packages/core/src/scope/clause-file-scope-bind.ts`).\n\nFailure mode: binding both remediations leaves `plan.acceptance` with two authors. A later setup or swarm pass following both issues will stamp past each other.\n\nDisposition: exclusive writer. This issue does not recut #4374's derivable write. Setup stays silent on the block (derivation owns the stamp) or is the sole author of a complete stamp — not both.\n\n## 4. Loud zero-verified is a #3826 reversal, not a missing field\n\nsharpens-framing\n\nEvidence: `formatClauseWalkMessage` already prints `0 verified, N unverifiable`. `annotate` prefixes `verify:ac passed (#3284)`. The decorative pass is the shipped set predicate: unbound clauses are non-adjudicable, and `failed === 0` is the strongest verdict when the walk has no oracle (#3826 / #3497 / #3835). That comment and the #3826 test live in `acceptance-resolver.ts`.\n\nFailure mode: filing Fix 5 as \"undocumented schema\" can land a docs change and leave the set predicate in place. Reversing the predicate without naming the reader (`standalone` / `check` / `complete`) fails every derived-but-unbound scope, including greenfield.\n\nDisposition: if the lean wants fail-closed, say it reverses the #3826 no-oracle excusal and name the reader. Otherwise keep #3826 and change only the pass lead so the counts stay in the first line.\n\n## 5. file_scope write is not the #4008 bind and not a digest mint\n\nsharpens-framing\n\nEvidence: `bindClausesToDeclaredScope` (#4008, `packages/core/src/verify-ac/clauses.ts`) copies exact declared members. Empty declared scope is a no-op. Promote bind runs only for `source_rung === \"derived\"`. Hand-authored clauses skip it. Setup does not write `file_scope`.\n\nUntrusted comments 5630107411 and 5630161136 add approved-scope digest mint (#3145 / #3110). That is a different authority surface than declaring bind members.\n\nFailure mode: \"write `file_scope` alongside `depends_on`\" does not bind stated clauses, does not mint a digest, and if an agent invents the path list it becomes the #3835 declared-scope oracle the walk may read.\n\nDisposition: scope Fix 4 as operator-collected declared members for derived-stamp bind. Do not treat it as digest mint. Do not let the agent invent paths.\n\n## Injection / swarm\n\nThe target changes a fail-closed AC gate (`verify:ac` first in `task check`, #3284), takes setup-authored clauses as untrusted input, and shares `plan.acceptance` with #4374.\n\nFail-closed AC: one exclusive writer (finding 3). Untrusted clauses and `file_scope`: if setup authors either, the skill must collect paths from the operator and name every field `evaluateAmbiguityAttestation`, `bindClausesToDeclaredScope`, and the walk read. Shared plan: this arc composes schema discoverability, no-oracle walk policy, and declared-scope bind; it does not recut #4374's derivable write or 0-clause refusal. Reviewer attention on a vacuous pass is not a control.\n\n## 6. Provenance is not a verify:ac config error\n\nfootnote\n\n`prepareClauseStamp` refuses all-implementation provenance on the quality stamp. `evaluateVerifyAcFromPlan` does not call it for an already-present clause array. Hand-authored clauses skip that stamp. Failure mode 3 is a derivation/ingest constraint, not a field `verify:ac` requires.\n\n## 7. Schema docs are missing and not sufficient\n\nfootnote\n\n`git grep ambiguity_attestation` over `content/` at the pin is empty. Setup skill has no `plan.acceptance` schema. Build skill documents `commands` and `none_stated` only. `validatePlanAcceptance` does not require `ambiguity_attestation`. One reference file is the discoverability AC; it does not close findings 1–5.\n\n## Inventory (pin)\n\n- Attestation / derivation / quality stamp: `packages/core/src/intake/clause-derivation.ts` (`evaluateAmbiguityAttestation`, `applyClauseDerivationToPlan`, `applyClauseQualityToPlan`, `needsClauseDerivation`) — #3559\n- Bind: `packages/core/src/verify-ac/clauses.ts` `bindClausesToDeclaredScope`; promote wrapper `packages/core/src/scope/clause-file-scope-bind.ts` — #4008\n- Unverifiable set predicate: `packages/core/src/product-first-done-gate/acceptance-resolver.ts` `clauseWalkBlocks` — #3826 / #3497 / #3835\n- Activate narratives vs block: `packages/core/src/scope/acceptance-activate-gate.ts` — #3334\n- Setup Phase 3: `content/skills/deft-directive-setup/SKILL.md` — no `plan.acceptance` schema\n- Closed related: #3559, #4008, #3284\n\n## Road not taken\n\nTreat only the vacuous pass as blocking and leave the acceptance sketch as-is. That still cannot satisfy \"fresh setup passes check\" if zero-verified becomes fail-closed before product files exist. A reader-profile split would flip finding 1. Steelman of the issue: agents file-and-move-on when the lead says passed (untrusted comment 5630388938). Counts in the pass lead, without reversing #3826 on pre-product `check`, would address that without breaking AC (a).\n\n### Comment by @MScottAdams (2026-09-11T15:09:37Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nSetup does not document plan.acceptance. Hand-authored clauses skip derivation, so missing ambiguity_attestation fires. Derived clauses with no file_scope walk 0 verified / N unverifiable and still pass because #3826 treats no-oracle as non-blocking.\n\nIf this map is confirmed, the next-build cannot keep both \"fresh setup passes check\" and \"zero-verified is fail-closed\" without a reader split. Exclusive writer: this issue does not recut #4374; setup stays silent on the block and derivation owns the stamp. Keep #3826 on pre-product check; put the counts in the pass lead. file_scope is operator-collected declared members for derived bind, not a digest mint.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4380 after round 1 critic 5636497318. Supersedes write-back 5636396393.\n\nTarget-digest: sha256:8776502a2a68c1e8047332935fa699a4b8a5d893b6e821f9caa65c0f098e1a3e\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4380-dc\norigin-ref: origin/master\ndispatch-sha: 7e7d07d80fc4af26442232ddac96a7543b0f11aa\n\nTakes:\n\n- 5636497318 1. Fresh-setup pass and zero-verified fail cannot both bind — accept-into-contract\n- 5636497318 2. Default none_found is already the derivation stamp — accept-into-contract\n- 5636497318 3. Two writers for plan.acceptance — accept-into-contract\n- 5636497318 4. Loud zero-verified is a #3826 reversal, not a missing field — accept-into-contract\n- 5636497318 5. file_scope write is not the #4008 bind and not a digest mint — accept-into-contract\n\n## Bound remedy\n\n- Do not bind both acceptance-sketch arms. Drop \"zero-verified fails check\" as a pre-product standalone/check fail-closed, or name a reader split (proposed / pre-product vs post-product / scope:complete). Keep AC (a) as: after #4374's derivable write, derivation stamps and check is not fail-closed solely because the walk has no oracle yet.\n- Retarget missing-attestation at setup or agent-written clauses that skip #3323 / #3360. Do not add a second none_found default on the derivation path (prepareClauseStamp already writes it).\n- Exclusive writer. This issue does not recut #4374. Setup stays silent on plan.acceptance (derivation owns the stamp). Do not also emit a schema-complete block from setup.\n- Keep the #3826 no-oracle excusal on pre-product check. Change the pass lead so counts stay in the first line (`passed (0 verified, N unverifiable)`). If a later lean wants fail-closed, say it reverses #3826 and name the reader.\n- Scope file_scope as operator-collected declared members for derived-stamp bind (#4008). Do not treat it as approved-scope digest mint (#3145 / #3110 / #4383). Do not let the agent invent paths.\n- One discoverability reference for the fields the gate actually requires is still in. It does not close findings 1–5 by itself. CHANGELOG if the pass-lead and exclusive-writer pointers ship.\r\n\n\n### Comment by @MScottAdams (2026-09-11T15:10:04Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | setup SKILL.md has no plan.acceptance / ambiguity_attestation / file_scope | grep this session plus critic pin read | measured |\n| 2 | prepareClauseStamp writes none_found; missing attestation fires when clauses exist and field is absent | critic cite clause-derivation.ts / tests; parent read evaluateAmbiguityAttestation this session | endorsed |\n| 3 | needsClauseDerivation is false when clauses.length > 0 so activate skips derivation | critic cite scope/transition.ts | endorsed |\n| 4 | walkOne with null artifact_path is unverifiable; clauseWalkBlocks false when adjudicableUnverified === 0 | critic cite verify-ac/clauses.ts and acceptance-resolver.ts #3826 | endorsed |\n| 5 | formatClauseWalkMessage already prints 0 verified, N unverifiable; annotate prefixes verify:ac passed | critic cite pin | endorsed |\n| 6 | bindClausesToDeclaredScope copies declared members; empty declared is no-op; promote bind only for derived | critic cite #4008 | endorsed |\r\n\n\n### Comment by @MScottAdams (2026-09-11T15:10:19Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nMissing attestation is hand-authored clauses skipping derivation. Zero-verified pass is the #3826 no-oracle excusal, not a missing field. The accepted next-build does not keep both \"fresh setup passes check\" and \"zero-verified fails check\" as one gate. Setup stays silent on the block; derivation owns the stamp; the pass lead carries the counts; file_scope is operator-collected declared members.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5636518980 and verified-claims table 5636524818.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1. Round 1 complete, N=1, critic 5636497318, ceiling 5636396393. Operator yolo-standing on the launching utterance.",
+      "Labels": "bug, agent-experience, area:skills, area:vbrief, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind both acceptance-sketch arms. Drop zero-verified fails check as a pre-product standalone/check fail-closed, or name a reader split (proposed / pre-product vs post-product / scope:complete). Keep AC (a) as: after #4374 derivable write, derivation stamps and check is not fail-closed solely because the walk has no oracle yet.",
+        "status": "proposed"
+      },
+      {
+        "title": "Retarget missing-attestation at setup or agent-written clauses that skip #3323 / #3360. Do not add a second none_found default on the derivation path (prepareClauseStamp already writes it).",
+        "status": "proposed"
+      },
+      {
+        "title": "Exclusive writer. This issue does not recut #4374. Setup stays silent on plan.acceptance (derivation owns the stamp). Do not also emit a schema-complete block from setup.",
+        "status": "proposed"
+      },
+      {
+        "title": "Keep the #3826 no-oracle excusal on pre-product check. Change the pass lead so counts stay in the first line (passed (0 verified, N unverifiable)). If a later lean wants fail-closed, say it reverses #3826 and name the reader.",
+        "status": "proposed"
+      },
+      {
+        "title": "Scope file_scope as operator-collected declared members for derived-stamp bind (#4008). Do not treat it as approved-scope digest mint (#3145 / #3110 / #4383). Do not let the agent invent paths.",
+        "status": "proposed"
+      },
+      {
+        "title": "One discoverability reference for the fields the gate actually requires is still in. It does not close findings 1-5 by itself. CHANGELOG if the pass-lead and exclusive-writer pointers ship.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills",
+      "area:vbrief",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4380",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4380: bug(setup,verify-ac): plan.acceptance requires fields no skill documents — setup-generated scopes fail verify:ac closed, then verify nothing (0 verified / N unverifiable)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3145",
+        "type": "x-xbrief/blocks",
+        "title": "Issue #3145"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4380#issuecomment-5636518980",
+        "type": "x-xbrief/github-comment",
+        "title": "Issue #4380 comment 5636518980: Bound remedy"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "remedy: Re-run the gate for details: task verify:ac (or task check); fix the reported product/process defect",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L9"
+        },
+        {
+          "command": "grep -rn \"ambiguity_attestation\\|ambiguity attestation\" .deft/core/",
+          "reason": "shell metacharacter \"|\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L26"
+        },
+        {
+          "command": "(no output)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L26"
+        },
+        {
+          "command": "grep -rln \"ambiguity_attestation\" .../node_modules/@deftai/directive-content/",
+          "reason": "first token \"grep\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L26"
+        },
+        {
+          "command": "verify:ac passed (#3284) [rung=derived]",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L38"
+        },
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "verify:ac config error: missing ambiguity attestation",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "0 verified, 5 unverifiable",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "artifact_path: null",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L49"
+        },
+        {
+          "command": "file_scope: undefined",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L49"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5420779047,
+        "origin": "deftai/directive#4380",
+        "id": "github.issue.5420779047"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8776502a2a68c1e8047332935fa699a4b8a5d893b6e821f9caa65c0f098e1a3e"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from Bound remedy before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind both acceptance-sketch arms. Drop zero-verified fails check as a pre-product standalone/check fail-closed, or name a reader split (proposed / pre-product vs post-product / scope:complete). Keep AC (a) as: after #4374 derivable write, derivation stamps and check is not fail-closed solely because the walk has no oracle yet.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Retarget missing-attestation at setup or agent-written clauses that skip #3323 / #3360. Do not add a second none_found default on the derivation path (prepareClauseStamp already writes it).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Exclusive writer. This issue does not recut #4374. Setup stays silent on plan.acceptance (derivation owns the stamp). Do not also emit a schema-complete block from setup.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep the #3826 no-oracle excusal on pre-product check. Change the pass lead so counts stay in the first line (passed (0 verified, N unverifiable)). If a later lean wants fail-closed, say it reverses #3826 and name the reader.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Scope file_scope as operator-collected declared members for derived-stamp bind (#4008). Do not treat it as approved-scope digest mint (#3145 / #3110 / #4383). Do not let the agent invent paths.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "One discoverability reference for the fields the gate actually requires is still in. It does not close findings 1-5 by itself. CHANGELOG if the pass-lead and exclusive-writer pointers ship.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5420779047",
+    "updated": "2026-09-11T15:18:26Z"
+  }
+}

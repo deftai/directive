@@ -21,6 +21,8 @@ export {
   type AcceptanceVerdict,
   clauseWalkBlocks,
   formatAcceptanceVerdict,
+  formatPassLeadClauseCounts,
+  relabelVerifyAcPassLead,
   resolveAcceptanceGateProfile,
   resolveAcceptanceVerdict,
   resolvedAcceptanceCommandCount,

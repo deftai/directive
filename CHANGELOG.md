@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`plan.acceptance` fields `verify:ac` requires, in one place (#4380).** `content/docs/plan-acceptance.md` names `none_stated`, `source_rung`, `ambiguity_attestation`, and operator-collected `file_scope` for derived-stamp bind. Derivation owns the stamp; setup stays silent. Missing attestation is skipped `#3323` / `#3360`, not a second `none_found` default. Closes #4380.
+
 ### Changed
 
 - **Land leftover completed-tracked artifact for #4399 (#3264 / #3476).** The #4399 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4420. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -37,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Grok critic spawn-not-ready names dest-rooted `grok --cwd --prompt-file` after recorded native deny (#4391).** Count selects leftover-brief class (2+ Deny 1; 0 is #2885; 1 eligible + dest cwd is implement-class, not a critic). `isolation=worktree` plus cwd is invalid-extra-destination. CLI is envelope-only until #4219. Thin skill stays a pointer. Closes #4391.
 - **Merge-chokepoint prose prefers `deft check`, else the tree-correct task form (#4379).** Deposit `MINIMAL_TASKFILE` comment no longer claims root `task check`. Include-only consumers fall back to `task deft:check`; framework source keeps `task check`. One gate, not two sequential runs. Consumer agents-entry pointer (#1309). `plan.policy.agentsMdBudget` managedMaxLines 172→173 and absoluteMaxBytes 17850→18000. Does not unnamespace the include or deposit root aliases (#3218). Closes #4379.
 - **`session:start --primary-claim-exception` is the trusted producer for a contended primary (#4266).** Occupancy already implements `release-cut` / `policy-restore` / `operator-default-branch`. Unknown values exit 2. `--read-only` never claims. Spawn JSON still cannot name the exception. Release skill names `session:start --primary-claim-exception=release-cut`. Closes #4266.
+- **`verify:ac` pass lead keeps clause-walk counts in the first line (#4380).** A no-oracle walk still exits 0 (`#3826`). The lead is now `passed (0 verified, N unverifiable)` so a vacuous walk is not silent. Does not reverse the pre-product no-oracle excusal. Closes #4380.
 
 ### Removed
 
