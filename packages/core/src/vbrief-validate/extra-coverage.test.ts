@@ -1315,4 +1315,19 @@ describe("evaluateConformance D7 filename (#4245)", () => {
     expect(result.message).toContain("... and");
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("skips D7 for nested files under a lifecycle folder", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-d7-nested-"));
+    mkdirSync(join(root, "xbrief", "completed", "archive"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "archive", "2026-09-07-bad-1.2.3.xbrief.json"),
+      validBody,
+      "utf8",
+    );
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    execSync("git add -A", { cwd: root, stdio: "ignore" });
+    expect(evaluateConformance(root, { mode: "staged" }).exitCode).toBe(0);
+    expect(evaluateConformance(root, { mode: "all" }).exitCode).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
 });

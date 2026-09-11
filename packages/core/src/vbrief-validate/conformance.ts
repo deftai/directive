@@ -234,7 +234,7 @@ function isVbriefPath(posix: string): boolean {
 /** D7 applies to lifecycle-folder scope files, matching validateAll discoverVbriefs (#4245). */
 function isScopeLifecyclePath(posix: string): boolean {
   const parts = posix.split("/");
-  if (parts.length < 3) {
+  if (parts.length !== 3) {
     return false;
   }
   const root = parts[0] ?? "";
