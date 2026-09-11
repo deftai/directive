@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4348",
-    "updated": "2026-09-10T23:46:35Z"
+    "updated": "2026-09-11T00:01:28Z"
   },
   "plan": {
     "title": "chore(security): bump brace-expansion to 5.0.9 (Dependabot #10/#13)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(security): bump brace-expansion to 5.0.9 (Dependabot #10/#13)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4348",
@@ -62,9 +62,34 @@
         "github_issue_id": 5418486230,
         "origin": "deftai/directive#4348",
         "id": "github.issue.5418486230"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4349,
+        "prBase": null,
+        "mergeCommit": "c179b12559021dcc3295182f5304a0706abce424",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c179b12559021dcc3295182f5304a0706abce424",
+        "verifiedAt": "2026-09-11T00:01:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhkYmUtZjdjYy03ZjMwLTk5YTAtZDlkZGFiZWQxNTAz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T00:01:28Z"
+      },
+      "completedAt": "2026-09-11T00:01:28Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhkYmUtZjdjYy03ZjMwLTk5YTAtZDlkZGFiZWQxNTAz",
+      "capacityBucket": "new-capability"
     },
     "id": "github.issue.5418486230",
-    "updated": "2026-09-10T23:46:35Z"
+    "updated": "2026-09-11T00:01:28Z"
   }
 }
