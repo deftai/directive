@@ -1,0 +1,129 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4245",
+    "updated": "2026-09-11T22:30:21Z"
+  },
+  "plan": {
+    "title": "bug(conformance): verify:vbrief-conformance --staged skips the D7 filename check, so the installed pre-commit hook admits files the full gate permanently rejects",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(conformance): verify:vbrief-conformance --staged skips the D7 filename check, so the installed pre-commit hook admits files the full gate permanently rejects",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4245",
+      "Overview": "## Summary\n\n`verify:vbrief-conformance --staged` does **not** run the D7 filename check — only the bare-key content check (#1620). Since the pre-commit hook Directive installs uses exactly that mode, the framework's own hook happily admits a file that the framework's own full gate then rejects **permanently**, reddening `task check` for everyone until a human notices.\n\nIn our consumer repo the offending file landed on 2026-08-14 and was found on 2026-09-07. Three weeks, and nothing in the repo could have caught it.\n\n## Repro\n\nClean throwaway repo, no project fixture needed. The only trick is a filename whose slug contains dots (a version string is the natural way to hit this):\n\n```bash\nmkdir repro && cd repro && git init -q .\nmkdir -p xbrief/completed\n# any valid brief body; the filename is what matters\ncp <some-valid>.xbrief.json \"xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\"\ncp <some>/PROJECT-DEFINITION.xbrief.json xbrief/\ngit add -A\n\ndeft verify:vbrief-conformance --staged --project-root .\ndeft verify:vbrief-conformance --project-root .\n```\n\nActual:\n\n```\n--- staged mode ---\n✓ verify_vbrief_conformance: 2 vBRIEF file(s) clean -- no bare keys (#1620).\nexit=0\n\n--- full scan ---\nFAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json: filename\n'2026-09-07-deliberately-bad-1.2.3.xbrief.json' does not match convention\nYYYY-MM-DD-descriptive-slug.vbrief.json (D7)\nFAIL: 1 error(s) found\n```\n\nSame tree, same file, opposite verdicts. `--staged` was *handed* the path and still didn't validate it.\n\n## Why it matters\n\nThe installed `.githooks/pre-commit` runs:\n\n```sh\nrun_deft verify:vbrief-conformance --staged --project-root \"$REPO_ROOT\"\n```\n\nSo the hook is structurally incapable of blocking the one class of defect it is best placed to block — a filename is knowable at stage time, unlike most content problems. And because the full gate *does* reject it, the repo ends up in a state its own tooling forbids, reachable only by fixing it after the fact.\n\nConsumers whose CI doesn't run a deft gate (ours can't easily — the vendored deposit is gitignored, so the CLI isn't on the runner) have no second line of defence at all.\n\n## Expected\n\n`--staged` should validate the filenames of the files it was given, and fail on a D7 violation exactly as the full scan does. If the modes are intentionally different, the hook should invoke whatever mode does check names.\n\n## Environment\n\n`@deftai/directive` 0.104.0 (engine `@deftai/directive-core@0.104.0`), vendored deposit v0.104.0, macOS, Node 22.23.2. Reproduced in a fresh `git init` repo, so not specific to our project layout.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T16:55:38Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because verify:vbrief-conformance --staged routes to bare-key scan only, while D7 filename lives on validateAll, so the installed pre-commit hook admits a dotted-slug xBRIEF that task check then permanently rejects.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4245-dc\norigin-ref: origin/master\ndispatch-sha: d8f4e2a0f8be478096385ec0b765d313e6d4e110\n\ncharter: open critique\nspend: N=1\nspend-why: default motion; staged-mode vs hook-mode; operator did not request a panel.\n\nrefutation-target: cmdVbriefValidate --staged calls runConformance (bare keys #1620) and never validateFilename (D7), while the pre-commit hook uses --staged.\n\ntarget: #4245\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Mechanism-shaped: two conformance modes vs one hook. Voluntary critiques stay legal.\n\nMeasured on pin d8f4e2a0f8be478096385ec0b765d313e6d4e110:\n\n- main.ts: --staged -> runConformance.\n- conformance.ts: staged lists gitStagedFiles then scanVbrief bare keys only.\n- validateFilename / D7 lives in filename.ts, called from validateAll, not runConformance.\n- verify-hooks-installed.test.ts: pre-commit is deft verify:vbrief-conformance --staged.\n\nThis session did not re-run the throwaway git init. Routing on the pin is the measured basis.\r\n\n\n### Comment by @MScottAdams (2026-09-11T17:05:45Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, open critique, N=1. Pin d8f4e2a0f8be478096385ec0b765d313e6d4e110. Ceiling 5637813930.\n\n## sharpens-framing — Recut the comparison target to vbrief:validate\n\nEvidence. On this pin, `verify:vbrief-conformance` is dispatched with a `conformance` subcommand (`packages/cli/src/dispatch.ts`). `cmdVbriefValidate` then always enters `runConformance`. `evaluateConformance` (`packages/core/src/vbrief-validate/conformance.ts`, full read) lists staged or tracked lifecycle artifacts and runs `scanVbrief` bare keys (#1620) only. It does not import or call `validateFilename`. `--staged` and `--all` therefore agree: both skip D7.\n\nD7 lives in `validateFilename` (`filename.ts`), called from `validateAll` (`validate-all.ts`), reached by `runValidate`. That is the `vbrief:validate` task. Framework `task check` and `check:consumer` both already list `vbrief:validate`. The installed hook (`.githooks/pre-commit`, locked by `verify-hooks-installed.test.ts`) runs `deft verify:vbrief-conformance --staged`.\n\nThe issue body's same-verb opposite-verdicts repro is the v0.104.0 CLI path: unflagged `cmdVbriefValidate([\"--project-root\", …])` fell through to `runValidate` because the `conformance` prefix did not exist (injection is e2b622172 / #3786, not in v0.104.0). Executing that router from the pin: `[conformance, --project-root]` → `runConformance`; `[--project-root]` with no prefix → `runValidate`. Isolated pin D7 matcher on `2026-09-07-deliberately-bad-1.2.3.xbrief.json` emits the issue's FAIL text; `…-123.xbrief.json` does not.\n\nFailure mode. An implementer who re-runs the issue repro on this SHA sees both `verify:vbrief-conformance` modes skip D7 and either closes as cannot-reproduce or \"aligns\" `--staged` with `--all` (a no-op). The hook still admits a dotted-slug file that `vbrief:validate` / `task check` rejects. Binding \"invoke whatever mode does check names\" to unflagged `verify:vbrief-conformance` is the same no-op.\n\nDisposition. Recut: close hook `--staged` versus `vbrief:validate` (`validateAll` / D7), not `--staged` versus unflagged `verify:vbrief-conformance`. The hole is still real. The lean can bind after that recut.\n\n## sharpens-framing — Apply D7 on the staged path list, before parse\n\nEvidence. `evaluateConformance` already has the staged paths (`gitStagedFiles` → `isLifecycleArtifactPath`, which accepts `xbrief/completed/*.xbrief.json`). `validateFilename` already exists and only reads the path. The scan loop continues on read and JSON parse failure, so a name check folded into `scanVbrief` or placed after `JSON.parse` still admits an unreadable or invalid-JSON D7 file. The issue's file is handed to `--staged` and then only bare-key scanned.\n\nFailure mode. A patch that \"adds D7 to conformance\" inside the parsed-document loop leaves the parse-failure continue as a commit-time bypass. The hook remains unable to block a filename it was given.\n\nDisposition. Call existing `validateFilename` on each candidate `displayPath` before parse. Doing that in both `--staged` and `--all` is the smaller reuse; `--staged` alone still closes the hook hole. Do not retarget the hook at `vbrief:validate`: that verb has no `--staged`, runs the whole `validateAll` matrix on the tree, and is already a `task check` gate.\n\n## footnote — D7 charset vs version dots\n\nIsolated pin matcher: dots in the slug fail D7; a hyphenated slug passes. That is the convention, not a version-string exemption, and not a reason to weaken D7.\n\n## Inventory\n\n- `cmdVbriefValidate` → `runConformance` / `evaluateConformance` (`--staged` and `--all`, bare keys)\n- `validateFilename` (D7) → `validateAll` → `runValidate` → `vbrief:validate`\n- `.githooks/pre-commit` → `verify:vbrief-conformance --staged`\n- `task check` / `check:consumer` → `vbrief:validate` (D7); framework check also runs `verify:vbrief-conformance` (bare keys)\n- `verify-hooks-installed.test.ts` and `branch_gate.test.ts` lock the hook line\n\n## Road not taken\n\nRetargeting the hook to `vbrief:validate` would make hook and check identical on D7, including already-committed files. Rejected because the issue wants stage-time checking of the files given, `vbrief:validate` has no staged mode, and the check suite already owns the tree scan. What would flip: a restated goal of hook ≡ check tree identity rather than stage-time D7.\n\nNo `blocks-the-design` finding. Injection/swarm lens not triggered (local path charset + hook argv). Dest has no node_modules; `evaluateConformance` was not executed live. The no-call is from a full read of pin `conformance.ts`. D7 matcher and `cmdVbriefValidate` routing were executed as copies of the pin functions.\n\n### Comment by @MScottAdams (2026-09-11T17:06:47Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe pre-commit hook runs verify:vbrief-conformance --staged, which only scans bare keys. D7 filenames live on vbrief:validate. A dotted-slug xBRIEF commits and then reddens task check.\n\nIf this map is confirmed, the next-build is not aligning --staged with unflagged verify:vbrief-conformance (both skip D7 on this SHA). Call existing validateFilename on each staged (and preferably all) candidate path before parse. Do not retarget the hook at vbrief:validate.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4245 after round 1 critic 5637928951. Supersedes write-back 5637813930.\n\nTarget-digest: sha256:6d2224ad64db84b7e211d48acb6c81aeba9a38015ba9caac65feca1dd72be150\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4245-dc\norigin-ref: origin/master\ndispatch-sha: d8f4e2a0f8be478096385ec0b765d313e6d4e110\n\nTakes:\n\n- 5637928951 1. Recut the comparison target to vbrief:validate — accept-into-contract\n- 5637928951 2. Apply D7 on the staged path list, before parse — accept-into-contract\n\n## Bound remedy\n\n- Close hook --staged versus vbrief:validate (validateAll / D7), not --staged versus unflagged verify:vbrief-conformance. On this SHA both conformance modes skip D7.\n- Call existing validateFilename on each candidate displayPath before parse. Doing that in both --staged and --all is the smaller reuse; --staged alone still closes the hook hole. Do not retarget the hook at vbrief:validate (no --staged, whole-tree matrix, already a task check gate). Do not weaken D7 for version dots. CHANGELOG.\r\n\n\n### Comment by @MScottAdams (2026-09-11T17:06:59Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | --staged routes to runConformance | git show pin main.ts | measured |\n| 2 | evaluateConformance does not call validateFilename | git show pin conformance.ts | measured |\n| 3 | D7 is validateFilename via validateAll / runValidate | git show pin filename.ts validate-all.ts | measured |\n| 4 | pre-commit is verify:vbrief-conformance --staged | critic cite verify-hooks-installed.test.ts | endorsed |\n| 5 | On this SHA unflagged verify:vbrief-conformance is also runConformance (conformance prefix #3786) | critic dispatch.ts / cmdVbriefValidate | endorsed |\n| 6 | Isolated D7 matcher fails 1.2.3 slug, passes hyphenated 123 | critic copy of pin matcher | endorsed |\r\n\n\n### Comment by @MScottAdams (2026-09-11T17:07:15Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe hook's --staged conformance scan never runs D7. task check's vbrief:validate does. The accepted next-build calls validateFilename on staged paths before parse. Do not retarget the hook. Do not treat --staged vs unflagged conformance as the pair.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5637940560 and verified-claims table 5637942982.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1. Round 1 complete, N=1, critic 5637928951, ceiling 5637813930. Operator yolo-standing on the launching utterance.",
+      "Labels": "bug, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Close hook --staged versus vbrief:validate (validateAll / D7), not --staged versus unflagged verify:vbrief-conformance. On this SHA both conformance modes skip D7.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/extra-coverage.test.ts",
+          "recorded_at": "2026-09-11T22:31:00Z",
+          "recorded_by": "leaf-implementation/4245"
+        }
+      },
+      {
+        "title": "Call existing validateFilename on each candidate displayPath before parse. Doing that in both --staged and --all is the smaller reuse; --staged alone still closes the hook hole. Do not retarget the hook at vbrief:validate (no --staged, whole-tree matrix, already a task check gate). Do not weaken D7 for version dots. CHANGELOG.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/extra-coverage.test.ts",
+          "recorded_at": "2026-09-11T22:31:00Z",
+          "recorded_by": "leaf-implementation/4245"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4245",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4245: bug(conformance): verify:vbrief-conformance --staged skips the D7 filename check, so the installed pre-commit hook admits files the full gate permanently rejects"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Close hook --staged versus vbrief:validate (validateAll / D7), not --staged versus unflagged verify:vbrief-conformance. On this SHA both conformance modes skip D7.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Call existing validateFilename on each candidate displayPath before parse. Doing that in both --staged and --all is the smaller reuse; --staged alone still closes the hook hole. Do not retarget the hook at vbrief:validate (no --staged, whole-tree matrix, already a task check gate). Do not weaken D7 for version dots. CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5380111134,
+        "origin": "deftai/directive#4245",
+        "id": "github.issue.5380111134"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6d2224ad64db84b7e211d48acb6c81aeba9a38015ba9caac65feca1dd72be150"
+      },
+      "literal_acceptance_not_commands": [
+        {
+          "command": "deft verify:vbrief-conformance --staged --project-root .",
+          "reason": "Issue-body repro pair (staged vs unflagged conformance). Recut bound remedy compares --staged vs vbrief:validate D7, not this pair. Vitest on evaluateConformance is the story verification (#3721)."
+        },
+        {
+          "command": "deft verify:vbrief-conformance --project-root .",
+          "reason": "Unflagged conformance on this SHA is also runConformance; recut forbids treating it as the D7 pair. Not this story acceptance command (#3721)."
+        }
+      ],
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4438,
+        "prBase": null,
+        "mergeCommit": "9dead7a0e2fbb5b9ab5140b619de09025cba5be5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9dead7a0e2fbb5b9ab5140b619de09025cba5be5",
+        "verifiedAt": "2026-09-11T22:30:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDkyNGUtNDRjYy03NjMxLTlmOTgtMzZhYjljMGFhZmY3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T22:30:21Z"
+      },
+      "completedAt": "2026-09-11T22:30:21Z",
+      "completedSessionId": "host:claude:v1:MDFhMDkyNGUtNDRjYy03NjMxLTlmOTgtMzZhYjljMGFhZmY3",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5380111134",
+    "updated": "2026-09-11T22:30:21Z"
+  }
+}
