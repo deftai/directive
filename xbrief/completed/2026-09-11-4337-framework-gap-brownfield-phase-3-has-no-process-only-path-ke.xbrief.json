@@ -1,0 +1,159 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4337",
+    "updated": "2026-09-11T02:06:42Z"
+  },
+  "plan": {
+    "title": "[framework-gap] brownfield Phase 3 has no process-only path (keep building, use Directive)",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] brownfield Phase 3 has no process-only path (keep building, use Directive)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4337",
+      "Overview": "## Summary\n\nBrownfield `directive bootstrap` Phase 3 asks how to treat the specification. Every option writes or rewrites Directive-owned spec artifacts. There is no option to keep the existing product plan (docs, GitHub issues, current branch) and use Directive only as the process layer.\n\nPhase 2 already wrote project identity. `directive init` already deposited hooks, the managed AGENTS.md section, and `task deft:*`. A consumer who is mid-delivery does not need a new scope xBRIEF or a spec interview to start using Directive.\n\n## Reproduction\n\nEnvironment:\n\n- Windows\n- Grok Build\n- `@deftai/directive` 0.114.0\n- Existing product with `docs/SPEC.md`, a phase plan, and GitHub issues\n- `directive bootstrap` → Phase 2 complete (`xbrief/PROJECT-DEFINITION.xbrief.json` written)\n\nPhase 3 onboarding then offers only:\n\n1. Add scope to this project\n2. Update project definition\n3. Replace specification (scrap)\n4. Starting a new project specification\n5. Discuss\n6. Back\n\n\"Keep building this project as-is, using Directive\" is not on the list. The only way out is Back, then Not now on the previous phase-transition menu.\n\nContract text: `skills/deft-directive-setup/SKILL.md` Phase 3 Onboarding Question; `strategies/interview.md` brownfield create-vs-update menu. Both menus are spec-write menus.\n\n## Expected\n\n- Brownfield Phase 3 (setup and interview chaining) includes a first-class **process-only** choice: keep existing docs/issues as the plan; do not emit a scope xBRIEF; do not merge or scrap PROJECT-DEFINITION narratives.\n- That choice exits setup with a pointer to session ritual / `deft check` / later Add scope when a slice is ready.\n- Add scope remains the default when the operator wants a new xBRIEF now.\n- Back → Not now may stay as navigation. It must not be the only way to adopt Directive without a spec write.\n\n## Impact\n\n- A brownfield operator is pushed to invent a scope or re-interview a product that already has a spec.\n- Agents present spec-write as required adoption.\n- Existing GitHub-issue / docs plans look unofficial next to empty `xbrief/proposed/`.\n\n## Acceptance criteria\n\n- [ ] Brownfield Phase 3 / interview chaining menus include a process-only option (no new scope, no spec scrap/replace).\n- [ ] Choosing it does not write `xbrief/proposed/*.xbrief.json` and does not overwrite PROJECT-DEFINITION narratives.\n- [ ] Setup still records that Phase 2 identity exists and Directive is in use.\n- [ ] Add scope stays available and remains the default when the operator wants a new scope.\n- [ ] Docs (`BROWNFIELD.md`, setup skill) name this path in the same words as the menu.\n\n## Duplicate search\n\nSearched open issues for brownfield setup skip spec, process-only, and continue-as-is. Closest:\n\n- #1812 — seed-document step at kickoff (supply an outline; not skip spec)\n- #4335 — Grok Build sessions told to approve Codex hooks (host-aware copy; different surface)\n\nNo open issue tracks a process-only brownfield exit from Phase 3.\n\nRefs #1813 #4335\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T00:13:39Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a setup/interview menu recording obligation (brownfield Phase 3 has only spec-write exits)\nrefutation-target: Brownfield Phase 3 (setup and interview chaining) MUST include a first-class process-only choice that keeps existing docs/issues as the plan, writes no scope xBRIEF, and does not merge or scrap PROJECT-DEFINITION narratives, and Back/Not now MUST NOT be the only way to adopt Directive without a spec write.\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion; panel permission unused\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4337 as launched 2026-09-10 (do same / arc yolo no-ingest). Dest reused this session at origin/master after fetch. SHA matches origin/master. Parent remains unclaimed on primary. Ingest is not this motion.\n\n### Comment by @MScottAdams (2026-09-11T00:21:13Z)\n\nmodel: grok-4.6\r\nrole: critic\r\n\r\nRound 1 N=1 refutation of the recorded target on comment 5627307060. Dispatch SHA 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8. REST read of issue 4337; comments at or below 5627307060 only (the write-back). Pin reads via git show. Menu locks re-run at that SHA: deft_directive_setup_phase3_onboarding_question and test_chaining_gate_documents_brownfield_add_scope_default both pass.\r\n\r\nThe recorded target is that brownfield Phase 3 (setup and interview chaining) MUST add a first-class process-only choice that keeps existing docs/issues as the plan, writes no scope xBRIEF, does not merge or scrap PROJECT-DEFINITION narratives, and that Back/Not now MUST NOT be the only no-spec-write adoption path.\r\n\r\n1. sharpens-framing — \"as the plan\" cannot ride with the no-write exit\r\n\r\nEvidence: the target's defining clause is \"keeps existing docs/issues as the plan\". The issue's own acceptance list does not make docs or issues the next-build contract: no proposed write, no narrative overwrite, Phase 2 identity remains, later Add scope stays available. At this SHA, setup Phase 3 Lifecycle Bridge states that xbrief:preflight and swarm Phase 0 require an active running xBRIEF before dispatch. BROWNFIELD.md section 3 still names xBRIEF files as source of truth after adoption. Work selection is plan-sequence then triage:queue; GitHub issues already enter that queue without a Phase 3 write. The reproduction's docs/SPEC.md is not root SPECIFICATION.md and does not trip the pre-cutover guard.\r\n\r\nFailure mode: an implementer or later agent reads \"process-only\" as license to build from untrusted docs and issue bodies without an active xBRIEF. That is an envelope and authority change, not a menu label.\r\n\r\nDisposition: recut the target to a no-write exit that leaves Phase 2 identity in place. GitHub issues stay cache/queue inputs. Docs stay described content. Do not bind \"docs/issues as the plan\".\r\n\r\n2. sharpens-framing — setup already has a no-write exit; interview chaining does not; one MUST over both is not one hole\r\n\r\nEvidence: after Phase 2, setup MUST offer \"1. Yes (continue)\", \"2. Not now (exit setup)\", \"3. Discuss\", \"4. Back\". Phase 3 onboarding is reached only after Yes. Back on that onboarding menu is rewind to the prior question, which is that same Phase 2-to-3 gate. Interview.md brownfield create-vs-update is Add scope / Update / Replace scrap, then preparatory, switch, Other, Discuss, Back. There is no Not now. Other (specify) widens the answer space; it is not an adoption exit. Content-contract tests lock those two menus as spec-write vocabularies.\r\n\r\nFailure mode: binding \"add the same first-class option to both menus\" either duplicates setup's existing exit under a second label, or treats interview Back as an adoption path it is not. The write-back's \"Back/Not now MUST NOT be the only way\" lumps rewind with a real numbered exit.\r\n\r\nDisposition: split the surfaces. Setup: treat Phase 2 option 2 as the process-only adoption; relabel it and attach the session-ritual / check / later-Add-scope pointer. A Phase 3 restatement is optional UX for the same exit, not a new source of truth. Interview chaining: add a labeled no-write leave-strategy option; do not use Back or Other as that option.\r\n\r\n3. sharpens-framing — a new option without its own then-path falls through write-assumed tails\r\n\r\nEvidence: setup Add-scope MUST continue to Lifecycle Bridge, the export prompt \"Your scope xBRIEFs are ready\", and build handoff. The skill forbids exiting immediately after an Add-scope write. skills.test.ts asserts the setup skill does not contain \"then exit\". Interview is a spec-generating strategy: write guards, emission, and Acceptance Gate all assume a spec was generated. Speckit export is mandatory if that path is still entered.\r\n\r\nFailure mode: agents pick process-only and still run the export prompt or Acceptance Gate against empty proposed/. Or authors insert \"then exit\" and break the Add-scope no-dead-end lock.\r\n\r\nDisposition: give process-only its own then-path (pointer; skip bridge, export, acceptance, and build). Keep the \"then exit\" forbid scoped to Add-scope. Record interview process-only as leave-strategy, not a fourth emit path.\r\n\r\n4. footnote — nearby skips are not this path\r\n\r\nThe Phase 3 line \"Skip if user already has scope xBRIEFs\" requires xBRIEFs, not docs/issues, and is SHOULD. BROWNFIELD.md documents Deft SPECIFICATION.md / PROJECT.md migration, not keep-docs-as-plan bootstrap. Yolo still picks the Add-scope default, so default-takers still invent a scope; the issue keeps that default. Preparatory strategies loop to the gate; they do not exit.\r\n\r\nInjection / swarm: the target changes envelopes (setup and interview menus), identity (PROJECT-DEFINITION untouched vs merged or scraped), shared state (proposed/), and claimed authority over untrusted docs and issue bodies. The safe bind is the no-write exit. The unsafe bind is a new plan source of truth. Concurrency and worktrees are not in play.\r\n\r\nRoad not taken: I rejected \"Not now already closes the whole issue\" because interview chaining has no Not now. I rejected binding the target verbatim because \"as the plan\" collides with preflight.\r\n\r\nSteelman of the rejected full-accept: the operator staring at Add/Update/Scrap has already said Yes to specification, so the only humane control is an in-menu keep-as-is at that moment. What would flip finding 2 toward that: define the Phase 3 item as the same exit as Phase 2 option 2 (pointer, no write, no new source of truth) and add a true no-write leave on interview chaining. That would make setup duplication a label cost, not a missing mechanism. It would not flip finding 1.\n\n### Comment by @MScottAdams (2026-09-11T00:24:04Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nBrownfield Phase 3 only offers spec-write exits, so an operator who already has a product plan gets pushed to invent a scope. Binding docs and GitHub issues as the plan would make untrusted files the next-build contract while preflight still needs an active xBRIEF.\n\nThe leftover next-build is a no-write adoption exit that leaves Phase 2 identity in place, because Directive adoption should not require a spec write. Setup already has Not now; relabel that as the process-only adoption. Interview chaining needs its own labeled leave-strategy, with a then-path that skips bridge, export, acceptance, and build. Docs stay described content. GitHub issues stay cache and queue inputs.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic 5627387278 headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all three classified headings accept-into-contract. Residual: none. Confirming this map keeps #4337 for that no-write exit.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4337 after critic 5627387278. Round 1 siblings dispatched: 1. Supersedes write-back 5627307060.\n\nTarget-digest: sha256:5c7e62886900a219994a50d010d977395e7ad62bf175523768909920cb384204\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8\n\nTakes:\n\n- 1. \"as the plan\" cannot ride with the no-write exit — accept-into-contract\n- 2. setup already has a no-write exit; interview chaining does not — accept-into-contract\n- 3. a new option without its own then-path falls through write-assumed tails — accept-into-contract\n\n## Bound remedy\n\n- Recut the target to a no-write exit that leaves Phase 2 identity in place. GitHub issues stay cache/queue inputs. Docs stay described content. Do not bind \"docs/issues as the plan\".\n- Setup: treat Phase 2 option 2 as the process-only adoption; relabel it and attach the session-ritual / check / later-Add-scope pointer. A Phase 3 restatement is optional UX for the same exit.\n- Interview chaining: add a labeled no-write leave-strategy option. Do not use Back or Other as that option.\n- Give process-only its own then-path (pointer; skip bridge, export, acceptance, and build). Keep the \"then exit\" forbid scoped to Add-scope.\n\n### Comment by @MScottAdams (2026-09-11T00:24:07Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Phase 2-to-3 and Phase 1-to-2 gates include numbered Not now (exit setup) | Parent git show 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8:content/skills/deft-directive-setup/SKILL.md | measured |\n| 2 | Phase 3 onboarding default when brownfield is Add scope, which emits proposed xBRIEF | Parent git show same skill Onboarding Question | measured |\n| 3 | Lifecycle Bridge / preflight require active running xBRIEF before dispatch | Parent git show same skill Lifecycle Bridge | measured |\n| 4 | Interview brownfield menu is spec-write vocabulary without Not now | Critic content-contract lock plus interview.md; parent did not re-run the interview test | endorsed |\n\n### Comment by @MScottAdams (2026-09-11T00:24:11Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n#4337 leftover next-build is a no-write brownfield adoption exit: relabel setup Not now, add an interview leave-strategy, and give that path its own then-path. Why: Directive adoption should not require a spec write, and docs or GitHub issues must not become the plan. Confirming this map does not close the issue.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5627418296 and verified-claims table 5627419065.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was a same-family grok spawn_subagent child. Operator yolo-standing 2026-09-10. Round 1 complete, N=1, critic 5627387278, ceiling 5627307060.",
+      "Labels": "enhancement, area:skills, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Recut the target to a no-write exit that leaves Phase 2 identity in place. GitHub issues stay cache/queue inputs. Docs stay described content. Do not bind \"docs/issues as the plan\".",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/readme_brownfield.test.ts",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      },
+      {
+        "title": "Setup: treat Phase 2 option 2 as the process-only adoption; relabel it and attach the session-ritual / check / later-Add-scope pointer. A Phase 3 restatement is optional UX for the same exit.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/skills.test.ts",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      },
+      {
+        "title": "Interview chaining: add a labeled no-write leave-strategy option. Do not use Back or Other as that option.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      },
+      {
+        "title": "Give process-only its own then-path (pointer; skip bridge, export, acceptance, and build). Keep the \"then exit\" forbid scoped to Add-scope.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/skills.test.ts",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "area:skills",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4337",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4337: [framework-gap] brownfield Phase 3 has no process-only path (keep building, use Directive)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1813",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1813"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut the target to a no-write exit that leaves Phase 2 identity in place. GitHub issues stay cache/queue inputs. Docs stay described content. Do not bind \"docs/issues as the plan\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Setup: treat Phase 2 option 2 as the process-only adoption; relabel it and attach the session-ritual / check / later-Add-scope pointer. A Phase 3 restatement is optional UX for the same exit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Interview chaining: add a labeled no-write leave-strategy option. Do not use Back or Other as that option.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Give process-only its own then-path (pointer; skip bridge, export, acceptance, and build). Keep the \"then exit\" forbid scoped to Add-scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5416602270,
+        "origin": "deftai/directive#4337",
+        "id": "github.issue.5416602270"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5c7e62886900a219994a50d010d977395e7ad62bf175523768909920cb384204"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4358,
+        "prBase": null,
+        "mergeCommit": "ac195cf71d1f3a91b490c91a426248d7fb414331",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ac195cf71d1f3a91b490c91a426248d7fb414331",
+        "verifiedAt": "2026-09-11T02:06:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhkZmEtNGFmYS03N2MwLWE2MmQtYzA0ZGU0OWFhNTgx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T02:06:42Z"
+      },
+      "completedAt": "2026-09-11T02:06:42Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhkZmEtNGFmYS03N2MwLWE2MmQtYzA0ZGU0OWFhNTgx",
+      "capacityBucket": "new-capability"
+    },
+    "id": "github.issue.5416602270",
+    "updated": "2026-09-11T02:06:42Z"
+  }
+}
