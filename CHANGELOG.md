@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Init and doctor no longer tell every host to open Codex `/hooks` (#4335).** Green clone-wide hook readiness still lists all four hosts and Codex `trust=manual-review-required`. The host-unqualified Open `/hooks` command is off the success line. In-Codex review stays in `commands.md`. Does not opt out of Codex deposits.
+- **Init and doctor no longer tell every host to open Codex `/hooks` (#4335).** Codex trust remains `manual-review-required`.
 
 - **Dependabot high: brace-expansion DoS follow-ups (alerts #10/#13).** Pin `brace-expansion@5` to `5.0.9` (and `@2` to `2.1.4`) so the lockfile leaves CVE-2026-14257 / CVE-2026-69152. Closes #4348.
 
