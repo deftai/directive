@@ -42,6 +42,7 @@ import {
   ScannerHardFailError,
   stripRenderedIssueHeader,
 } from "./issue-ingest.js";
+import { extractBoundRemedyHarvest } from "./markdown-scanners.js";
 
 function completed(stdout: string, stderr: string, returncode: number): CompletedProcess {
   return { stdout, stderr, returncode };
@@ -1402,12 +1403,7 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
       /^Target-digest:.*\n/m,
       "",
     );
-    const expected = [
-      "Narrow UAT safe-write globs to repo-root evidence and uat-evidence trees; nested product `evidence` paths deny under active UAT without a grant.",
-      "Treat an unlisted tool name that carries a write-shaped payload as a direct write under active UAT. Pin `EditNotebook` on the catalog and matcher; do not treat two spellings as the class close; do not claim a Cursor host observation without a payload.",
-      "For write-shaped Shell with a visible protected destination, empty classification must become `settings` or `unknown` and deny under active UAT. Redirect grammar includes `>|`, `>&`, and `>&!`, not strip-`!` alone. Named writers and noclobber forms are regression witnesses, not a second denylist.",
-      "Drop kill-switch from the HIGH 3 miss list; keep it only where dest-form writers still miss. Strike body imperatives that constrain later disposition.",
-    ];
+    const expected = extractBoundRemedyHarvest(lean4199).items.map((item) => item.title);
     const table4199 = { id: 5626230000, body: "## Verified-claims table\n" };
     const synthesis4199 = {
       id: 5626232238,
