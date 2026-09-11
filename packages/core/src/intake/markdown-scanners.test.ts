@@ -112,4 +112,26 @@ describe("Bound-remedy harvest extractor (#4258)", () => {
     expect(extractBoundRemedyHarvest(body).items).toEqual([]);
     expect(extractBoundRemedyHarvest(LEAN_5587555346).items).toHaveLength(5);
   });
+
+  it("ignores a fenced Bound-remedy example and harvests the operative heading", () => {
+    const lean = [
+      "```",
+      "## Bound remedy",
+      "1. example only",
+      "```",
+      "",
+      "## Bound remedy",
+      "1. operative item",
+    ].join("\n");
+    const harvest = extractBoundRemedyHarvest(lean);
+    expect(harvest.items.map((item) => item.title)).toEqual(["operative item"]);
+    expect(harvest.sourceText).not.toContain("example only");
+  });
+
+  it("harvests the same Bound-remedy items when Recut: is rewritten as Spec-path:", () => {
+    const recut = extractBoundRemedyHarvest(LEAN_5587555346);
+    const specPath = extractBoundRemedyHarvest(LEAN_5587555346.replace("Recut:", "Spec-path:"));
+    expect(specPath.items.map((item) => item.title)).toEqual(recut.items.map((item) => item.title));
+    expect(specPath.items).toHaveLength(5);
+  });
 });

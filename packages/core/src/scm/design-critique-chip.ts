@@ -1,7 +1,7 @@
 /**
  * Chip-only remaining-set write for design-critique catalog labels (#3642).
  *
- * Parent attach of ingest-ready / in-progress / recut mechanism-shaped MUST use this verb,
+ * Parent attach of ingest-ready / in-progress / later-arc mechanism-shaped MUST use this verb,
  * not `gh api POST .../labels` and not additive `scm:issue:edit --add-label`.
  */
 
@@ -23,7 +23,7 @@ export const CHIP_APPLY_MISS_TOKEN = "chip apply missed (non-blocking convenienc
 
 export const DESIGN_CRITIQUE_CHIP_USAGE =
   "usage: scm issue design-critique-chip --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME] [--json]\n" +
-  "       Parent attach of design-critique:ingest-ready / in-progress / recut mechanism-shaped.\n" +
+  "       Parent attach of design-critique:ingest-ready / in-progress / later-arc mechanism-shaped.\n" +
   "       Closed catalog remaining-set replace. One write. Other facets stay.\n" +
   "       Apply miss is non-blocking convenience; ingest is not blocked.\n";
 

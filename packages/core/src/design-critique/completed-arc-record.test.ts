@@ -1038,15 +1038,28 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
     });
   });
 
-  it("refuses a complete set-level anchor as unrecut-body", () => {
+  it("refuses a complete set-level anchor as set-level-body", () => {
     const verdict = evaluateCompletedArcRecord({
       labels: ["design-critique:triage-ready"],
       comments: [setLevelCharter, lean, table, synthesis],
     });
-    expect(verdict).toMatchObject({ status: "blocked", reason: "unrecut-body" });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "set-level-body" });
   });
 
-  it("lets a later non-set-level target shape clear unrecut-body", () => {
+  it("does not let a Spec-path Bound-remedy list bypass set-level-body", () => {
+    const specPathLean: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** next-build is not this body.\n\nSpec-path:\n\n## Bound remedy\n\n1. leftover story\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:ingest-ready"],
+        comments: [setLevelCharter, specPathLean, table, synthesis],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "set-level-body" });
+  });
+
+  it("lets a later non-set-level target shape clear set-level-body", () => {
     expect(
       evaluateCompletedArcRecord({
         labels: ["design-critique:triage-ready"],
@@ -1105,7 +1118,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
         labels: ["design-critique:triage-ready"],
         comments: [setLevelCharter, lean, table, synthesis, fenced],
       }),
-    ).toMatchObject({ status: "blocked", reason: "unrecut-body" });
+    ).toMatchObject({ status: "blocked", reason: "set-level-body" });
   });
 
   it("ignores a critic quoting target shape", () => {
@@ -1118,7 +1131,7 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
         labels: ["design-critique:triage-ready"],
         comments: [setLevelCharter, lean, table, synthesis, criticQuote],
       }),
-    ).toMatchObject({ status: "blocked", reason: "unrecut-body" });
+    ).toMatchObject({ status: "blocked", reason: "set-level-body" });
   });
 
   it("does not complete a post-cancel synthesis that cites the superseded lean", () => {

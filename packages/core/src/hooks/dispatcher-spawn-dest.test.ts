@@ -96,7 +96,7 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
 }
 
 describe("dest-proven implement spawn (#4215)", () => {
-  it("allows process_only recut skip class on a linked dest, not dest-path (#4296)", () => {
+  it("allows process_only skip class on a linked dest, not dest-path (#4296)", () => {
     const { root, dest } = destFixture();
     const prepareArcDest = vi.fn(() => ({
       dest: {

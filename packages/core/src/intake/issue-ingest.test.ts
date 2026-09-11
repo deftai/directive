@@ -8,7 +8,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { cachePut } from "../cache/operations.js";
 import { FixedClock } from "../cache/test-helpers.js";
@@ -44,6 +45,12 @@ import {
 
 function completed(stdout: string, stderr: string, returncode: number): CompletedProcess {
   return { stdout, stderr, returncode };
+}
+
+const INTAKE_DIR = dirname(fileURLToPath(import.meta.url));
+
+function rewritePathSelector(body: string, stem: "Recut:" | "Spec-path:"): string {
+  return body.replace(/(^|\n)(\s*\*{0,2})(?:Spec-path|Recut):(\*{0,2})/g, `$1$2${stem}$3`);
 }
 
 /**
@@ -1343,6 +1350,147 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
         "pnpm exec vitest run packages/core/src/intake",
         "withdrawn body checkbox that must not win",
       ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("harvests the same 4254 Bound-remedy items under Spec-path: as under Recut:", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4361-4254-spec-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const [result, path] = ingestOne(
+        {
+          number: 4254,
+          title: "spec-path harvest",
+          html_url: "https://github.com/o/r/issues/4254",
+          body: WITHDRAWN_BODY,
+          labels: [{ name: "design-critique:ingest-ready" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [
+            { id: 5587555346, body: rewritePathSelector(RECUT_LEAN_5587555346, "Spec-path:") },
+            table,
+            synthesis,
+          ],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      const data = JSON.parse(readFileSync(path as string, "utf8")) as {
+        plan: { items: { title: string }[] };
+      };
+      expect(data.plan.items.map((item) => item.title)).toEqual([
+        "Do not bind issue remedy 1 (same-incarnation second persist is idempotent allow) as the AC.",
+        "Split the AC. Unique dest still conflicts across incarnations and parents.",
+        "Keep occupied rollback. Do not add EXISTS rollback (that would delete the winner).",
+        "If retry-allow is the fix, the key must be narrower than dest+parent.",
+        "Logging of persist incarnation vs EXISTS does not change disposition.",
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("harvests the same 4199 Bound-remedy items under Recut: and Spec-path:", () => {
+    const lean4199 = readFileSync(join(INTAKE_DIR, "fixtures/lean-5626227158.md"), "utf8").replace(
+      /^Target-digest:.*\n/m,
+      "",
+    );
+    const expected = [
+      "Narrow UAT safe-write globs to repo-root evidence and uat-evidence trees; nested product `evidence` paths deny under active UAT without a grant.",
+      "Treat an unlisted tool name that carries a write-shaped payload as a direct write under active UAT. Pin `EditNotebook` on the catalog and matcher; do not treat two spellings as the class close; do not claim a Cursor host observation without a payload.",
+      "For write-shaped Shell with a visible protected destination, empty classification must become `settings` or `unknown` and deny under active UAT. Redirect grammar includes `>|`, `>&`, and `>&!`, not strip-`!` alone. Named writers and noclobber forms are regression witnesses, not a second denylist.",
+      "Drop kill-switch from the HIGH 3 miss list; keep it only where dest-form writers still miss. Strike body imperatives that constrain later disposition.",
+    ];
+    const table4199 = { id: 5626230000, body: "## Verified-claims table\n" };
+    const synthesis4199 = {
+      id: 5626232238,
+      body:
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        "Bound contract: successor lean 5626227158, verified-claims table 5626230000.\n",
+    };
+    for (const stem of ["Recut:", "Spec-path:"] as const) {
+      const root = mkdtempSync(join(tmpdir(), `ingest-4361-4199-${stem.slice(0, 4)}-`));
+      const xbriefDir = join(root, "xbrief");
+      mkdirSync(xbriefDir, { recursive: true });
+      try {
+        const [result, path] = ingestOne(
+          {
+            number: 4199,
+            title: "4199 path-selector harvest",
+            html_url: "https://github.com/o/r/issues/4199",
+            body: WITHDRAWN_BODY,
+            labels: [{ name: "design-critique:ingest-ready" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [
+              { id: 5626227158, body: rewritePathSelector(lean4199, stem) },
+              table4199,
+              synthesis4199,
+            ],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: () => completed("[]", "", 0),
+          },
+        );
+        expect(result, stem).toBe("created");
+        const data = JSON.parse(readFileSync(path as string, "utf8")) as {
+          plan: { items: { title: string }[] };
+        };
+        expect(
+          data.plan.items.map((item) => item.title),
+          stem,
+        ).toEqual(expected);
+        expect(
+          data.plan.items.map((item) => item.title),
+          stem,
+        ).not.toContain("withdrawn body checkbox that must not win");
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it("refuses when Spec-path: is present and the Bound-remedy list is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4361-empty-spec-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      expect(() =>
+        ingestOne(
+          {
+            number: 4254,
+            title: "empty spec-path harvest",
+            html_url: "https://github.com/o/r/issues/4254",
+            body: WITHDRAWN_BODY,
+            labels: [{ name: "design-critique:ingest-ready" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [
+              {
+                id: 5587555346,
+                body: "Spec-path: next-build is not this body.\n**Lean:** accept.\n\n1. numbered without heading\n",
+              },
+              table,
+              synthesis,
+            ],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: () => completed("[]", "", 0),
+          },
+        ),
+      ).toThrow(RecutHarvestRefusedError);
+      expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
