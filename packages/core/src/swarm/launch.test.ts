@@ -402,6 +402,7 @@ describe("swarmLaunch identity-bound injection (#1351)", () => {
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["cloud-headless", "injected-token"],
       environ: { CURSOR_AGENT: "1", GH_TOKEN: FAKE_TOKEN, GH_REPO: TARGET_REPO },
+      sessionId: "test-session",
       runGh: stubGh({}),
     });
     expect(result.exitCode).toBe(0);
@@ -422,6 +423,7 @@ describe("swarmLaunch identity-bound injection (#1351)", () => {
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
       environ: { CURSOR_AGENT: "1", GH_TOKEN: FAKE_TOKEN, GH_REPO: TARGET_REPO },
+      sessionId: "test-session",
       runGh: stubGh({}),
     });
     expect(result.exitCode).toBe(0);
@@ -441,6 +443,7 @@ describe("swarmLaunch identity-bound injection (#1351)", () => {
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["cloud-headless", "injected-token"],
       environ: { CURSOR_AGENT: "1", GH_REPO: TARGET_REPO },
+      sessionId: "test-session",
       runGh: stubGh({}),
     });
     expect(result.exitCode).not.toBe(0);
@@ -460,6 +463,7 @@ describe("swarmLaunch identity-bound injection (#1351)", () => {
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["cloud-headless", "injected-token"],
       environ: { CURSOR_AGENT: "1", GH_TOKEN: FAKE_TOKEN, GH_REPO: TARGET_REPO },
+      sessionId: "test-session",
       runGh: stubGh({ user: INSTALLATION_USER_403 }),
     });
     expect(result.exitCode).not.toBe(0);
@@ -531,6 +535,7 @@ describe("swarmLaunch occupancy-before-create (#3649)", () => {
         throw new Error("worktree resolver must not run after occupancy deny");
       },
       environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toMatch(/occupied|occupancy/i);
@@ -552,6 +557,7 @@ describe("swarmLaunch occupancy-before-create (#3649)", () => {
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
       environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toMatch(/worktree-map|JSON array/i);
@@ -572,6 +578,7 @@ describe("swarmLaunch occupancy-before-create (#3649)", () => {
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
       environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
     });
 
     expect(result.exitCode).not.toBe(0);
@@ -595,6 +602,7 @@ describe("swarmLaunch occupancy-before-create (#3649)", () => {
         throw new Error("lock compromised: occupancy session changed before release");
       },
       environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toMatch(/worktree-map|JSON array/i);
