@@ -4,6 +4,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { atomicWriteText } from "../cache/io.js";
 import { contentRoot } from "../content-root.js";
+import { readCorePackageVersion } from "../engine-version.js";
+import { readLiveGeneration } from "../freshness/generation.js";
 import { timedGitRunner } from "../session/git.js";
 import { type LockDeps, withAppendLock } from "../slice/lock.js";
 import { composeGreenfieldAgentsMd } from "./agents-consumer-header.js";
@@ -67,14 +69,59 @@ function readAgentsTemplate(seams: AgentsMdSeams = {}): string | null {
   }
 }
 
-function resolveFrameworkSha(seams: AgentsMdSeams = {}): string {
+function isStampableManagedSha(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.length > 0 && !/\s/.test(trimmed) && !trimmed.includes("-->");
+}
+
+/** package.json version at the framework install root (npm deposit identity). */
+function readFrameworkPackageVersion(root: string): string | null {
+  try {
+    const pkgPath = join(root, "package.json");
+    if (!existsSync(pkgPath)) return null;
+    const parsed: unknown = JSON.parse(readFileSync(pkgPath, "utf8"));
+    if (parsed === null || typeof parsed !== "object") return null;
+    const version = (parsed as { version?: unknown }).version;
+    if (typeof version !== "string") return null;
+    return isStampableManagedSha(version) ? version.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Non-git framework identity from existing inventory (#4246).
+ * Prefer install package.json, then live GENERATION.json contentVersion, then
+ * the running core package version. Do not mint a git-shaped 12-hex.
+ */
+function resolveInventoryFrameworkIdentity(root: string, projectRoot?: string): string {
+  const fromPkg = readFrameworkPackageVersion(root);
+  if (fromPkg) return fromPkg;
+  if (projectRoot) {
+    try {
+      const live = readLiveGeneration(projectRoot);
+      const version = live?.contentVersion?.trim() ?? "";
+      if (isStampableManagedSha(version)) return version;
+    } catch {
+      // fall through
+    }
+  }
+  const core = readCorePackageVersion();
+  if (isStampableManagedSha(core)) return core.trim();
+  return "unknown";
+}
+
+function resolveFrameworkSha(seams: AgentsMdSeams = {}, projectRoot?: string): string {
   if (seams.resolveSha) return seams.resolveSha();
   const root = frameworkRoot(seams);
-  if (!payloadIsOwnGitRoot(root)) return "unknown";
-  const result = timedGitRunner(5000)(root, ["rev-parse", "--short=12", "HEAD"]);
-  if (result.code !== 0) return "unknown";
-  const sha = result.stdout.trim();
-  return sha || "unknown";
+  if (payloadIsOwnGitRoot(root)) {
+    const result = timedGitRunner(5000)(root, ["rev-parse", "--short=12", "HEAD"]);
+    if (result.code === 0) {
+      const sha = result.stdout.trim();
+      if (sha) return sha;
+    }
+  }
+  return resolveInventoryFrameworkIdentity(root, projectRoot);
 }
 
 function nowUtcIso(): string {
@@ -290,7 +337,6 @@ export function agentsRefreshPlan(
   seams: AgentsMdSeams = {},
 ): Record<string, unknown> {
   const readTemplate = seams.readTemplate ?? (() => readAgentsTemplate(seams));
-  const resolveSha = seams.resolveSha ?? (() => resolveFrameworkSha(seams));
   const nowIso = seams.nowIso ?? nowUtcIso;
   const newSession = seams.newSession ?? newSessionId;
   const readAgents =
@@ -324,7 +370,7 @@ export function agentsRefreshPlan(
       new_content: null,
     };
   }
-  const frameworkSha = resolveSha();
+  const frameworkSha = resolveFrameworkSha(seams, projectRoot);
   const refreshed = nowIso();
   const sessionId = newSession();
   const templateOpen = findManagedOpenMarker(templateText.replace(/\r\n/g, "\n"));
