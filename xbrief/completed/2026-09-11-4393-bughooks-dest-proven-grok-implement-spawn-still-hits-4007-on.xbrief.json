@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4393",
-    "updated": "2026-09-11T15:55:09Z"
+    "updated": "2026-09-11T19:12:45Z"
   },
   "plan": {
     "title": "bug(hooks): dest-proven Grok implement spawn still hits #4007 on primary leftover actives; spawn cannot pass the story pin",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks): dest-proven Grok implement spawn still hits #4007 on primary leftover actives; spawn cannot pass the story pin",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4393",
@@ -122,7 +122,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "16250b2c533c187defe47533672a4e31cb76adac8b19cb402f6afddccfdc7ce0"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4413,
+        "prBase": null,
+        "mergeCommit": "756ecc04b3a9ba356acdb77715636315bab0c2ce",
+        "deliveryBranch": "master",
+        "deliveryCommit": "756ecc04b3a9ba356acdb77715636315bab0c2ce",
+        "verifiedAt": "2026-09-11T19:12:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkxYTYtZjEzMS03ZWUyLTlhMjgtMjA1YzFlZDdiMGI1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T19:12:45Z"
+      },
+      "completedAt": "2026-09-11T19:12:45Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkxYTYtZjEzMS03ZWUyLTlhMjgtMjA1YzFlZDdiMGI1",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -169,6 +194,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5425597951",
-    "updated": "2026-09-11T15:55:09Z"
+    "updated": "2026-09-11T19:12:45Z"
   }
 }
