@@ -1,0 +1,145 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #4391 Bound-remedy harvest (ingest gh-parse failed; REST+lean used)",
+    "updated": "2026-09-11T15:01:15Z"
+  },
+  "plan": {
+    "title": "docs(design-critique): Grok critic spawn from primary fails two ways; dest-rooted grok CLI is the working seat",
+    "status": "running",
+    "narratives": {
+      "Description": "docs(design-critique): Grok critic spawn from primary fails two ways; dest-rooted grok CLI is the working seat",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4391",
+      "Overview": "Spec is Bound remedy lean 5636098179, not the filed leftover-always-deny / try-native-then-CLI body. Native admit without skip-class is implement-class, not a critic. Deny string must name dest-rooted grok --cwd --prompt-file. Skill stays a pointer. Full thread: https://github.com/deftai/directive/issues/4391",
+      "Labels": "agent-experience, process, grok-build, area:skills, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind leftover-on-primary as a universal native deny. Count selects the class: 2+ Deny 1; 0 is #2885; 1 eligible + dest cwd + parent id is spawn-ready implement-class (dest-lock, leftover file_scope). Documenting the 2-deny retry loop does not close the 1-eligible admit.",
+        "status": "proposed"
+      },
+      {
+        "title": "Native admit without skip-class (spawn-process-only-ready) is not a critic seat. Either CLI after any native outcome that is not that skip-class, or wait on #4315 so native can express process_only. Keep retarget default Grok seat to CLI forbidden. Keep dual-launch forbidden.",
+        "status": "proposed"
+      },
+      {
+        "title": "Grok spawn-not-ready copy: name dest-rooted grok --cwd --prompt-file after recorded native deny as the critic recovery. Do not lead with scope:activate or DEFT_ACTIVE_SCOPE for this class. Playbook keeps argv. Skill stays a pointer (pack source, 80-line cap).",
+        "status": "proposed"
+      },
+      {
+        "title": "Say dest-rooted CLI is envelope-only process-only until #4219. Do not skip #4066 dest-proven. Dest still required.",
+        "status": "proposed"
+      },
+      {
+        "title": "Quote DEFT_ACTIVE_SCOPE, not DEFT_ACTIVE_SCOPE_PIN.",
+        "status": "proposed"
+      },
+      {
+        "title": "Name the third Grok dest deny: isolation=worktree plus cwd is invalid-extra-destination, not dest-missing.",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG if the pointer ships.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "agent-experience",
+      "process",
+      "grok-build",
+      "area:skills",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4391",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4391: docs(design-critique): Grok critic spawn from primary fails two ways; dest-rooted grok CLI is the working seat"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4391#issuecomment-5636098179",
+        "type": "x-xbrief/github-comment",
+        "title": "Issue #4391 comment 5636098179: Bound remedy"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from Bound remedy lean 5636098179 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind leftover-on-primary as a universal native deny. Count selects the class: 2+ Deny 1; 0 is #2885; 1 eligible + dest cwd + parent id is spawn-ready implement-class (dest-lock, leftover file_scope). Documenting the 2-deny retry loop does not close the 1-eligible admit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Native admit without skip-class (spawn-process-only-ready) is not a critic seat. Either CLI after any native outcome that is not that skip-class, or wait on #4315 so native can express process_only. Keep retarget default Grok seat to CLI forbidden. Keep dual-launch forbidden.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Grok spawn-not-ready copy: name dest-rooted grok --cwd --prompt-file after recorded native deny as the critic recovery. Do not lead with scope:activate or DEFT_ACTIVE_SCOPE for this class. Playbook keeps argv. Skill stays a pointer (pack source, 80-line cap).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Say dest-rooted CLI is envelope-only process-only until #4219. Do not skip #4066 dest-proven. Dest still required.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Quote DEFT_ACTIVE_SCOPE, not DEFT_ACTIVE_SCOPE_PIN.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Name the third Grok dest deny: isolation=worktree plus cwd is invalid-extra-destination, not dest-missing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG if the pointer ships.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5425289127,
+        "origin": "deftai/directive#4391",
+        "id": "github.issue.5425289127"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e0116f4c2ef78226572bd5b83ec7d23464f20d02e2d848af0fcc4366cd91caba"
+      }
+    },
+    "id": "github.issue.5425289127",
+    "updated": "2026-09-11T15:01:15Z"
+  }
+}

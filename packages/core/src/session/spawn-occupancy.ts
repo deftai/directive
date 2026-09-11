@@ -142,6 +142,17 @@ const GROK_EXTRA_DEST_KEYS = ["worktree_path", "worktreePath", "worktree"] as co
 export const GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE =
   "Default-on vendor compat must work; do not set [compat.cursor] hooks = false as the product fix.";
 
+/**
+ * Grok spawn-not-ready critic recovery (#4391). Lead with this on Grok
+ * spawn-not-ready. Do not lead with `scope:activate` or `DEFT_ACTIVE_SCOPE`
+ * for that class. Playbook keeps argv.
+ */
+export const GROK_CRITIC_SPAWN_NOT_READY_RECOVERY =
+  "Critic recovery after this recorded native deny: dest-rooted grok --cwd --prompt-file " +
+  "(envelope-only process-only until #4219). Dest still required (#4066). " +
+  "Native admit without skip-class (spawn-process-only-ready) is not a critic seat. " +
+  "Do not dual-launch.";
+
 function firstNamedField(source: Record<string, unknown>, keys: readonly string[]): string | null {
   for (const key of keys) {
     const value = fieldString(source, key);
@@ -273,7 +284,8 @@ function leftoverReuseIncarnation(
 
 function grokMissingDestMessage(): string {
   return (
-    "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
+    GROK_CRITIC_SPAWN_NOT_READY_RECOVERY +
+    " Directive denied implement-class spawn: no worktree destination on the spawn payload " +
     "(tool_input.cwd). Spawned mutating work takes its own worktree; do not inherit the " +
     "parent checkout. Grok spawn_subagent cannot rewrite input -- pass cwd to a reserved " +
     "linked worktree before the spawn primitive. " +
@@ -480,8 +492,9 @@ export function consultImplementSpawnOccupancy(
     if (isolationWorktree && grokCwd !== null) {
       return consultDeny(
         "invalid-extra-destination",
-        "Directive denied implement-class spawn: isolation=worktree together with cwd is " +
-          "both-set on Grok. Grok dest is tool_input.cwd only.",
+        GROK_CRITIC_SPAWN_NOT_READY_RECOVERY +
+          " Directive denied implement-class spawn: isolation=worktree together with cwd is " +
+          "invalid-extra-destination on Grok, not dest-missing. Grok dest is tool_input.cwd only.",
         parentId,
       );
     }

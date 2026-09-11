@@ -66,6 +66,7 @@ import {
   allocatedWorktreeMatches,
   applyCursorNurseryOccupancy,
   consultImplementSpawnOccupancy,
+  GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
   mintImplementSpawnReservation,
   persistSpawnReservation,
   releaseLeftoverSpawnReservation,
@@ -287,6 +288,29 @@ function spawnReadOnlyRecoveryFor(host: HookHost, toolName: string): string {
   return isCursorTaskSpawn(host, toolName)
     ? CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY
     : SPAWN_READ_ONLY_RECOVERY;
+}
+
+function overlayGrokCriticSpawnNotReadyRecovery(
+  input: HookDispatchInput,
+  toolName: string,
+  decision: HookDecision,
+): HookDecision {
+  if (decision.verdict !== "deny" || decision.code !== "spawn-not-ready") return decision;
+  if (
+    !appliesGrokSpawnDestContract({
+      host: input.host,
+      toolName,
+      payload: input.payload,
+      environ: input.environ,
+    })
+  ) {
+    return decision;
+  }
+  if (decision.message.includes(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)) return decision;
+  return {
+    ...decision,
+    message: `${GROK_CRITIC_SPAWN_NOT_READY_RECOVERY} ${decision.message}`,
+  };
 }
 
 function overlayCursorTaskSpawnRecovery(
@@ -1439,11 +1463,10 @@ function inspectMutationGates(
             ? ` Also ritual telemetry (does not clear dest-missing): ${inspected.message}`
             : ` Also ritual-not-ready: ${inspected.message}`
           : "";
-      return deny(
+      return overlayGrokCriticSpawnNotReadyRecovery(
         input,
-        "spawn-not-ready",
         toolName,
-        `${consult.message}${ritualNote}${rootsNote}`,
+        deny(input, "spawn-not-ready", toolName, `${consult.message}${ritualNote}${rootsNote}`),
       );
     }
     spawnConsult = consult;
@@ -2681,7 +2704,11 @@ function routeHookDecision(
     ) {
       const destNote = prepareProcessOnlyCriticDest(input.payload, projectRoot, seams);
       if (destNote !== null && destNote.ok === false) {
-        return deny(input, "spawn-not-ready", toolName, destNote.message);
+        return overlayGrokCriticSpawnNotReadyRecovery(
+          input,
+          toolName,
+          deny(input, "spawn-not-ready", toolName, destNote.message),
+        );
       }
       if (
         destNote === null &&
@@ -2691,13 +2718,17 @@ function routeHookDecision(
           environ,
         })
       ) {
-        return deny(
+        return overlayGrokCriticSpawnNotReadyRecovery(
           input,
-          "spawn-not-ready",
           toolName,
-          `Directive denied ${toolName}: process_only critic spawn requires tool_input.cwd ` +
-            "on an existing linked dest worktree (github-only dest-first). Dest-path is not " +
-            "the skip class; pass cwd to the dest created at origin/<default> after fetch.",
+          deny(
+            input,
+            "spawn-not-ready",
+            toolName,
+            `Directive denied ${toolName}: process_only critic spawn requires tool_input.cwd ` +
+              "on an existing linked dest worktree (github-only dest-first). Dest-path is not " +
+              "the skip class; pass cwd to the dest created at origin/<default> after fetch.",
+          ),
         );
       }
       const pin = destNote?.ok ? ` ${destNote.record}` : "";
@@ -2730,13 +2761,17 @@ function routeHookDecision(
         scopePath: null,
       };
     }
-    return overlayCursorTaskSpawnRecovery(
-      input.host,
+    return overlayGrokCriticSpawnNotReadyRecovery(
+      input,
       toolName,
-      inspectMutationGates(input, toolName, seams, {
-        proposedLifecycleExempt: false,
-        observation,
-      }),
+      overlayCursorTaskSpawnRecovery(
+        input.host,
+        toolName,
+        inspectMutationGates(input, toolName, seams, {
+          proposedLifecycleExempt: false,
+          observation,
+        }),
+      ),
     );
   }
 

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
+  GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
   readSpawnReservationIncarnation,
   rerootDestKeyList,
   rerootMissingDestImperative,
@@ -166,6 +167,12 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toMatch(/process_only/);
     expect(decision.message).toMatch(/Dest-path is not that class/);
+    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
+    const criticIdx = decision.message.indexOf("grok --cwd --prompt-file");
+    const activateIdx = decision.message.indexOf("scope:activate");
+    expect(criticIdx).toBeGreaterThanOrEqual(0);
+    expect(activateIdx).toBeGreaterThan(criticIdx);
+    expect(decision.message).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
     expect(inspectRitual).not.toHaveBeenCalled();
     expect(inspectScope).toHaveBeenCalled();
   });
@@ -374,6 +381,66 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(firstIncarnation).not.toBeNull();
     expect(secondIncarnation).not.toBeNull();
     expect(secondIncarnation).not.toBe(firstIncarnation);
+  });
+
+  it("names isolation=worktree plus cwd as invalid-extra-destination, not dest-missing (#4391)", () => {
+    const { root, dest } = destFixture();
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, isolation: "worktree", prompt: "critic" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams({ inspectRitual }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("invalid-extra-destination");
+    expect(decision.message).toContain("not dest-missing");
+    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
+    expect(decision.message).not.toMatch(/no worktree destination on the spawn payload/);
+    expect(inspectRitual).toHaveBeenCalled();
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("does not lead Grok multiple-eligible spawn-not-ready with scope:activate (#4391)", () => {
+    const { root, dest } = destFixture();
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message:
+        "Multiple active xBRIEF artifacts are eligible (a-story.xbrief.json, b-story.xbrief.json). " +
+        "Set DEFT_ACTIVE_SCOPE to the dispatched story path, or keep one running brief in xbrief/active/.",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "critic" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
+    const criticIdx = decision.message.indexOf("grok --cwd --prompt-file");
+    const activateIdx = decision.message.indexOf("scope:activate");
+    const pinIdx = decision.message.indexOf("DEFT_ACTIVE_SCOPE");
+    expect(criticIdx).toBeGreaterThanOrEqual(0);
+    expect(activateIdx).toBeGreaterThan(criticIdx);
+    expect(pinIdx).toBeGreaterThan(criticIdx);
+    expect(decision.message).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
+    expect(inspectRitual).not.toHaveBeenCalled();
   });
 
   it("occupancy-denies Grok cwd plus worktree_path without skipping ritual or dest-lock", () => {
