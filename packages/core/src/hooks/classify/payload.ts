@@ -47,3 +47,38 @@ export function hookPayloadTopLevelKeys(payload: unknown): string[] {
   if (input === null) return [];
   return Object.keys(input).sort();
 }
+
+const STDIN_ENV_BAG_KEYS = ["env", "environ"] as const;
+
+/** Stdin env bag for per-spawn hook environ (#4393). Not process-wide DEFT_ACTIVE_SCOPE. */
+export function hookPayloadEnvironBag(payload: unknown): NodeJS.ProcessEnv | null {
+  const input = record(payload);
+  if (input === null) return null;
+  for (const key of STDIN_ENV_BAG_KEYS) {
+    const bag = record(input[key]);
+    if (bag === null) continue;
+    const env: NodeJS.ProcessEnv = {};
+    let any = false;
+    for (const [name, value] of Object.entries(bag)) {
+      if (typeof value === "string") {
+        env[name] = value;
+        any = true;
+      }
+    }
+    if (any) return env;
+  }
+  return null;
+}
+
+/**
+ * Merge stdin env bag over fallback. `undefined` means no bag — callers omit
+ * `environ` so `decideHook` keeps process.env as the CLI fallback.
+ */
+export function mergeHookDispatchEnviron(
+  payload: unknown,
+  fallback: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv | undefined {
+  const bag = hookPayloadEnvironBag(payload);
+  if (bag === null) return undefined;
+  return { ...fallback, ...bag };
+}

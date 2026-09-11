@@ -39,7 +39,9 @@ export {
   fieldPresent,
   fieldString,
   firstString,
+  hookPayloadEnvironBag,
   hookPayloadTopLevelKeys,
+  mergeHookDispatchEnviron,
   record,
   toolInputRecord,
 } from "./payload.js";

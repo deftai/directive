@@ -3,7 +3,9 @@ import {
   fieldPresent,
   fieldString,
   firstString,
+  hookPayloadEnvironBag,
   hookPayloadTopLevelKeys,
+  mergeHookDispatchEnviron,
   record,
   toolInputRecord,
 } from "./payload.js";
@@ -33,5 +35,27 @@ describe("payload helpers (#2950)", () => {
   it("hookPayloadTopLevelKeys sorts keys", () => {
     expect(hookPayloadTopLevelKeys({ b: 1, a: 2 })).toEqual(["a", "b"]);
     expect(hookPayloadTopLevelKeys(null)).toEqual([]);
+  });
+});
+
+describe("spawn stdin env bag (#4393)", () => {
+  it("threads stdin env bag over fallback and omits when absent", () => {
+    expect(hookPayloadEnvironBag({ env: { DEFT_ACTIVE_SCOPE: "b-story.xbrief.json" } })).toEqual({
+      DEFT_ACTIVE_SCOPE: "b-story.xbrief.json",
+    });
+    expect(hookPayloadEnvironBag(null)).toBeNull();
+    expect(hookPayloadEnvironBag({ env: {} })).toBeNull();
+    expect(hookPayloadEnvironBag({ env: { FOO: 1 } })).toBeNull();
+    expect(hookPayloadEnvironBag({ tool_input: { cwd: "/wt" } })).toBeNull();
+    expect(
+      mergeHookDispatchEnviron(
+        { environ: { DEFT_ACTIVE_SCOPE: "pinned.xbrief.json" } },
+        { DEFT_SESSION_ID: "parent", DEFT_ACTIVE_SCOPE: "process-wide.xbrief.json" },
+      ),
+    ).toEqual({
+      DEFT_SESSION_ID: "parent",
+      DEFT_ACTIVE_SCOPE: "pinned.xbrief.json",
+    });
+    expect(mergeHookDispatchEnviron({ tool_name: "spawn_subagent" }, { A: "1" })).toBeUndefined();
   });
 });
