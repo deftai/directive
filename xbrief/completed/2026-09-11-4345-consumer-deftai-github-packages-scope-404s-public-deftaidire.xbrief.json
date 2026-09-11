@@ -1,0 +1,201 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4345",
+    "updated": "2026-09-11T02:19:48Z"
+  },
+  "plan": {
+    "title": "Consumer @deftai GitHub Packages scope 404s public @deftai/directive even with --registry npmjs",
+    "status": "completed",
+    "narratives": {
+      "Description": "Consumer @deftai GitHub Packages scope 404s public @deftai/directive even with --registry npmjs",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4345",
+      "Overview": "## Context\n\nConsumer `deftai/deftvisage`. Operator asked to `npm update deft` after a CLEAN merge. Global CLI was `@deftai/directive@0.113.2`; public npm latest is `0.114.0`. Project `.npmrc` sets `@deftai:registry=https://npm.pkg.github.com` then overrides individual `@deftai/directive*` packages to `https://registry.npmjs.org`.\n\n`task feedback:file` not used: `plan.policy.valueFeedback.upstreamPrompt=false`. Operator asked to file Directive issues encountered during this work. Refs #1709. Related to consumer #4343 (gated ritual / npm-registry-mirror).\n\nNot classified as adoption-blocker (workaround: `cd $HOME && npm i -g @deftai/directive@latest --registry=https://registry.npmjs.org/`).\n\n## Expected\n\n`npm view @deftai/directive version` from the consumer repo root (or `npm i -g @deftai/directive@latest`) resolves the **public** package, matching project `.npmrc` per-package overrides and USER.md / doctor recovery (`--registry=https://registry.npmjs.org/`).\n\n## Actual\n\nFrom the consumer repo root:\n\n```\nnpm view @deftai/directive version\nnpm view @deftai/directive version --registry=https://registry.npmjs.org/\n```\n\nboth hit `GET https://npm.pkg.github.com/@deftai%2fdirective` → **404** (`npm package \"directive\" does not exist under owner \"deftai\"`). Scoped `@deftai:registry=github` wins over `--registry`. Doctor then reports `npm-registry-mirror` as a **hard** gated-ritual error even though the CLI is meant to live on public npm.\n\nFrom `$HOME` with user `.npmrc` `@deftai:registry=https://registry.npmjs.org/`, `npm view` returns `0.114.0` and `npm i -g @deftai/directive@latest --registry=https://registry.npmjs.org/` succeeded (global now 0.114.0).\n\n## Repro\n\n1. Clone a consumer whose `.npmrc` has `@deftai:registry=https://npm.pkg.github.com` plus per-package public overrides for `@deftai/directive*`.\n2. `cd` that repo. `npm view @deftai/directive version`.\n3. Observe GitHub Packages 404.\n\n## Notes\n\nConsumer agents following “npm update deft” without changing cwd will fail closed. Doctor treating this as a gated-ritual hard error blocked `deft verify:session-ritual -- --tier=gated` in the same session (#4343).\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-10T23:52:05Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a registry-routing and gated-ritual recording obligation (scoped GitHub Packages vs public @deftai/directive, doctor npm-registry-mirror)\nrefutation-target: From a consumer repo whose .npmrc sets @deftai:registry=GitHub Packages plus per-package public overrides for @deftai/directive*, npm view @deftai/directive and --registry=https://registry.npmjs.org/ MUST resolve the public package, and doctor npm-registry-mirror MUST NOT fail-close gated session ritual.\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: fec1dee399d0844c09a51845137ba6d50bbcbb0f\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion; panel permission unused\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4345 as launched 2026-09-10 (arc yolo no-ingest). Dest created this session: git fetch origin; git worktree add --detach at origin/master. SHA matches origin/master. Parent remains unclaimed on primary (session:start --read-only). Ingest is not this motion.\n\n### Comment by @MScottAdams (2026-09-11T00:02:08Z)\n\nmodel: grok-4.6\nrole: critic\n\nRefutation of comment 5627101481 `refutation-target:`. Pin reads: git show fec1dee399d0844c09a51845137ba6d50bbcbb0f:. Input ceiling 5627101481 inclusive. Round 1, N=1, fresh. No comments after the ceiling were read.\n\nRecorded target, attacked as written: from a consumer repo whose .npmrc sets @deftai:registry=GitHub Packages plus per-package public overrides for @deftai/directive*, npm view @deftai/directive and --registry=https://registry.npmjs.org/ MUST resolve the public package, and doctor npm-registry-mirror MUST NOT fail-close gated session ritual.\n\nThe compound MUST cannot bind.\n\n## 1. Consumer-cwd npm view MUST resolve public\n\nClass: blocks-the-design\n\nEvidence. npm's own scope model: a scope only ever points to one registry (docs.npmjs.com cli v11 using-npm/scope, \"Associating a scope with a registry\"). npm/cli#7659 (2024-07, npm 10.8.0): `npm view <pkg> --registry <other>` from a tree whose `.npmrc` has `@scope:registry` still uses the scoped `.npmrc` registry; leaving the project directory is the path that works. Same class as archived npm/npm#19517 (2018). Local npm here is 11.16.0. I did not write a probe `.npmrc` (process-only dest, no mutation lease); the CLI issue is independent of this tree.\n\nAt the pin, Directive tests treat `--registry=https://registry.npmjs.org/` as the bypass. `packages/core/src/doctor/npm-view.test.ts` and `packages/core/src/content-contracts/standards/npm_registry_mirror.test.ts` assert that argv token. `spawnSync` is mocked. That is a claim, not evidence that npm honors the flag against `@deftai:registry`. `defaultNpmViewVersion` (`packages/core/src/doctor/npm-view.ts`) and session `defaultNpmView` (`packages/core/src/session/release-availability.ts`) inherit process.cwd() and do not pass a userconfig or cwd that unsets the scoped key.\n\nnpm's published routing key is `@scope:registry`. The docs do not define `@scope/pkg:registry` as a registry primitive. The issue's \"per-package public overrides for @deftai/directive*\" are not a mechanism the MUST can rest on.\n\nFailure mode. Bind this conjunct and the next-build contract requires Directive to make `npm view` succeed from a GitHub-Packages-scoped consumer cwd. That is either an npm CLI change or a rewrite of `@deftai:registry` that would 404 every other `@deftai/*` package the consumer actually hosts on GitHub Packages. Agents that follow the documented `--registry` recovery without changing cwd keep 404ing. The issue body's `$HOME` workaround is the npm-documented escape, not a hole to invert.\n\nDisposition. Do not accept this conjunct. The recorded target as a whole cannot bind while this half remains.\n\n## 2. doctor npm-registry-mirror MUST NOT fail-close gated ritual\n\nClass: sharpens-framing\n\nEvidence at the pin. `runNpmRegistryMirrorCheck` emits `severity: \"warning\"` only (`packages/core/src/doctor/npm-registry.ts`). `packages/core/src/doctor/network-gate.test.ts` runs `cmdDoctor` with a non-public registry and `expect(exitCode).toBe(0)`. Doctor `exitCode = errorCount > 0 ? 1 : 0` (`packages/core/src/doctor/main.ts`). Gated ritual records `ok: code === 0` (`runGatedStep` in `packages/core/src/session/verify-session-ritual.ts`). Warnings do not fail the doctor step. UNRESOLVED copy is `lastErrorCount > 0` (`renderDoctorStatusLine` in `packages/core/src/doctor/doctor-state.ts`); that file already says advisory warnings do not block writes.\n\nIssue 4343 Actual item 2 mixes the `npm-registry-mirror` advisory with hundreds of `completed-open-items` and calls the mix a hard error. At this SHA `completed-open-items` is in `DOCTOR_ADVISORY_FAIL_CHECKS` (`packages/core/src/doctor/checks.ts`). The field \"hard gated-ritual error\" is a mixed-cause diagnosis, not a measurement that this check fail-closes.\n\nFailure mode. Binding \"MUST NOT fail-close\" as if it were an open gap will spawn a severity flip that is already shipped, and will leave the real 404 (`--registry` losing to scoped config) unaddressed.\n\nDisposition. Restating \"keep npm-registry-mirror advisory\" can bind. Treating fail-close as a hole in this check cannot. This conjunct does not rescue the recorded target.\n\n## 3. Existing #2808 `--registry` pin does not survive project `.npmrc`\n\nClass: sharpens-framing\n\nInventory before any new check. Already present at the pin: offline `npm config get` + URL redaction (`runNpmRegistryMirrorCheck`); `--network` payload-staleness; session release-availability advisory (fail-open on npm view failure); UPGRADING.md \"one command\" recovery `npm i -g @deftai/directive@<version> --registry=https://registry.npmjs.org/`; durable `@deftai:registry=https://registry.npmjs.org/`. `content/tools/package-manager-network.md` claims the `--registry` pin means a configured mirror cannot silently report an old latest release. All of that rest on the same argv token npm/cli#7659 says scoped `.npmrc` beats.\n\nFailure mode. Leaving the documented recovery as `--registry` from project cwd reprints the field 404. Adding a new doctor check that parses per-package `.npmrc` keys would also fail (those keys are not npm routing) and would read untrusted config that can hold tokens.\n\nDisposition. If a later lean binds anything, it is \"Directive-owned npm view and documented recovery must not treat `--registry` as beating `@deftai:registry`\" while keeping the advisory. That is not an accept of the recorded target.\n\nInjection / swarm. The target is registry routing and ritual recording. Project `.npmrc` is untrusted and can carry credentials. The existing check already forbids printing raw URLs (`npm-registry.ts` plus the \"never renders a registry URL\" test). Do not add a parser of per-package `.npmrc` keys. Do not add a fail-closed `npm view` to gated ritual (`package-manager-network.md`: default doctor and session-ritual must not contact a registry). No worktree or swarm change.\n\nRoad-not-taken. Accept the MUST and ship a cwd-local wrapper that forces public `@deftai:registry` for one spawn. Rejected: that wrapper is a Directive-owned probe/docs fix, which contradicts the recorded MUST that the operator/agent `npm view` from consumer cwd must succeed without changing npm's scope model.\n\nSteelman. The operator-visible failure is real: from the repo the agent was told not to leave, the documented `--registry` recovery 404s. That is the #2808 recovery-doc / spawn-cwd hole in finding 3, not proof that consumer-cwd `npm view` MUST resolve. What would flip finding 1: npm honors `--registry` over `@scope:registry`. The 2024 CLI issue and the v11 scope docs still say otherwise. The issue body's `$HOME` workaround already names the working path.\r\n\n\n### Comment by @MScottAdams (2026-09-11T00:04:18Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe filed MUST cannot bind. From a consumer cwd whose `.npmrc` maps `@deftai` to GitHub Packages, npm will not let `--registry` or per-package override keys make `npm view @deftai/directive` hit public npm. The doctor `npm-registry-mirror` check is already an advisory warning and does not fail gated ritual by itself. What is still wrong is Directive's own `--registry` recovery pin, which reprints that 404 from project cwd.\n\nConfirming this map recuts 4345. Next-build is not this body. Keep the check advisory. Stop claiming `--registry` beats `@deftai:registry`. Do not parse per-package `.npmrc` keys. Do not add a fail-closed registry probe to gated ritual.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic 5627192758 headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all three headings accept-into-contract. Residual: none. The arc does not change npm's scope model and does not decide how a consumer hosts other `@deftai/*` packages.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4345 after critic 5627192758. Round 1 siblings dispatched: 1. Supersedes write-back 5627101481.\n\nTarget-digest: sha256:a74d727c0f82d5a20cc0ba93b4f3f4a9f768fee6f3bdc98fd61f63aa67f7663b\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: fec1dee399d0844c09a51845137ba6d50bbcbb0f\n\nTakes (auto-stamp denominator):\n\n- 1. Consumer-cwd npm view MUST resolve public — accept-into-contract\n- 2. doctor npm-registry-mirror MUST NOT fail-close gated ritual — accept-into-contract\n- 3. Existing #2808 `--registry` pin does not survive project `.npmrc` — accept-into-contract\n\n## Bound remedy\n\n- Keep `npm-registry-mirror` as an advisory warning. Do not treat it as a gated-ritual fail-close hole.\n- Do not bind \"consumer-cwd `npm view @deftai/directive` MUST resolve public\" while `@deftai:registry` points at GitHub Packages.\n- Recut Directive-owned `npm view` and documented recovery so they do not treat `--registry` as beating `@deftai:registry`. Name a path that unsets or overrides the scoped key (cwd change, userconfig, or durable `@deftai:registry=https://registry.npmjs.org/`).\n- Do not parse per-package `.npmrc` keys. Do not print registry URLs. Do not add a fail-closed `npm view` to default doctor or gated ritual.\n\n### Comment by @MScottAdams (2026-09-11T00:04:32Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | npm-registry-mirror emits severity warning only; it does not increment doctor errorCount | Parent git show fec1dee399d0844c09a51845137ba6d50bbcbb0f:packages/core/src/doctor/npm-registry.ts (addFinding severity warning) | measured |\n| 2 | doctor exitCode is 1 only when errorCount > 0 | Parent git show fec1dee399d0844c09a51845137ba6d50bbcbb0f:packages/core/src/doctor/main.ts line 714 | measured |\n| 3 | completed-open-items is in DOCTOR_ADVISORY_FAIL_CHECKS (exit-exempt) | Parent git show fec1dee399d0844c09a51845137ba6d50bbcbb0f:packages/core/src/doctor/checks.ts | measured |\n| 4 | gated ritual records ok: code === 0 | Parent git show fec1dee399d0844c09a51845137ba6d50bbcbb0f:packages/core/src/session/verify-session-ritual.ts runGatedStep | measured |\n| 5 | Directive-owned npm view and doctor recovery pass --registry=https://registry.npmjs.org/ without unsetting @deftai:registry | Parent git show fec1dee399d0844c09a51845137ba6d50bbcbb0f:packages/core/src/doctor/npm-view.ts and npm-registry.ts recovery string | measured |\n| 6 | npm scoped @scope:registry beats --registry on npm view | Parent re-read npm/cli#7904 and docs.npmjs.com using-npm/scope (\"a scope only ever points to one registry\") | measured |\n| 7 | Per-package @scope/pkg:registry is not npm's published routing key | Parent re-read docs.npmjs.com using-npm/scope (Associating a scope with a registry) | measured |\n\n### Comment by @MScottAdams (2026-09-11T00:04:48Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n4345 cannot be built as \"make npm view from the consumer repo hit public npm.\" npm's scope registry wins over --registry. The doctor check is already advisory. The next-build contract is the recut lean: keep the warning, recut the documented --registry recovery so it does not claim to beat @deftai:registry, and do not parse per-package .npmrc keys.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5627213011 and verified-claims table 5627215112.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was a same-family grok spawn_subagent child. Operator yolo-standing 2026-09-10. Round 1 complete, N=1, critic 5627192758, ceiling 5627101481.",
+      "Labels": "bug, doctor, area:cli, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Keep `npm-registry-mirror` as an advisory warning. Do not treat it as a gated-ritual fail-close hole.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/npm-registry.test.ts (severity warning; doctor exit 0)",
+          "recorded_at": "2026-09-11T02:09:38Z",
+          "recorded_by": "spawn-8ba0ddfb"
+        }
+      },
+      {
+        "title": "Do not bind \"consumer-cwd `npm view @deftai/directive` MUST resolve public\" while `@deftai:registry` points at GitHub Packages.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "recut contract: consumer-cwd npm view MUST public was not bound; isolation uses temp cwd",
+          "recorded_at": "2026-09-11T02:09:38Z",
+          "recorded_by": "spawn-8ba0ddfb"
+        }
+      },
+      {
+        "title": "Recut Directive-owned `npm view` and documented recovery so they do not treat `--registry` as beating `@deftai:registry`. Name a path that unsets or overrides the scoped key (cwd change, userconfig, or durable `@deftai:registry=https://registry.npmjs.org/`).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/npm-view.test.ts (temp project .npmrc, no --registry/--userconfig)",
+          "recorded_at": "2026-09-11T02:09:38Z",
+          "recorded_by": "spawn-8ba0ddfb"
+        }
+      },
+      {
+        "title": "Do not parse per-package `.npmrc` keys. Do not print registry URLs. Do not add a fail-closed `npm view` to default doctor or gated ritual.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/npm-view.test.ts (no per-package .npmrc keys) + npm-registry.test.ts (no raw registry URLs)",
+          "recorded_at": "2026-09-11T02:09:38Z",
+          "recorded_by": "spawn-8ba0ddfb"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4345",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4345: Consumer @deftai GitHub Packages scope 404s public @deftai/directive even with --registry npmjs"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep `npm-registry-mirror` as an advisory warning. Do not treat it as a gated-ritual fail-close hole.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Do not bind \"consumer-cwd `npm view @deftai/directive` MUST resolve public\" while `@deftai:registry` points at GitHub Packages.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Recut Directive-owned `npm view` and documented recovery so they do not treat `--registry` as beating `@deftai:registry`. Name a path that unsets or overrides the scoped key (cwd change, userconfig, or durable `@deftai:registry=https://registry.npmjs.org/`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not parse per-package `.npmrc` keys. Do not print registry URLs. Do not add a fail-closed `npm view` to default doctor or gated ritual.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5417762387,
+        "origin": "deftai/directive#4345",
+        "id": "github.issue.5417762387"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a74d727c0f82d5a20cc0ba93b4f3f4a9f768fee6f3bdc98fd61f63aa67f7663b"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4355,
+        "prBase": null,
+        "mergeCommit": "e094b943955ef9dccb60467362b81106dc296513",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e094b943955ef9dccb60467362b81106dc296513",
+        "verifiedAt": "2026-09-11T02:19:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhkZDktMWRkNy03N2MyLWIwYWUtYTk5OWY0Zjc0Y2E0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T02:19:48Z"
+      },
+      "completedAt": "2026-09-11T02:19:48Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhkZDktMWRkNy03N2MyLWIwYWUtYTk5OWY0Zjc0Y2E0",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5417762387",
+    "updated": "2026-09-11T02:19:48Z",
+    "architecture": {
+      "systemOfRecord": {
+        "stateSurfaces": [
+          {
+            "name": "public npm view isolation npmrc",
+            "classification": "cache",
+            "owner": "doctor npm-view helper",
+            "approvedStorage": "json_file",
+            "forbiddenStorage": [
+              "browser_storage",
+              "in_memory"
+            ],
+            "authoritative": false,
+            "invalidationRules": "OS temp directory plus project .npmrc created for one npm view spawn and removed in finally. Never product authority."
+          },
+          {
+            "name": "GitHub issue comment thread (ingested overview)",
+            "classification": "authorization_state",
+            "owner": "GitHub issues",
+            "approvedStorage": "external_service",
+            "forbiddenStorage": [
+              "json_file",
+              "browser_storage",
+              "in_memory",
+              "filesystem"
+            ],
+            "permissionBoundary": "GitHub repository collaborators",
+            "migrationRequired": false,
+            "auditRequired": true,
+            "concurrencyRequired": false,
+            "concurrencySemantics": "GitHub comment append-only; this story does not mutate membership",
+            "transactionBoundary": "single GitHub REST comment or issue edit",
+            "recoverySemantics": "GitHub retains issue comments; local xBRIEF is a copy",
+            "conflictDetection": "GitHub last-write on issue or comment id",
+            "deleteSemantics": "GitHub comment delete; local xBRIEF remains historical",
+            "migrationPath": "none; this story does not change GitHub auth or membership"
+          }
+        ],
+        "referenceApplications": []
+      }
+    }
+  }
+}
