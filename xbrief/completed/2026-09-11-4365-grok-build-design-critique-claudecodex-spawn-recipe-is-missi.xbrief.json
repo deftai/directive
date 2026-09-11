@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4365",
-    "updated": "2026-09-11T03:10:58Z"
+    "updated": "2026-09-11T03:52:52Z"
   },
   "plan": {
     "title": "Grok Build design-critique Claude/Codex spawn recipe is missing; agents fail starting the CLI",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Grok Build design-critique Claude/Codex spawn recipe is missing; agents fail starting the CLI",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4365",
@@ -16,35 +16,83 @@
     "items": [
       {
         "title": "Extend `content/docs/grok-build-subscription-setup.md` Design-critique dispatch (or a short docs page only if that heading must stay auth-only). Probe stays the pong. Critic spawn is a second recipe. Thin skill stays a pointer.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md Design-critique dispatch; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       },
       {
         "title": "Recipe source is field instance 5628651806 plus the critic inventory, not the issue-body spawn snippet.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md critic spawn sourced from 5628651806; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       },
       {
         "title": "Prompt on file / `-p` path, never stdin. Close-stdin is the spawned child's stdio (`ignore` or open fd). Parent Node waits. `cmd /c \"<nul\"` is not enough on this wrapper. PowerShell RedirectStandardInput NUL is not close-stdin.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md child stdio close-stdin; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       },
       {
         "title": "Claude: no `--bare`; `--permission-mode bypassPermissions` not `--dangerously-skip-permissions`; `--model opus`; `--output-format text`; dest cwd; unset ANTHROPIC_API_KEY and CLAUDE_API_KEY.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md Claude critic argv; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       },
       {
         "title": "Codex: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C dest`; omit `-m gpt-5.6` on ChatGPT; self-attest the model the CLI ran.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md Codex critic argv; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       },
       {
         "title": "Grok: `spawn_subagent` remains the seat. Document schema omits `process_only`; `plan` cannot post (dispatch-fail). grok CLI `--cwd --prompt-file --permission-mode bypassPermissions --always-approve --output-format plain` is last-resort after a recorded native deny. Do not dual-launch.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md Grok spawn_subagent plus CLI last-resort; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       },
       {
         "title": "Dest per-arc (`ensureArcDest`), not primary, not another panel dest.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md ensureArcDest dest; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       },
       {
         "title": "Tests lock spawn tokens (close-stdin as child stdio, `-p` / `codex exec` / dest cwd, omit `-m gpt-5.6`). Do not lock `claude-opus-5` / `gpt-5.6-sol`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts critic-spawn tokens; PR #4367 merge 8f4b6d168",
+          "recorded_at": "2026-09-11T03:52:43Z",
+          "recorded_by": "grok-build-leaf-4365"
+        }
       }
     ],
     "tags": [
@@ -148,9 +196,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "84d7e374896c89966ac8b7aa4a5ce659abeb35c92ea009341dbca30965192a14"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4367,
+        "prBase": null,
+        "mergeCommit": "8f4b6d168f97f9f571d3df55bad12e63b4784466",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8f4b6d168f97f9f571d3df55bad12e63b4784466",
+        "verifiedAt": "2026-09-11T03:52:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDhlNzMtNGZkNC03MWQwLTg3ZmUtODU1M2ExMjk3NmRh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T03:52:52Z"
+      },
+      "completedAt": "2026-09-11T03:52:52Z",
+      "completedSessionId": "host:grok:v1:MDFhMDhlNzMtNGZkNC03MWQwLTg3ZmUtODU1M2ExMjk3NmRh",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5419700365",
-    "updated": "2026-09-11T03:10:55Z"
+    "updated": "2026-09-11T03:52:52Z"
   }
 }
