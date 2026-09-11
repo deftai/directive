@@ -869,9 +869,7 @@ export function runAgentHooksHealthCheck(
     );
     const message =
       `${checkName}: registered and structurally valid` +
-      (codexEnabled
-        ? "; Codex trust is manual-review-required"
-        : "");
+      (codexEnabled ? "; Codex trust is manual-review-required" : "");
     sink.success(message);
     addFinding({
       severity: "skip",
@@ -941,9 +939,7 @@ export function runAgentHooksLiveProbeCheck(
     );
     const message =
       `${checkName}: registered, structurally valid, and live probe passed` +
-      (codexEnabled
-        ? "; Codex trust is manual-review-required"
-        : "") +
+      (codexEnabled ? "; Codex trust is manual-review-required" : "") +
       "; direct shim invocation does not verify host interception";
     sink.success(message);
     addFinding({
