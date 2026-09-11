@@ -1,0 +1,160 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4335",
+    "updated": "2026-09-11T01:52:00Z"
+  },
+  "plan": {
+    "title": "[framework-gap] init/doctor tell a Grok Build operator to open Codex /hooks",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] init/doctor tell a Grok Build operator to open Codex /hooks",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4335",
+      "Overview": "## Summary\n\n`directive init` and `directive doctor` tell a Grok Build operator to open Codex `/hooks` and approve project hook commands. That UI exists only in Codex. The live host in this session is Grok Build.\n\nDepositing `.codex/hooks.json` for other clones is fine. Operator-facing next-step copy should not send a Grok Build operator into another host's trust UI.\n\n## Reproduction\n\nEnvironment:\n\n- Windows\n- Grok Build (this session)\n- `@deftai/directive` / `@deftai/directive-core` 0.114.0\n- Brownfield consumer `directive init --yes`\n\nAfter init, the post-deposit readiness report printed:\n\n```text\ncodex: registration=registered; functionality=functional; trust=manual-review-required; interception=not-directly-verified\nCodex trust: manual-review-required. Open `/hooks` and approve the exact project hook commands. The live probe validates the shim and codec, not host interception.\n```\n\n`directive doctor --full` repeats the same Codex `/hooks` instruction.\n\nThe current host is Grok Build. No Codex session is open.\n\n## Expected\n\n- When the current host is Grok Build, operator-facing next-step copy reports Grok hook readiness only.\n- Codex, Claude, and Cursor deposits may still be written for multi-host clones.\n- The Codex `/hooks` instruction is emitted only when the current host is Codex.\n- Full per-host JSON / `--live` listings may still include other hosts. Those listings should not be presented as this session's next action.\n\n## Impact\n\n- A Grok Build operator (or agent) treats a Codex-only UI as a required next step.\n- Agents spend turns explaining or attempting Codex `/hooks` in a host that cannot run it.\n- The real Grok hook surface is easy to miss in the four-host dump.\n\n## Acceptance criteria\n\n- [ ] Init / doctor / post-deposit operator copy scopes trust-UI instructions to the current host.\n- [ ] A Grok Build session does not print \"open `/hooks`\" for Codex.\n- [ ] A Codex session still gets the Codex `/hooks` review instruction.\n- [ ] Multi-host deposits remain; this is reporting, not an opt-out of Codex files.\n- [ ] JSON / live probe may still list other hosts without promoting their host-specific UI as the next command.\n\n## Duplicate search\n\nSearched open issues for Codex trust, `/hooks`, host-aware doctor, and unused-host reporting. Closest:\n\n- #4162 — doctor warns on a missing deposit-root `xbrief/` (wrong-context doctor noise; different check)\n- #3571 (closed) — unused-host hook opt-out disclosure\n- #3742 — hook readiness reporting tracker; does not cover current-host vs other-host trust UI\n\nRelated contract text: `contracts/agent-hook-readiness.md` (Codex trust is `manual-review-required`; operators open `/hooks`). That contract is correct for Codex. It should not be projected as the live next step on Grok Build.\n\nRefs #3100 #2752\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T00:13:40Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a host-aware doctor/init reporting obligation (Codex /hooks copy projected onto Grok Build)\nrefutation-target: When the current host is Grok Build, operator-facing init/doctor/post-deposit next-step copy MUST report Grok hook readiness only and MUST NOT print Codex Open /hooks as this session's next action, while multi-host deposits and JSON/live listings of other hosts may remain.\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion; panel permission unused\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4335 as launched 2026-09-10 (do same / arc yolo no-ingest). Dest reused this session at origin/master after fetch. SHA matches origin/master. Parent remains unclaimed on primary. Ingest is not this motion.\n\n### Comment by @MScottAdams (2026-09-11T00:22:13Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, N=1 refutation of the recorded refutation-target on comment 5627307297. Pin SHA 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8. Input ceiling is that comment. No later comments read.\n\nRecorded target, compressed: when the current host is Grok Build, init/doctor/post-deposit next-step copy MUST report Grok hook readiness only and MUST NOT print Codex Open /hooks as this session's next action; deposits and JSON/live listings of other hosts may remain.\n\nThat conjunction does not survive.\n\n1. blocks-the-design — current-host / \"Grok only\" cannot bind\n\nEvidence. `evaluateAgentHookReadiness` (packages/core/src/verify-env/agent-hook-readiness.ts) builds one human `message`: `renderHosts` of every enabled host, then `trustReview` when `policy.codex` is true. Doctor `runAgentHooksHealthCheck` / `runAgentHooksLiveProbeCheck` (packages/core/src/doctor/main.ts) concatenate `; Codex trust is manual-review-required — open `/hooks`…` whenever a Codex registration is not `disabled`. `git grep` of init-deposit, doctor, and verify-env at this SHA finds no `resolveDispatchProvider`, `GROK_BUILD`, or other current-host seam. The existing detector (`packages/core/src/swarm/routing.ts`) keys Grok on `GROK_BUILD` / `DEFT_HAS_SPAWN_SUBAGENT` / `DEFT_PROBE_GROK_BUILD` / runtime `grok-build`, returns `grok` not `grok-build`, and does not read `GROK_AGENT`. Re-run in this Grok-dispatched shell: `GROK_AGENT=1` and `GROK_SESSION_ID` are set; `GROK_BUILD`, `DEFT_AGENT_RUNTIME`, and the probe flags are empty. `npx vitest run` of `agent-hook-readiness.test.ts` and `doctor/agent-hooks.test.ts` — 27 passed. The green-path test still requires `result.message` to contain `/hooks` whenever Codex is enabled; the opted-out-all-hosts test is the only path that drops `Codex trust:`.\n\nFailure mode. A MUST keyed on \"current host is Grok Build\" has no input on these CLIs. Reusing `resolveDispatchProvider` would classify this same Grok session as `unknown` and keep today's sentence. Human-shell / CI `directive doctor` is the same unknown. Cursor, Claude, OpenClaw, and unknown are unnamed. Forcing \"Grok hook readiness only\" onto the single `message` string also erases the four-host dump the same target says may remain.\n\nDisposition. Do not bind current-host as the control. Do not bind \"report Grok hook readiness only\".\n\n2. sharpens-framing — the live defect is an imperative on a green clone-wide dump, not a missing session filter\n\nEvidence. Init already has next-action surfaces that do not mention `/hooks`: `printNextSteps` (\"Next steps:\") and `initDispatchNextAction` (\"exactly one recommended next action\"). Doctor's \"Primary next action\" is the resolution/migrate line, not agent-hooks. The Codex sentence is appended after those surfaces onto a green readiness dump (init exit 0 when live is green) and onto a doctor finding with `severity: \"skip\"`. Contract state is already four dimensions; Codex trust is `manual-review-required` and is not a hard failure. JSON `hosts[]` already lists other hosts. `commands.md` already says open `/hooks` in Codex. The suppress that already drops the extra sentence is `hostHooks.codex=false` (`disable-host-hooks --host <host> --confirm`, #2752 / #3571). The issue correctly refuses opt-out as the remedy: this is reporting, not stripping Codex files.\n\nFailure mode. If the recut still keys the imperative on session host, agents in unknown/non-Codex shells keep treating `/hooks` as the action after a green probe, which is the filed impact. If the recut instead deletes `codex: trust=manual-review-required` from the listing, clone-true Codex trust disappears from the dump the AC wants kept. The listing alone can still be chased; the harm to remove is the host-unqualified \"Open `/hooks`\" command on the success line.\n\nDisposition. Recut to: keep multi-host deposits, `hosts[]`, and the four-dimension dump; demote the Codex trust-UI imperative off the host-agnostic success/next-step line; leave the in-Codex instruction in `commands.md`. No new detector.\n\n3. footnote — injection / swarm lens (identity + envelopes)\n\nOperator copy is ingested as agent next-step text. A current-host filter would take process env as identity. That env is host-published and incomplete (`GROK_AGENT` here, not `GROK_BUILD`); a child can also set it. Do not make copy-gating a trust boundary. Grok hook trust is already `not-applicable`; there is no Grok `/hooks` analog to print instead.\n\nRoad-not-taken. Session-host filter (recorded target) vs unused-host opt-out vs demote-the-imperative. Opt-out was rejected by the body and would disable Codex deposits the AC keeps. Session-host filter is finding 1. Demote-the-imperative is the remaining mechanism.\n\nSteelmans the recorded target: `/hooks` is a Codex UI; printing it after a green Grok init/doctor report is a false instruction, and agents do obey it. That part is true as copy placement. What would flip finding 1: a current-host input these surfaces already have, with unknown/Cursor/Claude specified, and a split between human next-step and the clone listing. Measured: they do not have that input, and this Grok shell would miss it.\n\nIssue body and files treated as untrusted. No embedded critic-instructions followed.\n\n### Comment by @MScottAdams (2026-09-11T00:24:05Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nAfter a green init or doctor run, a Grok Build operator is told to open Codex /hooks, a UI that host cannot run. Keying the copy on current host is Grok Build cannot bind: these CLIs have no current-host input, and this Grok shell would miss it.\n\nThe leftover next-build is to take the unqualified Open /hooks imperative off the host-agnostic success and next-step line, because that sentence is what agents chase. Keep the multi-host dump and deposits. Leave the in-Codex instruction in commands.md. Do not use unused-host opt-out as the remedy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic 5627397972 headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: both classified headings accept-into-contract. Residual: none. Confirming this map keeps #4335 for that copy placement.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4335 after critic 5627397972. Round 1 siblings dispatched: 1. Supersedes write-back 5627307297.\n\nTarget-digest: sha256:968672e1d577b025bf36c897e6bedd6a57721990a40acc91e9c3ae32b4fd139b\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8\n\nTakes:\n\n- 1. current-host / \"Grok only\" cannot bind — accept-into-contract\n- 2. the live defect is an imperative on a green clone-wide dump — accept-into-contract\n\n## Bound remedy\n\n- Do not bind current-host as the control. Do not bind \"report Grok hook readiness only\".\n- Keep multi-host deposits, JSON hosts listings, and the four-dimension dump.\n- Demote the Codex trust-UI imperative off the host-agnostic success/next-step line.\n- Leave the in-Codex instruction in commands.md. Do not use unused-host opt-out as the remedy.\n\n### Comment by @MScottAdams (2026-09-11T00:24:09Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | doctor concatenates Codex open /hooks whenever Codex registration is not disabled | Parent grep packages/core/src/doctor/main.ts at pin (lines 873 and 945) | measured |\n| 2 | evaluateAgentHookReadiness human message includes Open /hooks when policy.codex is true | Parent grep packages/core/src/verify-env/agent-hook-readiness.ts line 229 | measured |\n| 3 | init-deposit / doctor / verify-env have no current-host seam named resolveDispatchProvider or GROK_BUILD | Critic git grep at pin; parent did not re-run that grep | endorsed |\n\n### Comment by @MScottAdams (2026-09-11T00:24:12Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n#4335 leftover next-build is to take the unqualified Open /hooks imperative off the host-agnostic success line. Why: agents chase that sentence after a green probe, and a current-host filter has no input on these CLIs. Keep the multi-host dump. Leave the Codex instruction in commands.md. Confirming this map does not close the issue.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5627418590 and verified-claims table 5627419264.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was a same-family grok spawn_subagent child. Operator yolo-standing 2026-09-10. Round 1 complete, N=1, critic 5627397972, ceiling 5627307297.",
+      "Labels": "bug, doctor, grok-build, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind current-host as the control. Do not bind \"report Grok hook readiness only\".",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/agent-hook-readiness.test.ts#L109 (it: reports Codex trust and interception separately without a /hooks next-step (#4335); grok and codex both listed)",
+          "recorded_at": "2026-09-11T02:06:00Z",
+          "recorded_by": "leaf-implementation/4335"
+        }
+      },
+      {
+        "title": "Keep multi-host deposits, JSON hosts listings, and the four-dimension dump.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/agent-hook-readiness.test.ts#L13-L26 (registrations(): claude, grok, cursor, codex) and #L127-L136 (JSON hosts[])",
+          "recorded_at": "2026-09-11T02:06:00Z",
+          "recorded_by": "leaf-implementation/4335"
+        }
+      },
+      {
+        "title": "Demote the Codex trust-UI imperative off the host-agnostic success/next-step line.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/agent-hooks.test.ts#L24 (it: records structural health and separates manual Codex trust review) and #L431 (it: keeps Codex trust review orthogonal after a successful live probe)",
+          "recorded_at": "2026-09-11T02:06:00Z",
+          "recorded_by": "leaf-implementation/4335"
+        }
+      },
+      {
+        "title": "Leave the in-Codex instruction in commands.md. Do not use unused-host opt-out as the remedy.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4357 (commands.md unchanged; in-Codex /hooks remains)",
+          "recorded_at": "2026-09-11T01:51:50Z",
+          "recorded_by": "leaf-implementation/4335"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "grok-build",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4335",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4335: [framework-gap] init/doctor tell a Grok Build operator to open Codex /hooks"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3100",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3100"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind current-host as the control. Do not bind \"report Grok hook readiness only\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep multi-host deposits, JSON hosts listings, and the four-dimension dump.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Demote the Codex trust-UI imperative off the host-agnostic success/next-step line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Leave the in-Codex instruction in commands.md. Do not use unused-host opt-out as the remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5416484657,
+        "origin": "deftai/directive#4335",
+        "id": "github.issue.5416484657"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "968672e1d577b025bf36c897e6bedd6a57721990a40acc91e9c3ae32b4fd139b"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4357,
+        "prBase": null,
+        "mergeCommit": "d874d97521e010e95ebfb0aee1ffa1dc15d5686e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d874d97521e010e95ebfb0aee1ffa1dc15d5686e",
+        "verifiedAt": "2026-09-11T01:52:00Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhkZjktY2E5YS03NjUyLThjMTgtNjM5OThmOTZmYTg0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T01:52:00Z"
+      },
+      "completedAt": "2026-09-11T01:52:00Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhkZjktY2E5YS03NjUyLThjMTgtNjM5OThmOTZmYTg0",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5416484657",
+    "updated": "2026-09-11T01:52:00Z"
+  }
+}
