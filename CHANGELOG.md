@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Grok Build design-critique critic spawn is a playbook recipe, not the pong (#4365).** `content/docs/grok-build-subscription-setup.md` Design-critique dispatch names Claude/Codex/Grok argv, child stdio close-stdin, dest per-arc, and ChatGPT omit `-m gpt-5.6`. Probe stays the pong. Thin skill stays a pointer. Closes #4365.
 - **Init and doctor no longer tell every host to open Codex `/hooks` (#4335).** Codex trust remains `manual-review-required`.
 - **Public `@deftai` npm view no longer treats `--registry` as beating `@deftai:registry` (#4345).** Recovery: leave the project directory or set `@deftai:registry`. Closes #4345.
 - **Dependabot high: brace-expansion DoS follow-ups (alerts #10/#13).** Pin `brace-expansion@5` to `5.0.9` (and `@2` to `2.1.4`) so the lockfile leaves CVE-2026-14257 / CVE-2026-69152. Closes #4348.

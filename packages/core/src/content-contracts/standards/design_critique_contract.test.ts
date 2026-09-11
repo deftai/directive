@@ -946,6 +946,55 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     }
   });
 
+  it("locks Grok Build critic-spawn recipe tokens on the playbook heading (#4365)", () => {
+    const playbook = readText("docs/grok-build-subscription-setup.md");
+    const verification = markdownSection(
+      playbook,
+      "## Verification (report pass/fail with evidence)",
+    );
+    expect(verification).toContain(
+      'claude -p "Do not use tools. Reply with the single word: pong" --output-format text',
+    );
+    const dispatch = markdownSection(playbook, "## Design-critique dispatch");
+    expect(dispatch).toContain("pong");
+    expect(dispatch).toContain("second recipe");
+    expect(dispatch).toContain("-p");
+    expect(dispatch).toContain("codex exec");
+    expect(dispatch).toContain("stdio");
+    expect(dispatch).toContain("ignore");
+    expect(dispatch).toContain("open fd");
+    expect(dispatch).toContain("ensureArcDest");
+    expect(dispatch).toContain("-m gpt-5.6");
+    expect(dispatch).toContain("--permission-mode bypassPermissions");
+    expect(dispatch).toContain("--dangerously-skip-permissions");
+    expect(dispatch).toContain("--bare");
+    expect(dispatch).toContain("--model opus");
+    expect(dispatch).toContain("--output-format text");
+    expect(dispatch).toContain("ANTHROPIC_API_KEY");
+    expect(dispatch).toContain("CLAUDE_API_KEY");
+    expect(dispatch).toContain("--ephemeral");
+    expect(dispatch).toContain("--skip-git-repo-check");
+    expect(dispatch).toContain("--dangerously-bypass-approvals-and-sandbox");
+    expect(dispatch).toContain("-C");
+    expect(dispatch).toContain("spawn_subagent");
+    expect(dispatch).toContain("process_only");
+    expect(dispatch).toContain("--prompt-file");
+    expect(dispatch).toContain("--always-approve");
+    expect(dispatch).toContain("--output-format plain");
+    expect(dispatch).toContain("<nul");
+    expect(dispatch).toContain("RedirectStandardInput");
+    expect(dispatch).toContain("Parent Node waits");
+    expect(dispatch).not.toContain("claude-opus-5");
+    expect(dispatch).not.toContain("gpt-5.6-sol");
+    const skill = readText(SKILL_REL);
+    expect(skill).not.toContain("--permission-mode bypassPermissions");
+    expect(skill).not.toContain("codex exec --ephemeral");
+    expect(skill).not.toContain("--dangerously-bypass-approvals-and-sandbox");
+    expect(skill).not.toContain("--model opus");
+    const ceiling = markdownSection(readText(CONTRACT), "### Envelope and ceiling");
+    expect(ceiling).toContain("Design-critique dispatch");
+  });
+
   it("locks run-posture front door tokens and fixtures (#4072)", () => {
     const text = readText(CONTRACT);
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");
