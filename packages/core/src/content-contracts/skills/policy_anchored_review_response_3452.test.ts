@@ -100,6 +100,12 @@ describe("policy_anchored_review_response_3452", () => {
     expect(triggers).toContain("policy-anchored review-response");
     expect(triggers).toContain("review-response");
   });
+  it("consumer_agents_entry_points_at_3452", () => {
+    const entry = readRepoFile("templates/agents-entry.md");
+    expect(entry).toContain("#3452");
+    expect(entry).toMatch(/Policy-anchored review-response/);
+    expect(entry).toMatch(/HEAD policy before out-of-model/);
+  });
   it("commands_and_changelog_cite_3452", () => {
     const commands = readRepoFile("commands.md");
     expect(commands).toContain("#3452");
