@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #3452 -- field-validation ACs stamped from comment 5331022768",
-    "updated": "2026-09-11T01:21:18Z"
+    "updated": "2026-09-11T02:53:35Z"
   },
   "plan": {
     "title": "feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push",
@@ -16,42 +16,72 @@
     "items": [
       {
         "title": "AC1 Policy-anchor precondition: invariant-shaped findings may not be classified out-of-model until a written policy exists on current HEAD of the file under review.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Invariant-shaped findings (concurrency, error handling, containment/security) may not be classified out-of-model until a written policy (assumptions / guarantees / non-goals header or design note) exists on the current HEAD of the file under review. Absent -> write the anchor first. Anchor-wrong -> revise the anchor, then classify. Skill/review-response pass MUST refuse out-of-model classification until that HEAD anchor exists.",
           "Traces": "FR-3452-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/policy_anchored_review_response_3452.test.ts#refuses_out_of_model_until_head_anchor",
+          "recorded_at": "2026-09-11T02:53:35Z",
+          "recorded_by": "leaf-3452"
         }
       },
       {
         "title": "AC2 Classify-then-act including head-blob check: in-model patch; out-of-model accepted-risk citing HEAD anchor; arity/wiring claims require git show head blob.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "In-model -> patch. Out-of-model -> accepted-risk reply citing the HEAD anchor. Any deterministic arity/wiring claim MUST include git show <head-sha>:<file> before it can be confirmed. When the PR itself changes the named symbol, presume false and verify (slizard#2694). Blanket dismissal is wrong -- check every time (dead export on #3440 was real).",
           "Traces": "FR-3452-2"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4360#discussion_r3985414727",
+          "recorded_at": "2026-09-11T02:53:35Z",
+          "recorded_by": "leaf-3452"
         }
       },
       {
         "title": "AC3 Batch discipline: one consolidated push per review round; local review pass before push; never push per finding; riders allowed on mechanical rebases.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "One consolidated push per review round. Local review pass before push. Never push per finding. Riders allowed on mechanical rebases.",
           "Traces": "FR-3452-3"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4360",
+          "recorded_at": "2026-09-11T02:53:35Z",
+          "recorded_by": "leaf-3452"
         }
       },
       {
         "title": "AC4 Rounds tripwire: more than 3 review rounds touching the same file compose with #3448 same-fingerprint and escalate to a #3434 design pass, not round K+1 and not parking.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": ">3 review rounds touching the same file (compose with #3448 same-fingerprint; do not invent a second detector) -> escalate to a design pass (#3434 motion), not round K+1 and not parking. Do not duplicate #3448/#3457/#3434 or implement ADR-004/#3462.",
           "Traces": "FR-3452-4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/policy_anchored_review_response_3452.test.ts#rounds_tripwire_composes_3448_escalates_3434",
+          "recorded_at": "2026-09-11T02:53:35Z",
+          "recorded_by": "leaf-3452"
         }
       },
       {
         "title": "AC5 Content-contract tests assert the #3452 markers; CHANGELOG cites #3452 under [Unreleased].",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Content-contract tests assert the policy-anchor, classify-then-act, head-blob, batch, and rounds-tripwire markers. CHANGELOG [Unreleased] cites #3452. Prefer extending deft-directive-review-cycle (working name review-response) rather than a duplicate skill.",
           "Traces": "FR-3452-5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/policy_anchored_review_response_3452.test.ts#commands_and_changelog_cite_3452",
+          "recorded_at": "2026-09-11T02:53:35Z",
+          "recorded_by": "leaf-3452"
         }
       }
     ],
@@ -140,6 +170,6 @@
       }
     },
     "id": "github.issue.5177754388",
-    "updated": "2026-09-11T01:21:18Z"
+    "updated": "2026-09-11T02:53:35Z"
   }
 }
