@@ -22,6 +22,7 @@ describe("session-start parseArgs", () => {
     steal: false,
     confirm: false,
     occupant: null,
+    primaryClaimException: null,
     sessionId: null,
   };
 
@@ -208,6 +209,26 @@ describe("session-start parseArgs", () => {
     expect(parseArgs(["--tier"]).error).toContain("expected one argument");
   });
 
+  it("parses --primary-claim-exception closed enum (#4266)", () => {
+    expect(parseArgs(["--primary-claim-exception", "release-cut"]).primaryClaimException).toBe(
+      "release-cut",
+    );
+    expect(parseArgs(["--primary-claim-exception=policy-restore"]).primaryClaimException).toBe(
+      "policy-restore",
+    );
+    expect(
+      parseArgs(["--primary-claim-exception=operator-default-branch"]).primaryClaimException,
+    ).toBe("operator-default-branch");
+  });
+
+  it("fails closed on unknown --primary-claim-exception (#4266)", () => {
+    expect(parseArgs(["--primary-claim-exception", "please"]).error).toContain(
+      "expected release-cut|policy-restore|operator-default-branch",
+    );
+    expect(parseArgs(["--primary-claim-exception"]).error).toContain("expected one argument");
+    expect(parseArgs(["--primary-claim-exception="]).error).toContain("expected one argument");
+  });
+
   it("rejects unknown flags", () => {
     expect(parseArgs(["--nope"]).error).toContain("unrecognized argument");
   });
@@ -227,6 +248,7 @@ describe("session-start run", () => {
     process.stderr.write = (() => true) as typeof process.stderr.write;
     try {
       expect(run(["--defer"])).toBe(2);
+      expect(run(["--primary-claim-exception", "please"])).toBe(2);
     } finally {
       process.stderr.write = prevStderr;
     }

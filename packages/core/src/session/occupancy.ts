@@ -232,7 +232,9 @@ export interface ApplyOccupancyInput {
   readonly lockDeps?: LockDeps;
   /**
    * Closed exception enum for claiming the primary checkout (#4066). Trusted
-   * producer: CLI / launch manifest / structured spawn field -- not prompt text.
+   * producer: session:start CLI argv (`--primary-claim-exception`). Spawn JSON
+   * cannot name this field; inspectSpawnDestination and consult must not read
+   * an exception key.
    */
   readonly primaryClaimException?: PrimaryClaimException | string;
 }

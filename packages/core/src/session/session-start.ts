@@ -93,6 +93,7 @@ import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   type OccupancyDecision,
+  type PrimaryClaimException,
   resolveOccupancySessionId,
 } from "./occupancy.js";
 import {
@@ -267,6 +268,11 @@ export interface SessionStartOptions {
   readonly steal?: boolean;
   readonly confirm?: boolean;
   readonly occupant?: string;
+  /**
+   * Trusted primary-claim exception from session:start CLI argv (#4266).
+   * Closed enum. Spawn JSON cannot name this field.
+   */
+  readonly primaryClaimException?: PrimaryClaimException;
   readonly occupancyIntent?: ApplyOccupancyInput["intent"];
   readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
   readonly runTriageWelcome?: (
@@ -859,6 +865,7 @@ function occupancyInput(
     occupant: options.occupant,
     intent: options.occupancyIntent ?? "mutation",
     write,
+    primaryClaimException: options.primaryClaimException,
   };
 }
 
