@@ -1,5 +1,5 @@
-import { existsSync, lstatSync, realpathSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { existsSync, lstatSync, readdirSync, realpathSync } from "node:fs";
+import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   type AuthzDecision,
   type AuthzState,
@@ -1694,8 +1694,13 @@ function inspectMutationGates(
     // lands in, not the primary checkout's. Admission has already proved
     // effectiveRoot shares --git-common-dir with payloadRoot.
     // Spawn pin is per-spawn boundPath from a host-visible field (#4393).
-    // Env stays the CLI fallback. Do not dest-root-swap (#4215).
-    const spawnBoundPath = isSpawnTool(toolName) ? spawnBoundPathFromPayload(input.payload) : null;
+    // Env stays the CLI fallback. Do not dest-root-swap (#4215). Grok cwd is
+    // the forwarded dest channel: a unique dest active basename becomes the
+    // payloadRoot pin when the spawn payload omitted an explicit field.
+    const spawnBoundPath = isSpawnTool(toolName)
+      ? (spawnBoundPathFromPayload(input.payload) ??
+        uniqueActiveBasenameFromSpawnCwd(input.payload))
+      : null;
     scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
       env: environ,
       ...(spawnBoundPath !== null ? { boundPath: spawnBoundPath } : {}),
@@ -1912,6 +1917,28 @@ function spawnIncarnationFromPayload(payload: unknown): string {
   if (fromTool !== null && fromTool.trim().length > 0) return fromTool.trim();
   const fromTop = fieldString(input, "incarnation");
   return fromTop !== null ? fromTop.trim() : "";
+}
+
+/** Unique dest active basename as payloadRoot pin (#4393). Grok dest is cwd. */
+function uniqueActiveBasenameFromSpawnCwd(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const nested = toolInputRecord(input);
+  const dest = nested !== null ? fieldString(nested, "cwd") : null;
+  if (dest === null) return null;
+  const names: string[] = [];
+  for (const relativeDir of [join("xbrief", "active"), join("vbrief", "active")]) {
+    try {
+      for (const entry of readdirSync(join(dest, relativeDir), { withFileTypes: true })) {
+        if (entry.isFile() && hasArtifactSuffix(entry.name)) names.push(entry.name);
+      }
+    } catch {
+      // Missing dest active folder contributes no pin.
+    }
+  }
+  const unique = [...new Set(names)];
+  const only = unique[0];
+  return unique.length === 1 && only !== undefined ? basename(only) : null;
 }
 
 /**

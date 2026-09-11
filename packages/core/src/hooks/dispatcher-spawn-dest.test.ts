@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
@@ -945,6 +945,49 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
     expect(byEnv.scopePath).toBe(storyB);
   });
 
+  it("admits dest-proven spawn when dest holds one copied primary-ledger brief", () => {
+    const { root, dest, storyB } = twoActiveDest();
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams({ inspectRitual }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(decision.scopePath).toBe(storyB);
+    expect(inspectRitual).not.toHaveBeenCalled();
+  });
+
+  it("does not auto-pin when dest holds two active briefs", () => {
+    const { root, dest } = twoActiveDest();
+    writeRunning(dest, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("Multiple active xBRIEF artifacts");
+  });
+
   it("denies unpinned dest-proven spawn with two primary actives", () => {
     const { root, dest } = twoActiveDest();
     const inspectRitual = vi.fn(() => STALE_RITUAL);
@@ -1011,7 +1054,11 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
         projectRoot: root,
         payload: {
           toolName: "spawn_subagent",
-          tool_input: { cwd: dest, prompt: "implement", boundPath: storyB.replace(root, dest) },
+          tool_input: {
+            cwd: dest,
+            prompt: "implement",
+            boundPath: join(dest, "xbrief", "active", basename(storyB)),
+          },
         },
         environ: { DEFT_SESSION_ID: "parent-1" },
       },
