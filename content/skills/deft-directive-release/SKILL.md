@@ -54,10 +54,10 @@ DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git push or
 **Branch-guard probe (either path).** Regardless of which opt-out path you chose, confirm the guard passes before Phase 1 mutates state:
 
 ```
-deft verify:branch || exit 1
+deft verify:branch
 ```
 
-or `task deft:verify:branch || exit 1` when the consumer Taskfile include is present. Do not add a consumer `verify:branch` task. This is the canonical surface that surfaces the policy state to the operator before the pipeline starts writing files. The release pipeline's other safety surfaces (the dirty-tree guard, base-branch check, `task check` gate) remain independent of this check. (`task ci:local` is historical and removed.)
+or `task deft:verify:branch` when the consumer Taskfile include is present. Do not add a consumer `verify:branch` task. This is the canonical surface that surfaces the policy state to the operator before the pipeline starts writing files. The release pipeline's other safety surfaces (the dirty-tree guard, base-branch check, `task check` gate) remain independent of this check. (`task ci:local` is historical and removed.)
 
 **Emergency env-var bypass — narrow scope only (#1553).** `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is process-wide: every child process, nested test, and temporary repository spawned from the same shell inherits it. During the v0.43.0 release attempt, wrapping the entire `task release` invocation in this env var let the bypass leak into the Step 5 `task ci:local` preflight, which caused `TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit` to fail because the vendored test repo allowed a direct `master` commit the test expected the hook to block.
 
