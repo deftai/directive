@@ -23,13 +23,13 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Branch-Protection Policy Guard
 
-! Before entering Phase 1 (Read), run the skill-level branch-policy guard documented in `task policy:show` / `task verify:branch` (#746 / #747). Halt before any state mutation (the Phase 2 Write phase, the Phase 3 Lint phase that may touch files) when the policy is unresolvable AND no env-var bypass is active:
+! Before entering Phase 1 (Read), run the skill-level branch-policy guard documented in `task policy:show` / dual-invoke `deft verify:branch` (#746 / #747). Halt before any state mutation (the Phase 2 Write phase, the Phase 3 Lint phase that may touch files) when the policy is unresolvable AND no env-var bypass is active:
 
 ```
-task verify:branch
+deft verify:branch || exit 1
 ```
 
-or invoke `task verify:branch`. Pre-PR is the last gate before push, so a stale / unresolvable policy here is the highest-leverage place to catch the bug before it reaches the bot reviewer.
+or `task deft:verify:branch || exit 1` when the consumer Taskfile include is present. Do not add a consumer `verify:branch` task. Pre-PR is the last gate before push, so a stale / unresolvable policy here is the highest-leverage place to catch the bug before it reaches the bot reviewer.
 
 ## Deterministic Questions Contract
 

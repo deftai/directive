@@ -145,6 +145,16 @@ This file has been migrated to `xbrief/PROJECT-DEFINITION.xbrief.json`.
 
 ---
 
+## Process-only (keep Phase 2 identity)
+
+When Phase 2 identity already exists (xbrief/PROJECT-DEFINITION.xbrief.json) and you want Directive as the process layer without a spec write, pick **Process-only (keep Phase 2 identity)** on the setup Phase 2 gate (option 2) or the matching interview leave-strategy. Do not use Back or Other for that exit.
+
+Then-path: session ritual / deft check / later Add scope when a slice is ready. Skip Lifecycle Bridge, export, Acceptance Gate, and build. GitHub issues stay cache/queue inputs. Docs stay described content.
+
+⊗ Treat existing docs or GitHub issues as the next-build plan. Work selection stays plan-sequence then triage:queue. An active running xBRIEF is still required before xbrief:preflight / swarm dispatch.
+
+---
+
 ## 4. Pre-Cutover Detection Guard
 
 On first interactive session after adding Deft, the agent-driven path runs a **pre-cutover detection guard** from `skills/deft-directive-setup/SKILL.md` and `skills/deft-directive-build/SKILL.md`. The guard detects legacy artifacts and redirects to the migration command instead of silently proceeding with a mismatched project layout.

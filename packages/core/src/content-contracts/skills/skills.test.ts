@@ -791,7 +791,40 @@ describe("test_skills", () => {
     );
     // Add-scope must not dead-end before lifecycle bridge / export / handoff
     expect(text.toLowerCase()).toContain("lifecycle bridge");
-    expect(text.toLowerCase()).not.toContain("then exit");
+    // #4337 -- then-exit forbid stays scoped to Add-scope
+    const addScopeStart = text.indexOf("If **Add scope**");
+    const addScopeEnd = text.indexOf("If **Update project definition**");
+    expect(addScopeStart).toBeGreaterThanOrEqual(0);
+    expect(addScopeEnd).toBeGreaterThan(addScopeStart);
+    expect(text.slice(addScopeStart, addScopeEnd).toLowerCase()).not.toContain("then exit");
+  });
+  it("deft_directive_setup_process_only_no_write_exit", () => {
+    const text = readSkill(_SETUP_PATH);
+    expect(text).toContain("Process-only (keep Phase 2 identity)");
+    expect(text).toMatch(
+      /continue to Phase 3 \(specification\)[\s\S]*Process-only \(keep Phase 2 identity\)[\s\S]*Discuss[\s\S]*Back/,
+    );
+    expect(text).toMatch(
+      /Process-only \(keep Phase 2 identity\)[\s\S]*\*\*Discuss\*\*[\s\S]*\*\*Back\*\*/,
+    );
+    expect(text.toLowerCase()).toContain("session ritual");
+    expect(text).toContain("later Add scope");
+    expect(text.toLowerCase()).toContain("cache/queue");
+    expect(text.toLowerCase()).toContain("docs stay described content");
+    expect(text.toLowerCase()).toContain("skip");
+    expect(text.toLowerCase()).toContain("acceptance gate");
+    expect(text).toMatch(/If \*\*Process-only[\s\S]*Lifecycle Bridge/);
+    expect(text).toContain("\u2297 Bind docs");
+    expect(text).toContain("\u2297 Use Back or Other as the process-only");
+  });
+  it("deft_directive_setup_pre_pr_release_dual_invoke_verify_branch", () => {
+    const _RELEASE_PATH = "skills/deft-directive-release/SKILL.md";
+    for (const rel of [_SETUP_PATH, _PRE_PR_PATH, _RELEASE_PATH]) {
+      const text = readSkill(rel);
+      expect(text, rel).toContain("deft verify:branch");
+      expect(text, rel).toContain("task deft:verify:branch");
+      expect(text, rel).not.toContain("task verify:branch");
+    }
   });
   it("deft_directive_setup_full_path_rich_narratives", () => {
     const text = readSkill(_SETUP_PATH);
