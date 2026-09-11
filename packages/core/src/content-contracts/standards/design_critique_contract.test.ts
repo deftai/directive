@@ -959,6 +959,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(dispatch).toContain("pong");
     expect(dispatch).toContain("second recipe");
     expect(dispatch).toContain("-p");
+    expect(dispatch).toContain("Read and follow");
     expect(dispatch).toContain("codex exec");
     expect(dispatch).toContain("stdio");
     expect(dispatch).toContain("ignore");
@@ -966,8 +967,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(dispatch).toContain("ensureArcDest");
     expect(dispatch).toContain("-m gpt-5.6");
     expect(dispatch).toContain("--permission-mode bypassPermissions");
-    expect(dispatch).toContain("--dangerously-skip-permissions");
-    expect(dispatch).toContain("--bare");
+    expect(dispatch).toContain(
+      "- \u2297 `--dangerously-skip-permissions` as a synonym for `--permission-mode bypassPermissions`.",
+    );
+    expect(dispatch).toContain(
+      "- \u2297 `--bare` (skips OAuth/keychain; with Process-scope `ANTHROPIC_API_KEY` unset the child prints not-logged-in).",
+    );
     expect(dispatch).toContain("--model opus");
     expect(dispatch).toContain("--output-format text");
     expect(dispatch).toContain("ANTHROPIC_API_KEY");

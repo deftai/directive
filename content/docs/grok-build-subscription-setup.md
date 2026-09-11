@@ -135,7 +135,7 @@ The Verification pong above stays the auth probe. Critic spawn is a second recip
 
 ### Critic spawn (second recipe)
 
-Write the envelope to a dest file. Pass that path on `-p` (Claude) or `--prompt-file` (Grok last-resort). Never put the prompt on stdin.
+Write the envelope to a dest file. Never put the prompt on stdin. Claude `-p` and Codex's trailing arg are prompt text, not an automatic file read — pass `Read and follow <envelope-path>`. Grok last-resort uses `--prompt-file`.
 
 Close-stdin is the spawned child's stdio, not this host's `cmd /c "… <nul"` (not enough on the Grok wrapper) and not PowerShell `RedirectStandardInput "NUL"` (resolves to `<cwd>\NUL`). Node `spawn` with `stdio: "ignore"` or an open fd (`fs.openSync`, then pass the integer fd). `stdio: ["ignore", writeStream, writeStream]` throws `ERR_INVALID_ARG_VALUE` on Node 24 because `fd` is null. Parent Node waits until the child exits. `detached` + `unref` plus parent exit closes the fd; the critic dies with a 0-byte log.
 
@@ -144,7 +144,7 @@ Dest is per-arc (`ensureArcDest`) at origin/<default> after fetch. Not primary. 
 **Claude** (cwd = dest). Unset Process-scope `ANTHROPIC_API_KEY` and `CLAUDE_API_KEY`.
 
 ```text
-claude -p <envelope-path> --model opus --permission-mode bypassPermissions --output-format text
+claude -p "Read and follow <envelope-path>" --model opus --permission-mode bypassPermissions --output-format text
 ```
 
 - ⊗ `--bare` (skips OAuth/keychain; with Process-scope `ANTHROPIC_API_KEY` unset the child prints not-logged-in).
@@ -154,7 +154,7 @@ claude -p <envelope-path> --model opus --permission-mode bypassPermissions --out
 **Codex** (`-C` dest):
 
 ```text
-codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> <envelope-path>
+codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> "Read and follow <envelope-path>"
 ```
 
 On ChatGPT omit `-m gpt-5.6` (HTTP 400). Self-attest the model the CLI ran.
