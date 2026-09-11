@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -98,6 +98,20 @@ describe("verified ritual bound session identity (#3611)", () => {
 
   it("returns the owner on a stale verdict after worktree binding succeeds", () => {
     const root = tempRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "T",
+          status: "running",
+          items: [],
+          policy: { sessionRitualStalenessHours: 4 },
+        },
+      }),
+      "utf8",
+    );
     const started = new Date("2026-08-26T06:00:00Z");
     const now = new Date("2026-08-26T12:00:00Z");
     writeRitualState(root, ritualPayload(root, "owner-not-ready", started));

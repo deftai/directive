@@ -1,0 +1,126 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4406",
+    "updated": "2026-09-11T17:18:20Z"
+  },
+  "plan": {
+    "title": "feat(session): default sessionRitualStalenessHours 4 to 8",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(session): default sessionRitualStalenessHours 4 to 8",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4406",
+      "Overview": "Spec is Bound remedy lean 5637548166, not the filed body and not a harvest that recuts SPECIFICATION or agents-entry.\n\n## What to build\n\nChange the framework default for `plan.policy.sessionRitualStalenessHours` from 4 to 8 so every consumer gets one workday of age before ritual re-arm, not a half-day.\n\nToday `packages/core/src/session/staleness.ts` `DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4`. This repo does not set the typed field, so mutation writes and spawn fail closed after 4 hours until `session:start --rearm` (same worktree, continuous HEAD) or a full cold start. Compact still marks `rearm_needed` independently of age.\n\nFour hours was a half-day bound from #1348, in the same family as the 4-hour D2 triage one-liner, dirty-doctor cache, and `eval:health` debounce. It is too short for a normal workday: a morning ritual should cover the afternoon without a mid-write re-arm. Occupancy is a different clock (`OCCUPANCY_TTL_MS` 20 minutes, `OCCUPANCY_MAX_LEASE_MS` 12 hours). Do not raise occupancy or compact re-arm as part of this.\n\nDo not treat this as a per-project override. The typed field stays (integer ≥ 1) for projects that want a different bound. This issue is the framework default for everyone.\n\nDo not fold #3729 (lease-versus-ritual lifetime). Do not fold #4399 (session:ready skip-drift vs check-class cache_fresh). Do not weaken `verify:cache-fresh` inside `task check`.\n\n## Acceptance criteria\n\n- [ ] `DEFAULT_SESSION_RITUAL_STALENESS_HOURS` is 8. Typed `plan.policy.sessionRitualStalenessHours` still wins when set; omit/null still take the new default; invalid values still default-on-error.\n- [ ] Schema / SPECIFICATION / `content/commands.md` / agents-entry pointer that currently say default 4 say default 8. Tests that hardcode the default 4 are updated.\n- [ ] Compact still marks `rearm_needed` regardless of age. Occupancy TTL and max lease are unchanged.\n- [ ] CHANGELOG `[Unreleased]` entry.\n- [ ] `task check` passes.\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone -- can start immediately.\n\n## Refs\n\n#1348, #1149, #2992, #3729 (do not fold), #4399 (do not fold).\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T16:23:08Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because the framework default sessionRitualStalenessHours is 4, so every consumer's mutation writes fail closed mid-workday until re-arm, and the typed field exists but omit/null still take that half-day default.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4406-dc\norigin-ref: origin/master\ndispatch-sha: d8f4e2a0f8be478096385ec0b765d313e6d4e110\n\ncharter: open critique\nspend: N=1\nspend-why: default motion; one-workday vs half-day default; operator did not request a panel.\n\nrefutation-target: DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4 is the consumer-facing age bound; raising it to 8 covers a workday without changing compact re-arm, occupancy TTL, or the typed override.\n\ntarget: #4406\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Same grok-4.6 parent authored the issue body this session (ADR-006 Stop 1 exclusion). This is a framework-default policy change, not a per-project override. Do not fold #3729 or #4399. Compact re-arm and occupancy clocks stay. Voluntary critiques stay legal.\n\nMeasured on pin d8f4e2a0f8be478096385ec0b765d313e6d4e110:\n\n- packages/core/src/session/staleness.ts DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4; omit/null/invalid take that default.\n- Schema description and commands.md say default 4. Schema minimum 1, no maximum.\n- This repo PROJECT-DEFINITION does not set the typed field.\n- Compact marks rearm_needed independently (#2992 / #2113). Occupancy TTL 20 min, max lease 12 hours (#3729 names the 12:1 gap; do not fold).\n- REST: #4406 just filed, 0 comments before this write-back.\n\nThis session did not re-run a live 4-hour age fail. Constant/docs on the pin are the measured basis.\r\n\n\n### Comment by @MScottAdams (2026-09-11T16:30:39Z)\n\nmodel: grok-4.6\nrole: critic\n\nOpen critique, round 1, pin `d8f4e2a0f8be478096385ec0b765d313e6d4e110`. Audit targets: none. Re-verified with `git show` / `git grep` at that SHA. Did not run a live 4-hour age fail; constants and docs on the pin are the measured basis. Charter does not name a refutation target. Do not fold #3729 or #4399. Do not raise occupancy or compact re-arm.\n\n## Inventory\n\n- Gate resolver: `packages/core/src/session/staleness.ts:10` unexported `DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4`. Omit / missing plan / null take source `default`; invalid takes `default-on-error` with the same hours. `verify-session-ritual.ts:348-358` uses that resolver for write/spawn age: `maxAgeMs = staleness.hours * 60 * 60 * 1000`.\n- Show surface: `packages/core/src/policy/index.ts:152` **exported** `DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4`, used only by `inspectSessionRitualStalenessHours` (`policy:show`). Two literals, same name, no import between them.\n- Schema: `content/vbrief/schemas/vbrief-core.schema.json:612-615` integer, minimum 1, no maximum, description text \"Default: 4.\" — not a JSON Schema `default` keyword. Same description-only pattern as `forgeOutageRetryMinutes`.\n- Docs: `content/commands.md:462` is the live consumer line (\"default 4\"). `content/templates/agents-entry.md` and managed AGENTS.md name the field and do not print a number.\n- SPECIFICATION.md is `AUTO-GENERATED by task spec:render -- DO NOT EDIT MANUALLY`. The only hit is a `[completed]` #1348 acceptance line at 13951-13952, sourced from `xbrief/completed/2026-06-09-1348-session-ritual-verifier-implementation.xbrief.json`.\n- This repo `xbrief/PROJECT-DEFINITION.xbrief.json` `plan.policy` has no `sessionRitualStalenessHours` key, so omit takes the framework default.\n- Compact: `markRitualStaleAfterCompact` sets `started_at` to `RITUAL_STALE_EPOCH` (1970-01-01) and `rearm_needed = true`. Comment: instant fail of age checks on any hours horizon. Verifier consults `rearm_needed` only as a message suffix inside the age-failure branch (`verify-session-ritual.ts:358-371`). Raising 4 to 8 cannot green a compacted ritual.\n- Occupancy, unchanged: `OCCUPANCY_TTL_MS = 20 * 60 * 1000`; `OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36` (12 hours). Separate clock.\n- Sibling 4-hour **nudge** clocks, independent constants: `D2_SUPPRESSION_WINDOW_HOURS = 4`, `EVAL_READBACK_SUPPRESSION_HOURS = 4`, `VALUE_READBACK_SUPPRESSION_HOURS = 4`, dirty-doctor 4h (`content/docs/SUPPORT.md`). They do not share the ritual DEFAULT.\n- Tests that assert the **numeric default** is 4: `staleness.test.ts:27` (`result.hours` `.toBe(4)` on missing definition); `policy/resolve.test.ts:686` (`row?.current` `.toBe(4)` on null). Fixture seeds `sessionRitualStalenessHours: 4` in compact/verify/occupancy/cli tests are typed-4, not the default. `commands.md:588` \"Fan-out default 4\" is triage:evaluate concurrency, not ritual.\n\n## Findings\n\n### 1. sharpens-framing — Name both DEFAULT literals\n\n**Evidence.** `git grep DEFAULT_SESSION_RITUAL_STALENESS_HOURS` at the pin hits two files only: unexported `staleness.ts:10` (gate) and exported `policy/index.ts:152` (show). The issue body and first AC cite only `staleness.ts`.\n\n**Failure mode.** A worker who edits the cited file ships gate-default 8 and `policy:show` still advertising 4. Omit/null consumers then see two answers to \"what is the default.\"\n\n**Disposition.** Scope the AC to both literals. Road-not-taken: export once and import. That would stop a later split, and I would take it if this issue were a SoT refactor. Flip: none — show and gate must stay coupled. This issue is a default bump; naming both sites is enough. Do not invent a third resolver.\n\n### 2. sharpens-framing — SPECIFICATION \"default 4\" is completed #1348 history, not a live pointer\n\n**Evidence.** SPECIFICATION.md first line forbids hand-edits. The only \"defaults to 4\" hit is the completed story \"Add sessionRitualStalenessHours policy field\" rendered from `xbrief/completed/2026-06-09-1348-session-ritual-verifier-implementation.xbrief.json`. Live consumer copy is `commands.md:462` plus the schema description.\n\n**Failure mode.** Honoring \"SPECIFICATION … say default 8\" as written either rewrites a completed xBRIEF (falsifies what #1348 accepted) or hand-edits a generated file (`verify:spec` freshness fails / next `spec:render` restores 4). Leaving the line means the AC checkbox cannot complete honestly.\n\n**Disposition.** Drop SPECIFICATION and the completed #1348 xBRIEF from the sweep. Record 4 to 8 on this issue, CHANGELOG, schema description, and `commands.md:462`. Do not recut completed-story acceptance text.\n\n### 3. sharpens-framing — \"Tests that hardcode the default 4\" is two assertions, not every typed 4\n\n**Evidence.** Numeric default asserts: `staleness.test.ts:27`, `resolve.test.ts:686`. Many session tests seed `policy: { sessionRitualStalenessHours: 4 }` so the fixture horizon is typed 4 regardless of DEFAULT. `extra-coverage.test.ts` null path checks `source === \"default\"` and does not assert hours. Unrelated `toBe(4)` hits include greptile confidence, D2/eval/value suppression hours, and triage fan-out.\n\n**Failure mode.** A grep-for-4 worker rewrites typed-4 fixtures (changes what those tests pin) or \"updates\" greptile/D2/eval clocks the issue said to leave alone, while missing `resolve.test.ts:686` so `policy:show` still locks 4.\n\n**Disposition.** Update the two default-asserting tests. Leave typed-4 fixtures and the sibling 4-hour nudge constants. Do not treat every `4` as this default.\n\n### 4. footnote — agents-entry does not currently say default 4\n\nAC lists \"agents-entry pointer that currently say default 4.\" Pin text names `plan.policy.sessionRitualStalenessHours` with no number. No numeric edit exists there. Do not insert a number into the always-pin pointer.\n\n### 5. footnote — compact independence is epoch rewind, not a second deny\n\n`rearm_needed` is mark + recovery copy. The deny is `started_at = RITUAL_STALE_EPOCH` through the same age predicate, on any hours horizon. Keep that. Do not add `if (rearm_needed) deny` to \"preserve independence,\" and do not change compact.\n\n### 6. footnote — schema 4 lives in description text\n\nEdit the description to Default: 8. Do not add a JSON Schema `default` keyword; other policy hours fields do not use one.\n\nNo blocks-the-design. The 4-to-8 default bump can bind once findings 1-3 restate the AC. Occupancy TTL/max lease and compact re-arm stay out of this issue.\n\n\n### Comment by @MScottAdams (2026-09-11T16:32:14Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe framework default ritual age is 4 hours. That is too short for a workday. Raising it to 8 is the consumer-facing default bump. Compact still rearms. Occupancy stays. Typed override stays.\n\nIf this map is confirmed, the next-build updates both DEFAULT literals (gate and policy:show), schema description, commands.md, and the two tests that assert the numeric default. Do not rewrite completed #1348 SPECIFICATION text. Do not grep-rewrite every typed 4. Do not fold occupancy or skip-drift.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored the issue body and Stop 1. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4406 after round 1 critic 5637530022. Supersedes write-back 5637434790.\n\nTarget-digest: sha256:45b46d1b4fe752a2fa9721bcb86c27fadd30d04062089d6843bd9bb5a685e9bb\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4406-dc\norigin-ref: origin/master\ndispatch-sha: d8f4e2a0f8be478096385ec0b765d313e6d4e110\n\nTakes:\n\n- 5637530022 1. Name both DEFAULT literals — accept-into-contract\n- 5637530022 2. SPECIFICATION default 4 is completed #1348 history — accept-into-contract\n- 5637530022 3. Tests that hardcode the default 4 is two assertions — accept-into-contract\n\n## Bound remedy\n\n- Set DEFAULT_SESSION_RITUAL_STALENESS_HOURS to 8 in both packages/core/src/session/staleness.ts (gate) and packages/core/src/policy/index.ts (policy:show). Typed plan.policy.sessionRitualStalenessHours still wins; omit/null still take the new default; invalid still default-on-error.\n- Live copy: schema description Default: 8 (do not add a JSON Schema default keyword); content/commands.md the line that currently says default 4. Do not insert a number into agents-entry. Do not recut completed #1348 xBRIEF or hand-edit SPECIFICATION.md.\n- Update staleness.test.ts and policy/resolve.test.ts numeric default asserts. Leave typed-4 fixtures and sibling 4-hour nudge constants (D2, eval, value-readback, dirty-doctor).\n- Compact still epoch-rewinds started_at; do not add a second rearm_needed deny. Occupancy TTL and max lease unchanged. Do not fold #3729 or #4399. CHANGELOG.\r\n\n\n### Comment by @MScottAdams (2026-09-11T16:32:29Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | staleness.ts DEFAULT is 4; omit/null/invalid take that hours | git show pin staleness.ts | measured |\n| 2 | policy/index.ts exports a second DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4 | critic git grep | endorsed |\n| 3 | schema description Default: 4; minimum 1; no JSON Schema default keyword | git show pin vbrief-core.schema.json | measured |\n| 4 | commands.md says default 4; agents-entry names the field with no number | critic pin read | endorsed |\n| 5 | Numeric default asserts are staleness.test.ts:27 and resolve.test.ts:686 | critic inventory | endorsed |\n| 6 | Compact sets started_at to RITUAL_STALE_EPOCH; occupancy TTL 20 min, max 12 hours | critic pin occupancy.ts / compact | endorsed |\r\n\n\n### Comment by @MScottAdams (2026-09-11T16:32:43Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe consumer-facing ritual age default is 4 hours. The accepted next-build is 8 on both DEFAULT literals, schema description, commands.md, and the two default-asserting tests. Compact still rearms. Occupancy stays. Completed #1348 history stays.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5637548166 and verified-claims table 5637551123.\n\nNon-self-arbitration: same grok-4.6 parent as issue author and Stop 1. Round 1 complete, N=1, critic 5637530022, ceiling 5637434790. Operator yolo-standing on the launching utterance.",
+      "Labels": "enhancement, agent-experience, process, area:cli, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Set DEFAULT_SESSION_RITUAL_STALENESS_HOURS to 8 in both packages/core/src/session/staleness.ts (gate) and packages/core/src/policy/index.ts (policy:show). Typed plan.policy.sessionRitualStalenessHours still wins; omit/null still take the new default; invalid still default-on-error.",
+        "status": "proposed"
+      },
+      {
+        "title": "Live copy: schema description Default: 8 (do not add a JSON Schema default keyword); content/commands.md the line that currently says default 4. Do not insert a number into agents-entry. Do not recut completed #1348 xBRIEF or hand-edit SPECIFICATION.md.",
+        "status": "proposed"
+      },
+      {
+        "title": "Update staleness.test.ts and policy/resolve.test.ts numeric default asserts. Leave typed-4 fixtures and sibling 4-hour nudge constants (D2, eval, value-readback, dirty-doctor).",
+        "status": "proposed"
+      },
+      {
+        "title": "Compact still epoch-rewinds started_at; do not add a second rearm_needed deny. Occupancy TTL and max lease unchanged. Do not fold #3729 or #4399. CHANGELOG.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4406",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4406: feat(session): default sessionRitualStalenessHours 4 to 8"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1348",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1348"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4406#issuecomment-5637548166",
+        "type": "x-xbrief/github-comment",
+        "title": "Issue #4406 comment 5637548166: Bound remedy"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5426595595,
+        "origin": "deftai/directive#4406",
+        "id": "github.issue.5426595595"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "45b46d1b4fe752a2fa9721bcb86c27fadd30d04062089d6843bd9bb5a685e9bb"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from Bound remedy lean 5637548166 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Set DEFAULT_SESSION_RITUAL_STALENESS_HOURS to 8 in both packages/core/src/session/staleness.ts (gate) and packages/core/src/policy/index.ts (policy:show). Typed plan.policy.sessionRitualStalenessHours still wins; omit/null still take the new default; invalid still default-on-error.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Live copy: schema description Default: 8 (do not add a JSON Schema default keyword); content/commands.md the line that currently says default 4. Do not insert a number into agents-entry. Do not recut completed #1348 xBRIEF or hand-edit SPECIFICATION.md.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Update staleness.test.ts and policy/resolve.test.ts numeric default asserts. Leave typed-4 fixtures and sibling 4-hour nudge constants (D2, eval, value-readback, dirty-doctor).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Compact still epoch-rewinds started_at; do not add a second rearm_needed deny. Occupancy TTL and max lease unchanged. Do not fold #3729 or #4399. CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5426595595",
+    "updated": "2026-09-11T17:18:20Z"
+  }
+}
