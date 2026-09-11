@@ -294,6 +294,19 @@ describe("verify:ac pass lead keeps clause-walk counts (#4380)", () => {
     );
   });
 
+  it("keeps served_from=cache on the counted pass lead", () => {
+    const labelled = relabelVerifyAcPassLead({
+      ok: true,
+      sourceRung: "derived",
+      servedFrom: "cache",
+      clauseOutcomes: [{ outcome: "unverifiable" }],
+      message: "verify:ac passed (#3284) served_from=cache [rung=derived]",
+    });
+    expect(labelled).toBe(
+      "verify:ac passed (#3284) served_from=cache (0 verified, 1 unverifiable) [rung=derived]",
+    );
+  });
+
   it("does not rewrite a fail or a pass with no clause walk", () => {
     expect(
       relabelVerifyAcPassLead({

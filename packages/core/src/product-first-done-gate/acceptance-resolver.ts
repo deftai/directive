@@ -325,16 +325,21 @@ export function relabelVerifyAcPassLead(input: {
   if (outcomes.length === 0) {
     return input.message;
   }
-  const bank = input.servedFrom === "bank" ? " served_from=bank" : "";
+  const provenance =
+    input.servedFrom === "bank" || input.servedFrom === "cache"
+      ? ` served_from=${input.servedFrom}`
+      : "";
   const lead =
-    `verify:ac passed (#3284)${bank} (${formatPassLeadClauseCounts(outcomes)}) ` +
+    `verify:ac passed (#3284)${provenance} (${formatPassLeadClauseCounts(outcomes)}) ` +
     `[rung=${input.sourceRung}]`;
-  const rest = input.message
-    .split("\n")
-    .filter((line) => !PASS_LINE.test(line))
-    .join("\n")
-    .replace(/^\n+/, "")
-    .replace(/\n+$/, "");
+  const restLines = input.message.split("\n").filter((line) => !PASS_LINE.test(line));
+  while (restLines[0] === "") {
+    restLines.shift();
+  }
+  while (restLines.length > 0 && restLines[restLines.length - 1] === "") {
+    restLines.pop();
+  }
+  const rest = restLines.join("\n");
   return rest.length > 0 ? `${lead}\n${rest}` : lead;
 }
 
