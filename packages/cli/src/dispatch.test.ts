@@ -70,6 +70,18 @@ describe("registeredVerbs", () => {
       new Set([...CLI_MODULE_VERBS, ...CORE_MODULE_VERBS, ...Object.keys(VERB_ALIASES)]).size,
     );
   });
+
+  it("registers docs-impact with colon alias verify:docs-impact (#4356)", async () => {
+    expect(CORE_MODULE_VERBS).toContain("docs-impact");
+    expect(resolveCanonicalVerb("docs-impact")).toBe("docs-impact");
+    expect(resolveCanonicalVerb("verify:docs-impact")).toBe("docs-impact");
+    expect(VERB_ALIASES["verify:docs-impact"]).toBe("docs-impact");
+    const code = await dispatch(["verify:docs-impact", "--help"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+  });
 });
 
 describe("printHelp", () => {

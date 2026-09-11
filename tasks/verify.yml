@@ -113,7 +113,9 @@ tasks:
       - task: :engine:_ts-build
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/core/dist/docs/docs-impact.js" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'docs-impact --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   license-sync:
     desc: "Drift guard for root LICENSE ↔ content/LICENSE.md and published package.json license fields (#2902). Three-state exit (0 clean / 1 drift / 2 config). Framework-source only."

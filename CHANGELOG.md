@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Consumer `verify:docs-impact` uses engine:invoke, not a source-tree node path (#4356).** CLI verb `docs-impact` (alias `verify:docs-impact`) calls existing `docsImpactMain`. 0.115.x deposited `.deft/core/packages/core/dist/docs/docs-impact.js`; the same path was still on origin/master after v0.116.0. Packed smoke runs `--body-file` after init with an `origin/master` fixture. Does not add the gate to `CONSUMER_CHECK_GATES`. Closes #4356.
+
 ### Removed
 
 ## [0.116.0] - 2026-09-11
