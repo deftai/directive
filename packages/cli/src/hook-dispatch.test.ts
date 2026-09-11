@@ -1,4 +1,9 @@
-import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "@deftai/directive-core/hooks";
+import {
+  fixtureCaseById,
+  fixtureCasesFor,
+  HOOK_FIXTURE_CASES,
+  mergeHookDispatchEnviron,
+} from "@deftai/directive-core/hooks";
 import { describe, expect, it } from "vitest";
 import { resolveCanonicalVerb } from "./dispatch.js";
 import {
@@ -11,6 +16,36 @@ import {
 } from "./hook-dispatch.js";
 
 describe("hook-dispatch CLI", () => {
+  it("threads stdin env bag over process env for per-spawn pins (#4393)", () => {
+    const payload = {
+      tool_name: "spawn_subagent",
+      tool_input: { cwd: "/wt", prompt: "implement" },
+      env: { DEFT_ACTIVE_SCOPE: "xbrief/active/b-story.xbrief.json" },
+    };
+    expect(mergeHookDispatchEnviron(payload, { DEFT_SESSION_ID: "parent" })).toEqual({
+      DEFT_SESSION_ID: "parent",
+      DEFT_ACTIVE_SCOPE: "xbrief/active/b-story.xbrief.json",
+    });
+    expect(
+      mergeHookDispatchEnviron({ tool_name: "Read" }, { DEFT_SESSION_ID: "parent" }),
+    ).toBeUndefined();
+
+    const out: string[] = [];
+    const code = run(["--host", "grok", "--event", "tool.before", "--project-root=/project"], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: "spawn_subagent",
+          tool_input: { cwd: "/wt", prompt: "implement" },
+          env: { DEFT_ACTIVE_SCOPE: "b-story.xbrief.json", DEFT_SESSION_ID: "parent-1" },
+        }),
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    expect(JSON.parse(out.join(""))).toMatchObject({ decision: "deny" });
+  });
+
   it("parses the provider-neutral host/event contract", () => {
     expect(
       parseArgs(["--host", "grok", "--event", "tool.before", "--project-root=/project"]),

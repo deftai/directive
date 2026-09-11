@@ -39,8 +39,12 @@ export {
   fieldPresent,
   fieldString,
   firstString,
+  hookPayloadEnvironBag,
   hookPayloadTopLevelKeys,
+  mergeHookDispatchEnviron,
   record,
+  SPAWN_SCOPE_PIN_KEYS,
+  spawnBoundPathFromPayload,
   toolInputRecord,
 } from "./payload.js";
 export { applyPatchMutationPaths, parseHookStdin, stripUtf8Bom } from "./stdin.js";

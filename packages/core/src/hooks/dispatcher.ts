@@ -99,6 +99,7 @@ import {
   record,
   resolveHookHostIdentity,
   rewriteExactLifecycleCommand,
+  spawnBoundPathFromPayload,
   toolInputRecord,
 } from "./classify/index.js";
 import {
@@ -1692,7 +1693,13 @@ function inspectMutationGates(
     // #3794 commit 2: a write is governed by the active scope of the worktree it
     // lands in, not the primary checkout's. Admission has already proved
     // effectiveRoot shares --git-common-dir with payloadRoot.
-    scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, { env: environ });
+    // Spawn pin is per-spawn boundPath from a host-visible field (#4393).
+    // Env stays the CLI fallback. Do not dest-root-swap (#4215).
+    const spawnBoundPath = isSpawnTool(toolName) ? spawnBoundPathFromPayload(input.payload) : null;
+    scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
+      env: environ,
+      ...(spawnBoundPath !== null ? { boundPath: spawnBoundPath } : {}),
+    });
   } catch (cause) {
     scope = { ready: false, path: null, message: String(cause) };
   }

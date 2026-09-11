@@ -1,0 +1,144 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4393",
+    "updated": "2026-09-11T15:55:09Z"
+  },
+  "plan": {
+    "title": "bug(hooks): dest-proven Grok implement spawn still hits #4007 on primary leftover actives; spawn cannot pass the story pin",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks): dest-proven Grok implement spawn still hits #4007 on primary leftover actives; spawn cannot pass the story pin",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4393",
+      "Overview": "Spec is Bound remedy lean 5636715600, not the filed payload-pin-or-DEFT_ACTIVE_SCOPE body.\n\n## Problem\n\nA Grok Build **implement** parent that already has one dest-placed leaf cannot native-spawn the second (or later) leaf. Dest occupancy consult accepts `tool_input.cwd`. The deny is parent-root **active-scope** (#4007): two running briefs on primary `xbrief/active/`, no `DEFT_ACTIVE_SCOPE` pin.\n\n`grok --cwd` last-resort then works because that process has dest as payload root (one copied brief). That is not the first-class Grok Build launch path (`host-grok-build.md`: CLI after a recorded native deny; do not dual-launch; do not document CLI as the real path).\n\n## Why dest-root-swap is not this close\n\nClosed #4215 locked v5: dest-proven implement spawn skips parent `verifySessionRitual`, then **parent-root active-scope stays**. Explicit drop: dest-root-swap of ritual/scope. Occupancy dest, dest-proven dest, persist dest-lock, and launch are `tool_input.cwd`. The fence that fired is the lock that remained.\n\n## Field instance (2026-09-11, Grok Build, directive through-merge)\n\nParent: `session:start --read-only` on `C:\\Repos\\deft\\directive`. Occupancy mutation claim on primary refused (dest-place).\n\n1. #4361 dest-placed via native `spawn_subagent` `cwd=.deft-scratch/worktrees/4361-recut-vocab`. One eligible brief. Spawn admitted.\n2. Operator added #4356. Parent promoted/activated on primary, copied the brief into a new dest worktree (`xbrief/active/` on dest had only that file).\n3. Native `spawn_subagent` `cwd=<4356 dest>` denied:\n\n```\nDirective denied spawn_subagent: Multiple active xBRIEF artifacts are eligible\n(2026-09-11-4356-..., 2026-09-11-4361-...).\nThe write fence cannot bind the first-sorted story...\nSet DEFT_ACTIVE_SCOPE to the dispatched story path, or keep one running brief in xbrief/active/.\n```\n\n4. Dest consult did not reroot that fence. Eligible names were **primary** leftovers. Dest being single-brief was irrelevant.\n5. Parent cannot set `DEFT_ACTIVE_SCOPE` on the Grok hook environ from a later shell. `spawn_subagent` schema is prompt/description/subagent_type/background/isolation/resume_from/cwd/model. Extra dest keys occupancy-deny. Prompt text is not a pin (`inspectActiveScope` reads env / boundPath only).\n6. Recorded native deny. Last-resort `grok --cwd <dest> --prompt-file` admitted (dest payload root). Same for #4389 and #4390.\n\n`admitEffectiveHookRoot` with `writeTarget === null` (spawn) keeps payloadRoot. Dispatcher then `inspectActiveScope(effectiveRoot)` on primary. Dest-proven skip is ritual only (#4215).\n\n## Expected\n\nNative dest-proven Grok **implement** spawn of leaf N (N>=2) succeeds while primary still holds N running briefs for the cohort ledger.\n\nKeep #4215 parent-root active-scope. Do not dest-root-swap scope as the default of this issue.\n\nGive the parent a host-visible way to bind the #4007 pin on that spawn:\n\n- Prefer a **non-dest** spawn-payload field (story path / issue id) that `inspectActiveScope` already accepts as boundPath. Not `worktree_path`. Not `isolation=worktree`. Grok dest stays `cwd` only.\n- Or host-environ `DEFT_ACTIVE_SCOPE` that the Grok PreToolUse stdin actually carries for that spawn (today a child shell cannot set the parent hook environ).\n\nOrchestrators that already know the dest xBRIEF path must be able to pass it without CLI fallback.\n\n## Non-goals\n\n- Do not dest-root-swap ritual/scope (reopen #4215 locked v5). File a recut of #4215 if that is the wanted product.\n- Do not weaken #4007 for in-tree product writes (two workers on one checkout must not share one file_scope).\n- Do not make `grok --cwd` the first-class Grok Build launch path (#4215 / host-grok-build.md).\n- Do not dual-launch native + CLI.\n- Do not fold into #4391 (critic/docs recovery on primary leftovers) or #4315 (`process_only` missing on the spawn schema / #2885 zero-brief). Cite them. This is implement-class cohort spawn + pin transport.\n- Do not fold into #4285 (`verify:ac --soft-missing-xbrief` runs every active brief).\n- Do not recover with `session:start --rearm` on primary.\n\n## Acceptance\n\n- Native `spawn_subagent` with `cwd` to a reserved linked worktree, while primary `xbrief/active/` has two preflight-eligible running briefs, admits when the spawn names the dest story (payload pin or hook-visible `DEFT_ACTIVE_SCOPE`).\n- Unpinned spawn with two eligible briefs on payloadRoot still fail-closes (#4007).\n- Grok extra dest keys (`worktree_path`, `isolation=worktree` + cwd) still occupancy-deny.\n- Child still ritualizes dest before product writes.\n- A regression test covers two primary actives + dest-proven cwd + pin -> allow; same without pin -> deny.\n- CHANGELOG.\n- Does not retarget the contract Grok seat to CLI as default.\n\n## Related\n\n- #4007 — multiple eligible actives; pin or fail closed; no first-sorted bind\n- #4215 — dest-proven skip is parent ritual only; parent-root active-scope stays (closed, locked v5)\n- #4066 — dest required; Grok cannot rewrite spawn input; dest is cwd\n- #4391 — same Deny 1 for **critic** spawn from primary; docs/playbook recovery; not this implement pin\n- #4315 — Grok schema cannot pass `process_only`\n- #4285 — check/AC walks every active brief; opposite polarity, same multi-active tree\n- `packages/core/src/hooks/scope.ts` `inspectActiveScope` / `DEFT_ACTIVE_SCOPE`\n- `packages/core/src/hooks/dispatcher.ts` spawn then parent-root scope\n- `content/skills/deft-directive-swarm/references/host-grok-build.md` CLI last-resort\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T15:16:39Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because dest-proven Grok implement spawn still inspects active-scope on payloadRoot, so a second dest-placed leaf hits #4007 on primary leftover briefs, and spawn_subagent has no host-visible pin field inspectActiveScope already accepts as boundPath.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4393-dc\norigin-ref: origin/master\ndispatch-sha: 7e7d07d80fc4af26442232ddac96a7543b0f11aa\n\ncharter: open critique\nspend: N=1\nspend-why: default motion; payload-pin vs hook-environ remediations and cohort-spawn blast radius permit N>=3; operator did not request a panel.\n\nrefutation-target: Native dest-proven Grok implement spawn of leaf N (N>=2) is denied by inspectActiveScope on payloadRoot when primary holds N running briefs, because spawn admission passes env only (no boundPath) and the parent cannot set DEFT_ACTIVE_SCOPE on the Grok PreToolUse stdin for that spawn.\n\ntarget: #4393\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This issue is mechanism-shaped: implement-class cohort spawn + #4007 pin transport, not a critic-docs recovery. Do not fold #4391 or #4315. Keep #4215 parent-root active-scope (do not dest-root-swap). Voluntary critiques stay legal; the stamp is for the mandatory gate match.\n\nMeasured on pin 7e7d07d80fc4af26442232ddac96a7543b0f11aa and this session:\n\n- dispatcher spawn scope: inspectActiveScope(effectiveRoot, { env: environ }) — no boundPath from spawn payload.\n- pinFrom: boundPath or DEFT_ACTIVE_SCOPE env only (`packages/core/src/hooks/scope.ts`).\n- admitEffectiveHookRoot(writeTarget === null) returns payloadRoot (spawn).\n- This session: spawn_subagent cwd=dest with leftover 4356/4361 on primary → formatMultipleActiveMessage. Dest-rooted grok CLI admitted for critics (#4391 recut: native admit without skip-class is implement-class).\n- REST: issue open, 0 comments. Grok spawn_subagent schema this host: prompt/description/subagent_type/background/isolation/resume_from/cwd/model.\n\nThis arc does not retry native implement spawn from primary. Critic seat is dest-rooted grok CLI after recorded native denials.\r\n\n\n### Comment by @MScottAdams (2026-09-11T15:23:36Z)\n\nmodel: grok-4.6\nrole: critic\n\nOpen critique of #4393 (implement-class Grok cohort spawn + #4007 pin transport). Pin SHA 7e7d07d80fc4af26442232ddac96a7543b0f11aa. Input ceiling 5636607808. Not #4391 and not #4315.\n\n## 1. Per-spawn pin has no host-visible channel — blocks-the-design\n\nEvidence. Re-verified at the pin, not from line cites:\n\n- This Grok Build `spawn_subagent` schema forwards `prompt`, `description`, `subagent_type`, `background`, `isolation`, `resume_from`, `cwd`, `model`. Same closed list as Stop 1 comment 5636607808.\n- `packages/cli/src/hook-dispatch.ts` `run()` calls `decideHook` with host, event, projectRoot, payload, payloadContext only. Stdin is not an environ bag.\n- `inspectMutationGates` then does `input.environ ?? process.env` and `inspectActiveScope(effectiveRoot, { env: environ })`. Spawn admission hardcodes `effectiveRoot = payloadRoot` (it does not call `admitEffectiveHookRoot`; `writeTarget === null` would have returned the same root).\n- `spawnUpdatedInput` returns undefined when `appliesGrokSpawnDestContract` is true. The hook cannot inject a pin (#4066).\n- Occupancy consult occupancy-denies Grok extra dest keys (`worktree_path` / `worktreePath` / `worktree`) and `isolation=worktree` together with `cwd`. A non-dest key would pass that consult. The host still does not forward one.\n\nFailure mode. `DEFT_ACTIVE_SCOPE` in a later child shell does not change the PreToolUse hook process. Setting it on the parent Grok process is one pin for every concurrent `spawn_subagent`. Cohort leaf N>=2 races or binds the same leftover. A new `tool_input` field this host does not forward never reaches `pinFrom`. Native dest-proven implement spawn of leaf N>=2 still gets `formatMultipleActiveMessage` on primary leftovers.\n\nDisposition. The lean cannot bind \"payload pin or hook-visible `DEFT_ACTIVE_SCOPE`\" as equivalent closes. Bind one per-spawn channel this host actually forwards (schema field into `boundPath`, or a stdin env bag that `hook-dispatch` threads). Treat process-wide `DEFT_ACTIVE_SCOPE` as not cohort-safe. Cite #4315 only as the same closed-schema fact; do not recut this issue into `process_only`.\n\n## 2. Pin grammar is path or unique basename, not issue id — sharpens-framing\n\nEvidence. `matchPinnedActiveScope` accepts an absolute path, a project-relative path, or a unique basename. Basename fallback runs only when the pin has no `/`. `scope.test.ts` binds relative `xbrief/active/b-story.xbrief.json`, unique basename `b-story.xbrief.json`, and `boundPath`. A path-shaped miss (`xbrief/pending/...`) does not degrade to basename. Token `\"4356\"` is not the basename of `2026-09-11-4356-….xbrief.json`. A dest-absolute xBRIEF path is path-shaped; `containedResolved` from primary returns null (`..`); the pin miss-closes.\n\nFailure mode. Preferred \"story path / issue id\" and acceptance \"names the dest story\" admit pins `inspectActiveScope` already rejects. The spawn then still fail-closes with `formatMissingPinMessage`.\n\nDisposition. The lean can bind if the pin grammar is the existing matcher against payloadRoot: `xbrief/active/<file>` or unique basename. Drop issue id. \"Dest story\" means that primary-ledger name, not dest's absolute path.\n\n## 3. Spawn never passes boundPath — sharpens-framing\n\nEvidence. The only `inspectActiveScope` call in `dispatcher.ts` is `{ env: environ }`. `boundPath` already wins over env in `pinFrom` and is covered for writes in `scope.test.ts`. Spawn dest tests stub `inspectScope` to ready or to a zero-brief message. There is no live fixture of two primary eligible actives + dest-proven `cwd` + pin.\n\nFailure mode. A host-visible field that never becomes `boundPath` leaves #4007 in place. Env-only wiring also cannot distinguish concurrent cohort spawns (finding 1).\n\nDisposition. The lean can bind if the spawn branch passes `boundPath` from the host-visible field and keeps env as the CLI fallback. The issue's regression (two primary actives + dest-proven `cwd` + pin allow; same without pin deny) is the right control.\n\n## Injection / swarm\n\nTrigger: authority, untrusted spawn input, envelopes, concurrency, worktrees, shared state.\n\n- Prompt and description must not become pins. Extra dest keys stay occupancy-deny. Grok dest stays `cwd` only.\n- Primary leftover actives are shared cohort ledger. Dest-lock already unique-fences dests (`existingDispatchReservation` / leftover-release then mint). Process-wide `DEFT_ACTIVE_SCOPE` is a second shared cell across concurrent spawns from one hook process.\n- Spawn pin selects which primary leftover admits the launch. Child product writes still gate on dest after write-target admission. A pin that matches any eligible leftover admits even if dest was prepared for another story. Unpinned multi-active on payloadRoot must still fail closed.\n- `destProven` skips parent ritual only. `inspectScope` stays on payloadRoot. Do not skip #2885 on destProven (locked: dest-proven implement-class with no active still `spawn-not-ready`).\n- CLI `grok --cwd` last-resort after a recorded native deny stays last-resort (`host-grok-build.md`). Do not retarget the Grok seat to CLI.\n\n## Road-not-taken\n\nDest-root-swap of `inspectActiveScope` when `destProven`, keeping parent-root for in-tree writes and keeping dest occupancy. Steelman: spawn has no write target; dest-lock unique-fences; the field instance dest held one copied brief. Flip: dest can hold two eligible briefs, or dest is empty. This issue forbids dest-root-swap as the default (#4215 locked v5). Choosing pin-transport therefore inherits finding 1's host channel.\n\n## 4. Spawn inlines payloadRoot admission — footnote\n\n`admitEffectiveHookRoot(writeTarget === null)` returns payloadRoot. Spawn does not call it; it inlines `{ root: payloadRoot, … }`. Same effect. Not a second close.\n\n### Comment by @MScottAdams (2026-09-11T15:25:03Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nDest-proven Grok implement spawn of leaf N>=2 still hits #4007 because scope is inspected on primary leftovers and spawn has no per-spawn pin. Process-wide DEFT_ACTIVE_SCOPE is one pin for every concurrent spawn. Issue-id and dest-absolute paths are not pins the matcher accepts.\n\nIf this map is confirmed, the next-build is one host-forwarded per-spawn field into boundPath, grammar `xbrief/active/<file>` or unique basename against payloadRoot, env as CLI fallback only. Do not dest-root-swap. Do not make grok --cwd first-class. Unpinned two-eligible still fail-closes.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4393 after round 1 critic 5636695878. Supersedes write-back 5636607808.\n\nTarget-digest: sha256:16250b2c533c187defe47533672a4e31cb76adac8b19cb402f6afddccfdc7ce0\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4393-dc\norigin-ref: origin/master\ndispatch-sha: 7e7d07d80fc4af26442232ddac96a7543b0f11aa\n\nTakes:\n\n- 5636695878 1. Per-spawn pin has no host-visible channel — accept-into-contract\n- 5636695878 2. Pin grammar is path or unique basename, not issue id — accept-into-contract\n- 5636695878 3. Spawn never passes boundPath — accept-into-contract\n\n## Bound remedy\n\n- Do not bind \"payload pin or hook-visible DEFT_ACTIVE_SCOPE\" as equivalent closes. Process-wide DEFT_ACTIVE_SCOPE is not cohort-safe. Bind one per-spawn channel this host actually forwards (schema field into boundPath, or a stdin env bag that hook-dispatch threads). Cite #4315 only as the closed-schema fact; do not recut this issue into process_only.\n- Pin grammar is the existing matcher against payloadRoot: `xbrief/active/<file>` or unique basename. Drop issue id. Dest story means that primary-ledger name, not dest's absolute path.\n- Spawn branch passes boundPath from the host-visible field. Keep env as the CLI fallback. Regression: two primary actives + dest-proven cwd + pin -> allow; same without pin -> deny.\n- Keep #4215 parent-root active-scope. Do not dest-root-swap. Extra dest keys stay occupancy-deny. Grok dest stays cwd only. Prompt/description must not become pins. Unpinned multi-active on payloadRoot still fail-closes. destProven still skips parent ritual only.\n- Do not retarget the Grok seat to CLI. Do not fold #4391. CHANGELOG.\r\n\n\n### Comment by @MScottAdams (2026-09-11T15:25:18Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | inspectActiveScope spawn call is { env: environ } only — no boundPath | git show pin packages/core/src/hooks/dispatcher.ts | measured |\n| 2 | pinFrom is boundPath or DEFT_ACTIVE_SCOPE | git show pin packages/core/src/hooks/scope.ts | measured |\n| 3 | spawn_subagent schema this host has no pin field | host spawn_subagent schema this session | measured |\n| 4 | spawnUpdatedInput undefined when appliesGrokSpawnDestContract | critic cite #4066 / spawn-occupancy | endorsed |\n| 5 | matchPinnedActiveScope: relative path, unique basename; issue id and dest-absolute miss | critic cite scope.test.ts | endorsed |\n| 6 | This session: cwd=dest + leftover 4356/4361 → formatMultipleActiveMessage | parent spawn deny this session | measured |\r\n\n\n### Comment by @MScottAdams (2026-09-11T15:25:33Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nLeaf N>=2 cannot native-spawn because primary leftovers trip #4007 and spawn has no per-spawn pin. The accepted next-build is one host-forwarded field into boundPath, grammar xbrief/active file or unique basename, env as CLI fallback. Process-wide DEFT_ACTIVE_SCOPE is not cohort-safe. Do not dest-root-swap. Do not make grok --cwd first-class.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5636715600 and verified-claims table 5636719119.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1. Round 1 complete, N=1, critic 5636695878, ceiling 5636607808. Operator yolo-standing on the launching utterance.",
+      "Labels": "bug, swarm, agent-experience, process, grok-build, harness, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind payload pin or hook-visible DEFT_ACTIVE_SCOPE as equivalent closes. Process-wide DEFT_ACTIVE_SCOPE is not cohort-safe. Bind one per-spawn channel this host actually forwards (schema field into boundPath, or a stdin env bag that hook-dispatch threads). Cite #4315 only as the closed-schema fact; do not recut this issue into process_only.",
+        "status": "proposed"
+      },
+      {
+        "title": "Pin grammar is the existing matcher against payloadRoot: xbrief/active/<file> or unique basename. Drop issue id. Dest story means that primary-ledger name, not dest absolute path.",
+        "status": "proposed"
+      },
+      {
+        "title": "Spawn branch passes boundPath from the host-visible field. Keep env as the CLI fallback. Regression: two primary actives + dest-proven cwd + pin -> allow; same without pin -> deny.",
+        "status": "proposed"
+      },
+      {
+        "title": "Keep #4215 parent-root active-scope. Do not dest-root-swap. Extra dest keys stay occupancy-deny. Grok dest stays cwd only. Prompt/description must not become pins. Unpinned multi-active on payloadRoot still fail-closes. destProven still skips parent ritual only.",
+        "status": "proposed"
+      },
+      {
+        "title": "Do not retarget the Grok seat to CLI. Do not fold #4391. CHANGELOG.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4393",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4393: bug(hooks): dest-proven Grok implement spawn still hits #4007 on primary leftover actives; spawn cannot pass the story pin"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4393#issuecomment-5636715600",
+        "type": "x-xbrief/github-comment",
+        "title": "Issue #4393 comment 5636715600: Bound remedy"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Directive denied spawn_subagent: Multiple active xBRIEF artifacts are eligible",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L21"
+        },
+        {
+          "command": "(2026-09-11-4356-..., 2026-09-11-4361-...)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L21"
+        },
+        {
+          "command": "verify:ac --soft-missing-xbrief",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L54"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5425597951,
+        "origin": "deftai/directive#4393",
+        "id": "github.issue.5425597951"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "16250b2c533c187defe47533672a4e31cb76adac8b19cb402f6afddccfdc7ce0"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from Bound remedy lean 5636715600 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind payload pin or hook-visible DEFT_ACTIVE_SCOPE as equivalent closes. Process-wide DEFT_ACTIVE_SCOPE is not cohort-safe. Bind one per-spawn channel this host actually forwards (schema field into boundPath, or a stdin env bag that hook-dispatch threads). Cite #4315 only as the closed-schema fact; do not recut this issue into process_only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Pin grammar is the existing matcher against payloadRoot: xbrief/active/<file> or unique basename. Drop issue id. Dest story means that primary-ledger name, not dest absolute path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Spawn branch passes boundPath from the host-visible field. Keep env as the CLI fallback. Regression: two primary actives + dest-proven cwd + pin -> allow; same without pin -> deny.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep #4215 parent-root active-scope. Do not dest-root-swap. Extra dest keys stay occupancy-deny. Grok dest stays cwd only. Prompt/description must not become pins. Unpinned multi-active on payloadRoot still fail-closes. destProven still skips parent ritual only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not retarget the Grok seat to CLI. Do not fold #4391. CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5425597951",
+    "updated": "2026-09-11T15:55:09Z"
+  }
+}

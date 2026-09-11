@@ -47,3 +47,69 @@ export function hookPayloadTopLevelKeys(payload: unknown): string[] {
   if (input === null) return [];
   return Object.keys(input).sort();
 }
+
+/**
+ * Per-spawn active-scope pin keys (#4393). Host-visible, non-dest.
+ * Prompt and description are never pins. Extra dest keys stay occupancy-deny.
+ */
+export const SPAWN_SCOPE_PIN_KEYS = [
+  "boundPath",
+  "bound_path",
+  "active_scope",
+  "activeScope",
+] as const;
+
+/**
+ * Bound path for spawn `inspectActiveScope` (#4393). Tool input first, then
+ * top-level stdin. Grammar is the existing matcher: `xbrief/active/<file>` or
+ * unique basename against payloadRoot. Not issue id. Not dest absolute path.
+ */
+export function spawnBoundPathFromPayload(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const nested = toolInputRecord(input);
+  for (const key of SPAWN_SCOPE_PIN_KEYS) {
+    const fromTool = nested !== null ? fieldString(nested, key) : null;
+    if (fromTool !== null) return fromTool;
+  }
+  for (const key of SPAWN_SCOPE_PIN_KEYS) {
+    const fromTop = fieldString(input, key);
+    if (fromTop !== null) return fromTop;
+  }
+  return null;
+}
+
+const STDIN_ENV_BAG_KEYS = ["env", "environ"] as const;
+
+/** Stdin env bag for per-spawn hook environ (#4393). Not process-wide DEFT_ACTIVE_SCOPE. */
+export function hookPayloadEnvironBag(payload: unknown): NodeJS.ProcessEnv | null {
+  const input = record(payload);
+  if (input === null) return null;
+  for (const key of STDIN_ENV_BAG_KEYS) {
+    const bag = record(input[key]);
+    if (bag === null) continue;
+    const env: NodeJS.ProcessEnv = {};
+    let any = false;
+    for (const [name, value] of Object.entries(bag)) {
+      if (typeof value === "string") {
+        env[name] = value;
+        any = true;
+      }
+    }
+    if (any) return env;
+  }
+  return null;
+}
+
+/**
+ * Merge stdin env bag over fallback. `undefined` means no bag — callers omit
+ * `environ` so `decideHook` keeps process.env as the CLI fallback.
+ */
+export function mergeHookDispatchEnviron(
+  payload: unknown,
+  fallback: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv | undefined {
+  const bag = hookPayloadEnvironBag(payload);
+  if (bag === null) return undefined;
+  return { ...fallback, ...bag };
+}
