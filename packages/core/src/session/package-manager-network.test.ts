@@ -173,7 +173,7 @@ function expectOnlyDisclosedPublicRegistryProbe(calls: unknown[][]): void {
   expect(command).toBe("npm");
   expect(args.slice(0, 3)).toEqual([...PUBLIC_REGISTRY_VIEW_PREFIX]);
   expect(args).toContain("--ignore-scripts");
-  expect(args.some((token) => token.startsWith("--userconfig="))).toBe(true);
+  expect(args.some((token) => token.startsWith("--userconfig="))).toBe(false);
   expect(args).not.toContain("--registry=https://registry.npmjs.org/");
   expect(opts).toEqual(
     expect.objectContaining({

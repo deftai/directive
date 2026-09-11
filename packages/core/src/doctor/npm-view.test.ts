@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({
@@ -25,17 +26,13 @@ describe("defaultNpmViewVersion (#2808 / #4345)", () => {
     vi.mocked(spawnSync).mockReset();
   });
 
-  it("isolates public lookup with cwd + --userconfig, not --registry", () => {
-    let userconfigPath = "";
+  it("isolates public lookup with a temp project .npmrc, not --registry or --userconfig", () => {
     let spawnCwd = "";
     let npmrc = "";
-    vi.mocked(spawnSync).mockImplementation((_cmd, args, options) => {
-      const argv = args as string[];
+    vi.mocked(spawnSync).mockImplementation((_cmd, _args, options) => {
       const opts = options as { cwd?: string };
-      const flag = argv.find((token) => token.startsWith("--userconfig="));
-      userconfigPath = flag?.slice("--userconfig=".length) ?? "";
       spawnCwd = opts.cwd ?? "";
-      npmrc = readFileSync(userconfigPath, "utf8");
+      npmrc = readFileSync(join(spawnCwd, ".npmrc"), "utf8");
       return successfulSpawn();
     });
 
@@ -50,12 +47,11 @@ describe("defaultNpmViewVersion (#2808 / #4345)", () => {
     expect(argv[1]).toBe("@deftai/directive");
     expect(argv[2]).toBe("version");
     expect(argv).toContain("--ignore-scripts");
-    expect(argv.some((token) => token.startsWith("--userconfig="))).toBe(true);
+    expect(argv.some((token) => token.startsWith("--userconfig="))).toBe(false);
     expect(argv).not.toContain("--registry=https://registry.npmjs.org/");
     expect(spawnCwd.length).toBeGreaterThan(0);
     expect(spawnCwd).not.toBe(process.cwd());
     expect(opts.cwd).toBe(spawnCwd);
-    expect(userconfigPath.startsWith(spawnCwd)).toBe(true);
     expect(npmrc).toContain("@deftai:registry=https://registry.npmjs.org/");
     expect(npmrc).not.toMatch(/@deftai\/directive[^*]*:registry/);
     expect(opts).toMatchObject({

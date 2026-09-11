@@ -226,9 +226,10 @@ organization policy:
   cd "$HOME" && npm i -g @deftai/directive@<version>
   ```
 
-- **One-shot userconfig:** write a file containing
+- **One-shot userconfig from outside the project:** after leaving the project
+  directory, write a file containing
   `@deftai:registry=https://registry.npmjs.org/` and pass `--userconfig` to
-  that file.
+  that file. `--userconfig` does not beat a project `.npmrc` `@deftai:registry`.
 
 - **Durable scoped routing:** add this line to the user or project `.npmrc` so
   only the `@deftai` scope bypasses the default mirror:
@@ -246,7 +247,7 @@ IT or the registry administrator to synchronize all Directive packages:
 non-public effective registry produces an advisory warning but does not make
 doctor fail; configured registry URLs are not printed because they can contain
 internal hostnames or credentials. With `--network`, the release-availability
-probe isolates with a temp cwd and `--userconfig` that sets `@deftai:registry`
+probe isolates with a temp cwd whose project `.npmrc` sets `@deftai:registry`
 to public npm, because `--registry` does not beat the scoped key.
 
 2. **Refresh the project deposit** from your project root:

@@ -18,30 +18,27 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 /**
  * Query the canonical public registry for the latest published Directive
  * version. `--registry` does not beat `@deftai:registry` (npm/cli#7659), so
- * the spawn uses a temp cwd plus `--userconfig` that sets the scoped key.
+ * the spawn uses a temp cwd whose project `.npmrc` sets the scoped key.
+ * User npmrc still loads for proxy/cafile; project config in that cwd wins
+ * the scoped registry without replacing `--userconfig`.
  */
 export function defaultNpmViewVersion(options: NpmViewVersionOptions = {}): NpmViewVersionResult {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let dir: string | undefined;
   try {
     dir = mkdtempSync(join(tmpdir(), "deft-npm-view-"));
-    const userconfig = join(dir, ".npmrc");
     writeFileSync(
-      userconfig,
+      join(dir, ".npmrc"),
       `@deftai:registry=${PUBLIC_NPM_REGISTRY}\nregistry=${PUBLIC_NPM_REGISTRY}\n`,
       "utf8",
     );
-    const proc = spawnSync(
-      "npm",
-      ["view", NPM_PACKAGE_NAME, "version", `--userconfig=${userconfig}`, "--ignore-scripts"],
-      {
-        cwd: dir,
-        encoding: "utf8",
-        shell: false,
-        timeout: timeoutMs,
-        windowsHide: true,
-      },
-    );
+    const proc = spawnSync("npm", ["view", NPM_PACKAGE_NAME, "version", "--ignore-scripts"], {
+      cwd: dir,
+      encoding: "utf8",
+      shell: false,
+      timeout: timeoutMs,
+      windowsHide: true,
+    });
     if (proc.error !== undefined || proc.status !== 0) {
       return { ok: false, version: "" };
     }
