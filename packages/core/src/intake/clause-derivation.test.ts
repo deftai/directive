@@ -225,7 +225,58 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     };
     const result = applyClauseDerivationToPlan(plan);
     expect(result.applied).toBe(false);
+    expect(result.notice).toBe("");
     expect(plan.acceptance).toBeUndefined();
+  });
+
+  it("names the unparseable shape when an acceptance-shaped key yields 0 clauses (#4374)", () => {
+    const plan: Record<string, unknown> = {
+      title: "phase-3 bare prose",
+      narratives: {
+        AcceptanceCriteria:
+          "Login rejects empty passwords\nSession token persists across refresh\nLogout clears the stored token",
+      },
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(false);
+    expect(result.clauses).toEqual([]);
+    expect(result.notice).toMatch(
+      /0 clauses derived from acceptance-shaped narrative keys \(AcceptanceCriteria\)/,
+    );
+    expect(result.notice).toMatch(/Bare prose is not derivable \(#4374\)/);
+    expect(plan.acceptance).toBeUndefined();
+  });
+
+  it("stamps clauses from heading-less AcceptanceCriteria list items (#4374)", () => {
+    const plan: Record<string, unknown> = {
+      title: "phase-3 list",
+      narratives: {
+        AcceptanceCriteria:
+          "- Login rejects empty passwords\n- Session token persists across refresh\n- Logout clears the stored token",
+        Overview: "do not scrape this Overview into clauses",
+      },
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(true);
+    expect(result.clauses.map((c) => c.text)).toEqual([
+      "Login rejects empty passwords",
+      "Session token persists across refresh",
+      "Logout clears the stored token",
+    ]);
+    const acc = plan.acceptance as {
+      none_stated: boolean;
+      source_rung: string;
+      derived_reason: string;
+      clauses: unknown[];
+      ambiguity_attestation: string;
+      commands: unknown[];
+    };
+    expect(acc.commands).toEqual([]);
+    expect(acc.none_stated).toBe(true);
+    expect(acc.source_rung).toBe("derived");
+    expect(acc.derived_reason).toMatch(/derived 3 independently testable clauses/);
+    expect(acc.clauses).toHaveLength(3);
+    expect(acc.ambiguity_attestation).toBe("none_found");
   });
 
   it("defaults source_rung to stated when command-only acceptance omits it", () => {

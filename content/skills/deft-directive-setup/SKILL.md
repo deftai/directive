@@ -818,6 +818,16 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ! Testing Strategy and Deployment captured in narratives
 - ⊗ Write code — specification only
 
+### Scope acceptance write shape (#4374)
+
+! When a Phase 3 (Light or Full) or Add-scope write includes independently testable acceptance criteria, put them on `plan.narratives.AcceptanceCriteria` as markdown list items (`- ` or `1.`). `Test` and `Verification` use the same shapes. The JSON key is the section delimiter — do not duplicate `## Acceptance Criteria` inside the string. Labeled lines (`test:` / `acceptance:`) are also derivable.
+
+! Bare prose in those keys is not derivable. `scope:promote` / `scope:activate` then name the unparseable shape instead of silently no-op'ing. Do not hand-author `plan.acceptance` to pass activate.
+
+⊗ Stamp write-time `plan.acceptance: { "none_stated": true }` as a derive-and-stamp. Derivation already engages on an absent block; that write opens activate with 0 clauses.
+
+~ A successful #3323 stamp writes `commands`, `none_stated`, `source_rung`, `derived_reason`, `clauses`, and `ambiguity_attestation`. Do not emit `file_scope` or a second attestation writer here — that compose is #4380.
+
 ### Lifecycle Bridge to Downstream Skills (#1025)
 
 ! Scope xBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Add scope to this project" branch land in `xbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task xbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate xBRIEFs to live in `xbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.

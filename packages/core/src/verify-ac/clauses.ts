@@ -285,6 +285,77 @@ export function collectPlanItemAcceptanceSurface(plan: Record<string, unknown>):
   return lines;
 }
 
+/** Narrative keys the activate gate and declared-key parse share (#3334 / #4374). */
+export const DECLARED_ACCEPTANCE_NARRATIVE_KEYS = new Set([
+  "test",
+  "acceptancecriteria",
+  "verification",
+]);
+
+export function normalizeAcceptanceNarrativeKey(key: string): string {
+  return key.replace(/[\s_-]+/g, "").toLowerCase();
+}
+
+export interface DeclaredAcceptanceNarrativeSurface {
+  /** True when at least one acceptance-shaped narrative key has a non-empty string. */
+  readonly present: boolean;
+  /** List items, else labeled lines, from those keys. Empty when the field is bare prose. */
+  readonly lines: readonly string[];
+  /** Original narrative keys that were non-empty (for named 0-clause notices). */
+  readonly keys: readonly string[];
+}
+
+/**
+ * Parse AcceptanceCriteria / Test / Verification as a declared surface (#4374).
+ *
+ * List items first, else `test:` / `acceptance:` labeled lines. Bare prose in
+ * the field is not a clause. The JSON key is the section delimiter — do not
+ * scrape Overview or the concatenated statement blob.
+ */
+export function collectDeclaredAcceptanceNarrativeSurface(
+  plan: Record<string, unknown>,
+): DeclaredAcceptanceNarrativeSurface {
+  const narratives = asRecord(plan.narratives);
+  if (narratives === null) {
+    return { present: false, lines: [], keys: [] };
+  }
+  const keys: string[] = [];
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  for (const key of Object.keys(narratives)) {
+    if (!DECLARED_ACCEPTANCE_NARRATIVE_KEYS.has(normalizeAcceptanceNarrativeKey(key))) {
+      continue;
+    }
+    const value = narratives[key];
+    if (!isNonEmptyString(value)) {
+      continue;
+    }
+    keys.push(key);
+    const fromList = parseListItems(value)
+      .map((item) => normalizeClauseText(item.title.replace(/\*\*/g, "")))
+      .filter((title) => title.length > 0 && !isMetaClause(title));
+    const parsed = fromList.length > 0 ? fromList : collectLabeledLines(value);
+    for (const line of parsed) {
+      const dedupe = line.toLowerCase();
+      if (seen.has(dedupe)) {
+        continue;
+      }
+      seen.add(dedupe);
+      lines.push(line);
+    }
+  }
+  return { present: keys.length > 0, lines, keys };
+}
+
+export function formatZeroClauseAcceptanceShapedNotice(keys: readonly string[]): string {
+  const listed = keys.length > 0 ? keys.join(", ") : "AcceptanceCriteria, Test, Verification";
+  return (
+    `0 clauses derived from acceptance-shaped narrative keys (${listed}). ` +
+    "Accepted shapes: list items (`- ` / `1.`) in the declared key, or `test:` / `acceptance:` labeled lines. " +
+    "Bare prose is not derivable (#4374). Do not stamp write-time plan.acceptance { none_stated: true }."
+  );
+}
+
 export interface ClauseDerivationSources {
   /**
    * Declared acceptance lines from `plan.items`. When non-empty this IS the
@@ -292,6 +363,12 @@ export interface ClauseDerivationSources {
    * that declares no items (#3826).
    */
   readonly itemSurface?: readonly string[];
+  /**
+   * Declared AcceptanceCriteria / Test / Verification parse (#4374). When
+   * `present` is true this IS the clause set even if `lines` is empty — do not
+   * fall through to statement scrape.
+   */
+  readonly declaredNarrative?: DeclaredAcceptanceNarrativeSurface;
 }
 
 /** Acceptance lines the statement itself declares, in extractor precedence order. */
@@ -328,7 +405,14 @@ export function deriveAcceptanceClauses(
   // thread from becoming the gate — the #3794 and #3819 mechanism.
   let raw: readonly string[] = itemSurface;
   if (raw.length === 0) {
-    raw = text.length > 0 ? collectStatementSurface(text) : [];
+    const declared = sources.declaredNarrative;
+    if (declared?.present === true) {
+      raw = declared.lines
+        .map((line) => normalizeClauseText(line))
+        .filter((line) => line.length > 0 && !isMetaClause(line));
+    } else {
+      raw = text.length > 0 ? collectStatementSurface(text) : [];
+    }
   }
   const seen = new Set<string>();
   const clauses: AcceptanceClause[] = [];
@@ -457,6 +541,7 @@ export function stampDerivedClausesOnAcceptance(
   }
   const clauses = deriveAcceptanceClauses(taskStatement, {
     itemSurface: collectPlanItemAcceptanceSurface(plan),
+    declaredNarrative: collectDeclaredAcceptanceNarrativeSurface(plan),
   });
   if (clauses.length === 0) {
     return { plan, clauses: [] };

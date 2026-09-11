@@ -13,8 +13,10 @@ import {
 } from "../run-summary/index.js";
 import {
   type AcceptanceClause,
+  collectDeclaredAcceptanceNarrativeSurface,
   collectPlanItemAcceptanceSurface,
   deriveAcceptanceClauses,
+  formatZeroClauseAcceptanceShapedNotice,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
 } from "../verify-ac/clauses.js";
@@ -386,11 +388,16 @@ export function applyClauseDerivationToPlan(
       notice: "",
     };
   }
+  const declaredNarrative = collectDeclaredAcceptanceNarrativeSurface(plan);
   const clauses = deriveAcceptanceClauses(collectTaskStatementFromPlan(plan), {
     itemSurface: collectPlanItemAcceptanceSurface(plan),
+    declaredNarrative,
   });
   if (clauses.length === 0) {
-    return { applied: false, clauses: [], notice: "" };
+    const notice = declaredNarrative.present
+      ? formatZeroClauseAcceptanceShapedNotice(declaredNarrative.keys)
+      : "";
+    return { applied: false, clauses: [], notice };
   }
   const existing = asRecord(plan.acceptance);
   const commands = existing !== null && Array.isArray(existing.commands) ? existing.commands : [];

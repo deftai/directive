@@ -33,6 +33,10 @@ describe("acceptance-activate-gate (#3334)", () => {
     expect(gate.ok).toBe(false);
     expect(gate.message).toMatch(/plan\.acceptance is absent \(#3334\)/);
     expect(gate.message).toMatch(/Stamp plan\.acceptance via clause derivation/);
+    expect(gate.message).toMatch(
+      /0 clauses derived from acceptance-shaped narrative keys \(AcceptanceCriteria\)/,
+    );
+    expect(gate.message).toMatch(/Bare prose is not derivable \(#4374\)/);
     expect(gate.message.split("Stamp plan.acceptance")).toHaveLength(2);
     expect(collectAcceptanceShapedNarrativeKeys({ Verification: "ok", Test: "  " })).toEqual([
       { key: "Verification" },

@@ -4,12 +4,14 @@ import { join, parse } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   bindClausesToDeclaredScope,
+  collectDeclaredAcceptanceNarrativeSurface,
   collectPlanItemAcceptanceSurface,
   countAdjudicableClauses,
   countUnverifiedAdjudicableClauses,
   deriveAcceptanceClauses,
   extractExpectedTokens,
   formatClauseWalkMessage,
+  formatZeroClauseAcceptanceShapedNotice,
   isDeclaredArtifactPath,
   isScratchArtifactPath,
   readAcceptanceClauses,
@@ -566,6 +568,132 @@ const DECLARED_ITEMS = [
   },
   { title: "CHANGELOG `[Unreleased]` entry", status: "proposed" },
 ];
+
+const PHASE3_BARE_PROSE = [
+  "Login rejects empty passwords",
+  "Session token persists across refresh",
+  "Logout clears the stored token",
+  "Invalid credentials return 401",
+  "CHANGELOG cites the setup write shape",
+].join("\n");
+
+const PHASE3_LIST_ITEMS = [
+  "- Login rejects empty passwords",
+  "- Session token persists across refresh",
+  "- Logout clears the stored token",
+  "- Invalid credentials return 401",
+  "- CHANGELOG cites the setup write shape",
+].join("\n");
+
+describe("collectDeclaredAcceptanceNarrativeSurface (#4374)", () => {
+  it("parses heading-less list items from AcceptanceCriteria as declared surface", () => {
+    const surface = collectDeclaredAcceptanceNarrativeSurface({
+      narratives: { AcceptanceCriteria: PHASE3_LIST_ITEMS, Overview: "do not scrape me" },
+    });
+    expect(surface.present).toBe(true);
+    expect(surface.keys).toEqual(["AcceptanceCriteria"]);
+    expect(surface.lines).toHaveLength(5);
+    expect(surface.lines[0]).toBe("Login rejects empty passwords");
+  });
+
+  it("parses labeled lines when the declared key has no list items", () => {
+    const surface = collectDeclaredAcceptanceNarrativeSurface({
+      narratives: {
+        Test: "test: CHANGELOG.md cites #4374\nacceptance: the form rejects empty passwords",
+      },
+    });
+    expect(surface.lines).toEqual(["CHANGELOG.md cites #4374", "the form rejects empty passwords"]);
+  });
+
+  it("treats bare prose as present with zero lines", () => {
+    const surface = collectDeclaredAcceptanceNarrativeSurface({
+      narratives: { AcceptanceCriteria: PHASE3_BARE_PROSE },
+    });
+    expect(surface.present).toBe(true);
+    expect(surface.lines).toEqual([]);
+  });
+
+  it("ignores Overview and Requirements", () => {
+    expect(
+      collectDeclaredAcceptanceNarrativeSurface({
+        narratives: {
+          Overview: PHASE3_LIST_ITEMS,
+          Requirements: "- FR-1: Widget opens",
+        },
+      }),
+    ).toEqual({ present: false, lines: [], keys: [] });
+  });
+
+  it("returns absent when narratives are missing, empty, or non-string", () => {
+    expect(collectDeclaredAcceptanceNarrativeSurface({})).toEqual({
+      present: false,
+      lines: [],
+      keys: [],
+    });
+    expect(
+      collectDeclaredAcceptanceNarrativeSurface({
+        narratives: { AcceptanceCriteria: "  ", Test: 12, Verification: "" },
+      }),
+    ).toEqual({ present: false, lines: [], keys: [] });
+  });
+
+  it("parses numbered Verification items and drops duplicate/meta bullets", () => {
+    const surface = collectDeclaredAcceptanceNarrativeSurface({
+      narratives: {
+        Verification:
+          "1. Login rejects empty passwords\n1. Login rejects empty passwords\n- Relates #4374\n",
+      },
+    });
+    expect(surface.keys).toEqual(["Verification"]);
+    expect(surface.lines).toEqual(["Login rejects empty passwords"]);
+  });
+
+  it("names a fallback key list when the notice is called with no keys", () => {
+    expect(formatZeroClauseAcceptanceShapedNotice([])).toMatch(
+      /acceptance-shaped narrative keys \(AcceptanceCriteria, Test, Verification\)/,
+    );
+  });
+});
+
+describe("deriveAcceptanceClauses declared narrative surface (#4374)", () => {
+  it("uses heading-less AcceptanceCriteria bullets instead of scraping the blob", () => {
+    const blob = `## Overview\n${PHASE3_BARE_PROSE}\n\n- Write CHANGELOG.md under Unreleased\n`;
+    const declared = collectDeclaredAcceptanceNarrativeSurface({
+      narratives: { AcceptanceCriteria: PHASE3_LIST_ITEMS },
+    });
+    const clauses = deriveAcceptanceClauses(blob, { declaredNarrative: declared });
+    expect(clauses.map((c) => c.text)).toEqual([
+      "Login rejects empty passwords",
+      "Session token persists across refresh",
+      "Logout clears the stored token",
+      "Invalid credentials return 401",
+      "CHANGELOG cites the setup write shape",
+    ]);
+  });
+
+  it("does not fall through to statement scrape when the declared key is bare prose", () => {
+    const blob =
+      "- Write CHANGELOG.md under Unreleased\n- Ignore this narrative sentence without a path\n";
+    const declared = collectDeclaredAcceptanceNarrativeSurface({
+      narratives: { AcceptanceCriteria: PHASE3_BARE_PROSE },
+    });
+    expect(deriveAcceptanceClauses(blob, { declaredNarrative: declared })).toEqual([]);
+    expect(formatZeroClauseAcceptanceShapedNotice(["AcceptanceCriteria"])).toMatch(
+      /0 clauses derived from acceptance-shaped narrative keys \(AcceptanceCriteria\)/,
+    );
+  });
+
+  it("still prefers plan.items over the declared narrative key (#3826)", () => {
+    const declared = collectDeclaredAcceptanceNarrativeSurface({
+      narratives: { AcceptanceCriteria: PHASE3_LIST_ITEMS },
+    });
+    const clauses = deriveAcceptanceClauses("thread", {
+      itemSurface: ["A declared item criterion"],
+      declaredNarrative: declared,
+    });
+    expect(clauses.map((c) => c.text)).toEqual(["A declared item criterion"]);
+  });
+});
 
 describe("collectPlanItemAcceptanceSurface (#3826)", () => {
   it("reads item.title when narrative is empty and prefers narrative.Acceptance when set", () => {

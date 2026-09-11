@@ -7,18 +7,17 @@
  */
 
 import { validatePlanAcceptance } from "../product-first-done-gate/acceptance.js";
+import {
+  DECLARED_ACCEPTANCE_NARRATIVE_KEYS,
+  formatZeroClauseAcceptanceShapedNotice,
+  normalizeAcceptanceNarrativeKey,
+} from "../verify-ac/clauses.js";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
     return value as Record<string, unknown>;
   }
   return null;
-}
-
-const ACCEPTANCE_SHAPED_KEYS = new Set(["test", "acceptancecriteria", "verification"]);
-
-function normalizeNarrativeKey(key: string): string {
-  return key.replace(/[\s_-]+/g, "").toLowerCase();
 }
 
 export interface AcceptanceActivateHit {
@@ -37,7 +36,7 @@ export function collectAcceptanceShapedNarrativeKeys(
 ): AcceptanceActivateHit[] {
   const hits: AcceptanceActivateHit[] = [];
   for (const key of Object.keys(narratives)) {
-    if (!ACCEPTANCE_SHAPED_KEYS.has(normalizeNarrativeKey(key))) {
+    if (!DECLARED_ACCEPTANCE_NARRATIVE_KEYS.has(normalizeAcceptanceNarrativeKey(key))) {
       continue;
     }
     const value = narratives[key];
@@ -78,12 +77,14 @@ export function evaluateAcceptanceActivateGate(
     }
     return { ok: true, message: "", hits };
   }
-  const keys = hits.map((h) => h.key).join(", ");
+  const keys = hits.map((h) => h.key);
   return {
     ok: false,
     message:
-      `Refusing activate: narratives contain acceptance-shaped keys (${keys}) ` +
-      `but plan.acceptance is absent (#3334). Stamp plan.acceptance via clause derivation ` +
+      `Refusing activate: narratives contain acceptance-shaped keys (${keys.join(", ")}) ` +
+      `but plan.acceptance is absent (#3334). ` +
+      `${formatZeroClauseAcceptanceShapedNotice(keys)} ` +
+      `Stamp plan.acceptance via clause derivation ` +
       `(scope:activate / scope:promote runs #3323, or task issue:ingest) — ` +
       `the criteria are in the wrong, non-executable field.`,
     hits,

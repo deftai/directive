@@ -143,8 +143,59 @@ describe("runTransition", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/plan\.acceptance is absent \(#3334\)/);
     expect(result.message).toMatch(/Stamp plan\.acceptance/);
+    expect(result.message).toMatch(
+      /0 clauses derived from acceptance-shaped narrative keys \(Test\)/,
+    );
     expect(existsSync(path)).toBe(true);
     expect(existsSync(join(root, "xbrief", "active", "prose-ac.xbrief.json"))).toBe(false);
+  });
+
+  it("activates heading-less AcceptanceCriteria list items via declared-key derivation (#4374)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "list-ac.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "pending",
+        narratives: {
+          AcceptanceCriteria:
+            "- Login rejects empty passwords\n- Session token persists across refresh",
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "active", "list-ac.xbrief.json");
+    expect(existsSync(dest)).toBe(true);
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { acceptance: { clauses: { text: string }[]; none_stated: boolean } };
+    };
+    expect(data.plan.acceptance.none_stated).toBe(true);
+    expect(data.plan.acceptance.clauses.map((c) => c.text)).toEqual([
+      "Login rejects empty passwords",
+      "Session token persists across refresh",
+    ]);
+  });
+
+  it("surfaces a named 0-clause notice on promote of bare-prose AcceptanceCriteria (#4374)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "bare-ac.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "proposed",
+        narratives: { AcceptanceCriteria: "Login rejects empty passwords" },
+        items: [],
+      },
+    });
+    const result = runTransition("promote", path);
+    expect(result.ok).toBe(true);
+    expect(result.message).toMatch(
+      /0 clauses derived from acceptance-shaped narrative keys \(AcceptanceCriteria\)/,
+    );
   });
 
   it("activates when acceptance-shaped narratives have plan.acceptance stamped (#3334)", () => {
