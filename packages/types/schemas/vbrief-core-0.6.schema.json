@@ -612,7 +612,7 @@
         "sessionRitualStalenessHours": {
           "type": "integer",
           "minimum": 1,
-          "description": "Maximum age, in hours, for .deft/ritual-state.json before the fail-closed session ritual verifier requires task session:start to run again. Default: 4."
+          "description": "Maximum age, in hours, for .deft/ritual-state.json before the fail-closed session ritual verifier requires task session:start to run again. Default: 8."
         },
         "forgeOutageRetryMinutes": {
           "type": ["integer", "null"],

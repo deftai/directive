@@ -7,7 +7,7 @@ export interface SessionRitualStalenessResult {
   readonly error: string | null;
 }
 
-const DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4;
+const DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 8;
 
 function pythonTypeName(value: unknown): string {
   if (value === null) return "None";

@@ -24,7 +24,7 @@ describe("resolveSessionRitualStalenessHours", () => {
     const root = mkdtempSync(join(tmpdir(), "stale-missing-"));
     temps.push(root);
     const result = resolveSessionRitualStalenessHours(root);
-    expect(result.hours).toBe(4);
+    expect(result.hours).toBe(8);
     expect(result.source).toBe("default");
     expect(result.error).not.toBeNull();
   });

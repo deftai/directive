@@ -683,7 +683,7 @@ describe("inspectAllPolicies", () => {
     writeProjectDef(r, { policy: { sessionRitualStalenessHours: null } });
     const row = inspectOnePolicy(FIELD_SESSION_RITUAL_STALENESS_HOURS, r);
     expect(row?.source).toBe("default");
-    expect(row?.current).toBe(4);
+    expect(row?.current).toBe(8);
   });
 
   it("renders null policy values as None in text output", () => {

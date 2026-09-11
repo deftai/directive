@@ -149,7 +149,7 @@ export const FIELD_TRIAGE_LABEL_MIRROR = "plan.policy.triageLabelMirror";
 export const FIELD_SWARM_SUBAGENT_BACKEND = "plan.policy.swarmSubagentBackend";
 // deliveryBranch also exported from delivery-branch.js via export *
 
-export const DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4;
+export const DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 8;
 export const DEFAULT_TRIAGE_SCOPE_VALUE: readonly Record<string, unknown>[] = [
   { rule: "all-open" },
 ];
