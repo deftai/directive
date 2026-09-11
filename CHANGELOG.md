@@ -20,9 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land leftover completed-tracked artifact for #4337 (#3264 / #3476).** The #4337 xBRIEF stayed untracked after squash of PR 4358. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
-- **Land leftover completed-tracked artifact for #4343 (#3264 / #3476).** The #4343 xBRIEF stayed untracked after squash of PR 4358. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
-
 ### Fixed
 
 - **Init and doctor no longer tell every host to open Codex `/hooks` (#4335).** Codex trust remains `manual-review-required`.

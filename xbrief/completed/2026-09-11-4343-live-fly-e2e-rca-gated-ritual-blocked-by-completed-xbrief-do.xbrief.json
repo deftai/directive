@@ -49,7 +49,7 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "tests/content-contract/skills.test.ts",
+          "pointer": "packages/core/src/content-contracts/skills/skills.test.ts",
           "recorded_at": "2026-09-11T02:02:53Z",
           "recorded_by": "agent3-4343-4337"
         }
