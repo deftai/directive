@@ -49,6 +49,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - A bot reviewer (Greptile) has posted findings on an open PR
 - Dispatching a cloud or background agent to monitor and resolve PR review findings until merge-ready
 - Operator re-authorizes after conf-hold / dual-stop residual: **pursue residual**, **follow-up hard-stop**, **same as conf-hold**, **continue dual-stopped PR**, or **re-babysit residual** — route to § Operator follow-up after dual-stop / hard stop (#3273) **one-shot** path
+- Reviewer findings on invariant-shaped code (concurrency, error handling, containment/security) -- classify against a written HEAD policy before patching (`review-response` / #3452)
 - Operator issues a **standing residual order**: **until floor or loop**, **until greptile meets policy**, or **pursue residuals until told otherwise** — route to the same § **standing** path (#3448); applies to open cohort / ordered-plan units, not only the last halted PR
 
 ## Cursor global babysit supersession (#2261)
@@ -202,6 +203,36 @@ Babysit and review-cycle are **not** a second unbounded implementation mandate. 
 ⊗ Expand active story scope past xBRIEF AC mid-babysit without follow-up or consented amend (#2881).
 ⊗ Treat confidence-only holds as authorization to invent new subsystems in-tree.
 
+
+
+### Policy-anchored review-response (#3452)
+
+Working name `deft-directive-review-response`. This is **how to respond while continuing**. `#3448` / PR #3451 (shipped) remains **park-vs-continue**. `#3457` is how parks exit. `#3434` is where (d) escalations go. `#3462` / ADR-004 is a different issue -- do not implement it here.
+
+! Universal principles live in [coding/review.md](../../coding/review.md) `## Policy-anchored classification (#3452)`. This adapter adds HEAD-blob HOW and the rounds-tripwire composition.
+
+! **Policy-anchor precondition.** Invariant-shaped findings (concurrency, error handling, containment/security) MUST NOT be classified out-of-model until a written policy exists on the **current HEAD** of the file under review: assumptions / guarantees / non-goals as a header comment or design note.
+
+1. Absent on HEAD -> write the anchor first. That is the first work item. Do not classify out-of-model yet.
+2. Anchor-wrong -> revise the anchor, then classify.
+3. ! A review-response pass MUST refuse out-of-model classification until that HEAD anchor exists.
+
+! **Classify-then-act.** After the HEAD anchor exists:
+
+- In-model -> patch in the same review-round batch.
+- Out-of-model -> accepted-risk reply citing the HEAD anchor on the pushed SHA, not a worktree mid-edit.
+
+! **Head-blob check (slizard#2694).** Any deterministic arity/wiring claim MUST include `git show <head-sha>:<file>` before it can be confirmed. When the PR itself changes the named symbol, presume false and verify. Blanket dismissal is wrong -- check every time (dead export on #3440 was real). A one-line falsification reply citing slizard#2694 is enough when the head blob matches.
+
+! **Batch discipline.** One consolidated push per review round. Local review pass before that push. Never push per finding. Riders are allowed on mechanical rebases.
+
+! **Rounds tripwire.** When **more than 3 review rounds** touch the same file, compose with the `#3448` **Same-fingerprint stop** (do not invent a second detector): escalate to a design pass (`#3434` motion), not round K+1 and not parking. `#3448` still governs park-vs-continue; this tripwire governs the continue-side exit.
+
+⊗ Classify an invariant-shaped finding out-of-model with no written policy on current HEAD.
+⊗ Patch finding-by-finding or push per finding.
+⊗ Invent a second same-fingerprint detector alongside `#3448`.
+⊗ Run round K+1 or park when the rounds tripwire fires -- escalate to `#3434`.
+⊗ Implement `#3462` / ADR-004 as this issue.
 
 ### Dual stop — review fix loops (#2442)
 
@@ -911,6 +942,10 @@ task lifecycle:event -- emit plan:approved \
 
 ## Anti-Patterns
 
+- ⊗ Classify an invariant-shaped finding out-of-model with no written policy on current HEAD (#3452)
+- ⊗ Invent a second same-fingerprint detector alongside #3448 (#3452)
+- ⊗ Run round K+1 or park when the rounds tripwire fires -- escalate to #3434 (#3452)
+- ⊗ Implement #3462 / ADR-004 as this issue (#3452)
 - ⊗ Multi-hour empty-commit / close-reopen thrash after CI weather thrash caps when `ci_never_scheduled` or `ci_cancelled_no_failover` (#3167)
 - ⊗ Workflow thrash or empty-commit spam during attributed platform outage without status-page probe (#3180)
 - ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)

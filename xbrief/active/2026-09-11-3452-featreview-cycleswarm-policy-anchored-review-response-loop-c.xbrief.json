@@ -1,0 +1,174 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3452 -- field-validation ACs stamped from comment 5331022768",
+    "updated": "2026-09-11T01:21:18Z"
+  },
+  "plan": {
+    "title": "feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3452",
+      "Overview": "# feat(review-cycle,swarm): policy-anchored review-response loop — classify reviewer findings against a written invariant before patching; batch fixes into one push\n\nParent umbrella: #2018 (Review lane)\n\n## Summary\n\nWhen automated review (Greptile/SLizard) comments on a swarm PR, the responding agent today patches finding-by-finding and pushes per patch. Each push triggers a fresh review round against brand-new code, and for invariant-shaped findings (concurrency, error policy, containment) each patch opens the next window. Mechanism: before any code change in response to a reviewer finding, the agent must anchor the affected code to a **written policy** (invariant / error-policy / threat-model header comment or design note, adding one if absent), classify each finding as in-model (patch) or out-of-model (accepted-risk reply citing the anchor), consolidate all in-scope fixes into **one** commit, run the local review pass, and push once. A loop signal (rounds > 3 on the same file, or #3448's same-fingerprint detector) escalates to a design pass (#3434 motion) instead of running round K+1.\n\nInternalize as a skill (working name `deft-directive-review-response`) so the motion is framework-scaffolded instead of operator-driven.\n\n## The gap\n\nTwo same-day exemplar arcs (2026-08-17/18), both operator-noticed; the framework never prompted either:\n\n- **PR #3440** (occupancy lease, #3433): six Greptile/SLizard rounds on `occupancy.ts`/`lock.ts`. Every fix to the hand-rolled file lock introduced the next TOCTOU (non-atomic claim → lock file → abandoned-lock deadlock → blind timeout unlink → PID-reclaim unlink race), plus one self-authorization defect introduced *by* a fix (closeout adopting the lease identity it read off disk). The findings were individually legitimate; the loop was structural. Resolution required an ownership-fence redesign plus a stated concurrency model — a motion no per-finding patch converges to.\n- **PR #3436** (intended-placement preflight, #3424): six rounds on one file, oscillating between throw-on-error and skip-on-error — each swing generating the opposite finding — then escalating into adversarial-local-TOCTOU territory that a stated threat model would have scoped out in round one. Meanwhile the two findings that actually block shipping (fail-closed bricks pre-existing vBRIEFs; issue-ingest births briefs that cannot preflight) arrived only in the final round, after the loop had consumed the budget.\n\nSame shape as #3434's finding on triage and #1140's original capture: the value-producing work was operator-noticed and operator-driven; the framework never prompted it. The conventions exist (#1152 current-shape, accepted-risk replies) — the framework just doesn't prompt the composition.\n\n### Adjacent prior art (distinct, composes)\n\n- **#1225** (operator-driven quality ratchet) proposes the review-cycle iteration model and a finding-triage taxonomy (`fix` / `false-positive-dismiss` / `defer-with-issue`), but supplies no *basis* for the classification — nothing tells the agent what makes a finding a false positive rather than a fix. This issue supplies that basis (the policy anchor).\n- **#3448** (standing residual until conf floor or same-fingerprint loop) governs **when to stop pushing** — park vs continue. This issue governs **how to respond while continuing**. The two exemplars above failed by over-eager patching; #3448's field class failed by premature parking. Complementary halves; this issue reuses #3448's loop detector rather than inventing a parallel one.\n\n## Mechanism\n\n1. **Policy anchor precondition.** A review-response pass on invariant-shaped findings (concurrency, error handling, containment/security) may not edit code until the affected module carries a written policy: assumptions, guarantees, non-goals. Absent → writing it is the first work item. This supplies the classification basis #1225's Gap-1 triage taxonomy currently lacks: in-model → fix; out-of-model → accepted-risk reply citing the anchor; anchor-wrong → revise the anchor first, then fix.\n2. **Batch discipline.** One consolidated commit per review round; local review pass before push; never push per finding. Each per-finding push triggers a fresh reviewer round against brand-new code and restarts the loop.\n3. **Escalation on loop detection.** Compose with #3448's same-fingerprint loop detector and add a rounds tripwire (> 3 review rounds touching the same file): where #3448 resolves park-vs-continue, this issue resolves *how* to continue — the exit from a detected loop on invariant-shaped findings is a design pass (#3434 motion), not round K+1 and not parking. Both exemplar battles ran 6 rounds; the tripwire fires at round 3–4 in each, before the worst defects (a fix that introduced self-authorization on #3440; adversarial-TOCTOU escalation on #3436) occurred.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-18T03:36:47Z)\n\n## Field note — header anchors are load-bearing for this mechanism\n\nWhen the 3382 orchestrator finishes the consolidated redesigns on **PR #3440** (#3433 occupancy) and **PR #3436** (#3424 intended-placement), it MUST verify the pushed commits actually include the **policy / threat-model header comments**, not only the code fixes.\n\nThose anchors are what accepted-risk replies cite. They are also what this issue's mechanism depends on: classify each finding as in-model (patch) vs out-of-model (accepted-risk reply citing the header). If a later pass drops the headers as \"just comments,\" the next review round has nothing to classify against, and the loop this issue is supposed to stop starts again.\n\nConcrete check on the pushed HEAD (not the worktree mid-edit):\n\n- `#3440` / `packages/core/src/session/occupancy.ts` — concurrency model: assumptions (local FS, cooperating processes), guarantees (mutex / detect-and-abort), non-goals (network FS, Byzantine, perfect off-Linux PID reuse).\n- `#3436` / `packages/core/src/preflight/intended-placement.ts` — error policy (fail closed except first-touch ENOENT) + threat model (preflight is a quality gate on the agent's own plan; adversarial-local TOCTOU is a non-goal beyond fd discipline).\n\nIf either header is missing on the pushed SHA, that is a product hole in the redesign batch, not a style nit. Do not start accepted-risk replies until the anchor is on HEAD.\n\nMid-flight (2026-08-18, worktrees not yet the merge SHA): both headers are present in the local redesign trees. Re-verify after the one-push lands.\n\nThis is also an AC seed for this issue: the skill / review-response pass must refuse to classify out-of-model findings until a written anchor exists on the current HEAD of the file under review.\r\n\n\n### Comment by @MScottAdams (2026-08-18T04:10:54Z)\n\n## Operational cite for tonight — slizard#2694\n\nhttps://github.com/deftai/slizard/issues/2694\n\nSLizard's arity checker compares **head call sites** against the **base-revision** definition. When a PR widens a signature and updates its call sites together, it posts a 93%-confidence P1 that is false on the head blob.\n\nUntil slizard fixes that: any 93%-confidence arity P1 on a PR that touches the named function's signature is **presumed false**. Check the head blob first. A one-line falsification reply with this issue link is enough — do not re-derive the full evidence each time.\n\nField use: PR 3453 `printUpdateComplete` (4 params at `refresh.ts:732`, calls at 1225/1227). Same class as the 3432 `formatRefusal` false P1.\n\n### Comment by @MScottAdams (2026-08-18T13:45:16Z)\n\n## Sequence-end field evidence — PR 3453 arc (2026-08-18)\n\n#3452 stays **open**. This is the tripwire exemplar, not a close.\n\nPR **#3453** / #3437 is the richest field run of this issue's mechanism: classify against a written invariant, one batch, escalate on loop instead of round K+1.\n\n### Arc\n\n| Step | HEAD | Score | Outcome |\n|------|------|-------|---------|\n| Derive-the-plan + parity test | `5e4816e2` | 2/5 | **(d)** — collect-only still hit raw `rmSync` / stale dest postcondition. Escalated; scoped precursor **#3456** / PR **#3458** (merged `82bd37f3`). |\n| Rebase onto #3458 | `6ab09c2c` | 2/5 | **(d)** again — `removeStaleMigratedFrameworkNarrative` still raw-deleted under collect-only; name-only `replaceTree` listed writes without opening contents. |\n| Operator-ruled final batch (static enforcement + fixture completion) | red `da794d82` → green `2f6e4ce1` | **3/5** SHA-match | Prior two P1s closed (stale-narrative routed through `containedRemove`; collect-only `replaceTree` now opens and compares). New confirmed in-model residuals: (1) **plan fidelity** — atomic slash/OpenClaw dests omitted under collect-only; (2) **dest mutation** — `writeConsumerGitHooks` still runs `git config core.hooksPath` on dry-run. |\n\nIndependent `pr:watch --one-shot` on `2f6e4ce1`: `sha_match=true`, `confidence=3`, `p0=0`, `p1=0`, `clean_gate_holdout=has_blocking`, merge-gate green. **(b′)** — not floored, not merged.\n\n### What the tripwire did\n\nThe pre-committed stop fired: one more confirmed in-model P1 in the chokepoint / plan-fidelity class **halts**. No fourth product batch. Escalation comment: https://github.com/deftai/directive/pull/3453#issuecomment-5329051010\n\nNamed alternative now on the table (**#3434-style critique**, not another instance chase):\n\n**materialize-and-diff** — dry-run projects content into a scratch directory outside the project root using the **same write code** (no collect-only mode) and diffs the result against the live tree. That eliminates the mode-divergence class at the cost of temp I/O. Collect-only did not stabilize after precursor + static enforcement.\n\n### Adjacent field from the same night (headers / classification basis)\n\n- PR **#3440** / #3433 occupancy — concurrency-model header survived merge (`084371c0`). 5/5 (a).\n- PR **#3436** / #3424 placement — error-policy + threat-model headers. Recovered 5/5 (a) after disposition-before-score.\n- slizard#2694 arity false-positive class (this comment thread, 2026-08-18) remains the cite for 93% arity P1s on widened signatures.\n\n#3437 stays open with 3453. Park-exit taxonomy remains **#3457** (not this issue).\n\n\n### Comment by @MScottAdams (2026-08-18T14:25:14Z)\n\n## (d) exit executed as designed — #3462\n\nThe 3453 arc in the sequence-end comment above is the tripwire working: (d) after the parity test → scoped precursor #3456/#3458 → (d) again after rebase → operator-ruled final batch → pre-committed stop on new in-model chokepoint/plan-fidelity residuals. No fourth product batch.\n\nThat (d) exit is now the input to **#3462** (design: dry-run fidelity as a property of construction). #3452 stays open as the tripwire issue. Append #3462's Current-shape / ADR outcome here when the operator accepts it.\n\n\n### Comment by @MScottAdams (2026-08-18T14:25:15Z)\n\n## Calibration datum (2026-08-18)\n\nSix deterministic P1s across three PRs tonight. Anchor-classification caught both directions (in-model → patch; out-of-model → accepted-risk citing a written header on the **pushed SHA**).\n\n| PR | Finding | Class | Outcome |\n|----|---------|-------|---------|\n| 3432 | `formatRefusal` arity | false (slizard#2694) | head blob matched; one-line cite |\n| 3453 | `printUpdateComplete` arity | false (slizard#2694) | head blob matched; one-line cite |\n| 3453 | `listRelativeFilePaths` arity | false (slizard#2694) | same |\n| 3453 | `destOnlyRelativeFiles` arity | false (slizard#2694) | same |\n| 3440 | occupancy arity-class / widened signature | false (slizard#2694) | same class |\n| 3440 | dead export `readLaunchOccupancySessionId` | **real** | deleted on merge SHA `159763ff` / `084371c0` |\n\nFive false, one real. The false set is the slizard#2694 base-vs-head arity class. The real one was a leftover export after closeout stopped reading it.\n\n#3462 outcome will be appended here when known.\n\n\n### Comment by @MScottAdams (2026-08-18T15:46:43Z)\n\n## #3462 outcome (operator accepted 2026-08-18)\n\nAccepted: **side-effect port (construction-level collection)**. 3453 disposition **replace**.\n\nADR is `docs/decisions/ADR-004-update-dry-run-plan.md` (landing with the salvage PR). Three acceptance conditions are in the ADR: (1) enforcement legs — static ban extended to dest-mutating `child_process`/`git` plus the zero-mutation fixture; (2) migration is consolidation of the 3 existing dest-mutating seams (`GitHooksSeams`, `copyContent`, `runOrgForceOn`), not a fresh wrapper; (3) honest exclusions label survives and shrinks, never silently disappears.\n\nAcceptance: https://github.com/deftai/directive/issues/3462#issuecomment-5330417455\n\n\n### Comment by @MScottAdams (2026-08-18T16:20:03Z)\n\n## Field validation + AC deltas (2026-08-18, pass-type: field-evidence — pickup-ready)\n\nThe mechanism was executed manually end-to-end across PRs #3432 / #3436 / #3440 / #3451 / #3453 / #3464 tonight. It works; implement as specced with the deltas below.\n\n**Anchors did the work.** Policy headers written before responding (occupancy.ts concurrency model on #3440; error-policy + threat-model on #3436; plan-completeness contract on #3453) made classification mechanical in both directions: out-of-model findings got anchor-citing replies (fence guarantee, one-cohort-per-worktree, ancestor-symlink), in-model findings got batched fixes. Pre-anchor, #3440 and #3436 each burned 6 whack-a-mole rounds; post-anchor, rounds resolved in minutes.\n\n**Calibration datum for the classify step (new AC):** six deterministic SLizard P1s across three PRs; five false, one real. Root cause of the five: the checker reads definitions from the merge-base blob while call sites come from head (deftai/slizard#2694). AC addition: classification of any deterministic arity/wiring claim MUST include a head-blob check (`git show <head-sha>:<file>`) before it can be confirmed; when the PR itself changes the named symbol, presume false and verify. The one real hit (dead export on #3440) proves blanket dismissal is wrong — check every time.\n\n**Tripwire validated, including the exit:** #3453 hit (d) twice under a pre-committed stop; the exits executed as designed — first a scoped precursor (#3458), then a design pass (#3462 → side-effect-port ADR) instead of round K+1. Full arc in the comment above.\n\n**Composition (do not duplicate):** #3448/PR #3451 (shipped) governs park-vs-continue; #3457 governs how parks exit (floor-distance, stable-floor); #3434 is where (d) escalations go. This issue owns only: anchor precondition, classify-then-act (incl. head-blob check), batch discipline (one consolidated push per review round; riders allowed on mechanical rebases), and the rounds tripwire (>3 on one file).",
+      "Labels": "swarm, review-cycle, process, urgent, area:skills"
+    },
+    "items": [
+      {
+        "title": "AC1 Policy-anchor precondition: invariant-shaped findings may not be classified out-of-model until a written policy exists on current HEAD of the file under review.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Invariant-shaped findings (concurrency, error handling, containment/security) may not be classified out-of-model until a written policy (assumptions / guarantees / non-goals header or design note) exists on the current HEAD of the file under review. Absent -> write the anchor first. Anchor-wrong -> revise the anchor, then classify. Skill/review-response pass MUST refuse out-of-model classification until that HEAD anchor exists.",
+          "Traces": "FR-3452-1"
+        }
+      },
+      {
+        "title": "AC2 Classify-then-act including head-blob check: in-model patch; out-of-model accepted-risk citing HEAD anchor; arity/wiring claims require git show head blob.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "In-model -> patch. Out-of-model -> accepted-risk reply citing the HEAD anchor. Any deterministic arity/wiring claim MUST include git show <head-sha>:<file> before it can be confirmed. When the PR itself changes the named symbol, presume false and verify (slizard#2694). Blanket dismissal is wrong -- check every time (dead export on #3440 was real).",
+          "Traces": "FR-3452-2"
+        }
+      },
+      {
+        "title": "AC3 Batch discipline: one consolidated push per review round; local review pass before push; never push per finding; riders allowed on mechanical rebases.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "One consolidated push per review round. Local review pass before push. Never push per finding. Riders allowed on mechanical rebases.",
+          "Traces": "FR-3452-3"
+        }
+      },
+      {
+        "title": "AC4 Rounds tripwire: more than 3 review rounds touching the same file compose with #3448 same-fingerprint and escalate to a #3434 design pass, not round K+1 and not parking.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": ">3 review rounds touching the same file (compose with #3448 same-fingerprint; do not invent a second detector) -> escalate to a design pass (#3434 motion), not round K+1 and not parking. Do not duplicate #3448/#3457/#3434 or implement ADR-004/#3462.",
+          "Traces": "FR-3452-4"
+        }
+      },
+      {
+        "title": "AC5 Content-contract tests assert the #3452 markers; CHANGELOG cites #3452 under [Unreleased].",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Content-contract tests assert the policy-anchor, classify-then-act, head-blob, batch, and rounds-tripwire markers. CHANGELOG [Unreleased] cites #3452. Prefer extending deft-directive-review-cycle (working name review-response) rather than a duplicate skill.",
+          "Traces": "FR-3452-5"
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "review-cycle",
+      "process",
+      "urgent",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3452",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3452: feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/skills/policy_anchored_review_response_3452.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "field-validation comment 5331022768 pickup-ready ACs plus content-contract test command",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Invariant-shaped findings (concurrency, error handling, containment/security) may not be classified out-of-model until a written policy (assumptions / guarantees / non-goals header or design note) exists on the current HEAD of the file under review. Absent -> write the anchor first. Anchor-wrong -> revise the anchor, then classify. Skill/review-response pass MUST refuse out-of-model classification until that HEAD anchor exists.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "In-model -> patch. Out-of-model -> accepted-risk reply citing the HEAD anchor. Any deterministic arity/wiring claim MUST include git show <head-sha>:<file> before it can be confirmed. When the PR itself changes the named symbol, presume false and verify (slizard#2694). Blanket dismissal is wrong -- check every time (dead export on #3440 was real).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "One consolidated push per review round. Local review pass before push. Never push per finding. Riders allowed on mechanical rebases.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": ">3 review rounds touching the same file (compose with #3448 same-fingerprint; do not invent a second detector) -> escalate to a design pass (#3434 motion), not round K+1 and not parking. Do not duplicate #3448/#3457/#3434 or implement ADR-004/#3462.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Content-contract tests assert the policy-anchor, classify-then-act, head-blob, batch, and rounds-tripwire markers. CHANGELOG [Unreleased] cites #3452. Prefer extending deft-directive-review-cycle (working name review-response) rather than a duplicate skill.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/coding/review.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/packs/rules/rules-pack-0.1.json",
+          "packages/core/src/content-contracts/skills/policy_anchored_review_response_3452.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "review-cycle skill + coding/review.md principles",
+        "cohesion_exemption": "Generated pack JSON and CHANGELOG are single-document generated/append-only surfaces; this slice only inserts #3452 section text and does not split those files.",
+        "split_plan": "Keep review-cycle SKILL.md as the adapter; keep coding/review.md lean under 120 lines; packs remain generated projections."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5177754388,
+        "origin": "deftai/directive#3452",
+        "id": "github.issue.5177754388"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle",
+          "content/coding/review.md",
+          "content/packs/skills",
+          "content/packs/rules",
+          "packages/core/src/content-contracts/skills",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/policy_anchored_review_response_3452.test.ts"
+        ],
+        "expected_outputs": [
+          "policy-anchor precondition on HEAD",
+          "classify-then-act + head-blob check",
+          "one consolidated push per review round",
+          "rounds tripwire compose #3448 escalate #3434",
+          "CHANGELOG #3452"
+        ],
+        "acceptance_criteria_justification": "Field-validation comment 5331022768: this issue owns only anchor precondition, classify-then-act including head-blob, batch discipline, and rounds tripwire.",
+        "depends_on": [],
+        "conflict_group": "review-response-policy",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.5177754388",
+    "updated": "2026-09-11T01:21:18Z"
+  }
+}

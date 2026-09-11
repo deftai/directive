@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Brownfield process-only adoption exit (#4337).** Setup Phase 2 option 2 is Process-only (keep Phase 2 identity). Interview chaining adds a labeled leave-strategy. Then-path skips bridge, export, acceptance, and build. GitHub issues stay cache/queue inputs. Docs stay described content. Closes #4337.
+- **Policy-anchored review-response (#3452).** Classify invariant-shaped findings against a written HEAD policy before patching; one push per round; more than 3 rounds on one file escalate to a #3434 design pass. Composes with #3448; does not land ADR-004. Closes #3452.
 
 ### Changed
 

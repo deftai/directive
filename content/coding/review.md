@@ -40,8 +40,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Agents MUST NOT claim merge-ready while any P0 or P1 from the current review remains open
 - ⊗ Elevate P2-only findings into a merge block without operator agreement
 
+## Policy-anchored classification (#3452)
+
+- ! Invariant-shaped findings (concurrency, error handling, containment/security) MUST NOT be classified out-of-model until a written policy (assumptions / guarantees / non-goals) exists on the **current HEAD** of the file under review. Absent -> write the anchor first. Anchor-wrong -> revise the anchor, then classify
+- ! Classify then act: in-model -> patch; out-of-model -> accepted-risk reply citing the HEAD anchor. Deterministic arity/wiring claims MUST check the head blob before confirmation
+- ! One consolidated push per review round; local review pass before push; never push per finding. Riders allowed on mechanical rebases
+- ! More than 3 review rounds on the same file: escalate to a design pass, not round K+1 and not parking. Compose with the adapter same-fingerprint stop; do not invent a second detector
+
 ## Anti-Patterns
 
+- ⊗ Classify invariant-shaped findings out-of-model with no HEAD policy (#3452)
 - ⊗ Start fixing individual findings as you encounter them — read and plan the full batch first
 - ⊗ Push one commit per finding
 - ⊗ Push while a bot or human review of the current head is still in flight
