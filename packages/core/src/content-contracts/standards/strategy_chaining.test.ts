@@ -84,6 +84,15 @@ describe("test_strategy_chaining.py", () => {
       // Deterministic-questions: example menus end with Discuss + Back (#2925 greptile).
       expect(chaining).toContain("Discuss");
       expect(chaining).toMatch(/Other \(specify\)[\s\S]*Discuss[\s\S]*Back/);
+      // #4337 -- labeled no-write leave-strategy (not Back or Other)
+      expect(chaining).toContain("Process-only (keep Phase 2 identity)");
+      expect(chaining.toLowerCase()).toContain("leave strategy");
+      expect(chaining).toMatch(
+        /Process-only \(keep Phase 2 identity\)[\s\S]*Other \(specify\)[\s\S]*Discuss[\s\S]*Back/,
+      );
+      expect(chaining.toLowerCase()).toContain("do not emit");
+      expect(chaining.toLowerCase()).toContain("acceptance gate");
+      expect(chaining).toContain("\u2297 Use Back or Other");
     });
 
     it("test_spec_generating_roster_includes_interview_and_yolo", () => {

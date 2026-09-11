@@ -73,6 +73,9 @@ on the brownfield detector:
    - ! On confirmed scrap, continue to the [Sizing Gate](#sizing-gate) as a full create path
    - ⊗ Auto-delete PROJECT-DEFINITION without scrap confirm
    - ⊗ Rename Proceed to "Update" without changing behavior
+4. **Process-only (keep Phase 2 identity)** — leave strategy; no new scope; no spec write. Do not emit a proposed scope. Do not merge or scrap PROJECT-DEFINITION narratives. Then-path: session ritual / deft check / later Add scope. Skip Sizing Gate, export, Acceptance Gate, and build. GitHub issues stay cache/queue inputs. Docs stay described content.
+   - ⊗ Use Back or Other as this option
+   - ⊗ Bind docs or issues as the next-build plan
 
 **Preparatory strategies** (type: `preparatory` — loops back to this gate on completion):
 - Research — investigate the domain, find libraries, identify pitfalls
@@ -152,19 +155,20 @@ This repo already has a project definition and/or scopes. Before we proceed:
 1. Add scope to this project (default) — keep identity; add one new proposed scope
 2. Update project definition — delta interview; merge narratives (Spec-Generating Guard)
 3. Replace specification (scrap) — requires explicit yes/confirmed; full recreate
+4. Process-only (keep Phase 2 identity) — leave strategy; no new scope; no spec write
 
 --- Preparatory (loops back) ---
-4. Run a research phase — investigate the domain, find libraries, identify pitfalls
-5. Run a discuss phase — lock key decisions using Feynman technique
-6. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
-7. Run a map phase — analyze existing codebase conventions
+5. Run a research phase — investigate the domain, find libraries, identify pitfalls
+6. Run a discuss phase — lock key decisions using Feynman technique
+7. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
+8. Run a map phase — analyze existing codebase conventions
 
 --- Switch strategy ---
-8. Switch to yolo — auto-pilot picks all answers
-9. Switch to speckit — formal spec process with story readiness before implementation
-10. Other (specify)
-11. Discuss
-12. Back
+9. Switch to yolo — auto-pilot picks all answers
+10. Switch to speckit — formal spec process with story readiness before implementation
+11. Other (specify)
+12. Discuss
+13. Back
 ```
 
 ---

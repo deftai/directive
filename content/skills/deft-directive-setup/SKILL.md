@@ -501,7 +501,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
   ! **Capability-cost disclosure (#746):** When the user picks option 2 (trunk-based), the agent MUST present the capability-cost disclosure verbatim BEFORE writing the typed flag, then re-prompt for explicit confirmation:
 
-  > "Capability-cost disclosure -- enabling direct commits to the default branch turns OFF the deft branch-protection policy. The pre-commit + pre-push hooks will no longer block default-branch commits, `task verify:branch` will pass on the default branch, and the skill-level guards in deft-directive-{swarm,review-cycle,pre-pr,release} will not halt for default-branch work. The change is reversible (`task policy:enforce-branches`) and is recorded to meta/policy-changes.log for auditability. The CI sanity check (head_ref != base_ref) remains independent and will continue to flag master->master PRs. Are you sure?"
+  > "Capability-cost disclosure -- enabling direct commits to the default branch turns OFF the deft branch-protection policy. The pre-commit + pre-push hooks will no longer block default-branch commits, `deft verify:branch` / `task deft:verify:branch` will pass on the default branch, and the skill-level guards in deft-directive-{swarm,review-cycle,pre-pr,release} will not halt for default-branch work. The change is reversible (`task policy:enforce-branches`) and is recorded to meta/policy-changes.log for auditability. The CI sanity check (head_ref != base_ref) remains independent and will continue to flag master->master PRs. Are you sure?"
   > 1. Yes, opt out -- persist `allowDirectCommitsToMaster=true` through the policy writer
   > 2. No, keep branch-protection enforced -- persist `allowDirectCommitsToMaster=false` through the policy writer
   > 3. Discuss
@@ -618,7 +618,10 @@ omit = [
 
 ### Then
 
-- ! Emit a structured-tool question asking whether to continue to Phase 3 (specification) only when the host preserves numeric labels; otherwise emit the deterministic numbered menu in chat. Options: `1. Yes (continue)`, `2. Not now (exit setup)`, `3. Discuss`, `4. Back (revisit previous phase)`. The numeric labels MUST remain visible and be returned as numeric selections or exact displayed option text.
+- ! Emit a structured-tool question asking whether to continue to Phase 3 (specification) only when the host preserves numeric labels; otherwise emit the deterministic numbered menu in chat. Options: `1. Yes (continue)`, `2. Process-only (keep Phase 2 identity)`, `3. Discuss`, `4. Back (revisit previous phase)`. The numeric labels MUST remain visible and be returned as numeric selections or exact displayed option text.
+- ! Option 2 is the process-only adoption: leave setup with Phase 2 identity in place. Point at session ritual (`deft session:start` / `deft verify:session-ritual -- --tier=gated`) / `deft check` / later Add scope when a slice is ready. Do not write `xbrief/proposed/*.xbrief.json`. Do not overwrite PROJECT-DEFINITION narratives. GitHub issues stay cache/queue inputs. Docs stay described content. Skip Lifecycle Bridge, export prompt, Acceptance Gate, and build handoff.
+- ⊗ Bind docs or GitHub issues as the next-build plan.
+- ⊗ Use Back or Other as the process-only adoption path.
 - ⊗ Ask the phase-transition question as unnumbered conversational prose or through a structured UI that hides the canonical numeric labels -- it is a deterministic menu and MUST preserve visible numbers (#478, #1563).
 
 ### Follow-up: triage onboarding (#1143)
@@ -656,8 +659,9 @@ omit = [
 > 2. **Update project definition** — delta interview → Spec-Generating Guard → merge narratives into existing PROJECT-DEFINITION
 > 3. **Replace specification (scrap)** — only after explicit affirmative (`yes` / `confirmed`); then full new-spec path
 > 4. **Starting a new project specification** [default when greenfield] — proceed to the Strategy Gate below
-> 5. **Discuss** — explore these options before choosing
-> 6. **Back** — return to the previous setup question
+> 5. **Process-only (keep Phase 2 identity)** — same exit as Phase 2 option 2; no new scope; no spec write
+> 6. **Discuss** — explore these options before choosing
+> 7. **Back** — return to the previous setup question
 
 - ! Default based on repo state via the brownfield detector above (brownfield → Add scope; greenfield → Starting new)
 - ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
@@ -665,6 +669,7 @@ omit = [
 - ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
 - ! If **Starting new**: proceed to the Strategy Gate below
+- ! If **Process-only (keep Phase 2 identity)**: same exit as Phase 2 option 2. Do not write a scope xBRIEF. Do not merge or scrap PROJECT-DEFINITION narratives. Skip Lifecycle Bridge, End-of-Phase-3 Export Prompt, Acceptance Gate, and build handoff. Point at session ritual / `deft check` / later Add scope. GitHub issues stay cache/queue inputs. Docs stay described content.
 - ⊗ Treat brownfield repos as "Starting new" by default
 - ⊗ Accept vague confirmation (`proceed`, `ok`) for Replace/scrap
 - ⊗ Exit immediately after Add-scope write without the lifecycle bridge / export / handoff guidance

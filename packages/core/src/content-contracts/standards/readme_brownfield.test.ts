@@ -91,6 +91,13 @@ describe("test_readme_brownfield.py", () => {
       const content = readText("docs/BROWNFIELD.md");
       expect(content.includes("RFC2119") || content.includes("RFC 2119")).toBe(true);
     });
+    it("test_names_process_only_keep_phase_2_identity", () => {
+      const content = readText("docs/BROWNFIELD.md");
+      expect(content).toContain("Process-only (keep Phase 2 identity)");
+      expect(content.toLowerCase()).toContain("cache/queue");
+      expect(content.toLowerCase()).toContain("docs stay described content");
+      expect(content.toLowerCase()).not.toContain("docs/issues as the plan");
+    });
   });
 
   // #2274: README/BROWNFIELD/UPGRADING + top-level help all agree on the

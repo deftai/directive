@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Brownfield process-only adoption exit (#4337).** Setup Phase 2 option 2 is Process-only (keep Phase 2 identity). Interview chaining adds a labeled leave-strategy. Then-path skips bridge, export, acceptance, and build. GitHub issues stay cache/queue inputs. Docs stay described content. Closes #4337.
+
 ### Changed
 
 ### Fixed
@@ -23,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Init and doctor no longer tell every host to open Codex `/hooks` (#4335).** Codex trust remains `manual-review-required`.
 
 - **Dependabot high: brace-expansion DoS follow-ups (alerts #10/#13).** Pin `brace-expansion@5` to `5.0.9` (and `@2` to `2.1.4`) so the lockfile leaves CVE-2026-14257 / CVE-2026-69152. Closes #4348.
+- **Dual-invoke `deft verify:branch` in pre-pr, release, and setup skills (#4343).** Consumers no longer see un-namespaced `task verify:branch`. Do not add a consumer `verify:branch` task. Closes #4343.
 
 ### Removed
 
