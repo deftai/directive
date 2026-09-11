@@ -8,7 +8,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 24 groupings, 273 documents
+- **Rules:** 24 groupings, 274 documents
 - **Tasks:** 62 namespaces, 248 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 178 | 16 | 122 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 34 | 18 | 12 | 54 | 1 | 2 |
+| docs | Explanatory docs and the framework glossary. | 35 | 19 | 12 | 56 | 1 | 2 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -153,6 +153,7 @@ _Explanatory docs and the framework glossary._
 - `operator-log-hygiene-checklist.md` — Copy-paste block for **story acceptance criteria** and **probe locked decisions**. Full pattern: [`patterns/operator-log-hygiene.md`](../content/patterns/operator-log-hygiene.md).
 - `operator-log-hygiene-consumer-pack-stub.md` — Skeleton for **consumer projects** that want a ship-gate for operator-facing logs. Wire this into *your* check aggregate only if you opt in.
 - `orphan-active-verdict-basis.md` — `verify:orphan-active` decides whether an `xbrief/active/` brief with `plan.status == running` is really still live work. Until #3767 it answered that question from a triage-cache hit returned **unconditionally** — no age
+- `plan-acceptance.md` — Fields the product AC gate actually reads. Not a schema dump. Derivation (`#3323` / `#3360`) owns the stamp. Setup stays silent on this block.
 - `product-signal.md` — Phase 1 consented product-improvement signal under epic #2603 (#2693). Defaults **off**.
 - `project-invariants.md` — Refs: #3425 · Related: #3238 `coverage_map`, #3241 parent lineage, #516 / #3145 `file_scope`
 - `scope-provenance.md` — Refs: #3145 · #3205 · Related: #1310, #2944 human-origin grants, #516 file scope · generalizes under [gate-integrity.md](../content/docs/gate-integrity.md) (#3156)

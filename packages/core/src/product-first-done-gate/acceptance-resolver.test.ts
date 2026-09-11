@@ -3,6 +3,8 @@ import { evaluateLiteralAcceptanceFromPlan } from "../literal-acceptance/evaluat
 import {
   clauseWalkBlocks,
   formatAcceptanceVerdict,
+  formatPassLeadClauseCounts,
+  relabelVerifyAcPassLead,
   resolveAcceptanceGateProfile,
   resolveAcceptanceVerdict,
 } from "./acceptance-resolver.js";
@@ -101,6 +103,17 @@ describe("clauseWalkBlocks (#3497 / #3835)", () => {
       clauseWalkBlocks({
         failed: 0,
         walked: 8,
+        adjudicableUnverified: 0,
+        hasGreenExecutableRun: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps the #3826 no-oracle excusal on pre-product check (#4380)", () => {
+    expect(
+      clauseWalkBlocks({
+        failed: 0,
+        walked: 5,
         adjudicableUnverified: 0,
         hasGreenExecutableRun: false,
       }),
@@ -229,6 +242,110 @@ describe("verify:ac honours the #3484 advisory demotion (#3497)", () => {
     );
     expect(verify.ok).toBe(false);
     expect(verify.resolution).toBe("rejected-noop");
+  });
+});
+
+describe("verify:ac pass lead keeps clause-walk counts (#4380)", () => {
+  it("formats verified and unverifiable counts without failed", () => {
+    expect(
+      formatPassLeadClauseCounts([
+        { outcome: "verified" },
+        { outcome: "unverifiable" },
+        { outcome: "unverifiable" },
+        { outcome: "failed" },
+      ]),
+    ).toBe("1 verified, 2 unverifiable");
+  });
+
+  it("moves counts onto the first line of a green message", () => {
+    const labelled = relabelVerifyAcPassLead({
+      ok: true,
+      sourceRung: "derived",
+      clauseOutcomes: [
+        { outcome: "unverifiable" },
+        { outcome: "unverifiable" },
+        { outcome: "unverifiable" },
+        { outcome: "unverifiable" },
+        { outcome: "unverifiable" },
+      ],
+      message:
+        "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed\n" +
+        "verify:ac passed (#3284) [rung=derived]\n" +
+        "Literal acceptance-command gate: no stated commands (nothing to run)",
+    });
+    const first = labelled.split("\n")[0];
+    expect(first).toBe("verify:ac passed (#3284) (0 verified, 5 unverifiable) [rung=derived]");
+    expect(labelled).toContain(
+      "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed",
+    );
+    expect(labelled.match(/verify:ac passed \(#3284\)/g)).toHaveLength(1);
+  });
+
+  it("keeps served_from=bank on the counted pass lead", () => {
+    const labelled = relabelVerifyAcPassLead({
+      ok: true,
+      sourceRung: "derived",
+      servedFrom: "bank",
+      clauseOutcomes: [{ outcome: "verified" }],
+      message: "verify:ac passed (#3284) served_from=bank [rung=derived]",
+    });
+    expect(labelled).toBe(
+      "verify:ac passed (#3284) served_from=bank (1 verified, 0 unverifiable) [rung=derived]",
+    );
+  });
+
+  it("does not rewrite a fail or a pass with no clause walk", () => {
+    expect(
+      relabelVerifyAcPassLead({
+        ok: false,
+        sourceRung: "derived",
+        clauseOutcomes: [{ outcome: "failed" }],
+        message: "verify:ac FAILED (#3284) [rung=derived]",
+      }),
+    ).toBe("verify:ac FAILED (#3284) [rung=derived]");
+    expect(
+      relabelVerifyAcPassLead({
+        ok: true,
+        sourceRung: "stated",
+        message: "verify:ac passed (#3284) [rung=stated]",
+      }),
+    ).toBe("verify:ac passed (#3284) [rung=stated]");
+  });
+
+  it("still exits 0 on a no-oracle walk and leads with the counts", () => {
+    const verify = evaluateVerifyAcFromPlan(
+      {
+        id: "4380-no-oracle",
+        title: "derived with no bound artifacts",
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: [
+            {
+              id: 1,
+              text: "A game can be created from a secret word.",
+              artifact_path: null,
+              ambiguous: false,
+            },
+            {
+              id: 2,
+              text: "Guess evaluation returns per-letter states.",
+              artifact_path: null,
+              ambiguous: false,
+            },
+          ],
+        },
+        items: [],
+      },
+      { ...baseOptions, runner: greenRunner },
+    );
+    expect(verify.ok).toBe(true);
+    expect(verify.code).toBe(0);
+    const first = (verify.message.split("\n").find((row) => row.trim().length > 0) ?? "").trim();
+    expect(first).toBe("verify:ac passed (#3284) (0 verified, 2 unverifiable) [rung=derived]");
+    expect(verify.message).not.toContain("verify:ac FAILED");
   });
 });
 

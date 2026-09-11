@@ -828,6 +828,13 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ~ A successful #3323 stamp writes `commands`, `none_stated`, `source_rung`, `derived_reason`, `clauses`, and `ambiguity_attestation`. Do not emit `file_scope` or a second attestation writer here — that compose is #4380.
 
+### plan.acceptance exclusive writer (#4380)
+
+! Derivation (`#3323` / `#3360`) owns `plan.acceptance`. Setup stays silent on that block.
+⊗ Emit `plan.acceptance`, `ambiguity_attestation`, or a schema-complete acceptance stamp from this skill.
+? Collect `plan.metadata.swarm.file_scope` only as operator-named declared members for later derived-stamp bind (`#4008`). ⊗ Invent paths. ⊗ Mint an approved-scope digest (`#3145` / `#3110`).
+! Fields the gate requires: [`../../docs/plan-acceptance.md`](../../docs/plan-acceptance.md).
+
 ### Lifecycle Bridge to Downstream Skills (#1025)
 
 ! Scope xBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Add scope to this project" branch land in `xbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task xbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate xBRIEFs to live in `xbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.

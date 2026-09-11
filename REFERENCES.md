@@ -155,6 +155,10 @@ Do **not** pin these into always-on `AGENTS.md` (#448).
 - **[ci-cd/blacksmith/runner-tiers.md](./content/ci-cd/blacksmith/runner-tiers.md)** - 4 / 8 / 32 vCPU decision rules
 - **[ci-cd/blacksmith/migration-prompt.md](./content/ci-cd/blacksmith/migration-prompt.md)** - Drop-in agent migration prompt
 
+### When stamping or verifying `plan.acceptance`
+
+- **[docs/plan-acceptance.md](./content/docs/plan-acceptance.md)** — Fields `verify:ac` actually requires (`none_stated`, `source_rung`, `ambiguity_attestation`, operator-collected `file_scope`). Load when authoring a scope xBRIEF or when the gate names a missing field / prints `0 verified`. Derivation owns the stamp; setup stays silent (#4380 / #4374).
+
 ### When Working with Tools
 
 Load as needed:

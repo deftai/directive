@@ -285,6 +285,60 @@ export function formatAcceptanceVerdict(verdictResult: AcceptanceVerdict): strin
 }
 
 /**
+ * Counts that belong in the verify:ac pass lead (#4380).
+ *
+ * Failed is omitted: a pass never has failed clauses (those always block).
+ * Keep #3826: a 0-verified / N-unverifiable walk may still pass when the walk
+ * has no oracle. The lead still carries the counts so that pass is not silent.
+ */
+export function formatPassLeadClauseCounts(
+  outcomes: readonly { readonly outcome: string }[],
+): string {
+  let verified = 0;
+  let unverifiable = 0;
+  for (const row of outcomes) {
+    if (row.outcome === "verified") verified += 1;
+    else if (row.outcome === "unverifiable") unverifiable += 1;
+  }
+  return `${verified} verified, ${unverifiable} unverifiable`;
+}
+
+const PASS_LINE = /^verify:ac passed \(#3284\)/;
+
+/**
+ * Put clause-walk counts on the first line of a green verify:ac message (#4380).
+ *
+ * Does not change `ok` / `code`. A later lean that wants fail-closed on
+ * zero-verified must reverse #3826 and name the reader.
+ */
+export function relabelVerifyAcPassLead(input: {
+  readonly ok: boolean;
+  readonly message: string;
+  readonly sourceRung: string;
+  readonly clauseOutcomes?: readonly { readonly outcome: string }[];
+  readonly servedFrom?: string;
+}): string {
+  if (!input.ok) {
+    return input.message;
+  }
+  const outcomes = input.clauseOutcomes ?? [];
+  if (outcomes.length === 0) {
+    return input.message;
+  }
+  const bank = input.servedFrom === "bank" ? " served_from=bank" : "";
+  const lead =
+    `verify:ac passed (#3284)${bank} (${formatPassLeadClauseCounts(outcomes)}) ` +
+    `[rung=${input.sourceRung}]`;
+  const rest = input.message
+    .split("\n")
+    .filter((line) => !PASS_LINE.test(line))
+    .join("\n")
+    .replace(/^\n+/, "")
+    .replace(/\n+$/, "");
+  return rest.length > 0 ? `${lead}\n${rest}` : lead;
+}
+
+/**
  * Clause-walk composition (#3323 / #3497 / #3826).
  *
  * A clause the shipped artifact contradicts (`failed`) always blocks. A clause the

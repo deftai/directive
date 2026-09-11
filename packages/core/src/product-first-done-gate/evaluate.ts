@@ -70,6 +70,7 @@ import {
   clauseWalkBlocks,
   formatAcceptanceVerdict,
   readAcceptanceLedger,
+  relabelVerifyAcPassLead,
   resolveAcceptanceVerdict,
 } from "./acceptance-resolver.js";
 import {
@@ -921,7 +922,7 @@ function applyRejectedNoop(result: VerifyAcResult): VerifyAcResult {
 function labelVerdict(result: VerifyAcResult): string {
   const verdict = resolveAcceptanceVerdict(result);
   if (verdict.ok) {
-    return result.message;
+    return relabelVerifyAcPassLead(result);
   }
   const relabelled = result.message.replace(
     /verify:ac passed \(#3284\)/g,
