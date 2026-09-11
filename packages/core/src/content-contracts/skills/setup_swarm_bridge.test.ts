@@ -146,4 +146,12 @@ describe("test_setup_swarm_bridge", () => {
     const block = _setup_phase3_bridge_block(readSkill(_SETUP_PATH));
     expect(block).toContain("skills/deft-directive-swarm/SKILL.md");
   });
+  it("swarm_step0_5_identity_only_first_scope_skip", () => {
+    const block = _swarm_step0_5_block(readSwarmSkillSurface());
+    expect(block).toContain("#4390");
+    expect(block.toLowerCase()).toContain("identity-only");
+    expect(block.toLowerCase()).toContain("write-time is the control");
+    expect(block.toLowerCase()).toContain("does not learn origin from file text");
+    expect(block).toContain("\u2297 Infer filler vs operator-authored");
+  });
 });

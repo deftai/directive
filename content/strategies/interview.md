@@ -31,10 +31,12 @@ or switch to a different spec-generating strategy. This gate is the single
 orchestration point for strategy composition.
 
 ! The chaining gate MUST always be shown — even when the interview strategy is
-invoked directly with no prior strategy.
+invoked directly with no prior strategy — except the identity-only Starting-new
+skip below (#4390).
 ! The chaining gate is a **blocking question**. The AI MUST present the options
 and wait for the user to choose before proceeding.
-⊗ Skip the chaining gate or proceed to the sizing gate without presenting it.
+⊗ Skip the chaining gate or proceed to the sizing gate without presenting it,
+except the identity-only Starting-new / Proceed invocation named below.
 
 ### When It Appears
 
@@ -44,16 +46,30 @@ and wait for the user to choose before proceeding.
 
 ### Brownfield Detector
 
-Before rendering menu options, classify the repo (align with setup Phase 3):
+Before rendering menu options, classify the repo (same rule as setup Phase 3; #4390 recut of the #2925 identity-OR-scopes probe):
 
-- **Brownfield** when **either**:
-  - `PROJECT-DEFINITION` exists under `./xbrief/` or legacy `./vbrief/` (`PROJECT-DEFINITION.xbrief.json` or `PROJECT-DEFINITION.vbrief.json`), **or**
-  - any lifecycle folder (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/` under `xbrief/` or legacy `vbrief/`) has scope records
-- **Greenfield** otherwise
+- **Identity-only** when BOTH:
+  - live PROJECT-DEFINITION `plan.items` is empty (`[]` or absent), AND
+  - no convention-valid `*.xbrief.json` / `*.vbrief.json` in lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/` under `./xbrief/` or legacy `./vbrief/`). Exclude `.gitkeep` and `*.premigrate.*`. PROJECT-DEFINITION itself is identity, not a scope record.
+- **Scoped (brownfield)** when `plan.items` is non-empty OR at least one convention-valid scope file exists
+- **Greenfield** otherwise (no PROJECT-DEFINITION and no convention-valid scope file)
 
 ! The detector MUST run on every Chaining Gate presentation.
+! Identity-only and greenfield share the Proceed / Starting-new default. Scoped/brownfield defaults to Add-scope.
+⊗ Treat PROJECT-DEFINITION existence alone as brownfield.
+⊗ Use session-age ("this setup turn just wrote identity") as the probe.
+⊗ Invent a "finished Phase 3" marker.
 ⊗ Offer only the greenfield-framed **Proceed to specification** default on a brownfield repo.
 ⊗ Treat brownfield as a full create path without an explicit Replace/scrap confirm.
+
+### Starting-new / Proceed skip (#4390)
+
+! Starting-new (setup Phase 3) and Proceed (this gate) MUST ask what to build before writing a scope.
+
+? When setup Phase 3 already selected **Starting a new project specification** on identity-only, this Chaining Gate MAY be skipped for that invocation and the agent may continue to the Sizing Gate. Written reason: identity-only default is already Proceed; the prior identity-OR-scopes detector re-defaulted to Add-scope one step later and skipped the product interview.
+
+⊗ Skip this gate on scoped/brownfield repos.
+⊗ Skip this gate when the operator chose Add-scope, Update, or Replace.
 
 ### Options
 
@@ -63,11 +79,14 @@ Present groups sourced from the `Type` column in
 [strategies/README.md](./README.md#strategy-types). The **default path** depends
 on the brownfield detector:
 
-**Default path (greenfield):**
-1. **Proceed to specification** (default) — continue to the [Sizing Gate](#sizing-gate) for a full create path
+**Default path (greenfield or identity-only):**
+1. **Proceed to specification** (default) — ask what to build; continue to the [Sizing Gate](#sizing-gate) for a full create path
+
+**Identity-only also keeps Add-scope / Update / Replace / Process-only on the menu** (same vocabulary as setup Phase 3). They are not the default.
 
 **Default path (brownfield) — create-vs-update menu:**
-1. **Add scope to this project** (default) — load existing project identity + preparatory artifacts; **skip** the greenfield "what are we building?" interview; gather only the new scope; emit **one** proposed scope record; apply the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) on write
+1. **Add scope to this project** (default) — load existing project identity + preparatory artifacts; **skip** the greenfield "what are we building?" interview only after capturing an explicit product or slice description; gather only the new scope; emit **one** proposed scope record; apply the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) on write
+   - ! On identity-only Add-scope: capture a product or slice description, or do not emit a proposed xBRIEF. ⊗ Synthesize the first scope from Overview / directory name / init seed. Swarm's `xbrief/proposed/` scan is in scope for that skip.
 2. **Update project definition** — run a **delta** interview against existing identity; apply the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full); **merge** narratives (prefer enrich/merge when the user declines replace)
 3. **Replace specification (scrap)** — full recreate equivalent to greenfield Proceed; **only** after explicit affirmative (`yes` / `confirmed`); vague replies (`proceed`, `ok`, `go ahead`) are **not** acceptance
    - ! On confirmed scrap, continue to the [Sizing Gate](#sizing-gate) as a full create path
@@ -147,7 +166,32 @@ Ready to generate the specification. Before we proceed, would you like to:
 10. Back
 ```
 
-**Brownfield:**
+**Identity-only** (PROJECT-DEFINITION exists; empty `plan.items`; no convention-valid scopes) — same options as setup Phase 3; Proceed is the default:
+
+```
+This repo has project identity but no scopes yet. Before we proceed:
+
+1. Proceed to specification (default) — ask what to build; full create path
+2. Add scope to this project — keep identity; requires an explicit product or slice description
+3. Update project definition — delta interview; merge narratives (Spec-Generating Guard)
+4. Replace specification (scrap) — requires explicit yes/confirmed; full recreate
+5. Process-only (keep Phase 2 identity) — leave strategy; no new scope; no spec write
+
+--- Preparatory (loops back) ---
+6. Run a research phase — investigate the domain, find libraries, identify pitfalls
+7. Run a discuss phase — lock key decisions using Feynman technique
+8. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
+9. Run a map phase — analyze existing codebase conventions
+
+--- Switch strategy ---
+10. Switch to yolo — auto-pilot picks all answers
+11. Switch to speckit — formal spec process with story readiness before implementation
+12. Other (specify)
+13. Discuss
+14. Back
+```
+
+**Brownfield** (scoped):
 
 ```
 This repo already has a project definition and/or scopes. Before we proceed:

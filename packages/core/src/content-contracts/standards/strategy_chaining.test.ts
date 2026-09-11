@@ -81,6 +81,18 @@ describe("test_strategy_chaining.py", () => {
       expect(chaining).toContain("confirmed");
       // Greenfield keeps Proceed default; brownfield must not default only to Proceed.
       expect(chaining).toContain("Proceed to specification");
+      // #4390 — identity-only shares Proceed / Starting-new; not PD-existence brownfield
+      expect(chaining.toLowerCase()).toContain("identity-only");
+      expect(chaining).toContain("plan.items");
+      expect(chaining).toContain(".gitkeep");
+      expect(chaining).toContain("*.premigrate.*");
+      expect(chaining.toLowerCase()).toContain("convention-valid");
+      expect(chaining.toLowerCase()).toContain("ask what to build");
+      expect(chaining).toContain("Starting-new / Proceed skip");
+      expect(chaining.toLowerCase()).toContain("overview");
+      expect(chaining.toLowerCase()).toContain("xbrief/proposed/");
+      expect(chaining).toContain("\u2297 Treat PROJECT-DEFINITION existence alone as brownfield");
+      expect(chaining).toContain("\u2297 Skip this gate on scoped/brownfield repos");
       // Deterministic-questions: example menus end with Discuss + Back (#2925 greptile).
       expect(chaining).toContain("Discuss");
       expect(chaining).toMatch(/Other \(specify\)[\s\S]*Discuss[\s\S]*Back/);

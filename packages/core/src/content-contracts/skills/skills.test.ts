@@ -785,6 +785,22 @@ describe("test_skills", () => {
     expect(text.toLowerCase()).toContain("replace specification");
     expect(text.toLowerCase()).toContain("starting a new");
     expect(text.toLowerCase()).toContain("brownfield detector");
+    // #4390 — identity-only is empty plan.items + convention-valid scopes, not PD existence
+    expect(text.toLowerCase()).toContain("identity-only");
+    expect(text).toContain("plan.items");
+    expect(text).toContain(".gitkeep");
+    expect(text).toContain("*.premigrate.*");
+    expect(text.toLowerCase()).toContain("convention-valid");
+    expect(text.toLowerCase()).toContain("ask what to build");
+    expect(text.toLowerCase()).toContain("do not emit");
+    expect(text.toLowerCase()).toContain("narratives.overview");
+    expect(text.toLowerCase()).toContain("xbrief/proposed/");
+    expect(text).toContain("\u2297 Default identity-only to Add-scope");
+    expect(text).toContain("\u2297 Auto-promote proposed scopes from this skill");
+    expect(text.toLowerCase()).toContain("brownfield-install");
+    // default: identity-only / greenfield → Starting new; scoped → Add scope
+    expect(text.toLowerCase()).toContain("default when identity-only or greenfield");
+    expect(text.toLowerCase()).toContain("default when brownfield");
     // deterministic-questions: final two options Discuss then Back
     expect(text).toMatch(
       /Starting a new project specification[\s\S]*\*\*Discuss\*\*[\s\S]*\*\*Back\*\*/i,
