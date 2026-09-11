@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF from GitHub issue #4399 Bound-remedy harvest (ingest gh-parse failed; REST+lean used)",
-    "updated": "2026-09-11T16:15:00Z"
+    "updated": "2026-09-11T18:44:37Z"
   },
   "plan": {
     "title": "bug(session,release): session:ready reports OK while cache_fresh is dirty, then task release Step 5 fails",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(session,release): session:ready reports OK while cache_fresh is dirty, then task release Step 5 fails",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4399",
@@ -16,19 +16,43 @@
     "items": [
       {
         "title": "Cannot bind until the bar is the check-class evaluate (age + live drift, no --skip-drift-probe), or session:ready verify is specified to use that argv so isCacheFreshFailure then fetch-all can fire. Do not weaken verify:cache-fresh inside task check to match the ritual argv.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-ready.ts checkClassCacheFresh + forceGatedSteps cache_fresh; packages/core/src/session/verify-session-ritual.test.ts check-class argv is verify:cache-fresh with no skip-drift; PR 4420",
+          "recorded_at": "2026-09-11T18:44:34.965Z",
+          "recorded_by": "4399-leaf-implementation"
+        }
       },
       {
         "title": "Restate AC1 and the test lock around VERIFIED + the skip-drift argv, not around inspect-green after start.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-ready.test.ts VERIFIED path specifies check-class cache_fresh so skip-drift argv cannot hide stale-by-drift; does not lock AC1 on inspect-green after start",
+          "recorded_at": "2026-09-11T18:44:34.965Z",
+          "recorded_by": "4399-leaf-implementation"
+        }
       },
       {
         "title": "AC2 must key off orientation-dirty / check-class stale-by-drift, distinct from ritual-stale. Substituting the old parallel-prep clause is not done.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-release/SKILL.md Orientation-dirty / check-class stale-by-drift (#4399) plus item 10 and anti-pattern; packages/core/src/content-contracts/skills/skills.test.ts",
+          "recorded_at": "2026-09-11T18:44:34.965Z",
+          "recorded_by": "4399-leaf-implementation"
+        }
       },
       {
         "title": "Do not auto-defer cache_fresh. Do not fold occupancy (#4266). CHANGELOG.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md [Unreleased] Fixed #4399; no cache_fresh auto-defer; occupancy files not in PR 4420 diff (stays on #4266)",
+          "recorded_at": "2026-09-11T18:44:34.965Z",
+          "recorded_by": "4399-leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -105,10 +129,35 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "a9f8e56f474fd7a8297fe3fe622b90762488e320545f42ebe08f2201de09936a"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4420,
+        "prBase": null,
+        "mergeCommit": "ef0f42ff0dd4fe57261afccb841457c460c6e9df",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ef0f42ff0dd4fe57261afccb841457c460c6e9df",
+        "verifiedAt": "2026-09-11T18:44:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkxNDctNTRmMy03MDIwLTkzZDYtNzE1OGQ5Mjc0ODk3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T18:44:37Z"
+      },
+      "completedAt": "2026-09-11T18:44:37Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkxNDctNTRmMy03MDIwLTkzZDYtNzE1OGQ5Mjc0ODk3",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5425987248",
-    "updated": "2026-09-11T16:20:58Z",
+    "updated": "2026-09-11T18:44:37Z",
     "architecture": {
       "systemOfRecord": {
         "note": "This story does not add durable product state. session:ready reuses existing ritual-state.json, occupancy.json, and github-issue cache write paths; the change is check-class cache_fresh argv so skip-drift cannot hide stale-by-drift. Occupancy write path stays on #4266.",
@@ -117,7 +166,10 @@
             "name": "GitHub-issue triage cache",
             "classification": "cache",
             "owner": "packages/core/src/cache/fetch.ts cacheFetchAll",
-            "approvedStorage": ["json_file", "filesystem"],
+            "approvedStorage": [
+              "json_file",
+              "filesystem"
+            ],
             "invalidationRules": "verify:cache-fresh age + live drift; session:ready fetch-all --force on stale-by-drift"
           },
           {
@@ -125,7 +177,10 @@
             "classification": "auth_session_state",
             "owner": "session:start / session:ready occupancy claim",
             "approvedStorage": "external_service",
-            "forbiddenStorage": ["browser_storage", "in_memory"],
+            "forbiddenStorage": [
+              "browser_storage",
+              "in_memory"
+            ],
             "permissionBoundary": "cooperative occupancy lease plus ritual-state bind",
             "migrationRequired": false,
             "auditRequired": false,
