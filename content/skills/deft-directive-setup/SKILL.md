@@ -652,27 +652,37 @@ omit = [
 
 ! Before proceeding with the strategy gate, ask the onboarding question. Use the same add-scope / update / replace vocabulary as the Chaining Gate in [strategies/interview.md](../../strategies/interview.md#chaining-gate).
 
-**Brownfield detector** (same as Chaining Gate): `PROJECT-DEFINITION` exists (`./xbrief/` or legacy `./vbrief/`) **OR** any lifecycle folder (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) has scope records.
+**Brownfield detector** (same as Chaining Gate; #4390 recut of the #2925 identity-OR-scopes probe):
+
+- **Identity-only** when BOTH: live PROJECT-DEFINITION `plan.items` is empty (`[]` or absent), AND no convention-valid `*.xbrief.json` / `*.vbrief.json` in lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/` under `./xbrief/` or legacy `./vbrief/`). Exclude `.gitkeep` and `*.premigrate.*`. PROJECT-DEFINITION itself is identity, not a scope record.
+- **Scoped (brownfield)** when `plan.items` is non-empty OR at least one convention-valid scope file exists.
+- **Greenfield** when there is no PROJECT-DEFINITION and no convention-valid scope file.
+
+! One rule on both surfaces — this detector and the Chaining Gate share identity-only. ⊗ Treat PROJECT-DEFINITION existence alone as brownfield. ⊗ Use session-age ("this setup turn just wrote identity") as the probe. ⊗ Invent a "finished Phase 3" marker.
 
 > "How should we treat this project's specification?"
-> 1. **Add scope to this project** [default when brownfield] — load existing identity; skip greenfield "what are we building?"; emit one proposed scope; Preparatory Guard on write
+> 1. **Add scope to this project** [default when brownfield] — load existing identity; skip greenfield "what are we building?" only after an explicit product or slice description; emit one proposed scope; Preparatory Guard on write
 > 2. **Update project definition** — delta interview → Spec-Generating Guard → merge narratives into existing PROJECT-DEFINITION
 > 3. **Replace specification (scrap)** — only after explicit affirmative (`yes` / `confirmed`); then full new-spec path
-> 4. **Starting a new project specification** [default when greenfield] — proceed to the Strategy Gate below
+> 4. **Starting a new project specification** [default when identity-only or greenfield] — proceed to the Strategy Gate below and ask what to build
 > 5. **Process-only (keep Phase 2 identity)** — same exit as Phase 2 option 2; no new scope; no spec write
 > 6. **Discuss** — explore these options before choosing
 > 7. **Back** — return to the previous setup question
 
-- ! Default based on repo state via the brownfield detector above (brownfield → Add scope; greenfield → Starting new)
+- ! Default based on repo state via the brownfield detector above (scoped/brownfield → Add scope; identity-only or greenfield → Starting new)
 - ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
-- ! If **Add scope**: skip the full interview, create a new scope xBRIEF in `./xbrief/proposed/` with the user's description, apply Preparatory Guard on write, then surface the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
+- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
+- ! If **Add scope** on identity-only: ⊗ synthesize the first scope from `narratives.Overview`, directory name, or init-seed identity. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm Phase 0 Step 0.5 `xbrief/proposed/` scan is in scope for that skip.
 - ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
-- ! If **Starting new**: proceed to the Strategy Gate below
+- ! If **Starting new**: proceed to the Strategy Gate below. Ask what to build before writing a scope. On identity-only, this invocation MAY skip the interview Chaining Gate (see [strategies/interview.md](../../strategies/interview.md#chaining-gate) Starting-new skip) because the identity-only default is already Proceed.
 - ! If **Process-only (keep Phase 2 identity)**: same exit as Phase 2 option 2. Do not write a scope xBRIEF. Do not merge or scrap PROJECT-DEFINITION narratives. Skip Lifecycle Bridge, End-of-Phase-3 Export Prompt, Acceptance Gate, and build handoff. Point at session ritual / `deft check` / later Add scope. GitHub issues stay cache/queue inputs. Docs stay described content.
 - ⊗ Treat brownfield repos as "Starting new" by default
+- ⊗ Default identity-only to Add-scope because PROJECT-DEFINITION exists
 - ⊗ Accept vague confirmation (`proceed`, `ok`) for Replace/scrap
 - ⊗ Exit immediately after Add-scope write without the lifecycle bridge / export / handoff guidance
+- ⊗ Auto-promote proposed scopes from this skill
+- ⊗ Change `directive init` brownfield-install classification from this Phase 3 detector
 
 ### ⚠️ MANDATORY: Strategy Gate — Do This First
 
@@ -684,7 +694,7 @@ omit = [
 
 **Dispatch:**
 
-- **interview** (or default) → Continue to the Sizing Gate below ✅
+- **interview** (or default) → On identity-only Starting-new, continue to the Sizing Gate below and ask what to build (Chaining Gate skip allowed for that invocation per [strategies/interview.md](../../strategies/interview.md#chaining-gate)). On scoped/brownfield, present the Chaining Gate first. ✅
 - **anything else** (discuss, yolo, speckit, research, brownfield, map, etc.) →
   1. ! Read `deft/strategies/{strategy-name}.md` **right now, in this same turn**
   2. ! Begin the strategy's workflow immediately — ask its first question
@@ -890,3 +900,5 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Skip the Returning-user re-entry / Revisit experimental rules path when USER.md exists and the operator entered setup to change experimental meta (#46)
 - ⊗ Clobber Personal or Defaults while toggling Experimental Rules (#46)
 - ⊗ Invent a full `deft config` verb family for experimental meta when setup re-entry suffices (#46)
+- ⊗ Default identity-only Phase 3 to Add-scope because PROJECT-DEFINITION exists (#4390)
+- ⊗ Synthesize the first proposed scope from Overview, directory name, or init seed (#4390)
