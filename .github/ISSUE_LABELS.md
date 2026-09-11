@@ -111,7 +111,7 @@ Config surface: `plan.policy.triageLabelMirror` (see #1423 Wave 1 / #3118).
 
 ### Design-critique stamp (ADR-005 / #3434 / #3627 / #3642 / #3640)
 
-Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After synthesis-accepted (operator **accept synthesis** or #3640 auto-stamp), apply the bind chip `design-critique:ingest-ready` as the exclusive catalog chip. `resolveAutoStampCatalogChip` returns ingest-ready once the completed-arc record exists. `Recut:` is a lean token, not a chip. `CHIP_ALIASES` is the same three names. Old `design-critique:triage-ready` and `design-critique:recut-needed` fail closed.
+Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After synthesis-accepted (operator **accept synthesis** or #3640 auto-stamp), apply the bind chip `design-critique:ingest-ready` as the exclusive catalog chip. `resolveAutoStampCatalogChip` returns ingest-ready once the completed-arc record exists. `Spec-path:` is a lean token, not a chip (`Recut:` is a permanent alias). `CHIP_ALIASES` is the same three names. Old `design-critique:triage-ready` and `design-critique:recut-needed` fail closed.
 
 Closed set (one current chip; remaining-set replace, last chip wins):
 
@@ -247,9 +247,9 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 `design-critique:mechanism-shaped` -- author stamp that the lean is mechanism-shaped; pairs with write-back field `mechanism-shaped: true`. Not a `triage:*` classify action.
 
-`design-critique:triage-ready` -- attach after synthesis-accepted (operator **accept synthesis** or #3640 auto-stamp) when the successor lean has no `Recut:` token; pairs with `design-critique: synthesis accepted, because …`. Not a `triage:*` classify action.
+`design-critique:triage-ready` -- **retired. Do not attach.** Former bind chip. `CHIP_ALIASES` fails closed. Catalog is `mechanism-shaped` / `in-progress` / `ingest-ready`.
 
-`design-critique:recut-needed` -- attach after synthesis-accepted when the successor lean carries a Lean-family `Recut:` line-start; next-build is not this body. Not ingest clearance. Not a halt chip. Not a `triage:*` classify action.
+`design-critique:recut-needed` -- **retired. Do not attach.** Former third catalog chip. `CHIP_ALIASES` fails closed. Path selector is `Spec-path:` (legacy `Recut:` alias), not a chip.
 
 ### Ranking / audience (selected)
 
@@ -354,6 +354,7 @@ Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) 
 
 | Date | Change |
 |------|--------|
+| 2026-09-11 | Path selector renamed to `Spec-path:`; `Recut:` stays a permanent alias. `triage-ready` / `recut-needed` rows marked retired, do-not-attach (#4361) |
 | 2026-09-06 | Third catalog chip `design-critique:recut-needed`; auto-stamp from Lean-family `Recut:` token; `CHIP_ALIASES` three names (#4205) |
 | 2026-09-06 | Add `status:claimed` work-claim busy flag plus `scm:issue:work-claim` (#4200) |
 | 2026-08-24 | Broaden `adoption-blocker` to the full intended-flow range; state positive-only semantics; distinguish from `Upgrade Blocker`, `status:blocked`, and `urgent` (#3650) |

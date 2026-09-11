@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Design-critique path selector is Spec-path:; Recut: stays a permanent alias (#4361).** Ingest still harvests Bound-remedy when that token is present and refuses a missing heading or empty list. No token stays body-normative. Later arc, rewrite the body, process-only skip class, and set-level-body replace the other English jobs. Close is not cancelled and is not an order in the summary. Yolo and auto-stamp stay. Closes #4361.
+
 - **Land leftover completed-tracked artifact for #4362 (#3264 / #3476).** The #4362 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4368. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4365 (#3264 / #3476).** The #4365 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4367. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4345 (#3264 / #3476).** The #4345 xBRIEF stayed in `xbrief/active/` on origin/master after squash of PR 4355. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.

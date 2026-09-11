@@ -2669,7 +2669,7 @@ function routeHookDecision(
         scopePath: null,
       };
     }
-    // Recut skip class (#4296): host-visible `plan` or `process_only` stdin marker.
+    // Process-only skip class (#4296): host-visible `plan` or `process_only` stdin marker.
     // Not dest-path. Not prompt. Not an implement-class gate bypass: implement-class
     // never sets process_only. Dest occupancy, ritual, and active-xBRIEF skip.
     if (

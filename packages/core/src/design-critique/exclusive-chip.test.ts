@@ -44,7 +44,7 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
     expect(remaining).toEqual(["bug", "area:cli", "design-critique:ingest-ready"]);
   });
 
-  it("recut to mechanism-shaped drops ingest-ready", () => {
+  it("later-arc mechanism-shaped drops ingest-ready", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
       ["enhancement", "design-critique:ingest-ready"],
       "design-critique:mechanism-shaped",
@@ -90,7 +90,7 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
     expect(remaining).toEqual(["bug", "area:cli", "design-critique:in-progress"]);
   });
 
-  it("recut to mechanism-shaped drops in-progress", () => {
+  it("later-arc mechanism-shaped drops in-progress", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
       ["enhancement", "design-critique:in-progress"],
       "design-critique:mechanism-shaped",
