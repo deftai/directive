@@ -19,6 +19,7 @@ import {
   readOccupancy,
 } from "../session/occupancy.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
+import { GROK_CRITIC_SPAWN_NOT_READY_RECOVERY } from "../session/spawn-occupancy.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
   ASSIST_SESSION_POSTURE_ENV,
@@ -2506,6 +2507,7 @@ describe("process-only critic spawn dest skip (#4241)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toMatch(/requires tool_input.cwd/);
+    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
   });
 
   it("denies process_only spawn without a linked dest cwd (#4296 dest-first)", () => {
@@ -2527,6 +2529,7 @@ describe("process-only critic spawn dest skip (#4241)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toMatch(/requires tool_input.cwd/);
+    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
   });
 
   it("still requires a worktree for general-purpose implement spawn on Grok", () => {

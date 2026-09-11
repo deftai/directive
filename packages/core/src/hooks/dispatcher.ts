@@ -297,15 +297,6 @@ function overlayGrokCriticSpawnNotReadyRecovery(
 ): HookDecision {
   if (decision.verdict !== "deny" || decision.code !== "spawn-not-ready") return decision;
   if (
-    isProcessOnlyCriticSpawn(input.payload, {
-      host: input.host,
-      toolName,
-      environ: input.environ,
-    })
-  ) {
-    return decision;
-  }
-  if (
     !appliesGrokSpawnDestContract({
       host: input.host,
       toolName,
@@ -2713,7 +2704,11 @@ function routeHookDecision(
     ) {
       const destNote = prepareProcessOnlyCriticDest(input.payload, projectRoot, seams);
       if (destNote !== null && destNote.ok === false) {
-        return deny(input, "spawn-not-ready", toolName, destNote.message);
+        return overlayGrokCriticSpawnNotReadyRecovery(
+          input,
+          toolName,
+          deny(input, "spawn-not-ready", toolName, destNote.message),
+        );
       }
       if (
         destNote === null &&
@@ -2723,13 +2718,17 @@ function routeHookDecision(
           environ,
         })
       ) {
-        return deny(
+        return overlayGrokCriticSpawnNotReadyRecovery(
           input,
-          "spawn-not-ready",
           toolName,
-          `Directive denied ${toolName}: process_only critic spawn requires tool_input.cwd ` +
-            "on an existing linked dest worktree (github-only dest-first). Dest-path is not " +
-            "the skip class; pass cwd to the dest created at origin/<default> after fetch.",
+          deny(
+            input,
+            "spawn-not-ready",
+            toolName,
+            `Directive denied ${toolName}: process_only critic spawn requires tool_input.cwd ` +
+              "on an existing linked dest worktree (github-only dest-first). Dest-path is not " +
+              "the skip class; pass cwd to the dest created at origin/<default> after fetch.",
+          ),
         );
       }
       const pin = destNote?.ok ? ` ${destNote.record}` : "";
