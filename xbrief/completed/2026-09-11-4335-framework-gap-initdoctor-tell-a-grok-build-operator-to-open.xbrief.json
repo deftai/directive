@@ -19,8 +19,8 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/verify-env/agent-hook-readiness.test.ts#no-current-host-filter",
-          "recorded_at": "2026-09-11T01:51:50Z",
+          "pointer": "packages/core/src/verify-env/agent-hook-readiness.test.ts#L109 (it: reports Codex trust and interception separately without a /hooks next-step (#4335); grok and codex both listed)",
+          "recorded_at": "2026-09-11T02:06:00Z",
           "recorded_by": "leaf-implementation/4335"
         }
       },
@@ -29,8 +29,8 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/verify-env/agent-hook-readiness.test.ts#four-host-dump",
-          "recorded_at": "2026-09-11T01:51:50Z",
+          "pointer": "packages/core/src/verify-env/agent-hook-readiness.test.ts#L13-L26 (registrations(): claude, grok, cursor, codex) and #L127-L136 (JSON hosts[])",
+          "recorded_at": "2026-09-11T02:06:00Z",
           "recorded_by": "leaf-implementation/4335"
         }
       },
@@ -39,8 +39,8 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/doctor/agent-hooks.test.ts#no-open-hooks-imperative",
-          "recorded_at": "2026-09-11T01:51:50Z",
+          "pointer": "packages/core/src/doctor/agent-hooks.test.ts#L24 (it: records structural health and separates manual Codex trust review) and #L431 (it: keeps Codex trust review orthogonal after a successful live probe)",
+          "recorded_at": "2026-09-11T02:06:00Z",
           "recorded_by": "leaf-implementation/4335"
         }
       },
