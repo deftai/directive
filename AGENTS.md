@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=90e84e5a18d1 refreshed=2026-09-10T18:17:48Z session=7e30ad6655b7 -->
+<!-- deft:managed-section v3 sha=a400d0bbd6b0 refreshed=2026-09-11T02:18:40Z session=c1b7e1a95dee -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -233,6 +233,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
+! Policy-anchored review-response (#3452): HEAD policy before out-of-model. Depth: review-cycle SKILL.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
 ! **Dual stop (#2442):** multi-iteration work MUST have success + failure/budget stop (max iters / no-progress / budget); single-turn exempt; halt with operator-visible report; ⊗ thrash. Defaults: build, swarm, review-cycle skills. See main.md Dual Stop Rule. Ledger #3143 (`packages/core/src/delivery-attempt/`).
 ## Rule Authority [AXIOM]
