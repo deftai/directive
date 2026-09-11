@@ -230,9 +230,39 @@ export function runLiteralAcceptanceCommands(
     };
   }
 
+  // Capture may retain multiple executable peers (different stdout) so
+  // promotion matching still works. Run each command+cwd+exit once (#4238).
+  const toRunByKey = new Map<string, LiteralAcceptanceCommand>();
+  for (const cmd of executable) {
+    const cwd =
+      cmd.cwd !== null && cmd.cwd !== undefined && String(cmd.cwd).trim().length > 0
+        ? String(cmd.cwd).trim()
+        : "";
+    const exit = typeof cmd.expectedExitCode === "number" ? cmd.expectedExitCode : 0;
+    const key = `${cmd.command}\0${cwd}\0${exit}`;
+    const prev = toRunByKey.get(key);
+    const stdout =
+      cmd.expectedStdout !== null &&
+      cmd.expectedStdout !== undefined &&
+      String(cmd.expectedStdout).length > 0
+        ? String(cmd.expectedStdout)
+        : "";
+    const prevStdout =
+      prev !== undefined &&
+      prev.expectedStdout !== null &&
+      prev.expectedStdout !== undefined &&
+      String(prev.expectedStdout).length > 0
+        ? String(prev.expectedStdout)
+        : "";
+    if (prev === undefined || (prevStdout.length === 0 && stdout.length > 0)) {
+      toRunByKey.set(key, cmd);
+    }
+  }
+  const toRun = [...toRunByKey.values()];
+
   const runs: LiteralAcceptanceRunResult[] = [];
   const rejected: RejectedLiteralCommand[] = [];
-  for (const cmd of executable) {
+  for (const cmd of toRun) {
     if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) {
       return {
         ok: false,
