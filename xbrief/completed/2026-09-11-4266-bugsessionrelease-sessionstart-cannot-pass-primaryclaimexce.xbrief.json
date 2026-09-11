@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF from GitHub issue #4266 Bound-remedy harvest (ingest gh-parse failed; REST+lean used)",
-    "updated": "2026-09-11T18:05:00Z"
+    "updated": "2026-09-11T18:18:48Z"
   },
   "plan": {
     "title": "bug(session,release): session:start cannot pass primaryClaimException=release-cut",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(session,release): session:start cannot pass primaryClaimException=release-cut",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4266",
@@ -146,9 +146,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "50f26d15d9839cbcf403a5d474151b288ebea1ea35b8b3e30da5a526e4b8111e"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4415,
+        "prBase": null,
+        "mergeCommit": "e6eb90cb83bf84314f2ad6d700d9c0efd88dafb4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e6eb90cb83bf84314f2ad6d700d9c0efd88dafb4",
+        "verifiedAt": "2026-09-11T18:18:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkxNDctNTUyMi03YmYyLTkzMGEtNTNkNWM1OTMzNzky"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T18:18:48Z"
+      },
+      "completedAt": "2026-09-11T18:18:48Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkxNDctNTUyMi03YmYyLTkzMGEtNTNkNWM1OTMzNzky",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5390938393",
-    "updated": "2026-09-11T18:05:00Z"
+    "updated": "2026-09-11T18:18:48Z"
   }
 }
