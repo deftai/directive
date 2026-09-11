@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Init and doctor no longer tell every host to open Codex `/hooks` (#4335).** Codex trust remains `manual-review-required`.
-- **Public `@deftai` npm view no longer treats `--registry` as beating `@deftai:registry` (#4345).** Directive-owned `npm view` isolates with a temp cwd whose project `.npmrc` sets the scoped key (user npmrc still supplies proxy/cafile). Documented recovery names leaving the project directory, optional `--userconfig` only after that, or durable `@deftai:registry`. `npm-registry-mirror` stays advisory. Closes #4345.
+- **Public `@deftai` npm view no longer treats `--registry` as beating `@deftai:registry` (#4345).** Recovery: leave the project directory or set `@deftai:registry`. Closes #4345.
 - **Dependabot high: brace-expansion DoS follow-ups (alerts #10/#13).** Pin `brace-expansion@5` to `5.0.9` (and `@2` to `2.1.4`) so the lockfile leaves CVE-2026-14257 / CVE-2026-69152. Closes #4348.
 
 ### Removed
