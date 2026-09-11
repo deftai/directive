@@ -656,7 +656,9 @@ describe("Cursor Task dest-missing deny honesty (#4279 / #4362)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toContain(CURSOR_TASK_SPAWN_CLASS_RECOVERY);
     expect(decision.message).not.toContain(rerootMissingDestImperative());
-    expect(decision.message).not.toContain("Pass a destination field inspectSpawnDestination reads");
+    expect(decision.message).not.toContain(
+      "Pass a destination field inspectSpawnDestination reads",
+    );
     expect(decision.message).not.toMatch(/before the spawn primitive/);
     expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(1);
     expect(decision.message).toMatch(/payload-root/);

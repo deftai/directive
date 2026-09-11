@@ -285,8 +285,13 @@ function rerootMissingDestMessage(): string {
   const destKeys = rerootDestKeyList();
   return (
     "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
-    "(" + destKeys + "). Spawned mutating work takes its own worktree; do not inherit the " +
-    "parent checkout. " + rerootMissingDestImperative() + " " + SPAWN_CLASS_RECOVERY
+    "(" +
+    destKeys +
+    "). Spawned mutating work takes its own worktree; do not inherit the " +
+    "parent checkout. " +
+    rerootMissingDestImperative() +
+    " " +
+    SPAWN_CLASS_RECOVERY
   );
 }
 
