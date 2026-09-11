@@ -854,6 +854,23 @@ describe("test_skills", () => {
     const text = readSkill(_SETUP_PATH);
     expect(text).toContain("xbrief/proposed/");
   });
+  it("deft_directive_setup_phase3_acceptance_write_shape_4374", () => {
+    const text = readSkill(_SETUP_PATH);
+    const phase3 = text.slice(text.indexOf("## Phase 3"));
+    const blockStart = phase3.indexOf("### Scope acceptance write shape (#4374)");
+    const blockEnd = phase3.indexOf("### Lifecycle Bridge to Downstream Skills");
+    expect(blockStart).toBeGreaterThanOrEqual(0);
+    expect(blockEnd).toBeGreaterThan(blockStart);
+    const block = phase3.slice(blockStart, blockEnd);
+    expect(block).toContain("plan.narratives.AcceptanceCriteria");
+    expect(block).toContain("`- `");
+    expect(block).toContain("none_stated");
+    expect(block).toContain("ambiguity_attestation");
+    expect(block).toContain("#4380");
+    expect(block).toContain("file_scope");
+    expect(block).toMatch(/⊗ Stamp write-time/);
+    expect(block).not.toContain("### Onboarding Question");
+  });
   it("deft_directive_setup_no_authoritative_prd", () => {
     const text = readSkill(_SETUP_PATH);
     expect(text).toContain("authoritative PRD.md");

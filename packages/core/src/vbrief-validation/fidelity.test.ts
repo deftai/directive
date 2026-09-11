@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  collectDeclaredAcceptanceNarrativeSurface,
+  deriveAcceptanceClauses,
+} from "../verify-ac/clauses.js";
+import {
   alignSpecNarratives,
   buildEdgesFromTasks,
   buildRequirementsNarrative,
@@ -52,6 +56,19 @@ describe("fidelity", () => {
     const edges = buildEdgesFromTasks(tasks);
     expect(edges[0]).toEqual({ from: "t1.0.1", to: "t1.1.1", type: "blocks" });
     expect(taskScopeNarratives(tasks[0] ?? {})).toMatchObject({ Description: "Body text." });
+  });
+
+  it("emits heading-less AcceptanceCriteria bullets the declared-key parser can derive (#4374)", () => {
+    const narratives = taskScopeNarratives({
+      acceptance: ["Login rejects empty passwords", "CHANGELOG cites the write shape"],
+    });
+    expect(narratives.AcceptanceCriteria).toBe(
+      "- Login rejects empty passwords\n- CHANGELOG cites the write shape",
+    );
+    const declared = collectDeclaredAcceptanceNarrativeSurface({ narratives });
+    expect(
+      deriveAcceptanceClauses("blob", { declaredNarrative: declared }).map((c) => c.text),
+    ).toEqual(["Login rejects empty passwords", "CHANGELOG cites the write shape"]);
   });
 
   it("preserves unknown narrative keys and dedupes duplicate edges", () => {

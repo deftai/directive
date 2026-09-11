@@ -13,10 +13,13 @@ import {
 } from "../run-summary/index.js";
 import {
   type AcceptanceClause,
+  collectDeclaredAcceptanceNarrativeSurface,
   collectPlanItemAcceptanceSurface,
   deriveAcceptanceClauses,
+  formatZeroClauseAcceptanceShapedNotice,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
+  stripInlineMarkdownBold,
 } from "../verify-ac/clauses.js";
 
 /** One-line remediation when a stamp has no statement-traceable clause (#3398). */
@@ -180,13 +183,18 @@ function extractClauseTokens(text: string): string[] {
   return found;
 }
 
+/** Same bold strip as declared-key parse so provenance matches clause text (#4374). */
+function stripInlineMarkdownEmphasis(text: string): string {
+  return stripInlineMarkdownBold(text);
+}
+
 /** Statement-traceable when the clause text or its identifiers appear in the statement. */
 export function traceClauseProvenance(
   clause: AcceptanceClause,
   statement: string,
 ): ClauseProvenance {
-  const normClause = clause.text.replace(/\s+/g, " ").trim();
-  const normStatement = statement.replace(/\s+/g, " ").trim();
+  const normClause = stripInlineMarkdownEmphasis(clause.text).replace(/\s+/g, " ").trim();
+  const normStatement = stripInlineMarkdownEmphasis(statement).replace(/\s+/g, " ").trim();
   if (normClause.length > 0 && normStatement.includes(normClause)) {
     return "statement";
   }
@@ -194,7 +202,9 @@ export function traceClauseProvenance(
   if (tokens.length === 0) {
     return "implementation";
   }
-  return tokens.every((token) => statement.includes(token)) ? "statement" : "implementation";
+  return tokens.every((token) => statement.includes(token) || normStatement.includes(token))
+    ? "statement"
+    : "implementation";
 }
 
 export function countClauseProvenance(
@@ -386,11 +396,16 @@ export function applyClauseDerivationToPlan(
       notice: "",
     };
   }
+  const declaredNarrative = collectDeclaredAcceptanceNarrativeSurface(plan);
   const clauses = deriveAcceptanceClauses(collectTaskStatementFromPlan(plan), {
     itemSurface: collectPlanItemAcceptanceSurface(plan),
+    declaredNarrative,
   });
   if (clauses.length === 0) {
-    return { applied: false, clauses: [], notice: "" };
+    const notice = declaredNarrative.present
+      ? formatZeroClauseAcceptanceShapedNotice(declaredNarrative.keys)
+      : "";
+    return { applied: false, clauses: [], notice };
   }
   const existing = asRecord(plan.acceptance);
   const commands = existing !== null && Array.isArray(existing.commands) ? existing.commands : [];
