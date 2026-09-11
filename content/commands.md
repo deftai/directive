@@ -282,7 +282,8 @@ Current status: the validation, extractor, provider, registry, generated MAP, an
 
 ## Quality And Verification Commands
 
-- `task check` -- primary directive repo pre-commit gate (merge chokepoint — #1704).
+- `deft check` -- named terminal verb (getting-started / #2893). Include-only consumers then use `task deft:check`. Framework source uses `task check` / `task check:merge`. Do not add a fourth probe (#4379).
+- `task check` -- primary directive repo pre-commit gate (merge chokepoint — #1704). Not deposited at consumer root after `directive init` (#3218).
 - `task check:merge` -- explicit merge-chokepoint alias for `check:framework-source` in the framework source repo (#1704).
 - `task check:framework-source` -- framework-source lane.
 - `task check:consumer` -- consumer-shape lane.
@@ -292,7 +293,7 @@ Current status: the validation, extractor, provider, registry, generated MAP, an
 > **Invariant:** every change MUST pass the full gate at least once before merge.
 
 - ! **Iteration lane (agents + humans):** during implementation, use affected/static gates — targeted tests on changed paths, relevant static `verify:*` gates, `task coverage:hotspots` / `task verify:forward-coverage` — not full `task check` on every commit.
-- ! **Merge chokepoint:** full `task check` (or `task check:merge` in framework source) before push/PR and in CI via the monolith merge-gate job (`.github/workflows/ci.yml` runs `check:merge`, not cached `deft check`, until `#1713` can invoke internal Taskfile shims).
+- ! **Merge chokepoint:** full `deft check` first, then the tree-correct task form (`task deft:check` on include-only consumers; `task check` / `task check:merge` in framework source) before push/PR. Do not add a fourth probe (#2893 / #4379). CI in this repo still runs the monolith merge-gate job (`.github/workflows/ci.yml` runs `check:merge`, not cached `deft check`, until `#1713` can invoke internal Taskfile shims).
 - ! **Escape-rate safety:** consume `#1703` Tier-1 telemetry (`helped/crud-metrics.jsonl`) and `task eval:health` (Tier 0) before tightening fast-lane defaults — do not invent a separate metric surface.
 - ~ **In-engine incrementality (#1713):** content-hash cache + runner-delegated affected selection are delivered separately.
 - ~ **Merge queue:** deferred — GitHub merge queue adoption waits until the CI monolith + escape-rate signal are stable; batch merge throughput is the next lever after `#1713` cache lands (#1704 ROI order).

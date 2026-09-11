@@ -101,8 +101,10 @@ export const MINIMAL_TASKFILE = `version: '3'
 
 # Taskfile for this project.
 # Installed by deft-install --yes (Epic-4). Add your own tasks below or in
-# additional included files. The deft include makes all framework tasks
-# (task check, task vbrief:*, task doctor, etc.) available from the project root.
+# additional included files. The deft include namespaces framework tasks
+# under deft: (#3218): task deft:check, task deft:vbrief:*, task deft:doctor.
+# Prefer deft check first; then task deft:check on this include-only consumer.
+# Framework source uses root task check. Do not add a root check alias.
 
 includes:
   deft:
