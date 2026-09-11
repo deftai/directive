@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4362",
-    "updated": "2026-09-11T02:58:17Z"
+    "updated": "2026-09-11T03:59:53Z"
   },
   "plan": {
     "title": "bug(hooks,cursor): dest-missing deny after #4295 still omits dest-placing recovery",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks,cursor): dest-missing deny after #4295 still omits dest-placing recovery",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4362",
@@ -16,31 +16,80 @@
     "items": [
       {
         "title": "Restate Expected 6 / Acceptance 1 on #4295 doctrine: do not advertise Cursor Task dest keys because host-cursor.md forbids that route. Leave HOSTS_THAT_REROOT and the #4279 PreToolUse measurement out of scope.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#4362",
+          "recorded_at": "2026-09-11T03:59:45Z",
+          "recorded_by": "leaf-implementation/4362"
+        }
       },
       {
         "title": "Cursor Task dest-missing copy: remove the rerootMissingDestMessage imperative (\"Pass a destination field inspectSpawnDestination reads ... before the spawn primitive\") for Cursor Task only (overlay anchor or Cursor-specific stem parallel to grokMissingDestMessage). Do not edit the shared stem in a way that drops that imperative for Claude/Codex.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#4362",
+          "recorded_at": "2026-09-11T03:59:45Z",
+          "recorded_by": "leaf-implementation/4362"
+        }
       },
       {
         "title": "Name dest-placing recoveries as payload-root: Composer already on the reserved linked worktree (consult mints reservation; do not pre-mint then Task), or dest-rooted SDK Agent.create local cwd. Static copy. No payloadRoot or tool_input path interpolation.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#4362",
+          "recorded_at": "2026-09-11T03:59:45Z",
+          "recorded_by": "leaf-implementation/4362"
+        }
       },
       {
         "title": "Continue-in-parent remains the first agent-executable recovery, exclusive of a live nursery grant on the same tree. State the nursery write fence. SDK line carries cursor-sdk-auth / CURSOR_API_KEY. explore only when actually read-only. plan stays off Cursor Task.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#4362",
+          "recorded_at": "2026-09-11T03:59:45Z",
+          "recorded_by": "leaf-implementation/4362"
+        }
       },
       {
         "title": "Tests: dest-placing copy present; imperative sentence absent on Cursor Task; Claude/Codex still have the imperative; linked payload root still nursery-allows. Recut #4279 toContain dest-key-name assertions so they cannot stay green after only deleting one of two occurrences.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#4362",
+          "recorded_at": "2026-09-11T03:59:45Z",
+          "recorded_by": "leaf-implementation/4362"
+        }
       },
       {
         "title": "CHANGELOG + BestiMax consumer note. Drop or qualify the v0.115.0 regression claim unless the consumer version is recorded.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4368",
+          "recorded_at": "2026-09-11T03:59:45Z",
+          "recorded_by": "leaf-implementation/4362"
+        }
       },
       {
         "title": "Stop 3 open-critique ceiling vs refutation-target is not this number.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/disposition": {
+          "recorded_at": "2026-09-11T03:59:45Z",
+          "recorded_by": "leaf-implementation/4362",
+          "disposition": "not_applicable",
+          "reason": "Recut lean 5628716495: Stop 3 open-critique ceiling vs refutation-target is not this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-11T03:59:45Z",
+            "mintedVia": "recut-lean-5628716495",
+            "eventRef": "https://github.com/deftai/directive/issues/4362#issuecomment-5628716495"
+          }
+        }
       }
     ],
     "tags": [
@@ -142,9 +191,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "1af2e1b495ce6fa20673351c1e3375648b62b85a0e318da0541e82807ad0998d"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4368,
+        "prBase": null,
+        "mergeCommit": "00f35e70a4a9bbe7b1738b2da5de803e25d83219",
+        "deliveryBranch": "master",
+        "deliveryCommit": "00f35e70a4a9bbe7b1738b2da5de803e25d83219",
+        "verifiedAt": "2026-09-11T03:59:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDhlNjgtNzk5Yi03MjAyLTkyNzctMWNhYjZlNzIxMGIw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T03:59:53Z"
+      },
+      "completedAt": "2026-09-11T03:59:53Z",
+      "completedSessionId": "host:grok:v1:MDFhMDhlNjgtNzk5Yi03MjAyLTkyNzctMWNhYjZlNzIxMGIw",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5419491372",
-    "updated": "2026-09-11T02:58:07Z"
+    "updated": "2026-09-11T03:59:53Z"
   }
 }
