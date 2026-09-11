@@ -64,7 +64,13 @@ describe("npm registry mirror doctor check (#2808)", () => {
     expect(result.output).toContain("E404");
     expect(result.output).toContain("ETARGET");
     expect(result.output).toContain("silently serve stale");
+    expect(result.output).toContain("--registry` does not beat `@deftai:registry");
+    expect(result.output).toContain("$HOME");
+    expect(result.output).toContain("--userconfig");
     expect(result.output).toContain("@deftai:registry=https://registry.npmjs.org/");
+    expect(result.output).not.toMatch(
+      /retry with `npm i -g @deftai\/directive@latest --registry=/,
+    );
     expect(result.output).toContain("content/UPGRADING.md#corporate-or-mirrored-npm-registry");
   });
 

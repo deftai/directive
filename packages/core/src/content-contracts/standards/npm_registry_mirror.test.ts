@@ -11,7 +11,9 @@ describe("corporate npm registry recovery guidance (#2808)", () => {
       "npm config get registry",
       "E404",
       "ETARGET",
-      "--registry=https://registry.npmjs.org/",
+      "--registry` does not beat `@deftai:registry",
+      "--userconfig",
+      "$HOME",
       "@deftai:registry=https://registry.npmjs.org/",
       "@deftai/directive",
       "@deftai/directive-core",
@@ -38,10 +40,14 @@ describe("corporate npm registry recovery guidance (#2808)", () => {
 
     expect(contract).toContain("npm config get @deftai:registry");
     expect(contract).toContain("offline");
-    expect(contract).toContain("--registry=https://registry.npmjs.org/");
+    expect(contract).toContain("--userconfig");
     expect(contract).toContain("--ignore-scripts");
+    expect(contract).toContain("`@scope:registry`");
     expect(contract).not.toContain(
       "The payload-staleness check is the only doctor path that shells out to npm",
+    );
+    expect(contract).not.toMatch(
+      /pins `--registry=https:\/\/registry\.npmjs\.org\/` and `--ignore-scripts`, so a configured mirror cannot/,
     );
   });
 });

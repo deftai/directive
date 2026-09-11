@@ -140,7 +140,9 @@ export function runNpmRegistryMirrorCheck(
   const message =
     `${CHECK_NAME}: @deftai packages resolve through a non-public npm registry. ` +
     "Corporate mirrors can return E404/ETARGET or silently serve stale @latest metadata. " +
-    `Where organization policy permits, retry with \`npm i -g @deftai/directive@latest --registry=${PUBLIC_NPM_REGISTRY}\` ` +
+    "`--registry` does not beat `@deftai:registry`. " +
+    "Where organization policy permits, retry from a directory that does not load the project `.npmrc` (for example `$HOME`), " +
+    `or pass \`--userconfig\` to a file that sets \`@deftai:registry=${PUBLIC_NPM_REGISTRY}\`, ` +
     `or add \`@deftai:registry=${PUBLIC_NPM_REGISTRY}\` to \`.npmrc\`. ` +
     `Otherwise ask your registry administrator to sync the @deftai packages. See ${NPM_REGISTRY_MIRROR_DOC_URL}.`;
   sink.warn(message);

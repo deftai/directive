@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({
@@ -7,39 +8,74 @@ vi.mock("node:child_process", () => ({
 
 import { defaultNpmViewVersion } from "./npm-view.js";
 
-describe("defaultNpmViewVersion (#2808)", () => {
+function successfulSpawn() {
+  return {
+    status: 0,
+    stdout: "0.84.0\n",
+    stderr: "",
+    pid: 1,
+    output: [null, "0.84.0\n", ""] as (string | null)[],
+    signal: null,
+    error: undefined,
+  };
+}
+
+describe("defaultNpmViewVersion (#2808 / #4345)", () => {
   beforeEach(() => {
     vi.mocked(spawnSync).mockReset();
   });
 
-  it("pins payload release lookup to the canonical public registry", () => {
-    vi.mocked(spawnSync).mockReturnValue({
-      status: 0,
-      stdout: "0.84.0\n",
-      stderr: "",
-      pid: 1,
-      output: [null, "0.84.0\n", ""],
-      signal: null,
-      error: undefined,
+  it("isolates public lookup with cwd + --userconfig, not --registry", () => {
+    let userconfigPath = "";
+    let spawnCwd = "";
+    let npmrc = "";
+    vi.mocked(spawnSync).mockImplementation((_cmd, args, options) => {
+      const argv = args as string[];
+      const opts = options as { cwd?: string };
+      const flag = argv.find((token) => token.startsWith("--userconfig="));
+      userconfigPath = flag?.slice("--userconfig=".length) ?? "";
+      spawnCwd = opts.cwd ?? "";
+      npmrc = readFileSync(userconfigPath, "utf8");
+      return successfulSpawn();
     });
 
     expect(defaultNpmViewVersion()).toEqual({ ok: true, version: "0.84.0" });
-    expect(vi.mocked(spawnSync)).toHaveBeenCalledWith(
-      "npm",
-      [
-        "view",
-        "@deftai/directive",
-        "version",
-        "--registry=https://registry.npmjs.org/",
-        "--ignore-scripts",
-      ],
-      {
-        encoding: "utf8",
-        shell: false,
-        timeout: 15_000,
-        windowsHide: true,
-      },
-    );
+    expect(vi.mocked(spawnSync)).toHaveBeenCalledTimes(1);
+    const [, argv, opts] = vi.mocked(spawnSync).mock.calls[0] as [
+      string,
+      string[],
+      { cwd?: string; encoding?: string; shell?: boolean; timeout?: number; windowsHide?: boolean },
+    ];
+    expect(argv[0]).toBe("view");
+    expect(argv[1]).toBe("@deftai/directive");
+    expect(argv[2]).toBe("version");
+    expect(argv).toContain("--ignore-scripts");
+    expect(argv.some((token) => token.startsWith("--userconfig="))).toBe(true);
+    expect(argv).not.toContain("--registry=https://registry.npmjs.org/");
+    expect(spawnCwd.length).toBeGreaterThan(0);
+    expect(spawnCwd).not.toBe(process.cwd());
+    expect(opts.cwd).toBe(spawnCwd);
+    expect(userconfigPath.startsWith(spawnCwd)).toBe(true);
+    expect(npmrc).toContain("@deftai:registry=https://registry.npmjs.org/");
+    expect(npmrc).not.toMatch(/@deftai\/directive[^*]*:registry/);
+    expect(opts).toMatchObject({
+      encoding: "utf8",
+      shell: false,
+      timeout: 15_000,
+      windowsHide: true,
+    });
+    expect(existsSync(spawnCwd)).toBe(false);
+  });
+
+  it("honors timeoutMs for the session-start probe", () => {
+    vi.mocked(spawnSync).mockReturnValue(successfulSpawn());
+
+    expect(defaultNpmViewVersion({ timeoutMs: 5_000 })).toEqual({
+      ok: true,
+      version: "0.84.0",
+    });
+    const opts = vi.mocked(spawnSync).mock.calls[0]?.[2] as { timeout?: number };
+    expect(opts.timeout).toBe(5_000);
   });
 
   it("returns unavailable when the public registry lookup fails", () => {
@@ -64,7 +100,7 @@ describe("defaultNpmViewVersion (#2808)", () => {
       pid: 1,
       output: [null, "", ""],
       signal: null,
-      error: new Error("ENOENT"),
+      error: undefined,
     });
 
     expect(defaultNpmViewVersion()).toEqual({ ok: false, version: "" });

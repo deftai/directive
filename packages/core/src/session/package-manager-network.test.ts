@@ -16,10 +16,11 @@ import type { SessionStartOptions } from "./session-start.js";
  * The package-manager seam is stubbed at `node:child_process` spawnSync, the
  * lowest level the asserted argv is built at. `--with-network` session start
  * reaches it through `probeSessionReleaseAvailability` ->
- * `release-availability.ts` `defaultNpmView` (`timeout: 5_000`); doctor's
+ * `release-availability.ts` `defaultNpmView` (`timeoutMs: 5_000` into
+ * `doctor/npm-view.ts`); doctor's
  * offline `npm config get` reads and `verify-tools.ts` tool probing bottom out
  * on the same call. `doctor/payload-staleness.ts` is a separate seam with a
- * different timeout and is not exercised here.
+ * different default timeout and is not exercised here.
  *
  * #3901: the seam is a stub, not a pass-through spy. `vi.fn(actual.spawnSync)`
  * recorded AND executed, so this suite made a live registry request whose
@@ -150,13 +151,7 @@ function outboundExecutions(): string[] {
     .map((call) => `${call.command} ${String(call.args[0] ?? "")}`.trim());
 }
 
-const PUBLIC_REGISTRY_VIEW_ARGS = [
-  "view",
-  "@deftai/directive",
-  "version",
-  "--registry=https://registry.npmjs.org/",
-  "--ignore-scripts",
-];
+const PUBLIC_REGISTRY_VIEW_PREFIX = ["view", "@deftai/directive", "version"] as const;
 
 const PRIVATE_SCOPE_VIEW_ARGS = [
   "view",
@@ -173,13 +168,23 @@ const PRIVATE_SCOPE_VIEW_ARGS = [
  * predicate the target case asserts.
  */
 function expectOnlyDisclosedPublicRegistryProbe(calls: unknown[][]): void {
-  expect(calls).toEqual([
-    [
-      "npm",
-      PUBLIC_REGISTRY_VIEW_ARGS,
-      expect.objectContaining({ encoding: "utf8", timeout: 5_000 }),
-    ],
-  ]);
+  expect(calls).toHaveLength(1);
+  const [command, args, opts] = calls[0] as [string, string[], Record<string, unknown>];
+  expect(command).toBe("npm");
+  expect(args.slice(0, 3)).toEqual([...PUBLIC_REGISTRY_VIEW_PREFIX]);
+  expect(args).toContain("--ignore-scripts");
+  expect(args.some((token) => token.startsWith("--userconfig="))).toBe(true);
+  expect(args).not.toContain("--registry=https://registry.npmjs.org/");
+  expect(opts).toEqual(
+    expect.objectContaining({
+      encoding: "utf8",
+      timeout: 5_000,
+      cwd: expect.any(String),
+      shell: false,
+      windowsHide: true,
+    }),
+  );
+  expect(opts.cwd).not.toBe(process.cwd());
 }
 
 /** SCM readiness without a `gh` subprocess; records the depth it was asked for. */
