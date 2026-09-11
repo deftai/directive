@@ -217,7 +217,7 @@ to GitHub Packages therefore cannot hit public npm unless you change cwd,
 
 If either effective value is not
 `https://registry.npmjs.org/`, choose a recovery path allowed by your
-organization policy:
+corporate policy:
 
 - **Leave the project directory** so the project `.npmrc` is not loaded
   (for example `$HOME`), then install:

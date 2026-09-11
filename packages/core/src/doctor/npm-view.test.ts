@@ -63,7 +63,7 @@ describe("defaultNpmViewVersion (#2808 / #4345)", () => {
     expect(existsSync(spawnCwd)).toBe(false);
   });
 
-  it("honors timeoutMs for the session-start probe", () => {
+  it("honors timeoutMs for the release-availability probe", () => {
     vi.mocked(spawnSync).mockReturnValue(successfulSpawn());
 
     expect(defaultNpmViewVersion({ timeoutMs: 5_000 })).toEqual({

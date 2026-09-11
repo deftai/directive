@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { NPM_PACKAGE_NAME, PUBLIC_NPM_REGISTRY } from "./constants.js";
 
 export interface NpmViewVersionResult {
@@ -27,11 +28,12 @@ export function defaultNpmViewVersion(options: NpmViewVersionOptions = {}): NpmV
   let dir: string | undefined;
   try {
     dir = mkdtempSync(join(tmpdir(), "deft-npm-view-"));
-    writeFileSync(
-      join(dir, ".npmrc"),
-      `@deftai:registry=${PUBLIC_NPM_REGISTRY}\nregistry=${PUBLIC_NPM_REGISTRY}\n`,
-      "utf8",
-    );
+    containedWrite({
+      root: dir,
+      target: ".npmrc",
+      data: `@deftai:registry=${PUBLIC_NPM_REGISTRY}\nregistry=${PUBLIC_NPM_REGISTRY}\n`,
+      mode: "create",
+    });
     const proc = spawnSync("npm", ["view", NPM_PACKAGE_NAME, "version", "--ignore-scripts"], {
       cwd: dir,
       encoding: "utf8",

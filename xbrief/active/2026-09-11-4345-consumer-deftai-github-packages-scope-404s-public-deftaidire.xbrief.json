@@ -106,6 +106,44 @@
       }
     },
     "id": "github.issue.5417762387",
-    "updated": "2026-09-11T00:22:48Z"
+    "updated": "2026-09-11T00:22:48Z",
+    "architecture": {
+      "systemOfRecord": {
+        "stateSurfaces": [
+          {
+            "name": "public npm view isolation npmrc",
+            "classification": "cache",
+            "owner": "doctor npm-view helper",
+            "approvedStorage": "json_file",
+            "forbiddenStorage": ["browser_storage", "in_memory"],
+            "authoritative": false,
+            "invalidationRules": "OS temp directory plus project .npmrc created for one npm view spawn and removed in finally. Never product authority."
+          },
+          {
+            "name": "GitHub issue comment thread (ingested overview)",
+            "classification": "authorization_state",
+            "owner": "GitHub issues",
+            "approvedStorage": "external_service",
+            "forbiddenStorage": [
+              "json_file",
+              "browser_storage",
+              "in_memory",
+              "filesystem"
+            ],
+            "permissionBoundary": "GitHub repository collaborators",
+            "migrationRequired": false,
+            "auditRequired": true,
+            "concurrencyRequired": false,
+            "concurrencySemantics": "GitHub comment append-only; this story does not mutate membership",
+            "transactionBoundary": "single GitHub REST comment or issue edit",
+            "recoverySemantics": "GitHub retains issue comments; local xBRIEF is a copy",
+            "conflictDetection": "GitHub last-write on issue or comment id",
+            "deleteSemantics": "GitHub comment delete; local xBRIEF remains historical",
+            "migrationPath": "none; this story does not change GitHub auth or membership"
+          }
+        ],
+        "referenceApplications": []
+      }
+    }
   }
 }
