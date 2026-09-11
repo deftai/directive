@@ -137,35 +137,6 @@
         "github_issue_id": 5177754388,
         "origin": "deftai/directive#3452",
         "id": "github.issue.5177754388"
-      },
-      "swarm": {
-        "readiness": "ready",
-        "parallel_safe": true,
-        "file_scope": [
-          "content/skills/deft-directive-review-cycle",
-          "content/coding/review.md",
-          "content/packs/skills",
-          "content/packs/rules",
-          "packages/core/src/content-contracts/skills",
-          "content/commands.md",
-          "CHANGELOG.md"
-        ],
-        "verify_commands": [
-          "pnpm exec vitest run packages/core/src/content-contracts/skills/policy_anchored_review_response_3452.test.ts"
-        ],
-        "expected_outputs": [
-          "policy-anchor precondition on HEAD",
-          "classify-then-act + head-blob check",
-          "one consolidated push per review round",
-          "rounds tripwire compose #3448 escalate #3434",
-          "CHANGELOG #3452"
-        ],
-        "acceptance_criteria_justification": "Field-validation comment 5331022768: this issue owns only anchor precondition, classify-then-act including head-blob, batch discipline, and rounds tripwire.",
-        "depends_on": [],
-        "conflict_group": "review-response-policy",
-        "size": "small",
-        "file_scope_confidence": "high",
-        "model_tier": "standard"
       }
     },
     "id": "github.issue.5177754388",
