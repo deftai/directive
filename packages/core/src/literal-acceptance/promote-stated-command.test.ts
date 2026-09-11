@@ -4,7 +4,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { evaluateLiteralAcceptanceFromPlan, readStoredLiteralAcceptanceCommands } from "./index.js";
+import {
+  evaluateLiteralAcceptanceFromPlan,
+  readStoredLiteralAcceptanceCommands,
+  runLiteralAcceptanceCommands,
+} from "./index.js";
 
 const COMMAND = "deft doctor";
 
@@ -219,6 +223,35 @@ describe("promote non-inline task_statement via documented slots (#4238)", () =>
       },
     });
     expect(result.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+
+  it("validates every retained expectedStdout after a single run", () => {
+    const commands = [
+      { command: COMMAND, source: "metadata" as const, expectedStdout: "ok" },
+      { command: COMMAND, source: "explicit" as const, expectedStdout: "pass" },
+    ];
+    let runs = 0;
+    const fail = runLiteralAcceptanceCommands(commands, {
+      projectRoot: process.cwd(),
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.message).toMatch(/pass/);
+    expect(runs).toBe(1);
+
+    runs = 0;
+    const pass = runLiteralAcceptanceCommands(commands, {
+      projectRoot: process.cwd(),
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok\npass", stderr: "" };
+      },
+    });
+    expect(pass.ok).toBe(true);
     expect(runs).toBe(1);
   });
 });

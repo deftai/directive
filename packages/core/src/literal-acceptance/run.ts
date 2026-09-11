@@ -65,6 +65,14 @@ function resolveCwd(projectRoot: string, cmd: LiteralAcceptanceCommand): string 
   return resolve(projectRoot, raw);
 }
 
+function nonEmptyExpectedStdout(cmd: LiteralAcceptanceCommand): string {
+  return cmd.expectedStdout !== null &&
+    cmd.expectedStdout !== undefined &&
+    String(cmd.expectedStdout).length > 0
+    ? String(cmd.expectedStdout)
+    : "";
+}
+
 /**
  * Run one command record verbatim. Does not re-tokenize or rewrite the command string.
  */
@@ -231,8 +239,13 @@ export function runLiteralAcceptanceCommands(
   }
 
   // Capture may retain multiple executable peers (different stdout) so
-  // promotion matching still works. Run each command+cwd+exit once (#4238).
-  const toRunByKey = new Map<string, LiteralAcceptanceCommand>();
+  // promotion matching still works. Run each command+cwd+exit once, then
+  // validate the result against every retained stdout expectation (#4238).
+  type RunGroup = {
+    representative: LiteralAcceptanceCommand;
+    expectedStdouts: string[];
+  };
+  const toRunByKey = new Map<string, RunGroup>();
   for (const cmd of executable) {
     const cwd =
       cmd.cwd !== null && cmd.cwd !== undefined && String(cmd.cwd).trim().length > 0
@@ -240,29 +253,27 @@ export function runLiteralAcceptanceCommands(
         : "";
     const exit = typeof cmd.expectedExitCode === "number" ? cmd.expectedExitCode : 0;
     const key = `${cmd.command}\0${cwd}\0${exit}`;
-    const prev = toRunByKey.get(key);
-    const stdout =
-      cmd.expectedStdout !== null &&
-      cmd.expectedStdout !== undefined &&
-      String(cmd.expectedStdout).length > 0
-        ? String(cmd.expectedStdout)
-        : "";
-    const prevStdout =
-      prev !== undefined &&
-      prev.expectedStdout !== null &&
-      prev.expectedStdout !== undefined &&
-      String(prev.expectedStdout).length > 0
-        ? String(prev.expectedStdout)
-        : "";
-    if (prev === undefined || (prevStdout.length === 0 && stdout.length > 0)) {
-      toRunByKey.set(key, cmd);
+    const stdout = nonEmptyExpectedStdout(cmd);
+    const group = toRunByKey.get(key);
+    if (group === undefined) {
+      toRunByKey.set(key, {
+        representative: cmd,
+        expectedStdouts: stdout.length > 0 ? [stdout] : [],
+      });
+      continue;
+    }
+    if (stdout.length > 0 && !group.expectedStdouts.includes(stdout)) {
+      group.expectedStdouts.push(stdout);
+    }
+    if (nonEmptyExpectedStdout(group.representative).length === 0 && stdout.length > 0) {
+      group.representative = cmd;
     }
   }
-  const toRun = [...toRunByKey.values()];
 
   const runs: LiteralAcceptanceRunResult[] = [];
   const rejected: RejectedLiteralCommand[] = [];
-  for (const cmd of toRun) {
+  for (const group of toRunByKey.values()) {
+    const cmd = group.representative;
     if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) {
       return {
         ok: false,
@@ -273,7 +284,18 @@ export function runLiteralAcceptanceCommands(
         rejected: rejected.length > 0 ? rejected : undefined,
       };
     }
-    const run = runLiteralAcceptanceCommand(cmd, options);
+    const runCmd = group.expectedStdouts.length === 0 ? cmd : { ...cmd, expectedStdout: null };
+    let run = runLiteralAcceptanceCommand(runCmd, options);
+    if (run.ok && group.expectedStdouts.length > 0) {
+      const missing = group.expectedStdouts.filter((s) => !run.stdout.includes(s));
+      if (missing.length > 0) {
+        run = {
+          ...run,
+          ok: false,
+          detail: `stdout missing expected substring ${JSON.stringify(missing[0])}`,
+        };
+      }
+    }
     runs.push(run);
     if (isSafetyRefusalRun(run)) {
       rejected.push({
