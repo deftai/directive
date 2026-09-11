@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Land leftover completed-tracked artifact for #4246 (#3264 / #3476).** The #4246 xBRIEF stayed untracked after squash of PR 4437. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 ### Fixed
 
 - **agents:refresh stamps a resolvable framework identity instead of sha=unknown (#4246).** Writable AGENTS.md states (absent/missing/stale) on a non-git npm install use package.json version, then live GENERATION.json contentVersion, then the running core package version. Own-git-root still uses git short HEAD. Does not preserve a leftover checkout SHA, mint a second 12-hex, recut #3914/#4118 git-fatal silence, or recut commands.md. Closes #4246.

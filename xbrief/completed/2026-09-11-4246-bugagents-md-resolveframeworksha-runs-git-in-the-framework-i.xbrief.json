@@ -1,0 +1,153 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4246",
+    "updated": "2026-09-11T21:52:10Z"
+  },
+  "plan": {
+    "title": "bug(agents-md): resolveFrameworkSha runs git in the framework install root — spurious git fatal AND sha=unknown persisted into consumer AGENTS.md (#3914 / #4118 still reproduce at 0.104.0)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(agents-md): resolveFrameworkSha runs git in the framework install root — spurious git fatal AND sha=unknown persisted into consumer AGENTS.md (#3914 / #4118 still reproduce at 0.104.0)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4246",
+      "Overview": "## Summary\n\n#3914 (\"Align read-only syntax and suppress spurious Git fatal output\") and #4118 (\"session:start prints git fatal twice then succeeds on an npm deposit\") are both closed, but **both symptoms still reproduce at 0.104.0** — and there is a third, worse symptom from the same root cause that neither issue mentions: the bad value gets **persisted into the consumer's tracked `AGENTS.md`**.\n\nFiling fresh rather than commenting on closed issues, per the pattern in #3511.\n\n## Root cause\n\n`dist/platform/agents-md.js:52`:\n\n```js\nfunction resolveFrameworkSha(seams = {}) {\n    if (seams.resolveSha) return seams.resolveSha();\n    const root = frameworkRoot(seams);\n    try {\n        const stdout = execFileSync(\"git\", [\"rev-parse\", \"--short=12\", \"HEAD\"], {\n            cwd: root, encoding: \"utf8\", timeout: 5000,\n        });\n        const sha = stdout.trim();\n        return sha || \"unknown\";\n    } catch {\n        return \"unknown\";\n    }\n}\n```\n\n`cwd` is the **framework's own install root**. On a global/npm install that is `<prefix>/lib/node_modules/@deftai/directive/...`, which is not a git repository — exactly the \"npm deposit\" case #4118 named. So git writes `fatal: not a git repository (or any of the parent directories): .git` to stderr, `execFileSync` throws, the catch returns `\"unknown\"`, and that string is written into the managed-section marker.\n\nOne cause, three symptoms.\n\n## Symptom 1 — spurious git fatal (was #4118 / #3914)\n\nIsolated to `agents:refresh`; other verbs are clean:\n\n```\ndeft doctor                     -> git-fatal lines: 0\ndeft agents:refresh             -> git-fatal lines: 1\ndeft verify:vbrief-conformance  -> git-fatal lines: 0\ndeft triage:queue               -> git-fatal lines: 0\n```\n\n`session:start` prints it too, because orientation runs `agents_refresh`. From a directory where `git rev-parse --show-toplevel` resolves the consumer repo perfectly — the failure is entirely about the `cwd` handed to git.\n\n## Symptom 2 — `sha=unknown` persisted into consumer `AGENTS.md` (unreported)\n\nThis is the part worth fixing beyond cosmetics. `agents:refresh` stamps:\n\n```\n<!-- deft:managed-section v3 sha=unknown refreshed=2026-09-05T22:11:14Z session=143c8023a0a8 -->\n```\n\nBefore the refresh, the same repo carried a real hash (`sha=089bbf450e1a`). So a global-install `agents:refresh` **downgrades** a good marker to `unknown`, in a tracked file, which then gets committed. Downstream, `session:start` reports `managed=current sha=unknown` and drift detection has no content hash to compare against — it is comparing to a sentinel forever.\n\nA second `agents:refresh` then reports `unchanged - sha match`, so the degraded state is self-consistent and gives no hint anything is wrong.\n\n## Symptom 3 — read-only syntax still misdocumented (was #3914)\n\nThe CLI rejects the documented form:\n\n```\n$ deft session:start -- --read-only\nsession_start: unrecognized argument: --\n\n$ deft session:start --read-only\n[deft] read-only session posture (alignment only; no ritual-state write)   # works\n```\n\nAnd the shipped 0.104.0 docs still instruct the broken form — including the **managed** AGENTS.md section the framework writes into consumer repos:\n\n- `.deft/core/commands.md:377` — ``? Explicit read-only alignment only: `deft session:start -- --read-only` (no ritual-state write).``\n- managed `AGENTS.md:42` — ``? `deft session:start -- --read-only` (#2176).``\n\nAn agent following the managed constitution literally hits an error on the first read-only orientation of every session. (The `--` is Taskfile passthrough syntax; it is wrong when invoking `deft` directly, so the docs are conflating the two entrypoints.)\n\n## Suggested fix\n\nFor symptoms 1 and 2, `resolveFrameworkSha` should not shell out to git against its own install root. Options:\n\n1. **Read the version/sha from the deposit's own metadata** rather than git — `.deft/GENERATION.json` already carries `contentVersion` and per-surface versions, and the package carries its `package.json` version. A source install can still prefer git.\n2. **Detect a git work tree before invoking git** (`git rev-parse --git-dir` guarded, or check for `.git`), and skip silently when absent.\n3. At minimum, pass `stdio: [\"ignore\", \"pipe\", \"ignore\"]` so the fatal never reaches the user's terminal — but that only hides symptom 1 and leaves `sha=unknown` being written, which is the damaging half.\n4. **Never downgrade an existing marker.** If a sha cannot be resolved, preserve the marker's current sha rather than overwriting it with `unknown`.\n\n(1) plus (4) together fix all of it: real value where resolvable, no regression where not.\n\nFor symptom 3, correct both doc surfaces to `deft session:start --read-only`, keeping the `--` form only where a `task` invocation is shown.\n\n## Environment\n\n`@deftai/directive` 0.104.0 (engine `@deftai/directive-core@0.104.0`), global install at `~/.local/lib/node_modules` (npm prefix `~/.local`), vendored deposit v0.104.0, macOS 25.5, Node 22.23.2, git 2.50.1.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T17:07:53Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because resolveFrameworkSha still returns unknown on a non-git npm install root and agents:refresh stamps that into the consumer AGENTS.md marker, and the managed agents-entry still documents deft session:start -- --read-only.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4246-dc\norigin-ref: origin/master\ndispatch-sha: d8f4e2a0f8be478096385ec0b765d313e6d4e110\n\ncharter: open critique\nspend: N=1\nspend-why: default motion; sha persist vs docs; operator did not request a panel.\n\nrefutation-target: On a non-git framework install, resolveFrameworkSha returns unknown and agentsRefreshPlan writes sha=unknown into AGENTS.md; agents-entry still shows the Taskfile -- --read-only form on the deft CLI line.\n\ntarget: #4246\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Mechanism-shaped: SHA source vs marker persist vs entrypoint docs. Do not reopen #3914/#4118 as git-fatal on this pin (payloadIsOwnGitRoot + tests lock silent). Voluntary critiques stay legal.\n\nMeasured on pin d8f4e2a0f8be478096385ec0b765d313e6d4e110:\n\n- resolveFrameworkSha: payloadIsOwnGitRoot else unknown; timedGitRunner only when own git root. Tests lock silent unknown.\n- agentsRefreshPlan always attributeRenderManagedSection with that sha; no preserve-existing-sha path.\n- commands.md already splits deft session:start --read-only vs task session:start -- --read-only.\n- agents-entry still: ? deft session:start -- --read-only (#2176).\n\nThis session did not re-run a global npm deposit agents:refresh. Pin functions and docs are the measured basis.\r\n\n\n### Comment by @MScottAdams (2026-09-11T17:13:34Z)\n\nmodel: grok-4.6\nrole: critic\n\nPin: d8f4e2a0f8be478096385ec0b765d313e6d4e110. Ceiling 5637953229 inclusive. Open critique, N=1, round 1. This session did not run a global npm `agents:refresh`.\n\n## 1. Preserve-existing-sha cannot bind on write paths\n\nclass: blocks-the-design\n\nEvidence: `agentsRefreshPlan` (`packages/core/src/platform/agents-md.ts`) calls `resolveSha()` then `attributeRenderManagedSection` on every plan. Writable states are only `absent` / `missing` / `stale` (`AGENTS_REFRESH_WRITABLE_STATES`). When stripped body equals the template, state is `current` and `new_content` is the existing file, so the marker `sha=` is already kept. `resolveFrameworkSha` returns `\"unknown\"` when `payloadIsOwnGitRoot` is false. The issue's recommended pair is option 1 plus option 4 (\"never downgrade an existing marker\").\n\nFailure mode: option 4 only has work on a write. That write is a template-body change (or first insert). Preserving a prior checkout short-SHA (example in the issue: `sha=089bbf450e1a`) onto bytes that came from an npm deposit labels the new constitution with a git identity it did not come from. `probeManagedSectionDrift` then reports that embedded `sha=` on `managed=current`. A tracked consumer `AGENTS.md` carries a false provenance stamp.\n\nDisposition: a successor lean cannot bind option 4 as a write-path preserve. Current-state already preserves. Remaining write paths need a resolvable identity (option 1 against inventory below), not a leftover git SHA.\n\n## 2. Git-fatal / detect-then-skip / stdio-ignore are not the remaining hole\n\nclass: sharpens-framing\n\nEvidence: `resolveFrameworkSha` returns `\"unknown\"` before `timedGitRunner` when `payloadIsOwnGitRoot(root)` is false. `payloadIsOwnGitRoot` uses `timedGitRunner(10_000)` `rev-parse --show-toplevel` and compares resolved toplevel to the payload dir (`packages/core/src/platform/resolve-version.ts`). `execGit` uses `stdio: [\"ignore\", \"pipe\", \"pipe\"]` (`packages/core/src/session/git.ts`). Tests lock silence and `\"unknown\"`: `packages/core/src/platform/branch-coverage.test.ts` \"silent git probes on non-git payload roots (#4118)\"; `packages/cli/src/session-start.test.ts` \"framework SHA own-git-root (#3914)\". CHANGELOG at this pin records #4118 swallow and #3914 own-git-root. Issue body still shows the pre-guard `execFileSync` snippet.\n\nFailure mode: binding options 2 and 3, or treating stderr `fatal: not a git repository` as still open, recuts #3914 / #4118. Implementers re-silence a probe the tests already lock silent.\n\nDisposition: drop options 2 and 3 from the remaining set. Keep the unknown stamp (finding 1's write path, finding 3's reporting) and the docs split (finding 4).\n\n## 3. \"unchanged - sha match\" is content-current phrasing, not marker-sha equality\n\nclass: sharpens-framing\n\nEvidence: `runAgentsRefresh` prints `formatDepositShaMatchLine(\"agents:refresh\")` when `state === \"current\"` (`packages/cli/src/agents-refresh.ts`). The file comment says content-based; deposit fingerprint alone is not the plan. `computeDepositSha` hashes engine + payload version + templates (`packages/core/src/session/deposit-sha.ts`) and is a different 12-hex. `probeManagedSectionDrift` already records `embeddedSha` plus `bodyHash` (SHA-256-12 of stripped body). Production `plan()` calls `reconcileVersions` without `expectedManagedSectionSha` (`packages/core/src/resolution/plan.ts` `contentStale`). `contentStale` treats `managedSectionSha === null` as stale; the string `\"unknown\"` is not null. Session-start `managed=current sha=` prints the embedded marker (`formatHostContentSurfaceLines`).\n\nFailure mode: binding \"drift detection compares to a sentinel forever\" and \"second refresh sha-match hides the damage\" as one detector. The second refresh is a content no-op. The damage is the first stale/absent/missing write of `sha=unknown`, plus host-surface echoing that embedded value.\n\nDisposition: bind the unknown write on writable states. Do not bind a live expected-vs-embedded SHA gate this pin does not run. Do not treat `computeDepositSha` as already filling `sha=` (it is not wired there).\n\n## 4. Read-only docs: commands.md is split; CLI accepts `-- --`; agents-entry keep is locked\n\nclass: sharpens-framing\n\nEvidence: `content/commands.md` (session-start ritual): `deft session:start --read-only` and `task session:start -- --read-only`; it does not contain `deft session:start -- --read-only`. `parseArgs` skips a lone `--` (`packages/cli/src/session-start.test.ts` `#3914`). `content/templates/agents-entry.md` Session routing still has `deft session:start -- --read-only`. `packages/core/src/content-contracts/skills/agents_md_session_start.test.ts` requires that exact string in agents-entry and requires the split in commands.md. CHANGELOG #3914 records keeping `-- --` on the managed agents-entry line. Consumer template forbids bare `task session:start` (`CONSUMER_FORBIDDEN_BARE_TASK_MARKERS`). The issue's 0.104.0 repro `unrecognized argument: --` is not this pin's parser.\n\nFailure mode: \"correct both doc surfaces\" plus \"CLI still rejects\" recuts a closed commands.md split, fights the #3914 keep, and goes red on `agents_md_session_start.test.ts` if the template changes without the lock test.\n\nDisposition: do not bind CLI reject or a commands.md recut. If the consumer line should match `deft session:start --read-only`, the bound remedy is agents-entry plus that content-contract test, as a deliberate recut of the #3914 keep, not leftover 0.104.0 docs.\n\n## Injection / swarm\n\nThe stamp is written into consumer-tracked `AGENTS.md` (shared constitution, identity, authority). Preserve-wrong-sha (finding 1) is an identity lie in that file, not a log-line cosmetic. Stamping a second git-shaped 12-hex next to existing `computeDepositSha` / `bodyHash` collides two \"sha\" namespaces unless `sha=` is redefined. Untrusted input here is the consumer tree plus the install root; the fail-closed risk is false provenance, not a bypass. Do not skip `payloadIsOwnGitRoot` (it still blocks stamping an enclosing repo SHA from a nested non-checkout).\n\n## Inventory (existing, not new)\n\n- `resolveFrameworkSha`: seam or `payloadIsOwnGitRoot` else `\"unknown\"`; `timedGitRunner(5000)` `rev-parse --short=12 HEAD` only on own git root.\n- `payloadIsOwnGitRoot`: silent git runner; false when toplevel missing or not equal to the payload dir. Tests lock silent + false.\n- `agentsRefreshPlan`: always stamps `frameworkSha` into attributed output; `current` keeps existing bytes; writable states write that sha, including `\"unknown\"`. No preserve-existing-sha branch.\n- `.deft/GENERATION.json`: `contentVersion`, monotonic `generation`, surface fingerprints (`readLiveGeneration` / `stampLiveGeneration`).\n- `package.json` version: `readCorePackageVersion` (`@deftai/directive-core`).\n- `computeDepositSha`: engine + payload version (prefers live generation) + templates hash. Used for orientation no-op phrasing, not `sha=`.\n- `probeManagedSectionDrift.bodyHash`: content identity of the managed body, already reported beside embedded sha.\n- `resolveVersion`: ENV / VERSION / `.deft-version` / git describe (git path also own-git-root gated).\n- Docs: commands.md already splits deft vs task; agents-entry still `deft session:start -- --read-only`; `agents_md_session_start.test.ts` locks both.\n\n## Road not taken\n\n- Option 2 (detect work tree, skip git): already the `payloadIsOwnGitRoot` guard. Rejected as remaining work.\n- Option 3 (stdio ignore only): already `timedGitRunner` capture. Rejected; it would leave `\"unknown\"` writes, which the issue itself names as the damaging half.\n- Option 4 write-path preserve: rejected (finding 1).\n- Mint a new git-shaped 12-hex from templates only: rejected while `bodyHash` and `computeDepositSha` already exist.\n\n## Steelman\n\nStrongest salvage of option 4: last-known-good SHA in a tracked marker is better than the literal `unknown`, and `refreshed=` already records the write time, so `sha=` could mean \"last resolved framework identity\" rather than \"identity of these bytes.\"\n\nWhat would flip finding 1: an explicit redefinition that `sha=` is a cache of the last successful git resolve and is allowed to outlive the template body, with drift using `bodyHash` / deposit version instead. The attribute sits next to `refreshed=` and `session=` on the write that just rendered the section. This pin does not record that redefinition.\n\nWhat would flip finding 4: `parseArgs` again treating a lone `--` as an unrecognized argument, or commands.md still showing `deft session:start -- --read-only`. Neither is true at this SHA.\n\n## Footnote\n\nclass: footnote\n\n`resolveFrameworkSha` is not exported; tests go through `agentsRefreshPlan`. Doctor `agents-md.ts` re-exports the same plan. No second SHA probe found under `scripts/`.\n\n### Comment by @MScottAdams (2026-09-11T17:14:42Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nGit-fatal on npm deposits is already silent. agents:refresh still stamps sha=unknown on writable states. Preserving a leftover checkout SHA onto new npm bytes is a false provenance stamp. commands.md already splits deft vs task; agents-entry still has deft session:start -- --read-only because a #3914 test keeps it.\n\nIf this map is confirmed, the next-build is a resolvable identity on write (inventory: generation / package version / deposit fingerprint / bodyHash), not preserve-existing-sha, not re-silence git. Docs: only recut agents-entry plus its lock test if the consumer line should match deft --read-only.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4246 after round 1 critic 5638016843. Supersedes write-back 5637953229.\n\nTarget-digest: sha256:aff528e807a7228a5af21a58a7479ee421fd960eaef176aaec99fe242d9555bf\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4246-dc\norigin-ref: origin/master\ndispatch-sha: d8f4e2a0f8be478096385ec0b765d313e6d4e110\n\nTakes:\n\n- 5638016843 1. Preserve-existing-sha cannot bind on write paths — accept-into-contract\n- 5638016843 2. Git-fatal / detect-skip / stdio-ignore are not remaining — accept-into-contract\n- 5638016843 3. sha match is content-current, not marker-sha equality — accept-into-contract\n- 5638016843 4. Read-only docs: commands.md split; agents-entry keep is locked — accept-into-contract\n\n## Bound remedy\n\n- Drop options 2, 3, and write-path preserve (4). Remaining hole is writable states (absent/missing/stale) stamping sha=unknown. Supply a resolvable identity from existing inventory (GENERATION.json / package version / computeDepositSha / bodyHash). Do not preserve a leftover git short-SHA onto npm-rendered bytes. Do not mint a second git-shaped 12-hex next to those hashes without redefining sha=.\n- Keep payloadIsOwnGitRoot. Do not reopen #3914 / #4118 as git-fatal.\n- Do not bind a live expected-vs-embedded SHA gate this pin does not run. Bind the unknown write.\n- Do not recut commands.md or claim CLI still rejects -- --. If the consumer line should be deft session:start --read-only, recut agents-entry plus agents_md_session_start.test.ts as a deliberate recut of the #3914 keep. CHANGELOG.\r\n\n\n### Comment by @MScottAdams (2026-09-11T17:14:53Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | resolveFrameworkSha returns unknown when not own git root | git show pin agents-md.ts | measured |\n| 2 | Tests lock silent unknown (#4118 / #3914) | critic cite branch-coverage.test.ts | endorsed |\n| 3 | Writable states stamp frameworkSha including unknown; current keeps existing bytes | git show pin agentsRefreshPlan | measured |\n| 4 | commands.md splits deft --read-only vs task -- --read-only | git show pin commands.md | measured |\n| 5 | agents-entry still deft session:start -- --read-only; content-contract locks it | critic cite agents_md_session_start.test.ts | endorsed |\n| 6 | CLI parseArgs skips a lone -- | critic cite session-start.test.ts | endorsed |\r\n\n\n### Comment by @MScottAdams (2026-09-11T17:15:06Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nGit-fatal is already silent. The remaining hole is stamping sha=unknown on write. Do not preserve a leftover git SHA. commands.md is already split; changing agents-entry is a recut of a locked #3914 keep.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5638029870 and verified-claims table 5638032036.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1. Round 1 complete, N=1, critic 5638016843, ceiling 5637953229. Operator yolo-standing on the launching utterance.",
+      "Labels": "bug, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Drop options 2, 3, and write-path preserve (4). Remaining hole is writable states (absent/missing/stale) stamping sha=unknown. Supply a resolvable identity from existing inventory (GENERATION.json / package version / computeDepositSha / bodyHash). Do not preserve a leftover git short-SHA onto npm-rendered bytes. Do not mint a second git-shaped 12-hex next to those hashes without redefining sha=.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/platform/branch-coverage.test.ts",
+          "recorded_at": "2026-09-11T21:51:49.374Z",
+          "recorded_by": "att-1d72a6956e5ca209"
+        }
+      },
+      {
+        "title": "Keep payloadIsOwnGitRoot. Do not reopen #3914 / #4118 as git-fatal.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/platform/branch-coverage.test.ts",
+          "recorded_at": "2026-09-11T21:51:49.374Z",
+          "recorded_by": "att-1d72a6956e5ca209"
+        }
+      },
+      {
+        "title": "Do not bind a live expected-vs-embedded SHA gate this pin does not run. Bind the unknown write.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/platform/branch-coverage.test.ts",
+          "recorded_at": "2026-09-11T21:51:49.374Z",
+          "recorded_by": "att-1d72a6956e5ca209"
+        }
+      },
+      {
+        "title": "Do not recut commands.md or claim CLI still rejects -- --. If the consumer line should be deft session:start --read-only, recut agents-entry plus agents_md_session_start.test.ts as a deliberate recut of the #3914 keep. CHANGELOG.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-11T21:51:49.374Z",
+          "recorded_by": "att-1d72a6956e5ca209"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4246",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4246: bug(agents-md): resolveFrameworkSha runs git in the framework install root — spurious git fatal AND sha=unknown persisted into consumer AGENTS.md (#3914 / #4118 still reproduce at 0.104.0)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Drop options 2, 3, and write-path preserve (4). Remaining hole is writable states (absent/missing/stale) stamping sha=unknown. Supply a resolvable identity from existing inventory (GENERATION.json / package version / computeDepositSha / bodyHash). Do not preserve a leftover git short-SHA onto npm-rendered bytes. Do not mint a second git-shaped 12-hex next to those hashes without redefining sha=.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep payloadIsOwnGitRoot. Do not reopen #3914 / #4118 as git-fatal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not bind a live expected-vs-embedded SHA gate this pin does not run. Bind the unknown write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not recut commands.md or claim CLI still rejects -- --. If the consumer line should be deft session:start --read-only, recut agents-entry plus agents_md_session_start.test.ts as a deliberate recut of the #3914 keep. CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5380115118,
+        "origin": "deftai/directive#4246",
+        "id": "github.issue.5380115118"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "aff528e807a7228a5af21a58a7479ee421fd960eaef176aaec99fe242d9555bf"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4437,
+        "prBase": null,
+        "mergeCommit": "7bb72bc22d8eaeb792277419c3186c8d1be8dc7d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7bb72bc22d8eaeb792277419c3186c8d1be8dc7d",
+        "verifiedAt": "2026-09-11T21:52:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDkyNGUtNDRjYy03NjMxLTlmOTgtMzY5OWViMGU2MGQw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T21:52:10Z"
+      },
+      "completedAt": "2026-09-11T21:52:10Z",
+      "completedSessionId": "host:claude:v1:MDFhMDkyNGUtNDRjYy03NjMxLTlmOTgtMzY5OWViMGU2MGQw",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5380115118",
+    "updated": "2026-09-11T21:52:10Z"
+  }
+}
