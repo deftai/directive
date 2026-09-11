@@ -1,7 +1,7 @@
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { locateManifest, parseInstallManifest } from "../doctor/manifest.js";
+import { defaultNpmViewVersion } from "../doctor/npm-view.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { evaluateReleaseAvailability } from "../doctor/release-availability.js";
 import { containedWrite } from "../fs/contained-write.js";
@@ -45,22 +45,7 @@ function defaultReadText(path: string): string | null {
 }
 
 function defaultNpmView(): { ok: boolean; version: string } {
-  const result = spawnSync(
-    "npm",
-    [
-      "view",
-      "@deftai/directive",
-      "version",
-      `--registry=${PUBLIC_NPM_REGISTRY}`,
-      "--ignore-scripts",
-    ],
-    {
-      encoding: "utf8",
-      timeout: 5_000,
-    },
-  );
-  const version = (result.stdout ?? "").trim().split(/\r?\n/)[0]?.trim() ?? "";
-  return { ok: result.status === 0 && version.length > 0, version };
+  return defaultNpmViewVersion({ timeoutMs: 5_000 });
 }
 
 function parseState(text: string | null): ReleaseAvailabilityState {

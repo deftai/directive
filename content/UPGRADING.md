@@ -210,15 +210,26 @@ npm config get registry
 ```
 
 The scoped value wins when `@deftai:registry` is set; otherwise npm uses the
-default `registry`. If either effective value is not
-`https://registry.npmjs.org/`, choose a recovery path allowed by your
-organization policy:
+default `registry`. `--registry` does not beat `@deftai:registry` (npm/cli#7659).
+`npm view @deftai/directive` from a consumer cwd whose `.npmrc` maps `@deftai`
+to GitHub Packages therefore cannot hit public npm unless you change cwd,
+`--userconfig`, or the scoped key.
 
-- **One command:** request the required release directly from public npm:
+If either effective value is not
+`https://registry.npmjs.org/`, choose a recovery path allowed by your
+corporate policy:
+
+- **Leave the project directory** so the project `.npmrc` is not loaded
+  (for example `$HOME`), then install:
 
   ```bash
-  npm i -g @deftai/directive@<version> --registry=https://registry.npmjs.org/
+  cd "$HOME" && npm i -g @deftai/directive@<version>
   ```
+
+- **One-shot userconfig from outside the project:** after leaving the project
+  directory, write a file containing
+  `@deftai:registry=https://registry.npmjs.org/` and pass `--userconfig` to
+  that file. `--userconfig` does not beat a project `.npmrc` `@deftai:registry`.
 
 - **Durable scoped routing:** add this line to the user or project `.npmrc` so
   only the `@deftai` scope bypasses the default mirror:
@@ -236,8 +247,8 @@ IT or the registry administrator to synchronize all Directive packages:
 non-public effective registry produces an advisory warning but does not make
 doctor fail; configured registry URLs are not printed because they can contain
 internal hostnames or credentials. With `--network`, the release-availability
-probe always queries the canonical public registry explicitly, independent of
-the configured mirror.
+probe isolates with a temp cwd whose project `.npmrc` sets `@deftai:registry`
+to public npm, because `--registry` does not beat the scoped key.
 
 2. **Refresh the project deposit** from your project root:
 
