@@ -870,7 +870,7 @@ export function runAgentHooksHealthCheck(
     const message =
       `${checkName}: registered and structurally valid` +
       (codexEnabled
-        ? "; Codex trust is manual-review-required — open `/hooks` to review the project commands"
+        ? "; Codex trust is manual-review-required"
         : "");
     sink.success(message);
     addFinding({
@@ -881,7 +881,7 @@ export function runAgentHooksHealthCheck(
       registrations: result.registrations,
       trust_status: codexEnabled ? "manual-review-required" : "not-applicable",
       trust_review: codexEnabled
-        ? "Open `/hooks` in Codex and review the exact project hook commands."
+        ? "Codex project-hook trust cannot be read by Directive and remains manual-review-required."
         : null,
       interception_status: "not-directly-verified",
     });
@@ -942,7 +942,7 @@ export function runAgentHooksLiveProbeCheck(
     const message =
       `${checkName}: registered, structurally valid, and live probe passed` +
       (codexEnabled
-        ? "; Codex trust is manual-review-required — open `/hooks` to review the project commands"
+        ? "; Codex trust is manual-review-required"
         : "") +
       "; direct shim invocation does not verify host interception";
     sink.success(message);
@@ -954,7 +954,7 @@ export function runAgentHooksLiveProbeCheck(
       registrations: result.registrations,
       trust_status: codexEnabled ? "manual-review-required" : "not-applicable",
       trust_review: codexEnabled
-        ? "Open `/hooks` in Codex and review the exact project hook commands."
+        ? "Codex project-hook trust cannot be read by Directive and remains manual-review-required."
         : null,
       interception_status: "not-directly-verified",
       live_probe: "passed",

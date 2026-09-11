@@ -226,8 +226,7 @@ export function evaluateAgentHookReadiness(
           ? "timed-out"
           : "non-functional";
   const trustReview = policy.codex
-    ? "\n  Codex trust: manual-review-required. Open `/hooks` and approve the exact project hook commands. " +
-      "The live probe validates the shim and codec, not host interception."
+    ? "\n  Codex trust: manual-review-required. The live probe validates the shim and codec, not host interception."
     : "";
   const unusedHostRecovery =
     liveProbe.code === 0 || timeoutOnly ? "" : `\n  ${UNUSED_HOST_HOOKS_RECOVERY}`;
