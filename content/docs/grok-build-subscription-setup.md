@@ -154,7 +154,7 @@ claude -p <envelope-path> --model opus --permission-mode bypassPermissions --out
 **Codex** (`-C` dest):
 
 ```text
-codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> <prompt-or-path>
+codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> <envelope-path>
 ```
 
 On ChatGPT omit `-m gpt-5.6` (HTTP 400). Self-attest the model the CLI ran.
