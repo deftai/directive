@@ -49,8 +49,10 @@ export function hookPayloadTopLevelKeys(payload: unknown): string[] {
 }
 
 /**
- * Per-spawn active-scope pin keys (#4393). Host-visible, non-dest.
- * Prompt and description are never pins. Extra dest keys stay occupancy-deny.
+ * Per-spawn active-scope pin keys (#4393). Optional extras when the host
+ * forwards them. Grok's forwarded channel is occupancy-validated dest cwd
+ * (unique dest active basename). Prompt and description are never pins.
+ * Extra dest keys stay occupancy-deny.
  */
 export const SPAWN_SCOPE_PIN_KEYS = [
   "boundPath",
