@@ -160,6 +160,9 @@ describe("init-deposit scaffold", () => {
     expect(ensureTaskfile(project, io)).toBe(true);
     const taskfile = readFileSync(join(project, "Taskfile.yml"), "utf8");
     expect(taskfile).toContain(CANONICAL_TASKFILE_INCLUDE);
+    expect(taskfile).toContain("task deft:check");
+    expect(taskfile).toContain("#3218");
+    expect(taskfile).not.toContain("available from the project root");
     expect(ensureTaskfile(project, io)).toBe(false);
   });
 
