@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.117.0] - 2026-09-11
+
+> Release-cut occupancy, check-class cache_fresh, 8-hour ritual default, dest-proven Grok spawn pin, and setup/docs-impact/update dry-run fixes.
+
+### Added
+
 - **`plan.acceptance` fields `verify:ac` requires, in one place (#4380).** `content/docs/plan-acceptance.md` names `none_stated`, `source_rung`, `ambiguity_attestation`, and operator-collected `file_scope` for derived-stamp bind. Derivation owns the stamp; setup stays silent. Missing attestation is skipped `#3323` / `#3360`, not a second `none_found` default. Closes #4380.
 
 ### Changed
@@ -6018,7 +6030,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.116.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.117.0...HEAD
+[0.117.0]: https://github.com/deftai/directive/compare/v0.116.0...v0.117.0
 [0.116.0]: https://github.com/deftai/directive/compare/v0.115.0...v0.116.0
 [0.115.0]: https://github.com/deftai/directive/compare/v0.114.0...v0.115.0
 [0.114.0]: https://github.com/deftai/directive/compare/v0.113.2...v0.114.0

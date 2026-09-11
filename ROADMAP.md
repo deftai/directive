@@ -40,8 +40,20 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1467 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1479 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4393** -- bug(hooks): dest-proven Grok implement spawn still hits #4007 on primary leftover actives; spawn cannot pass the story pin -- `[completed]`
+- **#4380** -- bug(setup,verify-ac): plan.acceptance requires fields no skill documents — setup-generated scopes fail verify:ac closed, then verify nothing (0 verified / N unverifiable) -- `[completed]`
+- **#4399** -- bug(session,release): session:ready reports OK while cache_fresh is dirty, then task release Step 5 fails -- `[completed]`
+- **#4266** -- bug(session,release): session:start cannot pass primaryClaimException=release-cut -- `[completed]`
+- **#4406** -- feat(session): default sessionRitualStalenessHours 4 to 8 -- `[completed]`
+- **#4374** -- bug(setup,scope): Phase 3 emits acceptance criteria as a non-derivable narrative, so scope:activate fails closed (#3334) on freshly-generated scopes -- `[completed]`
+- **#4379** -- bug(tasks,installer): the deposited consumer Taskfile namespaces the deft include, so every documented "task check" / "task scope:*" invocation fails (exit 200 = task not found) -- `[completed]`
+- **#4391** -- docs(design-critique): Grok critic spawn from primary fails two ways; dest-rooted grok CLI is the working seat -- `[completed]`
+- **#4390** -- bug(setup): same-session greenfield Phase 3 defaults to Add-scope and never asks what to build -- `[completed]`
+- **#4356** -- BLOCKER: 0.115.0 consumer docs-impact task references source-only packages/core path -- `[completed]`
+- **#4389** -- deft update --dry-run fails closed with C3 live-procedure target validation error (25 unresolved helper targets) instead of printing a plan -- `[completed]`
+- **#4361** -- refactor(design-critique): retire "recut"; the spec source at ingest is the Bound-remedy heading -- `[completed]`
 - **#4362** -- bug(hooks,cursor): dest-missing deny after #4295 still omits dest-placing recovery -- `[completed]`
 - **#4365** -- Grok Build design-critique Claude/Codex spawn recipe is missing; agents fail starting the CLI -- `[completed]`
 - **#3452** -- feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push -- `[completed]`
@@ -55,16 +67,4 @@ _Showing 25 of 1467 completed scopes (newest first). Full history: lifecycle `co
 - **#4310** -- bug(dev): clean master fails deterministic development-readiness gates -- `[completed]`
 - **#4321** -- bug(hooks,cursor): preflight-loop parallel review Task spawns denied — implement-class gate + no worktree destination -- `[completed]`
 - **#4324** -- bug(docs,skills): #1704 leftover -- CONTRIBUTING and pre-PR still force full task check per commit -- `[completed]`
-- **#4291** -- bug(session,branch-policy): no checkout or branch signal at mutation time -- a whole session landed on the primary checkout on a merged branch 64 behind main, and the worktree remedy needs six undocumented commands -- `[completed]`
-- **#4271** -- BLOCKER: bug(update): seeded xBRIEF stamps require a two-pass compatibility migration -- `[completed]`
-- **#4295** -- rfc(swarm,cursor): envelope when Task cannot prove a local worktree dest -- `[completed]`
-- **#4293** -- bug(pr,docs-impact): custom --body-file PRs skip the template declaration and fail merge-gate -- `[completed]`
-- **#4309** -- bug(design-critique): parent In plain English is an abbreviation, not the problem-and-solution reading -- `[completed]`
-- **#4279** -- bug(hooks,cursor): implement-class Task deny names dest fields Cursor Task cannot pass; explore recovery omitted -- `[completed]`
-- **#4308** -- bug(design-critique): yolo does not confirm an all-accept lean, so parents wait after empty disagreement -- `[completed]`
-- **#4296** -- feat(design-critique): every arc is GitHub-only and starts in an arc worktree from origin/default -- `[completed]`
-- **#4289** -- bug(greptile-detector): new HTML summaries omit Last reviewed commit; SHA-match holdout stalls every review consumer -- `[completed]`
-- **#4286** -- bug(swarm,grok-build): parent-to-child steer must be a Directive inbox; host supplies no child prompt -- `[completed]`
-- **#4298** -- feat(design-critique): exclusive chips mechanism-shaped, in-progress, ingest-ready, decisions-needed -- `[completed]`
-- **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[completed]`
 
