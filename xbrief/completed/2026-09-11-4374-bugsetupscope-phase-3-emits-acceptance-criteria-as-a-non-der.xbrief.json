@@ -1,0 +1,182 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4374",
+    "updated": "2026-09-11T18:02:55Z"
+  },
+  "plan": {
+    "title": "bug(setup,scope): Phase 3 emits acceptance criteria as a non-derivable narrative, so scope:activate fails closed (#3334) on freshly-generated scopes",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(setup,scope): Phase 3 emits acceptance criteria as a non-derivable narrative, so scope:activate fails closed (#3334) on freshly-generated scopes",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4374",
+      "Overview": "**TL;DR: Phase 3 of `deft-directive-setup` writes scope xBRIEFs whose acceptance criteria live in a `narratives.AcceptanceCriteria` string of bare prose lines. #3360 wired #3323 clause derivation into `scope:activate` / `scope:promote`, but the extractor only reads a `## Acceptance Criteria` section containing list items, or `test:` / `acceptance:`-labeled lines — bare prose derives 0 clauses. `applyClauseDerivationToPlan` then no-ops with an *empty* notice, leaves `plan.acceptance` absent, and `scope:activate` fails closed with #3334's message \"stamp plan.acceptance via clause derivation (scope:activate / scope:promote runs #3323)\" — naming the step that just silently did nothing. Net effect: every scope a greenfield consumer generates is un-activatable until the agent hand-authors `plan.acceptance`, which is the same-author path #3360 was filed to close.**\n\n## Evidence\n\n`@deftai/directive@0.115.0` (engine `@deftai/directive-core@0.115.0`), fresh `directive init` + setup Phase 3 on a greenfield Go project.\n\n- Phase 3 produced **7** scope xBRIEFs. Each carries `narratives.AcceptanceCriteria` as **bare prose lines** — no heading, no list markers, no `test:` labels. `plan.acceptance` is **absent on all 7**.\n- `deft scope:promote -- xbrief/proposed/2026-09-11-core-engine.xbrief.json` → succeeded **silently**: no stamp, no notice. (So the promote half of #3360 surfaces nothing either.)\n- `deft scope:activate -- xbrief/pending/2026-09-11-core-engine.xbrief.json` → non-zero:\n\n```\nRefusing activate: narratives contain acceptance-shaped keys (AcceptanceCriteria) but\nplan.acceptance is absent (#3334). Stamp plan.acceptance via clause derivation\n(scope:activate / scope:promote runs #3323 ...)\n```\n\n- Calling the wired derivation path directly on the original brief:\n\n```\napplyClauseDerivationToPlan(plan) ->\n  applied: false | clauses derived: 0\n  notice: \"\"                        <-- empty, so promote/activate print nothing\n  plan.acceptance: ABSENT (unchanged)\n```\n\n`collectTaskStatementFromPlan(plan)` returns **1037 chars** for that brief, so the statement is present — the extractor simply cannot read the shape it was handed.\n\n- Shape matrix for the same 5 criteria (`deriveAcceptanceClauses`):\n\n| narrative shape | clauses |\n|---|---|\n| bare prose lines — **what Phase 3 emits** | **0** |\n| `## Acceptance Criteria` + bare prose lines | **0** |\n| bare `- ` bullets, no heading | **0** |\n| `## Acceptance Criteria` + `- ` bullets | 5 |\n| `## Acceptance Criteria` + `1.` numbered | 5 |\n| `test: <line>` labels | 5 |\n| `acceptance: <line>` labels | 5 |\n\n- `grep -i acceptance` across `skills/`: **no** skill mentions `AcceptanceCriteria` or `plan.acceptance`. `deft-directive-setup` Phase 3 enumerates `Requirements` / `Traces` for scope narratives and never says where acceptance criteria belong. `deft-directive-interview` \"Rule 5: Default Acceptance\" is about accepting a menu option, not acceptance criteria. So the agent invents the key — and the invented key is exactly the one #3334 fires on.\n\n## Fix (thin — 1 and 2 are complementary)\n\n1. **Setup skill**: state the acceptance contract for Phase 3 scope xBRIEFs. Either emit `plan.acceptance: { \"none_stated\": true }` at write time (derivation then engages and stamps clauses), **or** prescribe a derivable narrative shape (`## Acceptance Criteria` + `- ` list items, or `test:`-labeled lines) and say explicitly that a bare-prose acceptance narrative is not derivable.\n2. **Engine**: when `deriveAcceptanceClauses` yields 0 clauses from a brief that carries acceptance-shaped narratives, do not silently no-op. Surface a cause naming the unparseable shape and the accepted shapes — as the #3334 refusal message, or as a promote/activate notice. Today the refusal blames the missing field and names a remedy that no-ops, which pushes the agent straight back to hand-authoring `plan.acceptance`.\n3. Optional: `scope:promote` should surface the derivation outcome. A promote that stamps nothing is currently indistinguishable from one that had nothing to do.\n\n## Acceptance sketch\n\n- A Phase 3-generated scope xBRIEF activates **without** hand-editing `plan.acceptance` (clauses derived), **or** fails with a cause that names the non-derivable narrative shape and the accepted shapes.\n- Fixture: the 5-criteria bare-prose narrative above; assert `deriveAcceptanceClauses` either yields clauses or the activate refusal cites the shape.\n- No silent path where promote/activate derive 0 clauses and print nothing.\n\nRelates #3334 (the fail-closed gate — working as designed), #3360 (branch-3 derivation wiring — this is the setup-path edge it misses), #3323 (extraction/derivation), #3284 (product-first done-gate), #4373 (companion report from the same session: gate output states pass/fail but not why).\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @visionik (2026-09-11T05:35:38Z)\n\nSame root, two more failure modes: **#4380**. After fixing the narrative→`plan.acceptance.clauses` shape described here, `task check` still failed closed on `verify:ac config error: missing ambiguity attestation` — a field required by `evaluateAmbiguityAttestation` (#3559) that appears in no skill, template, or content file. Adding it makes the gate pass, but the clause walk then reports `0 verified, 5 unverifiable — no artifact path bound`, because derived clauses need a declared `plan.metadata.swarm.file_scope` that setup also never writes. So setup Phase 3 has three ways to produce an unusable acceptance block, not one.\n\n### Comment by @MScottAdams (2026-09-11T14:39:02Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because setup Phase 3 writes an acceptance-shaped narrative the #3323 extractor cannot parse, so applyClauseDerivationToPlan no-ops with an empty notice and scope:activate then fails closed on #3334 naming the step that just did nothing.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4374-dc\norigin-ref: origin/master\ndispatch-sha: d8f17719e3538d1a0ab695c442477a4151c943b9\n\ncharter: open critique\nspend: N=1\nspend-why: default motion; skill-vs-engine remediations and first-run setup blast radius permit N>=3; operator did not request a panel.\n\nrefutation-target: Phase 3 emits narratives.AcceptanceCriteria as bare prose; deriveAcceptanceClauses yields 0 from that shape; applyClauseDerivationToPlan returns applied false and an empty notice; scope:activate then refuses on #3334 because AcceptanceCriteria is an acceptance-shaped key and plan.acceptance is absent.\n\ntarget: #4374\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This issue is mechanism-shaped: the write-path narrative shape, the extractor, and the fail-closed activate message are one contract, not three independent bugs. Companion #4380 is cited on the thread (comment 5629989716) and is not this target. Voluntary critiques stay legal; the stamp is for the mandatory gate match.\n\nMeasured on pin d8f17719e3538d1a0ab695c442477a4151c943b9:\n\n- NARRATIVE_KEYS includes AcceptanceCriteria (`packages/core/src/intake/clause-derivation.ts`).\n- applyClauseDerivationToPlan: if derived clauses.length === 0, return applied false, notice \"\".\n- content/skills/deft-directive-setup/SKILL.md has no AcceptanceCriteria or plan.acceptance token (grep this session).\n- REST: issue open; one author comment 5629989716 pointing at #4380. Stage A triage:evaluate not re-run this pass (prior 4391 ghx auth miss).\n\nThis session did not re-run a live 0.115.0 Phase 3 consumer or the 5-shape matrix. Extractor/skill/activate-message wiring on the pin is the measured basis.\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:46:29Z)\n\nmodel: grok-4.6\r\nrole: critic\r\n\r\npin: d8f17719e3538d1a0ab695c442477a4151c943b9\r\nceiling: 5636118149\r\nround: 1\r\ncharter: open critique\r\n\r\n## 1. Write-time `none_stated` opens activate with zero clauses\r\nclass: blocks-the-design\r\n\r\nEvidence. On this pin, `needsClauseDerivation(undefined)` is already true (`clause-derivation.test.ts`). `runTransition` already calls `applyClauseDerivationToPlan` on promote and activate before `evaluateAcceptanceActivateGate`. When `deriveAcceptanceClauses` returns 0, `applyClauseDerivationToPlan` returns `applied: false`, `notice: \"\"`, and leaves `plan.acceptance` unchanged. `evaluateAcceptanceActivateGate` treats a schema-valid block as enough; the test \"allows activate when plan.acceptance is already stamped\" uses `{ commands: [], none_stated: true, source_rung: \"project_floor\" }` against an acceptance-shaped narrative. `validatePlanAcceptance({ none_stated: true })` is empty: empty commands are legal once `none_stated` is true.\r\n\r\nFailure mode. Fix item 1's first branch (\"emit `plan.acceptance: { none_stated: true }` at write time (derivation then engages and stamps clauses)\") does not stamp clauses from the Phase 3 shape. Derivation already engages on an absent block. The write only changes the gate: activate exits 0 with 0 clauses. The #3334 message that names the derivation step never fires. Promote stays silent because notice is still empty.\r\n\r\nDisposition. This design cannot bind while that branch remains a listed remedy. A write-time `none_stated` floor is not a derive-and-stamp. Keep `none_stated` as a field the engine sets when it actually stamps (`applyClauseDerivationToPlan` already sets `none_stated: true` and `source_rung: \"derived\"` on a successful 0-command stamp).\r\n\r\n## 2. The acceptance-sketch OR undercuts the write-path claim\r\nclass: sharpens-framing\r\n\r\nEvidence. The body says remediations 1 and 2 are complementary, then the acceptance sketch allows either: Phase 3 output activates with clauses derived, or activate names the undervable shape. Engine-only named-shape notice (item 2) satisfies the second arm while Phase 3 still emits `narratives.AcceptanceCriteria` as bare prose. Re-ran the pin extractor on five behavioral lines (no path tokens): bare prose 0, heading plus bare prose 0, bare `- ` bullets 0, heading plus `- ` bullets 5, heading plus numbered 5, `test:` 5, `acceptance:` 5. Same counts as the issue table. `fidelity.ts` `taskScopeNarratives` already writes `narratives.AcceptanceCriteria` as `- ` lines with no heading; that shape also yields 0.\r\n\r\nFailure mode. A notice-only bind leaves the greenfield write path un-activatable until a human or agent rewrites the narrative. That is still a hand edit, just of a different field than `plan.acceptance`. The TL;DR's \"without hand-authoring `plan.acceptance`\" is then true only as a gate-message change.\r\n\r\nDisposition. Bind needs one write-path contract (what Phase 3 emits) and one engine contract (0 clauses from an acceptance-shaped key is not a silent no-op). Complementary is the pair, not an or. The notice half is still required: promote today prints nothing when derivation no-ops, and the activate refusal names the step that just returned empty.\r\n\r\n## 3. The JSON key is already the section delimiter\r\nclass: sharpens-framing\r\n\r\nEvidence. `collectStatementSurface` finds clauses from (a) `findAcHeading` plus `parseListItems`, (b) `SECTION_HEADING` (`acceptance` / `acceptance criteria` / `acceptance sketch` / `fix`) plus list items, (c) `test:` / `acceptance:` / `acceptancecriteria:` lines, else (d) path-bearing list items over the whole blob. `collectTaskStatementFromPlan` concatenates title, every `NARRATIVE_KEYS` string (including Overview, Requirements-adjacent extras, ImplementationPlan), then remaining narrative strings, then item text. The extractor never reads `narratives.AcceptanceCriteria` as its own declared surface. `#3826` already prefers `plan.items` as a declared surface so an untrusted statement scrape cannot become the gate. `ACCEPTANCE_SHAPED_KEYS` on the activate gate is only `test` / `acceptancecriteria` / `verification` after normalize. `NARRATIVE_KEYS` also includes `Acceptance`, `Acceptance sketch`, and `AcceptanceSketch`, which do not trip the gate.\r\n\r\nFailure mode. Prescribing `## Acceptance Criteria` plus `- ` list items inside the string asks the skill to duplicate a heading the key already is. Agents that follow Phase 3's actual tokens (`Requirements`, `Traces`) never hit the gate; agents that invent `AcceptanceCriteria` do. Agents that invent `Acceptance` (a derivation key, not a gate key) skip activate and still stamp nothing. Widening `collectStatementSurface` to split all concatenated prose would turn Overview / Requirements lines into clauses.\r\n\r\nDisposition. If Phase 3 keeps an acceptance-shaped narrative key, parse that field (and `Test` / `Verification`) as declared surface — list items, else labeled lines — the same way `#3826` prefers `plan.items`. Do not scrape the concatenated blob for bare prose. Align the gate key set with the keys the skill is told to write, or the skill will keep missing the fail-closed path.\r\n\r\n## 4. Shared `plan.acceptance` shape with #4380 — do not fold\r\nclass: sharpens-framing\r\n\r\nEvidence. In-ceiling comment 5629989716 points at #4380. On this pin, a successful `applyClauseDerivationToPlan` already writes `ambiguity_attestation: \"none_found\"` when no clause has readings (`clause-derivation.test.ts`). `buildClause` stores `artifact_path: null` (#3835). `bindClausesToDeclaredScope` no-ops when `plan.metadata.swarm.file_scope` is empty; `shouldApplyPromoteClauseFileScopeBind` runs only when `source_rung === \"derived\"`. Setup Phase 3 on this pin tells the agent to write `plan.metadata.swarm.depends_on` and never `file_scope`.\r\n\r\nFailure mode. A #4374 bind that claims \"clauses derived, activate green\" produces the exact #4380 input: stamped clauses, attestation already filled by the quality path, every clause unbound, later `0 verified, N unverifiable`. A #4374 bind that writes `none_stated` without clauses (finding 1) produces a different #4380 miss: activate green, then empty / missing-attestation at `verify:ac`. Either write is a schema event #4380 has to consume.\r\n\r\nDisposition. This issue stops at: derivable write shape, and 0-clause from an acceptance-shaped key is a named refusal. It does not document or emit `file_scope`, and it does not grow a second attestation writer. Name the exact `plan.acceptance` fields a successful #3323 stamp already writes (`commands`, `none_stated`, `source_rung`, `derived_reason`, `clauses`, `ambiguity_attestation`) so #4380 can compose. Do not take #4380's `task check` green as this issue's success.\r\n\r\n## 5. Table overclaim and unquoted fixture\r\nclass: footnote\r\n\r\nThe \"bare `- ` bullets, no heading → 0\" row is true for behavioral lines with no path token. Pin test `falls back to Fix lists and path-bearing bullets` already extracts a heading-less `- Write CHANGELOG.md under Unreleased` bullet. The issue never quotes the five criteria; the table is a shape claim, not a pinned fixture. \"Every scope a greenfield consumer generates is un-activatable\" is also overstated: Overview / Requirements / Traces alone do not trip `evaluateAcceptanceActivateGate`. The live miss is the invented `AcceptanceCriteria` key colliding with that gate. Setup Phase 3 on this pin enumerates Requirements and Traces and does not mention `AcceptanceCriteria` or `plan.acceptance`. `deft-directive-build` does mention `plan.acceptance.commands`; the \"no skill mentions\" grep is setup-true, not skills-true.\r\n\r\n## Injection / swarm\r\n\r\nThe target changes a fail-closed activate gate, turns setup-authored narrative into `plan.acceptance.clauses`, and shares that block with #4380.\r\n\r\n- Activate. A process-only stamp that is schema-valid is enough to pass the gate. Swarm Phase 0 Step 0.5 (setup Lifecycle Bridge) will promote then activate those briefs on operator approval. Opening the gate with 0 clauses is a silent skip of #3334, not a named refusal.\r\n- Untrusted narrative. Phase 3 text is operator-confirmed LLM output, then concatenated into the statement the extractor reads. #3826 exists because statement scrape is the untrusted path. A whole-blob bare-prose extractor would let Overview / Requirements / a later comment-shaped string become clauses. A declared-key parse (finding 3) stays inside the field the author labeled. Derived clauses still bind no path (#3835); they must not become a filesystem oracle without `file_scope` (that bind is #4380 / #4008).\r\n- Shared plan. Finding 4. Do not fold.\r\n\r\nClosing any of the above with \"a reviewer would catch it\" is not a control. The control is: do not write a valid empty floor to pass activate; do not scrape undeclared narrative keys; keep #4380's fields off this stamp.\r\n\r\n## Inventory (existing mechanisms)\r\n\r\n- `applyClauseDerivationToPlan` / `needsClauseDerivation` — already the promote/activate derive step (#3360). Empty notice on 0 clauses is the miss, not a missing call.\r\n- `deriveAcceptanceClauses` / `findAcHeading` / labeled prefixes / path-bearing fallback — accepted shapes already exist. Heading plus list, or `test:` / `acceptance:` lines, already stamp.\r\n- `collectPlanItemAcceptanceSurface` — if Phase 3 put criteria in `plan.items` titles, that surface wins and stamps. Setup currently leaves items empty on PROJECT-DEFINITION and does not tell scope writes to use items as AC.\r\n- `taskScopeNarratives` in `fidelity.ts` — already emits bullet `AcceptanceCriteria` without a heading (0 clauses unless a path token selects a bullet).\r\n- `evaluateAcceptanceActivateGate` / `ACCEPTANCE_SHAPED_KEYS` — fail-closed on invented keys, not on Requirements/Traces.\r\n- `applyClauseQualityToPlan` — already attests `none_found` on a successful derive. Do not re-own that in this issue.\r\n- `stampDerivedClausesOnAcceptance` requires `none_stated === true` and then still calls `deriveAcceptanceClauses`. Activate/promote do not call it; they call `applyClauseDerivationToPlan`. That is the steelman for write-time `none_stated`, and it does not hold on this path.\r\n\r\n## Road not taken\r\n\r\nChose declared-key parse plus named 0-clause notice over (a) write-time `none_stated` and (b) whole-statement bare-prose split. (a) fails closed as finding 1. (b) fails the #3826 untrusted-statement rule.\r\n\r\nSteelman for skill-only heading-plus-list, no engine change: cheapest, uses the extractor as written. What would flip: a later hand-authored brief with the same bare-prose key still silent-no-ops on promote and still hits #3334 naming the no-op. That is why the engine notice stays in the pair, and why it is not the whole pair.\n\n\n### Comment by @MScottAdams (2026-09-11T14:47:36Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nSetup Phase 3 writes an invented AcceptanceCriteria narrative the extractor cannot parse. Promote derives 0 clauses and prints nothing. Activate then fails closed on #3334 naming the step that just no-op'd.\n\nIf this map is confirmed, the next-build is not write-time none_stated (that opens activate with 0 clauses) and not an or between skill shape and engine notice. Phase 3 must emit a derivable declared-key surface, and 0 clauses from an acceptance-shaped key must be a named refusal. Do not fold #4380. Do not scrape Overview into clauses.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4374 after round 1 critic 5636214675. Supersedes write-back 5636118149.\n\nTarget-digest: sha256:cc69e2de91050c303f9c357d34eab4be498bf50ef163895717c179c3f40bdf80\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4374-dc\norigin-ref: origin/master\ndispatch-sha: d8f17719e3538d1a0ab695c442477a4151c943b9\n\nTakes:\n\n- 5636214675 1. Write-time none_stated opens activate with zero clauses — accept-into-contract\n- 5636214675 2. The acceptance-sketch OR undercuts the write-path claim — accept-into-contract\n- 5636214675 3. The JSON key is already the section delimiter — accept-into-contract\n- 5636214675 4. Shared plan.acceptance shape with #4380 — do not fold — accept-into-contract\n\n## Bound remedy\n\n- Do not bind write-time `plan.acceptance: { none_stated: true }` as a derive-and-stamp. Derivation already engages on an absent block. That write opens activate with 0 clauses and never fires the #3334 message.\n- Complementary pair, not an or: (a) Phase 3 write-path contract for a derivable declared-key surface, and (b) engine: 0 clauses from an acceptance-shaped key is a named refusal / promote notice, not a silent no-op.\n- If Phase 3 keeps an acceptance-shaped narrative key, parse that field (and Test / Verification) as declared surface — list items, else labeled lines — the same way #3826 prefers plan.items. Do not scrape the concatenated blob for bare prose. Align ACCEPTANCE_SHAPED_KEYS with the keys the skill is told to write.\n- This issue stops at derivable write shape plus named 0-clause refusal. It does not emit file_scope or a second attestation writer. Name the fields a successful #3323 stamp already writes (commands, none_stated, source_rung, derived_reason, clauses, ambiguity_attestation) so #4380 can compose. Do not take task check green as this issue's success.\n- Keep none_stated as a field the engine sets when it actually stamps. CHANGELOG.\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:47:48Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | NARRATIVE_KEYS includes AcceptanceCriteria | git show pin packages/core/src/intake/clause-derivation.ts | measured |\n| 2 | applyClauseDerivationToPlan returns applied false, notice \"\" when clauses.length === 0 | git show same file | measured |\n| 3 | setup SKILL.md has no AcceptanceCriteria or plan.acceptance token | grep content/skills/deft-directive-setup/SKILL.md this session | measured |\n| 4 | Extractor: heading+list or test:/acceptance: yields clauses; bare prose / heading+bare / bare bullets yield 0 | critic re-ran pin extractor on five behavioral lines; parent did not re-invoke this pass | endorsed |\n| 5 | evaluateAcceptanceActivateGate allows { commands: [], none_stated: true } against an acceptance-shaped narrative | critic cite pin test; parent did not re-run that test this pass | endorsed |\n| 6 | Successful applyClauseDerivationToPlan already writes ambiguity_attestation none_found | git show clause-derivation.ts applyClauseQuality / critic cite test | endorsed |\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:48:05Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nPhase 3 writes an acceptance-shaped narrative the extractor cannot parse, so activate fails closed after a silent derive no-op. The accepted next-build is a derivable declared-key write plus a named 0-clause refusal, not write-time none_stated and not a notice-only or. #4380 stays a separate compose.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5636229698 and verified-claims table 5636232418.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1. Round 1 complete, N=1, critic 5636214675, ceiling 5636118149. Operator yolo-standing on the launching utterance.",
+      "Labels": "bug, agent-experience, area:skills, area:vbrief, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind write-time `plan.acceptance: { none_stated: true }` as a derive-and-stamp. Derivation already engages on an absent block. That write opens activate with 0 clauses and never fires the #3334 message.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/clause-derivation.test.ts#none_stated stamp on successful derive",
+          "recorded_at": "2026-09-11T17:58:58Z",
+          "recorded_by": "4374-leaf-implementation"
+        }
+      },
+      {
+        "title": "Complementary pair, not an or: (a) Phase 3 write-path contract for a derivable declared-key surface, and (b) engine: 0 clauses from an acceptance-shaped key is a named refusal / promote notice, not a silent no-op.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/clause-derivation.test.ts#0-clause named notice; content/skills/deft-directive-setup/SKILL.md Phase 3 write shape",
+          "recorded_at": "2026-09-11T17:58:58Z",
+          "recorded_by": "4374-leaf-implementation"
+        }
+      },
+      {
+        "title": "If Phase 3 keeps an acceptance-shaped narrative key, parse that field (and Test / Verification) as declared surface — list items, else labeled lines — the same way #3826 prefers plan.items. Do not scrape the concatenated blob for bare prose. Align ACCEPTANCE_SHAPED_KEYS with the keys the skill is told to write.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/clauses.test.ts#collectDeclaredAcceptanceNarrativeSurface",
+          "recorded_at": "2026-09-11T17:58:58Z",
+          "recorded_by": "4374-leaf-implementation"
+        }
+      },
+      {
+        "title": "This issue stops at derivable write shape plus named 0-clause refusal. It does not emit file_scope or a second attestation writer. Name the fields a successful #3323 stamp already writes (commands, none_stated, source_rung, derived_reason, clauses, ambiguity_attestation) so #4380 can compose. Do not take task check green as this issue's success.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/clause-derivation.test.ts#stamp fields commands none_stated source_rung derived_reason clauses ambiguity_attestation",
+          "recorded_at": "2026-09-11T17:58:58Z",
+          "recorded_by": "4374-leaf-implementation"
+        }
+      },
+      {
+        "title": "Keep none_stated as a field the engine sets when it actually stamps. CHANGELOG.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md#[Unreleased] Fixed; packages/core/src/intake/clause-derivation.test.ts#none_stated on stamp",
+          "recorded_at": "2026-09-11T17:58:58Z",
+          "recorded_by": "4374-leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills",
+      "area:vbrief",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4374",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4374: bug(setup,scope): Phase 3 emits acceptance criteria as a non-derivable narrative, so scope:activate fails closed (#3334) on freshly-generated scopes"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "plan.acceptance: { none_stated: true }",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5420716624,
+        "origin": "deftai/directive#4374",
+        "id": "github.issue.5420716624"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "cc69e2de91050c303f9c357d34eab4be498bf50ef163895717c179c3f40bdf80"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4407,
+        "prBase": null,
+        "mergeCommit": "a98fe43d6a0b889ba92a5d9ee8d60a03b5b0fb3e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a98fe43d6a0b889ba92a5d9ee8d60a03b5b0fb3e",
+        "verifiedAt": "2026-09-11T18:02:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkxMGYtZDc1Zi03ZTMyLWIwYWItYjFlN2I4YmEwYjZi"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T18:02:55Z"
+      },
+      "completedAt": "2026-09-11T18:02:55Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkxMGYtZDc1Zi03ZTMyLWIwYWItYjFlN2I4YmEwYjZi",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind write-time `plan.acceptance: { none_stated: true }` as a derive-and-stamp. Derivation already engages on an absent block. That write opens activate with 0 clauses and never fires the #3334 message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Complementary pair, not an or: (a) Phase 3 write-path contract for a derivable declared-key surface, and (b) engine: 0 clauses from an acceptance-shaped key is a named refusal / promote notice, not a silent no-op.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "If Phase 3 keeps an acceptance-shaped narrative key, parse that field (and Test / Verification) as declared surface — list items, else labeled lines — the same way #3826 prefers plan.items. Do not scrape the concatenated blob for bare prose. Align ACCEPTANCE_SHAPED_KEYS with the keys the skill is told to write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "This issue stops at derivable write shape plus named 0-clause refusal. It does not emit file_scope or a second attestation writer. Name the fields a successful #3323 stamp already writes (commands, none_stated, source_rung, derived_reason, clauses, ambiguity_attestation) so #4380 can compose. Do not take task check green as this issue's success.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep none_stated as a field the engine sets when it actually stamps. CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5420716624",
+    "updated": "2026-09-11T18:02:55Z"
+  }
+}
