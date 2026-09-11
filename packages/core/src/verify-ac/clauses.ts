@@ -198,7 +198,7 @@ function collectSectionItems(text: string, headingRe: RegExp): string[] {
         sectionStart: offset + line.length + 1,
       });
       for (const item of parseListItems(section)) {
-        const title = normalizeClauseText(item.title.replace(/\*\*/g, ""));
+        const title = normalizeClauseText(stripInlineMarkdownBold(item.title));
         if (title.length > 0 && !isMetaClause(title)) {
           items.push(title);
         }
@@ -239,7 +239,7 @@ function collectLabeledLines(text: string): string[] {
 function collectPathBearingLines(text: string): string[] {
   const items: string[] = [];
   for (const item of parseListItems(text)) {
-    const title = normalizeClauseText(item.title.replace(/\*\*/g, ""));
+    const title = normalizeClauseText(stripInlineMarkdownBold(item.title));
     if (title.length === 0 || isMetaClause(title)) {
       continue;
     }
@@ -274,7 +274,7 @@ export function collectPlanItemAcceptanceSurface(plan: Record<string, unknown>):
     if (!isNonEmptyString(source)) {
       continue;
     }
-    const line = normalizeClauseText(source.replace(/\*\*/g, ""));
+    const line = normalizeClauseText(stripInlineMarkdownBold(source));
     const key = line.toLowerCase();
     if (line.length === 0 || isMetaClause(line) || seen.has(key)) {
       continue;
@@ -283,6 +283,14 @@ export function collectPlanItemAcceptanceSurface(plan: Record<string, unknown>):
     lines.push(line);
   }
   return lines;
+}
+
+/**
+ * Strip `**` bold markers so clause text can match the authored field.
+ * Do not strip `__` — dunder tokens such as `__init__` are identifiers (#4374).
+ */
+export function stripInlineMarkdownBold(text: string): string {
+  return text.replace(/\*\*/g, "");
 }
 
 /** Narrative keys the activate gate and declared-key parse share (#3334 / #4374). */
@@ -332,7 +340,7 @@ export function collectDeclaredAcceptanceNarrativeSurface(
     }
     keys.push(key);
     const fromList = parseListItems(value)
-      .map((item) => normalizeClauseText(item.title.replace(/\*\*/g, "")))
+      .map((item) => normalizeClauseText(stripInlineMarkdownBold(item.title)))
       .filter((title) => title.length > 0 && !isMetaClause(title));
     const parsed = fromList.length > 0 ? fromList : collectLabeledLines(value);
     for (const line of parsed) {
@@ -378,7 +386,7 @@ function collectStatementSurface(text: string): string[] {
   if (acHeading !== null) {
     raw.push(
       ...parseListItems(sliceAcSection(text, acHeading))
-        .map((item) => normalizeClauseText(item.title.replace(/\*\*/g, "")))
+        .map((item) => normalizeClauseText(stripInlineMarkdownBold(item.title)))
         .filter((title) => title.length > 0 && !isMetaClause(title)),
     );
   }

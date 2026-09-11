@@ -17,6 +17,7 @@ import {
   readAcceptanceClauses,
   serializeAcceptanceClauses,
   stampDerivedClausesOnAcceptance,
+  stripInlineMarkdownBold,
   walkAcceptanceClauses,
 } from "./clauses.js";
 
@@ -584,6 +585,17 @@ const PHASE3_LIST_ITEMS = [
   "- Invalid credentials return 401",
   "- CHANGELOG cites the setup write shape",
 ].join("\n");
+
+describe("stripInlineMarkdownBold (#4374)", () => {
+  it("strips bold markers and keeps dunder identifiers", () => {
+    expect(stripInlineMarkdownBold("Login rejects **empty** passwords")).toBe(
+      "Login rejects empty passwords",
+    );
+    expect(stripInlineMarkdownBold("Reject invalid configuration in __init__")).toBe(
+      "Reject invalid configuration in __init__",
+    );
+  });
+});
 
 describe("collectDeclaredAcceptanceNarrativeSurface (#4374)", () => {
   it("parses heading-less list items from AcceptanceCriteria as declared surface", () => {

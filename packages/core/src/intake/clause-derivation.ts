@@ -19,6 +19,7 @@ import {
   formatZeroClauseAcceptanceShapedNotice,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
+  stripInlineMarkdownBold,
 } from "../verify-ac/clauses.js";
 
 /** One-line remediation when a stamp has no statement-traceable clause (#3398). */
@@ -182,9 +183,9 @@ function extractClauseTokens(text: string): string[] {
   return found;
 }
 
-/** Strip bold markers so derived clause text can match the authored field (#4374). */
+/** Same bold strip as declared-key parse so provenance matches clause text (#4374). */
 function stripInlineMarkdownEmphasis(text: string): string {
-  return text.replace(/\*\*/g, "");
+  return stripInlineMarkdownBold(text);
 }
 
 /** Statement-traceable when the clause text or its identifiers appear in the statement. */
