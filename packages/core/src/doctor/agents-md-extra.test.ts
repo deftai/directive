@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readCorePackageVersion } from "../engine-version.js";
 import { agentsRefreshPlan, hasManagedSectionMarker, hasV3ManagedMarker } from "./agents-md.js";
 
 const MANAGED = "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->";
@@ -16,7 +17,7 @@ describe("agents-md extra branches", () => {
     expect(plan.sha).toBe("customsha12");
   });
 
-  it("returns unknown when payload is not own git root (#4118)", () => {
+  it("returns inventory identity when payload is not own git root (#4246)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-nongit-"));
     try {
       const plan = agentsRefreshPlan(root, {
@@ -24,7 +25,8 @@ describe("agents-md extra branches", () => {
         readAgents: () => null,
         frameworkRoot: root,
       });
-      expect(plan.sha).toBe("unknown");
+      expect(plan.sha).toBe(readCorePackageVersion());
+      expect(plan.sha).not.toBe("unknown");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

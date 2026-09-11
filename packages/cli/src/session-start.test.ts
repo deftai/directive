@@ -390,6 +390,7 @@ describe("framework SHA own-git-root (#3914)", () => {
     }).trim();
     const nested = join(parent, "vendor", "framework");
     mkdirSync(nested, { recursive: true });
+    writeFileSync(join(nested, "package.json"), JSON.stringify({ version: "0.104.0" }));
     expect(payloadIsOwnGitRoot(nested)).toBe(false);
     expect(payloadIsOwnGitRoot(parent)).toBe(true);
     const plan = agentsRefreshPlan(nested, {
@@ -399,8 +400,9 @@ describe("framework SHA own-git-root (#3914)", () => {
       newSession: () => "sess0001",
       frameworkRoot: nested,
     });
-    expect(plan.sha).toBe("unknown");
+    expect(plan.sha).toBe("0.104.0");
     expect(plan.sha).not.toBe(parentSha);
+    expect(plan.sha).not.toBe("unknown");
   });
 
   it("own-git-root framework SHA is the short HEAD", () => {
@@ -423,9 +425,10 @@ describe("framework SHA own-git-root (#3914)", () => {
     expect(plan.sha).toBe(head);
   });
 
-  it("current managed section still reports unknown SHA when not own-git-root", () => {
+  it("current managed section reports inventory identity without rewriting (#4246)", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-sha-current-"));
     temps.push(dir);
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ version: "0.104.0" }));
     const plan = agentsRefreshPlan(dir, {
       readTemplate: () => SHA_TEMPLATE,
       readAgents: () => SHA_TEMPLATE,
@@ -434,6 +437,7 @@ describe("framework SHA own-git-root (#3914)", () => {
       frameworkRoot: dir,
     });
     expect(plan.state).toBe("current");
-    expect(plan.sha).toBe("unknown");
+    expect(plan.sha).toBe("0.104.0");
+    expect(plan.new_content).toBe(SHA_TEMPLATE);
   });
 });

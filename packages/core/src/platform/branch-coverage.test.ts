@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { agentsRefreshPlan as doctorAgentsRefreshPlan } from "../doctor/agents-md.js";
+import { readCorePackageVersion } from "../engine-version.js";
 import {
   agentsRefreshPlan,
   frameworkRoot,
@@ -579,7 +580,7 @@ describe("agents-md default-seam (filesystem) branch coverage", () => {
     });
   });
 
-  it("default sha resolver falls back to 'unknown' on a non-repo root", () => {
+  it("default sha resolver uses inventory identity on a non-repo root (#4246)", () => {
     withTempDir((dir) => {
       const plan = agentsRefreshPlan(dir, {
         readTemplate: () => TEMPLATE,
@@ -589,7 +590,8 @@ describe("agents-md default-seam (filesystem) branch coverage", () => {
         frameworkRoot: dir,
       });
       expect(plan.state).toBe("absent");
-      expect(plan.sha).toBe("unknown");
+      expect(plan.sha).toBe(readCorePackageVersion());
+      expect(plan.sha).not.toBe("unknown");
     });
   });
 });
@@ -878,7 +880,7 @@ describe("silent git probes on non-git payload roots (#4118)", () => {
     });
   });
 
-  it("platform resolveFrameworkSha is silent and unknown", () => {
+  it("platform resolveFrameworkSha is silent and uses inventory identity (#4246)", () => {
     withTempDir((dir) => {
       let sha: unknown;
       const leaked = captureStderr(() => {
@@ -890,12 +892,13 @@ describe("silent git probes on non-git payload roots (#4118)", () => {
           frameworkRoot: dir,
         }).sha;
       });
-      expect(sha).toBe("unknown");
+      expect(sha).toBe(readCorePackageVersion());
+      expect(sha).not.toBe("unknown");
       expect(leaked).not.toMatch(GIT_FATAL);
     });
   });
 
-  it("doctor resolveFrameworkSha is silent and unknown", () => {
+  it("doctor resolveFrameworkSha is silent and uses inventory identity (#4246)", () => {
     withTempDir((dir) => {
       let sha: unknown;
       const leaked = captureStderr(() => {
@@ -907,8 +910,151 @@ describe("silent git probes on non-git payload roots (#4118)", () => {
           frameworkRoot: dir,
         }).sha;
       });
-      expect(sha).toBe("unknown");
+      expect(sha).toBe(readCorePackageVersion());
+      expect(sha).not.toBe("unknown");
       expect(leaked).not.toMatch(GIT_FATAL);
+    });
+  });
+});
+
+describe("resolveFrameworkSha inventory identity on writable states (#4246)", () => {
+  const leftoverOpen =
+    "<!-- deft:managed-section v3 sha=089bbf450e1a refreshed=2026-01-01T00:00:00Z session=oldsession01 -->";
+
+  it("stamps package.json version on absent writes, not unknown or leftover git sha", () => {
+    withTempDir((dir) => {
+      writeFileSync(
+        join(dir, "package.json"),
+        JSON.stringify({ name: "@deftai/directive", version: "0.104.0" }),
+      );
+      let leaked = "";
+      let plan: Record<string, unknown> = {};
+      leaked = captureStderr(() => {
+        plan = agentsRefreshPlan(dir, {
+          readTemplate: () => SHA_TEMPLATE,
+          readAgents: () => null,
+          nowIso: () => "2026-01-01T00:00:00Z",
+          newSession: () => "sess0001",
+          frameworkRoot: dir,
+        });
+      });
+      expect(plan.state).toBe("absent");
+      expect(plan.sha).toBe("0.104.0");
+      expect(plan.sha).not.toMatch(/^[0-9a-f]{12}$/);
+      expect(String(plan.attributed_rendered)).toContain("sha=0.104.0");
+      expect(String(plan.new_content)).toContain("sha=0.104.0");
+      expect(String(plan.new_content)).not.toContain("sha=unknown");
+      expect(leaked).not.toMatch(GIT_FATAL);
+    });
+  });
+
+  it("does not preserve a leftover checkout SHA onto npm-rendered stale bytes", () => {
+    withTempDir((dir) => {
+      writeFileSync(
+        join(dir, "package.json"),
+        JSON.stringify({ name: "@deftai/directive", version: "0.104.0" }),
+      );
+      const leftover = `top\n${leftoverOpen}\n## Section\nold\n<!-- /deft:managed-section -->\nbottom`;
+      const plan = agentsRefreshPlan(dir, {
+        readTemplate: () => SHA_TEMPLATE,
+        readAgents: () => leftover,
+        nowIso: () => "2026-01-01T00:00:00Z",
+        newSession: () => "sess0001",
+        frameworkRoot: dir,
+      });
+      expect(plan.state).toBe("stale");
+      expect(plan.sha).toBe("0.104.0");
+      expect(String(plan.new_content)).toContain("sha=0.104.0");
+      expect(String(plan.new_content)).not.toContain("sha=089bbf450e1a");
+      expect(String(plan.new_content)).not.toContain("sha=unknown");
+    });
+  });
+
+  it("uses GENERATION.json contentVersion when package.json version is absent", () => {
+    withTempDir((dir) => {
+      mkdirSync(join(dir, ".deft"), { recursive: true });
+      writeFileSync(
+        join(dir, ".deft", "GENERATION.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          generation: 1,
+          contentVersion: "0.99.1",
+          stampedAt: "2026-09-11T00:00:00Z",
+          stampedBy: "test",
+        }),
+      );
+      const plan = agentsRefreshPlan(dir, {
+        readTemplate: () => SHA_TEMPLATE,
+        readAgents: () => null,
+        nowIso: () => "2026-01-01T00:00:00Z",
+        newSession: () => "sess0001",
+        frameworkRoot: dir,
+      });
+      expect(plan.state).toBe("absent");
+      expect(plan.sha).toBe("0.99.1");
+      expect(String(plan.new_content)).toContain("sha=0.99.1");
+    });
+  });
+
+  it("prefers install package.json over GENERATION.json", () => {
+    withTempDir((dir) => {
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ version: "0.104.0" }));
+      mkdirSync(join(dir, ".deft"), { recursive: true });
+      writeFileSync(
+        join(dir, ".deft", "GENERATION.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          generation: 1,
+          contentVersion: "0.99.1",
+          stampedAt: "2026-09-11T00:00:00Z",
+          stampedBy: "test",
+        }),
+      );
+      const plan = agentsRefreshPlan(dir, {
+        readTemplate: () => SHA_TEMPLATE,
+        readAgents: () => null,
+        nowIso: () => "2026-01-01T00:00:00Z",
+        newSession: () => "sess0001",
+        frameworkRoot: dir,
+      });
+      expect(plan.sha).toBe("0.104.0");
+    });
+  });
+
+  it("own-git-root still stamps short HEAD even when package.json is present", () => {
+    withTempDir((dir) => {
+      execFileSync("git", ["init", "-q"], { cwd: dir, stdio: "ignore", timeout: 10_000 });
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.email=t@example.com",
+          "-c",
+          "user.name=Test",
+          "commit",
+          "--allow-empty",
+          "--no-gpg-sign",
+          "-m",
+          "init",
+        ],
+        { cwd: dir, stdio: "ignore", timeout: 10_000 },
+      );
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ version: "9.9.9" }));
+      const head = execFileSync("git", ["rev-parse", "--short=12", "HEAD"], {
+        cwd: dir,
+        encoding: "utf8",
+        timeout: 10_000,
+      }).trim();
+      expect(payloadIsOwnGitRoot(dir)).toBe(true);
+      const plan = agentsRefreshPlan(dir, {
+        readTemplate: () => SHA_TEMPLATE,
+        readAgents: () => null,
+        nowIso: () => "2026-01-01T00:00:00Z",
+        newSession: () => "sess0001",
+        frameworkRoot: dir,
+      });
+      expect(plan.sha).toBe(head);
+      expect(plan.sha).not.toBe("9.9.9");
     });
   });
 });

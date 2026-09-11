@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readCorePackageVersion } from "../engine-version.js";
 import {
   agentsRefreshPlan,
   attributeRenderManagedSection,
@@ -423,7 +424,8 @@ describe("silent payloadIsOwnGitRoot on non-git roots (#4118)", () => {
         readAgents: () => null,
         frameworkRoot: dir,
       });
-      expect(plan.sha).toBe("unknown");
+      expect(plan.sha).toBe(readCorePackageVersion());
+      expect(plan.sha).not.toBe("unknown");
     } finally {
       process.stderr.write = prev;
       rmSync(dir, { recursive: true, force: true });
