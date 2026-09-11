@@ -1392,6 +1392,11 @@ export function buildIssueVbrief(
       readonly items: readonly Record<string, string>[];
       readonly sourceText: string;
     };
+    /** Permanent alias of specPathHarvest (legacy Recut harvest option). */
+    recutHarvest?: {
+      readonly items: readonly Record<string, string>[];
+      readonly sourceText: string;
+    };
   } = {},
 ): [Record<string, unknown>, string] {
   const number = Number(issue.number);
@@ -1472,7 +1477,7 @@ export function buildIssueVbrief(
     narratives.Labels = labelNames.join(", ");
   }
 
-  const specPathHarvest = options.specPathHarvest;
+  const specPathHarvest = options.specPathHarvest ?? options.recutHarvest;
   const planItemsRaw =
     specPathHarvest !== undefined
       ? specPathHarvest.items.map((item) => ({ title: item.title, status: item.status }))

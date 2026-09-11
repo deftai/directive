@@ -6,17 +6,24 @@
  * module does not classify comments as successor leans.
  */
 
+import { classifyPosition } from "./citation-grammar.js";
 import type { DesignCritiqueCatalogChip } from "./exclusive-chip.js";
 
 /**
  * Path-selector token. Taught spelling is Spec-path:. Recut: is a permanent
  * alias. Nine spellings each: zero to two asterisks independently on each side.
  */
-const SPEC_PATH_TOKEN_RE = /(?:^|\n)\s*\*{0,2}(?:Spec-path|Recut):\*{0,2}/;
+const SPEC_PATH_TOKEN_RE = /(?:^|\n)\s*\*{0,2}(?:Spec-path|Recut):\*{0,2}/g;
 
 /** Ingest path selector: Spec-path: or legacy Recut:, Lean-family wrapping. */
 export function leanCarriesSpecPathToken(body: string): boolean {
-  return SPEC_PATH_TOKEN_RE.test(body);
+  const re = new RegExp(SPEC_PATH_TOKEN_RE.source, SPEC_PATH_TOKEN_RE.flags);
+  for (const match of body.matchAll(re)) {
+    if (classifyPosition(body, match.index ?? 0) === null) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Same predicate as leanCarriesSpecPathToken. Recut: remains a permanent alias. */

@@ -52,6 +52,16 @@ describe("resolveAutoStampCatalogChip (#4298)", () => {
     }
   });
 
+  it("does not treat a fenced Spec-path: or Recut: example as the closed token", () => {
+    const fencedRecut = "**Lean:** next-build is this body.\n\n```\nRecut:\n```\n";
+    const fencedSpec = "**Lean:** next-build is this body.\n\n```\nSpec-path:\n```\n";
+    const quotedRecut = "**Lean:** next-build is this body.\n\n> Recut:\n";
+    expect(leanCarriesSpecPathToken(fencedRecut)).toBe(false);
+    expect(leanCarriesSpecPathToken(fencedSpec)).toBe(false);
+    expect(leanCarriesSpecPathToken(quotedRecut)).toBe(false);
+    expect(leanCarriesRecutToken(fencedRecut)).toBe(false);
+  });
+
   it("does not treat Spec-path: or Recut: inside a Lean: line as the closed token", () => {
     const recutInside = "**Lean:** Recut: this is still lean English, not a Recut line-start.\n";
     const specInside =
