@@ -20,9 +20,7 @@ const DEFAULT_TIMEOUT_MS = 15_000;
  * version. `--registry` does not beat `@deftai:registry` (npm/cli#7659), so
  * the spawn uses a temp cwd plus `--userconfig` that sets the scoped key.
  */
-export function defaultNpmViewVersion(
-  options: NpmViewVersionOptions = {},
-): NpmViewVersionResult {
+export function defaultNpmViewVersion(options: NpmViewVersionOptions = {}): NpmViewVersionResult {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   let dir: string | undefined;
   try {
@@ -35,13 +33,7 @@ export function defaultNpmViewVersion(
     );
     const proc = spawnSync(
       "npm",
-      [
-        "view",
-        NPM_PACKAGE_NAME,
-        "version",
-        `--userconfig=${userconfig}`,
-        "--ignore-scripts",
-      ],
+      ["view", NPM_PACKAGE_NAME, "version", `--userconfig=${userconfig}`, "--ignore-scripts"],
       {
         cwd: dir,
         encoding: "utf8",
