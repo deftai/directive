@@ -23872,7 +23872,7 @@
           }
         ]
       },
-      "allowDirectCommitsToMaster": true,
+      "allowDirectCommitsToMaster": false,
       "agentsMdBudget": {
         "managedMaxLines": 173,
         "unmanagedMaxLines": 162,
