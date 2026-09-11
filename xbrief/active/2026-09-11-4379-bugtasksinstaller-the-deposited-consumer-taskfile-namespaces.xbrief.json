@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "Do not bind the body pick-one menu or the acceptance disjunction as written. A later worker cannot ship option 1 or 3 against #3218 / depListsGate / include-only trust, or option 2 as a blanket task deft: rewrite that 200s in the framework source tree.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4405 pr:watch CLEAN 5/5 P0=0 P1=0 SHA 57f50372e532",
+          "recorded_at": "2026-09-11T16:40:31Z",
+          "recorded_by": "4379-leaf-implementation"
+        }
       },
       {
         "title": "The defect is merge-chokepoint prose (build, pre-pr, preamble, commands.md consumer path) teaching a spelling that does not exist after directive init. Correct MINIMAL_TASKFILE comment regardless.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/scaffold.test.ts wires Taskfile include idempotently",
+          "recorded_at": "2026-09-11T16:40:31Z",
+          "recorded_by": "4379-leaf-implementation"
+        }
       },
       {
         "title": "Name the chokepoint as getting-started and #2893 already do: deft check first, then the tree-correct task form (task deft:check on include-only consumers; task check in framework source). Do not add a fourth probe.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4405 prefer/else chokepoint wording + agents-entry",
+          "recorded_at": "2026-09-11T16:40:31Z",
+          "recorded_by": "4379-leaf-implementation"
+        }
       },
       {
         "title": "Do not treat #3218 namespace isolation as accidental. Unnamespace or root aliases stay out unless a successor lean scopes the contract changes they require.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4405 no unnamespace or root aliases in diff",
+          "recorded_at": "2026-09-11T16:40:31Z",
+          "recorded_by": "4379-leaf-implementation"
+        }
       },
       {
         "title": "CHANGELOG if the comment and chokepoint pointers ship.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md [Unreleased] Fixed #4379",
+          "recorded_at": "2026-09-11T16:40:31Z",
+          "recorded_by": "4379-leaf-implementation"
+        }
       }
     ],
     "tags": [
