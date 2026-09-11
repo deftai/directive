@@ -12,6 +12,8 @@ import {
 } from "@deftai/directive-core/policy";
 import {
   COLD_CEREMONY_TIER,
+  PRIMARY_CLAIM_EXCEPTIONS,
+  type PrimaryClaimException,
   parseDeferrals,
   READ_ONLY_POSTURE,
   REARM_CEREMONY_TIER,
@@ -57,6 +59,11 @@ export interface ParsedSessionStartArgs {
   steal: boolean;
   confirm: boolean;
   occupant: string | null;
+  /**
+   * Trusted primary-claim exception from CLI argv (#4266). Closed enum;
+   * unknown values fail closed (exit 2).
+   */
+  primaryClaimException: PrimaryClaimException | null;
   /** #3611: explicit lifecycle owner injected by a host hook bridge. */
   sessionId: string | null;
   error?: string;
@@ -78,6 +85,16 @@ function parseCeremonyTier(raw: string): SessionCeremonyTier | null {
   return null;
 }
 
+const PRIMARY_CLAIM_EXCEPTION_HELP = PRIMARY_CLAIM_EXCEPTIONS.join("|");
+
+function parsePrimaryClaimException(raw: string): PrimaryClaimException | null {
+  const value = raw.trim();
+  if ((PRIMARY_CLAIM_EXCEPTIONS as readonly string[]).includes(value)) {
+    return value as PrimaryClaimException;
+  }
+  return null;
+}
+
 /** Parse session:start CLI args, mirroring scripts/session_start.py. */
 export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
   const parsed: ParsedSessionStartArgs = {
@@ -95,6 +112,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     steal: false,
     confirm: false,
     occupant: null,
+    primaryClaimException: null,
     sessionId: null,
   };
   const dialInputs: {
@@ -333,6 +351,39 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
       parsed.compact = true;
     } else if (arg === "--steal") {
       parsed.steal = true;
+    } else if (arg === "--primary-claim-exception") {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith("--")) {
+        return {
+          ...parsed,
+          error: `argument --primary-claim-exception: expected one argument (${PRIMARY_CLAIM_EXCEPTION_HELP})`,
+        };
+      }
+      const exception = parsePrimaryClaimException(value);
+      if (exception === null) {
+        return {
+          ...parsed,
+          error: `argument --primary-claim-exception: expected ${PRIMARY_CLAIM_EXCEPTION_HELP}, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.primaryClaimException = exception;
+      i += 1;
+    } else if (arg?.startsWith("--primary-claim-exception=")) {
+      const value = arg.slice("--primary-claim-exception=".length);
+      if (value.length === 0 || value.startsWith("--")) {
+        return {
+          ...parsed,
+          error: `argument --primary-claim-exception: expected one argument (${PRIMARY_CLAIM_EXCEPTION_HELP})`,
+        };
+      }
+      const exception = parsePrimaryClaimException(value);
+      if (exception === null) {
+        return {
+          ...parsed,
+          error: `argument --primary-claim-exception: expected ${PRIMARY_CLAIM_EXCEPTION_HELP}, got ${JSON.stringify(value)}`,
+        };
+      }
+      parsed.primaryClaimException = exception;
     } else if (arg === "--confirm") {
       parsed.confirm = true;
     } else if (arg === "--session-id") {
@@ -439,6 +490,7 @@ export function run(argv: readonly string[]): number {
       steal: args.steal ? true : undefined,
       confirm: args.confirm ? true : undefined,
       occupant: args.occupant ?? undefined,
+      primaryClaimException: args.primaryClaimException ?? undefined,
       sessionId: args.sessionId ?? undefined,
       ...(args.ceremonyDepthOverride !== null
         ? {

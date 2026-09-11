@@ -10,11 +10,17 @@ import { ENV_RUN_SUMMARY_PATH, ENV_TOTAL_TOOL_TURNS } from "../run-summary/types
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import { ENV_MAX_TURNS } from "./effort-budget.js";
 import type { GitRunResult } from "./git.js";
-import { applyWorktreeOccupancy, readOccupancy } from "./occupancy.js";
+import {
+  type ApplyOccupancyInput,
+  applyWorktreeOccupancy,
+  type OccupancyDecision,
+  readOccupancy,
+} from "./occupancy.js";
 import { readRitualState } from "./ritual-sentinel.js";
 import {
   ENV_SESSION_START_NETWORK,
   OPTIONAL_NETWORK_SKIPPED_MESSAGE,
+  READ_ONLY_POSTURE,
   resolveSessionStartOptionalNetwork,
   ritualStatePath,
   runSessionStart,
@@ -977,5 +983,74 @@ describe("runSessionStart mutation HEAD orientation (#4291)", () => {
     expect(text).toContain("HEAD=fix/stale");
     expect(text).toContain("ahead=0");
     expect(text).toContain("behind=64");
+  });
+});
+
+describe("runSessionStart primary-claim exception (#4266)", () => {
+  function occupancyOk(root: string, input: ApplyOccupancyInput): OccupancyDecision {
+    const resolved = input.sessionId ?? "sess";
+    return {
+      action: input.write === false ? "claimed" : "heartbeat",
+      sessionId: resolved,
+      record: null,
+      path: join(root, ".deft", "occupancy.json"),
+      message: `occupancy ${input.write === false ? "preview" : "persist"} ${resolved}`,
+      code: 0,
+    };
+  }
+
+  it("passes the exception on write:true mutation persist and not as steal", () => {
+    const root = tempRoot();
+    const occupancyInputs: ApplyOccupancyInput[] = [];
+    const applyOccupancy = vi.fn(
+      (_projectRoot: string, input: ApplyOccupancyInput): OccupancyDecision => {
+        occupancyInputs.push(input);
+        return occupancyOk(root, input);
+      },
+    );
+
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      sessionId: "host:grok:v1:cmVsZWFzZS1jdXQ",
+      primaryClaimException: "release-cut",
+      applyOccupancy,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+
+    expect(result.code).toBe(0);
+    expect(occupancyInputs.map((input) => input.write)).toEqual([false, true]);
+    const persist = occupancyInputs.find((input) => input.write === true);
+    expect(persist?.primaryClaimException).toBe("release-cut");
+    expect(persist?.steal).not.toBe(true);
+    expect(persist?.write).toBe(true);
+  });
+
+  it("does not call occupancy with write:true on read-only posture", () => {
+    const root = tempRoot();
+    const applyOccupancy = vi.fn();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      posture: READ_ONLY_POSTURE,
+      primaryClaimException: "release-cut",
+      applyOccupancy,
+    });
+    expect(result.code).toBe(0);
+    expect(applyOccupancy).not.toHaveBeenCalled();
+    for (const [, input] of applyOccupancy.mock.calls) {
+      expect(input.write).not.toBe(true);
+    }
+  });
+
+  it("still requires confirm+occupant when steal is set even with the exception", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      sessionId: "host:grok:v1:c3RlYWwtd2l0aG91dC1jb25maXJt",
+      primaryClaimException: "release-cut",
+      steal: true,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(2);
+    expect(result.lines.join("\n")).toContain("occupancy:steal requires --confirm");
   });
 });

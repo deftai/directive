@@ -27,6 +27,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! GitHub as the SCM platform; the **GitHub CLI (`gh`)** must be installed and authenticated. The full pipeline plus the rehearsal target (`task release:e2e`) all dispatch through `gh`.
 
+## Primary occupancy — trusted producer (#4266)
+
+! Mutation `session:start` on a contended primary MUST pass `--primary-claim-exception=release-cut` **before any state-changing preflight command** (`task policy:allow-direct-commits -- --confirm`, reconcile, cache refresh). Occupancy already implements that exception; session:start CLI argv is the trusted producer.
+
+```
+deft session:start --primary-claim-exception=release-cut
+```
+
+or `task session:start -- --primary-claim-exception=release-cut`. Sibling values: `policy-restore`, `operator-default-branch`. Unknown values fail closed (exit 2). `--read-only` never claims.
+
+⊗ Invent a process-wide env producer for the exception.
+⊗ Name the exception in spawn JSON.
+⊗ Run `task policy:allow-direct-commits` (or any other mutation) before mutation `session:start --primary-claim-exception=release-cut` on a contended primary.
+
 ## Branch-Protection Policy Guard
 
 ! Before any Phase 1 state mutation, run the skill-level branch-policy guard documented in `task policy:show` / dual-invoke `deft verify:branch` (#746 / #747). Releases run on the configured base branch (default `master`), so the operator MUST be on the explicit-opt-in side of the policy before the pipeline starts writing files.
@@ -80,7 +94,6 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 ## Phase 1 — Pre-flight
 
 ! Validate the local + remote state before any irreversible action.
-
 
 ### Parallel prep — #1880 Gap D (#2692)
 
@@ -394,6 +407,7 @@ Where `<one-line guidance>` is one of:
 - ⊗ Hardcode `master` as the base branch -- delegate to the configured base branch from `task release --base-branch <branch>`
 - ⊗ Skip the post-create verify-isDraft gate (#724) -- a successful `gh release create` exit code does NOT prove the release actually landed in draft state; the 5-second poll-and-flip gate in `task release` Step 11 is the only safety net against operator-error variants and partial-success races, and any manual recovery path that bypasses `task release` MUST run `gh release view --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` before handing off to Phase 5
 - ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned
+- ⊗ Cut a release mutation `session:start` on the contended primary without `--primary-claim-exception=release-cut` (#4266) — occupancy already implements the exception; the CLI argv is the trusted producer. ⊗ Invent a process-wide env producer.
 - ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` or `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` for the entire release session or wrap `task release` / `task check` in them (#1553) -- the env vars are process-wide and leak into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut (closeout commit+push may use a **scoped** prefix of both `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` and `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` on those three git commands only — see Branch-Protection Policy Guard, #2623)
 - ⊗ `task authz:grant` — not a Taskfile target. Name `deft authz:grant -- --template release-publish --target <version> --confirm`.
 - ⊗ Wait for a live grant before Phase 3, or ask the operator to mint rehearsal `0.0.1` — mint the confirmed cut version immediately before Phase 4.
