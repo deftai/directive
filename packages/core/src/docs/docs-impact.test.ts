@@ -305,6 +305,21 @@ describe("docs-impact CLI transport", () => {
     expect(code).toBe(2);
     expect(extractSkillIdsFromPack("null")).toEqual(new Set());
   });
+
+  it("returns semantic EXIT_IMPACT for a missing declaration even when git range fails (#4356)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-parse-first-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, "## Summary\nempty file is enough to reach body parse\n");
+    let gitCalls = 0;
+    const code = docsImpactMain(["--body-file", bodyPath, "--project-root", dir], {
+      runGit: () => {
+        gitCalls += 1;
+        return { returncode: 128, stdout: "", stderr: "fatal: bad revision origin/master" };
+      },
+    });
+    expect(code).toBe(EXIT_IMPACT);
+    expect(gitCalls).toBe(0);
+  });
 });
 
 describe("explicit body seed then same-file verify (#4293)", () => {

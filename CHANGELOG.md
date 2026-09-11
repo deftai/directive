@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Consumer `verify:docs-impact` uses engine:invoke (#4356).** 0.115.x died at `MODULE_NOT_FOUND` on a source-tree node path still present after v0.116.0. Closes #4356.
 - **`deft update --dry-run` prints a plan when dest C3 would read an unreplaced tree (#4389).** Port-record skip-IO skips dest live-procedure C3; incoming C3 still runs. Dest C3 still runs after a real write. Not a 0.115.0 content hotfix.
 
 ### Removed

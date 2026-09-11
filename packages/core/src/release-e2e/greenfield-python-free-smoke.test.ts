@@ -1,6 +1,12 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { repoRoot } from "../content-contracts/standards/_helpers.js";
-import { rehearseGreenfieldPythonFreeSmoke } from "./greenfield-python-free-smoke.js";
+import {
+  rehearseGreenfieldPythonFreeSmoke,
+  runConsumerDocsImpactSmoke,
+} from "./greenfield-python-free-smoke.js";
 
 describe("rehearseGreenfieldPythonFreeSmoke (#2022 Phase 3)", () => {
   it("soft-skips when npm is absent", () => {
@@ -72,5 +78,88 @@ describe("rehearseGreenfieldPythonFreeSmoke (#2022 Phase 3)", () => {
     );
     expect(ok).toBe(false);
     expect(reason).toContain("spawn budget");
+  });
+});
+
+describe("runConsumerDocsImpactSmoke (#4356)", () => {
+  it("fails closed when the deposited task still hits MODULE_NOT_FOUND", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-smoke-"));
+    writeFileSync(join(dir, "keep.txt"), "x\n");
+    const [ok, reason] = runConsumerDocsImpactSmoke(
+      () => ({
+        status: 1,
+        stdout: "",
+        stderr:
+          "Error: Cannot find module '.../packages/core/dist/docs/docs-impact.js'\ncode: 'MODULE_NOT_FOUND'\n",
+      }),
+      {
+        taskBin: "/usr/bin/task",
+        gitBin: "/usr/bin/git",
+        projectDir: dir,
+        env: {},
+      },
+    );
+    expect(ok).toBe(false);
+    expect(reason).toContain("MODULE_NOT_FOUND");
+  });
+
+  it("runs invalid body then origin/master fixture then valid body", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-smoke-ok-"));
+    const calls: string[][] = [];
+    const [ok, reason] = runConsumerDocsImpactSmoke(
+      (_cmd, args) => {
+        calls.push([...args]);
+        if (
+          args[0] === "deft:verify:docs-impact" &&
+          args.some((a) => a.includes("docs-impact-invalid.md"))
+        ) {
+          return {
+            status: 1,
+            stdout: "",
+            stderr:
+              "missing documentation-impact declaration (change_class or `no user-doc impact`)\n",
+          };
+        }
+        return { status: 0, stdout: "OK\n", stderr: "" };
+      },
+      {
+        taskBin: "/usr/bin/task",
+        gitBin: "/usr/bin/git",
+        projectDir: dir,
+        env: {},
+      },
+    );
+    expect(ok, reason).toBe(true);
+    expect(reason).toContain("origin/master");
+    expect(calls.some((args) => args[0] === "init" && args.includes("-b"))).toBe(true);
+    expect(calls.some((args) => args[0] === "rev-parse")).toBe(false);
+    expect(calls.some((args) => args.includes("feat/docs-impact-smoke"))).toBe(true);
+    expect(
+      calls.some(
+        (args) => args.includes("update-ref") && args.includes("refs/remotes/origin/master"),
+      ),
+    ).toBe(true);
+    expect(
+      calls.some((args) => args[0] === "deft:verify:docs-impact" && args.includes("--body-file")),
+    ).toBe(true);
+  });
+
+  it("fails when git is missing so the origin/master fixture cannot be created", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-smoke-nogit-"));
+    const [ok, reason] = runConsumerDocsImpactSmoke(
+      () => ({
+        status: 1,
+        stdout: "",
+        stderr: "missing documentation-impact declaration\n",
+      }),
+      {
+        taskBin: "/usr/bin/task",
+        gitBin: null,
+        projectDir: dir,
+        env: {},
+      },
+    );
+    expect(ok).toBe(false);
+    expect(reason).toContain("origin/master");
   });
 });

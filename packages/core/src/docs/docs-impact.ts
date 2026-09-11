@@ -599,6 +599,14 @@ export function docsImpactMain(
   }
   if (body === null) return EXIT_CONFIG;
 
+  // Parse the declaration before git range work so a missing body reaches
+  // semantic EXIT_IMPACT even when origin/master is absent (#4356).
+  const parsedDecl = parseDocsImpactDeclaration(body);
+  if (parsedDecl.declaration === null) {
+    process.stderr.write(`${parsedDecl.errors.join("\n")}\n`);
+    return EXIT_IMPACT;
+  }
+
   const mergeBase = runGit(["merge-base", "origin/master", "HEAD"]);
   const baseRef = mergeBase.returncode === 0 ? mergeBase.stdout.trim() : "";
   const range = baseRef.length > 0 ? `${baseRef}...HEAD` : "origin/master...HEAD";

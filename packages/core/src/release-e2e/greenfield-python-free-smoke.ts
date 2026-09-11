@@ -25,6 +25,136 @@ function pythonFreePathEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.Proces
   };
 }
 
+const VALID_DOCS_IMPACT_BODY =
+  "## Documentation impact\n\n" +
+  "change_class: none\n" +
+  "surfaces: none\n" +
+  'rationale: "Packed-consumer smoke fixture; no closed user-doc surface added or removed."\n';
+
+function looksLikeModuleNotFound(text: string): boolean {
+  return text.includes("MODULE_NOT_FOUND") || text.includes("Cannot find module");
+}
+
+function runGitStep(
+  spawn: typeof spawnText,
+  gitBin: string,
+  args: readonly string[],
+  projectDir: string,
+  env: NodeJS.ProcessEnv,
+): [boolean, string] {
+  const result = spawn(gitBin, args, { cwd: projectDir, env, timeoutMs: 30_000 });
+  if (result.status !== 0) {
+    const detail = (result.stderr || result.stdout || "").trim();
+    return [false, `git ${args.join(" ")} failed (exit ${result.status}): ${detail.slice(-400)}`];
+  }
+  return [true, "ok"];
+}
+
+/**
+ * Packed-consumer docs-impact invoke (#4356): after init, run
+ * `task deft:verify:docs-impact -- --body-file` against a fixture.
+ * Git fixture is init plus origin/master (or equivalent remote-tracking ref).
+ */
+export function runConsumerDocsImpactSmoke(
+  spawn: typeof spawnText,
+  options: {
+    taskBin: string;
+    gitBin: string | null;
+    projectDir: string;
+    env: NodeJS.ProcessEnv;
+    onProgress?: (message: string) => void;
+  },
+): [boolean, string] {
+  const { taskBin, gitBin, projectDir, env, onProgress } = options;
+  const invalidBody = join(projectDir, "docs-impact-invalid.md");
+  const validBody = join(projectDir, "docs-impact-valid.md");
+  writeFileSync(invalidBody, "## Summary\nempty declaration\n", "utf8");
+
+  onProgress?.("greenfield smoke: task deft:verify:docs-impact (invalid body)");
+  const invalid = spawn(taskBin, ["deft:verify:docs-impact", "--", "--body-file", invalidBody], {
+    cwd: projectDir,
+    env,
+    timeoutMs: 60_000,
+  });
+  const invalidText = `${invalid.stderr}\n${invalid.stdout}`;
+  if (looksLikeModuleNotFound(invalidText)) {
+    return [
+      false,
+      `task deft:verify:docs-impact still hits MODULE_NOT_FOUND (source-tree node path): ${invalidText.trim().slice(-800)}`,
+    ];
+  }
+  if (invalid.status === 0) {
+    return [
+      false,
+      "task deft:verify:docs-impact passed an invalid body (expected semantic failure)",
+    ];
+  }
+
+  if (!gitBin) {
+    return [
+      false,
+      "greenfield smoke: git not on PATH; cannot create origin/master fixture for docs-impact",
+    ];
+  }
+
+  onProgress?.("greenfield smoke: seeding origin/master git fixture for docs-impact");
+  // Always init inside projectDir so an ancestor worktree (TMPDIR under a
+  // checkout) is never the git root for checkout/commit/update-ref (#4356).
+  const gitEnv = {
+    ...env,
+    GIT_DIR: join(projectDir, ".git"),
+    GIT_WORK_TREE: projectDir,
+  };
+  const [initOk, initReason] = runGitStep(
+    spawn,
+    gitBin,
+    ["init", "-b", "master"],
+    projectDir,
+    gitEnv,
+  );
+  if (!initOk) return [false, `docs-impact git fixture: ${initReason}`];
+  for (const [args, label] of [
+    [["checkout", "-B", "master"], "checkout master"],
+    [["config", "user.email", "smoke@example.com"], "user.email"],
+    [["config", "user.name", "greenfield-smoke"], "user.name"],
+    [["add", "-A"], "add"],
+    [["commit", "--allow-empty", "-m", "docs-impact fixture"], "commit"],
+    [["update-ref", "refs/remotes/origin/master", "HEAD"], "origin/master"],
+    // Leave HEAD off master/main so later task deft:check verify:branch passes.
+    [["checkout", "-B", "feat/docs-impact-smoke"], "feature branch"],
+  ] as const) {
+    const [ok, reason] = runGitStep(spawn, gitBin, args, projectDir, gitEnv);
+    if (!ok) return [false, `docs-impact git fixture (${label}): ${reason}`];
+  }
+
+  writeFileSync(validBody, VALID_DOCS_IMPACT_BODY, "utf8");
+  onProgress?.(
+    "greenfield smoke: task deft:verify:docs-impact (valid body, origin/master fixture)",
+  );
+  const valid = spawn(taskBin, ["deft:verify:docs-impact", "--", "--body-file", validBody], {
+    cwd: projectDir,
+    env,
+    timeoutMs: 60_000,
+  });
+  const validText = `${valid.stderr}\n${valid.stdout}`;
+  if (looksLikeModuleNotFound(validText)) {
+    return [
+      false,
+      `task deft:verify:docs-impact valid body hits MODULE_NOT_FOUND: ${validText.trim().slice(-800)}`,
+    ];
+  }
+  if (valid.status !== 0) {
+    return [
+      false,
+      `task deft:verify:docs-impact valid body failed (exit ${valid.status}): ${validText.trim().slice(-800)}`,
+    ];
+  }
+  return [
+    true,
+    "task deft:verify:docs-impact --body-file passed after init with origin/master fixture",
+  ];
+}
+
 function seedMinimalProjectDefinition(projectDir: string): void {
   const vbriefDir = join(projectDir, "vbrief");
   mkdirSync(vbriefDir, { recursive: true });
@@ -263,6 +393,15 @@ export function rehearseGreenfieldPythonFreeSmoke(
       DEFT_SESSION_RITUAL_SKIP: "1",
     };
 
+    [ok, reason] = runConsumerDocsImpactSmoke(spawn, {
+      taskBin: task,
+      gitBin: which("git"),
+      projectDir,
+      env: checkEnv,
+      onProgress,
+    });
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
     onProgress?.("greenfield smoke: running consumer task deft:check (engine-invoke path)");
     [ok, reason] = runStep(
       spawn,
@@ -281,7 +420,7 @@ export function rehearseGreenfieldPythonFreeSmoke(
     onProgress?.("greenfield smoke: all steps passed");
     return [
       true,
-      "greenfield-python-free-smoke: directive init + task deft:check passed with Python absent from PATH",
+      "greenfield-python-free-smoke: directive init + verify:docs-impact --body-file + task deft:check passed with Python absent from PATH",
     ];
   } finally {
     for (const [manifestPath, contents] of manifestBackup) {

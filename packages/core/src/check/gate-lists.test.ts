@@ -125,6 +125,12 @@ describe("gate-lists (#2791)", () => {
     expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("verify:closing-keywords");
   });
 
+  it("omits verify:docs-impact from CONSUMER_CHECK_GATES (#4356)", () => {
+    expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("verify:docs-impact");
+    expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("docs-impact");
+    expect(FRAMEWORK_CHECK_GATES.map(checkGateId)).not.toContain("verify:docs-impact");
+  });
+
   it("wires docs:rule-map:check into framework composition only (#4095)", () => {
     expect(FRAMEWORK_CHECK_GATES.map(checkGateId)).toContain("docs:rule-map:check");
     expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("docs:rule-map:check");
