@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4380",
-    "updated": "2026-09-11T15:18:26Z"
+    "updated": "2026-09-11T19:05:32Z"
   },
   "plan": {
     "title": "bug(setup,verify-ac): plan.acceptance requires fields no skill documents — setup-generated scopes fail verify:ac closed, then verify nothing (0 verified / N unverifiable)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(setup,verify-ac): plan.acceptance requires fields no skill documents — setup-generated scopes fail verify:ac closed, then verify nothing (0 verified / N unverifiable)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4380",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "Do not bind both acceptance-sketch arms. Drop zero-verified fails check as a pre-product standalone/check fail-closed, or name a reader split (proposed / pre-product vs post-product / scope:complete). Keep AC (a) as: after #4374 derivable write, derivation stamps and check is not fail-closed solely because the walk has no oracle yet.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/acceptance-resolver.test.ts (no-oracle walk still exits 0; pass lead carries counts)",
+          "recorded_at": "2026-09-11T19:05:00Z",
+          "recorded_by": "4408-conf-hold-finish"
+        }
       },
       {
         "title": "Retarget missing-attestation at setup or agent-written clauses that skip #3323 / #3360. Do not add a second none_found default on the derivation path (prepareClauseStamp already writes it).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4408 merge 3dbd7e30bc74b27829b330f62ef7a218bce9c014",
+          "recorded_at": "2026-09-11T19:05:00Z",
+          "recorded_by": "4408-conf-hold-finish"
+        }
       },
       {
         "title": "Exclusive writer. This issue does not recut #4374. Setup stays silent on plan.acceptance (derivation owns the stamp). Do not also emit a schema-complete block from setup.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/skills/deft-directive-setup/SKILL.md exclusive-writer section; https://github.com/deftai/directive/pull/4408",
+          "recorded_at": "2026-09-11T19:05:00Z",
+          "recorded_by": "4408-conf-hold-finish"
+        }
       },
       {
         "title": "Keep the #3826 no-oracle excusal on pre-product check. Change the pass lead so counts stay in the first line (passed (0 verified, N unverifiable)). If a later lean wants fail-closed, say it reverses #3826 and name the reader.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/acceptance-resolver.ts formatPassLead; acceptance-resolver.test.ts",
+          "recorded_at": "2026-09-11T19:05:00Z",
+          "recorded_by": "4408-conf-hold-finish"
+        }
       },
       {
         "title": "Scope file_scope as operator-collected declared members for derived-stamp bind (#4008). Do not treat it as approved-scope digest mint (#3145 / #3110 / #4383). Do not let the agent invent paths.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/plan-acceptance.md file_scope operator-collected members; https://github.com/deftai/directive/pull/4408",
+          "recorded_at": "2026-09-11T19:05:00Z",
+          "recorded_by": "4408-conf-hold-finish"
+        }
       },
       {
         "title": "One discoverability reference for the fields the gate actually requires is still in. It does not close findings 1-5 by itself. CHANGELOG if the pass-lead and exclusive-writer pointers ship.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/plan-acceptance.md and CHANGELOG.md Unreleased #4380 entries; https://github.com/deftai/directive/pull/4408 merge 3dbd7e30bc74b27829b330f62ef7a218bce9c014",
+          "recorded_at": "2026-09-11T19:05:00Z",
+          "recorded_by": "4408-conf-hold-finish"
+        }
       }
     ],
     "tags": [
@@ -134,7 +170,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "8776502a2a68c1e8047332935fa699a4b8a5d893b6e821f9caa65c0f098e1a3e"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4408,
+        "prBase": null,
+        "mergeCommit": "3dbd7e30bc74b27829b330f62ef7a218bce9c014",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3dbd7e30bc74b27829b330f62ef7a218bce9c014",
+        "verifiedAt": "2026-09-11T19:05:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkxZDMtOGI2Zi03MGEyLWEwNTctYjViMmQwMWZlN2Y2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T19:05:32Z"
+      },
+      "completedAt": "2026-09-11T19:05:32Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkxZDMtOGI2Zi03MGEyLWEwNTctYjViMmQwMWZlN2Y2",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -188,6 +249,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5420779047",
-    "updated": "2026-09-11T15:18:26Z"
+    "updated": "2026-09-11T19:05:32Z"
   }
 }
