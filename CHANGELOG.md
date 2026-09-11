@@ -18,9 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Land leftover completed-tracked artifact for #4361 (#3264 / #3476).** The #4361 xBRIEF stayed untracked after squash of PR 4392. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 ### Fixed
 
 - **Consumer `verify:docs-impact` uses engine:invoke (#4356).** 0.115.x died at `MODULE_NOT_FOUND` on a source-tree node path still present after v0.116.0. Closes #4356.
+- **`deft update --dry-run` prints a plan when dest C3 would read an unreplaced tree (#4389).** Port-record skip-IO skips dest live-procedure C3; incoming C3 still runs. Dest C3 still runs after a real write. Not a 0.115.0 content hotfix.
 
 ### Removed
 
@@ -34,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Policy-anchored review-response (#3452).** Classify invariant-shaped findings against a written HEAD policy before patching; one push per round; more than 3 rounds on one file escalate to a #3434 design pass. Consumer agents-entry pointer (#1309). plan.policy.agentsMdBudget.absoluteMaxBytes 17725→17850. Composes with #3448; does not land ADR-004. Closes #3452.
 
 ### Changed
+
+- **Design-critique path selector is Spec-path:; Recut: stays a permanent alias (#4361).** Ingest still harvests Bound-remedy when that token is present and refuses a missing heading or empty list. No token stays body-normative. Later arc, rewrite the body, process-only skip class, and set-level-body replace the other English jobs. Close is not cancelled and is not an order in the summary. Yolo and auto-stamp stay. Closes #4361.
 
 - **Land leftover completed-tracked artifact for #4362 (#3264 / #3476).** The #4362 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4368. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4365 (#3264 / #3476).** The #4365 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4367. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.

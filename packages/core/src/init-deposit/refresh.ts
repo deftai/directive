@@ -25,6 +25,7 @@ import { containedRename } from "../fs/contained-write.js";
 import {
   activeMutationLedger,
   formatMutationSummary,
+  isPortRecordMode,
   type MutationSummary,
   mutationSummaryJson,
   runInPortRecordMode,
@@ -730,7 +731,10 @@ export async function runRefreshDeposit(
     // #2913: still fail-closed reconcile so dst-only leftovers cannot linger when
     // VERSION already matches (e.g. pre-#2804 additive deposits). Does not re-stamp.
     await reconcileDepositToContentPackage(deftDir, contentRoot, io);
-    assertLiveProcedureDepositClean(deftDir);
+    // Port-record skips dest IO; dest C3 would read the unreplaced tree (#4389).
+    if (!isPortRecordMode()) {
+      assertLiveProcedureDepositClean(deftDir);
+    }
     migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
     // #3117: ensure a readable live generation token exists without advancing
     // when the payload did not swap (already-current). stampLiveGeneration is a
@@ -759,7 +763,10 @@ export async function runRefreshDeposit(
     assertLiveProcedureDepositClean(contentRoot);
     await copyContent(contentRoot, deftDir);
     await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-    assertLiveProcedureDepositClean(deftDir);
+    // Port-record skips dest IO; dest C3 would read the unreplaced tree (#4389).
+    if (!isPortRecordMode()) {
+      assertLiveProcedureDepositClean(deftDir);
+    }
     // #2913 / #2804 / #2347: fail-closed delete-not-in-source BEFORE VERSION stamp.
     // replaceTree already drops dst-only paths; reconcile verifies and covers
     // additive seams. Throws => no VERSION rewrite (refuse stamp until clean).

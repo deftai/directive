@@ -237,7 +237,7 @@ describe("process-only critic spawn (#4241)", () => {
     );
   });
 
-  it("treats process_only as the recut skip class, not dest-path (#4296)", () => {
+  it("treats process_only as the process-only skip class, not dest-path (#4296)", () => {
     expect(
       isProcessOnlyCriticSpawn(
         {

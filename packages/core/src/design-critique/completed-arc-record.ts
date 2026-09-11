@@ -11,9 +11,9 @@
  * successor lean, not position in the body, so citing the superseded lean --
  * which `## Successor lean` requires -- cannot block.
  *
- * Set-level bind (#4057) does not change that mapper. Un-recut members refuse
- * on `cancelled` or `unrecut-body`. Parent dominate prose is not a record.
- * A later successor lean after cancel starts a recut arc.
+ * Set-level bind (#4057) does not change that mapper. Dominated members refuse
+ * on `cancelled` or `set-level-body`. Parent dominate prose is not a record.
+ * A later successor lean after cancel starts a later arc.
  */
 
 import { createHash } from "node:crypto";
@@ -45,7 +45,7 @@ export const COMPLETED_ARC_BLOCK_REASONS = [
   "unshaped-table-cite",
   "ambiguous-table-cite",
   "cancelled",
-  "unrecut-body",
+  "set-level-body",
   "stale-target",
 ] as const;
 
@@ -295,7 +295,7 @@ function latestTargetShapeIsSetLevel(comments: readonly ThreadComment[]): boolea
   return latest?.setLevel === true;
 }
 
-function refuseUnrecutSetLevel(
+function refuseSetLevelBody(
   comments: readonly ThreadComment[],
   verdict: CompletedArcVerdict,
 ): CompletedArcVerdict {
@@ -304,10 +304,10 @@ function refuseUnrecutSetLevel(
   }
   return {
     status: "blocked",
-    reason: "unrecut-body",
+    reason: "set-level-body",
     detail:
       "completed-arc record is present but the latest target shape is set-level; " +
-      "ingest waits on a recut body or a newly filed issue (comment id " +
+      "ingest waits on a rewritten body or a newly filed issue (comment id " +
       String(verdict.synthesisCommentId) +
       ")",
   };
@@ -490,7 +490,7 @@ function verdictForSynthesis(
  * Ingest clearance from thread structure. Labels and author identity are not
  * predicates. A lone synthesis-accepted sentence shape is not the record.
  * Clearance cites the latest successor lean; an older complete record does not
- * clear a later recut. A panel-deposit is in-flight even before critic posts.
+ * clear a later lean. A panel-deposit is in-flight even before critic posts.
  */
 export function evaluateCompletedArcRecord(input: {
   readonly labels?: readonly string[];
@@ -528,7 +528,7 @@ export function evaluateCompletedArcRecord(input: {
         ? completeRecords
         : completeRecords.filter((record) => record.citedLeanId === latestLean.id);
     if (matching.length > 0) {
-      return refuseUnrecutSetLevel(
+      return refuseSetLevelBody(
         recutComments,
         matching.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b)),
       );
@@ -540,7 +540,7 @@ export function evaluateCompletedArcRecord(input: {
     const laterSynthesis = synthesis.filter((comment) => comment.id > latestCompleteId);
     if (laterSynthesis.length > 0) {
       const latest = laterSynthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-      return refuseUnrecutSetLevel(recutComments, verdictForSynthesis(latest, recutComments));
+      return refuseSetLevelBody(recutComments, verdictForSynthesis(latest, recutComments));
     }
     const citedLeanIds = completeRecords.map((record) => record.citedLeanId);
     const latestLeanId = latestLean === undefined ? "unknown" : String(latestLean.id);
@@ -555,7 +555,7 @@ export function evaluateCompletedArcRecord(input: {
   }
   if (synthesis.length > 0) {
     const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-    return refuseUnrecutSetLevel(recutComments, verdictForSynthesis(latest, recutComments));
+    return refuseSetLevelBody(recutComments, verdictForSynthesis(latest, recutComments));
   }
   // Labels are not SoT: in-arc membership is thread-only (#4298).
   const inArc = isInFlightCritiqueThread(recutComments);

@@ -87,6 +87,7 @@ const REQUIRED_CONTRACT_POINTERS = [
   "design-critique:in-progress",
   "resolveAutoStampCatalogChip",
   "Recut:",
+  "Spec-path:",
   "design-critique: halted, because",
   "design-critique: synthesis accepted, because",
   "triage:accept",
@@ -379,7 +380,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(framing).toContain("a retry continues the arc it retries");
     expect(framing).toContain("A panel is one round, not N arcs.");
     expect(framing).toContain("revising a lean before bind is not a boundary");
-    expect(framing).toContain("A **recut** opens the next arc, and only after bind");
+    expect(framing).toContain("A **later arc** opens after bind");
     expect(framing).toContain("post-bind target revision");
     expect(framing).toContain("! Read `arc` in this document as that unit.");
     expect(framing).toContain(
@@ -721,7 +722,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(anyOf).not.toContain("critic-posted");
   });
 
-  it("locks ingest-ready bind chip, Recut: token, CHIP_ALIASES, and no-NLP auto-stamp (#4298)", () => {
+  it("locks ingest-ready bind chip, Spec-path: token, Recut: alias, CHIP_ALIASES, and no-NLP auto-stamp (#4298 / #4361)", () => {
     expect(DESIGN_CRITIQUE_CATALOG_CHIPS).toEqual([
       "design-critique:mechanism-shaped",
       "design-critique:in-progress",
@@ -750,9 +751,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const text = readText(CONTRACT);
     expect(text).toContain("design-critique:recut-needed");
     expect(text).toContain("resolveAutoStampCatalogChip");
+    expect(text).toContain("Spec-path:");
     expect(text).toContain("Recut:");
+    expect(text).toContain("permanent alias");
     expect(text).toContain("--chip ingest-ready");
-    expect(text).toContain("⊗ Classify recut by NLP of the lean.");
+    expect(text).toContain("⊗ Classify the path selector by NLP of the lean.");
     expect(text).toContain("body-is-normative");
     expect(text).toContain("## Bound remedy");
     expect(text).toContain("parseListItems");
@@ -763,7 +766,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
     const labelsDoc = readText(".github/ISSUE_LABELS.md");
     expect(labelsDoc).toContain("design-critique:recut-needed");
+    expect(labelsDoc).toContain("design-critique:triage-ready");
+    expect(labelsDoc).toContain("retired. Do not attach");
     expect(labelsDoc).toContain("CHIP_ALIASES");
+    expect(text).toContain("`set-level-body`");
+    expect(text).toContain("Mid-arc EXIT stays next-envelope");
+    expect(text).toContain("⊗ Order close.");
   });
 
   it("locks first-lean recording obligation after this round's siblings are posted (#4027 / #3741)", () => {
@@ -1017,7 +1025,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("ensureArcDest");
     expect(stop1).toContain("cwd-without-occupy");
     expect(stop1).toContain("process_only");
-    expect(stop1).toContain("recut skip class, not an implementation-gate bypass");
+    expect(stop1).toContain("process-only skip class, not an implementation-gate bypass");
     expect(stop1).toContain("\u2297 Pin dest to local HEAD");
     expect(stop1).toContain("\u2297 Skip #2885 on destProven");
     expect(stop1).toContain(
@@ -1026,7 +1034,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const bind = markdownSection(text, "## Bind after accepted synthesis");
     expect(bind).toContain("Direct EXIT names it as a later operator verb");
     expect(bind).toContain(
-      "After Recut bind, print ingest and do not print next-envelope as the default next",
+      "After an admitted completed-arc record, print ingest and do not print next-envelope as the default next",
     );
     const ceiling = markdownSection(text, "### Envelope and ceiling");
     expect(ceiling).toContain("github-only is no-ingest, not no-worktree");
@@ -1036,7 +1044,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const skill = readText(SKILL_REL);
     expect(skill).toContain("parse closed tokens");
     expect(skill).toContain("ingest is a separate operator verb");
-    expect(skill).toContain("After Recut bind: Next: run `task issue:ingest`");
+    expect(skill).toContain(
+      "After an admitted completed-arc record: Next: run `task issue:ingest`",
+    );
     expect(skill).not.toContain("land CLI");
     expect(skill).not.toContain("session:start --read-only");
     expect(skill).not.toContain("git worktree add");
@@ -1072,7 +1082,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(verbs).toContain(
       "Yolo standing on the launching utterance is that confirm for a posted all-accept successor map",
     );
-    expect(verbs).toContain("including recut-shaped ones");
+    expect(verbs).toContain("including Spec-path leans");
     expect(verbs).toContain("It replaces only the confirm conjunct");
     expect(verbs).toContain("Same-turn stamp uses `autoStamp: true`");
     expect(verbs).toContain(
@@ -1086,7 +1096,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
     expect(verbs).toContain("Treat yolo-confirm as ingest");
     expect(bind).toContain(
-      "Yolo standing on the launching utterance is the confirm conjunct for that posted all-accept map, including recut-shaped ones. It does not satisfy ingest.",
+      "Yolo standing on the launching utterance is the confirm conjunct for that posted all-accept map, including Spec-path leans. It does not satisfy ingest.",
     );
     expect(testSurface).toContain("live parent turns stay unenforced (#4308)");
     expect(parseOperatorRunPosture("arc 1234 yolo")).toEqual({

@@ -3,6 +3,8 @@
  * Avoids nested/polynomial regex on issue bodies (ReDoS-safe).
  */
 
+import { classifyPosition } from "../design-critique/citation-grammar.js";
+
 /** Strip fenced code blocks only (preserves inline backtick spans). */
 export function stripFencedCodeBlocks(body: string): string {
   if (body.length === 0) {
@@ -185,7 +187,7 @@ export function findBoundRemedyHeading(text: string): AcHeadingMatch | null {
   let offset = 0;
   for (const line of text.split("\n")) {
     const match = matchBoundRemedyHeadingLine(line);
-    if (match !== null) {
+    if (match !== null && classifyPosition(text, offset) === null) {
       return { level: match.level, sectionStart: offset + match.end };
     }
     offset += line.length + 1;
@@ -217,7 +219,7 @@ function matchBoundRemedyHeadingLine(line: string): { level: number; end: number
   return { level, end: line.length };
 }
 
-/** Closed Recut harvest: Bound-remedy heading plus parseListItems on that slice only. */
+/** Closed Spec-path harvest: Bound-remedy heading plus parseListItems on that slice only. */
 export function extractBoundRemedyHarvest(text: string): {
   readonly items: CheckboxItem[];
   readonly sourceText: string;
