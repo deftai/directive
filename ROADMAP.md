@@ -40,8 +40,16 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1459 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1467 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4362** -- bug(hooks,cursor): dest-missing deny after #4295 still omits dest-placing recovery -- `[completed]`
+- **#4365** -- Grok Build design-critique Claude/Codex spawn recipe is missing; agents fail starting the CLI -- `[completed]`
+- **#3452** -- feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push -- `[completed]`
+- **#4345** -- Consumer @deftai GitHub Packages scope 404s public @deftai/directive even with --registry npmjs -- `[completed]`
+- **#4343** -- Live Fly E2E RCA: gated ritual blocked by completed-xbrief doctor + missing consumer retry guidance -- `[completed]`
+- **#4337** -- [framework-gap] brownfield Phase 3 has no process-only path (keep building, use Directive) -- `[completed]`
+- **#4335** -- [framework-gap] init/doctor tell a Grok Build operator to open Codex /hooks -- `[completed]`
+- **#4348** -- chore(security): bump brace-expansion to 5.0.9 (Dependabot #10/#13) -- `[completed]`
 - **#4344** -- bug(doctor): #4162 escaping-symlink test EPERMs on Windows without Developer Mode -- `[completed]`
 - **#4162** -- [framework-gap] doctor checks consumer xbrief under the deposit root and emits an impossible warning -- `[completed]`
 - **#4310** -- bug(dev): clean master fails deterministic development-readiness gates -- `[completed]`
@@ -59,12 +67,4 @@ _Showing 25 of 1459 completed scopes (newest first). Full history: lifecycle `co
 - **#4286** -- bug(swarm,grok-build): parent-to-child steer must be a Directive inbox; host supplies no child prompt -- `[completed]`
 - **#4298** -- feat(design-critique): exclusive chips mechanism-shaped, in-progress, ingest-ready, decisions-needed -- `[completed]`
 - **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[completed]`
-- **#4284** -- bug(xbrief): completed #4258 brief uses invalid plan.items status complete -- `[completed]`
-- **#4258** -- bug(intake,design-critique): Recut lean still harvests issue-body AC; body rewrite looks like a new arc -- `[completed]`
-- **#4269** -- perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue -- `[completed]`
-- **#4272** -- bug(hooks,harness): Grok Build spawn_subagent hits Cursor-compat rewrite; updated_input drops required prompt -- `[completed]`
-- **#4254** -- bug(hooks,harness): dest-lock consult-deny after first allow ghosts a retry -- `[completed]`
-- **#4241** -- bug(design-critique,harness): direct critic spawn is exploratory/non-mutation and must not go through #4066 dest occupancy -- `[completed]`
-- **#4240** -- bug(verify-ac): bound behavioral clauses with no executable run still cannot complete -- `[completed]`
-- **#4230** -- perf(check,release): one suite at Step 5, real 20-min suite-gate hang (supervisor), full-mode pin — lane fixed host-side (stale CI cache) -- `[completed]`
 

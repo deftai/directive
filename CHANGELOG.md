@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.116.0] - 2026-09-11
+
+> Brownfield process-only adoption, policy-anchored review-response, dest-placing dest-missing recoveries, and doctor/npm/Dependabot fixes.
+
+### Added
+
 - **Brownfield process-only adoption exit (#4337).** Setup Phase 2 option 2 is Process-only (keep Phase 2 identity). Interview chaining adds a labeled leave-strategy. Then-path skips bridge, export, acceptance, and build. GitHub issues stay cache/queue inputs. Docs stay described content. Closes #4337.
 - **Policy-anchored review-response (#3452).** Classify invariant-shaped findings against a written HEAD policy before patching; one push per round; more than 3 rounds on one file escalate to a #3434 design pass. Consumer agents-entry pointer (#1309). plan.policy.agentsMdBudget.absoluteMaxBytes 17725→17850. Composes with #3448; does not land ADR-004. Closes #3452.
 
@@ -5980,7 +5992,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.115.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.116.0...HEAD
+[0.116.0]: https://github.com/deftai/directive/compare/v0.115.0...v0.116.0
 [0.115.0]: https://github.com/deftai/directive/compare/v0.114.0...v0.115.0
 [0.114.0]: https://github.com/deftai/directive/compare/v0.113.2...v0.114.0
 [0.113.2]: https://github.com/deftai/directive/compare/v0.113.1...v0.113.2
