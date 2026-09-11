@@ -516,6 +516,7 @@ describe("runSessionReady (#2993)", () => {
       .mockReturnValueOnce(failVerify("stale-by-drift -- 3 cached-open issues absent"))
       .mockReturnValueOnce(okVerify());
     const fetchAll = vi.fn(() => ({ issues_written: 3 }));
+    const refreshClosed = vi.fn();
     const runStart = vi.fn();
 
     const result = ready("/proj", {
@@ -523,6 +524,7 @@ describe("runSessionReady (#2993)", () => {
       verifyRitual,
       runStart,
       fetchAll,
+      refreshClosed,
       repo: "deftai/directive",
     });
 
@@ -543,6 +545,7 @@ describe("runSessionReady (#2993)", () => {
       }),
     );
     expect(fetchAll).toHaveBeenCalledTimes(1);
+    expect(refreshClosed).toHaveBeenCalledTimes(1);
   });
 
   it("does not lock AC1 on inspect-green after start (#4399)", () => {
@@ -556,12 +559,14 @@ describe("runSessionReady (#2993)", () => {
       .mockReturnValueOnce(failVerify("stale-by-drift -- 2 issues"))
       .mockReturnValueOnce(okVerify());
     const fetchAll = vi.fn(() => ({ issues_written: 2 }));
+    const refreshClosed = vi.fn();
 
     const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       runStart: () => ({ code: 0, payload: {}, lines: ["[deft orientation] cache_fresh: dirty"] }),
       fetchAll,
+      refreshClosed,
       repo: "deftai/directive",
     });
 
@@ -585,6 +590,7 @@ describe("runSessionReady (#2993)", () => {
       .mockReturnValueOnce(failVerify("stale-by-drift -- 3 cached-open issues absent"))
       .mockReturnValueOnce(okVerify());
     const fetchAll = vi.fn(() => ({ issues_written: 3 }));
+    const refreshClosed = vi.fn();
     const runStart = vi.fn();
 
     const result = ready("/proj", {
@@ -592,6 +598,7 @@ describe("runSessionReady (#2993)", () => {
       verifyRitual,
       runStart,
       fetchAll,
+      refreshClosed,
       repo: "deftai/directive",
     });
 
@@ -599,11 +606,42 @@ describe("runSessionReady (#2993)", () => {
     expect(result.path).toBe(SESSION_READY_RECOVERED);
     expect(runStart).not.toHaveBeenCalled();
     expect(fetchAll).toHaveBeenCalledTimes(1);
+    expect(refreshClosed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: expect.stringMatching(/[\\/]\.deft-cache$/),
+      }),
+    );
     expect(result.steps).toEqual([
       "verify:session-ritual:gated",
       "cache:fetch-all",
       "verify:session-ritual:gated:retry",
     ]);
+  });
+
+  it("reconciles cached-open closed-upstream entries during fetch-all recovery (#4399)", () => {
+    const inspectRitual = vi.fn(() => okVerify());
+    const verifyRitual = vi
+      .fn()
+      .mockReturnValueOnce(failVerify("stale-by-drift -- 1 cached-open issue absent"))
+      .mockReturnValueOnce(okVerify());
+    const fetchAll = vi.fn(() => ({ issues_written: 1 }));
+    const refreshClosed = vi.fn();
+
+    const result = ready("/proj", {
+      inspectRitual,
+      verifyRitual,
+      fetchAll,
+      refreshClosed,
+      repo: "deftai/directive",
+    });
+
+    expect(result.path).toBe(SESSION_READY_RECOVERED);
+    expect(fetchAll.mock.invocationCallOrder[0]).toBeLessThan(
+      refreshClosed.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    );
+    expect(refreshClosed).toHaveBeenCalledTimes(1);
   });
 
   it("recovers cache_fresh failures with fetch-all then re-verify", () => {
@@ -619,6 +657,7 @@ describe("runSessionReady (#2993)", () => {
       )
       .mockReturnValueOnce(okVerify());
     const fetchAll = vi.fn(() => ({ issues_written: 3 }));
+    const refreshClosed = vi.fn();
     const runStart = vi.fn();
 
     const result = ready("/proj", {
@@ -626,6 +665,7 @@ describe("runSessionReady (#2993)", () => {
       verifyRitual,
       runStart,
       fetchAll,
+      refreshClosed,
       repo: "deftai/directive",
     });
 
@@ -644,6 +684,7 @@ describe("runSessionReady (#2993)", () => {
         force: true,
       }),
     );
+    expect(refreshClosed).toHaveBeenCalledTimes(1);
     expect(runStart).not.toHaveBeenCalled();
   });
 
@@ -667,6 +708,7 @@ describe("runSessionReady (#2993)", () => {
       inspectRitual,
       verifyRitual,
       fetchAll: vi.fn(() => ({ issues_written: 1 })),
+      refreshClosed: vi.fn(),
       inferRepo: () => "o/r",
     });
 

@@ -16,7 +16,7 @@
 
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
-import { cacheFetchAll } from "../cache/fetch.js";
+import { cacheFetchAll, cacheRefreshClosed } from "../cache/fetch.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
 import type { GitRunner } from "./git.js";
 import {
@@ -69,6 +69,13 @@ export type CacheFetchAllSeam = (options: {
   cacheRoot?: string;
 }) => unknown;
 
+/** CLI `cache fetch-all` also reconciles cached-open entries missing from the live open list. */
+export type CacheRefreshClosedSeam = (options: {
+  source: string;
+  repo: string;
+  cacheRoot?: string;
+}) => unknown;
+
 export interface SessionReadyOptions {
   readonly now?: Date;
   readonly runGit?: GitRunner;
@@ -90,6 +97,7 @@ export interface SessionReadyOptions {
   readonly runStart?: (projectRoot: string, options: SessionStartOptions) => SessionStartResult;
   readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
   readonly fetchAll?: CacheFetchAllSeam;
+  readonly refreshClosed?: CacheRefreshClosedSeam;
   readonly inferRepo?: (projectRoot: string) => string | null;
   /** Skip cache recovery even when cache_fresh failed (tests). */
   readonly skipCacheRecovery?: boolean;
@@ -193,6 +201,7 @@ export function runSessionReady(
   const verify = options.verifyRitual ?? verifySessionRitual;
   const start = options.runStart ?? runSessionStart;
   const fetchAll = options.fetchAll ?? cacheFetchAll;
+  const refreshClosed = options.refreshClosed ?? cacheRefreshClosed;
   const inferRepo = options.inferRepo ?? ((root) => inferSessionReadyRepo(root, env));
   const applyOccupancy = options.applyOccupancy ?? applyWorktreeOccupancy;
   const occupancyInput = (write: boolean, steal: boolean): ApplyOccupancyInput => ({
@@ -463,11 +472,19 @@ export function runSessionReady(
 
     steps.push("cache:fetch-all");
     try {
+      const cacheRoot = join(projectRoot, ".deft-cache");
       fetchAll({
         source: "github-issue",
         repo,
         force: true,
-        cacheRoot: join(projectRoot, ".deft-cache"),
+        cacheRoot,
+      });
+      // Match CLI fetch-all: rewrite cached-open entries missing from the live
+      // open list so closed-upstream stale-by-drift can recover (#4399).
+      refreshClosed({
+        source: "github-issue",
+        repo,
+        cacheRoot,
       });
       lines.push(`[session:ready] cache fetch-all completed for ${repo} (--force).`);
     } catch (cause) {
