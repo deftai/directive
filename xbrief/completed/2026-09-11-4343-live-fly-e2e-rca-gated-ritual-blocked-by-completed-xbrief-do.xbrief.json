@@ -1,0 +1,196 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4343",
+    "updated": "2026-09-11T02:06:56Z"
+  },
+  "plan": {
+    "title": "Live Fly E2E RCA: gated ritual blocked by completed-xbrief doctor + missing consumer retry guidance",
+    "status": "completed",
+    "narratives": {
+      "Description": "Live Fly E2E RCA: gated ritual blocked by completed-xbrief doctor + missing consumer retry guidance",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4343",
+      "Overview": "## Context\n\nConsumer: `deftai/deftvisage` on development-visage (Fly), live E2E RCA with the operator on tagged `?e2eRun=` URLs. Directive deposit was refreshed this session (`deft update --yes`) from recorded manifest v0.104.0 to content v0.113.2. Host: Grok Build. Occupancy claimed. Mutation intent was a product fix wave after a completed operator click-down.\n\nOperator explicitly asked to file this upstream. `plan.policy.valueFeedback.upstreamPrompt` is **false** in this consumer, so `task feedback:file --confirm` is gated off; filing via `gh` per operator instruction. Refs #1709.\n\nNot classified as adoption-blocker (workaround: parent dispatched a worktree worker anyway).\n\n## Expected\n\n1. `xbrief/continue.xbrief.json` / session resume points at the live Fly version and the current verify URL.\n2. Gated session ritual (`deft verify:session-ritual -- --tier=gated`) is a thin fail-closed check that does not block a through-merge product fix on unrelated historical xBRIEF hygiene or npm-mirror advisories.\n3. Live Fly RCA with the operator in the loop has a first-class playbook (log SoT, occupancy, when to dispatch a `drive-to: merge-ready` worker vs stay read-only).\n4. Consumer AGENTS.md / packs surface author-specific retry ceilings that vfs-delete painted HTML (Gemini vs Grok).\n5. `task verify:branch` exists or the swarm skill does not require a missing consumer task.\n\n## Actual\n\n1. Continue checkpoint still described **4.9.79** while development-visage `/health` was **4.9.84**. Resume pointed at the wrong verify URL.\n2. Gated ritual failed twice:\n   - First: host hook drift (claude/grok/cursor/codex). `deft update --yes` repaired hooks but dirtied the primary checkout with a full deposit refresh (parent occupancy says primary is read-only).\n   - Then: `doctor` UNRESOLVED. Mix of `npm-registry-mirror` advisory treated as a hard error, plus hundreds of `xbrief/completed/*.xbrief.json` `plan.status=completed` with non-terminal `plan.items` (#3242). That blocked `deft session:ready` / gated ritual **after** the operator had already approved the product fix plan.\n3. Occupancy / through-merge (`drive-to: merge-ready` worktree even for cohort size 1) is correct for product code, but live RCA has no Directive playbook. Parent could not implement while John was mid click-down; ritual load delayed log watch.\n4. Two Fly machines + in-memory `GET /api/e2e-rca/recent` empty-by-design vs HUD Copy tag. Consumer agents treat dump-empty as “no run” unless AGENTS.md spells Fly logs as SoT.\n5. `maxReadabilityRetries` Gemini **0** vs Grok app-surface/landing **3** lives only in consumer `src/preview/page-readability-health.ts`. Directive consumer guidance does not say Grok will vfs-delete painted HTML up to 3 times. That was the Settings / Data table blank-regen story on `project-grok`.\n6. `GROK_HTML_TIMEOUT_MS = 360s` vs client `fetch.fail` ~127s is not in consumer guidance; caused Landing Grok Imagine vs HTML race (MP4 ready 17 min before first Landing HTML 200).\n7. Swarm Phase 0 says `task verify:branch || exit 1`. This consumer has **no** `verify:branch` task (`task: Task \"verify:branch\" does not exist`). Branch policy is still ON (`allowDirectCommitsToMaster=false`).\n\n## Product bugs stay on deftvisage\n\nLanding Imagine stitch, Grok readability vfs-delete, Pricing image hero, Tailwind Play tile CPU leak are **not** Directive bugs. They ship as deftai/deftvisage 4.9.85.\n\n## Repro\n\n1. Consumer with live Fly E2E, stale `xbrief/continue.xbrief.json`, two machines, in-memory RCA ring.\n2. `deft session:start` then `deft verify:session-ritual -- --tier=gated` on a tree whose `xbrief/completed/` items are `completed` with pending `plan.items`.\n3. Attempt through-merge dispatch while the operator is still on a tagged Fly tab.\n\n## Notes\n\n- Workaround used: dispatch `spawn_subagent` isolation=worktree `drive-to: merge-ready` despite gated ritual red.\n- Do not treat empty `/api/e2e-rca/recent` as no run.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T00:13:38Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a gated-ritual and consumer-playbook recording obligation (doctor UNRESOLVED mix, continue-checkpoint, swarm verify:branch)\nrefutation-target: Gated session ritual MUST be a thin fail-closed check that does not block through-merge on historical xBRIEF hygiene or npm-mirror advisories, AND Directive MUST ship a live Fly RCA playbook, consumer retry-ceiling guidance, continue-checkpoint freshness, and a verify:branch task-or-skill fix, as one issue.\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible compound presumption with a refutation target; default motion; panel permission unused\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4343 as launched 2026-09-10 (do same / arc yolo no-ingest). Dest reused this session at origin/master after fetch. SHA matches origin/master. Parent remains unclaimed on primary (session:start --read-only). Ingest is not this motion. Related #4345 recut already holds that npm-registry-mirror is advisory.\n\n### Comment by @MScottAdams (2026-09-11T00:21:54Z)\n\nmodel: grok-4.6\nrole: critic\n\nRefutation of comment 5627306892 `refutation-target:`. Pin reads: git show 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8:. Input ceiling 5627306892 inclusive. Round 1, N=1, fresh. No comments after the ceiling were read.\n\nRecorded target, attacked as written: gated session ritual MUST be a thin fail-closed check that does not block through-merge on historical xBRIEF hygiene or npm-mirror advisories, AND Directive MUST ship a live Fly RCA playbook, consumer retry-ceiling guidance, continue-checkpoint freshness, and a verify:branch task-or-skill fix, as one issue.\n\nThe compound MUST cannot bind.\n\n## 1. One-issue AND of five unrelated slices\n\nClass: blocks-the-design\n\nEvidence. The recorded target is one MUST with five conjuncts: ritual thinness, Fly RCA playbook, retry-ceiling guidance, continue-checkpoint freshness, verify:branch task-or-skill. `main.md` Thin Fail-Closed Design (#3265) prefers one fail-closed check with one remediation, and thin closable slices over a first-ship wall. Existing inventory already splits those surfaces: doctor advisory mapping (`packages/core/src/doctor/checks.ts` `DOCTOR_ADVISORY_FAIL_CHECKS`, `packages/core/src/doctor/npm-registry.ts`), independent `agent_hooks` live probe (`content/contracts/agent-hook-readiness.md`), continue-here (`content/resilience/continue-here.md`), debug/forensic plus fly-io log docs, swarm Phase 0 through-merge (`content/skills/deft-directive-swarm/references/core-phase-0.md`), and `deft verify:branch`.\n\nFailure mode. Bind as one next-build contract and a deftvisage HUD/retry playbook rides a doctor-severity recut that is already shipped, plus a dual-invoke skill miss. A later worker cannot close one conjunct without inheriting the rest.\n\nDisposition. Do not accept the recorded target as a whole. Split or drop conjuncts; this heading blocks bind of the AND.\n\n## 2. Named hygiene classes already do not fail-close ritual\n\nClass: blocks-the-design\n\nEvidence, re-run at this SHA, not assumed from #4345. `runNpmRegistryMirrorCheck` emits `severity: \"warning\"` only (`packages/core/src/doctor/npm-registry.ts`). `completed-open-items` is in `DOCTOR_ADVISORY_FAIL_CHECKS` and stamps `data.advisory: true` (`packages/core/src/doctor/checks.ts`). Doctor `exitCode = errorCount > 0 ? 1 : 0` (`packages/core/src/doctor/main.ts`). Gated ritual records `ok: code === 0` (`runGatedStep` in `packages/core/src/session/verify-session-ritual.ts`). UNRESOLVED copy is `lastErrorCount > 0` (`renderDoctorStatusLine` in `packages/core/src/doctor/doctor-state.ts`); that file already says advisory warnings do not block writes.\n\nExecuted here: vitest on `npm-registry.test.ts`, `network-gate.test.ts`, `checks.test.ts`, `main.test.ts` — 4 files, 139 passed. `network-gate.test.ts` runs `cmdDoctor` with a non-public registry and `expect(exitCode).toBe(0)`. `main.test.ts` maps historical completed/ open items to warning, exit 0, lastErrorCount 0, including the ritual path without `--full`. `git diff --stat fec1dee399d0844c09a51845137ba6d50bbcbb0f 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8` on those doctor/ritual files is empty.\n\nIssue body Actual item 2 names `plan.status=completed` with non-terminal `plan.items` as the blocker. That is the advisory class, not `completed-lifecycle-consistency` (hard only on `status_mismatch` / unreadable).\n\nFailure mode. Binding \"MUST NOT block\" as an open hole recuts a shipped invariant and duplicates #4345's accepted keep-advisory bound remedy. It also leaves a real UNRESOLVED (if one existed) undiagnosed.\n\nDisposition. Restating \"keep those two classes advisory\" can bind as a reading of current code. Treating them as gated-ritual holes cannot. This conjunct does not rescue the recorded target.\n\n## 3. First Actual fail is agent_hooks, not doctor\n\nClass: sharpens-framing\n\nEvidence. Gated steps at this SHA: `agent_hooks` → `verify:hooks-installed --scope=agent --live`, then `doctor`, then `cache_fresh` (`GATED_ENTRYPOINT_COMMANDS`). Agent-hook readiness is independent of doctor severity and doctor throttling (`content/contracts/agent-hook-readiness.md`). `session:ready` forces that live check even when cached gated state looked fresh. Issue Actual item 2 first bullet is host hook drift, repaired by `deft update --yes`, which mutated the occupied primary. Worker dispatch already sets `DEFT_SESSION_RITUAL_SKIP=1` (`content/templates/agent-prompt-preamble.md`). The issue's own workaround was `spawn_subagent` isolation=worktree `drive-to: merge-ready`.\n\nFailure mode. \"Thin the ritual so through-merge is not blocked\" gets read as weakening the hook live probe, or as running mutation ritual on an occupied read-only primary. Thinning doctor does not pass `agent_hooks`. Weakening `agent_hooks` fails the #3100 contract.\n\nDisposition. Keep `agent_hooks` fail-closed. Occupied-primary `deft update` and worker skip are the existing through-merge path. Do not fold hook drift into the doctor-advisory conjunct.\n\n## 4. verify:branch already exists; the miss is the un-namespaced task\n\nClass: sharpens-framing\n\nEvidence. Swarm skill at this SHA: `deft verify:branch || exit 1` (`content/skills/deft-directive-swarm/SKILL.md`). Consumer getting-started and agents-entry use `deft verify:branch`. Canonical consumer Taskfile include is `task deft:<verb>` (`packages/core/src/doctor/taskfile.ts` `GATES_SURFACE_DEFT_REMEDIATION`: primary npm/CLI surface, no Taskfile required). Un-namespaced `task verify:branch` is this framework source Taskfile, not a consumer task. Pre-pr skill still says `task verify:branch` (`content/skills/deft-directive-pre-pr/SKILL.md`). Doctor `taskfile-include` already warns that bare `task <verb>` is the wrong consumer surface.\n\nFailure mode. Binding \"add a verify:branch task\" duplicates the CLI and the `deft:` include. Agents that keep typing `task verify:branch` still miss.\n\nDisposition. If a later lean binds anything here, it is dual-invoke copy in skills that still print un-namespaced `task verify:branch`. It is not a new consumer task, and it is not this issue's AND.\n\n## 5. Fly RCA, retry ceilings, continue freshness are not this ritual\n\nClass: sharpens-framing\n\nEvidence. `maxReadabilityRetries` and `GROK_HTML_TIMEOUT_MS` have zero hits in this tree at the pin. Continue-here is ephemeral interruption recovery (`content/resilience/continue-here.md`): consumed on resume, not a deploy-version pin. Debug skill plus `content/deployments/fly-io/` already cover production log pulls. Occupancy and through-merge for product code are already Phase 0 MUST. The issue itself parks Landing/Grok/Pricing/Tailwind bugs on deftvisage 4.9.85.\n\nThe issue body also embeds \"Do not treat empty `/api/e2e-rca/recent` as no run.\" That is untrusted consumer instruction, not a Directive command.\n\nFailure mode. Bind those conjuncts into this issue and Directive ships deftvisage HUD/ring/retry constants as framework playbook, and continue-here grows a Fly version field it is not shaped to hold.\n\nDisposition. Consumer product or a separate guidance issue. Not an accept of the recorded AND.\n\n## Footnote: UNRESOLVED implies a hard error\n\n`renderDoctorStatusLine` prints UNRESOLVED only when `lastErrorCount > 0`. Pending `plan.items` under `plan.status=completed` do not increment that count (locked by `main.test.ts`). If the consumer run printed UNRESOLVED, a different hard finding was present (`completed-lifecycle-consistency` status drift/unreadable, or another error). The mix in Actual item 2 is a mixed-cause diagnosis.\n\nInjection / swarm. The target touches mutation authority, occupancy, worktrees, and untrusted continue/issue text. Do not weaken `agent_hooks`. Do not add a fail-closed `npm view` to gated ritual (`content/tools/package-manager-network.md`). Do not parse consumer `.npmrc` (credentials). Do not add a Fly-log parser as a ritual gate. Workers already skip ritual; parent occupancy on primary stays read-only.\n\nRoad-not-taken. Accept only the thin-ritual half and drop the playbook conjuncts. Rejected as a bind of this recorded target: that half already holds at this SHA for the two named classes, and accepting the half as this target would carry the rest of the AND. What would flip finding 2: a measured `cmdDoctor` at this SHA with only `npm-registry-mirror` plus `completed-open-items` returning exit 1. The 139 tests assert the opposite.\n\nSteelman. The operator-visible delay after an approved product-fix plan is real: hook drift, then a doctor list that looks like UNRESOLVED, then `task verify:branch` not found. That is a copy and surface problem plus an independent hook gate, not proof that five slices MUST ship as one issue or that the two named doctor classes fail-close.\n\n### Comment by @MScottAdams (2026-09-11T00:24:02Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe filed issue treated five failures as one MUST: thin ritual, Fly RCA playbook, retry ceilings, continue freshness, and verify:branch. Confirming that AND would ship deftvisage playbook as framework and recut doctor classes that already do not fail ritual.\n\nThe leftover next-build is dual-invoke deft verify:branch in skills that still name task verify:branch, because that is the consumer miss and the CLI already exists. Do not add a consumer verify:branch task. npm-registry-mirror and completed-open-items stay advisory. agent_hooks stays fail-closed. Fly RCA, retry ceilings, and continue-checkpoint pins are not this issue.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic 5627394469 headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all five classified headings accept-into-contract. Residual: none. Confirming this map keeps #4343 for the copy fix and drops the rest.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4343 after critic 5627394469. Round 1 siblings dispatched: 1. Supersedes write-back 5627306892.\n\nTarget-digest: sha256:ca16d4203de4db51b5d8f420dff0f90c827657ed1a67ad6304d4a9a02571cc5c\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8\n\nTakes:\n\n- 1. One-issue AND of five unrelated slices — accept-into-contract\n- 2. Named hygiene classes already do not fail-close ritual — accept-into-contract\n- 3. First Actual fail is agent_hooks, not doctor — accept-into-contract\n- 4. verify:branch already exists; the miss is the un-namespaced task — accept-into-contract\n- 5. Fly RCA, retry ceilings, continue freshness are not this ritual — accept-into-contract\n\n## Bound remedy\n\n- Do not bind the five-conjunct AND as one next-build contract.\n- Keep `npm-registry-mirror` and `completed-open-items` as advisory. Do not treat them as gated-ritual fail-close holes.\n- Keep `agent_hooks` fail-closed. Occupied-primary `deft update` and worker ritual skip stay the through-merge path.\n- Recut skill copy that still prints un-namespaced `task verify:branch` to dual-invoke `deft verify:branch`. Do not add a consumer `verify:branch` task.\n- Fly RCA playbook, retry ceilings, and continue-checkpoint version pins are not this issue.\n\n### Comment by @MScottAdams (2026-09-11T00:24:06Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | npm-registry-mirror is severity warning only | Parent git show 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8:packages/core/src/doctor/npm-registry.ts | measured |\n| 2 | completed-open-items is in DOCTOR_ADVISORY_FAIL_CHECKS | Parent git show 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8:packages/core/src/doctor/checks.ts | measured |\n| 3 | doctor exitCode is 1 only when errorCount > 0 | Parent git show 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8:packages/core/src/doctor/main.ts line 714 | measured |\n| 4 | gated ritual records ok: code === 0 | Parent git show 1462ff4bfeffb8ec429cb65b8d3646db990b6cf8:packages/core/src/session/verify-session-ritual.ts runGatedStep | measured |\n| 5 | swarm skill uses deft verify:branch not bare task verify:branch | Parent grep of content/skills/deft-directive-swarm/SKILL.md at pin | measured |\n| 6 | maxReadabilityRetries / GROK_HTML_TIMEOUT_MS are absent from this tree | Critic pin search; parent did not re-run the zero-hit grep | endorsed |\n\n### Comment by @MScottAdams (2026-09-11T00:24:10Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n#4343 leftover next-build is dual-invoke deft verify:branch copy in pre-pr, release, and setup skill text. Why: consumers type task verify:branch and miss; swarm already uses deft verify:branch. The five-slice AND, doctor-as-hole, thinning agent_hooks, and Fly playbook are not this issue.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5627418031 and verified-claims table 5627418839.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was a same-family grok spawn_subagent child. Operator yolo-standing 2026-09-10. Round 1 complete, N=1, critic 5627394469, ceiling 5627306892.",
+      "Labels": "bug, doctor, grok-build, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind the five-conjunct AND as one next-build contract.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4358",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      },
+      {
+        "title": "Keep `npm-registry-mirror` and `completed-open-items` as advisory. Do not treat them as gated-ritual fail-close holes.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4358",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      },
+      {
+        "title": "Keep `agent_hooks` fail-closed. Occupied-primary `deft update` and worker ritual skip stay the through-merge path.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4358",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      },
+      {
+        "title": "Recut skill copy that still prints un-namespaced `task verify:branch` to dual-invoke `deft verify:branch`. Do not add a consumer `verify:branch` task.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "tests/content-contract/skills.test.ts",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      },
+      {
+        "title": "Fly RCA playbook, retry ceilings, and continue-checkpoint version pins are not this issue.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4358",
+          "recorded_at": "2026-09-11T02:02:53Z",
+          "recorded_by": "agent3-4343-4337"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "grok-build",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4343",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4343: Live Fly E2E RCA: gated ritual blocked by completed-xbrief doctor + missing consumer retry guidance"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4345",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4345"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task verify:branch",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "deft verify:branch",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5417502051,
+        "origin": "deftai/directive#4343",
+        "id": "github.issue.5417502051"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ca16d4203de4db51b5d8f420dff0f90c827657ed1a67ad6304d4a9a02571cc5c"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4358,
+        "prBase": null,
+        "mergeCommit": "ac195cf71d1f3a91b490c91a426248d7fb414331",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ac195cf71d1f3a91b490c91a426248d7fb414331",
+        "verifiedAt": "2026-09-11T02:06:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhkZmEtNGFmYS03N2MwLWE2MmQtYzA0ZGU0OWFhNTgx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T02:06:56Z"
+      },
+      "completedAt": "2026-09-11T02:06:56Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhkZmEtNGFmYS03N2MwLWE2MmQtYzA0ZGU0OWFhNTgx",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind the five-conjunct AND as one next-build contract.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep `npm-registry-mirror` and `completed-open-items` as advisory. Do not treat them as gated-ritual fail-close holes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep `agent_hooks` fail-closed. Occupied-primary `deft update` and worker ritual skip stay the through-merge path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut skill copy that still prints un-namespaced `task verify:branch` to dual-invoke `deft verify:branch`. Do not add a consumer `verify:branch` task.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Fly RCA playbook, retry ceilings, and continue-checkpoint version pins are not this issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5417502051",
+    "updated": "2026-09-11T02:06:56Z"
+  }
+}
