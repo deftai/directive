@@ -159,11 +159,19 @@ codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-
 
 On ChatGPT omit `-m gpt-5.6` (HTTP 400). Self-attest the model the CLI ran.
 
-**Grok.** Seat remains `spawn_subagent`. The host schema omits `process_only`. `subagent_type: plan` cannot post (read-only, no Shell) — dispatch-fail, not a hung critic. grok CLI is last-resort after a recorded native deny:
+**Grok.** Seat remains `spawn_subagent`. The host schema omits `process_only`. `subagent_type: plan` cannot post (read-only, no Shell) — dispatch-fail, not a hung critic.
+
+Native admit without skip-class (`spawn-process-only-ready`) is not a critic seat. Count selects the class: 2+ leftover eligible briefs on payloadRoot is Deny 1; 0 is #2885; 1 eligible + dest cwd + parent id is spawn-ready implement-class (dest-lock, leftover `file_scope`). Documenting the 2-deny retry loop does not close the 1-eligible admit. Either dest-rooted CLI after any native outcome that is not that skip-class, or wait on #4315 so native can express `process_only`. Implement-class pin is `DEFT_ACTIVE_SCOPE`, not a critic recovery.
+
+`isolation=worktree` without `cwd` is dest-missing. `isolation=worktree` plus `cwd` is invalid-extra-destination, not dest-missing.
+
+grok CLI is last-resort after a recorded native deny:
 
 ```text
 grok --cwd <dest> --prompt-file <path> --permission-mode bypassPermissions --always-approve --output-format plain
 ```
+
+That CLI is envelope-only process-only until #4219. Dest still required (#4066 dest-proven). Do not skip dest.
 
 ⊗ Dual-launch native + CLI. ⊗ Retarget the contract Grok seat to CLI.
 

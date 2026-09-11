@@ -12,6 +12,7 @@ import {
   consultImplementSpawnOccupancy,
   evaluateImplementSpawnOccupancy,
   FENCE_IN_PLACE_PARKED_UNTIL,
+  GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
   GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE,
   inspectSpawnDestination,
   mintImplementSpawnReservation,
@@ -783,6 +784,32 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     });
     expect(persistSpawnReservation(root, mintedA.reservation).ok).toBe(true);
     expect(persistSpawnReservation(root, mintedB.reservation).ok).toBe(false);
+  });
+
+  it("occupancy-denies Grok isolation=worktree plus cwd as invalid-extra-destination, not dest-missing (#4391)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-iso-cwd-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const decision = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { cwd: dest, isolation: "worktree", prompt: "critic" },
+      },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) {
+      expect(decision.reason).toBe("invalid-extra-destination");
+      expect(decision.message).toContain("invalid-extra-destination");
+      expect(decision.message).toContain("not dest-missing");
+      expect(decision.message).toContain(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY);
+      expect(decision.message).not.toMatch(/no worktree destination on the spawn payload/);
+    }
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });
 
   it("occupancy-denies Grok cwd plus worktree_path with no dest-lock", () => {

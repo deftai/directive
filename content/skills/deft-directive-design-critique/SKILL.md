@@ -64,7 +64,7 @@ After same-round siblings are posted, the parent posts the successor lean; the o
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
 
-Seat families and Grok Build launcher: Envelope and ceiling.
+Seat families and Grok Build launcher: Envelope and ceiling. Grok critic recovery: Design-critique dispatch (dest-rooted grok --cwd --prompt-file after recorded native deny). Native admit without skip-class is not a critic.
 Dispatch-composition miss: offer or file a prevention issue.
 
 ## EXIT

@@ -1008,6 +1008,32 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(ceiling).toContain("Design-critique dispatch");
   });
 
+  it("locks Grok critic-seat count-select and CLI recovery on the playbook (#4391)", () => {
+    const dispatch = markdownSection(
+      readText("docs/grok-build-subscription-setup.md"),
+      "## Design-critique dispatch",
+    );
+    expect(dispatch).toContain("spawn-process-only-ready");
+    expect(dispatch).toContain("2+ leftover eligible");
+    expect(dispatch).toContain("#2885");
+    expect(dispatch).toContain("1 eligible");
+    expect(dispatch).toContain("implement-class");
+    expect(dispatch).toContain("invalid-extra-destination");
+    expect(dispatch).toContain("not dest-missing");
+    expect(dispatch).toContain("envelope-only");
+    expect(dispatch).toContain("#4219");
+    expect(dispatch).toContain("#4066");
+    expect(dispatch).toContain("DEFT_ACTIVE_SCOPE");
+    expect(dispatch).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
+    expect(dispatch).toContain("grok --cwd <dest> --prompt-file");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("Design-critique dispatch");
+    expect(skill).toContain("grok --cwd --prompt-file");
+    expect(skill).toContain("Native admit without skip-class is not a critic");
+    expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
+    expect(skill).not.toContain("--permission-mode bypassPermissions");
+  });
+
   it("locks run-posture front door tokens and fixtures (#4072)", () => {
     const text = readText(CONTRACT);
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");

@@ -66,6 +66,7 @@ import {
   allocatedWorktreeMatches,
   applyCursorNurseryOccupancy,
   consultImplementSpawnOccupancy,
+  GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
   mintImplementSpawnReservation,
   persistSpawnReservation,
   releaseLeftoverSpawnReservation,
@@ -287,6 +288,38 @@ function spawnReadOnlyRecoveryFor(host: HookHost, toolName: string): string {
   return isCursorTaskSpawn(host, toolName)
     ? CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY
     : SPAWN_READ_ONLY_RECOVERY;
+}
+
+function overlayGrokCriticSpawnNotReadyRecovery(
+  input: HookDispatchInput,
+  toolName: string,
+  decision: HookDecision,
+): HookDecision {
+  if (decision.verdict !== "deny" || decision.code !== "spawn-not-ready") return decision;
+  if (
+    isProcessOnlyCriticSpawn(input.payload, {
+      host: input.host,
+      toolName,
+      environ: input.environ,
+    })
+  ) {
+    return decision;
+  }
+  if (
+    !appliesGrokSpawnDestContract({
+      host: input.host,
+      toolName,
+      payload: input.payload,
+      environ: input.environ,
+    })
+  ) {
+    return decision;
+  }
+  if (decision.message.includes(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)) return decision;
+  return {
+    ...decision,
+    message: `${GROK_CRITIC_SPAWN_NOT_READY_RECOVERY} ${decision.message}`,
+  };
 }
 
 function overlayCursorTaskSpawnRecovery(
@@ -1439,11 +1472,15 @@ function inspectMutationGates(
             ? ` Also ritual telemetry (does not clear dest-missing): ${inspected.message}`
             : ` Also ritual-not-ready: ${inspected.message}`
           : "";
-      return deny(
+      return overlayGrokCriticSpawnNotReadyRecovery(
         input,
-        "spawn-not-ready",
         toolName,
-        `${consult.message}${ritualNote}${rootsNote}`,
+        deny(
+          input,
+          "spawn-not-ready",
+          toolName,
+          `${consult.message}${ritualNote}${rootsNote}`,
+        ),
       );
     }
     spawnConsult = consult;
@@ -2730,13 +2767,17 @@ function routeHookDecision(
         scopePath: null,
       };
     }
-    return overlayCursorTaskSpawnRecovery(
-      input.host,
+    return overlayGrokCriticSpawnNotReadyRecovery(
+      input,
       toolName,
-      inspectMutationGates(input, toolName, seams, {
-        proposedLifecycleExempt: false,
-        observation,
-      }),
+      overlayCursorTaskSpawnRecovery(
+        input.host,
+        toolName,
+        inspectMutationGates(input, toolName, seams, {
+          proposedLifecycleExempt: false,
+          observation,
+        }),
+      ),
     );
   }
 
