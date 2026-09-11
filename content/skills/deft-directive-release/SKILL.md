@@ -27,6 +27,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! GitHub as the SCM platform; the **GitHub CLI (`gh`)** must be installed and authenticated. The full pipeline plus the rehearsal target (`task release:e2e`) all dispatch through `gh`.
 
+## Primary occupancy — trusted producer (#4266)
+
+! Mutation `session:start` on a contended primary MUST pass `--primary-claim-exception=release-cut` **before any state-changing preflight command** (`task policy:allow-direct-commits -- --confirm`, reconcile, cache refresh). Occupancy already implements that exception; session:start CLI argv is the trusted producer.
+
+```
+deft session:start --primary-claim-exception=release-cut
+```
+
+or `task session:start -- --primary-claim-exception=release-cut`. Sibling values: `policy-restore`, `operator-default-branch`. Unknown values fail closed (exit 2). `--read-only` never claims.
+
+⊗ Invent a process-wide env producer for the exception.
+⊗ Name the exception in spawn JSON.
+⊗ Run `task policy:allow-direct-commits` (or any other mutation) before mutation `session:start --primary-claim-exception=release-cut` on a contended primary.
+
 ## Branch-Protection Policy Guard
 
 ! Before any Phase 1 state mutation, run the skill-level branch-policy guard documented in `task policy:show` / dual-invoke `deft verify:branch` (#746 / #747). Releases run on the configured base branch (default `master`), so the operator MUST be on the explicit-opt-in side of the policy before the pipeline starts writing files.
@@ -80,20 +94,6 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 ## Phase 1 — Pre-flight
 
 ! Validate the local + remote state before any irreversible action.
-
-### Primary occupancy — trusted producer (#4266)
-
-! Mutation `session:start` on a contended primary MUST pass `--primary-claim-exception=release-cut`. Occupancy already implements that exception; session:start CLI argv is the trusted producer.
-
-```
-deft session:start --primary-claim-exception=release-cut
-```
-
-or `task session:start -- --primary-claim-exception=release-cut`. Sibling values: `policy-restore`, `operator-default-branch`. Unknown values fail closed (exit 2). `--read-only` never claims.
-
-⊗ Invent a process-wide env producer for the exception.
-⊗ Name the exception in spawn JSON.
-
 
 ### Parallel prep — #1880 Gap D (#2692)
 
