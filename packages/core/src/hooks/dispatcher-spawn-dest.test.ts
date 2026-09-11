@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
@@ -862,7 +862,7 @@ function liveScopeSeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySea
   };
 }
 
-describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
+describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
   function twoActiveDest(): { root: string; dest: string; storyB: string } {
     const { root, dest } = destFixture();
     writeRunning(root, "a-story.xbrief.json", ["packages/a/**"]);
@@ -870,8 +870,9 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
     return { root, dest, storyB };
   }
 
-  it("allows dest-proven spawn when boundPath names one of two primary actives", () => {
+  it("allows dest-proven spawn when dest unique basename names one of two primary actives", () => {
     const { root, dest, storyB } = twoActiveDest();
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
     const inspectRitual = vi.fn(() => STALE_RITUAL);
     const inspectScope = vi.fn(
       (projectRoot: string, options?: Parameters<typeof inspectActiveScope>[1]) => {
@@ -887,11 +888,7 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
         projectRoot: root,
         payload: {
           toolName: "spawn_subagent",
-          tool_input: {
-            cwd: dest,
-            prompt: "implement the story",
-            boundPath: "xbrief/active/b-story.xbrief.json",
-          },
+          tool_input: { cwd: dest, prompt: "implement the story" },
         },
         environ: { DEFT_SESSION_ID: "parent-1" },
       },
@@ -903,28 +900,8 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
     expect(inspectScope).toHaveBeenCalled();
   });
 
-  it("allows unique basename pin and keeps env as CLI fallback", () => {
+  it("keeps DEFT_ACTIVE_SCOPE as CLI fallback when dest has no unique basename", () => {
     const { root, dest, storyB } = twoActiveDest();
-    const byBasename = decideHook(
-      {
-        host: "grok",
-        event: "tool.before",
-        projectRoot: root,
-        payload: {
-          toolName: "spawn_subagent",
-          tool_input: {
-            cwd: dest,
-            prompt: "implement the story",
-            active_scope: "b-story.xbrief.json",
-          },
-        },
-        environ: { DEFT_SESSION_ID: "parent-1" },
-      },
-      liveScopeSeams(),
-    );
-    expect(byBasename).toMatchObject({ verdict: "allow", code: "spawn-ready" });
-    expect(byBasename.scopePath).toBe(storyB);
-
     const byEnv = decideHook(
       {
         host: "grok",
@@ -943,28 +920,6 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
     );
     expect(byEnv).toMatchObject({ verdict: "allow", code: "spawn-ready" });
     expect(byEnv.scopePath).toBe(storyB);
-  });
-
-  it("admits dest-proven spawn when dest holds one copied primary-ledger brief", () => {
-    const { root, dest, storyB } = twoActiveDest();
-    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
-    const inspectRitual = vi.fn(() => STALE_RITUAL);
-    const decision = decideHook(
-      {
-        host: "grok",
-        event: "tool.before",
-        projectRoot: root,
-        payload: {
-          toolName: "spawn_subagent",
-          tool_input: { cwd: dest, prompt: "implement the story" },
-        },
-        environ: { DEFT_SESSION_ID: "parent-1" },
-      },
-      liveScopeSeams({ inspectRitual }),
-    );
-    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
-    expect(decision.scopePath).toBe(storyB);
-    expect(inspectRitual).not.toHaveBeenCalled();
   });
 
   it("does not auto-pin when dest holds two active briefs", () => {
@@ -1009,8 +964,8 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
     expect(inspectRitual).not.toHaveBeenCalled();
   });
 
-  it("does not treat prompt, issue id, or dest-absolute path as the pin", () => {
-    const { root, dest, storyB } = twoActiveDest();
+  it("does not treat prompt, description, or payload boundPath keys as the pin", () => {
+    const { root, dest } = twoActiveDest();
     const promptPin = decideHook(
       {
         host: "grok",
@@ -1031,46 +986,7 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
     expect(promptPin).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(promptPin.message).toContain("Multiple active xBRIEF artifacts");
 
-    const issueId = decideHook(
-      {
-        host: "grok",
-        event: "tool.before",
-        projectRoot: root,
-        payload: {
-          toolName: "spawn_subagent",
-          tool_input: { cwd: dest, prompt: "implement", boundPath: "4393" },
-        },
-        environ: { DEFT_SESSION_ID: "parent-1" },
-      },
-      liveScopeSeams(),
-    );
-    expect(issueId).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
-    expect(issueId.message).toContain("4393");
-
-    const destAbs = decideHook(
-      {
-        host: "grok",
-        event: "tool.before",
-        projectRoot: root,
-        payload: {
-          toolName: "spawn_subagent",
-          tool_input: {
-            cwd: dest,
-            prompt: "implement",
-            boundPath: join(dest, "xbrief", "active", basename(storyB)),
-          },
-        },
-        environ: { DEFT_SESSION_ID: "parent-1" },
-      },
-      liveScopeSeams(),
-    );
-    expect(destAbs).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
-  });
-
-  it("lets boundPath win over process-wide DEFT_ACTIVE_SCOPE", () => {
-    const { root, dest, storyB } = twoActiveDest();
-    const storyA = join(root, "xbrief", "active", "a-story.xbrief.json");
-    const decision = decideHook(
+    const payloadKeys = decideHook(
       {
         host: "grok",
         event: "tool.before",
@@ -1081,7 +997,29 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
             cwd: dest,
             prompt: "implement",
             boundPath: "xbrief/active/b-story.xbrief.json",
+            active_scope: "b-story.xbrief.json",
           },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams(),
+    );
+    expect(payloadKeys).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(payloadKeys.message).toContain("Multiple active xBRIEF artifacts");
+  });
+
+  it("lets dest unique basename win over process-wide DEFT_ACTIVE_SCOPE", () => {
+    const { root, dest, storyB } = twoActiveDest();
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    const storyA = join(root, "xbrief", "active", "a-story.xbrief.json");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement" },
         },
         environ: {
           DEFT_SESSION_ID: "parent-1",
@@ -1095,8 +1033,9 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
     expect(decision.scopePath).not.toBe(storyA);
   });
 
-  it("still occupancy-denies extra dest keys when a pin is present", () => {
+  it("still occupancy-denies extra dest keys when a dest unique-basename pin is present", () => {
     const { root, dest } = twoActiveDest();
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
     const inspectRitual = vi.fn(() => STALE_RITUAL);
     const decision = decideHook(
       {
@@ -1109,7 +1048,6 @@ describe("dest-proven spawn per-spawn boundPath pin (#4393)", () => {
             cwd: dest,
             worktree_path: dest,
             prompt: "implement",
-            boundPath: "xbrief/active/b-story.xbrief.json",
           },
         },
         environ: { DEFT_SESSION_ID: "parent-1" },

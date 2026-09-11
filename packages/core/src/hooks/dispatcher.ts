@@ -99,7 +99,6 @@ import {
   record,
   resolveHookHostIdentity,
   rewriteExactLifecycleCommand,
-  spawnBoundPathFromPayload,
   toolInputRecord,
 } from "./classify/index.js";
 import {
@@ -1693,13 +1692,12 @@ function inspectMutationGates(
     // #3794 commit 2: a write is governed by the active scope of the worktree it
     // lands in, not the primary checkout's. Admission has already proved
     // effectiveRoot shares --git-common-dir with payloadRoot.
-    // Spawn pin is per-spawn boundPath from a host-visible field (#4393).
-    // Env stays the CLI fallback. Do not dest-root-swap (#4215). Unique dest
-    // active basename is derived from occupancy-validated destPath (Grok cwd),
-    // not a raw unvalidated cwd that can disagree with worktree_path.
+    // Spawn pin is dest unique-basename from occupancy-validated destPath
+    // (Grok cwd). Grok spawn_subagent does not forward payload pin keys
+    // (#4315 closed-schema). Env stays the CLI fallback. Do not dest-root-swap
+    // (#4215).
     const spawnBoundPath = isSpawnTool(toolName)
-      ? (spawnBoundPathFromPayload(input.payload) ??
-        uniqueActiveBasenameFromDestPath(spawnConsult?.destPath ?? null))
+      ? uniqueActiveBasenameFromDestPath(spawnConsult?.destPath ?? null)
       : null;
     scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
       env: environ,

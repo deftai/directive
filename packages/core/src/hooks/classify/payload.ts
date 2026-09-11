@@ -48,39 +48,6 @@ export function hookPayloadTopLevelKeys(payload: unknown): string[] {
   return Object.keys(input).sort();
 }
 
-/**
- * Per-spawn active-scope pin keys (#4393). Optional extras when the host
- * forwards them. Grok's forwarded channel is occupancy-validated dest cwd
- * (unique dest active basename). Prompt and description are never pins.
- * Extra dest keys stay occupancy-deny.
- */
-export const SPAWN_SCOPE_PIN_KEYS = [
-  "boundPath",
-  "bound_path",
-  "active_scope",
-  "activeScope",
-] as const;
-
-/**
- * Bound path for spawn `inspectActiveScope` (#4393). Tool input first, then
- * top-level stdin. Grammar is the existing matcher: `xbrief/active/<file>` or
- * unique basename against payloadRoot. Not issue id. Not dest absolute path.
- */
-export function spawnBoundPathFromPayload(payload: unknown): string | null {
-  const input = record(payload);
-  if (input === null) return null;
-  const nested = toolInputRecord(input);
-  for (const key of SPAWN_SCOPE_PIN_KEYS) {
-    const fromTool = nested !== null ? fieldString(nested, key) : null;
-    if (fromTool !== null) return fromTool;
-  }
-  for (const key of SPAWN_SCOPE_PIN_KEYS) {
-    const fromTop = fieldString(input, key);
-    if (fromTop !== null) return fromTop;
-  }
-  return null;
-}
-
 const STDIN_ENV_BAG_KEYS = ["env", "environ"] as const;
 
 /** Stdin env bag for per-spawn hook environ (#4393). Not process-wide DEFT_ACTIVE_SCOPE. */
