@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4406",
-    "updated": "2026-09-11T17:18:20Z"
+    "updated": "2026-09-11T18:12:52Z"
   },
   "plan": {
     "title": "feat(session): default sessionRitualStalenessHours 4 to 8",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(session): default sessionRitualStalenessHours 4 to 8",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4406",
@@ -16,19 +16,43 @@
     "items": [
       {
         "title": "Set DEFAULT_SESSION_RITUAL_STALENESS_HOURS to 8 in both packages/core/src/session/staleness.ts (gate) and packages/core/src/policy/index.ts (policy:show). Typed plan.policy.sessionRitualStalenessHours still wins; omit/null still take the new default; invalid still default-on-error.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4416",
+          "recorded_at": "2026-09-11T18:11:20Z",
+          "recorded_by": "4406-leaf-implementation"
+        }
       },
       {
         "title": "Live copy: schema description Default: 8 (do not add a JSON Schema default keyword); content/commands.md the line that currently says default 4. Do not insert a number into agents-entry. Do not recut completed #1348 xBRIEF or hand-edit SPECIFICATION.md.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4416",
+          "recorded_at": "2026-09-11T18:11:20Z",
+          "recorded_by": "4406-leaf-implementation"
+        }
       },
       {
         "title": "Update staleness.test.ts and policy/resolve.test.ts numeric default asserts. Leave typed-4 fixtures and sibling 4-hour nudge constants (D2, eval, value-readback, dirty-doctor).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4416",
+          "recorded_at": "2026-09-11T18:11:20Z",
+          "recorded_by": "4406-leaf-implementation"
+        }
       },
       {
         "title": "Compact still epoch-rewinds started_at; do not add a second rearm_needed deny. Occupancy TTL and max lease unchanged. Do not fold #3729 or #4399. CHANGELOG.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4416",
+          "recorded_at": "2026-09-11T18:11:20Z",
+          "recorded_by": "4406-leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -81,7 +105,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "45b46d1b4fe752a2fa9721bcb86c27fadd30d04062089d6843bd9bb5a685e9bb"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4416,
+        "prBase": null,
+        "mergeCommit": "de1a46816d8ae0cd4590ef358b07b76b3a8da1f0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1a904ff6c7d3e89028b34baf057bdf35ea6b610f",
+        "verifiedAt": "2026-09-11T18:12:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkxN2EtZGU5ZS03M2IzLWIxMTgtMzkxMDMyNTY5NmE0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T18:12:52Z"
+      },
+      "completedAt": "2026-09-11T18:12:52Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkxN2EtZGU5ZS03M2IzLWIxMTgtMzkxMDMyNTY5NmE0",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -121,6 +170,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5426595595",
-    "updated": "2026-09-11T17:18:20Z"
+    "updated": "2026-09-11T18:12:52Z"
   }
 }

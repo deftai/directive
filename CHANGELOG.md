@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Land leftover completed-tracked artifact for #4406 (#3264 / #3476).** The #4406 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4416. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Default `sessionRitualStalenessHours` is 8 hours, not 4 (#4406).** Typed `plan.policy.sessionRitualStalenessHours` still wins. Omit, null, and invalid still take the framework default. Compact re-arm and occupancy clocks stay. Closes #4406.
 - **Land leftover completed-tracked artifact for #4391 (#3264 / #3476).** The #4391 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4402. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4356 (#3264 / #3476).** The #4356 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4394. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
