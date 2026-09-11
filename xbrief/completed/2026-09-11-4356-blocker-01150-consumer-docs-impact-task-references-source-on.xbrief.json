@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4356",
-    "updated": "2026-09-11T13:57:55Z"
+    "updated": "2026-09-11T15:43:28Z"
   },
   "plan": {
     "title": "BLOCKER: 0.115.0 consumer docs-impact task references source-only packages/core path",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "BLOCKER: 0.115.0 consumer docs-impact task references source-only packages/core path",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4356",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "Register a canonical CLI/engine verb for docs-impact (colon alias verify:docs-impact) that calls the existing docsImpactMain, and rewire tasks/verify.yml docs-impact to :engine:invoke with that verb. One PR. That is the consumer-stable invocation.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/dispatch.test.ts",
+          "recorded_at": "2026-09-11T15:43:18Z",
+          "recorded_by": "4356-leaf-implementation"
+        }
       },
       {
         "title": "Do not deposit a second resolver or a copied parser under @deftai/directive-content. A content-side wrapper is only the existing engine-invoke path.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/verify-docs-impact-task-surface.test.ts",
+          "recorded_at": "2026-09-11T15:43:18Z",
+          "recorded_by": "4356-leaf-implementation"
+        }
       },
       {
         "title": "Extend the existing packed-consumer smoke (or a sibling) to run task deft:verify:docs-impact -- --body-file against a fixture after init. Optional static scan that consumer-facing deposited cmds are engine:invoke or a path present in the content pack. Do not execute every node-path task. Do not add this gate to CONSUMER_CHECK_GATES / task check.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "smoke",
+          "pointer": "packages/core/src/release-e2e/greenfield-python-free-smoke.ts",
+          "recorded_at": "2026-09-11T15:43:18Z",
+          "recorded_by": "4356-leaf-implementation"
+        }
       },
       {
         "title": "State the git fixture in AC (init plus origin/master or equivalent), or parse the declaration even when the range is missing. Do not treat git EXIT_CONFIG as the consumer-contract fix.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/docs/docs-impact.test.ts",
+          "recorded_at": "2026-09-11T15:43:18Z",
+          "recorded_by": "4356-leaf-implementation"
+        }
       },
       {
         "title": "Keep a single untrusted-body parser. Fail-closed after path resolution. --pr stays REST. Do not map MODULE_NOT_FOUND to skip or exit 0.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/docs/docs-impact.test.ts",
+          "recorded_at": "2026-09-11T15:43:18Z",
+          "recorded_by": "4356-leaf-implementation"
+        }
       },
       {
         "title": "CHANGELOG. AC line 0.115.x records the reproducing consumer; the same node path is still on origin/master after v0.116.0. Release train is policy.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4394",
+          "recorded_at": "2026-09-11T15:43:18Z",
+          "recorded_by": "4356-leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -117,9 +153,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "62127d7d02300211a8d8bc379369d5901a115e3f16107d10215286531e733711"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4394,
+        "prBase": null,
+        "mergeCommit": "f6ff6e39e8c064f69265549b0a2094af2955643d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4281eb8f3683d07ec40b82521d5ddd07ff9c4427",
+        "verifiedAt": "2026-09-11T15:43:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkwYzgtNTA4MC03NjQzLWFlNmMtZmE2YjVhMjlhYmRl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T15:43:28Z"
+      },
+      "completedAt": "2026-09-11T15:43:28Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkwYzgtNTA4MC03NjQzLWFlNmMtZmE2YjVhMjlhYmRl",
+      "capacityBucket": "new-capability"
     },
     "id": "github.issue.5419087689",
-    "updated": "2026-09-11T13:57:55Z"
+    "updated": "2026-09-11T15:43:28Z"
   }
 }
