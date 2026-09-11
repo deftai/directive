@@ -120,6 +120,8 @@ export function runConsumerDocsImpactSmoke(
     [["add", "-A"], "add"],
     [["commit", "--allow-empty", "-m", "docs-impact fixture"], "commit"],
     [["update-ref", "refs/remotes/origin/master", "HEAD"], "origin/master"],
+    // Leave HEAD off master/main so later task deft:check verify:branch passes.
+    [["checkout", "-B", "feat/docs-impact-smoke"], "feature branch"],
   ] as const) {
     const [ok, reason] = runGitStep(spawn, gitBin, args, projectDir, gitEnv);
     if (!ok) return [false, `docs-impact git fixture (${label}): ${reason}`];
