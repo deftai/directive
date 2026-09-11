@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   captureLiteralAcceptanceCommandsDetailed,
+  commandDedupeKey,
   formatRejectedLedger,
   INLINE_PROSE_MENTION_REASON,
   isInlineProseMention,
@@ -153,17 +154,12 @@ function resolveRawLiteralAcceptance(
   const captured = captureLiteralAcceptanceCommandsDetailed(parts.join("\n\n"));
 
   // Merge commands: keep stored (richer context) first; add narrative captures by
-  // composite key (command+cwd+exit) so new stated lines are not suppressed.
-  const cmdKey = (c: LiteralAcceptanceCommand): string => {
-    const cwd =
-      c.cwd !== null && c.cwd !== undefined && c.cwd.trim().length > 0 ? c.cwd.trim() : "";
-    const exit = typeof c.expectedExitCode === "number" ? c.expectedExitCode : 0;
-    return `${c.command}\0${cwd}\0${exit}`;
-  };
-  const seen = new Set(stored.commands.map(cmdKey));
+  // capture identity (command+cwd+exit+source) so new stated lines are not
+  // suppressed and recapture cannot twin or hide a sourced peer (#4238).
+  const seen = new Set(stored.commands.map(commandDedupeKey));
   const commands = [...stored.commands];
   for (const c of captured.commands) {
-    const k = cmdKey(c);
+    const k = commandDedupeKey(c);
     if (seen.has(k)) continue;
     // Also skip pure command-string dupes already stored (any cwd) so narrative
     // re-capture does not invent a second null-cwd twin of an explicit row.

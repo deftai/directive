@@ -5,8 +5,9 @@
  * or paraphrases. Prefer fenced blocks and labeled lines (verify:/command:/run:).
  *
  * Safety-rejected shell-shaped lines are recorded on a rejected ledger so they
- * do not vanish silently (#3267 residual). Dedup keys include cwd/expectedExitCode
- * so distinct execution contexts are not collapsed.
+ * do not vanish silently (#3267 residual). Dedup keys include source plus
+ * cwd/expectedExitCode so a capture-only row can coexist with a promoted peer
+ * (#4238) and distinct execution contexts are not collapsed.
  */
 
 import { evaluateCommandSafety } from "./safety.js";
@@ -67,11 +68,16 @@ function looksLikeShellCommand(command: string): boolean {
   return false;
 }
 
-/** Dedupe key includes execution context so distinct cwd/exit targets stay distinct. */
-function commandDedupeKey(cmd: {
+/**
+ * Capture identity: command + cwd + exit + source.
+ * Source is required so a non-inline task_statement row does not swallow a
+ * same-context agent peer from a documented promote slot (#4238).
+ */
+export function commandDedupeKey(cmd: {
   readonly command: string;
   readonly cwd?: string | null;
   readonly expectedExitCode?: number;
+  readonly source?: string;
 }): string {
   const cwd =
     cmd.cwd !== null && cmd.cwd !== undefined && cmd.cwd.trim().length > 0 ? cmd.cwd.trim() : "";
@@ -79,7 +85,8 @@ function commandDedupeKey(cmd: {
     typeof cmd.expectedExitCode === "number" && Number.isFinite(cmd.expectedExitCode)
       ? cmd.expectedExitCode
       : 0;
-  return `${cmd.command}\0${cwd}\0${exit}`;
+  const source = typeof cmd.source === "string" ? cmd.source : "";
+  return `${cmd.command}\0${cwd}\0${exit}\0${source}`;
 }
 
 interface CaptureBuckets {
@@ -625,10 +632,13 @@ export function readStoredLiteralAcceptanceDetailed(
     const swarm = asRecord(metadata.swarm);
     if (swarm !== null) {
       // swarm.verify_commands is a string list (legacy). Prefer richer
-      // literal_acceptance_commands rows already loaded — do not invent a
-      // null-cwd duplicate for the same command text.
+      // executable rows already loaded — do not invent a null-cwd duplicate
+      // for the same command text. Capture-only (task_statement) rows must
+      // not claim the slot; they coexist with a promoted peer (#4238).
       const alreadyHasCommand = (command: string): boolean =>
-        buckets.out.some((c) => c.command === command && !isInlineProseMention(c));
+        buckets.out.some(
+          (c) => c.command === command && !isInlineProseMention(c) && isExecutableSource(c.source),
+        );
       for (const cmd of coerceCommandList(
         swarm.verify_commands,
         "verify_commands",
