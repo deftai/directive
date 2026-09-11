@@ -182,9 +182,9 @@ function extractClauseTokens(text: string): string[] {
   return found;
 }
 
-/** Strip emphasis markers so derived clause text can match the authored field (#4374). */
+/** Strip bold markers so derived clause text can match the authored field (#4374). */
 function stripInlineMarkdownEmphasis(text: string): string {
-  return text.replace(/\*\*/g, "").replace(/__/g, "");
+  return text.replace(/\*\*/g, "");
 }
 
 /** Statement-traceable when the clause text or its identifiers appear in the statement. */
@@ -201,7 +201,9 @@ export function traceClauseProvenance(
   if (tokens.length === 0) {
     return "implementation";
   }
-  return tokens.every((token) => normStatement.includes(token)) ? "statement" : "implementation";
+  return tokens.every((token) => statement.includes(token) || normStatement.includes(token))
+    ? "statement"
+    : "implementation";
 }
 
 export function countClauseProvenance(

@@ -299,6 +299,33 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     );
   });
 
+  it("keeps statement provenance for a paraphrased clause with a dunder token (#4374)", () => {
+    const statement = "The __init__ method rejects invalid configuration";
+    const clause = {
+      id: 1,
+      text: "Reject invalid configuration in __init__",
+      artifact_path: null,
+      ambiguous: false,
+    };
+    expect(traceClauseProvenance(clause, statement)).toBe("statement");
+    const prepared = prepareClauseStamp([clause], statement);
+    expect(prepared.ok).toBe(true);
+    expect(prepared.provenance_counts).toEqual({ statement: 1, implementation: 0 });
+    const plan: Record<string, unknown> = {
+      title: "dunder token",
+      narratives: { Overview: statement },
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        clauses: [clause],
+      },
+    };
+    const result = applyClauseQualityToPlan(plan);
+    expect(result.applied).toBe(true);
+    expect((plan.acceptance as { clauses: unknown[] }).clauses).toHaveLength(1);
+  });
+
   it("defaults source_rung to stated when command-only acceptance omits it", () => {
     const plan: Record<string, unknown> = {
       narratives: { Overview: TRIAL_OVERVIEW },
