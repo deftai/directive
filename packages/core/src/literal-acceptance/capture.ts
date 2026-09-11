@@ -71,7 +71,8 @@ function looksLikeShellCommand(command: string): boolean {
 /**
  * Capture identity: command + cwd + exit + source.
  * Source is required so a non-inline task_statement row does not swallow a
- * same-context agent peer from a documented promote slot (#4238).
+ * same-context agent peer from a documented promote slot (#4238). Executable
+ * sources share one bucket so two promote slots cannot double-run.
  */
 export function commandDedupeKey(cmd: {
   readonly command: string;
@@ -85,8 +86,13 @@ export function commandDedupeKey(cmd: {
     typeof cmd.expectedExitCode === "number" && Number.isFinite(cmd.expectedExitCode)
       ? cmd.expectedExitCode
       : 0;
-  const source = typeof cmd.source === "string" ? cmd.source : "";
-  return `${cmd.command}\0${cwd}\0${exit}\0${source}`;
+  return `${cmd.command}\0${cwd}\0${exit}\0${commandSourceBucket(cmd.source)}`;
+}
+
+/** Executable sources share one identity bucket so two promote slots cannot double-run (#4238). */
+export function commandSourceBucket(source?: string): string {
+  if (typeof source === "string" && isExecutableSource(source)) return "executable";
+  return source ?? "";
 }
 
 interface CaptureBuckets {

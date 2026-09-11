@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import {
   captureLiteralAcceptanceCommandsDetailed,
   commandDedupeKey,
+  commandSourceBucket,
   formatRejectedLedger,
   INLINE_PROSE_MENTION_REASON,
   isInlineProseMention,
@@ -161,9 +162,18 @@ function resolveRawLiteralAcceptance(
   for (const c of captured.commands) {
     const k = commandDedupeKey(c);
     if (seen.has(k)) continue;
-    // Also skip pure command-string dupes already stored (any cwd) so narrative
-    // re-capture does not invent a second null-cwd twin of an explicit row.
-    if (commands.some((s) => s.command === c.command)) continue;
+    // Same-command skip is bucket-scoped: executable peers still collapse
+    // across cwd twins, but a capture-only row may coexist with an executable
+    // peer (#4238).
+    if (
+      commands.some(
+        (s) =>
+          s.command === c.command &&
+          commandSourceBucket(s.source) === commandSourceBucket(c.source),
+      )
+    ) {
+      continue;
+    }
     seen.add(k);
     commands.push(c);
   }

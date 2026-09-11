@@ -112,4 +112,50 @@ describe("promote non-inline task_statement via documented slots (#4238)", () =>
     expect(result.commands.some((c) => c.source === "verify_commands")).toBe(true);
     expect(result.commands.some((c) => c.source === "explicit")).toBe(false);
   });
+
+  it("does not run twice when two executable slots share the command", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [statedRow("labeled@")],
+        swarm: {
+          verify_commands: [COMMAND],
+          literal_acceptance_commands: [{ command: COMMAND, expectedExitCode: 0 }],
+        },
+      },
+      items: [{ command: COMMAND }],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(stored.filter((c) => c.source !== "task_statement")).toHaveLength(1);
+    let runs = 0;
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+
+  it("keeps a labeled narrative capture beside a stored executable peer", () => {
+    const plan = {
+      title: "t",
+      narratives: { Overview: "verify: deft doctor" },
+      metadata: {
+        literal_acceptance_commands: [{ command: COMMAND, source: "explicit" }],
+      },
+      items: [],
+    };
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: true,
+      runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.commands.some((c) => c.source === "task_statement")).toBe(true);
+    expect(result.commands.some((c) => c.source === "explicit")).toBe(true);
+  });
 });
