@@ -131,6 +131,8 @@ describe("runConsumerDocsImpactSmoke (#4356)", () => {
     );
     expect(ok, reason).toBe(true);
     expect(reason).toContain("origin/master");
+    expect(calls.some((args) => args[0] === "init" && args.includes("-b"))).toBe(true);
+    expect(calls.some((args) => args[0] === "rev-parse")).toBe(false);
     expect(
       calls.some(
         (args) => args.includes("update-ref") && args.includes("refs/remotes/origin/master"),

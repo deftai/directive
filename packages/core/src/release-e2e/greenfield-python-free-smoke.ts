@@ -98,21 +98,21 @@ export function runConsumerDocsImpactSmoke(
   }
 
   onProgress?.("greenfield smoke: seeding origin/master git fixture for docs-impact");
-  const inside = spawn(gitBin, ["rev-parse", "--is-inside-work-tree"], {
-    cwd: projectDir,
-    env,
-    timeoutMs: 15_000,
-  });
-  if (inside.status !== 0) {
-    const [initOk, initReason] = runGitStep(
-      spawn,
-      gitBin,
-      ["init", "-b", "master"],
-      projectDir,
-      env,
-    );
-    if (!initOk) return [false, `docs-impact git fixture: ${initReason}`];
-  }
+  // Always init inside projectDir so an ancestor worktree (TMPDIR under a
+  // checkout) is never the git root for checkout/commit/update-ref (#4356).
+  const gitEnv = {
+    ...env,
+    GIT_DIR: join(projectDir, ".git"),
+    GIT_WORK_TREE: projectDir,
+  };
+  const [initOk, initReason] = runGitStep(
+    spawn,
+    gitBin,
+    ["init", "-b", "master"],
+    projectDir,
+    gitEnv,
+  );
+  if (!initOk) return [false, `docs-impact git fixture: ${initReason}`];
   for (const [args, label] of [
     [["checkout", "-B", "master"], "checkout master"],
     [["config", "user.email", "smoke@example.com"], "user.email"],
@@ -121,7 +121,7 @@ export function runConsumerDocsImpactSmoke(
     [["commit", "--allow-empty", "-m", "docs-impact fixture"], "commit"],
     [["update-ref", "refs/remotes/origin/master", "HEAD"], "origin/master"],
   ] as const) {
-    const [ok, reason] = runGitStep(spawn, gitBin, args, projectDir, env);
+    const [ok, reason] = runGitStep(spawn, gitBin, args, projectDir, gitEnv);
     if (!ok) return [false, `docs-impact git fixture (${label}): ${reason}`];
   }
 
