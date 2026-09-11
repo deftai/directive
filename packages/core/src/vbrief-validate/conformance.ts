@@ -423,7 +423,13 @@ export function evaluateConformance(
         `error(s) (#4245).\n` +
         "  Scope filenames MUST match YYYY-MM-DD-descriptive-slug.vbrief.json; " +
         "dots in the slug are not exempt.";
-      const d7Body = filenameErrors.map((err) => `FAIL: ${err}`).join("\n");
+      let d7Body = filenameErrors
+        .slice(0, 50)
+        .map((err) => `FAIL: ${err}`)
+        .join("\n");
+      if (filenameErrors.length > 50) {
+        d7Body += `\n  ... and ${filenameErrors.length - 50} more`;
+      }
       parts.push(`${d7Header}\n${d7Body}`);
     }
     if (findings.length > 0) {

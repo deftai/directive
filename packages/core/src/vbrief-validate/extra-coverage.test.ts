@@ -1300,4 +1300,19 @@ describe("evaluateConformance D7 filename (#4245)", () => {
     expect(evaluateConformance(root, { mode: "all" }).exitCode).toBe(0);
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("caps D7 diagnostic output at 50 findings", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-d7-many-"));
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    for (let i = 0; i < 51; i += 1) {
+      const name = "2026-09-07-bad-" + String(i) + ".1.xbrief.json";
+      writeFileSync(join(root, "xbrief", "completed", name), validBody, "utf8");
+    }
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    execSync("git add -A", { cwd: root, stdio: "ignore" });
+    const result = evaluateConformance(root, { mode: "staged" });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("... and");
+    rmSync(root, { recursive: true, force: true });
+  });
 });
