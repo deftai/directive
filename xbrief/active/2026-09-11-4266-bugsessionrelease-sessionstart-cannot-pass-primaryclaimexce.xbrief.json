@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF from GitHub issue #4266 Bound-remedy harvest (ingest gh-parse failed; REST+lean used)",
-    "updated": "2026-09-11T16:31:37Z"
+    "updated": "2026-09-11T18:05:00Z"
   },
   "plan": {
     "title": "bug(session,release): session:start cannot pass primaryClaimException=release-cut",
@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "file_scope is packages/cli/src/session-start.ts AND packages/core/src/session/session-start.ts (SessionStartOptions + occupancyInput + persistOccupancyOrDeny). Tests exercise write:true mutation claim, unknown parse fail-closed, --read-only still write:false.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-start.test.ts (write:true persist + --read-only write:false) and packages/cli/src/session-start.test.ts (unknown --primary-claim-exception fail-closed, run() exit 2)",
+          "recorded_at": "2026-09-11T18:05:00Z",
+          "recorded_by": "4266-leaf-implementation"
+        }
       },
       {
         "title": "Trusted producer is session:start CLI argv (closed enum, unknown exits 2). Spawn JSON stays cannot-name. Do not teach inspectSpawnDestination or consult to read an exception key. Correct the occupancy.ts producer sentence so it cannot license spawn honor.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/session-start.test.ts closed enum + unknown exit 2; packages/core/src/session/occupancy.ts producer comment; packages/core/src/session/spawn-occupancy.test.ts refuses primary_claim_exception",
+          "recorded_at": "2026-09-11T18:05:00Z",
+          "recorded_by": "4266-leaf-implementation"
+        }
       },
       {
         "title": "Keep file_scope off session-ready.ts. Do not fold #4399.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4415 files: session-ready.ts not in diff; no #4399 product",
+          "recorded_at": "2026-09-11T18:05:00Z",
+          "recorded_by": "4266-leaf-implementation"
+        }
       },
       {
         "title": "Exception only clears the primary-path block. Steal still needs confirm+occupant. Tests lock exception without steal as claim.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-start.test.ts: passes the exception on write:true mutation persist and not as steal; still requires confirm+occupant when steal is set even with the exception",
+          "recorded_at": "2026-09-11T18:05:00Z",
+          "recorded_by": "4266-leaf-implementation"
+        }
       },
       {
         "title": "Release recipe lands in content/packs/skills/skills-pack-0.1.json then packs:render. Recipe is session:start --primary-claim-exception=release-cut. No process-wide env producer. CHANGELOG.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-release/SKILL.md occupancy recipe before Branch-Protection; CHANGELOG [Unreleased] Fixed #4266; packs source content/packs/skills/skills-pack-0.1.json",
+          "recorded_at": "2026-09-11T18:05:00Z",
+          "recorded_by": "4266-leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -119,6 +149,6 @@
       }
     },
     "id": "github.issue.5390938393",
-    "updated": "2026-09-11T16:31:37Z"
+    "updated": "2026-09-11T18:05:00Z"
   }
 }
