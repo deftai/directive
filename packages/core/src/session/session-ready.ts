@@ -4,7 +4,9 @@
  * Composes existing APIs (does not reimplement session:start or gated verify):
  *   1. Fast path when inspectSessionRitual(gated) is already green
  *   2. session:start when quick-tier state is missing/stale
- *   3. verifySessionRitual(--tier=gated) for doctor + cache_fresh
+ *   3. verifySessionRitual(--tier=gated) with check-class cache_fresh
+ *      (age + live drift, no --skip-drift-probe) so skip-drift-green cannot
+ *      hide stale-by-drift (#4399)
  *   4. cache fetch-all recovery when cache_fresh is the remaining blocker
  *   5. re-verify gated
  *
@@ -306,7 +308,10 @@ export function runSessionReady(
     now,
     runGit: options.runGit,
     runner: options.runner,
-    forceGatedSteps: ["agent_hooks"],
+    // Check-class cache_fresh (age + live drift, no --skip-drift-probe) so
+    // skip-drift-green cannot hide stale-by-drift from isCacheFreshFailure (#4399).
+    forceGatedSteps: ["agent_hooks", "cache_fresh"],
+    checkClassCacheFresh: true,
   };
 
   // --- Fast path: inspect is green, but refresh functional hook readiness before returning. ---
@@ -319,14 +324,35 @@ export function runSessionReady(
   // A confirmed owner transition must also rewrite ritual state. Even a green
   // legacy ritual cannot take the fast path, because stealing only in the
   // final occupancy claim would leave lease and ritual owners mismatched.
+  let verifyResult: VerifyResult | undefined;
   if (gatedInspect.code === 0 && gatedInspect.boundSessionId === sessionId && !requestedSteal) {
     steps.push("verify:session-ritual:gated");
     const refreshed = verify(projectRoot, verifyOpts);
-    if (!isGatedVerifyActuallyReady(refreshed)) {
-      const message =
-        refreshed.code === 0 && refreshed.bypassed
-          ? bypassedReadyFailure(refreshed)
-          : `${refreshed.message}\n  Remaining blocker after session:ready. Fix the step above, then re-run \`${readyCommand()}\`.`;
+    if (isGatedVerifyActuallyReady(refreshed)) {
+      if (refreshed.boundSessionId !== sessionId) {
+        return ownerAlignmentFailure(refreshed.boundSessionId);
+      }
+      return finishReady(SESSION_READY_FAST_PATH, "OK session ready (gated ritual already fresh).");
+    }
+    if (refreshed.code === 0 && refreshed.bypassed) {
+      const message = bypassedReadyFailure(refreshed);
+      lines.push(message);
+      return {
+        code: 1,
+        sessionId,
+        message,
+        path: SESSION_READY_FAILED,
+        lines,
+        steps,
+        duration_ms: elapsedMs(started),
+      };
+    }
+    if (!options.skipCacheRecovery && isCacheFreshFailure(refreshed.message)) {
+      // Inspect-green can still be skip-drift-green; check-class stale-by-drift
+      // must still reach fetch-all (#4399). Incident path remains VERIFIED.
+      verifyResult = refreshed;
+    } else {
+      const message = `${refreshed.message}\n  Remaining blocker after session:ready. Fix the step above, then re-run \`${readyCommand()}\`.`;
       lines.push(message);
       return {
         code: refreshed.code === 0 ? 1 : refreshed.code,
@@ -338,39 +364,74 @@ export function runSessionReady(
         duration_ms: elapsedMs(started),
       };
     }
-    if (refreshed.boundSessionId !== sessionId) {
-      return ownerAlignmentFailure(refreshed.boundSessionId);
-    }
-    return finishReady(SESSION_READY_FAST_PATH, "OK session ready (gated ritual already fresh).");
   }
 
-  // --- Ensure quick-tier ritual state when missing / stale / drifted ---
-  const quickInspect = inspect(projectRoot, {
-    tier: "quick",
-    posture: "mutation",
-    now,
-    runGit: options.runGit,
-  });
-  if (quickInspect.code !== 0 || quickInspect.boundSessionId !== sessionId || requestedSteal) {
-    steps.push("session:start");
-    const startResult = start(projectRoot, {
-      ...options.sessionStartOptions,
+  if (verifyResult === undefined) {
+    // --- Ensure quick-tier ritual state when missing / stale / drifted ---
+    const quickInspect = inspect(projectRoot, {
+      tier: "quick",
+      posture: "mutation",
       now,
       runGit: options.runGit,
-      env,
-      sessionId,
-      writeHistory: options.sessionStartOptions?.writeHistory ?? false,
     });
-    for (const line of startResult.lines) {
-      lines.push(line);
+    if (quickInspect.code !== 0 || quickInspect.boundSessionId !== sessionId || requestedSteal) {
+      steps.push("session:start");
+      const startResult = start(projectRoot, {
+        ...options.sessionStartOptions,
+        now,
+        runGit: options.runGit,
+        env,
+        sessionId,
+        writeHistory: options.sessionStartOptions?.writeHistory ?? false,
+      });
+      for (const line of startResult.lines) {
+        lines.push(line);
+      }
+      if (startResult.code !== 0) {
+        const message =
+          startResult.lines.join("\n").trim() ||
+          `session:start failed (exit ${startResult.code}). Recovery: run \`${readyCommand()}\` again after fixing the blocker.`;
+        lines.push(message);
+        return {
+          code: startResult.code,
+          sessionId,
+          message,
+          path: SESSION_READY_FAILED,
+          lines,
+          steps,
+          duration_ms: elapsedMs(started),
+        };
+      }
+      const startedOccupancy = startResult.payload.occupancy;
+      if (
+        startedOccupancy !== null &&
+        typeof startedOccupancy === "object" &&
+        !Array.isArray(startedOccupancy)
+      ) {
+        const persistedSessionId = (startedOccupancy as Record<string, unknown>).session_id;
+        if (typeof persistedSessionId === "string" && persistedSessionId.trim().length > 0) {
+          if (persistedSessionId.trim() !== sessionId) {
+            return ownerAlignmentFailure(persistedSessionId.trim(), "nested session:start");
+          }
+          nestedStartClaimedOccupancy = true;
+        }
+      }
     }
-    if (startResult.code !== 0) {
-      const message =
-        startResult.lines.join("\n").trim() ||
-        `session:start failed (exit ${startResult.code}). Recovery: run \`${readyCommand()}\` again after fixing the blocker.`;
+
+    // --- Gated verify (check-class cache_fresh so skip-drift cannot hide drift) ---
+    steps.push("verify:session-ritual:gated");
+    verifyResult = verify(projectRoot, verifyOpts);
+    if (isGatedVerifyActuallyReady(verifyResult)) {
+      if (verifyResult.boundSessionId !== sessionId) {
+        return ownerAlignmentFailure(verifyResult.boundSessionId);
+      }
+      return finishReady(SESSION_READY_VERIFIED, "OK session ready (gated ritual verified).");
+    }
+    if (verifyResult.code === 0 && verifyResult.bypassed) {
+      const message = bypassedReadyFailure(verifyResult);
       lines.push(message);
       return {
-        code: startResult.code,
+        code: 1,
         sessionId,
         message,
         path: SESSION_READY_FAILED,
@@ -379,43 +440,6 @@ export function runSessionReady(
         duration_ms: elapsedMs(started),
       };
     }
-    const startedOccupancy = startResult.payload.occupancy;
-    if (
-      startedOccupancy !== null &&
-      typeof startedOccupancy === "object" &&
-      !Array.isArray(startedOccupancy)
-    ) {
-      const persistedSessionId = (startedOccupancy as Record<string, unknown>).session_id;
-      if (typeof persistedSessionId === "string" && persistedSessionId.trim().length > 0) {
-        if (persistedSessionId.trim() !== sessionId) {
-          return ownerAlignmentFailure(persistedSessionId.trim(), "nested session:start");
-        }
-        nestedStartClaimedOccupancy = true;
-      }
-    }
-  }
-
-  // --- Gated verify (lazy doctor + cache_fresh) ---
-  steps.push("verify:session-ritual:gated");
-  let verifyResult = verify(projectRoot, verifyOpts);
-  if (isGatedVerifyActuallyReady(verifyResult)) {
-    if (verifyResult.boundSessionId !== sessionId) {
-      return ownerAlignmentFailure(verifyResult.boundSessionId);
-    }
-    return finishReady(SESSION_READY_VERIFIED, "OK session ready (gated ritual verified).");
-  }
-  if (verifyResult.code === 0 && verifyResult.bypassed) {
-    const message = bypassedReadyFailure(verifyResult);
-    lines.push(message);
-    return {
-      code: 1,
-      sessionId,
-      message,
-      path: SESSION_READY_FAILED,
-      lines,
-      steps,
-      duration_ms: elapsedMs(started),
-    };
   }
 
   // --- Cache recovery when cache_fresh is the remaining blocker ---

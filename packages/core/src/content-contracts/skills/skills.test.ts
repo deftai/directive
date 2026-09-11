@@ -833,6 +833,16 @@ describe("test_skills", () => {
     expect(text).toContain("\u2297 Bind docs");
     expect(text).toContain("\u2297 Use Back or Other as the process-only");
   });
+  it("deft_directive_release_phase1_orientation_dirty_distinct_from_ritual_stale (#4399)", () => {
+    const text = readSkill("skills/deft-directive-release/SKILL.md");
+    expect(text).toContain("Orientation-dirty / check-class stale-by-drift (#4399)");
+    expect(text).toContain("cache_fresh: dirty");
+    expect(text).toContain("stale-by-drift");
+    expect(text).toContain("cache fetch-all");
+    expect(text).toContain("Distinct from ritual-stale");
+    expect(text).toContain("cache refresh when ritual-stale");
+    expect(text).toContain("10. ! **Treat orientation-dirty");
+  });
   it("deft_directive_setup_pre_pr_release_dual_invoke_verify_branch", () => {
     const _RELEASE_PATH = "skills/deft-directive-release/SKILL.md";
     for (const rel of [_SETUP_PATH, _PRE_PR_PATH, _RELEASE_PATH]) {

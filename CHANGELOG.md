@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Land leftover completed-tracked artifact for #4266 (#3264 / #3476).** The #4266 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4415. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4406 (#3264 / #3476).** The #4406 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4416. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Default `sessionRitualStalenessHours` is 8 hours, not 4 (#4406).** Typed `plan.policy.sessionRitualStalenessHours` still wins. Omit, null, and invalid still take the framework default. Compact re-arm and occupancy clocks stay. Closes #4406.
 - **Land leftover completed-tracked artifact for #4391 (#3264 / #3476).** The #4391 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4402. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`session:ready` uses check-class `verify:cache-fresh` (age + live drift, no `--skip-drift-probe`) so skip-drift-green cannot hide stale-by-drift (#4399).** VERIFIED then fetch-all. Release Phase 1 keys off orientation-dirty / check-class stale-by-drift, distinct from ritual-stale. Does not weaken `task check`. Closes #4399.
 - **Phase 3 acceptance-shaped narratives are a declared-key surface, not a silent derive no-op (#4374).** Heading-less `- ` / `1.` list items (or `test:` / `acceptance:` lines) on `AcceptanceCriteria` / `Test` / `Verification` stamp `plan.acceptance` on promote/activate. Bare prose in those keys is a named 0-clause refusal/notice, not an empty no-op. Do not write-time `none_stated`. Setup Phase 3 names the write shape and the #3323 stamp fields (`commands`, `none_stated`, `source_rung`, `derived_reason`, `clauses`, `ambiguity_attestation`) so #4380 can compose. Closes #4374.
 - **Identity-only setup Phase 3 defaults to Starting-new and asks what to build (#4390).** Empty `plan.items` plus no convention-valid scope files is not brownfield. Chaining Gate shares that detector so Starting-new survives the next gate. Identity-only Add-scope cannot mint the first scope from Overview. Closes #4390.
 - **Consumer `verify:docs-impact` uses engine:invoke (#4356).** 0.115.x died at `MODULE_NOT_FOUND` on a source-tree node path still present after v0.116.0. Closes #4356.

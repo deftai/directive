@@ -455,6 +455,53 @@ describe("verify session ritual", () => {
     expect(formatCacheFreshDeferSoftPath()).toContain("audited");
   });
 
+  it("check-class cache_fresh argv is verify:cache-fresh with no skip-drift (#4399)", () => {
+    const { root } = initRepo();
+    expect(detectWorkSelection(root)).toEqual({ inPlay: false, kind: "none" });
+    expect(
+      resolveGatedEntrypointCommand("cache_fresh", root, detectWorkSelection, {
+        checkClassCacheFresh: true,
+      }),
+    ).toEqual(["verify:cache-fresh"]);
+    expect(resolveGatedEntrypointCommand("cache_fresh", root)).toEqual([
+      "verify:cache-fresh",
+      SKIP_DRIFT_PROBE_FLAG,
+    ]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("session:ready check-class verify does not thread --skip-drift-probe (#4399)", () => {
+    const { root, head } = initRepo();
+    const now = new Date("2026-06-09T01:00:00Z");
+    const payload = freshPayload(root, head, now);
+    const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
+    delete gated.cache_fresh;
+    payload.gated_steps = gated;
+    writeRitualState(root, payload);
+    const commands: string[][] = [];
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(head, resolve(root)),
+      forceGatedSteps: ["cache_fresh"],
+      checkClassCacheFresh: true,
+      runner: (command) => {
+        commands.push([...command]);
+        return { code: 1, stdout: "", stderr: "stale-by-drift -- 3 issues" };
+      },
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("stale-by-drift");
+    expect(commands.filter((command) => command[0] === "verify:cache-fresh")).toEqual([
+      ["verify:cache-fresh"],
+    ]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("threads --skip-drift-probe when no work selection is in play (#3507)", () => {
     const { root, head } = initRepo();
     const now = new Date("2026-06-09T01:00:00Z");
