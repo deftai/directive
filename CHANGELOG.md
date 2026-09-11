@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **agents:refresh stamps a resolvable framework identity instead of sha=unknown (#4246).** Writable AGENTS.md states (absent/missing/stale) on a non-git npm install use package.json version, then live GENERATION.json contentVersion, then the running core package version. Own-git-root still uses git short HEAD. Does not preserve a leftover checkout SHA, mint a second 12-hex, recut #3914/#4118 git-fatal silence, or recut commands.md. Closes #4246.
 
+- **`verify:vbrief-conformance --staged` (and `--all`) run D7 filename checks before parse (#4245).** The installed pre-commit hook uses `--staged`, which previously scanned bare keys only, so a dotted-slug xBRIEF could commit and then redden `vbrief:validate` / `task check`. Reuses `validateFilename`; does not retarget the hook at `vbrief:validate` and does not weaken D7 for version dots. Closes #4245.
+
+
+
 ### Removed
 
 ## [0.117.0] - 2026-09-11

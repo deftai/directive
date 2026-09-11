@@ -8,6 +8,8 @@ import {
 } from "../encoding/git.js";
 import { fnmatchCase } from "../encoding/text.js";
 import { isLifecycleArtifactPath, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
+import { LIFECYCLE_FOLDERS } from "./constants.js";
+import { validateFilename } from "./filename.js";
 import { evaluateExtensionRoundtrip } from "./roundtrip.js";
 import type { JsonObject } from "./schema.js";
 
@@ -229,6 +231,17 @@ function isVbriefPath(posix: string): boolean {
   return isLifecycleArtifactPath(posix);
 }
 
+/** D7 applies to lifecycle-folder scope files, matching validateAll discoverVbriefs (#4245). */
+function isScopeLifecyclePath(posix: string): boolean {
+  const parts = posix.split("/");
+  if (parts.length !== 3) {
+    return false;
+  }
+  const root = parts[0] ?? "";
+  const folder = parts[1] ?? "";
+  return (root === "xbrief" || root === "vbrief") && LIFECYCLE_FOLDERS.includes(folder);
+}
+
 export type ConformanceMode = "all" | "staged";
 
 export interface ConformanceEvaluateResult {
@@ -364,7 +377,11 @@ export function evaluateConformance(
   }
 
   const findings: ConformanceFinding[] = [];
+  const filenameErrors: string[] = [];
   for (const candidate of candidates) {
+    if (!candidate.configured && isScopeLifecyclePath(candidate.displayPath)) {
+      filenameErrors.push(...validateFilename(candidate.displayPath));
+    }
     let text: string;
     try {
       text = readFileSync(candidate.fullPath, "utf8");
@@ -398,22 +415,41 @@ export function evaluateConformance(
     findings.push(...scanVbrief(candidate.displayPath, data));
   }
 
-  if (findings.length > 0) {
-    const uniquePaths = new Set(findings.map((f) => f.path));
-    const header =
-      `\u274c verify_vbrief_conformance: detected ${findings.length} bare ` +
-      `key(s) across ${uniquePaths.size} file(s) (#1620).\n` +
-      "  Every vBRIEF key MUST be spec-core, x-directive/-namespaced, " +
-      "x-vbrief/-namespaced, or x-xbrief/-namespaced -- never bare.\n" +
-      "  Fix: migrate misused/misspelled core fields to their core home " +
-      "(see scripts/vbrief_migrate_conformance.py), or namespace a genuine\n" +
-      "  extension under x-directive/. Allow-list a documented file " +
-      "exception via --allow-list <path> (newline-separated globs).";
-    let body = findings.slice(0, 50).map(renderFinding).join("\n");
-    if (findings.length > 50) {
-      body += `\n  ... and ${findings.length - 50} more`;
+  if (filenameErrors.length > 0 || findings.length > 0) {
+    const parts: string[] = [];
+    if (filenameErrors.length > 0) {
+      const d7Header =
+        `\u274c verify_vbrief_conformance: ${filenameErrors.length} D7 filename ` +
+        `error(s) (#4245).\n` +
+        "  Scope filenames MUST match YYYY-MM-DD-descriptive-slug.vbrief.json; " +
+        "dots in the slug are not exempt.";
+      let d7Body = filenameErrors
+        .slice(0, 50)
+        .map((err) => `FAIL: ${err}`)
+        .join("\n");
+      if (filenameErrors.length > 50) {
+        d7Body += `\n  ... and ${filenameErrors.length - 50} more`;
+      }
+      parts.push(`${d7Header}\n${d7Body}`);
     }
-    return { exitCode: 1, findings, message: `${header}\n${body}` };
+    if (findings.length > 0) {
+      const uniquePaths = new Set(findings.map((f) => f.path));
+      const header =
+        `\u274c verify_vbrief_conformance: detected ${findings.length} bare ` +
+        `key(s) across ${uniquePaths.size} file(s) (#1620).\n` +
+        "  Every vBRIEF key MUST be spec-core, x-directive/-namespaced, " +
+        "x-vbrief/-namespaced, or x-xbrief/-namespaced -- never bare.\n" +
+        "  Fix: migrate misused/misspelled core fields to their core home " +
+        "(see scripts/vbrief_migrate_conformance.py), or namespace a genuine\n" +
+        "  extension under x-directive/. Allow-list a documented file " +
+        "exception via --allow-list <path> (newline-separated globs).";
+      let body = findings.slice(0, 50).map(renderFinding).join("\n");
+      if (findings.length > 50) {
+        body += `\n  ... and ${findings.length - 50} more`;
+      }
+      parts.push(`${header}\n${body}`);
+    }
+    return { exitCode: 1, findings, message: parts.join("\n") };
   }
 
   const extensionRoundtrip = evaluateExtensionRoundtrip(root);

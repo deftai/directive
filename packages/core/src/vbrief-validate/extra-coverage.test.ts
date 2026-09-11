@@ -843,7 +843,7 @@ describe("vbrief-validate extra coverage", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-conf-read-"));
     mkdirSync(join(root, "xbrief"), { recursive: true });
     execSync("git init", { cwd: root, stdio: "ignore" });
-    writeFileSync(join(root, "xbrief", "broken.xbrief.json"), "not-json", "utf8");
+    writeFileSync(join(root, "xbrief", "2026-01-01-broken.xbrief.json"), "not-json", "utf8");
     execSync("git add -A", { cwd: root, stdio: "ignore" });
     expect(evaluateConformance(root).exitCode).toBe(0);
     rmSync(root, { recursive: true, force: true });
@@ -1238,5 +1238,96 @@ describe("vbrief-validate extra coverage", () => {
         "f.json",
       ).some((e) => e.includes("must be a string")),
     ).toBe(true);
+  });
+});
+
+describe("evaluateConformance D7 filename (#4245)", () => {
+  const validBody = JSON.stringify({
+    xBRIEFInfo: { version: "0.8" },
+    plan: { title: "T", status: "completed", items: [] },
+  });
+
+  function stagedLifecycleRoot(fileName: string, contents: string): string {
+    const root = mkdtempSync(join(tmpdir(), "vb-d7-"));
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "completed", fileName), contents, "utf8");
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    execSync("git add -A", { cwd: root, stdio: "ignore" });
+    return root;
+  }
+
+  it("fails staged and all modes on a dotted-slug filename before parse", () => {
+    const name = "2026-09-07-deliberately-bad-1.2.3.xbrief.json";
+    const root = stagedLifecycleRoot(name, validBody);
+    const staged = evaluateConformance(root, { mode: "staged" });
+    expect(staged.exitCode).toBe(1);
+    expect(staged.message).toContain("(D7)");
+    expect(staged.message).toContain("1.2.3");
+    expect(staged.message).toContain("#4245");
+    const all = evaluateConformance(root, { mode: "all" });
+    expect(all.exitCode).toBe(1);
+    expect(all.message).toContain("(D7)");
+    expect(runConformance(["--staged", "--project-root", root])).toBe(1);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("fails staged D7 when the staged file is not valid JSON", () => {
+    const name = "2026-09-07-deliberately-bad-1.2.3.xbrief.json";
+    const root = stagedLifecycleRoot(name, "{not-json");
+    const staged = evaluateConformance(root, { mode: "staged" });
+    expect(staged.exitCode).toBe(1);
+    expect(staged.message).toContain("(D7)");
+    expect(staged.message).toContain("1.2.3");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("accepts a hyphenated slug that D7 allows", () => {
+    const name = "2026-09-07-deliberately-bad-123.xbrief.json";
+    const root = stagedLifecycleRoot(name, validBody);
+    expect(evaluateConformance(root, { mode: "staged" }).exitCode).toBe(0);
+    expect(evaluateConformance(root, { mode: "all" }).exitCode).toBe(0);
+    expect(runConformance(["--staged", "--project-root", root, "--quiet"])).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("skips D7 for root-level xbrief files that validateAll does not discover", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-d7-root-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "plan-1.2.3.xbrief.json"), validBody, "utf8");
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    execSync("git add -A", { cwd: root, stdio: "ignore" });
+    expect(evaluateConformance(root, { mode: "staged" }).exitCode).toBe(0);
+    expect(evaluateConformance(root, { mode: "all" }).exitCode).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("caps D7 diagnostic output at 50 findings", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-d7-many-"));
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    for (let i = 0; i < 51; i += 1) {
+      const name = "2026-09-07-bad-" + String(i) + ".1.xbrief.json";
+      writeFileSync(join(root, "xbrief", "completed", name), validBody, "utf8");
+    }
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    execSync("git add -A", { cwd: root, stdio: "ignore" });
+    const result = evaluateConformance(root, { mode: "staged" });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("... and");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("skips D7 for nested files under a lifecycle folder", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-d7-nested-"));
+    mkdirSync(join(root, "xbrief", "completed", "archive"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "archive", "2026-09-07-bad-1.2.3.xbrief.json"),
+      validBody,
+      "utf8",
+    );
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    execSync("git add -A", { cwd: root, stdio: "ignore" });
+    expect(evaluateConformance(root, { mode: "staged" }).exitCode).toBe(0);
+    expect(evaluateConformance(root, { mode: "all" }).exitCode).toBe(0);
+    rmSync(root, { recursive: true, force: true });
   });
 });
