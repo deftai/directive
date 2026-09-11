@@ -1,0 +1,195 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4390",
+    "updated": "2026-09-11T15:53:58Z"
+  },
+  "plan": {
+    "title": "bug(setup): same-session greenfield Phase 3 defaults to Add-scope and never asks what to build",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(setup): same-session greenfield Phase 3 defaults to Add-scope and never asks what to build",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4390",
+      "Overview": "## Summary\n\nOn a **brand-new** consumer project, setup Phase 3 recommends **Add scope to this project** and skips the greenfield “what are we building?” interview. The operator is never asked what the product should do.\n\nUsers starting a new project should always be asked what they want to build. They should not be swept into a brownfield add-scope path that never asks.\n\n## Expected\n\nAfter Phase 2 writes identity on an empty repo (name, type, language, strategy — no product behavior yet), Phase 3 must take the **Starting a new project specification** path by default and ask what to build (genre, mechanic, features, win/lose, constraints) before writing a scope.\n\n## Actual\n\nPhase 3 Onboarding Question uses the **same brownfield detector as the interview Chaining Gate**:\n\n> `PROJECT-DEFINITION` exists (`./xbrief/` or legacy `./vbrief/`) **OR** any lifecycle folder has scope records.\n\nPhase 2 has just written `xbrief/PROJECT-DEFINITION.xbrief.json`. That file always exists at the Phase 2 → Phase 3 handoff, even when:\n\n- there is no application code\n- lifecycle folders contain only `.gitkeep`\n- `narratives.Overview` is still a one-liner (“OneOff01 is a browser-based game”)\n- the operator has never described behavior, mechanics, or success criteria\n\nThe skill then marks **Add scope** as the recommended default. Add-scope **skips** the greenfield interview and emits one proposed scope from whatever thin description already exists.\n\n## Why the detector is wrong here\n\nThis is the inverse of closed [#2925](https://github.com/deftai/directive/issues/2925).\n\n| Surface | Intent of the detector | Correct default |\n|---|---|---|\n| Chaining Gate (returning session) | Do not start a **second** project definition | Add scope |\n| Setup Phase 3 (same-session after Phase 2) | Identity exists; **product is unspecified** | Starting a new project specification |\n\n[#2925](https://github.com/deftai/directive/issues/2925) required setup Phase 3 and the Chaining Gate to share vocabulary **and** defaults. Sharing the detector makes every first-run setup look brownfield the moment Phase 2 succeeds.\n\n`⊗ Treat brownfield repos as \"Starting new\" by default` in the setup skill is about **true** brownfield (existing scopes / returning repo). It does not protect a greenfield repo whose only artifact is the identity file this session just wrote.\n\n## Repro\n\nVerified on consumer deposit **v0.115.0** (`@deftai/directive-core@0.115.0`), new empty directory, 2026-09-11.\n\n1. `mkdir OneOff01 && cd OneOff01 && git init && directive init --yes`\n2. Run `deft-directive-setup`. Existing `USER.md` → Phase 2 only.\n3. Confirm identity: name `OneOff01`, type Web App, language TypeScript, strategy interview. Write `PROJECT-DEFINITION`.\n4. Continue to Phase 3.\n\n**Observed:** Onboarding question recommends **1. Add scope to this project** because `PROJECT-DEFINITION` exists. Choosing it (the recommended option) never asks what the game/app should do. The written scope is a generic “one core playable mechanic” with no product behavior.\n\nWorkaround: pick **4. Starting a new project specification** instead of the recommended default. Operators following the ★ marker never see the interview.\n\n## Related install footgun (not this bug)\n\n`directive init` classified the same empty `git init` tree as **brownfield-install** because `.git/` existed. Getting-started tells you to `git init` first. That classification is install-only; the Phase 3 skip happens even if you ignore it. Cite here so it is not re-diagnosed as the same defect.\n\n## Proposed fix\n\nDo **not** treat “`PROJECT-DEFINITION` exists” as brownfield inside **setup Phase 3 of a same-session greenfield bootstrap**.\n\nSuggested split:\n\n- **Greenfield Phase 3 default:** no scope records in lifecycle folders (ignore `.gitkeep`). Always default to **Starting a new project specification** and ask what to build. Identity from Phase 2 is not a spec.\n- **True brownfield / returning setup:** at least one real scope record in `proposed|pending|active|completed|cancelled`, **or** operator re-entered setup on a repo that already finished Phase 3. Then default to **Add scope**.\n- **Chaining Gate:** can keep today’s detector (identity or scopes → add-scope). That surface is a returning session, not first-run Phase 3.\n\nAlso: Track 2/3 Phase 2 never asks “what do you want to build?” (Track 3 Step 2 in Phase 1 does; Phase 2 Track 2 asks type/language only). Phase 3 is the remaining product interview. If it defaults to Add-scope, that question is dropped entirely.\n\n## Acceptance (agent-checkable)\n\n1. Given a same-session setup that just wrote `PROJECT-DEFINITION` and whose lifecycle folders have no scope records, when Phase 3 Onboarding is shown, then the recommended default is **Starting a new project specification**, and the agent asks what to build before writing a scope.\n2. Given an existing consumer with at least one lifecycle scope record, when setup Phase 3 Onboarding is shown, then the recommended default remains **Add scope to this project**.\n3. Chaining Gate brownfield behavior from [#2925](https://github.com/deftai/directive/issues/2925) is unchanged: returning sessions still default to Add scope, not a second project definition.\n4. Content contract: setup skill Phase 3 detector is **not** “PROJECT-DEFINITION exists ⇒ brownfield” for the first-run handoff.\n5. CHANGELOG cites this issue.\n\n## Non-goals\n\n- Removing Add-scope / Update / Replace from the onboarding menu\n- Auto-promoting proposed scopes\n- Changing `directive init` brownfield-install classification (separate, optional)\n\n## Related\n\n- Refs [#2925](https://github.com/deftai/directive/issues/2925) — inverse: brownfield was treated as greenfield at the Chaining Gate; this issue is greenfield treated as brownfield at setup Phase 3\n- [#1812](https://github.com/deftai/directive/issues/1812) — seed-document step (adjacent: how to supply “what to build”)\n- [#127](https://github.com/deftai/directive/issues/127) — brownfield bootstrap into an existing repo (install)\n- `skills/deft-directive-setup/SKILL.md` § Phase 3 Onboarding Question\n- `strategies/interview.md` § Chaining Gate\n\n## Source\n\nConsumer first-project session on Directive **0.115.0**: empty `OneOff01` (browser-based game). After Phase 2, Phase 3 recommended Add-scope. The operator was never asked what the game should do. Deposit `v0.115.0`.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T14:16:13Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because same-session setup Phase 3 uses the Chaining Gate brownfield detector, and Phase 2 just wrote PROJECT-DEFINITION plus empty lifecycle folders, so the first-run default is Add-scope and the greenfield \"what are we building?\" interview is skipped.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4390-dc\norigin-ref: origin/master\ndispatch-sha: d8f17719e3538d1a0ab695c442477a4151c943b9\n\ncharter: open critique\nspend: N=1\nspend-why: default motion; two remediations (session-age vs identity-complete) and first-run setup blast radius permit N>=3; operator did not request a panel.\n\nrefutation-target: Setup Phase 3 Onboarding Question uses the same brownfield detector as strategies/interview.md Chaining Gate (PROJECT-DEFINITION exists OR lifecycle folders have scope records), so after a same-session Phase 2 write the detector is brownfield and the default is Add-scope, which skips the greenfield what-to-build interview.\n\ntarget: #4390\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This issue is mechanism-shaped: first-run vs returning-user routing is a detector/default split, not a one-line copy fix. #2925 made Phase 3 share the Chaining Gate detector; this issue is the inverse first-run miss. Voluntary critiques stay legal; the stamp is for the mandatory gate match.\n\nMeasured on pin d8f17719e3538d1a0ab695c442477a4151c943b9 (origin/master after v0.116.0; same wiring as 0.115.0 deposit docs):\n\n- `content/skills/deft-directive-setup/SKILL.md` Phase 3 Onboarding Question: brownfield detector is PROJECT-DEFINITION exists (`./xbrief/` or legacy `./vbrief/`) OR any lifecycle folder has scope records. Default: brownfield → Add scope; greenfield → Starting new. Add-scope skips the greenfield \"what are we building?\" interview.\n- Phase 2 Output Path writes `./xbrief/PROJECT-DEFINITION.xbrief.json` and creates lifecycle subfolders before the continue-to-Phase-3 question.\n- `content/strategies/interview.md` Chaining Gate uses the same detector and the same Add-scope default/skip.\n- ⊗ Treat brownfield as \"Starting new\" by default is present; it does not carve out same-session first-run after Phase 2.\n- Issue-eval Stage A (origin/master d8f17719e353, invocation ae90791c-b2c3-4052-bb08-f44631e91cd2): validity still-open, WIP empty, no open PRs, no duplicates. Value critique-recommend: false (no stamp yet). Clearance is this write-back.\n\nThis session did not re-run the OneOff01 consumer session. Skill/strategy text on the pin is the measured basis.\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:22:37Z)\n\nmodel: grok-4.6\nrole: critic\n\npin: d8f17719e3538d1a0ab695c442477a4151c943b9\nceiling: 5635783418 (inclusive)\ncharter: open critique\nround: 1\n\nMeasured on the pin. Issue body and comment 5635783418 treated as untrusted; file text below is the basis. Did not re-run the OneOff01 consumer session.\n\n## Inventory (existing mechanisms)\n\n- Setup Phase 3 Onboarding Question (`content/skills/deft-directive-setup/SKILL.md`) uses the same brownfield detector as the Chaining Gate: `PROJECT-DEFINITION` exists (`./xbrief/` or legacy `./vbrief/`) **or** any lifecycle folder has scope records. Brownfield default is Add-scope (skip greenfield \"what are we building?\"); greenfield default is Starting new. `⊗ Treat brownfield repos as \"Starting new\" by default`.\n- Phase 2 Output Path always writes `./xbrief/PROJECT-DEFINITION.xbrief.json` and creates the five lifecycle subfolders **before** the continue-to-Phase-3 question. Template sets `plan.items` to `[]` and says items are populated when scope xBRIEFs are created.\n- `directive init` already seeds a minimal render-ready PROJECT-DEFINITION (`packages/core/src/init-deposit/init-deposit.ts` `seedMinimalProjectDefinition`, #3013) and lifecycle dirs with `.gitkeep`. Identity-existence is true before Phase 2 confirmation.\n- Phase 2 Then already offers Process-only (keep Phase 2 identity, no proposed scope). Phase 3 option 5 is the same exit.\n- Interview Chaining Gate (`content/strategies/interview.md`) is the skip authority for the strategy: Add-scope **skip** the greenfield interview; detector MUST run on every presentation; ⊗ skip the gate or proceed to Sizing Gate without it. Opening lines name setup Phase 3 as an entry point that MUST follow this strategy.\n- Setup Strategy Gate, interview branch: \"Continue to the Sizing Gate below\" — the skill text jumps over Chaining Gate. Sizing Gate and Interview Process still say ask what to build first, but only on the path that reaches them.\n- Phase 1 Track 3 asks what they are building (brief, for PROJECT-DEFINITION later). Phase 1 Track 2 does not. Phase 2 Track 2 asks name / type / languages / strategy. Phase 2 Track 3 confirms inferred name/type/stack only. Neither Phase 2 Track 2 nor Track 3 asks product behavior.\n- Add-scope write path: skip full interview; emit one proposed scope \"with the user's description\"; Preparatory Guard on write; then Lifecycle Bridge (#1025) toward swarm/build.\n- Content contracts lock #2925 alignment: `deft_directive_setup_phase3_onboarding_question` and `TestChainingGateArtifactAware` (shared vocabulary; brownfield Add-scope default).\n- Closed #2925 required setup Phase 3 and Chaining Gate to share vocabulary **and** defaults for the same repo state.\n\n\"Scope records\" has no glob and no `.gitkeep` exclusion on either surface.\n\n## Findings\n\n### 1. Starting-new on Phase 3 cannot survive Chaining Gate if that gate stays identity-OR-scopes — `blocks-the-design`\n\n**Evidence.** On the pin, Phase 2 Output Path writes PROJECT-DEFINITION before Phase 3. Init #3013 seeds the same file even earlier. The Chaining Gate detector is identity **or** scopes. `interview.md` says the chaining gate MUST always be shown before Sizing Gate, including when interview is invoked from setup Phase 3, and ⊗ skip it. The issue's proposed acceptance keeps that Chaining Gate detector unchanged while flipping only the Phase 3 Onboarding default to Starting new when there are no scope files.\n\n**Failure mode.** Operator takes the new recommended Starting-new path. The agent then follows `interview.md` (named SoT for setup Phase 3) and presents Chaining Gate. Identity exists, so the default is still Add-scope and the greenfield what-to-build interview is skipped one step later. The pin already has two opposing MUSTS (setup Strategy Gate jumps to Sizing Gate; `interview.md` forbids that skip). Leaving Chaining Gate on identity-OR-scopes makes the skip the surviving authority. Yolo's self-confirm carve-out plus Add-scope means no human product question at all.\n\n**Disposition.** Cannot bind as written. Either Starting-new is defined as suppressing Chaining Gate for that invocation **in `interview.md`** (the file that currently forbids the skip), or Chaining Gate uses the same first-run / no-scope default. Acceptance that the product interview is asked, and acceptance that Chaining Gate #2925 behavior is unchanged, cannot both stand.\n\n### 2. Identity-only returning is a different case than same-session Phase 2→3 — `sharpens-framing`\n\n**Evidence.** Process-only after Phase 2 is already a supported exit: identity on disk, `plan.items` empty, no proposed scope. Later `/deft:run:interview` or setup re-entry is a returning session with identity and no scopes. The issue's Phase 3 rule (no scope records → Starting new) would also fire there. The \"or operator re-entered setup on a repo that already finished Phase 3\" disjunct has no durable Phase-3-complete marker on the pin; Process-only never finished Phase 3; a finished Phase 3 that wrote scopes is already covered by the scope-file probe.\n\n**Failure mode.** Bind without this fork and either (a) identity-only returning sessions get a second full project-spec interview (undoing #2925's add-scope default for \"we already have identity\"), or (b) same-session first-run keeps skipping what-to-build because the two surfaces share one detector. Those are different products. Session-age (\"this setup turn just wrote identity\") is a new stamp and is the weaker probe anyway: init already wrote identity.\n\n**Disposition.** Can bind after the lean names one rule for identity-only / empty `plan.items` / no `*.xbrief.json|*.vbrief.json` on **both** surfaces, or two rules with a written reason. Drop or define the \"finished Phase 3\" disjunct; do not invent a session marker when the empty items registry plus a lifecycle glob already exist.\n\n### 3. \"Scope records\" is not a predicate; Add-scope may write from Overview — `sharpens-framing`\n\n**Evidence.** Both detectors say \"has scope records\" with no filename rule. `.gitkeep` is the empty-folder sentinel (#1179 / #1159 / FILES.md). `verify:lifecycle-visible` already distinguishes convention-valid scope filenames from folder holders. Add-scope says emit one scope \"with the user's description\" and does not MUST a fresh product question versus reuse of `narratives.Overview`. Phase 2 Track 2 never collected product behavior; Track 3 Phase 2 only confirms inferences.\n\n**Failure mode.** Agents count `.gitkeep` as a record and keep the brownfield default. Or they Add-scope from a one-line Overview / directory name and call that \"the user's description.\" The recommended-marker skip is not the only skip; the Add-scope write path can skip asking.\n\n**Disposition.** Can bind if the detector is a convention-valid scope glob (exclude `.gitkeep` and `*.premigrate.*`) and identity-only Add-scope cannot synthesize the first scope from Overview without a product or slice question. Existing `plan.items: []` is the in-file empty signal.\n\n### 4. First proposed scope is swarm-dispatchable work — `sharpens-framing`\n\n**Evidence (injection / swarm lens).** This target changes first-run setup authority (which onboarding option is recommended) and whether operator product-intent is required before a scope exists. Untrusted inputs on the pin: init-seeded identity, Phase 2 inferences, directory name, thin Overview. Add-scope turns those into a proposed xBRIEF. Lifecycle Bridge (#1025) then points swarm Phase 0 Step 0.5 at `xbrief/proposed/` for promote + activate. Setup must not auto-promote, but the generic scope is still the candidate the swarm menu will offer. Dual documents (setup skill vs `interview.md`) are two envelopes for the same skip.\n\n**Failure mode.** A first-run operator who follows the ★ default never describes behavior; a later swarm promote treats the filler scope as the unit of work. Control is the detector plus which gate may skip the interview, not later human review of the proposed file.\n\n**Disposition.** Can bind if the lean states that identity-only must not emit a proposed scope until a product interview (Starting new / Proceed) or an explicit slice description (Add-scope) is captured, and that swarm's proposed-folder scan is in scope for the skip. A content-contract token change for #2925 alignment is required alongside the skill/strategy edit (`deft_directive_setup_phase3_onboarding_question`).\n\n### 5. Install brownfield-install vs Phase 3 skip — `footnote`\n\n`directive init` classifying `git init` trees as brownfield-install is a separate classifier. It does not write scopes. Cite it so it is not merged into this detector. Not residual.\n\n## Road not taken\n\nConsidered three mechanisms: (1) same-session / session-age stamp after Phase 2 write, (2) identity-complete = empty `plan.items` plus no convention-valid scope files, (3) split detectors (Phase 3 vs Chaining Gate) as the issue sketches.\n\nChose (2) as the only probe that already exists on the pin and that is true for both init-seed and Phase 2 write. (1) is a new stamp and is false as a unique cause: identity exists from #3013 before Phase 2. (3) is the issue's sketch; it only works if `interview.md` is amended so Starting-new does not re-hit Chaining Gate.\n\nSteelmanning (3): Phase 3 is first-run onboarding; Chaining Gate is returning strategy composition; keep #2925's add-scope default for `/deft:run:interview` after identity exists. What would flip that steelman: write the suppression in `interview.md` (not only in the setup skill), and separately decide identity-only returning (finding 2). Without those two sentences, (3) does not flip finding 1.\n\n\n### Comment by @MScottAdams (2026-09-11T14:23:45Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nSame-session setup Phase 3 treats a repo as brownfield because Phase 2 (and often init) already wrote PROJECT-DEFINITION, so the recommended path is Add-scope and the greenfield what-to-build interview never runs.\n\nIf this map is confirmed, the next-build is not a Phase-3-only default flip that leaves Chaining Gate on identity-OR-scopes. Starting-new has to survive the next gate: either interview.md lets that invocation skip Chaining Gate, or both surfaces use the same identity-only / empty plan.items / no convention-valid scope-file default. Session-age is not the probe. Add-scope must not mint the first scope from Overview. Swarm's proposed-folder scan is in the skip.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4390 after round 1 critic 5635883678. Supersedes write-back 5635783418.\n\nTarget-digest: sha256:889d8f2b0001edfbacdf3eb15abdf8d0abfaf65a7da15a52e962229d8f3ae06b\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4390-dc\norigin-ref: origin/master\ndispatch-sha: d8f17719e3538d1a0ab695c442477a4151c943b9\n\nTakes:\n\n- 5635883678 1. Starting-new on Phase 3 cannot survive Chaining Gate if that gate stays identity-OR-scopes — accept-into-contract\n- 5635883678 2. Identity-only returning is a different case than same-session Phase 2 to 3 — accept-into-contract\n- 5635883678 3. \"Scope records\" is not a predicate; Add-scope may write from Overview — accept-into-contract\n- 5635883678 4. First proposed scope is swarm-dispatchable work — accept-into-contract\n\n## Bound remedy\n\n- Do not bind the issue body's \"Phase 3 default flip, Chaining Gate detector unchanged.\" Starting-new that still hits identity-OR-scopes Chaining Gate skips what-to-build one step later.\n- One rule on both surfaces, or two rules with a written reason: identity-only means empty `plan.items` plus no convention-valid `*.xbrief.json` / `*.vbrief.json` (exclude `.gitkeep` and `*.premigrate.*`). Drop session-age. Drop an undefined \"finished Phase 3\" marker.\n- Starting-new / Proceed must actually ask what to build. That requires either `interview.md` to allow suppressing Chaining Gate for that invocation, or Chaining Gate to use the same identity-only default. Amend the file that currently forbids the skip.\n- Identity-only Add-scope cannot synthesize the first scope from Overview / directory name / init seed. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm's `xbrief/proposed/` scan is in scope for that skip.\n- Keep Process-only. Keep Add-scope / Update / Replace on the menu. Do not auto-promote. Do not change `directive init` brownfield-install.\n- Update the #2925 content-contract token (`deft_directive_setup_phase3_onboarding_question`) with the skill/strategy edit. CHANGELOG.\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:24:05Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Setup Phase 3 brownfield detector is PROJECT-DEFINITION exists OR lifecycle folders have scope records; brownfield default Add-scope skips what-to-build | git show d8f17719e3538d1a0ab695c442477a4151c943b9:content/skills/deft-directive-setup/SKILL.md Phase 3 Onboarding Question | measured |\n| 2 | Phase 2 Output Path writes PROJECT-DEFINITION and creates lifecycle folders before the continue-to-Phase-3 question | git show same SKILL.md Phase 2 Output Path at the pin | measured |\n| 3 | interview.md Chaining Gate uses the same detector and Add-scope skip; MUST run before Sizing Gate | git show content/strategies/interview.md Chaining Gate at the pin | measured |\n| 4 | Phase 2 Track 2 does not ask product behavior; Track 3 Phase 2 confirms inferences only | git show setup SKILL.md Phase 2 question sequences at the pin | measured |\n| 5 | Add-scope emits one proposed scope with \"the user's description\" and does not MUST a fresh product question | git show setup SKILL.md Add-scope branch at the pin | measured |\n| 6 | directive init seeds a minimal PROJECT-DEFINITION before Phase 2 | critic cite seedMinimalProjectDefinition; parent did not re-read init-deposit.ts this pass | endorsed |\n| 7 | Content contracts lock #2925 Phase 3 / Chaining Gate shared vocabulary | critic cite deft_directive_setup_phase3_onboarding_question; parent did not re-run that test this pass | endorsed |\r\n\n\n### Comment by @MScottAdams (2026-09-11T14:24:32Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nFirst-run setup recommends Add-scope because identity already exists on disk, so the operator is never asked what to build. The accepted next-build is not a Phase-3-only flip. Starting-new has to survive Chaining Gate, identity-only is empty plan.items plus no real scope files on both surfaces, and the first proposed scope cannot be minted from Overview.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5635903934 and verified-claims table 5635908827.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1. Round 1 complete, N=1, critic 5635883678, ceiling 5635783418. Operator yolo-standing on the launching utterance.",
+      "Labels": "bug, Workflow, agent-experience, area:skills, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not bind the issue body's \"Phase 3 default flip, Chaining Gate detector unchanged.\" Starting-new that still hits identity-OR-scopes Chaining Gate skips what-to-build one step later.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/strategy_chaining.test.ts TestChainingGateArtifactAware identity-only Starting-new skip; content/strategies/interview.md Chaining Gate carve-out",
+          "recorded_at": "2026-09-11T15:55:00Z",
+          "recorded_by": "4390-leaf-implementation"
+        }
+      },
+      {
+        "title": "One rule on both surfaces, or two rules with a written reason: identity-only means empty `plan.items` plus no convention-valid `*.xbrief.json` / `*.vbrief.json` (exclude `.gitkeep` and `*.premigrate.*`). Drop session-age. Drop an undefined \"finished Phase 3\" marker.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills.test.ts deft_directive_setup_phase3_onboarding_question identity-only; content/skills/deft-directive-setup/SKILL.md Phase 3 Onboarding Question",
+          "recorded_at": "2026-09-11T15:55:00Z",
+          "recorded_by": "4390-leaf-implementation"
+        }
+      },
+      {
+        "title": "Starting-new / Proceed must actually ask what to build. That requires either `interview.md` to allow suppressing Chaining Gate for that invocation, or Chaining Gate to use the same identity-only default. Amend the file that currently forbids the skip.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/strategy_chaining.test.ts; content/strategies/interview.md identity-only Starting-new skip carve-out",
+          "recorded_at": "2026-09-11T15:55:00Z",
+          "recorded_by": "4390-leaf-implementation"
+        }
+      },
+      {
+        "title": "Identity-only Add-scope cannot synthesize the first scope from Overview / directory name / init seed. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm's `xbrief/proposed/` scan is in scope for that skip.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/setup_swarm_bridge.test.ts write-time control; content/skills/deft-directive-swarm/references/core-phase-0.md; setup SKILL.md identity-only Add-scope",
+          "recorded_at": "2026-09-11T15:55:00Z",
+          "recorded_by": "4390-leaf-implementation"
+        }
+      },
+      {
+        "title": "Keep Process-only. Keep Add-scope / Update / Replace on the menu. Do not auto-promote. Do not change `directive init` brownfield-install.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4397 HEAD 8c0f33f8100ed5d1906ef23be25318944bb9d53a; Greptile CLEAN; init-deposit untouched",
+          "recorded_at": "2026-09-11T15:55:00Z",
+          "recorded_by": "4390-leaf-implementation"
+        }
+      },
+      {
+        "title": "Update the #2925 content-contract token (`deft_directive_setup_phase3_onboarding_question`) with the skill/strategy edit. CHANGELOG.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md [Unreleased] + PR 4397 merge a26c7ba01145c147a1999ddc657051e7a64c659a",
+          "recorded_at": "2026-09-11T15:55:00Z",
+          "recorded_by": "4390-leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "Workflow",
+      "agent-experience",
+      "area:skills",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4390",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4390: bug(setup): same-session greenfield Phase 3 defaults to Add-scope and never asks what to build"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2925",
+        "type": "x-xbrief/closes",
+        "title": "Issue #2925"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind the issue body's \"Phase 3 default flip, Chaining Gate detector unchanged.\" Starting-new that still hits identity-OR-scopes Chaining Gate skips what-to-build one step later.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One rule on both surfaces, or two rules with a written reason: identity-only means empty `plan.items` plus no convention-valid `*.xbrief.json` / `*.vbrief.json` (exclude `.gitkeep` and `*.premigrate.*`). Drop session-age. Drop an undefined \"finished Phase 3\" marker.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Starting-new / Proceed must actually ask what to build. That requires either `interview.md` to allow suppressing Chaining Gate for that invocation, or Chaining Gate to use the same identity-only default. Amend the file that currently forbids the skip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Identity-only Add-scope cannot synthesize the first scope from Overview / directory name / init seed. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm's `xbrief/proposed/` scan is in scope for that skip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep Process-only. Keep Add-scope / Update / Replace on the menu. Do not auto-promote. Do not change `directive init` brownfield-install.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Update the #2925 content-contract token (`deft_directive_setup_phase3_onboarding_question`) with the skill/strategy edit. CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5425000609,
+        "origin": "deftai/directive#4390",
+        "id": "github.issue.5425000609"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "889d8f2b0001edfbacdf3eb15abdf8d0abfaf65a7da15a52e962229d8f3ae06b"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4397,
+        "prBase": null,
+        "mergeCommit": "a26c7ba01145c147a1999ddc657051e7a64c659a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a26c7ba01145c147a1999ddc657051e7a64c659a",
+        "verifiedAt": "2026-09-11T15:53:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkwZGUtZWY0OS03ZTczLWIxMmItZmQ0NTFjMDRkNTU2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T15:53:58Z"
+      },
+      "completedAt": "2026-09-11T15:53:58Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkwZGUtZWY0OS03ZTczLWIxMmItZmQ0NTFjMDRkNTU2",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5425000609",
+    "updated": "2026-09-11T15:53:58Z"
+  }
+}
