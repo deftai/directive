@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "Do not bind payload pin or hook-visible DEFT_ACTIVE_SCOPE as equivalent closes. Process-wide DEFT_ACTIVE_SCOPE is not cohort-safe. Bind one per-spawn channel this host actually forwards (schema field into boundPath, or a stdin env bag that hook-dispatch threads). Cite #4315 only as the closed-schema fact; do not recut this issue into process_only.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts dest unique-basename pin from occupancy-validated cwd; packages/core/src/hooks/classify/payload.test.ts stdin env bag; SPAWN_SCOPE_PIN_KEYS deleted as Grok channel (#4315)",
+          "recorded_at": "2026-09-11T18:50:00Z",
+          "recorded_by": "4413-residual-leaf"
+        }
       },
       {
         "title": "Pin grammar is the existing matcher against payloadRoot: xbrief/active/<file> or unique basename. Drop issue id. Dest story means that primary-ledger name, not dest absolute path.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts unique dest basename pins payloadRoot; payload boundPath keys and prompt/description are not pins",
+          "recorded_at": "2026-09-11T18:50:00Z",
+          "recorded_by": "4413-residual-leaf"
+        }
       },
       {
         "title": "Spawn branch passes boundPath from the host-visible field. Keep env as the CLI fallback. Regression: two primary actives + dest-proven cwd + pin -> allow; same without pin -> deny.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts allows dest-proven spawn when dest unique basename names one of two primary actives; denies unpinned dest-proven spawn with two primary actives; DEFT_ACTIVE_SCOPE CLI fallback",
+          "recorded_at": "2026-09-11T18:50:00Z",
+          "recorded_by": "4413-residual-leaf"
+        }
       },
       {
         "title": "Keep #4215 parent-root active-scope. Do not dest-root-swap. Extra dest keys stay occupancy-deny. Grok dest stays cwd only. Prompt/description must not become pins. Unpinned multi-active on payloadRoot still fail-closes. destProven still skips parent ritual only.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts inspectScope stays on parent root not dest; occupancy-denies extra dest keys; destProven skips parent ritual only",
+          "recorded_at": "2026-09-11T18:50:00Z",
+          "recorded_by": "4413-residual-leaf"
+        }
       },
       {
         "title": "Do not retarget the Grok seat to CLI. Do not fold #4391. CHANGELOG.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4413 Greptile CLEAN 5/5 SHA c1e680e7d638; CHANGELOG Unreleased dest unique-basename pin; does not fold #4391",
+          "recorded_at": "2026-09-11T18:50:00Z",
+          "recorded_by": "4413-residual-leaf"
+        }
       }
     ],
     "tags": [
