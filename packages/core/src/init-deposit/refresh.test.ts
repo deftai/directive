@@ -1671,6 +1671,47 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(err.join("")).not.toMatch(/live-procedure/);
   });
 
+  it("already-current dry-run prints a plan when dest names pruned helpers (#4389)", async () => {
+    const project = freshRoot("update-dryrun-current-dest-c3-");
+    const contentRoot = installFakeContentPackage(project, "0.115.0");
+    writeInitializedProject(project, { contentVersion: "0.115.0", pinVersion: "0.115.0" });
+    const destMain = join(project, ".deft", "core", "main.md");
+    const destDirty = "! run `scripts/_precutover.py`\n";
+    writeFileSync(destMain, destDirty, "utf8");
+    const destRoot = join(project, ".deft", "core");
+    expect(evaluateLiveProcedureTargets({ stagedRoot: contentRoot }).uniqueTargets).toEqual([]);
+    expect(evaluateLiveProcedureTargets({ stagedRoot: destRoot }).uniqueTargets).toEqual([
+      "scripts/_precutover.py",
+    ]);
+    const before = hashFixtureTree(project);
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.115.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.115.0",
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(readFileSync(destMain, "utf8")).toBe(destDirty);
+    expect(hashFixtureTree(project)).toBe(before);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.success).toBe(true);
+    expect(payload.dry_run).toBe(true);
+    expect(payload.deposit_refresh_pending).toBe(false);
+    expect(err.join("")).not.toMatch(/live-procedure/);
+  });
+
   it("dry-run still fail-closes incoming C3 when the content package is dirty (#4389)", async () => {
     const project = freshRoot("update-dryrun-incoming-c3-");
     const contentRoot = installFakeContentPackage(project, "0.115.0");
