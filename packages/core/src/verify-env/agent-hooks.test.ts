@@ -27,6 +27,9 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).toContain("Claude, Grok, Cursor, Codex");
     expect(result.message).toContain("spawn/Task tools");
     expect(result.message).toContain("DEFT_HOOK_READ_ONLY");
+    expect(result.message).toContain("manual-review-required");
+    expect(result.message).not.toMatch(/reviewed with `\/hooks`/);
+    expect(result.message).not.toMatch(/open\s+`\/hooks`/i);
   });
 
   it("reports missing registrations separately from git hooks", () => {

@@ -106,7 +106,7 @@ describe("evaluateAgentHookReadiness", () => {
     expect(probe).not.toHaveBeenCalled();
   });
 
-  it("reports Codex trust and interception separately without hard failing trust", () => {
+  it("reports Codex trust and interception separately without a /hooks next-step (#4335)", () => {
     const result = evaluateAgentHookReadiness("/project", {
       consumerContext: () => true,
       evaluateStructural: () => structural(),
@@ -120,7 +120,20 @@ describe("evaluateAgentHookReadiness", () => {
       trust: "manual-review-required",
       interception: "not-directly-verified",
     });
-    expect(result.message).toContain("/hooks");
+    expect(result.message).toContain("trust=manual-review-required");
+    expect(result.message).toMatch(/grok: registration=/);
+    expect(result.message).toMatch(/codex: registration=/);
+    expect(result.message).not.toMatch(/open\s+`\/hooks`/i);
+    expect(agentHookReadinessJson(result).hosts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          host: "codex",
+          trust: "manual-review-required",
+          interception: "not-directly-verified",
+        }),
+        expect.objectContaining({ host: "grok" }),
+      ]),
+    );
   });
 
   it("skips consumer deposits in a maintainer source checkout", () => {

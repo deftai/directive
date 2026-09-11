@@ -51,7 +51,8 @@ describe("runAgentHooksHealthCheck", () => {
       ),
     ).toBe(true);
     expect(lines.join("")).toContain("registered and structurally valid");
-    expect(lines.join("")).toContain("`/hooks`");
+    expect(lines.join("")).toContain("Codex trust is manual-review-required");
+    expect(lines.join("")).not.toMatch(/open\s+`\/hooks`/i);
     expect(findings).toEqual([
       expect.objectContaining({
         severity: "skip",
@@ -62,6 +63,7 @@ describe("runAgentHooksHealthCheck", () => {
         registrations,
       }),
     ]);
+    expect(findings[0]?.trust_review ?? "").not.toMatch(/open\s+`\/hooks`/i);
   });
 
   it("returns true without emitting a registered finding when cmdDoctor replaces it", () => {
@@ -427,10 +429,11 @@ describe("runAgentHooksLiveProbeCheck", () => {
   });
 
   it("keeps Codex trust review orthogonal after a successful live probe", () => {
+    const lines: string[] = [];
     const findings: Finding[] = [];
     runAgentHooksLiveProbeCheck(
       "/project",
-      createPlainSink({ write: () => undefined }),
+      createPlainSink({ write: (text) => lines.push(text) }),
       (finding) => findings.push(finding),
       {
         evaluateAgentHooks: () => ({
@@ -457,13 +460,15 @@ describe("runAgentHooksLiveProbeCheck", () => {
       },
     );
 
+    expect(lines.join("")).toContain("Codex trust is manual-review-required");
+    expect(lines.join("")).not.toMatch(/open\s+`\/hooks`/i);
     expect(findings).toEqual([
       expect.objectContaining({
         trust_status: "manual-review-required",
-        trust_review: expect.stringContaining("/hooks"),
         interception_status: "not-directly-verified",
       }),
     ]);
+    expect(findings[0]?.trust_review ?? "").not.toMatch(/open\s+`\/hooks`/i);
   });
 
   it("contains a thrown live readiness probe", () => {
