@@ -11,11 +11,11 @@ packages:
 overrides:
   vite: "^7.3.6"
   esbuild: "^0.28.1"
-  # Dependabot high: brace-expansion DoS via consecutive non-expanding {} groups
-  # (alerts #6/#7). Arrives via minimatch@9 (glob/test-exclude/vitest coverage)
-  # and minimatch@10 (archiver + test-exclude). Pin both major lines.
-  "brace-expansion@2": "2.1.2"
-  "brace-expansion@5": "5.0.7"
+  # Dependabot high: brace-expansion DoS via unbounded expansion / intermediate
+  # arrays (alerts #10/#13; CVE-2026-14257 / CVE-2026-69152). Arrives via
+  # minimatch@10 (runtime). Pin both major lines past the patched releases.
+  "brace-expansion@2": "2.1.4"
+  "brace-expansion@5": "5.0.9"
   # Dependabot high: PostCSS path traversal via sourceMappingURL auto-loading
   # of arbitrary .map files (alert #8). Transitive via vite <- vitest.
   # Patched range: >= 8.5.18 (pin latest stable 8.5.25).
@@ -31,6 +31,6 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - vite@7.3.6
-  - brace-expansion@2.1.2
-  - brace-expansion@5.0.7
+  - brace-expansion@2.1.4
+  - brace-expansion@5.0.9
   - postcss@8.5.25
