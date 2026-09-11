@@ -120,6 +120,7 @@ describe("swarmLaunch route-file integration (#1739)", () => {
       // to "cloud-headless" there even though it resolved to "cursor" locally
       // inside an actual Cursor session.
       environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
     });
 
     expect(result.exitCode).toBe(0);
@@ -150,6 +151,7 @@ describe("swarmLaunch route-file integration (#1739)", () => {
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["cursor-cloud", "gh-cli"],
       environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
     });
 
     expect(result.exitCode).toBe(2);
