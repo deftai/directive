@@ -158,4 +158,35 @@ describe("promote non-inline task_statement via documented slots (#4238)", () =>
     expect(result.commands.some((c) => c.source === "task_statement")).toBe(true);
     expect(result.commands.some((c) => c.source === "explicit")).toBe(true);
   });
+
+  it("keeps a later executable peer whose expectedStdout matches the stated row", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: COMMAND,
+            source: "task_statement",
+            sourceSpan: "labeled@L27",
+            expectedStdout: "ok",
+          },
+        ],
+        swarm: {
+          verify_commands: [COMMAND],
+          literal_acceptance_commands: [{ command: COMMAND, expectedStdout: "ok" }],
+        },
+      },
+      items: [],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(stored.some((c) => c.source !== "task_statement" && c.expectedStdout === "ok")).toBe(
+      true,
+    );
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+    });
+    expect(result.ok).toBe(true);
+  });
 });
