@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #3452 -- field-validation ACs stamped from comment 5331022768",
-    "updated": "2026-09-11T02:53:35Z"
+    "updated": "2026-09-11T03:03:22Z"
   },
   "plan": {
     "title": "feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(review-cycle,swarm): policy-anchored review-response loop -- classify reviewer findings against a written invariant before patching; batch fixes into one push",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3452",
@@ -167,9 +167,34 @@
         "github_issue_id": 5177754388,
         "origin": "deftai/directive#3452",
         "id": "github.issue.5177754388"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4360,
+        "prBase": null,
+        "mergeCommit": "c0b3bbc283aadaa35e55b41ac502169359f1ac7d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c0b3bbc283aadaa35e55b41ac502169359f1ac7d",
+        "verifiedAt": "2026-09-11T03:03:22Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhlMDMtMjE4Yi03ZDgwLTgyYjctNzdkYWVhYTdlNGU0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T03:03:22Z"
+      },
+      "completedAt": "2026-09-11T03:03:22Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhlMDMtMjE4Yi03ZDgwLTgyYjctNzdkYWVhYTdlNGU0",
+      "capacityBucket": "agentic-debt"
     },
     "id": "github.issue.5177754388",
-    "updated": "2026-09-11T02:53:35Z"
+    "updated": "2026-09-11T03:03:22Z"
   }
 }
