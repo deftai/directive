@@ -1,0 +1,156 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4365",
+    "updated": "2026-09-11T03:10:58Z"
+  },
+  "plan": {
+    "title": "Grok Build design-critique Claude/Codex spawn recipe is missing; agents fail starting the CLI",
+    "status": "running",
+    "narratives": {
+      "Description": "Grok Build design-critique Claude/Codex spawn recipe is missing; agents fail starting the CLI",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4365",
+      "Overview": "## Problem\n\nGrok Build parents launching a design-critique Claude or Codex seat do not have a copy-paste spawn recipe. The contract names the CLI and \"close stdin.\" The subscription playbook has a no-tools pong. Other agents fail to start Claude Code. This session (#4361 N=3 panel, #4353 Opus critic) had to reconstruct argv from live failures and a 4199 comment.\n\n## What is in Directive today\n\n`content/contracts/design-critique.md` Envelope and ceiling:\n\n- Grok seat: `spawn_subagent` (or `grok`)\n- Claude seat: `claude` CLI\n- Codex seat: `codex exec`\n- Probe PATH; paste-ready if absent\n- Close stdin: Windows `cmd /c \"… <nul\"`; Unix `… </dev/null`\n- Pointer: `content/docs/grok-build-subscription-setup.md`\n\nThat playbook verifies auth with:\n\n```text\nclaude -p \"Do not use tools. Reply with the single word: pong\" --output-format text\n```\n\nand requires Grok child Process-scope `ANTHROPIC_API_KEY` unset. It does not spawn a critic that must `git show` and `gh issue comment`.\n\n`host-grok-build.md` is swarm dest/`spawn_subagent`. It is not the other-family critic recipe.\n\n## What this parent actually used (measured 2026-09-11)\n\nClaude Code 2.1.252 at `%USERPROFILE%\\.local\\bin\\claude.exe`. `claude auth status`: `authMethod=claude.ai`, team, no process `ANTHROPIC_API_KEY`.\n\nNode `spawn` (stdin closed = `stdio: ['ignore', log, log]`), cwd = dest worktree at origin/<default>:\n\n```text\nclaude -p <envelope> --model opus --permission-mode bypassPermissions --output-format text\n```\n\nEnv: delete `ANTHROPIC_API_KEY` and `CLAUDE_API_KEY`. Prompt on argv, not stdin (stdin is closed). Comment lead posted `model: claude-opus-5`. Envelope ~2.5k; larger envelopes need a file plus `-p \"Read and follow <path>\"`.\n\nCodex ChatGPT: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> <prompt>` with stdin closed, **no** `-m gpt-5.6` (400: not supported with a ChatGPT account). Default posted `model: gpt-5.6-sol`.\n\nGrok `spawn_subagent` without `process_only` / `plan` was denied (multiple active xBRIEFs / implement-class). Recovery: `grok --cwd <dest> --always-approve --prompt-file <path> --permission-mode bypassPermissions --output-format plain` with stdin closed.\n\n## How this parent knew\n\nNot a Directive recipe. Stitched from:\n\n1. Contract pointer (which CLI, close stdin, probe PATH).\n2. Playbook pong (`-p`, `--output-format text`, no API key).\n3. Live #4199 critic lead `model: claude-opus-5` for the comment slug.\n4. Failures this session: Codex `-m gpt-5.6` 400; `spawn_subagent` implement-class deny; prompt-on-stdin vs close-stdin contradiction.\n\n`--permission-mode bypassPermissions` is not in the contract. It was required so the critic could `gh issue comment` without a TTY approval.\n\n## Expected\n\nOne host recipe (contract pointer + playbook or a short `docs/` page) that an agent can follow without improvising:\n\n1. **Claude critic spawn:** exact argv, cwd=dest, stdin closed, prompt not on stdin, `--model opus` vs comment `model:` slug, `--permission-mode` for `gh`/`git`, `--output-format text`, unset `ANTHROPIC_API_KEY` even if Grok policy should already drop it.\n2. **Codex critic spawn:** `codex exec` flags, ChatGPT vs API model ids, do not pass unsupported `-m`, stdin closed, `-C dest`.\n3. **Grok critic spawn:** `spawn_subagent` skip class (`plan` cannot `gh`; need `process_only` or grok CLI). Recovery when implement-class deny (multiple active xBRIEFs / #2885).\n4. **Windows:** `cmd /c \"… <nul\"` **or** Node `stdio: ignore` as the close-stdin equivalent; argv length; prompt-file fallback.\n5. Probe remains the pong; critic spawn is a second recipe, not the pong.\n\n## Acceptance\n\n- [ ] A parent can launch a Claude critic on Grok Build from the recipe without reading a prior session log.\n- [ ] Recipe states stdin closed and prompt transport (argv or `--prompt-file` / `-p` path), not stdin.\n- [ ] Recipe states `--permission-mode bypassPermissions` (or the sanctioned equivalent) for process-only critics that post with `gh`.\n- [ ] Recipe states Codex ChatGPT: omit `-m gpt-5.6`; self-attest the model the CLI actually ran.\n- [ ] Recipe states Grok skip-class vs CLI recovery on implement-class deny.\n- [ ] Content-contract or playbook test locks the distinctive argv tokens (close stdin, `-p`, `--model opus` / `codex exec`, dest cwd).\n- [ ] Thin skill stays a pointer; the recipe body is not copied into `SKILL.md`.\n\n## Non-goals\n\n- Changing seat families or paste-ready-first when CLIs resolve.\n- Teaching `spawn_subagent` to take `process_only` if the host schema still omits it (document the grok CLI recovery).\n- Unsetting User-scope API keys.\n\n## Duplicate search\n\nClosest: #4067 (seat families / PATH paste-ready), `docs/grok-build-subscription-setup.md` (auth + pong), #4296 (process_only skip class), #4199 (live Opus critic). None specify critic argv.\n\nRefs #4067 #4296 #4199 #4353 #4361\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T02:42:20Z)\n\n## Field instance — #4362 N=3 (Grok Build parent, 2026-09-11)\n\nConfirms the body recipe. Claude Code 2.1.252, claude.ai team, process ANTHROPIC_API_KEY unset. Codex ChatGPT posted. Adds failure modes the body does not name.\n\n### Confirmed\n\nNode spawn with stdin ignore, argv `-p <envelope> --model opus --permission-mode bypassPermissions --output-format text`, cwd unique dest at origin/master, env delete ANTHROPIC_API_KEY and CLAUDE_API_KEY, windowsHide, parent Node waits. Live: pid 135036, claude agents name issue-4362-dc-89, dest `C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4362-dc`. Text format buffers; 0-byte log is not a dead child.\n\nCodex: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> <prompt>`, stdin closed, no `-m`. Self-attest this run was `model: gpt-6` (comment 5628521610), not gpt-5.6-sol.\n\n### Add to the recipe\n\n1. **Do not use `--bare`.** It skips OAuth/keychain. Grok child has no ANTHROPIC_API_KEY, so Claude prints `Not logged in · Please run /login` and exits. Measured dest log 35 bytes. Playbook pong does not use --bare; critic spawn must not either unless auth is passed another way.\n\n2. **Do not substitute `--dangerously-skip-permissions` for `--permission-mode bypassPermissions`.** The former plus a visible `cmd /c` window flashed (login or trust) and died. bypassPermissions is the gh-capable flag in the body; this session did not get a staying critic until that argv.\n\n3. **Node stdio must be an open fd, and the parent must wait.** `stdio: ['ignore', writeStream, writeStream]` throws ERR_INVALID_ARG_VALUE (fd null) on Node 24. `openSync` then pass the integer fd. `detached` + `unref` + parent exit closes the fd; Claude dies with a 0-byte log. Keep the spawning Node process until Claude exits.\n\n4. **PowerShell `RedirectStandardInput \"NUL\"` is not close-stdin.** Start-Process resolved it to `<cwd>\\NUL` and refused. Use Node `stdio: ignore` or cmd `<nul`.\n\n5. **`plan` skip class cannot post.** Grok `spawn_subagent` `subagent_type: plan` ran on dest (process-only occupancy skip) but had no Shell, and Write to dest `.deft-scratch` and `%TEMP%` both ritual-not-ready (no ritual-state.json on that dest). Census existed; no comment URL until parent `gh issue comment --body-file`. Matches the body: plan cannot gh; process_only is not in the Grok spawn schema. Recipe should name this as dispatch-fail, not a hung critic.\n\n6. **Dest is per-arc, not primary, not another panel dest.** A second Claude (`directive-61`) was already interactive on primary `C:\\Repos\\deft\\directive`. `parent-arc-4345` is another in-flight panel dest. This arc used `issue-4362-dc`. Sharing primary or another panel dest is occupancy/session collision, not a stdin problem.\n\n7. **`claude agents` reports print-mode as `kind: interactive`.** Do not kill it as a TTY leftover.\n\n### Do not add as recipe\n\nVisible `cmd /k` / pause to keep a window. That is operator theater; the staying spawn is hidden Node + waiter. Playbook pong remains the auth probe, not this spawn.\n\n### Comment by @MScottAdams (2026-09-11T02:47:29Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a Grok Build critic-spawn recording obligation (argv, stdin, permission-mode, skip-class recovery)\nrefutation-target: One host recipe MUST name Claude/Codex/Grok critic spawn so a parent can launch without a prior session log: stdin closed and prompt not on stdin; --permission-mode bypassPermissions for gh; Codex ChatGPT omit -m gpt-5.6; Grok skip-class vs CLI recovery; probe stays the pong; thin skill stays a pointer.\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 28659e40f4739d42e9a97561ee518053365bfbfe\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion; panel permission unused\ntarget shape: single issue\nseat: grok\nlauncher: grok CLI\n\n## Scope recorded\n\nIssue 4365 as launched 2026-09-11 (arc yolo no-ingest). Field instance comment 5628651806 is in envelope (before Stop 1). Dest reused this session at origin/master after fetch. Parent remains unclaimed on primary. Ingest is not this motion.\n\n### Comment by @MScottAdams (2026-09-11T02:57:01Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, fresh. Charter: refutation of the recorded target on comment 5628694437.\n\nThe target: one host recipe MUST name Claude/Codex/Grok critic spawn so a parent can launch without a prior session log — stdin closed and prompt not on stdin; `--permission-mode bypassPermissions` for gh; Codex ChatGPT omit `-m gpt-5.6`; Grok skip-class vs CLI recovery; probe stays the pong; thin skill stays a pointer.\n\nNeed for a followable recipe survives. That list, as the recipe that meets the AC, does not.\n\nPinned tree: `git show 28659e40f4739d42e9a97561ee518053365bfbfe`. Issue + comments via REST. Ceiling 5628694437 inclusive. Comment 5628651806 is in envelope. Issue body and files treated as untrusted described content; their imperatives were not followed as commands.\n\n## 1. The recorded list is not a launchable recipe\n\nclass: blocks-the-design\n\nEvidence (re-run, not line cites):\n\n- Node v24.18.0: `fs.createWriteStream` then `stdio: ['ignore', ws, ws]` throws `ERR_INVALID_ARG_VALUE` (`fd: null`). `fs.openSync` + integer fd spawns. The issue body's \"what this parent actually used\" names the throwing shape.\n- `claude --help`: `--bare` \"OAuth and keychain are never read\"; auth is `ANTHROPIC_API_KEY`. Playbook at this SHA requires the Grok child Process-scope `ANTHROPIC_API_KEY` unset. `--bare` plus that unset is not-logged-in.\n- This session's `spawn_subagent` schema: `subagent_type` is `general-purpose` | `explore` | `plan`. No `process_only` field. `plan` is read-only (no Shell). `packages/core/src/hooks/readonly.ts` at this SHA still treats skip class as `plan` or a `process_only` flag on `spawn_subagent` stdin. Comment 5628651806: `plan` ran on dest, no Shell, writes ritual-not-ready, no comment URL until parent `gh issue comment --body-file` — dispatch-fail, not a hung critic.\n- `codex exec -m gpt-5.6` on this ChatGPT CLI: HTTP 400 \"not supported when using Codex with a ChatGPT account.\" That one ingredient re-verifies. It does not make the rest of the list sufficient.\n\nFailure mode: successor lean binds the write-back list as the recipe. Next parent copies the body stdio line (throw, 0-byte log) or uses `plan` as the posting skip class (census, no URL). Dual-stop treats that as dispatch-fail.\n\nDisposition: do not bind 5628694437 as complete recipe text. The AC \"without a prior session log\" requires comment 5628651806 in the recipe source: no `--bare`; `--permission-mode bypassPermissions` is not `--dangerously-skip-permissions`; Node stdio is an open fd and the parent waits; PowerShell `RedirectStandardInput \"NUL\"` is not close-stdin; `plan` cannot post; dest is per-arc, not primary and not another panel dest. The body spawn snippet is not copy-paste.\n\n## 2. Grok CLI recovery is last-resort, not the named Grok seat\n\nclass: sharpens-framing\n\nEvidence: `content/skills/deft-directive-swarm/references/host-grok-build.md` at this SHA: CLI `grok --cwd` is last-resort after a recorded native deny; do not dual-launch; do not document CLI as the real Grok Build launch path. `packages/core/src/design-critique/panel-seat-families.ts` already has launcher token `grok`. `grok --help` has `--cwd`, `--prompt-file`, `--permission-mode bypassPermissions`, `--always-approve`, `--output-format plain`. Contract Grok seat remains `spawn_subagent` (or `grok`).\n\nFailure mode: the recipe publishes those grok flags as the Grok critic spawn. Swarm parents take CLI as the real path; dest occupancy and dual-launch follow.\n\nDisposition: Grok section of the recipe is recovery after recorded `spawn_subagent` implement-class deny, and after `plan` cannot post. Do not retarget the contract Grok seat to CLI. Teaching `spawn_subagent` `process_only` stays a non-goal; document the hole (schema omits the flag the hook reads).\n\n## 3. Put the recipe on the existing playbook heading; lock spawn tokens, not comment slugs\n\nclass: sharpens-framing\n\nEvidence: `content/docs/grok-build-subscription-setup.md` already has a Design-critique dispatch section: PATH probe, CLI-spawn other-family seats, paste-ready fallback, pointer to the contract. It has the pong (`claude -p \"Do not use tools. Reply with the single word: pong\" --output-format text`) and no critic argv. `grep` of `*.test.ts` for that playbook path: no hits. `design_critique_contract.test.ts` locks pointer strings, not argv. `claude --help`: `--model opus` is an alias; the comment lead slug is a different string. Comment 5628651806: Codex this run self-attested `gpt-6`, not the body's `gpt-5.6-sol`. Thin skill at this SHA is already a pointer (`⊗` copy contract bodies; seat families point at Envelope and ceiling).\n\nFailure mode: argv copied into `SKILL.md` or into contract MUSTs; a content-contract row locks `claude-opus-5` / `gpt-5.6-sol`; next CLI rename red-gates the motion. Or a fourth docs page that none of the three existing pointers name.\n\nDisposition: extend that playbook heading (or a short `docs/` page only if that heading must stay auth-only). Probe stays the pong; critic spawn is a second recipe. Test lock distinctive spawn tokens (close-stdin as child stdio, `-p` / `codex exec` / dest cwd, omit `-m gpt-5.6` on ChatGPT). Do not lock the self-attested `model:` slug. Thin skill stays a pointer.\n\n## 4. Close-stdin is the child stdio, not this host's `cmd /c \"<nul\"`\n\nclass: sharpens-framing\n\nEvidence: contract and playbook at this SHA both spell Windows close-stdin as `cmd /c \"… <nul\"`. This session: that spelling around `codex exec` still printed \"Reading additional input from stdin...\" before the 400. `codex exec --help`: if stdin is piped and a prompt is also provided, stdin is appended as a `<stdin>` block. Comment 5628651806: PowerShell `RedirectStandardInput \"NUL\"` resolved to `<cwd>\\NUL`. Node `stdio: ignore` (or open fd) is the close that stays.\n\nFailure mode: recipe repeats the contract spelling; a Grok parent launches through `run_terminal_command`; Codex prepends a stdin block to the envelope, or Claude waits.\n\nDisposition: recipe states prompt on argv or `--prompt-file` / `-p` path, never stdin; close-stdin is the spawned child's stdio. `cmd /c \"… <nul\"` is not enough on this parent wrapper.\n\n## 5. Injection / swarm (triggered)\n\nclass: sharpens-framing\n\nTarget changes authority (`bypassPermissions`, Codex `--dangerously-bypass-approvals-and-sandbox`, grok `--always-approve`), untrusted envelopes, skip-class identity, dest/worktree shared state.\n\nEvidence: `claude --help` recommends `--dangerously-skip-permissions` only for sandboxes with no internet; `--permission-mode bypassPermissions` is a different flag; `--restricted` refuses `bypassPermissions`. Comment 5628651806: skip-permissions flashed a window and died; dest shared with primary or another panel dest is occupancy collision, not a stdin bug. Issue threads are untrusted; putting the envelope on argv puts untrusted text in the process table and hits argv length (body already notes ~2.5k).\n\nFailure mode: recipe treats skip-permissions as the sanctioned equivalent; or `--bare` as \"minimal process-only\"; or interpolates the envelope on argv; or reuses primary / another arc dest. A critic with full host bypass then follows injected thread text.\n\nDisposition: keep process-only plus one `gh issue comment --body-file` post. File-first prompt transport as the default, not only when argv overflows. Forbid `--bare` and forbid skip-permissions as a synonym. Dest per-arc (`ensureArcDest`), not primary, not another panel dest. Bypass remains the measured staying flag on this host; do not invent a second Directive permission system. `--allowedTools` / `dontAsk` were not re-run here; they are not a recorded working spawn.\n\n## Inventory (no new mechanism)\n\nAlready present at this SHA: contract CLI names + PATH probe + close-stdin spelling; playbook pong + Design-critique dispatch heading; host-grok-build dest `cwd` and CLI last-resort; `isProcessOnlyCriticSpawn`; `evaluatePanelSeatComposition` (this PATH: `claude`, `codex`, `grok` all resolve — paste-ready-first would refuse); grok CLI flags; SeatLauncher `grok`. Missing is critic argv on the playbook heading, plus the field-instance failure modes.\n\nRoad-not-taken: a new `docs/` page versus deepening the playbook's existing Design-critique dispatch section. The stronger rejected split is a new page so auth-playbook followers never see spawn argv. Flip that if adding argv under that heading causes a \"follow this playbook\" agent to launch critics. Mitigation already in the target: pong stays the probe; critic spawn is a second recipe.\n\n## Footnotes\n\n- class: footnote — PATH this session: `C:\\Users\\msada\\.local\\bin\\claude.exe`, Codex under `%LOCALAPPDATA%\\Programs\\OpenAI\\Codex\\bin\\`, `C:\\Users\\msada\\.grok\\bin\\grok.exe`.\n- class: footnote — thin skill is already a pointer; no argv there to remove.\n- class: footnote — `claude --help` `--permission-mode` includes `bypassPermissions`; that flag exists. The block is sufficiency of the list, not existence of the flag.\n\n\n### Comment by @MScottAdams (2026-09-11T02:58:06Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe filed MUST is a followable host recipe. The write-back list is not that recipe. Copying the body spawn line throws on Node 24 stdio, `--bare` logs out, `plan` cannot post, and `cmd /c \"<nul\"` still feeds Codex stdin. Field instance 5628651806 already named the staying spawn.\n\nThe leftover next-build is to put a second recipe under the existing playbook Design-critique dispatch heading: file-first prompt, child stdio closed, `--permission-mode bypassPermissions` not skip-permissions, no `--bare`, Node open fd and parent waits, dest per-arc, Codex ChatGPT omit `-m gpt-5.6` and self-attest, Grok CLI only after recorded spawn_subagent deny because plan cannot gh. Probe stays the pong. Thin skill stays a pointer. Lock spawn tokens, not comment slugs. Why: a parent following the body as copy-paste gets a 0-byte log or a census with no comment URL.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Critic was grok-4.6 CLI child. Takes accept critic 5628767088 headings. No new load-bearing parent premise.\n\nForward verdict: keep #4365 for that playbook recipe. Disposition: all five classified headings accept-into-contract. Residual: none.\n\nyolo-standing: yes\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4365 after critic 5628767088. Round 1 siblings dispatched: 1. Supersedes write-back 5628694437.\n\nTarget-digest: sha256:84d7e374896c89966ac8b7aa4a5ce659abeb35c92ea009341dbca30965192a14\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4345\norigin-ref: origin/master\ndispatch-sha: 28659e40f4739d42e9a97561ee518053365bfbfe\n\nTakes:\n\n- 1. The recorded list is not a launchable recipe — accept-into-contract\n- 2. Grok CLI recovery is last-resort, not the named Grok seat — accept-into-contract\n- 3. Put the recipe on the existing playbook heading; lock spawn tokens, not comment slugs — accept-into-contract\n- 4. Close-stdin is the child stdio, not this host's cmd /c \"<nul\" — accept-into-contract\n- 5. Injection / swarm — accept-into-contract\n\n## Bound remedy\n\n- Extend `content/docs/grok-build-subscription-setup.md` Design-critique dispatch (or a short docs page only if that heading must stay auth-only). Probe stays the pong. Critic spawn is a second recipe. Thin skill stays a pointer.\n- Recipe source is field instance 5628651806 plus the critic inventory, not the issue-body spawn snippet.\n- Prompt on file / `-p` path, never stdin. Close-stdin is the spawned child's stdio (`ignore` or open fd). Parent Node waits. `cmd /c \"<nul\"` is not enough on this wrapper. PowerShell RedirectStandardInput NUL is not close-stdin.\n- Claude: no `--bare`; `--permission-mode bypassPermissions` not `--dangerously-skip-permissions`; `--model opus`; `--output-format text`; dest cwd; unset ANTHROPIC_API_KEY and CLAUDE_API_KEY.\n- Codex: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C dest`; omit `-m gpt-5.6` on ChatGPT; self-attest the model the CLI ran.\n- Grok: `spawn_subagent` remains the seat. Document schema omits `process_only`; `plan` cannot post (dispatch-fail). grok CLI `--cwd --prompt-file --permission-mode bypassPermissions --always-approve --output-format plain` is last-resort after a recorded native deny. Do not dual-launch.\n- Dest per-arc (`ensureArcDest`), not primary, not another panel dest.\n- Tests lock spawn tokens (close-stdin as child stdio, `-p` / `codex exec` / dest cwd, omit `-m gpt-5.6`). Do not lock `claude-opus-5` / `gpt-5.6-sol`.\n\n### Comment by @MScottAdams (2026-09-11T02:58:07Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Playbook Design-critique dispatch has pong, not critic argv | Parent git show 28659e40f4739d42e9a97561ee518053365bfbfe:content/docs/grok-build-subscription-setup.md | measured |\n| 2 | Contract names CLI + close stdin, no argv | Parent git show content/contracts/design-critique.md Envelope | measured |\n| 3 | spawn_subagent schema has no process_only; plan is read-only | Critic this-session schema; host-grok-build last-resort | endorsed |\n| 4 | Node 24 stdio writeStream throws ERR_INVALID_ARG_VALUE | Critic re-run; field instance 5628651806 | endorsed |\n| 5 | Codex ChatGPT -m gpt-5.6 returns 400 | This session #4361 log; critic re-verify | endorsed |\n\n### Comment by @MScottAdams (2026-09-11T02:58:08Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n#4365 leftover next-build is a second recipe under the playbook Design-critique dispatch heading, sourced from field instance 5628651806: file-first prompt, child stdio closed, bypassPermissions, no --bare, parent waits, dest per-arc, Codex omit -m gpt-5.6, Grok CLI last-resort after spawn deny. Why: the body spawn list is not copy-paste; following it yields a 0-byte log or a plan critic that cannot post. Confirming this map does not close #4365.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5628775251 and verified-claims table 5628775403.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was grok-4.6 CLI child. Operator yolo-standing 2026-09-11. Round 1 complete, N=1, critic 5628767088, ceiling 5628694437.",
+      "Labels": "bug, agent-experience, process, grok-build, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Extend `content/docs/grok-build-subscription-setup.md` Design-critique dispatch (or a short docs page only if that heading must stay auth-only). Probe stays the pong. Critic spawn is a second recipe. Thin skill stays a pointer.",
+        "status": "proposed"
+      },
+      {
+        "title": "Recipe source is field instance 5628651806 plus the critic inventory, not the issue-body spawn snippet.",
+        "status": "proposed"
+      },
+      {
+        "title": "Prompt on file / `-p` path, never stdin. Close-stdin is the spawned child's stdio (`ignore` or open fd). Parent Node waits. `cmd /c \"<nul\"` is not enough on this wrapper. PowerShell RedirectStandardInput NUL is not close-stdin.",
+        "status": "proposed"
+      },
+      {
+        "title": "Claude: no `--bare`; `--permission-mode bypassPermissions` not `--dangerously-skip-permissions`; `--model opus`; `--output-format text`; dest cwd; unset ANTHROPIC_API_KEY and CLAUDE_API_KEY.",
+        "status": "proposed"
+      },
+      {
+        "title": "Codex: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C dest`; omit `-m gpt-5.6` on ChatGPT; self-attest the model the CLI ran.",
+        "status": "proposed"
+      },
+      {
+        "title": "Grok: `spawn_subagent` remains the seat. Document schema omits `process_only`; `plan` cannot post (dispatch-fail). grok CLI `--cwd --prompt-file --permission-mode bypassPermissions --always-approve --output-format plain` is last-resort after a recorded native deny. Do not dual-launch.",
+        "status": "proposed"
+      },
+      {
+        "title": "Dest per-arc (`ensureArcDest`), not primary, not another panel dest.",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests lock spawn tokens (close-stdin as child stdio, `-p` / `codex exec` / dest cwd, omit `-m gpt-5.6`). Do not lock `claude-opus-5` / `gpt-5.6-sol`.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4365",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4365: Grok Build design-critique Claude/Codex spawn recipe is missing; agents fail starting the CLI"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4067",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4067"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Extend `content/docs/grok-build-subscription-setup.md` Design-critique dispatch (or a short docs page only if that heading must stay auth-only). Probe stays the pong. Critic spawn is a second recipe. Thin skill stays a pointer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Recipe source is field instance 5628651806 plus the critic inventory, not the issue-body spawn snippet.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Prompt on file / `-p` path, never stdin. Close-stdin is the spawned child's stdio (`ignore` or open fd). Parent Node waits. `cmd /c \"<nul\"` is not enough on this wrapper. PowerShell RedirectStandardInput NUL is not close-stdin.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Claude: no `--bare`; `--permission-mode bypassPermissions` not `--dangerously-skip-permissions`; `--model opus`; `--output-format text`; dest cwd; unset ANTHROPIC_API_KEY and CLAUDE_API_KEY.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Codex: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C dest`; omit `-m gpt-5.6` on ChatGPT; self-attest the model the CLI ran.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Grok: `spawn_subagent` remains the seat. Document schema omits `process_only`; `plan` cannot post (dispatch-fail). grok CLI `--cwd --prompt-file --permission-mode bypassPermissions --always-approve --output-format plain` is last-resort after a recorded native deny. Do not dual-launch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Dest per-arc (`ensureArcDest`), not primary, not another panel dest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Tests lock spawn tokens (close-stdin as child stdio, `-p` / `codex exec` / dest cwd, omit `-m gpt-5.6`). Do not lock `claude-opus-5` / `gpt-5.6-sol`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5419700365,
+        "origin": "deftai/directive#4365",
+        "id": "github.issue.5419700365"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "84d7e374896c89966ac8b7aa4a5ce659abeb35c92ea009341dbca30965192a14"
+      }
+    },
+    "id": "github.issue.5419700365",
+    "updated": "2026-09-11T03:10:55Z"
+  }
+}

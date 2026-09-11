@@ -131,6 +131,44 @@ Run from a **Grok** `run_terminal_command` child after the new session. Close st
 
 When a Grok Build parent runs an N≥3 design-critique panel, this playbook's CLIs are the other-family launchers. Probe `claude` / `codex` on PATH and CLI-spawn those seats. Paste-ready is the fallback when a CLI is absent, not the default recovery. Normative stop: [`contracts/design-critique.md`](../contracts/design-critique.md) Envelope and ceiling (#4067).
 
+The Verification pong above stays the auth probe. Critic spawn is a second recipe. Do not launch a critic by copying the issue-body spawn snippet. Recipe source: field instance 5628651806 plus the critic inventory.
+
+### Critic spawn (second recipe)
+
+Write the envelope to a dest file. Never put the prompt on stdin. Claude `-p` and Codex's trailing arg are prompt text, not an automatic file read — pass `Read and follow <envelope-path>`. Grok last-resort uses `--prompt-file`.
+
+Close-stdin is the spawned child's stdio, not this host's `cmd /c "… <nul"` (not enough on the Grok wrapper) and not PowerShell `RedirectStandardInput "NUL"` (resolves to `<cwd>\NUL`). Node `spawn` with `stdio: "ignore"` or an open fd (`fs.openSync`, then pass the integer fd). `stdio: ["ignore", writeStream, writeStream]` throws `ERR_INVALID_ARG_VALUE` on Node 24 because `fd` is null. Parent Node waits until the child exits. `detached` + `unref` plus parent exit closes the fd; the critic dies with a 0-byte log.
+
+Dest is per-arc (`ensureArcDest`) at origin/<default> after fetch. Not primary. Not another panel dest.
+
+**Claude** (cwd = dest). Unset Process-scope `ANTHROPIC_API_KEY` and `CLAUDE_API_KEY`.
+
+```text
+claude -p "Read and follow <envelope-path>" --model opus --permission-mode bypassPermissions --output-format text
+```
+
+- ⊗ `--bare` (skips OAuth/keychain; with Process-scope `ANTHROPIC_API_KEY` unset the child prints not-logged-in).
+- ⊗ `--dangerously-skip-permissions` as a synonym for `--permission-mode bypassPermissions`.
+- `--model opus` is the CLI alias. Self-attest the `model:` slug the critic actually posts. Do not treat a comment slug as argv.
+
+**Codex** (`-C` dest):
+
+```text
+codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> "Read and follow <envelope-path>"
+```
+
+On ChatGPT omit `-m gpt-5.6` (HTTP 400). Self-attest the model the CLI ran.
+
+**Grok.** Seat remains `spawn_subagent`. The host schema omits `process_only`. `subagent_type: plan` cannot post (read-only, no Shell) — dispatch-fail, not a hung critic. grok CLI is last-resort after a recorded native deny:
+
+```text
+grok --cwd <dest> --prompt-file <path> --permission-mode bypassPermissions --always-approve --output-format plain
+```
+
+⊗ Dual-launch native + CLI. ⊗ Retarget the contract Grok seat to CLI.
+
+Keep process-only plus one `gh issue comment --body-file` post. `claude agents` may report print-mode as `kind: interactive`; do not kill it as a TTY leftover.
+
 ## Out of scope
 
 - [#4027](https://github.com/deftai/directive/issues/4027) — N≥3 design-critique lean-timing. This playbook is host auth. Do not launch a 3-panel unless the operator asks.
