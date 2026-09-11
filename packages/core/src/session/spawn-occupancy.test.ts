@@ -19,14 +19,26 @@ import {
   readSpawnReservationIncarnation,
   releaseLeftoverSpawnReservation,
   releaseSpawnReservation,
-  SPAWN_DEST_ISOLATION_KEYS,
-  SPAWN_DEST_PATH_KEYS,
+  rerootDestKeyList,
+  rerootMissingDestImperative,
 } from "./spawn-occupancy.js";
 
 const temps: string[] = [];
 afterEach(() => {
   for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (needle.length === 0) return 0;
+  let n = 0;
+  let from = 0;
+  while (true) {
+    const at = haystack.indexOf(needle, from);
+    if (at === -1) return n;
+    n += 1;
+    from = at + needle.length;
+  }
+}
 
 function gitInit(root: string): void {
   execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
@@ -1205,8 +1217,8 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
   });
 });
 
-describe("Cursor Task dest-missing deny honesty (#4279)", () => {
-  it("names every inspectSpawnDestination key and shared recoveries, not a three-name subset", () => {
+describe("reroot dest-missing deny honesty (#4279 / #4362)", () => {
+  it("keeps the dest-key list twice and the pass-imperative on the shared stem", () => {
     const decision = consultImplementSpawnOccupancy({
       payload: {
         tool_name: "Task",
@@ -1220,13 +1232,8 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
     expect(decision.allow).toBe(false);
     if (decision.allow) return;
     expect(decision.reason).toBe("destination-missing");
-    expect(decision.message).toContain("tool_input.isolation=worktree");
-    for (const key of SPAWN_DEST_ISOLATION_KEYS.slice(1)) {
-      expect(decision.message).toContain(key);
-    }
-    for (const key of SPAWN_DEST_PATH_KEYS) {
-      expect(decision.message).toContain(key);
-    }
+    expect(decision.message).toContain(rerootMissingDestImperative());
+    expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(2);
     const parentIdx = decision.message.indexOf("Continue in the parent");
     const exploreIdx = decision.message.search(/subagent_type explore/i);
     expect(parentIdx).toBeGreaterThanOrEqual(0);
@@ -1234,6 +1241,26 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
     expect(decision.message).toMatch(/assist \/ ephemeral/);
     expect(decision.message).toMatch(/subagent_type plan/);
     expect(decision.message).toMatch(/actually read-only/);
+  });
+
+  it("keeps the same shared stem for Claude and Codex consult", () => {
+    for (const host of ["claude", "codex"] as const) {
+      const decision = consultImplementSpawnOccupancy({
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+        },
+        payloadRoot: "/project",
+        host,
+        parentId: "parent-1",
+        environ: {},
+      });
+      expect(decision.allow).toBe(false);
+      if (decision.allow) return;
+      expect(decision.reason).toBe("destination-missing");
+      expect(decision.message).toContain(rerootMissingDestImperative());
+      expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(2);
+    }
   });
 
   it("reads Isolation and workdir through the shared dest-key lists", () => {

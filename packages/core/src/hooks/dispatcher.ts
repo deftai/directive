@@ -69,6 +69,7 @@ import {
   mintImplementSpawnReservation,
   persistSpawnReservation,
   releaseLeftoverSpawnReservation,
+  rerootMissingDestImperative,
   type SpawnOccupancyConsultAllow,
 } from "../session/spawn-occupancy.js";
 import {
@@ -254,12 +255,18 @@ export interface HookDecision {
 }
 
 /**
- * Cursor Task dest-missing recovery (#4321). Live spawn-class copy for this
- * host/tool. Do not advertise Grok-only plan as a Cursor Task hatch.
- * Parent continues first; explore is a read-only spawn, not only research.
+ * Cursor Task dest-missing recovery (#4321 / #4362). Dest-placing is payload-root
+ * (host-cursor.md Step 2e). Do not advertise Task dest keys: that route is
+ * forbidden. Overlay also strips rerootMissingDestImperative for this host/tool.
+ * Parent continues first, exclusive of a live nursery grant on the same tree.
  */
 export const CURSOR_TASK_SPAWN_CLASS_RECOVERY =
-  "Continue in the parent, or spawn with assist / ephemeral markers for scratch. " +
+  "Continue in the parent when the parent will do the writes -- exclusive of a live " +
+  "nursery occupancy grant on the same tree. Dest-placing is payload-root: Composer " +
+  "already on the reserved linked worktree (consult mints the reservation; do not " +
+  "pre-mint then Task), or dest-rooted @cursor/sdk Agent.create({ local: { cwd } }) " +
+  "after cursor-sdk-auth / CURSOR_API_KEY. A live nursery grant fences parent product " +
+  "writes in that tree. Spawn with assist / ephemeral markers for scratch. " +
   "Use subagent_type explore when the spawn is actually a read-only spawn. " +
   "Do not retry subagent_type plan on Cursor Task -- that skip is Grok spawn_subagent only.";
 
@@ -291,6 +298,10 @@ function overlayCursorTaskSpawnRecovery(
     return decision;
   }
   let message = decision.message;
+  const imperative = rerootMissingDestImperative();
+  if (message.includes(imperative)) {
+    message = message.replace(imperative, "").replace(/ {2,}/g, " ").trim();
+  }
   if (message.includes(SPAWN_CLASS_RECOVERY)) {
     message = message.replace(SPAWN_CLASS_RECOVERY, CURSOR_TASK_SPAWN_CLASS_RECOVERY);
   }

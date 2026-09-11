@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
-import { readSpawnReservationIncarnation } from "../session/spawn-occupancy.js";
+import {
+  readSpawnReservationIncarnation,
+  rerootDestKeyList,
+  rerootMissingDestImperative,
+} from "../session/spawn-occupancy.js";
 import {
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
@@ -12,7 +16,7 @@ import {
   type HookPolicySeams,
   spawnToolArgUpdatedInput,
 } from "./index.js";
-import { isExploreSpawn } from "./readonly.js";
+import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -66,6 +70,18 @@ function destFixture(): { root: string; dest: string } {
   const dest = join(root, "wt");
   addLinkedWorktree(root, dest);
   return { root, dest };
+}
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (needle.length === 0) return 0;
+  let n = 0;
+  let from = 0;
+  while (true) {
+    const at = haystack.indexOf(needle, from);
+    if (at === -1) return n;
+    n += 1;
+    from = at + needle.length;
+  }
 }
 
 function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
@@ -618,8 +634,8 @@ describe("Grok-applied spawn_subagent handler-runtime identity (#4272)", () => {
   });
 });
 
-describe("Cursor Task dest-missing deny honesty (#4279)", () => {
-  it("keeps unmarked generalPurpose fail-closed and does not lead recoveries with explore", () => {
+describe("Cursor Task dest-missing deny honesty (#4279 / #4362)", () => {
+  it("keeps unmarked generalPurpose fail-closed and names dest-placing, not the reroot imperative", () => {
     const inspectRitual = vi.fn(() => ({
       ...STALE_RITUAL,
       message: "ritual state is stale (older than 4h). Rearm does not clear dest-missing.",
@@ -639,26 +655,52 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toContain(CURSOR_TASK_SPAWN_CLASS_RECOVERY);
+    expect(decision.message).not.toContain(rerootMissingDestImperative());
+    expect(decision.message).not.toContain(
+      "Pass a destination field inspectSpawnDestination reads",
+    );
+    expect(decision.message).not.toMatch(/before the spawn primitive/);
+    expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(1);
+    expect(decision.message).toMatch(/payload-root/);
+    expect(decision.message).toMatch(/Composer already on the reserved linked worktree/);
+    expect(decision.message).toMatch(/consult mints the reservation/);
+    expect(decision.message).toMatch(/do not pre-mint then Task/);
+    expect(decision.message).toMatch(/Agent\.create\(\{ local: \{ cwd \} \}\)/);
+    expect(decision.message).toMatch(/cursor-sdk-auth/);
+    expect(decision.message).toMatch(/CURSOR_API_KEY/);
+    expect(decision.message).toMatch(/fences parent product writes/);
+    expect(decision.message).toMatch(/exclusive of a live nursery occupancy grant/);
     const parentIdx = decision.message.indexOf("Continue in the parent");
     const exploreIdx = decision.message.search(/subagent_type explore/i);
     expect(parentIdx).toBeGreaterThanOrEqual(0);
     expect(exploreIdx).toBeGreaterThan(parentIdx);
-    for (const key of [
-      "worktree_path",
-      "worktreePath",
-      "worktree",
-      "cwd",
-      "working_directory",
-      "workingDirectory",
-      "workdir",
-    ]) {
-      expect(decision.message).toContain(key);
-    }
-    expect(decision.message).toContain("tool_input.isolation=worktree");
     expect(decision.message).toContain("ritual telemetry (does not clear dest-missing)");
     expect(decision.message).toContain("ritual state is stale");
     expect(decision.message).not.toMatch(/Also ritual-not-ready:/);
     expect(inspectRitual).toHaveBeenCalled();
+  });
+
+  it("keeps the reroot imperative for Claude and Codex dest-missing Task", () => {
+    for (const host of ["claude", "codex"] as const) {
+      const decision = decideHook(
+        {
+          host,
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Task",
+            tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+          },
+          environ: { DEFT_SESSION_ID: "parent-1" },
+        },
+        readySeams(),
+      );
+      expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+      expect(decision.message).toContain(rerootMissingDestImperative());
+      expect(countOccurrences(decision.message, rerootDestKeyList())).toBe(2);
+      expect(decision.message).toContain(SPAWN_CLASS_RECOVERY);
+      expect(decision.message).not.toContain(CURSOR_TASK_SPAWN_CLASS_RECOVERY);
+    }
   });
 
   it("does not explore-allow when implement conflict signals are present", () => {
