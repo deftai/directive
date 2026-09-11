@@ -1681,4 +1681,19 @@ describe("classifyShellAuthzOps protected dest harvest (#4199)", () => {
   it("does not treat kill-switch echo+redirect as a dest-harvest miss", () => {
     expect(classifyShellAuthzOps("echo x >! .deft-directive-disable")).toContain("settings");
   });
+
+  it("still classifies protected dest writes when a safe op is also present", () => {
+    const ops = classifyShellAuthzOps(`pytest && yq -i '.a="x"' ${grant}`);
+    expect(ops).toContain("test");
+    expect(ops).toContain("unknown");
+  });
+
+  it("classifies dest-form kill-switch plants", () => {
+    expect(classifyShellAuthzOps(`yq -i '.a="x"' .deft-directive-disable`)).toContain("unknown");
+  });
+
+  it("unwraps sudo/time before dest-form classification", () => {
+    expect(classifyShellAuthzOps(`sudo yq -i '.a="x"' ${grant}`)).toContain("unknown");
+    expect(classifyShellAuthzOps(`time yq -i '.a="x"' ${grant}`)).toContain("unknown");
+  });
 });
