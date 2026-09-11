@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4389",
-    "updated": "2026-09-11T14:23:20Z"
+    "updated": "2026-09-11T15:31:14Z"
   },
   "plan": {
     "title": "deft update --dry-run fails closed with C3 live-procedure target validation error (25 unresolved helper targets) instead of printing a plan",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "deft update --dry-run fails closed with C3 live-procedure target validation error (25 unresolved helper targets) instead of printing a plan",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4389",
@@ -16,31 +16,73 @@
     "items": [
       {
         "title": "Do not bind the recorded refutation-target. Incoming 0.115.0 live procedures are C3-clean. The dry-run reject is dest C3 after port-record no-op replace, which still reads the unreplaced 0.104.0 dest.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4396 (merge 056434829b410fd726db26ffbd80dd1a22f0cb50)",
+          "recorded_at": "2026-09-11T15:31:07Z",
+          "recorded_by": "4389-leaf-implementation"
+        }
       },
       {
         "title": "Keep incoming `assertLiveProcedureDepositClean(contentRoot)` on dry-run. Do not skip both C3s.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts dry-run still fail-closes incoming C3",
+          "recorded_at": "2026-09-11T15:31:07Z",
+          "recorded_by": "4389-leaf-implementation"
+        }
       },
       {
         "title": "Skip dest C3 when dest IO was skipped (`isPortRecordMode`), or print the already-built `classifyUpdateState` plan before dest C3 so a dest throw cannot hide the plan. Use the existing skip-IO port. Do not invent a second classifier or a staged dest.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts dest-dirty and already-current dest-C3 dry-run fixtures",
+          "recorded_at": "2026-09-11T15:31:07Z",
+          "recorded_by": "4389-leaf-implementation"
+        }
       },
       {
         "title": "Do not skip dest C3 on the live write path after a real replace.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts live update still C3s dest after a real replace",
+          "recorded_at": "2026-09-11T15:31:07Z",
+          "recorded_by": "4389-leaf-implementation"
+        }
       },
       {
         "title": "Do not bind write-path unusability without a live `deft update` run. Keep the preview defect.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4396 (preview defect only; no live-path unusability bound)",
+          "recorded_at": "2026-09-11T15:31:07Z",
+          "recorded_by": "4389-leaf-implementation"
+        }
       },
       {
         "title": "Add a dry-run fixture: dest names pruned helpers, incoming unique=0, `--dry-run` prints a plan and leaves dest bytes. A content-only remedy must not stay green.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts dest names pruned helpers incoming unique=0 dry-run",
+          "recorded_at": "2026-09-11T15:31:07Z",
+          "recorded_by": "4389-leaf-implementation"
+        }
       },
       {
         "title": "CHANGELOG. Content hotfix of 0.115.0 is not the remedy.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md [Unreleased] Fixed #4389",
+          "recorded_at": "2026-09-11T15:31:07Z",
+          "recorded_by": "4389-leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -79,7 +121,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "841d4ab7b9f131ff3a1ed2c0ca29d51f3390ffea8334361b346852ca9e09cac2"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4396,
+        "prBase": null,
+        "mergeCommit": "056434829b410fd726db26ffbd80dd1a22f0cb50",
+        "deliveryBranch": "master",
+        "deliveryCommit": "056434829b410fd726db26ffbd80dd1a22f0cb50",
+        "verifiedAt": "2026-09-11T15:31:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkwZGItMjUxMS03Y2MxLTg2NzUtMDgxOWUxOTJiMWJl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-11T15:31:14Z"
+      },
+      "completedAt": "2026-09-11T15:31:14Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkwZGItMjUxMS03Y2MxLTg2NzUtMDgxOWUxOTJiMWJl",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -140,6 +207,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5424875471",
-    "updated": "2026-09-11T14:23:20Z"
+    "updated": "2026-09-11T15:31:14Z"
   }
 }
