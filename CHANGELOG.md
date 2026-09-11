@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cursor Task dest-missing deny names dest-placing recoveries, not Task dest keys (#4362).** Continue-in-parent first, exclusive of a live nursery grant. Composer already on a reserved linked worktree, or dest-rooted SDK Agent.create after cursor-sdk-auth. Field instance: BestiMax Multitask-from-primary (BestiMax #321). Does not claim a v0.115.0 regression. Closes #4362.
 - **Grok Build design-critique critic spawn is a playbook recipe, not the pong (#4365).** `content/docs/grok-build-subscription-setup.md` Design-critique dispatch names Claude/Codex/Grok argv, child stdio close-stdin, dest per-arc, and ChatGPT omit `-m gpt-5.6`. Probe stays the pong. Thin skill stays a pointer. Closes #4365.
 - **Init and doctor no longer tell every host to open Codex `/hooks` (#4335).** Codex trust remains `manual-review-required`.
 - **Public `@deftai` npm view no longer treats `--registry` as beating `@deftai:registry` (#4345).** Recovery: leave the project directory or set `@deftai:registry`. Closes #4345.

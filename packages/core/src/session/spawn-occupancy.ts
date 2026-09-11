@@ -150,7 +150,7 @@ function firstNamedField(source: Record<string, unknown>, keys: readonly string[
   return null;
 }
 
-function rerootDestKeyList(): string {
+export function rerootDestKeyList(): string {
   const isolation = SPAWN_DEST_ISOLATION_KEYS.map((key, index) =>
     index === 0 ? `tool_input.${key}=worktree` : key,
   );
@@ -158,6 +158,18 @@ function rerootDestKeyList(): string {
   if (names.length === 0) return "";
   if (names.length === 1) return names[0] ?? "";
   return `${names.slice(0, -1).join(", ")}, or ${names[names.length - 1]}`;
+}
+
+/**
+ * Shared dest-missing imperative for reroot hosts (#4279).
+ * Cursor Task overlay strips this sentence (#4362); Claude/Codex keep it.
+ */
+export function rerootMissingDestImperative(): string {
+  return (
+    "Pass a destination field inspectSpawnDestination reads (" +
+    rerootDestKeyList() +
+    ") before the spawn primitive."
+  );
 }
 
 function looksLikePath(value: string): boolean {
@@ -273,9 +285,8 @@ function rerootMissingDestMessage(): string {
   const destKeys = rerootDestKeyList();
   return (
     "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
-    `(${destKeys}). Spawned mutating work takes its own worktree; do not inherit the ` +
-    "parent checkout. Pass a destination field inspectSpawnDestination reads " +
-    `(${destKeys}) before the spawn primitive. ${SPAWN_CLASS_RECOVERY}`
+    "(" + destKeys + "). Spawned mutating work takes its own worktree; do not inherit the " +
+    "parent checkout. " + rerootMissingDestImperative() + " " + SPAWN_CLASS_RECOVERY
   );
 }
 

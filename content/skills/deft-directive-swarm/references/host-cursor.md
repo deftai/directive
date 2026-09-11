@@ -22,6 +22,8 @@ Two local hatches, in this order:
 1. **Nursery inherit (interactive dest-rooted window).** Open Composer on the reserved linked worktree (not primary). One Task child may inherit that payload root: consult treats the window as dest, mints a unique reservation, and admits the child through `occupancy:grant`. While that grant is live, parent product writes in that tree are denied. A second Task in the same window is reservation-conflict. Nested Task from a dest-rooted session is still dest-missing unless *this* window is the dest. Nursery child `workspace_roots` equal the parent window.
 2. **Headless dest-rooted SDK.** `@cursor/sdk` `Agent.create({ local: { cwd: <reserved-worktree> } })` with `Agent.resume` / `agent.send` as the retain-capable sibling. Reservation before exec. Process-handle liveness (not parent-cwd `verify:subagent-alive`). Doctor check `cursor-sdk-auth` for the separate SDK login (`CURSOR_API_KEY`). The leaf implements in that session and does not nested-Task.
 
+Cursor Task dest-missing deny copy is CURSOR_TASK_SPAWN_CLASS_RECOVERY in packages/core/src/hooks/dispatcher.ts. It names these hatches as payload-root and does not advertise Task dest keys (#4362).
+
 ! Create `<worktree>/.deft-scratch/subagent-status/` before spawn if `swarm:launch` / `swarm:pre-dispatch` did not already (#3730). Include preamble § 10.5 (heartbeat + commit early). Headless SDK liveness is the process handle; scratch heartbeats remain for dest-rooted Composer sessions.
 ! Include the canonical `templates/agent-prompt-preamble.md` content as the preamble.
 ! Include the standard worktree prompt (STEP 1-6 from the Prompt Template).
