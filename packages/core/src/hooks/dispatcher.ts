@@ -1475,12 +1475,7 @@ function inspectMutationGates(
       return overlayGrokCriticSpawnNotReadyRecovery(
         input,
         toolName,
-        deny(
-          input,
-          "spawn-not-ready",
-          toolName,
-          `${consult.message}${ritualNote}${rootsNote}`,
-        ),
+        deny(input, "spawn-not-ready", toolName, `${consult.message}${ritualNote}${rootsNote}`),
       );
     }
     spawnConsult = consult;
