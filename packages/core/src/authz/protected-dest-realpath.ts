@@ -18,7 +18,7 @@ function posixRelative(fromAbs: string, toAbs: string): string {
 }
 
 function relIsProtectedDirectiveDest(relPosix: string): boolean {
-  const p = relPosix.replace(/\\/g, "/");
+  const p = relPosix.replace(/\\/g, "/").toLowerCase();
   if (p === ".deft/authz" || p.startsWith(".deft/authz/")) return true;
   if (p === ".deft/approved-scope" || p.startsWith(".deft/approved-scope/")) return true;
   const segments = p.split("/").filter((s) => s.length > 0);

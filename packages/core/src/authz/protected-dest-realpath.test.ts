@@ -67,6 +67,11 @@ describe("payload-root dest realpath (#4188)", () => {
     symlinkSync(join(root, ".no-deft-directive"), join(root, "opt-out-alias"));
     expect(resolvedDestIsPayloadRootProtected(root, "opt-out-alias")).toBe(true);
     expect(resolvedDestIsPayloadRootProtected(root, "README")).toBe(false);
+    mkdirSync(join(root, "mixed-alias-parent"), { recursive: true });
+    symlinkSync(join(root, ".deft", "authz"), join(root, "mixed-alias-parent", "Authz"));
+    expect(resolvedDestIsPayloadRootProtected(root, "mixed-alias-parent/Authz/grants/g.json")).toBe(
+      true,
+    );
     expect(resolvedDestIsPayloadRootProtected("/no-such-4188-project", "build-cache/x")).toBe(
       false,
     );
