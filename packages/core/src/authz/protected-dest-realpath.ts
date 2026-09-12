@@ -48,7 +48,10 @@ export function resolvedDestIsPayloadRootProtected(projectRoot: string, dest: st
       if (parent === probe) return false;
       try {
         const parentReal = realpathSync(parent);
-        const suffix = probe.slice(parent.length);
+        // Suffix from the original dest, not `probe`. After walking missing
+        // ancestors, probe is a parent path and slicing it drops the leaf
+        // (SLizard P1 on #4449: `alias/grants/evil.json` became `alias/grants`).
+        const suffix = targetAbs.slice(parent.length);
         resolved = join(parentReal, suffix.replace(/^[\\/]/, ""));
         break;
       } catch {

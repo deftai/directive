@@ -57,6 +57,17 @@ describe("payload-root dest realpath (#4188)", () => {
     ).toBe(false);
 
     expect(resolvedDestIsPayloadRootProtected(root, "build-cache/grants/missing.json")).toBe(true);
+    // Missing nested ancestors: walk must keep the leaf filename
+    // (probe.slice would resolve to .../authz/newdir and miss evil.json).
+    expect(
+      resolvedDestIsPayloadRootProtected(root, "build-cache/newdir/evil.json"),
+    ).toBe(true);
+    expect(
+      shellCommandHasPayloadRootProtectedDestAfterRealpath(
+        root,
+        "mkfile 1k build-cache/newdir/evil.json",
+      ),
+    ).toBe(true);
     mkdirSync(join(root, ".deft", "approved-scope"), { recursive: true });
     symlinkSync(join(root, ".deft", "approved-scope"), join(root, "scope-alias"));
     expect(resolvedDestIsPayloadRootProtected(root, "scope-alias/story.json")).toBe(true);
