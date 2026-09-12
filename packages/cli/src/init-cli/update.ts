@@ -1,4 +1,8 @@
-import { parseUpdateArgv, runRefreshDepositCli } from "@deftai/directive-core/init-deposit";
+import {
+  parseUpdateArgv,
+  runRefreshDepositCli,
+  UnknownUpdateFlagError,
+} from "@deftai/directive-core/init-deposit";
 import type { DispatchIo } from "../dispatch.js";
 import { CANONICAL_UPDATE_ARGV, UPDATE_DRY_RUN_FLAGS } from "./constants.js";
 import { argvWantsHelp, printUpdateHelp } from "./help.js";
@@ -6,7 +10,7 @@ import { argvWantsHelp, printUpdateHelp } from "./help.js";
 /** True when the user argv asked for a classify-only dry-run (`--dry-run`/`--plan`). */
 export function isUpdateDryRun(argv: readonly string[]): boolean {
   const flags = UPDATE_DRY_RUN_FLAGS as readonly string[];
-  return argv.some((arg) => flags.includes(arg));
+  return argv.some((arg) => flags.includes(arg) || arg === "/dry-run" || arg === "/plan");
 }
 
 export function runUpdate(argv: readonly string[], io: DispatchIo): Promise<number> {
@@ -14,11 +18,19 @@ export function runUpdate(argv: readonly string[], io: DispatchIo): Promise<numb
     printUpdateHelp(io);
     return Promise.resolve(0);
   }
-  const args = parseUpdateArgv(CANONICAL_UPDATE_ARGV, argv);
-  return runRefreshDepositCli({
-    ...args,
-    dryRun: isUpdateDryRun(argv),
-    writeOut: io.writeOut,
-    writeErr: io.writeErr,
-  });
+  try {
+    const args = parseUpdateArgv(CANONICAL_UPDATE_ARGV, argv);
+    return runRefreshDepositCli({
+      ...args,
+      dryRun: isUpdateDryRun(argv),
+      writeOut: io.writeOut,
+      writeErr: io.writeErr,
+    });
+  } catch (cause) {
+    if (cause instanceof UnknownUpdateFlagError) {
+      io.writeErr(`directive update: ${cause.message}\n`);
+      return Promise.resolve(2);
+    }
+    throw cause;
+  }
 }

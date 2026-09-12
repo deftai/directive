@@ -24,6 +24,7 @@ import { readLiveGeneration, stampLiveGeneration } from "../freshness/generation
 import { containedRename } from "../fs/contained-write.js";
 import {
   activeMutationLedger,
+  emptyMutationSummary,
   formatMutationSummary,
   isPortRecordMode,
   type MutationSummary,
@@ -70,6 +71,7 @@ import {
   depositStagePaths,
   isInstallerManagedPath,
   printCommitGuidance,
+  printDirtyEscapeCommitGuidance,
   reconcileDepositToContentPackage,
 } from "./hygiene.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
@@ -97,6 +99,15 @@ import {
 import { writeMultiHostSkillDiscovery } from "./skill-discovery-deposit.js";
 import { writeSlashCommandDeposit } from "./slash-deposit.js";
 import {
+  assertKnownUpdateFlags,
+  decideUpdateGitGate,
+  destPlanIsEmpty,
+  gitPreflightRequired,
+  outOfRootWriterMightFire,
+  probeUpdateGit,
+  type UpdateGitPreflight,
+} from "./update-git-preflight.js";
+import {
   syncBareVersionMarker,
   syncConsumerXbriefSchemas,
   syncExistingBareVersionMarker,
@@ -104,6 +115,8 @@ import {
 
 export interface RefreshDepositArgs extends InitDepositArgs {
   readonly upgrade: boolean;
+  /** Closed dirty escape: apply without automatic `git add` (#4158). */
+  readonly allowDirtyNoStage?: boolean;
 }
 
 export interface RefreshDepositResult {
@@ -155,6 +168,10 @@ export interface RefreshDepositSeams {
   runOrgForceOn?: (projectRoot: string) => void;
   /** Post-deposit functional readiness gate (#3100). */
   evaluateAgentHookReadiness?: (projectRoot: string) => AgentHookReadinessResult;
+  /** Injected three-state Git probe (#4158). Default {@link probeUpdateGit}. */
+  probeUpdateGit?: (projectDir: string) => UpdateGitPreflight;
+  /** True when an UPDATE_DRY_RUN_EXCLUSIONS / $HOME writer might fire (#4158). */
+  outOfRootWriterMightFire?: (projectDir: string) => boolean;
 }
 
 /**
@@ -580,13 +597,25 @@ async function readDryRunVersions(
   };
 }
 
+export function gitPreflightJsonFields(preflight: UpdateGitPreflight | undefined): {
+  dirty_tree: boolean;
+  dirty_files: string[];
+} {
+  return {
+    dirty_tree: preflight?.dirty_tree === true,
+    dirty_files: preflight ? [...preflight.dirty_files] : [],
+  };
+}
+
 export function buildUpdateSummaryJson(input: {
   result: RefreshDepositResult;
   options: RefreshDepositArgs;
   updateState: UpdateState | undefined;
   readiness: AgentHookReadinessResult | undefined;
+  gitPreflight?: UpdateGitPreflight;
 }): Record<string, unknown> {
-  const { result, options, updateState, readiness } = input;
+  const { result, options, updateState, readiness, gitPreflight } = input;
+  const allowDirtyNoStage = options.allowDirtyNoStage === true;
   return {
     success: readiness ? readiness.code === 0 : true,
     deposit_completed: true,
@@ -610,8 +639,14 @@ export function buildUpdateSummaryJson(input: {
     payload_layout: "vendored",
     strategy: result.strategy,
     already_current: result.alreadyCurrent,
-    dirty_tree: false,
-    dirty_files: [],
+    ...gitPreflightJsonFields(gitPreflight),
+    ...(allowDirtyNoStage
+      ? {
+          allow_dirty_no_stage: true,
+          staging_skipped: true,
+          staging_skipped_reason: "allow-dirty-no-stage",
+        }
+      : {}),
     staged_paths: result.stagedPaths,
     mutations: mutationSummaryJson(result.mutations),
     prettier_sensitive_rewrites: prettierSensitiveRewrites(result.mutations),
@@ -871,7 +906,9 @@ export async function runRefreshDeposit(
   });
 
   let stagedPaths: string[] = [];
-  if (!alreadyCurrent || effects.files.length > 0) {
+  if (args.allowDirtyNoStage === true) {
+    printDirtyEscapeCommitGuidance(io, snapshotMutationSummary().wrote);
+  } else if (!alreadyCurrent || effects.files.length > 0) {
     const stagedResult = depositStagePaths(projectDir, {
       includeTaskfile: taskfileWired,
       includeCore: !alreadyCurrent,
@@ -996,12 +1033,86 @@ export const UPDATE_DRY_RUN_EXCLUSIONS = ["openclaw-home-skills"] as const;
 export const UPDATE_DRY_RUN_EXCLUSIONS_LABEL =
   "Excluded from dest plan (not yet captured by the port): OpenClaw $HOME skills.";
 
+function printMeasuredDirt(io: InitDepositIo, preflight: UpdateGitPreflight): void {
+  if (preflight.kind === "dirty") {
+    io.printf(`\n[deft update] Dirty working tree (${preflight.dirty_files.length} paths):\n`);
+    for (const file of preflight.dirty_files) {
+      io.printf(`  ${file}\n`);
+    }
+    return;
+  }
+  if (preflight.kind === "unreadable" && preflight.stderr.length > 0) {
+    io.printf(`\n[deft update] Git unreadable:\n${preflight.stderr}\n`);
+  }
+}
+
+function printDestPlanLines(
+  io: InitDepositIo,
+  classification: UpdateClassification,
+  mutations: MutationSummary,
+  headline = "[deft update] dry-run -- dest plan (recorded port calls, no changes written):",
+): void {
+  const { state, plan: resolutionPlan } = classification;
+  io.printf(`\n${headline}\n`);
+  io.printf(`  State        : ${state}\n`);
+  io.printf(`  Mode         : ${resolutionPlan.mode}\n`);
+  io.printf(`  Root cause   : ${resolutionPlan.nextAction.rootCause}\n`);
+  io.printf(`  Remediation  : ${resolutionPlan.nextAction.remediation}\n`);
+  for (const warning of resolutionPlan.warnings) {
+    io.printf(`  Warning      : ${warning}\n`);
+  }
+  const mutationText = formatMutationSummary(mutations);
+  if (mutationText.length > 0) {
+    io.printf(`\n${mutationText}`);
+  } else {
+    io.printf(`\nNo dest mutations recorded.\n`);
+  }
+  io.printf(`\n${UPDATE_DRY_RUN_EXCLUSIONS_LABEL}\n`);
+}
+
+function emitGitRefusal(
+  options: RunRefreshDepositCliOptions,
+  io: InitDepositIo,
+  projectDir: string,
+  classification: UpdateClassification | null,
+  decision: { error_code?: string; message?: string; preflight: UpdateGitPreflight },
+  destMutations: MutationSummary,
+  dryRun: boolean,
+): number {
+  const message = decision.message ?? "directive update: Git preflight refused";
+  io.printf(`${message}\n`);
+  printMeasuredDirt(io, decision.preflight);
+  if (options.jsonOut) {
+    options.writeOut(
+      `${JSON.stringify(
+        {
+          success: false,
+          action: "update",
+          error_code: decision.error_code,
+          message,
+          ...(classification ? { update_state: classification.state } : {}),
+          project_dir: projectDir,
+          ...gitPreflightJsonFields(decision.preflight),
+          ...(options.allowDirtyNoStage === true ? { allow_dirty_no_stage: true } : {}),
+          ...(dryRun ? { dry_run: true } : {}),
+          mutations: mutationSummaryJson(destMutations),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  }
+  return UPDATE_REFUSED_EXIT_CODE;
+}
+
 /** Emit the classified plan plus recorded port dest mutations (ADR-004). */
 async function emitDryRunPlan(
   options: RunRefreshDepositCliOptions,
   io: InitDepositIo,
   projectDir: string,
   classification: UpdateClassification,
+  destResult: RefreshDepositResult,
+  gitPreflight: UpdateGitPreflight,
 ): Promise<number> {
   const { previousVersion, contentVersion } = await readDryRunVersions(
     projectDir,
@@ -1010,28 +1121,11 @@ async function emitDryRunPlan(
   const refreshPending = depositRefreshPending(previousVersion, contentVersion);
   const skewHeadline = buildDepositVersionSkewHeadline(previousVersion, contentVersion);
   const { state, plan: resolutionPlan } = classification;
-  const silentIo: InitDepositIo = { printf: () => undefined };
-  const result = await runInPortRecordMode(() =>
-    runRefreshDeposit(options, silentIo, options.seams ?? {}),
-  );
   if (skewHeadline) {
     io.printf(`${skewHeadline}\n`);
   }
-  io.printf(`\n[deft update] dry-run -- dest plan (recorded port calls, no changes written):\n`);
-  io.printf(`  State        : ${state}\n`);
-  io.printf(`  Mode         : ${resolutionPlan.mode}\n`);
-  io.printf(`  Root cause   : ${resolutionPlan.nextAction.rootCause}\n`);
-  io.printf(`  Remediation  : ${resolutionPlan.nextAction.remediation}\n`);
-  for (const warning of resolutionPlan.warnings) {
-    io.printf(`  Warning      : ${warning}\n`);
-  }
-  const mutationText = formatMutationSummary(result.mutations);
-  if (mutationText.length > 0) {
-    io.printf(`\n${mutationText}`);
-  } else {
-    io.printf(`\nNo dest mutations recorded.\n`);
-  }
-  io.printf(`\n${UPDATE_DRY_RUN_EXCLUSIONS_LABEL}\n`);
+  printMeasuredDirt(io, gitPreflight);
+  printDestPlanLines(io, classification, destResult.mutations);
   if (options.jsonOut) {
     options.writeOut(
       `${JSON.stringify(
@@ -1047,8 +1141,16 @@ async function emitDryRunPlan(
           deposit_refresh_pending: refreshPending,
           next_action: resolutionPlan.nextAction,
           warnings: resolutionPlan.warnings,
-          mutations: mutationSummaryJson(result.mutations),
+          mutations: mutationSummaryJson(destResult.mutations),
           exclusions: [...UPDATE_DRY_RUN_EXCLUSIONS],
+          ...gitPreflightJsonFields(gitPreflight),
+          ...(options.allowDirtyNoStage === true
+            ? {
+                allow_dirty_no_stage: true,
+                staging_skipped: true,
+                staging_skipped_reason: "allow-dirty-no-stage",
+              }
+            : {}),
         },
         null,
         2,
@@ -1108,6 +1210,7 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
 
   const detectLegacy = options.seams?.detectLegacy ?? detectLegacyLayout;
   let classification: UpdateClassification | null = null;
+  let gitPreflight: UpdateGitPreflight | undefined;
   if (!detectLegacy(projectDir).legacy) {
     classification = classifyUpdateState(projectDir, options.classifySeams ?? {});
     if (classification.state === "not-initialized") {
@@ -1116,20 +1219,79 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
     if (classification.state === "migration-required") {
       return emitMigrationRequired(options, io, projectDir, classification);
     }
-    if (options.dryRun) {
-      try {
-        return await emitDryRunPlan(options, io, projectDir, classification);
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : String(cause);
+
+    const probe = options.seams?.probeUpdateGit ?? probeUpdateGit;
+    gitPreflight = probe(projectDir);
+    const silentIo: InitDepositIo = { printf: () => undefined };
+    let destResult: RefreshDepositResult | null = null;
+    try {
+      destResult = await runInPortRecordMode(() =>
+        runRefreshDeposit(options, silentIo, options.seams ?? {}),
+      );
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      if (options.dryRun) {
         options.writeErr(`directive update: ${message}\n`);
         if (options.jsonOut) {
           options.writeOut(
-            `${JSON.stringify({ success: false, error: message, error_code: "refresh_deposit_failed" }, null, 2)}\n`,
+            `${JSON.stringify(
+              {
+                success: false,
+                error: message,
+                error_code: "refresh_deposit_failed",
+                ...gitPreflightJsonFields(gitPreflight),
+              },
+              null,
+              2,
+            )}\n`,
           );
         }
         return 1;
       }
+      // Live reconstitution can throw in port-record when dest dirs do not
+      // exist yet (skip-IO). Treat as a non-empty dest plan and apply live.
     }
+
+    const destEmpty = destResult === null ? false : destPlanIsEmpty(destResult.mutations);
+    const destMutations = destResult?.mutations ?? emptyMutationSummary();
+    const outOfRoot = (
+      options.seams?.outOfRootWriterMightFire ?? ((_root: string) => outOfRootWriterMightFire())
+    )(projectDir);
+    const required = gitPreflightRequired(destEmpty, outOfRoot);
+    const decision = decideUpdateGitGate({
+      preflight: gitPreflight,
+      required,
+      allowDirtyNoStage: options.allowDirtyNoStage === true,
+    });
+    if (decision.action === "refuse") {
+      return emitGitRefusal(
+        options,
+        io,
+        projectDir,
+        classification,
+        decision,
+        destMutations,
+        options.dryRun === true,
+      );
+    }
+
+    if (options.dryRun) {
+      if (destResult === null) {
+        return 1;
+      }
+      return emitDryRunPlan(options, io, projectDir, classification, destResult, gitPreflight);
+    }
+
+    if (options.allowDirtyNoStage === true && gitPreflight.kind === "dirty") {
+      printMeasuredDirt(io, gitPreflight);
+      printDestPlanLines(
+        io,
+        classification,
+        destMutations,
+        "[deft update] dest plan (dirty escape; automatic git add disabled):",
+      );
+    }
+
     // #2266 a3: self-heal a mismatched / unreachable engine via the keystone
     // global-first ladder before the refresh proceeds.
     if (!classification.facts.engineReachable) {
@@ -1141,62 +1303,92 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
     }
   }
 
-  try {
-    const result = await runRefreshDeposit(options, io, options.seams);
-    const readiness = evaluateAgentHookReadinessSafely(
-      result.projectDir,
-      options.seams?.evaluateAgentHookReadiness ?? evaluateAgentHookReadiness,
-    );
-    const state: UpdateState | undefined = result.alreadyCurrent
-      ? "current"
-      : classification?.state;
-    if (options.jsonOut) {
-      options.writeOut(
-        `${JSON.stringify(buildUpdateSummaryJson({ result, options, updateState: state, readiness }), null, 2)}\n`,
+  return runWithMutationLedger(projectDir, async () => {
+    try {
+      const result = await runRefreshDeposit(options, io, options.seams);
+      const readiness = evaluateAgentHookReadinessSafely(
+        result.projectDir,
+        options.seams?.evaluateAgentHookReadiness ?? evaluateAgentHookReadiness,
       );
-      printUpdateComplete(result, { printf: options.writeErr }, state);
-    } else {
-      printUpdateComplete(result, io, state);
-    }
-    const readinessOut = options.jsonOut
-      ? options.writeErr
-      : readiness.stream === "stderr"
-        ? options.writeErr
-        : options.writeOut;
-    readinessOut(`\n${readiness.message}\n`);
-    return readiness.code;
-  } catch (cause) {
-    if (cause instanceof LegacyLayoutRefusedError) {
-      io.printf(buildLegacyRefusalMessage("update", cause.detection));
+      const state: UpdateState | undefined = result.alreadyCurrent
+        ? "current"
+        : classification?.state;
       if (options.jsonOut) {
         options.writeOut(
-          `${JSON.stringify(buildLegacyRefusalJson("update", resolve(options.projectDir), cause.detection), null, 2)}\n`,
+          `${JSON.stringify(
+            buildUpdateSummaryJson({
+              result,
+              options,
+              updateState: state,
+              readiness,
+              gitPreflight,
+            }),
+            null,
+            2,
+          )}\n`,
+        );
+        printUpdateComplete(result, { printf: options.writeErr }, state);
+      } else {
+        printUpdateComplete(result, io, state);
+      }
+      const readinessOut = options.jsonOut
+        ? options.writeErr
+        : readiness.stream === "stderr"
+          ? options.writeErr
+          : options.writeOut;
+      readinessOut(`\n${readiness.message}\n`);
+      return readiness.code;
+    } catch (cause) {
+      if (cause instanceof LegacyLayoutRefusedError) {
+        io.printf(buildLegacyRefusalMessage("update", cause.detection));
+        if (options.jsonOut) {
+          options.writeOut(
+            `${JSON.stringify(buildLegacyRefusalJson("update", resolve(options.projectDir), cause.detection), null, 2)}\n`,
+          );
+        }
+        return LEGACY_LAYOUT_REFUSED_EXIT_CODE;
+      }
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const mutations = snapshotMutationSummary();
+      options.writeErr(`directive update: ${message}\n`);
+      if (options.jsonOut) {
+        options.writeOut(
+          `${JSON.stringify(
+            {
+              success: false,
+              error: message,
+              error_code: "refresh_deposit_failed",
+              ...gitPreflightJsonFields(gitPreflight),
+              mutations: mutationSummaryJson(
+                mutations.mutations.length > 0 ? mutations : emptyMutationSummary(),
+              ),
+            },
+            null,
+            2,
+          )}\n`,
         );
       }
-      return LEGACY_LAYOUT_REFUSED_EXIT_CODE;
+      return 1;
     }
-    const message = cause instanceof Error ? cause.message : String(cause);
-    options.writeErr(`directive update: ${message}\n`);
-    if (options.jsonOut) {
-      options.writeOut(
-        `${JSON.stringify({ success: false, error: message, error_code: "refresh_deposit_failed" }, null, 2)}\n`,
-      );
-    }
-    return 1;
-  }
+  });
 }
 
 export function parseUpdateArgv(
   canonicalArgv: readonly string[],
   userArgv: readonly string[] = [],
 ): RefreshDepositArgs {
-  const base = parseInitArgv(canonicalArgv, userArgv);
   const args = [...canonicalArgv, ...userArgv];
+  assertKnownUpdateFlags(args);
+  const base = parseInitArgv(canonicalArgv, userArgv);
   let upgrade = false;
+  let allowDirtyNoStage = false;
   for (const arg of args) {
     if (arg === "--upgrade" || arg === "/upgrade") {
       upgrade = true;
     }
+    if (arg === "--allow-dirty-no-stage") {
+      allowDirtyNoStage = true;
+    }
   }
-  return { ...base, upgrade };
+  return { ...base, upgrade, allowDirtyNoStage };
 }

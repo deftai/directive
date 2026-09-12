@@ -53,6 +53,7 @@ describe("init-cli --help is non-mutating (#2828)", () => {
     expect(refresh).not.toHaveBeenCalled();
     expect(out.join("")).toContain("Usage: directive update");
     expect(out.join("")).toContain("--dry-run, --plan");
+    expect(out.join("")).toContain("--allow-dirty-no-stage");
   });
 
   it("update -h prints usage and does not call runRefreshDepositCli", async () => {
