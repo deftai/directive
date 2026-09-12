@@ -5,7 +5,10 @@
  * → first unauthorized product edit is blocked.
  */
 
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { decideHook, type HookPolicySeams } from "../hooks/dispatcher.js";
 import type { VerifyResult } from "../session/verify-session-ritual.js";
 import { evaluateAuthzMutation } from "./evaluate.js";
@@ -1807,5 +1810,178 @@ describe("destination-visible empty-op fallback (#4005)", () => {
       expect(decision.verdict, command).toBe("allow");
       expect(decision.code, command).toBe("shell-op-unclassifiable");
     }
+  });
+});
+
+describe("UAT protected dest-of-write fail-closed (#4188)", () => {
+  const itSymlink = it.skipIf(process.platform === "win32");
+  const temps: string[] = [];
+  afterEach(() => {
+    for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+  });
+
+  function seamsFor(state: AuthzState): HookPolicySeams {
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+        shellDestForms: "off",
+      }),
+    });
+  }
+
+  const protectedDestCommands = [
+    "mkfile 1k .deft/authz/grants/evil.json",
+    "typst compile doc.typ .deft-directive-disable",
+    "ffmpeg -i in.wav .no-deft-directive",
+    "screencapture .deft/approved-scope/story.json",
+  ] as const;
+
+  const settingsGrant: HumanOriginGrant = {
+    schemaVersion: 1,
+    id: "settings-plant-grant",
+    origin: {
+      kind: "operator-cli",
+      actor: "operator",
+      mintedAt: "2026-09-12T00:00:00Z",
+      mintedVia: "deft authz:grant",
+      eventRef: null,
+    },
+    scope: {
+      planRef: null,
+      repo: null,
+      branch: null,
+      worktree: null,
+      surfaces: ["**/*"],
+      operations: ["edit", "push", "pr", "merge", "settings"],
+      storyIds: [],
+      issueIds: [],
+      cohortId: "fix-4188",
+    },
+    semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
+  };
+
+  it("denies unknown last-positional dests under active UAT and ignores settings grants", () => {
+    const seams = seamsFor(activeUatState());
+    const granted = readySeams({
+      loadAuthzState: () => activeUatState(),
+      loadAuthzGrants: () => [settingsGrant],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+        shellDestForms: "off",
+      }),
+    });
+    for (const command of protectedDestCommands) {
+      for (const policy of [seams, granted]) {
+        const decision = decideHook(
+          {
+            host: "claude",
+            event: "tool.before",
+            projectRoot: "/project",
+            payload: { tool_name: "Bash", tool_input: { command } },
+          },
+          policy,
+        );
+        expect(decision.verdict, command).toBe("deny");
+        expect(decision.code, command).toBe("authz-uat-deny");
+        expect(decision.message, command).toMatch(/classifiable form/i);
+        expect(decision.message, command).toMatch(/suspend UAT.*human review/i);
+        expect(decision.message, command).not.toMatch(/mint a named fix cohort/i);
+      }
+    }
+  });
+
+  it("allows the same unknown dest-of-write when UAT is inactive", () => {
+    const seams = seamsFor({ schemaVersion: 1, uat: null, activeGrantIds: [] });
+    for (const command of protectedDestCommands) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).not.toMatch(/^authz-/);
+    }
+  });
+
+  it("allows proven reads, protected inputs, and absolute dests outside the payload root", () => {
+    const seams = seamsFor(activeUatState());
+    for (const command of [
+      "cat .deft/authz/state.json",
+      "ls .deft/authz",
+      "grep campaign .deft/authz/state.json",
+      "git log .deft/authz/state.json",
+      "diff /tmp/a .deft/authz/state.json",
+      "ffmpeg -i .deft/authz/grants/x.json /tmp/out.wav",
+      "mkfile 1k /tmp/out",
+      "mkfile 1k /sibling/.deft/authz/grants/evil.json",
+      "pytest && echo ok",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+
+  itSymlink("realpath-resolves a non-shell symlink dest onto payload-root protected paths", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4188-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
+    writeFileSync(join(root, ".deft", "authz", "grants", "g.json"), "{}\n");
+    symlinkSync(join(root, ".deft", "authz"), join(root, "build-cache"));
+    const seams = seamsFor(activeUatState());
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "mkfile 1k build-cache/grants/g.json" },
+        },
+      },
+      seams,
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("authz-uat-deny");
+
+    const sibling = mkdtempSync(join(tmpdir(), "deft-4188-sibling-"));
+    temps.push(sibling);
+    mkdirSync(join(sibling, ".deft", "authz", "grants"), { recursive: true });
+    const outside = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          tool_input: {
+            command: `mkfile 1k ${join(sibling, ".deft", "authz", "grants", "evil.json")}`,
+          },
+        },
+      },
+      seams,
+    );
+    expect(outside.verdict).toBe("allow");
+    expect(outside.code).toBe("shell-op-unclassifiable");
   });
 });
