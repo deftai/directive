@@ -1383,6 +1383,20 @@ export function printCommitGuidance(
   printUnstagedLedgerRemainder(io, unstagedRemainder);
 }
 
+/** Commit guidance when `--allow-dirty-no-stage` skipped automatic `git add` (#4158). */
+export function printDirtyEscapeCommitGuidance(
+  io: InitDepositIo,
+  writtenPaths: readonly string[],
+): void {
+  io.printf(
+    "\nDirty escape (--allow-dirty-no-stage): automatic git add is disabled for this run.\n",
+  );
+  io.printf("git config core.hooksPath still runs (accepted risk of this escape, not staging).\n");
+  if (writtenPaths.length === 0) return;
+  io.printf("Commit only the updater-written paths:\n");
+  io.printf(`  git commit -- ${writtenPaths.join(" ")}\n`);
+}
+
 function defaultCachedNames(projectDir: string): string[] {
   try {
     const out = execFileSync("git", ["diff", "--cached", "--name-only", "-z"], {

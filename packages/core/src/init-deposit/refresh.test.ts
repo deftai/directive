@@ -94,6 +94,23 @@ describe("parseUpdateArgv", () => {
     expect(parsed.upgrade).toBe(true);
     expect(parsed.nonInteractive).toBe(true);
     expect(parsed.jsonOut).toBe(true);
+    expect(parsed.allowDirtyNoStage).toBe(false);
+  });
+
+  it("records --allow-dirty-no-stage", () => {
+    const parsed = parseUpdateArgv(
+      ["--yes", "--upgrade", "--repo-root", ".", "--json"],
+      ["--allow-dirty-no-stage"],
+    );
+    expect(parsed.allowDirtyNoStage).toBe(true);
+  });
+
+  it("rejects unknown flags and --allow-dirty/--force", () => {
+    expect(() => parseUpdateArgv(["--yes"], ["--mystery"])).toThrow(/unknown flag: --mystery/);
+    expect(() => parseUpdateArgv(["--yes"], ["--allow-dirty"])).toThrow(
+      /not the dirty-update escape/,
+    );
+    expect(() => parseUpdateArgv(["--yes"], ["--force"])).toThrow(/not the dirty-update escape/);
   });
 });
 
@@ -1918,6 +1935,10 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       success: false,
       deposit_completed: true,
       agent_hook_readiness: { ready: false, live_status: "non-functional" },
+      mutations: expect.objectContaining({
+        wrote: expect.any(Array),
+        deleted: expect.any(Array),
+      }),
     });
     expect(err.join("")).toContain("deft agent hook readiness: live failed");
   });
@@ -2077,7 +2098,6 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
   it("prints Removed/wrote/stripped from the same ledger as refresh JSON (#3392)", async () => {
     const project = freshRoot("refresh-ledger-");
     const contentRoot = installFakeContentPackage(project);
-    initGitRepo(project);
     writeFileSync(
       join(project, "AGENTS.md"),
       `# Operator prose\n\n<!-- deft:managed-section v2 -->\nOld body\n${AGENTS_MANAGED_CLOSE}\n`,
@@ -2098,6 +2118,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       jsonOut: true,
       nonInteractive: true,
       upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.53.0" }),
       writeOut: (text) => out.push(text),
       writeErr: (text) => err.push(text),
       seams: {
@@ -2106,6 +2127,13 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
         nowIso: () => "2026-08-16T12:00:00Z",
         gitPorcelain: () => "",
         evaluateAgentHookReadiness: () => agentHookReadiness(),
+        probeUpdateGit: () => ({
+          kind: "no-repository",
+          dirty_tree: false,
+          dirty_files: [],
+          stderr: "",
+        }),
+        outOfRootWriterMightFire: () => false,
       },
     });
 
@@ -2132,6 +2160,201 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(printed).toContain(`Removed: ${deleted.join(", ")}`);
     expect(printed).toContain(`wrote: ${wrote.join(", ")}`);
     expect(printed).not.toMatch(/\.deft-\d+\.tmp/);
+  });
+
+  it("refuses a dirty repo before dest writes and leaves the tree unchanged (#4158)", async () => {
+    const project = freshRoot("update-dirty-refuse-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    initGitRepo(project);
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.54.0" });
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+    writeFileSync(join(project, "scratch.txt"), "operator work\n", "utf8");
+    const beforeVersion = readFileSync(join(project, ".deft", "core", "VERSION"), "utf8");
+    const beforeCached = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.54.0",
+        evaluateAgentHookReadiness: () => agentHookReadiness(),
+      },
+    });
+
+    expect(code).toBe(UPDATE_REFUSED_EXIT_CODE);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.success).toBe(false);
+    expect(payload.error_code).toBe("dirty_tree");
+    expect(payload.update_state).toBe("updated");
+    expect(payload.dirty_tree).toBe(true);
+    expect(payload.dirty_files).toEqual(expect.arrayContaining(["scratch.txt"]));
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toBe(beforeVersion);
+    expect(
+      execFileSync("git", ["diff", "--cached", "--name-only"], { cwd: project, encoding: "utf8" }),
+    ).toBe(beforeCached);
+    expect(err.join("")).toMatch(/working tree is dirty/);
+  });
+
+  it("dry-run JSON carries measured dirty_tree/dirty_files without writing (#4158)", async () => {
+    const project = freshRoot("update-dirty-dryrun-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+    const out: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.53.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        probeUpdateGit: () => ({
+          kind: "dirty",
+          dirty_tree: true,
+          dirty_files: ["scratch.txt"],
+          stderr: "",
+        }),
+      },
+    });
+    expect(code).toBe(UPDATE_REFUSED_EXIT_CODE);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.dry_run).toBe(true);
+    expect(payload.error_code).toBe("dirty_tree");
+    expect(payload.dirty_tree).toBe(true);
+    expect(payload.dirty_files).toEqual(["scratch.txt"]);
+    expect(payload).not.toHaveProperty("update_state", "dirty");
+  });
+
+  it("--allow-dirty-no-stage applies without git add and keeps hooksPath (#4158)", async () => {
+    const project = freshRoot("update-dirty-escape-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    initGitRepo(project);
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.54.0" });
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+    writeFileSync(join(project, "scratch.txt"), "operator work\n", "utf8");
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      allowDirtyNoStage: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.54.0",
+        nowIso: () => "2026-09-12T12:00:00Z",
+        evaluateAgentHookReadiness: () => agentHookReadiness(),
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.success).toBe(true);
+    expect(payload.allow_dirty_no_stage).toBe(true);
+    expect(payload.staging_skipped).toBe(true);
+    expect(payload.dirty_tree).toBe(true);
+    expect(payload.staged_paths).toEqual([]);
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.54.0");
+    const cached = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(cached.trim()).toBe("");
+    expect(err.join("")).toMatch(/git commit -- /);
+    expect(err.join("")).not.toMatch(/The installer already staged/);
+    const hooksPath = execFileSync("git", ["config", "--get", "core.hooksPath"], {
+      cwd: project,
+      encoding: "utf8",
+    }).trim();
+    expect(hooksPath).toBe(".githooks");
+  });
+
+  it("unreadable repo refuses even with --allow-dirty-no-stage (#4158)", async () => {
+    const project = freshRoot("update-unreadable-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.54.0" });
+    const beforeVersion = readFileSync(join(project, ".deft", "core", "VERSION"), "utf8");
+    const out: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      allowDirtyNoStage: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.54.0",
+        probeUpdateGit: () => ({
+          kind: "unreadable",
+          dirty_tree: false,
+          dirty_files: [],
+          stderr: "fatal: detected dubious ownership",
+        }),
+      },
+    });
+    expect(code).toBe(UPDATE_REFUSED_EXIT_CODE);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.error_code).toBe("unreadable_repo");
+    expect(payload.allow_dirty_no_stage).toBe(true);
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toBe(beforeVersion);
+  });
+
+  it("alreadyCurrent dirty still preflights and refuses (#4158)", async () => {
+    const project = freshRoot("update-current-dirty-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
+    initGitRepo(project);
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+    writeFileSync(join(project, "scratch.txt"), "operator work\n", "utf8");
+    const beforeVersion = readFileSync(join(project, ".deft", "core", "VERSION"), "utf8");
+    const out: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.53.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        copyContent: async () => {
+          throw new Error("copyContent must not run after dirty refuse");
+        },
+      },
+    });
+    expect(code).toBe(UPDATE_REFUSED_EXIT_CODE);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.error_code).toBe("dirty_tree");
+    expect(payload.update_state).toBe("current");
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toBe(beforeVersion);
   });
 
   it("includes tree-replace and prune mutations in the refresh snapshot (#3392 residual)", async () => {

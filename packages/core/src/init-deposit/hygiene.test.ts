@@ -44,6 +44,7 @@ import {
   isYarnLockDirectivePinFollowThrough,
   pass2CommitSetMatchers,
   pnpmLockRootDirectDeps,
+  printDirtyEscapeCommitGuidance,
   prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
   reconcileDepositToContentPackage,
@@ -1659,5 +1660,21 @@ describe("Pass 2 commit-set and #1430 peers (#4271)", () => {
     expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(/#1430 violation/);
     const poisonedPlan = [...installerManagedMatchers(), { exact: "vbrief/plan.vbrief.json" }];
     expect(() => assertInstallerAllowlistHonors1430(poisonedPlan)).toThrow(/#1430 violation/);
+  });
+});
+
+describe("printDirtyEscapeCommitGuidance (#4158)", () => {
+  it("prints git commit -- written paths and not add-then-bare-commit", () => {
+    const lines: string[] = [];
+    printDirtyEscapeCommitGuidance({ printf: (text) => lines.push(text) }, [
+      "AGENTS.md",
+      ".deft/core/VERSION",
+    ]);
+    const out = lines.join("");
+    expect(out).toContain("git commit -- AGENTS.md .deft/core/VERSION");
+    expect(out).toContain("automatic git add is disabled");
+    expect(out).toContain("core.hooksPath still runs");
+    expect(out).not.toMatch(/git add --/);
+    expect(out).not.toMatch(/git commit -m/);
   });
 });
