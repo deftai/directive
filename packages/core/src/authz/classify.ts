@@ -2287,17 +2287,26 @@ function commandIndexAfterWrappers(words: readonly string[]): number | null {
   return i < words.length ? i : null;
 }
 
-function argv0BareName(words: readonly string[], execIndex: number): string | null {
+function argv0Literal(words: readonly string[], execIndex: number): string | null {
   const raw = words[execIndex] as string;
   if (zipShellWordHasExpansion(raw)) return null;
-  const literal = zipShellWordLiteral(raw);
+  return zipShellWordLiteral(raw);
+}
+
+function argv0IsPathQualified(literal: string): boolean {
+  return literal.includes("/") || literal.includes("\\");
+}
+
+function argv0BareName(words: readonly string[], execIndex: number): string | null {
+  const literal = argv0Literal(words, execIndex);
   if (literal === null) return null;
   return writeBinName(literal);
 }
 
 function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): boolean {
-  const name = argv0BareName(words, execIndex);
-  if (name === null) return false;
+  const literal = argv0Literal(words, execIndex);
+  if (literal === null || argv0IsPathQualified(literal)) return false;
+  const name = writeBinName(literal);
   if (READ_ONLY_PROOF_BINS.has(name)) return true;
   if (name === "git") {
     let i = execIndex + 1;
@@ -2420,8 +2429,25 @@ function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
 function hasProtectedUnprovenReadOnlyDestOfWrite(command: string): boolean {
   for (const segment of zipStyleCommandSegments(command)) {
     if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    const literal = argv0Literal(segment.words, segment.execIndex);
     const name = argv0BareName(segment.words, segment.execIndex);
-    if (name === null || argv0HasExistingDestGrammar(name)) continue;
+    if (name === null) continue;
+    const pathQualified = literal !== null && argv0IsPathQualified(literal);
+    // Path-qualified `./cat` is not a proven reader. Still skip catalogued
+    // writers (they already emit settings). Do not apply print/read first-bin
+    // skips to path-qualified names.
+    if (name === "zip") continue;
+    if (
+      INDIRECT_WRITE_BINS.has(name) ||
+      ARCHIVE_ALT_WRITE_BINS.has(name) ||
+      DOWNLOADER_DECODER_BINS.has(name) ||
+      LAST_POSITIONAL_DEST_BINS.has(name) ||
+      SYMLINK_PLANT_BINS.has(name) ||
+      DEST_ASSIGNMENT_OWNER_BINS.has(name)
+    ) {
+      continue;
+    }
+    if (!pathQualified && argv0HasExistingDestGrammar(name)) continue;
     const last = lastNonFlagWord(segment.words, segment.execIndex);
     if (last !== null && isRelativePayloadProtectedDest(last)) return true;
   }
@@ -2447,13 +2473,15 @@ export function harvestDestsOfWriteForRealpath(command: string): string[] {
     if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
     const name = argv0BareName(segment.words, segment.execIndex);
     if (name === null || name === "zip") continue;
-    if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(name)) continue;
-    if (TEST_BINS.has(name)) continue;
+    const literal = argv0Literal(segment.words, segment.execIndex);
+    const pathQualified = literal !== null && argv0IsPathQualified(literal);
+    if (!pathQualified && DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(name)) continue;
+    if (!pathQualified && TEST_BINS.has(name)) continue;
     const last = lastNonFlagWord(segment.words, segment.execIndex);
     if (last === null || zipShellWordHasExpansion(last)) continue;
-    const literal = zipShellWordLiteral(last);
-    if (literal === null || literal.length === 0) continue;
-    dests.push(literal);
+    const destLiteral = zipShellWordLiteral(last);
+    if (destLiteral === null || destLiteral.length === 0) continue;
+    dests.push(destLiteral);
   }
   return dests;
 }

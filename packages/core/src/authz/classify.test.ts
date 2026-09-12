@@ -1580,6 +1580,14 @@ describe("classifyShellAuthzOps (#2944)", () => {
     const destFlagStillSettings = classifyShellAuthzOps("weirdbin -o .deft/authz/grants/evil.json");
     expect(destFlagStillSettings).toContain("settings");
     expect(destFlagStillSettings).not.toContain("unknown");
+
+    for (const command of [
+      "./cat .deft/authz/grants/evil.json",
+      "/tmp/evil/cat .deft/authz/grants/evil.json",
+      ".\\cat .deft-directive-disable",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).toEqual(["unknown"]);
+    }
   });
 
   it("does not treat protected source/input or proven reads as dest-of-write (#4188)", () => {
