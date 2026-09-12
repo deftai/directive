@@ -254,4 +254,48 @@ describe("promote non-inline task_statement via documented slots (#4238)", () =>
     expect(pass.ok).toBe(true);
     expect(runs).toBe(1);
   });
+
+  it("validates stated expectedStdout after one run when the executable peer differs", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: COMMAND,
+            source: "task_statement",
+            sourceSpan: "labeled@L27",
+            expectedStdout: "pass",
+          },
+        ],
+        swarm: {
+          literal_acceptance_commands: [{ command: COMMAND, expectedStdout: "ok" }],
+        },
+      },
+      items: [],
+    };
+    let runs = 0;
+    const fail = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.message).toMatch(/pass/);
+    expect(runs).toBe(1);
+
+    runs = 0;
+    const pass = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok\npass", stderr: "" };
+      },
+    });
+    expect(pass.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
 });

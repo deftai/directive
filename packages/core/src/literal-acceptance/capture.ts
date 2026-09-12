@@ -69,12 +69,12 @@ function looksLikeShellCommand(command: string): boolean {
 }
 
 /**
- * Capture identity: command + cwd + exit + source.
+ * Capture identity: command + cwd + exit + source-bucket.
  * Source is required so a non-inline task_statement row does not swallow a
  * same-context agent peer from a documented promote slot (#4238). Executable
- * sources share one bucket so two promote slots cannot double-run. Stdout is
- * part of identity so a later peer with a matching expectedStdout is not
- * discarded.
+ * sources share one bucket and omit expectedStdout so two promote slots cannot
+ * double-run. Capture-only rows still keep stdout; run.ts validates every
+ * retained stdout after a single execution.
  */
 export function commandDedupeKey(cmd: {
   readonly command: string;
@@ -89,13 +89,19 @@ export function commandDedupeKey(cmd: {
     typeof cmd.expectedExitCode === "number" && Number.isFinite(cmd.expectedExitCode)
       ? cmd.expectedExitCode
       : 0;
+  const bucket = commandSourceBucket(cmd.source);
+  // Executable peers collapse on command+cwd+exit so they cannot double-run.
+  // Capture-only rows keep stdout so a stated expectation is not dropped (#4238).
+  if (bucket === "executable") {
+    return `${cmd.command}\0${cwd}\0${exit}\0${bucket}`;
+  }
   const stdout =
     cmd.expectedStdout !== null &&
     cmd.expectedStdout !== undefined &&
     String(cmd.expectedStdout).length > 0
       ? String(cmd.expectedStdout)
       : "";
-  return `${cmd.command}\0${cwd}\0${exit}\0${commandSourceBucket(cmd.source)}\0${stdout}`;
+  return `${cmd.command}\0${cwd}\0${exit}\0${bucket}\0${stdout}`;
 }
 
 /** Executable sources share one identity bucket so two promote slots cannot double-run (#4238). */
@@ -157,6 +163,34 @@ function pushCommand(buckets: CaptureBuckets, cmd: LiteralAcceptanceCommand): vo
         source: cmd.source,
         sourceSpan: cmd.sourceSpan ?? null,
       };
+    } else if (
+      existing !== undefined &&
+      idx >= 0 &&
+      isExecutableSource(existing.source) &&
+      isExecutableSource(cmd.source)
+    ) {
+      const existingStdout =
+        existing.expectedStdout !== null &&
+        existing.expectedStdout !== undefined &&
+        String(existing.expectedStdout).length > 0
+          ? String(existing.expectedStdout)
+          : "";
+      const nextStdout =
+        cmd.expectedStdout !== null &&
+        cmd.expectedStdout !== undefined &&
+        String(cmd.expectedStdout).length > 0
+          ? String(cmd.expectedStdout)
+          : "";
+      if (existingStdout.length === 0 && nextStdout.length > 0) {
+        buckets.out[idx] = {
+          command: existing.command,
+          cwd: existing.cwd ?? null,
+          expectedStdout: cmd.expectedStdout ?? null,
+          expectedExitCode: existing.expectedExitCode ?? 0,
+          source: existing.source,
+          sourceSpan: existing.sourceSpan ?? null,
+        };
+      }
     }
     return;
   }
