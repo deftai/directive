@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`deft update` refuses dirty or unreadable Git before dest writes (#4158).** Three-state porcelain probe (`git --no-optional-locks status --porcelain=v1 -z --untracked-files=all`). No-repo proceeds; repo-present-but-unreadable refuses; `--allow-dirty-no-stage` skips `git add` but not `core.hooksPath`. Dry-run and live share dest-plan membership and measured `dirty_tree`/`dirty_files` on sibling `error_code`. Does not overlay incoming trees (#4446), lease occupancy, or teach the ledger `$HOME`. Closes #4158.
+
 - **agents:refresh stamps a resolvable framework identity instead of sha=unknown (#4246).** Writable AGENTS.md states (absent/missing/stale) on a non-git npm install use package.json version, then live GENERATION.json contentVersion, then the running core package version. Own-git-root still uses git short HEAD. Does not preserve a leftover checkout SHA, mint a second 12-hex, recut #3914/#4118 git-fatal silence, or recut commands.md. Closes #4246.
 
 - **`verify:vbrief-conformance --staged` (and `--all`) run D7 filename checks before parse (#4245).** The installed pre-commit hook uses `--staged`, which previously scanned bare keys only, so a dotted-slug xBRIEF could commit and then redden `vbrief:validate` / `task check`. Reuses `validateFilename`; does not retarget the hook at `vbrief:validate` and does not weaken D7 for version dots. Closes #4245.

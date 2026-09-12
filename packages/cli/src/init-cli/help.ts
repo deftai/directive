@@ -19,6 +19,7 @@ export function printUpdateHelp(io: DispatchIo): void {
       "  --json                      Machine-readable summary on stdout\n" +
       "  --yes, --non-interactive  Run without prompts\n" +
       "  --dry-run, --plan           Classify and print the refresh plan without writing\n" +
+      "  --allow-dirty-no-stage      Apply on a dirty tree without automatic git add\n" +
       "  -h, --help                  Show this help\n",
   );
 }

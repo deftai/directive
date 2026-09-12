@@ -64,4 +64,32 @@ describe("runUpdate threads the dry-run flag (#2266)", () => {
 
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ dryRun: false }));
   });
+
+  it("threads --allow-dirty-no-stage", async () => {
+    const spy = vi.spyOn(initDeposit, "runRefreshDepositCli").mockResolvedValue(0);
+    const { io } = captureIo();
+
+    await runUpdate(["--allow-dirty-no-stage"], io);
+
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ allowDirtyNoStage: true }));
+  });
+
+  it("detects slash dry-run aliases", () => {
+    expect(isUpdateDryRun(["/plan"])).toBe(true);
+    expect(isUpdateDryRun(["/dry-run"])).toBe(true);
+  });
+
+  it("unknown flags and --allow-dirty/--force fail parse with exit 2", async () => {
+    const spy = vi.spyOn(initDeposit, "runRefreshDepositCli");
+    const mystery = captureIo();
+    expect(await runUpdate(["--mystery"], mystery.io)).toBe(2);
+    expect(mystery.err.join("")).toMatch(/unknown flag: --mystery/);
+    const dirty = captureIo();
+    expect(await runUpdate(["--allow-dirty"], dirty.io)).toBe(2);
+    expect(dirty.err.join("")).toMatch(/not the dirty-update escape/);
+    const force = captureIo();
+    expect(await runUpdate(["--force"], force.io)).toBe(2);
+    expect(force.err.join("")).toMatch(/not the dirty-update escape/);
+    expect(spy).not.toHaveBeenCalled();
+  });
 });

@@ -11,3 +11,4 @@ export * from "./skill-discovery-deposit.js";
 export * from "./skill-discovery-hosts.js";
 export * from "./slash-deposit.js";
 export * from "./untrack-core.js";
+export * from "./update-git-preflight.js";
