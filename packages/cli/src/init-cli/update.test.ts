@@ -74,6 +74,11 @@ describe("runUpdate threads the dry-run flag (#2266)", () => {
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ allowDirtyNoStage: true }));
   });
 
+  it("detects slash dry-run aliases", () => {
+    expect(isUpdateDryRun(["/plan"])).toBe(true);
+    expect(isUpdateDryRun(["/dry-run"])).toBe(true);
+  });
+
   it("unknown flags and --allow-dirty/--force fail parse with exit 2", async () => {
     const spy = vi.spyOn(initDeposit, "runRefreshDepositCli");
     const mystery = captureIo();

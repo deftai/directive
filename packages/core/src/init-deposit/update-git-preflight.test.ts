@@ -187,6 +187,13 @@ describe("assertKnownUpdateFlags", () => {
       /not the dirty-update escape; use --allow-dirty-no-stage/,
     );
   });
+
+  it("rejects slash-prefixed unknown flags and /force", () => {
+    expect(() => assertKnownUpdateFlags(["/mystery"])).toThrow(/unknown flag: \/mystery/);
+    expect(() => assertKnownUpdateFlags(["/force"])).toThrow(
+      /not the dirty-update escape; use --allow-dirty-no-stage/,
+    );
+  });
 });
 
 describe("probeUpdateGit", () => {
@@ -230,6 +237,17 @@ describe("probeUpdateGit", () => {
     const result = probeUpdateGit("/proj", {
       execGit: () => ({ status: 127, stdout: "", stderr: "", errorCode: "ENOENT" }),
       gitDirExists: () => true,
+    });
+    expect(result.kind).toBe("unreadable");
+  });
+
+  it("unreadable when git is missing but an ancestor worktree exists", () => {
+    const parent = freshRoot();
+    execFileSync("git", ["init"], { cwd: parent });
+    const nested = join(parent, "consumer");
+    mkdirSync(nested);
+    const result = probeUpdateGit(nested, {
+      execGit: () => ({ status: 127, stdout: "", stderr: "", errorCode: "ENOENT" }),
     });
     expect(result.kind).toBe("unreadable");
   });

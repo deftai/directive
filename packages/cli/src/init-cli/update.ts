@@ -10,7 +10,7 @@ import { argvWantsHelp, printUpdateHelp } from "./help.js";
 /** True when the user argv asked for a classify-only dry-run (`--dry-run`/`--plan`). */
 export function isUpdateDryRun(argv: readonly string[]): boolean {
   const flags = UPDATE_DRY_RUN_FLAGS as readonly string[];
-  return argv.some((arg) => flags.includes(arg));
+  return argv.some((arg) => flags.includes(arg) || arg === "/dry-run" || arg === "/plan");
 }
 
 export function runUpdate(argv: readonly string[], io: DispatchIo): Promise<number> {

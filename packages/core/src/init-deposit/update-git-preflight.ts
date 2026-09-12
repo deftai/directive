@@ -7,7 +7,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { detectOpenClaw } from "../doctor/openclaw-skills.js";
 import type { MutationSummary } from "../fs/mutation-ledger.js";
 
@@ -77,7 +77,16 @@ export function defaultGitExec(args: readonly string[], options: { cwd: string }
 }
 
 function defaultGitDirExists(projectDir: string): boolean {
-  return existsSync(join(projectDir, ".git"));
+  let dir = resolve(projectDir);
+  const seen = new Set<string>();
+  while (!seen.has(dir)) {
+    seen.add(dir);
+    if (existsSync(join(dir, ".git"))) return true;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return false;
 }
 
 function uniquePaths(paths: readonly string[]): string[] {
@@ -249,7 +258,11 @@ export class UnknownUpdateFlagError extends Error {
   readonly flag: string;
 
   constructor(flag: string) {
-    const notThisEscape = flag === "--allow-dirty" || flag === "--force" || flag === "/allow-dirty";
+    const notThisEscape =
+      flag === "--allow-dirty" ||
+      flag === "--force" ||
+      flag === "/allow-dirty" ||
+      flag === "/force";
     super(
       notThisEscape
         ? `${flag} is not the dirty-update escape; use --allow-dirty-no-stage`
@@ -274,8 +287,11 @@ const KNOWN_UPDATE_FLAGS = new Set([
   "--upgrade",
   "/upgrade",
   "--dry-run",
+  "/dry-run",
   "--plan",
+  "/plan",
   "--allow-dirty-no-stage",
+  "/allow-dirty-no-stage",
   "-h",
   "--help",
   "/help",
@@ -290,7 +306,7 @@ export function assertKnownUpdateFlags(args: readonly string[]): void {
       i += 1;
       continue;
     }
-    if (!arg.startsWith("-")) continue;
+    if (!arg.startsWith("-") && !arg.startsWith("/")) continue;
     if (!KNOWN_UPDATE_FLAGS.has(arg)) {
       throw new UnknownUpdateFlagError(arg);
     }
