@@ -29,6 +29,9 @@ tasks:
   consumer-check-contract:
     cmds:
       - echo ok
+  evaluator-surface:
+    cmds:
+      - echo ok
   orphan-active:
     cmds:
       - echo ok
@@ -75,6 +78,7 @@ tasks:
       - verify:test-boundary
       - verify:scope-provenance
       - verify:consumer-check-contract
+      - verify:evaluator-surface
 ${orphanEntry}    cmds:
       - echo ok
 `;
@@ -106,6 +110,7 @@ describe("extractCheckDepEntries (#3893)", () => {
       "verify:test-boundary",
       "verify:scope-provenance",
       "verify:consumer-check-contract",
+      "verify:evaluator-surface",
       "verify:orphan-active",
     ]);
   });

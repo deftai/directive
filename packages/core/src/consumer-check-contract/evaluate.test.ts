@@ -34,6 +34,7 @@ tasks:
       - verify:test-boundary
       - verify:scope-provenance
       - verify:consumer-check-contract
+      - verify:evaluator-surface
 `;
 
 const VERIFY_YML_COMPLETE = `
@@ -46,6 +47,12 @@ tasks:
     cmds:
       - echo ok
   consumer-check-contract:
+    cmds:
+      - echo ok
+  evaluator-surface:
+    cmds:
+      - echo ok
+  consumer-test-lane:
     cmds:
       - echo ok
   branch:
@@ -69,6 +76,7 @@ tasks:
       - verify:test-boundary
       - verify:scope-provenance
       - verify:consumer-check-contract
+      - verify:evaluator-surface
       - verify:branch
 `;
 
@@ -97,6 +105,8 @@ describe("consumer-check-contract helpers (#3145)", () => {
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:test-boundary");
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:scope-provenance");
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:consumer-check-contract");
+    expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:evaluator-surface");
+    expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).not.toContain("verify:consumer-test-lane");
   });
 });
 

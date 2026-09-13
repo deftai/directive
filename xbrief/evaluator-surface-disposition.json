@@ -1,0 +1,18 @@
+{
+  "schema": "deft.evaluator-surface-disposition.v1",
+  "kind": "disclosure",
+  "issue": 4386,
+  "surfaces": [
+    "Taskfile.yml",
+    "tasks/verify.yml",
+    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/consumer-check-contract/evaluate.ts",
+    "packages/core/src/evaluator-surface/**",
+    "packages/core/src/consumer-test-lane/**",
+    "packages/cli/src/verify-evaluator-surface.ts",
+    "packages/cli/src/verify-consumer-test-lane.ts",
+    "xbrief/evaluator-surface-disposition.json",
+    "vitest.config.ts"
+  ],
+  "note": "Disclosure of evaluator-surface wiring for #4386, including bounded process-tree spawn for the declared consumer test lane. Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record."
+}

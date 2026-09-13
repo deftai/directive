@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 24 groupings, 274 documents
-- **Tasks:** 62 namespaces, 248 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 62 namespaces, 250 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 178 | 16 | 122 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 35 | 19 | 12 | 56 | 1 | 2 |
+| docs | Explanatory docs and the framework glossary. | 35 | 19 | 12 | 60 | 1 | 2 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -444,7 +444,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO \| --json \| --strict]. Does NOT… | 1 |
 | value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d\|30d] [--format=text\|json] | 1 |
 | vbrief | Validate and manage vBRIEF lifecycle state and structure. | 6 |
-| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 60 |
+| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 62 |
 | xbrief | Validate xBRIEF lifecycle folder structure and cross-file consistency. Alias of vbrief:validate with xbrief-first naming (#3483). | 3 |
 
 ## Lifecycle

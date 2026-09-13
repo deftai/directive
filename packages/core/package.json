@@ -55,6 +55,14 @@
       "types": "./dist/eval-triggers-relocation/index.d.ts",
       "default": "./dist/eval-triggers-relocation/index.js"
     },
+    "./evaluator-surface": {
+      "types": "./dist/evaluator-surface/index.d.ts",
+      "default": "./dist/evaluator-surface/index.js"
+    },
+    "./consumer-test-lane": {
+      "types": "./dist/consumer-test-lane/index.d.ts",
+      "default": "./dist/consumer-test-lane/index.js"
+    },
     "./xbrief-migrate": {
       "types": "./dist/xbrief-migrate/index.d.ts",
       "default": "./dist/xbrief-migrate/index.js"

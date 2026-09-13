@@ -445,6 +445,9 @@ tasks:
       - task: verify:consumer-check-contract
         vars:
           CLI_ARGS: "--framework-source"
+      - task: verify:evaluator-surface
+        vars:
+          CLI_ARGS: "--base-ref origin/master"
       - verify:telemetry-coverage
       - verify:vbrief-conformance
       - verify:destructive-gh-verbs
@@ -506,8 +509,10 @@ tasks:
       - verify:test-boundary
       - verify:scope-provenance
       - verify:consumer-check-contract
+      - verify:evaluator-surface
       - vbrief:validate
       - verify-strategy-output
+      - verify:consumer-test-lane
     cmds:
       - echo "Consumer checks passed"
 

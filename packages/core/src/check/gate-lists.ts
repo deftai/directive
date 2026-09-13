@@ -63,7 +63,10 @@ export function checkGateSpawnArgs(spec: CheckGateSpec, taskfilePath: string): s
  * failures never pay suite wall-clock (#3188). Release suite stamp/resume
  * remains #3187 / release-scoped.
  */
-export const SUITE_CHECK_GATE_IDS: readonly string[] = ["ts:check-lane"];
+export const SUITE_CHECK_GATE_IDS: readonly string[] = [
+  "ts:check-lane",
+  "verify:consumer-test-lane",
+];
 
 export function isSuiteCheckGate(spec: CheckGateSpec | string): boolean {
   const id = typeof spec === "string" ? spec : checkGateId(spec);
@@ -127,6 +130,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   // #3893: fail-closed on merge-chokepoint gate scoping for the composition
   // this repo owns; consumer deposits stay warn-only until `deft update`.
   { task: "verify:consumer-check-contract", args: ["--framework-source"] },
+  { task: "verify:evaluator-surface", args: ["--base-ref", "origin/master"] },
   // #3362: dead-surface detector (warn-only this release; no --enforce)
   "verify:telemetry-coverage",
   "verify:vbrief-conformance",
@@ -169,8 +173,12 @@ export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:test-boundary",
   "verify:scope-provenance",
   "verify:consumer-check-contract",
+  "verify:evaluator-surface",
   "vbrief:validate",
   "verify-strategy-output",
+  // Declared project test command last (#4386). Skip when undeclared.
+  // PRODUCT_FIRST_AC_GATE stays first and is not replaced.
+  "verify:consumer-test-lane",
 ];
 
 export function gatesForCheckTarget(target: string): readonly CheckGateSpec[] {

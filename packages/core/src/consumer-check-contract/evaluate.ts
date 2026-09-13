@@ -18,6 +18,7 @@ export const REQUIRED_CONSUMER_ENFORCEMENT_GATES: readonly string[] = [
   "verify:test-boundary",
   "verify:scope-provenance",
   "verify:consumer-check-contract",
+  "verify:evaluator-surface",
 ];
 
 /**

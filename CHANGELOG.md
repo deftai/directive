@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Evaluator-surface disclosure gate and declared consumer test lane (#4386).** `verify:evaluator-surface` fails declared evaluator-definition diffs unless `xbrief/evaluator-surface-disposition.json` records disclosure; prior color is unobserved and a commit-body URL is not #3164 authorization. Inventories #3322 instead of a parallel history detector. `verify:consumer-test-lane` runs `plan.policy.testCommand` or `package.json` `scripts.test` and skips when undeclared; `verify:ac` stays first. Keeps testing.md coverage-population exclusion; no shipped-library default. Closes #4386. Refs #3156, #3322.
+
 - **Setup-created scopes: count unresolved origins, offer emit-hints, keep origin writes off the agent (#4426).** `verify:orphan-active` reports `noOrigin` of scanned briefs that resolved zero forge origins; scoped `--issue N` counts only briefs that name N. The unscoped sweep stays fail-open. `verify:completed-tracked` names briefs scanned versus origins resolved. Setup Phase 3 (including Add-scope) surfaces emit-hints (none / umbrella / per-vBRIEF). Origin references are operator-collected or `task issue:emit`; ⊗ agent-asserted `parent_issue`. Leaves #3826 complete-reader and the unknown-policy split in place. Closes #4426.
 
 ### Changed
