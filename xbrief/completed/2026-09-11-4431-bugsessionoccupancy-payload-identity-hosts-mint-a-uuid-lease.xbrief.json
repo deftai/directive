@@ -89,8 +89,8 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
-          "pointer": "ingest-republication carried off this issue",
-          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "pointer": "https://github.com/deftai/directive/issues/4434 ingest-republication carried off #4431",
+          "recorded_at": "2026-09-13T17:52:06.570Z",
           "recorded_by": "leftover-4431"
         }
       },
@@ -99,8 +99,8 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
-          "pointer": "design-critique contract findings carried off this issue",
-          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "pointer": "https://github.com/deftai/directive/issues/4435 design-critique contract findings carried off #4431",
+          "recorded_at": "2026-09-13T17:52:06.570Z",
           "recorded_by": "leftover-4431"
         }
       }
