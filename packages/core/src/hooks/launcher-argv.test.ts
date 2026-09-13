@@ -9,7 +9,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       classifyLauncherFamilyArgv(
         "grok --cwd /wt --prompt-file /e.md --permission-mode bypassPermissions --always-approve",
       ),
-    ).toEqual({ kind: "launcher", family: "grok", dest: "/wt" });
+    ).toEqual({ kind: "launcher", family: "grok", dest: "/wt", compound: false });
   });
 
   it("preserves Windows dest inside quotes", () => {
@@ -17,6 +17,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "grok",
       dest: "C:\\wt",
+      compound: false,
     });
   });
 
@@ -25,6 +26,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "grok",
       dest: "/wt",
+      compound: false,
     });
   });
 
@@ -33,21 +35,21 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "grok",
       dest: null,
+      compound: false,
     });
   });
 
   it("classifies dest-absent grok as launcher with null dest", () => {
     expect(
       classifyLauncherFamilyArgv("grok --always-approve --permission-mode bypassPermissions"),
-    ).toEqual({ kind: "launcher", family: "grok", dest: null });
+    ).toEqual({ kind: "launcher", family: "grok", dest: null, compound: false });
   });
 
-  it("classifies bare grok as dest-absent launcher", () => {
-    expect(classifyLauncherFamilyArgv("grok")).toEqual({
-      kind: "launcher",
-      family: "grok",
-      dest: null,
-    });
+  it("does not classify bare grok or grok login/models as worker launches", () => {
+    expect(classifyLauncherFamilyArgv("grok")).toEqual(NOT_LAUNCHER);
+    expect(classifyLauncherFamilyArgv("grok login")).toEqual(NOT_LAUNCHER);
+    expect(classifyLauncherFamilyArgv("grok logout")).toEqual(NOT_LAUNCHER);
+    expect(classifyLauncherFamilyArgv("grok models")).toEqual(NOT_LAUNCHER);
   });
 
   it("does not inherit payload cwd for grok (#4066)", () => {
@@ -55,6 +57,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "grok",
       dest: null,
+      compound: false,
     });
   });
 
@@ -68,7 +71,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
         'claude -p "Read and follow /e.md" --model opus --permission-mode bypassPermissions --output-format text',
         { payloadCwd: "/wt" },
       ),
-    ).toEqual({ kind: "launcher", family: "claude", dest: "/wt" });
+    ).toEqual({ kind: "launcher", family: "claude", dest: "/wt", compound: false });
   });
 
   it("classifies dest-absent claude worker argv", () => {
@@ -76,7 +79,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       classifyLauncherFamilyArgv(
         'claude -p "Read and follow /e.md" --permission-mode bypassPermissions',
       ),
-    ).toEqual({ kind: "launcher", family: "claude", dest: null });
+    ).toEqual({ kind: "launcher", family: "claude", dest: null, compound: false });
   });
 
   it("does not classify claude --version", () => {
@@ -88,7 +91,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       classifyLauncherFamilyArgv(
         'codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C /wt "Read and follow /e.md"',
       ),
-    ).toEqual({ kind: "launcher", family: "codex", dest: "/wt" });
+    ).toEqual({ kind: "launcher", family: "codex", dest: "/wt", compound: false });
   });
 
   it("classifies dest-absent codex exec", () => {
@@ -96,6 +99,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "codex",
       dest: null,
+      compound: false,
     });
   });
 
@@ -104,6 +108,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "codex",
       dest: null,
+      compound: false,
     });
   });
 
@@ -120,6 +125,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "grok",
       dest: "/wt",
+      compound: false,
     });
   });
 
@@ -128,19 +134,28 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "launcher",
       family: "grok",
       dest: "/wt",
+      compound: false,
     });
     expect(classifyLauncherFamilyArgv("env -C /tmp grok --cwd /wt --always-approve")).toEqual({
       kind: "launcher",
       family: "grok",
       dest: "/wt",
+      compound: false,
     });
   });
 
-  it("classifies grok after a compound prefix segment", () => {
+  it("marks compound launcher argv so trailing segments cannot skip gates", () => {
     expect(classifyLauncherFamilyArgv("git status && grok --cwd /wt --always-approve")).toEqual({
       kind: "launcher",
       family: "grok",
       dest: "/wt",
+      compound: true,
+    });
+    expect(classifyLauncherFamilyArgv("grok --cwd /wt && git reset --hard")).toEqual({
+      kind: "launcher",
+      family: "grok",
+      dest: "/wt",
+      compound: true,
     });
   });
 
@@ -150,7 +165,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
         'claude --cwd /argv-dest -p "Read and follow /e.md" --permission-mode bypassPermissions',
         { payloadCwd: "/payload-dest" },
       ),
-    ).toEqual({ kind: "launcher", family: "claude", dest: "/argv-dest" });
+    ).toEqual({ kind: "launcher", family: "claude", dest: "/argv-dest", compound: false });
   });
 
   it("classifies empty command as not-launcher", () => {

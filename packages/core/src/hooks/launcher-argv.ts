@@ -14,6 +14,7 @@ export type LauncherArgvClass =
       readonly kind: "launcher";
       readonly family: LauncherFamily;
       readonly dest: string | null;
+      readonly compound: boolean;
     };
 
 export const NOT_LAUNCHER: LauncherArgvClass = { kind: "not-launcher" };
@@ -30,6 +31,27 @@ const WRAP_VALUE_OPTS: Readonly<Record<string, ReadonlySet<string>>> = {
 };
 
 const DIAGNOSTIC_FLAGS = new Set(["--version", "--help", "-h", "-V"]);
+
+const GROK_WORKER_FLAGS = new Set([
+  "--cwd",
+  "--prompt-file",
+  "--always-approve",
+  "--permission-mode",
+  "--verbatim",
+  "--no-subagents",
+]);
+
+const GROK_NON_WORKER_SUBCOMMANDS = new Set([
+  "login",
+  "logout",
+  "models",
+  "auth",
+  "config",
+  "doctor",
+  "update",
+  "version",
+  "help",
+]);
 
 const GROK_DEST_FLAGS = ["--cwd"] as const;
 const CODEX_DEST_FLAGS = ["-C", "--cd"] as const;
@@ -58,10 +80,19 @@ export function classifyLauncherFamilyArgv(
 ): LauncherArgvClass {
   const cmd = command.trim();
   if (cmd.length === 0) return NOT_LAUNCHER;
-  for (const segment of splitCommandSegments(cmd)) {
-    const classified = classifyLauncherSegment(segment, options.payloadCwd ?? null);
-    if (classified.kind === "launcher") return classified;
+  const payloadCwd = options.payloadCwd ?? null;
+  const segments = splitCommandSegments(cmd);
+  if (segments.length > 1) {
+    for (const segment of segments) {
+      const classified = classifyLauncherSegment(segment, payloadCwd);
+      if (classified.kind === "launcher") {
+        return { ...classified, compound: true };
+      }
+    }
+    return NOT_LAUNCHER;
   }
+  const classified = classifyLauncherSegment(segments[0] ?? "", payloadCwd);
+  if (classified.kind === "launcher") return { ...classified, compound: false };
   return NOT_LAUNCHER;
 }
 
@@ -74,7 +105,12 @@ function classifyLauncherSegment(segment: string, payloadCwd: string | null): La
   if (family === null) return NOT_LAUNCHER;
   const rest = tokens.slice(start + 1);
   if (!isWorkerLaunch(family, rest)) return NOT_LAUNCHER;
-  return { kind: "launcher", family, dest: destFromArgv(family, rest, payloadCwd) };
+  return {
+    kind: "launcher",
+    family,
+    dest: destFromArgv(family, rest, payloadCwd),
+    compound: false,
+  };
 }
 
 function launcherFamilyFromBin(token: string): LauncherFamily | null {
@@ -93,7 +129,11 @@ function isWorkerLaunch(family: LauncherFamily, rest: readonly string[]): boolea
   if (family === "claude") {
     return rest.some((token) => CLAUDE_WORKER_FLAGS.has(flagName(token)));
   }
-  return true;
+  const first = rest.find((token) => !token.startsWith("-") && !isEnvAssign(token));
+  if (first !== undefined && GROK_NON_WORKER_SUBCOMMANDS.has(first.toLowerCase())) {
+    return false;
+  }
+  return rest.some((token) => GROK_WORKER_FLAGS.has(flagName(token)));
 }
 
 function destFromArgv(

@@ -2648,6 +2648,20 @@ function decideLauncherFamilyArgv(
   const environ = input.environ ?? process.env;
   const readOnly = isReadOnlyHookContext(input.payload, environ);
   const projectRoot = resolve(input.projectRoot);
+  if (classified.compound) {
+    return overlayGrokCriticSpawnNotReadyRecovery(
+      input,
+      toolName,
+      deny(
+        input,
+        "spawn-not-ready",
+        toolName,
+        `Directive denied ${toolName}: launcher-family argv (${classified.family}) must be a single ` +
+          "simple command. Compound commands fail closed so trailing shell segments cannot bypass " +
+          "destructive git or dest-form gates.",
+      ),
+    );
+  }
   const prepared =
     classified.dest !== null
       ? prepareProcessOnlyDestPath(classified.dest, projectRoot, seams, input.payload)

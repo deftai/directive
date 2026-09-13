@@ -2845,6 +2845,22 @@ describe("process-only critic spawn dest skip (#4241)", () => {
 });
 
 describe("launcher-family argv classification (#4219)", () => {
+  it("leaves bare grok as shell-op-unclassifiable", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: { command: "grok" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "shell-op-unclassifiable" });
+  });
+
   it("denies dest-absent grok argv closed, not shell-op-unclassifiable", () => {
     const inspectRitual = vi.fn(() => READY_RITUAL);
     const decision = decideHook(
@@ -2952,6 +2968,40 @@ describe("launcher-family argv classification (#4219)", () => {
         payload: {
           toolName: "run_terminal_command",
           tool_input: { command: "git status" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "shell-op-unclassifiable" });
+  });
+
+  it("denies compound grok argv so trailing git reset cannot skip gates", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: { command: "grok --cwd /wt --always-approve && git reset --hard" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.code).not.toBe("spawn-process-only-ready");
+    expect(decision.message).toMatch(/Compound commands fail closed/);
+  });
+
+  it("leaves grok login as shell-op-unclassifiable", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: { command: "grok login" },
         },
       },
       readySeams(),
