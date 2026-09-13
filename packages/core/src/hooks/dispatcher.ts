@@ -14,6 +14,7 @@ import {
   shouldConsumeSingleUseGrant,
   utcIso,
 } from "../authz/index.js";
+import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/protected-dest-realpath.js";
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import {
@@ -1077,12 +1078,22 @@ function authzForMutation(
   }
 
   const shellCommand = isShellTool(toolName) ? hookShellCommand(input.payload) : null;
-  const ops = classifyHookAuthzOps({
+  let ops = classifyHookAuthzOps({
     toolName,
     shellCommand,
     isDirectWrite: options.isDirectWrite,
     mcpArgsText: options.isDirectWrite ? null : hookMcpArgsText(input.payload),
   });
+  // #4188: realpath recovered dest-of-write against payload root. Lexical
+  // classify stays I/O-free; a non-shell symlink dest is grant-immune unknown.
+  if (
+    shellCommand !== null &&
+    !ops.includes("settings") &&
+    !ops.includes("unknown") &&
+    shellCommandHasPayloadRootProtectedDestAfterRealpath(projectRoot, shellCommand)
+  ) {
+    ops = ["unknown", ...ops];
+  }
 
   // No classifiable authz ops (unrelated tools) — leave to other gates,
   // except corrupt state still fails closed on direct writes / classifiable shell.

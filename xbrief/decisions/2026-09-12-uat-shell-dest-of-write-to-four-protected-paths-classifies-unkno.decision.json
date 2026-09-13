@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "uat-shell-dest-of-write-to-four-protected-paths-classifies-unkno",
+  "decision": "UAT Shell dest-of-write to four protected paths classifies unknown (grant-immune), not settings",
+  "governingRule": {
+    "description": "Bound remedy successor lean 5648725060 on #4188; reuse #4005 zip unknown + evaluate authz-uat-deny; do not grow dest-flag/write-bin catalogs",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep write-shaped / argv0 catalogs and add residual bins to INDIRECT_WRITE_BINS"
+    },
+    {
+      "option": "Emit settings so a settings grant can authorize the plant"
+    },
+    {
+      "option": "Route dests through effective-root admission for sibling worktrees"
+    }
+  ],
+  "whyWinner": "Last-positional dest-of-write on unknown argv0 plus existing dest-flag/redirect harvest closes the residual families without a recognition treadmill. unknown is grant-immune like zip. Payload-root only; realpath in dispatcher. #3997 in-repo fail-open stays.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-09-12-4188-fixhookssecurity-fail-closed-on-unknown-writes-to-uat-protec.xbrief.json"
+  ],
+  "timestamp": "2026-09-12T23:17:01Z",
+  "revisitTrigger": "Measurement that protected-path reads under UAT are near-zero (may collapse the read-only proof list), or a sibling-worktree plant that payload-root narrowing leaves open"
+}

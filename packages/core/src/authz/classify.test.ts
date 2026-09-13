@@ -1534,6 +1534,116 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(elapsedMs).toBeLessThan(1_000);
   });
 
+  it("emits unknown for unknown-argv0 last-positional dest-of-write (#4188)", () => {
+    const protectedDests = [
+      ".deft/authz/grants/evil.json",
+      ".deft/approved-scope/story.json",
+      ".deft-directive-disable",
+      ".no-deft-directive",
+    ] as const;
+    // Family names are fixtures from the nine AppSec reports, not recognition branches.
+    const families = [
+      { family: "typst", prefix: "typst compile doc.typ" },
+      { family: "mkfile", prefix: "mkfile 1k" },
+      { family: "ffmpeg", prefix: "ffmpeg -i in.wav" },
+      { family: "sox", prefix: "sox in.wav" },
+      { family: "screencapture", prefix: "screencapture" },
+      { family: "inkscape", prefix: "inkscape in.svg --export-filename" },
+      { family: "sass", prefix: "sass in.scss" },
+      { family: "lame", prefix: "lame in.mp3" },
+      { family: "qjs", prefix: "qjs -e code" },
+      { family: "erl", prefix: "erl -noshell -s" },
+      { family: "joe", prefix: "joe" },
+      { family: "raku", prefix: "raku -e code" },
+      { family: "bb", prefix: "bb" },
+      { family: "crystal", prefix: "crystal build src.cr" },
+      { family: "graalpy", prefix: "graalpy" },
+      { family: "pdflatex", prefix: "pdflatex" },
+      { family: "tcpdump", prefix: "tcpdump -w" },
+      { family: "screen", prefix: "screen -Logfile" },
+      { family: "llvm-ar", prefix: "llvm-ar rcs" },
+      { family: "jmod", prefix: "jmod create --class-path x" },
+      { family: "etcdctl", prefix: "etcdctl snapshot save" },
+      { family: "coreutils", prefix: "coreutils --coreutils-prog=cp /tmp/src" },
+      { family: "sbase-cp", prefix: "sbase-cp /tmp/src" },
+      { family: "salt-call", prefix: "salt-call --out-file" },
+      { family: "inspec", prefix: "inspec exec --reporter json" },
+    ] as const;
+
+    for (const dest of protectedDests) {
+      for (const { family, prefix } of families) {
+        const command = `${prefix} ${dest}`;
+        expect(classifyShellAuthzOps(command), `${family}: ${command}`).toEqual(["unknown"]);
+      }
+    }
+
+    const destFlagStillSettings = classifyShellAuthzOps("weirdbin -o .deft/authz/grants/evil.json");
+    expect(destFlagStillSettings).toContain("settings");
+    expect(destFlagStillSettings).not.toContain("unknown");
+
+    for (const command of [
+      "./cat .deft/authz/grants/evil.json",
+      "/tmp/evil/cat .deft/authz/grants/evil.json",
+      ".\\cat .deft-directive-disable",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).toEqual(["unknown"]);
+    }
+  });
+
+  it("does not treat protected source/input or proven reads as dest-of-write (#4188)", () => {
+    for (const command of [
+      "cat .deft/authz/state.json",
+      "ls .deft/authz",
+      "grep campaign .deft/authz/state.json",
+      "git log .deft/authz/state.json",
+      "diff /tmp/a .deft/authz/state.json",
+      "Get-Content -Path .deft/authz/state.json",
+      "gc .deft/authz/state.json",
+      "ffmpeg -i .deft/authz/grants/x.json /tmp/out.wav",
+      "sox .deft/authz/grants/x.json /tmp/out.wav",
+      "typst compile .deft/authz/grants/x.json /tmp/out.pdf",
+      "mkfile 1k /tmp/out",
+      "zip /tmp/backup.zip .deft/authz/state.json",
+      "dpkg --info .deft/authz/grants/package.deb",
+      "echo DESTDIR=.deft/authz/grants",
+      "mkfile 1k /sibling/.deft/authz/grants/evil.json",
+      "python -c \"print('.deft/authz/grants/evil.json')\"",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).not.toContain("unknown");
+    }
+  });
+
+  it("keeps last-positional dest-of-write through wrappers and compounds (#4188)", () => {
+    for (const command of [
+      "env mkfile 1k .deft/authz/grants/env.json",
+      "sudo mkfile 1k .deft-directive-disable",
+      "nice mkfile 1k .no-deft-directive",
+      "command mkfile 1k .deft/approved-scope/story.json",
+      "true && mkfile 1k .deft/authz/grants/compound.json",
+      "(mkfile 1k .deft/authz/grants/grouped.json)",
+      "{ mkfile 1k .deft/authz/grants/brace.json; }",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).toContain("unknown");
+    }
+
+    const collision = classifyShellAuthzOps(
+      "pytest && mkfile 1k .deft/authz/grants/collision.json",
+    );
+    expect(collision).toContain("test");
+    expect(collision).toContain("unknown");
+  });
+
+  it("preprocesses arithmetic shifts without quadratic rescans for last-positional dest (#4188)", () => {
+    const shifts = " << 1".repeat(16_000);
+    const command = `echo $((1${shifts}))\nmkfile 1k .deft/authz/grants/after-many-shifts.json`;
+    const startedAt = performance.now();
+    const classified = classifyShellAuthzOps(command);
+    const elapsedMs = performance.now() - startedAt;
+
+    expect(classified).toContain("unknown");
+    expect(elapsedMs).toBeLessThan(1_000);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(

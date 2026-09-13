@@ -2244,6 +2244,248 @@ function hasProtectedZipArchiveDestination(command: string): boolean {
   return false;
 }
 
+/**
+ * Closed read-only proof for #4188 dest-of-write. Inspection of authz state
+ * stays allow. Absence of a near-zero-read measurement keeps this list load-bearing.
+ */
+const READ_ONLY_PROOF_BINS = new Set(["cat", "ls", "grep", "diff", "get-content", "gc"]);
+
+function wrapperBinName(raw: string): string | null {
+  if (zipShellWordHasExpansion(raw)) return null;
+  const literal = zipShellWordLiteral(raw);
+  if (literal === null) return null;
+  const name = writeBinName(literal);
+  if (COMMAND_WRAPPER_BINS.has(name) || ZIP_SIMPLE_WRAPPERS.has(name)) return name;
+  return null;
+}
+
+function commandIndexAfterWrappers(words: readonly string[]): number | null {
+  let i = 0;
+  while (i < words.length && isEnvAssign(words[i] as string)) i++;
+  let wrapper = i < words.length ? wrapperBinName(words[i] as string) : null;
+  while (wrapper !== null) {
+    i++;
+    const noValueFlags = ZIP_WRAPPER_NO_VALUE_FLAGS[wrapper] ?? new Set<string>();
+    while (i < words.length) {
+      const n = normalizeToken(words[i] as string);
+      if (noValueFlags.has(n)) {
+        i++;
+        continue;
+      }
+      if (WRAPPER_VALUE_FLAGS.has(n) && !n.includes("=")) {
+        i += 2;
+        continue;
+      }
+      break;
+    }
+    if (normalizeToken(words[i] ?? "") === "--") i++;
+    if (wrapper === "env") {
+      while (i < words.length && isEnvAssign(words[i] as string)) i++;
+    }
+    wrapper = i < words.length ? wrapperBinName(words[i] as string) : null;
+  }
+  return i < words.length ? i : null;
+}
+
+function argv0Literal(words: readonly string[], execIndex: number): string | null {
+  const raw = words[execIndex] as string;
+  if (zipShellWordHasExpansion(raw)) return null;
+  return zipShellWordLiteral(raw);
+}
+
+function argv0IsPathQualified(literal: string): boolean {
+  return literal.includes("/") || literal.includes("\\");
+}
+
+function argv0BareName(words: readonly string[], execIndex: number): string | null {
+  const literal = argv0Literal(words, execIndex);
+  if (literal === null) return null;
+  return writeBinName(literal);
+}
+
+function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): boolean {
+  const literal = argv0Literal(words, execIndex);
+  if (literal === null || argv0IsPathQualified(literal)) return false;
+  const name = writeBinName(literal);
+  if (READ_ONLY_PROOF_BINS.has(name)) return true;
+  if (name === "git") {
+    let i = execIndex + 1;
+    while (i < words.length) {
+      const n = normalizeToken(words[i] as string);
+      if (n === "--") {
+        i++;
+        break;
+      }
+      if (n.startsWith("-")) {
+        i++;
+        continue;
+      }
+      return n === "log";
+    }
+    return false;
+  }
+  return false;
+}
+
+function argv0HasExistingDestGrammar(name: string): boolean {
+  if (name === "zip") return true;
+  if (INDIRECT_WRITE_BINS.has(name)) return true;
+  if (ARCHIVE_ALT_WRITE_BINS.has(name)) return true;
+  if (DOWNLOADER_DECODER_BINS.has(name)) return true;
+  if (LAST_POSITIONAL_DEST_BINS.has(name)) return true;
+  if (SYMLINK_PLANT_BINS.has(name)) return true;
+  if (DEST_ASSIGNMENT_OWNER_BINS.has(name)) return true;
+  if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(name)) return true;
+  if (TEST_BINS.has(name)) return true;
+  for (const bin of UAT_RESIDUAL_DEST_WRITE_BINS_3545) {
+    if (bin === name) return true;
+  }
+  for (const bin of UAT_RESIDUAL_INPLACE_WRITE_BINS_3545) {
+    if (bin === name) return true;
+  }
+  return false;
+}
+
+function lastNonFlagWord(words: readonly string[], execIndex: number): string | null {
+  let last: string | null = null;
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const n = normalizeToken(raw);
+    if (n === "--") continue;
+    if (n.startsWith("-")) continue;
+    last = raw;
+  }
+  return last;
+}
+
+function isRelativePayloadProtectedDest(rawWord: string): boolean {
+  if (zipShellWordHasExpansion(rawWord)) return false;
+  const posix = zipShellWordLiteral(rawWord);
+  if (posix === null) return false;
+  if (posix.startsWith("~/") || posix.startsWith("/") || posix.startsWith("~\\")) return false;
+  if (/^[A-Za-z]:[\\/]/.test(posix)) return false;
+  return pathishIsLiteralProtectedDest(rawWord);
+}
+
+type ZipStyleSegment = {
+  readonly words: readonly string[];
+  readonly execIndex: number;
+};
+
+function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
+  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
+  const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
+  const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
+  let sawClosingBrace = false;
+  let sawClosingParen = false;
+  for (let i = wordSegments.length - 1; i >= 0; i--) {
+    closingBraceAfter[i] = sawClosingBrace;
+    closingParenAfter[i] = sawClosingParen;
+    const words = wordSegments[i];
+    if (
+      words !== null &&
+      words !== undefined &&
+      zipShellWordsWithoutRedirections(words)[0] === "}"
+    ) {
+      sawClosingBrace = true;
+    }
+    if (words?.some((word) => zipWordEndsWithUnquotedCloseParen(word))) {
+      sawClosingParen = true;
+    }
+  }
+
+  const out: ZipStyleSegment[] = [];
+  for (let segmentIndex = 0; segmentIndex < wordSegments.length; segmentIndex++) {
+    const splitWords = wordSegments[segmentIndex];
+    if (splitWords === null || splitWords === undefined) continue;
+    let groupedWords = zipUnwrapSimpleGrouping(
+      splitWords,
+      closingBraceAfter[segmentIndex] as boolean,
+      closingParenAfter[segmentIndex] as boolean,
+    );
+    if (groupedWords === null) {
+      groupedWords = zipUnwrapSimpleGrouping(
+        zipShellWordsWithoutRedirections(splitWords),
+        closingBraceAfter[segmentIndex] as boolean,
+        closingParenAfter[segmentIndex] as boolean,
+      );
+    }
+    if (groupedWords === null) continue;
+    const words = zipShellWordsWithoutRedirections(groupedWords);
+    const execIndex = commandIndexAfterWrappers(words);
+    if (execIndex === null) continue;
+    out.push({ words, execIndex });
+  }
+  return out;
+}
+
+/**
+ * #4188: unknown argv0 (not a write/dest catalog member, not proven read-only)
+ * whose last positional dest-of-write is a payload-relative protected path.
+ * Does not grow dest-flag or write-bin catalogs. Zip first-positional grammar
+ * stays on hasProtectedZipArchiveDestination.
+ */
+function hasProtectedUnprovenReadOnlyDestOfWrite(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    const literal = argv0Literal(segment.words, segment.execIndex);
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === null) continue;
+    const pathQualified = literal !== null && argv0IsPathQualified(literal);
+    // Path-qualified `./cat` is not a proven reader. Still skip catalogued
+    // writers (they already emit settings). Do not apply print/read first-bin
+    // skips to path-qualified names.
+    if (name === "zip") continue;
+    if (
+      INDIRECT_WRITE_BINS.has(name) ||
+      ARCHIVE_ALT_WRITE_BINS.has(name) ||
+      DOWNLOADER_DECODER_BINS.has(name) ||
+      LAST_POSITIONAL_DEST_BINS.has(name) ||
+      SYMLINK_PLANT_BINS.has(name) ||
+      DEST_ASSIGNMENT_OWNER_BINS.has(name)
+    ) {
+      continue;
+    }
+    if (!pathQualified && argv0HasExistingDestGrammar(name)) continue;
+    const last = lastNonFlagWord(segment.words, segment.execIndex);
+    if (last !== null && isRelativePayloadProtectedDest(last)) return true;
+  }
+  return false;
+}
+
+/** True when a recovered dest literal is a payload-relative protected path. */
+export function destLiteralIsRelativeProtected(dest: string): boolean {
+  if (dest.startsWith("~/") || dest.startsWith("/") || dest.startsWith("~\\")) return false;
+  if (/^[A-Za-z]:[\\/]/.test(dest)) return false;
+  return zipLiteralIsProtectedDest(dest) || zipLiteralIsProtectedDest(dest, true);
+}
+
+/**
+ * Last dest-of-write candidates for dispatcher realpath (#4188).
+ * Proven read-only and print/read first-bins stay out. Zip last operands are
+ * inputs and are not harvested. Catalogued writers are included so a non-shell
+ * symlink dest can still be realpath-resolved.
+ */
+export function harvestDestsOfWriteForRealpath(command: string): string[] {
+  const dests: string[] = [];
+  for (const segment of zipStyleCommandSegments(command)) {
+    if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === null || name === "zip") continue;
+    const literal = argv0Literal(segment.words, segment.execIndex);
+    const pathQualified = literal !== null && argv0IsPathQualified(literal);
+    if (!pathQualified && DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(name)) continue;
+    if (!pathQualified && TEST_BINS.has(name)) continue;
+    const last = lastNonFlagWord(segment.words, segment.execIndex);
+    if (last === null || zipShellWordHasExpansion(last)) continue;
+    const destLiteral = zipShellWordLiteral(last);
+    if (destLiteral === null || destLiteral.length === 0) continue;
+    dests.push(destLiteral);
+  }
+  return dests;
+}
+
 function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
 }
@@ -3744,10 +3986,14 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   if (hasWriteCapableProgrammaticShell(cmd, tokens)) {
     found.add("settings");
   }
-  // #4005: a verified protected zip mutation must not be hidden by unrelated
-  // always-allowed token matches such as an input named `pytest`. Commands that
-  // use existing generic destination flags never enter this exact zip grammar.
-  if (!found.has("settings") && hasProtectedZipArchiveDestination(cmd)) {
+  // #4005 / #4188: a verified protected dest-of-write must not be hidden by
+  // unrelated always-allowed token matches such as an input named `pytest`.
+  // Dest-flag plants stay settings (grantable). Zip first-positional and
+  // unknown-argv0 last-positional dests emit unknown (grant-immune under UAT).
+  if (
+    !found.has("settings") &&
+    (hasProtectedZipArchiveDestination(cmd) || hasProtectedUnprovenReadOnlyDestOfWrite(cmd))
+  ) {
     found.add("unknown");
   }
 
