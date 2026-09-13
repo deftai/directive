@@ -149,7 +149,7 @@ describe("worktree occupancy lease (#3433)", () => {
       "other",
     );
     expect(presented).toContain("neither holds that lease");
-    expect(presented).toContain("occupancy:grant --child-session-id=");
+    expect(presented).toContain("occupancy:grant --session-id=owner --child-session-id=other");
     expect(presented).not.toMatch(/--steal/);
     const unconfirmed = stealOccupancy(root, {
       sessionId: "other",
