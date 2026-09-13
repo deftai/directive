@@ -5,15 +5,10 @@
  * boundary. The hint names the two-step; it does not run it.
  */
 import { formatFrameworkCommand } from "../render/framework-commands.js";
-import {
-  type LifecycleFolder,
-  type ScopeAction,
-  TRANSITIONS,
-} from "./constants.js";
+import { type LifecycleFolder, type ScopeAction, TRANSITIONS } from "./constants.js";
 
 /** Printed whenever a recovery names promote then activate. */
-export const AUTO_PROMOTE_REFUSED =
-  "auto-promote from proposed/ is refused";
+export const AUTO_PROMOTE_REFUSED = "auto-promote from proposed/ is refused";
 
 /**
  * Shared dispatcher recovery: no current folder is in scope, so name both

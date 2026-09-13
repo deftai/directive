@@ -43,7 +43,6 @@ import {
   STAY_LABELS,
   TRANSITIONS,
 } from "./constants.js";
-import { formatUnreachableTransitionHint } from "./transition-hint.js";
 import {
   detectLifecycleFolder,
   updateDecomposedChildBackReferences,
@@ -61,6 +60,7 @@ import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
 import { stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
+import { formatUnreachableTransitionHint } from "./transition-hint.js";
 import { utcNowIso } from "./vbrief-json.js";
 import type { WipCapCheck } from "./wip-cap-check.js";
 
