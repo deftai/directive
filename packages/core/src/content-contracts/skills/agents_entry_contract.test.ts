@@ -194,6 +194,12 @@ const SPAWN_DEST_PLACING_MARKERS = [
   "Agent.create",
 ] as const;
 
+/** Always-on #4386 consumer gates (#1309). */
+const EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS = [
+  "verify:evaluator-surface",
+  "verify:consumer-test-lane",
+] as const;
+
 /** After-merge one-origin orphan-active DONE gate (#3429). */
 const AFTER_MERGE_ORPHAN_ACTIVE_MARKERS = [
   "verify:orphan-active -- --issue",
@@ -872,6 +878,11 @@ describe("test_agents_entry_contract", () => {
   it("after_merge_orphan_active_markers_present_in_both_files", () => {
     expect(missingMarkers(template, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
+  });
+
+  it("evaluator_surface_and_consumer_test_lane_pin_present_in_both_files (#4386 / #1309)", () => {
+    expect(missingMarkers(template, EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS)).toEqual([]);
   });
 
   it("after_merge_completed_tracked_markers_present_in_both_files", () => {
