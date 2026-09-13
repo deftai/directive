@@ -163,6 +163,7 @@ describe("gate-lists (#2791)", () => {
       "verify:test-boundary",
       "verify:scope-provenance",
       "verify:consumer-check-contract",
+      "verify:evaluator-surface",
     ]) {
       expect(framework).toContain(gate);
       expect(consumer).toContain(gate);

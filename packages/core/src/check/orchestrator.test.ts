@@ -365,9 +365,10 @@ describe("dispatchCachedTaskCheck fail-fast before suite (#3188)", () => {
     errWrite.mockRestore();
   });
 
-  it("does not claim suite skip when consumer list has no suite gate", () => {
+  it("does not start the consumer suite when an earlier fast gate fails", () => {
     // Minimal deposit that passes #3070 consumer-gate integrity so the
-    // sequential runner reaches CONSUMER_CHECK_GATES (no suite entries).
+    // sequential runner reaches CONSUMER_CHECK_GATES. Declared consumer
+    // tests (#4386) are the suite gate on that list.
     const framework = mkdtempSync(join(tmpdir(), "deft-3188-fw-"));
     tempDirs.push(framework);
     mkdirSync(join(framework, "tasks"), { recursive: true });
@@ -411,6 +412,10 @@ tasks:
     cmds: [echo ok]
   consumer-check-contract:
     cmds: [echo ok]
+  evaluator-surface:
+    cmds: [echo ok]
+  consumer-test-lane:
+    cmds: [echo ok]
 `,
       "utf8",
     );
@@ -441,8 +446,7 @@ tasks:
 
     expect(code).toBe(1);
     const skipMsg = errWrite.mock.calls.map((c) => String(c[0])).join("");
-    expect(skipMsg).toMatch(/skipping remaining gates \(#3188\)/);
-    expect(skipMsg).not.toMatch(/including suite/);
+    expect(skipMsg).toMatch(/skipping remaining gates including suite \(#3188\)/);
     errWrite.mockRestore();
   });
 
@@ -512,6 +516,10 @@ tasks:
   scope-provenance:
     cmds: [echo ok]
   consumer-check-contract:
+    cmds: [echo ok]
+  evaluator-surface:
+    cmds: [echo ok]
+  consumer-test-lane:
     cmds: [echo ok]
 `,
       "utf8",

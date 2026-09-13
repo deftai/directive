@@ -61,6 +61,10 @@ tasks:
     cmds: [echo ok]
   consumer-check-contract:
     cmds: [echo ok]
+  evaluator-surface:
+    cmds: [echo ok]
+  consumer-test-lane:
+    cmds: [echo ok]
 `,
     "utf8",
   );

@@ -34,6 +34,7 @@ tasks:
       - verify:test-boundary
       - verify:scope-provenance
       - verify:consumer-check-contract
+      - verify:evaluator-surface
 `;
 
 const VERIFY_YML_COMPLETE = `
