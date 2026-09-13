@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Recut #4388 as residue of #4038.** Record what that completion shipped. Drop skip and the basename allowlist. Recut Evidence to a real tsc run. Refs #4388.
+- **Recut #4388 as leftover work from #4038.** Record what already shipped and recut the compiler evidence. Refs #4388.
 - **Land leftover completed-tracked artifact for #4422 (#3264 / #3476).** The #4422 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4463. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4423 (#3264 / #3476).** The #4423 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4459. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4426 (#3264 / #3476).** The #4426 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4455. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
