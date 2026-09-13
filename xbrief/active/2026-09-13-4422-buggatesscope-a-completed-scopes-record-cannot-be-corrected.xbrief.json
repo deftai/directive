@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4422",
-    "updated": "2026-09-13T01:33:57Z"
+    "updated": "2026-09-13T02:40:09Z"
   },
   "plan": {
     "title": "bug(gates,scope): a completed scope's record cannot be corrected -- every printed recovery is inapplicable and scope:undo is never mentioned",
@@ -16,19 +16,43 @@
     "items": [
       {
         "title": "Name git revert or hand-edit only if that action can succeed after complete. Prefer repairing the undo refusal text, or restoring write authority after complete, over a new write class.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/undo.ts#terminal-refusal + packages/core/src/hooks/dispatcher.test.ts#allows Write of xbrief/completed",
+          "recorded_at": "2026-09-13T02:40:09Z",
+          "recorded_by": "leaf-implementation/4422"
+        }
       },
       {
         "title": "Do not enumerate scope:undo as the recovery for completed-record edits.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/scope-branch-coverage.test.ts#undo terminal refusal + packages/core/src/hooks/dispatcher.test.ts#restates empty-active Write deny",
+          "recorded_at": "2026-09-13T02:40:09Z",
+          "recorded_by": "leaf-implementation/4422"
+        }
       },
       {
         "title": "If a completed-path write class binds at all, reuse allMutationTargetsAreProposedLifecycleWrites shape plus authz, runtimeAuthority, and occupancy rechecks. Do not key on the singular declared path.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#denies ApplyPatch when the declared completed path disagrees with the body",
+          "recorded_at": "2026-09-13T02:40:09Z",
+          "recorded_by": "leaf-implementation/4422"
+        }
       },
       {
         "title": "Restate rung-1 failure as no approved xBRIEF available in a one-scope repo, not as a fake-scope prohibition.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#restates empty-active Write deny as no approved xBRIEF, not fake-scope or scope:undo",
+          "recorded_at": "2026-09-13T02:40:09Z",
+          "recorded_by": "leaf-implementation/4422"
+        }
       }
     ],
     "tags": [
@@ -107,6 +131,6 @@
       }
     },
     "id": "github.issue.5427809126",
-    "updated": "2026-09-13T01:33:57Z"
+    "updated": "2026-09-13T02:40:09Z"
   }
 }
