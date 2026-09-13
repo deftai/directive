@@ -96,6 +96,7 @@ import {
   hookWriteTargetPath,
   hostIdentityFallsBackToExplicitOwner,
   inspectExactLifecycleCommand,
+  inspectHintedLifecycleSessionId,
   missingToolNameMessage,
   record,
   resolveHookHostIdentity,
@@ -2300,6 +2301,40 @@ function attachLifecycleIdentityRewrite(
       identity.status === "ok" && identity.sessionId !== null
         ? identity.sessionId
         : "<host-published-id>";
+    const hintedSession = inspectHintedLifecycleSessionId(input.payload);
+    if (
+      hintedSession.status === "present" &&
+      identity.status === "ok" &&
+      identity.sessionId !== null &&
+      hintedSession.sessionId === identity.sessionId
+    ) {
+      return decision;
+    }
+    if (
+      hintedSession.status === "present" &&
+      identity.status === "ok" &&
+      identity.sessionId !== null &&
+      hintedSession.sessionId !== identity.sessionId
+    ) {
+      return deny(
+        input,
+        "occupancy-identity-conflict",
+        toolName,
+        `Directive denied ${toolName}: lifecycle command ${hinted} names ` +
+          `${hintedSession.sessionId ?? "<missing>"}, but the host owner is ` +
+          `${identity.sessionId}. Re-run as a simple command or pass ` +
+          `--session-id=${identity.sessionId}.`,
+      );
+    }
+    if (hintedSession.status === "invalid") {
+      return deny(
+        input,
+        "occupancy-identity-conflict",
+        toolName,
+        `Directive denied lifecycle command ${hinted}: --session-id is empty, ` +
+          "duplicated, or otherwise ambiguous.",
+      );
+    }
     return deny(
       input,
       "occupancy-identity-unavailable",

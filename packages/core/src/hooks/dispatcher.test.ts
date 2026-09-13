@@ -4882,4 +4882,70 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
     expect(decision.code).toBe("occupancy-identity-unavailable");
     expect(decision.message).toContain("session:ready");
   });
+
+  it("allows a chained session:start that already names the matching owner", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: {
+            command: "deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && echo ok",
+          },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("denies a chained session:start that names a foreign owner", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: {
+            command: "deft session:start --session-id=other-owner && echo ok",
+          },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-conflict");
+  });
+
+  it("does not deny echo or grep of lifecycle syntax", () => {
+    for (const command of [
+      'echo "deft session:start"',
+      'grep "task occupancy:steal" file',
+      "echo hi # deft session:start",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            session_id: "session-a",
+            tool_input: { command },
+          },
+          environ: {},
+        },
+        readySeams(),
+      );
+      expect(decision.verdict, command).toBe("allow");
+    }
+  });
 });

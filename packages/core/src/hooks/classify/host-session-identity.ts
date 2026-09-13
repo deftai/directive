@@ -6,6 +6,14 @@
  * assumption. The provider table and the canonical owner form live in
  * `session/host-session-owner.ts` because the CLI claim path resolves the same
  * owner from the same host (#3873).
+ *
+ * Uninspectable lifecycle (#4431):
+ * Assumptions: rewrite injects --session-id only into exactLifecycleInvocation.
+ * Pipes, quotes, redirects, and chains are not rewritten.
+ * Guarantees: a lifecycle verb in unquoted command text fails closed unless an
+ * explicit matching --session-id is already present. Quoted strings and #
+ * comments are not invocations.
+ * Non-goals: full shell parse; injecting --session-id into compound commands.
  */
 
 import {
@@ -538,6 +546,91 @@ export function exactLifecycleCommandVerb(payload: unknown): ExactLifecycleVerb 
   return exactLifecyclePayload(payload)?.invocation.verb ?? null;
 }
 
+function shellCommandOutsideQuotesAndComments(command: string): string {
+  let out = "";
+  let i = 0;
+  while (i < command.length) {
+    const c = command[i];
+    if (c === "#") {
+      const nl = command.indexOf("\n", i + 1);
+      if (nl < 0) break;
+      out += "\n";
+      i = nl + 1;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const quote = c;
+      i += 1;
+      while (i < command.length) {
+        if (quote === '"' && command[i] === "\\" && i + 1 < command.length) {
+          i += 2;
+          continue;
+        }
+        if (command[i] === quote) {
+          i += 1;
+          break;
+        }
+        i += 1;
+      }
+      out += " ";
+      continue;
+    }
+    out += c;
+    i += 1;
+  }
+  return out;
+}
+
+function tokenizeUninspectableShell(command: string): string[] {
+  const tokens: string[] = [];
+  let cur = "";
+  let i = 0;
+  const flush = (): void => {
+    if (cur.length > 0) {
+      tokens.push(cur);
+      cur = "";
+    }
+  };
+  while (i < command.length) {
+    const c = command[i] ?? "";
+    if (c === "#") {
+      flush();
+      const nl = command.indexOf("\n", i + 1);
+      if (nl < 0) break;
+      i = nl + 1;
+      continue;
+    }
+    if (c === "\n" || /\s/.test(c)) {
+      flush();
+      i += 1;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const quote = c;
+      i += 1;
+      while (i < command.length) {
+        const ch = command[i] ?? "";
+        if (quote === '"' && ch === "\\" && i + 1 < command.length) {
+          cur += command[i + 1] ?? "";
+          i += 2;
+          continue;
+        }
+        if (ch === quote) {
+          i += 1;
+          break;
+        }
+        cur += ch;
+        i += 1;
+      }
+      continue;
+    }
+    cur += c;
+    i += 1;
+  }
+  flush();
+  return tokens;
+}
+
 const OWNER_LIFECYCLE_HINT =
   /(?:^|[^A-Za-z0-9_./\\-])(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
 
@@ -547,12 +640,14 @@ const OWNER_LIFECYCLE_HINT =
  * exactLifecycleInvocation returns null on quoting, redirect, pipe, or chain,
  * and attachLifecycleIdentityRewrite used to pass that through as allow.
  * This hint fails that path closed without classifying ordinary shell.
+ * Quoted strings and # comments are stripped first so echo/grep of the syntax
+ * is not a lifecycle invocation.
  */
 export function hintUninspectableLifecycleCommand(payload: unknown): ExactLifecycleVerb | null {
   if (exactLifecyclePayload(payload) !== null) return null;
   const command = hookShellCommand(payload);
   if (command === null) return null;
-  const match = OWNER_LIFECYCLE_HINT.exec(command);
+  const match = OWNER_LIFECYCLE_HINT.exec(shellCommandOutsideQuotesAndComments(command));
   if (match === null) return null;
   const token = match[1] ?? "";
   if (token === "swarm-launch") return "swarm:launch";
@@ -596,6 +691,26 @@ function sessionIdArgs(verb: ExactLifecycleVerb, args: readonly string[]): Sessi
   if (values.length === 0) return { status: "absent", values };
   if (values.length !== 1) return { status: "invalid", values };
   return { status: "present", values };
+}
+
+export interface HintedLifecycleSessionId {
+  readonly status: "absent" | "present" | "invalid";
+  readonly sessionId: string | null;
+}
+
+/** --session-id already bound on an uninspectable lifecycle command (#4431). */
+export function inspectHintedLifecycleSessionId(payload: unknown): HintedLifecycleSessionId {
+  const hinted = hintUninspectableLifecycleCommand(payload);
+  if (hinted === null) {
+    return { status: "absent", sessionId: null };
+  }
+  const command = hookShellCommand(payload);
+  if (command === null) return { status: "absent", sessionId: null };
+  const session = sessionIdArgs(hinted, tokenizeUninspectableShell(command));
+  return {
+    status: session.status,
+    sessionId: session.status === "present" ? (session.values[0] ?? null) : null,
+  };
 }
 
 export interface ExactLifecycleCommandInspection {
