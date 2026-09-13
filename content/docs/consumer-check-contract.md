@@ -13,6 +13,8 @@ A consumer could omit Directive enforcement gates from its `check` task and CI w
 - `verify:test-boundary`
 - `verify:scope-provenance`
 - `verify:consumer-check-contract`
+- `verify:evaluator-surface` (#4386)
+- `verify:consumer-test-lane` (#4386)
 
 It fails with a concrete repair path when definitions or explicit check deps omit them. CI workflows that neither invoke the gates nor a composing entrypoint (`task check` / `deft check`) produce **warnings** by default (migration).
 

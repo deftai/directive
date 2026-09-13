@@ -195,9 +195,14 @@ describe("gate-lists fast-before-slow (#3188)", () => {
     }
   });
 
-  it("keeps consumer gate list free of suite gates and fast-before-slow valid", () => {
+  it("places the declared consumer test lane last as the suite gate (#4386)", () => {
     expect(isFastBeforeSlowOrder(CONSUMER_CHECK_GATES)).toBe(true);
-    expect(CONSUMER_CHECK_GATES.some(isSuiteCheckGate)).toBe(false);
+    expect(SUITE_CHECK_GATE_IDS).toContain("verify:consumer-test-lane");
+    const ids = CONSUMER_CHECK_GATES.map(checkGateId);
+    expect(ids[ids.length - 1]).toBe("verify:consumer-test-lane");
+    expect(CONSUMER_CHECK_GATES.some(isSuiteCheckGate)).toBe(true);
+    expect(ids).toContain("verify:evaluator-surface");
+    expect(ids.indexOf("verify:ac")).toBe(0);
   });
 
   it("rejects an ordering that puts a cheap gate after the suite", () => {

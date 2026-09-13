@@ -1,0 +1,13 @@
+{
+  "schema": "deft.evaluator-surface-disposition.v1",
+  "kind": "disclosure",
+  "issue": 4386,
+  "surfaces": [
+    "Taskfile.yml",
+    "tasks/verify.yml",
+    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/consumer-check-contract/evaluate.ts",
+    "packages/core/src/evaluator-surface/**"
+  ],
+  "note": "Disclosure of evaluator-surface wiring for #4386. Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record."
+}

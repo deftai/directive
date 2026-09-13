@@ -61,6 +61,25 @@ describe("deft-ts verify-agents-md-budget (#645)", () => {
   });
 });
 
+describe("deft-ts verify-evaluator-surface (#4386)", () => {
+  it("skips when no evaluator-surface paths are in the diff", () => {
+    const { exitCode } = runDeftTs("verify-evaluator-surface", [
+      "--project-root",
+      repoRoot(),
+      "--path",
+      "README.md",
+    ]);
+    expect(exitCode).toBe(0);
+  });
+
+  it("verify:evaluator-surface alias routes identically", () => {
+    const args = ["--project-root", repoRoot(), "--path", "README.md"];
+    expect(runDeftTs("verify:evaluator-surface", args).exitCode).toBe(
+      runDeftTs("verify-evaluator-surface", args).exitCode,
+    );
+  });
+});
+
 describe("deft-ts verify-eval-health-relocation (#2373)", () => {
   it("skips when no relocation paths are in the diff", () => {
     const { exitCode } = runDeftTs("verify-eval-health-relocation", [

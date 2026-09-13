@@ -84,8 +84,8 @@ Field notes and parent framing: issue [#3156](https://github.com/deftai/directiv
 - Verification outcomes: [verification.md](../verification/verification.md).
 - Goal/gate rigidity: [goal-gate-determinism.md](../patterns/goal-gate-determinism.md) (#852).
 - Scope self-auth instance: [scope-provenance.md](./scope-provenance.md) (#3145).
-
-Full CI automation that blocks “diff touches a gate that just failed” without operator acknowledgment is an **optional follow-up** — this story ships the sharp rule and pre-PR discoverability, not a new verify binary.
+- Product-oracle history: `packages/core/src/verify-ac/flag.ts` `flagPassAfterFailWithMethodChange` (#3322) -- shipped detector for fail-then-method-change on product oracles.
+- Evaluator-definition diffs: `task verify:evaluator-surface` (#4386) -- declared surface changes fail regardless of prior color unless `xbrief/evaluator-surface-disposition.json` records disclosure.
 
 ---
 
@@ -102,6 +102,8 @@ Full CI automation that blocks “diff touches a gate that just failed” withou
 | Host self-mutate honesty | [#3162](https://github.com/deftai/directive/issues/3162), [host-surface-assumptions.md](./host-surface-assumptions.md) |
 | Safety via formal gates | [#1200](https://github.com/deftai/directive/issues/1200) |
 | Poisoned product-oracle history from a safety refusal | [#3615](https://github.com/deftai/directive/issues/3615), this page § Product-oracle history poisoned by a safety refusal |
+| Product-oracle method-change detector | [#3322](https://github.com/deftai/directive/issues/3322), `flagPassAfterFailWithMethodChange` |
+| Evaluator-definition disclosure | [#4386](https://github.com/deftai/directive/issues/4386), `verify:evaluator-surface` |
 
 ---
 
@@ -124,3 +126,24 @@ Records already written still pair on `session_id` + `check_id`. A correct class
 - ⊗ Host hook enforcement for self-mutating hosts (#3162)
 - ⊗ Replacing design-principle docs under #1200 (complementary)
 - ⊗ Shipping full “gate-diff-when-red” CI automation in this story
+- ⊗ A parallel history detector beside #3322
+- ⊗ Treating a commit-body issue/PR URL as reviewed authorization under #3164
+- ⊗ Inventing a universal shipped-library coverage-population default
+- ⊗ Falsifiable oracles for derived acceptance clauses (separate acceptance-design gap)
+
+## Evaluator-definition detector (#4386)
+
+#3156 shipped the rule and deferred a dedicated detector. That deferral is the gap, not an unnamed hole. #3322 already watches product-oracle pass-after-fail-with-method-change. The missing piece is **unobserved evaluator-definition changes**, not product-oracle history.
+
+`verify:evaluator-surface` is the thin first ship:
+
+- Declared evaluator-surface diffs (Taskfile.yml, tasks/verify.yml, coverage config, gate-lists, the detector itself) **fail regardless of prior color**.
+- Prior color is unobserved. Do not silently equate unknown with never-red.
+- A committed `xbrief/evaluator-surface-disposition.json` (`schema: deft.evaluator-surface-disposition.v1`, `kind: disclosure`) is the disposition record. It is **disclosure, not reviewed authorization**.
+- A commit-body issue/PR link is disclosure. It does not satisfy this gate and does not claim #3164 protection.
+
+`verify:consumer-test-lane` composes the project's **declared** test command (`plan.policy.testCommand` or `package.json` `scripts.test`) into the consumer chokepoint. It does not replace `PRODUCT_FIRST_AC_GATE` (`verify:ac`). When nothing is declared, it skips -- it does not invent `go test ./...`.
+
+Keep the [testing.md](../coding/testing.md) coverage-population exclusion (entry points and main functions). Wire project-specific measured populations in the project's runner config. Do not invent a universal shipped-library default.
+
+Falsifiable oracles for derived clauses stay a separate acceptance-design gap. Do not implement a parallel history detector.

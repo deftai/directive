@@ -1,0 +1,18 @@
+export {
+  classifyEvaluatorSurfacePaths,
+  collectChangedPaths,
+  DISPOSITION_KIND_DISCLOSURE,
+  DISPOSITION_REL,
+  DISPOSITION_SCHEMA,
+  dispositionCovers,
+  dispositionPath,
+  EVALUATOR_SURFACE_PATH_PATTERNS,
+  type EvaluateOptions,
+  type EvaluateResult,
+  type EvaluatorSurfaceDisposition,
+  evaluate,
+  isEvaluatorSurfacePath,
+  type OutputStream,
+  parseDisposition,
+  readDisposition,
+} from "./evaluate.js";
