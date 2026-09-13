@@ -44,6 +44,7 @@ import {
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath, resolveWriteFence } from "../policy/write-fence.js";
+import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   appendSoftAgentsRebindToMessage,
   decisionCarriesSoftAgentsRebind,
@@ -1788,8 +1789,8 @@ function inspectMutationGates(
         // Multi-path recovery for implement-class spawns (#3080 AC4 / #3259 honesty).
         // Structural markers only — free-text prompt brackets are not sufficient.
         proposedPathHint =
-          " Recovery: (1) Product implementation — run `deft scope:activate -- <path>` " +
-          "for the approved xBRIEF, then re-run the pre-start_agent gate stack. " +
+          " Recovery: (1) Product implementation — " +
+          `${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}, then re-run the pre-start_agent gate stack. ` +
           "(2) Read-only research — spawn with structural `subagent_type`/`worker_role` explore. " +
           "(3) Ephemeral docs/local-dev — set structural tool fields " +
           "`worker_role`/`subagent_type` ∈ {ephemeral, docs, assist} (hosts that support them), " +
@@ -1812,13 +1813,12 @@ function inspectMutationGates(
         proposedPathHint = options.proposedLifecycleExempt
           ? " Recovery: no approved xBRIEF is available to activate " +
             "(in a one-scope repo after complete, completing the only scope emptied the active set). " +
-            "If an approved xBRIEF exists in pending/, run `deft scope:activate -- <path>`. " +
+            `${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}. ` +
             "Or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption), " +
             "or for disposable research notes write under `.deft-scratch/` (or `temp/`) " +
             "with assist/ephemeral posture (`DEFT_SESSION_POSTURE=assist` or " +
             "`worker_role: assist` / ephemeral — see commands.md #1802 / #3080)."
-          : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
-            "then re-run the pre-start_agent gate stack. " +
+          : ` Recovery: ${SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE}, then re-run the pre-start_agent gate stack. ` +
             "For disposable research notes only: write under `.deft-scratch/` with " +
             "assist posture (commands.md #1802) — do not fake `scope:activate` for notes.";
       }

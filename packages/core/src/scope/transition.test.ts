@@ -981,6 +981,29 @@ describe("runTransition", () => {
     expect(result.message).toContain("Invalid transition");
   });
 
+  it("rejects activate from proposed with promote then activate and does not auto-promote (#4412)", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "proposed", "proposed");
+    const result = runTransition("activate", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Invalid transition");
+    expect(result.message).toContain("deft scope:promote -- xbrief/proposed/story.xbrief.json");
+    expect(result.message).toContain("deft scope:activate -- xbrief/pending/story.xbrief.json");
+    expect(result.message).toContain("auto-promote from proposed/ is refused");
+    expect(existsSync(file)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "story.xbrief.json"))).toBe(false);
+  });
+
+  it("does not hint cancel-then-restore when restore is asked of active/ (#4412)", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("restore", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Invalid transition");
+    expect(result.message).not.toContain("scope:cancel");
+    expect(existsSync(file)).toBe(true);
+  });
+
   it("rejects move when destination already exists (#2578)", () => {
     root = makeRepo();
     const file = writeVbrief(root, "active", "running", "dup.xbrief.json");

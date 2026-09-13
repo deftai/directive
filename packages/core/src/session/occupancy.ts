@@ -414,6 +414,14 @@ function renderEchoedSessionId(id: string): string {
   return "<unusable-child-id>";
 }
 
+/** Copy-paste grant: owner id and role enum already in scope (#4412). */
+function occupancyGrantCommand(occupantArg: string, childArg: string): string {
+  return (
+    `occupancy:grant --session-id=${occupantArg} --child-session-id=${childArg} ` +
+    `--role <${SWARM_WORKER_ROLES.join("|")}>`
+  );
+}
+
 function occupancyClockLine(record: OccupancyRecord): string {
   const lastWrite =
     record.lastWriteAt === null ? "" : ` last_write_at=${timestampIso(record.lastWriteAt)}`;
@@ -495,19 +503,19 @@ export function formatOccupancyRemediation(
     `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n`;
   const tail = "\nThe occupant may release (`occupancy:release` / `session:end`).";
   const worktreeFirst = "Use another worktree.";
+  const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
 
   if (presented === undefined) {
     return (
       `${header}${worktreeFirst} Stay read-only (\`session:start --read-only\`).\n` +
-      "Ask the occupant for a write grant (`occupancy:grant --child-session-id=<your-session-id> " +
-      "--role <worker-role>`, run by the occupant). A confirmed owner transition " +
-      "(`session:start --steal --confirm --occupant <reported-session-id> --session-id=<your-session-id>`) " +
+      `Ask the occupant for a write grant (\`${occupancyGrantCommand(occupantArg, "<your-session-id>")}\`, ` +
+      "run by the occupant). A confirmed owner transition " +
+      `(\`session:start --steal --confirm --occupant ${occupantArg} --session-id=<your-session-id>\`) ` +
       `is last resort, not the default recovery.${tail}`
     );
   }
 
   const actor = presented.trim();
-  const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
   if (actor.length === 0) {
     return (
       `${header}This process presented no session identity, so a write grant cannot name it ` +
@@ -529,8 +537,8 @@ export function formatOccupancyRemediation(
     `${header}This process presented session ${actor}, which neither holds that lease nor has a ` +
     "write grant on it.\n" +
     `${worktreeFirst} Stay read-only (\`session:start --read-only\`).\n` +
-    `Ask the occupant for a write grant (\`occupancy:grant --child-session-id=${actorArg} ` +
-    "--role <worker-role>`, run by the occupant). A confirmed owner transition " +
+    `Ask the occupant for a write grant (\`${occupancyGrantCommand(occupantArg, actorArg)}\`, ` +
+    "run by the occupant). A confirmed owner transition " +
     `(\`session:start --steal --confirm --occupant ${occupantArg} --session-id=${actorArg}\`) ` +
     `is last resort, not isolation.${tail}`
   );
@@ -633,8 +641,16 @@ export function formatPresentedIdentityDisagreement(identity: PresentedIdentity)
   );
 }
 
+/** How a claimer id was chosen (#4412). Mint is the only unbindable terminal. */
+export type OccupancyClaimSource = "explicit" | "environment" | "host" | "mint";
+
+export interface OccupancySessionClaim {
+  readonly sessionId: string;
+  readonly source: OccupancyClaimSource;
+}
+
 /**
- * The owner a claim is made under: the shared lookup chain, then a mint.
+ * The owner a claim is made under, plus whether that owner was resolved or minted.
  *
  * The host step is what makes an identified host's claim reachable (#3873).
  * Minting instead binds the lease to an id no later hook process can present,
@@ -642,15 +658,40 @@ export function formatPresentedIdentityDisagreement(identity: PresentedIdentity)
  * mint stays as the last resort for hosts that publish nothing, and it is the
  * one terminal the prove-surfaces deliberately do not share (#3954).
  */
-export function resolveOccupancySessionId(input: ApplyOccupancyInput = {}): string {
+export function resolveOccupancySessionClaim(
+  input: ApplyOccupancyInput = {},
+): OccupancySessionClaim {
   const identity = resolvePresentedIdentity(input);
   // #4066: host-authoritative claim. Inherited DEFT_SESSION_ID must not beat the
   // host-published owner -- that split is the measured steal-from-self loop.
   if (identity.source === "environment" && identity.disagreeingHostOwner !== null) {
-    return identity.disagreeingHostOwner;
+    return { sessionId: identity.disagreeingHostOwner, source: "host" };
   }
-  if (identity.sessionId.length > 0) return identity.sessionId;
-  return (input.newSessionId ?? randomUUID)();
+  if (identity.source === "none" || identity.sessionId.length === 0) {
+    return { sessionId: (input.newSessionId ?? randomUUID)(), source: "mint" };
+  }
+  return { sessionId: identity.sessionId, source: identity.source };
+}
+
+export function resolveOccupancySessionId(input: ApplyOccupancyInput = {}): string {
+  return resolveOccupancySessionClaim(input).sessionId;
+}
+
+/** session:ready claim-time mint versus resolve (#4412). */
+export function formatOccupancyClaimProvenance(claim: OccupancySessionClaim): string {
+  if (claim.source === "mint") {
+    return (
+      `session:ready minted occupancy owner ${claim.sessionId}. ` +
+      "That id is not a host-resolved owner; later hook writes present the host identity, not this mint."
+    );
+  }
+  const from =
+    claim.source === "host"
+      ? "the host-published owner"
+      : claim.source === "explicit"
+        ? "explicit --session-id"
+        : "DEFT_SESSION_ID";
+  return `session:ready resolved occupancy owner ${claim.sessionId} from ${from}.`;
 }
 
 export function readOccupancy(projectRoot: string): OccupancyRecord | null {

@@ -29,6 +29,7 @@ import { canonicalHostSessionId } from "./host-session-owner.js";
 import {
   applyWorktreeOccupancy,
   evaluateOccupancyWriteGate,
+  formatOccupancyClaimProvenance,
   formatOccupancyRemediation,
   grantOccupancyMembership,
   heartbeatAgeSeconds,
@@ -52,6 +53,7 @@ import {
   readOccupancy,
   releaseOccupancy,
   releaseSwarmOccupancy,
+  resolveOccupancySessionClaim,
   resolveOccupancySessionId,
   revokeOccupancyMembership,
   stealOccupancy,
@@ -125,7 +127,7 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(denied.message).toContain("Worktree occupied by session owner");
     expect(denied.message).toContain("intent=swarm");
     expect(denied.message).toContain("heartbeat 300s ago");
-    expect(denied.message).toContain("occupancy:grant --child-session-id=");
+    expect(denied.message).toContain("occupancy:grant --session-id=owner --child-session-id=other");
     expect(denied.message).toContain("session:start --steal --confirm");
     expect(denied.message).not.toContain("or steal (`occupancy:steal --confirm`)");
     expect(readOccupancy(root)?.sessionId).toBe("owner");
@@ -166,6 +168,34 @@ describe("worktree occupancy lease (#3433)", () => {
         newSessionId: () => "minted",
       }),
     ).toBe("env-id");
+  });
+
+  it("resolveOccupancySessionClaim distinguishes mint from resolve (#4412)", () => {
+    expect(
+      resolveOccupancySessionClaim({
+        env: { DEFT_SESSION_ID: "env-id" },
+        newSessionId: () => "minted",
+      }),
+    ).toEqual({ sessionId: "env-id", source: "environment" });
+    expect(
+      resolveOccupancySessionClaim({
+        sessionId: "explicit-id",
+        env: { DEFT_SESSION_ID: "env-id" },
+        newSessionId: () => "minted",
+      }),
+    ).toEqual({ sessionId: "explicit-id", source: "explicit" });
+    expect(
+      resolveOccupancySessionClaim({
+        env: {},
+        newSessionId: () => "minted-uuid",
+      }),
+    ).toEqual({ sessionId: "minted-uuid", source: "mint" });
+    expect(formatOccupancyClaimProvenance({ sessionId: "minted-uuid", source: "mint" })).toContain(
+      "minted occupancy owner minted-uuid",
+    );
+    expect(
+      formatOccupancyClaimProvenance({ sessionId: "env-id", source: "environment" }),
+    ).toContain("resolved occupancy owner env-id from DEFT_SESSION_ID");
   });
 
   it("steals after naming the occupant with --confirm", () => {
