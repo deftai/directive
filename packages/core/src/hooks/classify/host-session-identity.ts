@@ -14,8 +14,9 @@
  * explicit matching --session-id is already present. Quoted strings and #
  * comments are not invocations. POSIX env-assignment prefixes (FOO=bar cmd)
  * bind like the unprefixed command or fail closed on chains; they do not
- * fail-open. Newline, single `&`, and grouped `(cmd)` forms are the same
- * fail-closed hint, not a rewrite.
+ * fail-open. Newline, single `&`, grouped `(cmd)` / `{ cmd; }`, and `then`/`do`
+ * control-structure forms are the same fail-closed hint, not a rewrite.
+ * The hint is tokenizer-based (no regex) so compound separators cannot ReDoS.
  * Non-goals: full shell parse; injecting --session-id into compound commands.
  */
 
@@ -636,7 +637,23 @@ function shellCommandOutsideQuotesAndComments(command: string): string {
   return out;
 }
 
-const CHAIN_TOKENS = new Set(["&&", "||", "|", ";", "&", "(", ")"]);
+const CHAIN_TOKENS = new Set([
+  "&&",
+  "||",
+  "|",
+  ";",
+  "&",
+  "(",
+  ")",
+  "{",
+  "}",
+  "then",
+  "do",
+  "else",
+  "elif",
+  "fi",
+  "done",
+]);
 const LIFECYCLE_EXECUTABLES = new Set([
   "deft",
   "directive",
@@ -712,7 +729,13 @@ function tokenizeUninspectableShell(command: string): string[] {
       }
       continue;
     }
-    if (c === "(" || c === ")" || c === "&") {
+    if (command.startsWith("&&", i) || command.startsWith("||", i)) {
+      flush();
+      tokens.push(command.slice(i, i + 2));
+      i += 2;
+      continue;
+    }
+    if (c === "(" || c === ")" || c === "{" || c === "}" || c === "&" || c === ";" || c === "|") {
       flush();
       tokens.push(c);
       i += 1;
@@ -725,9 +748,6 @@ function tokenizeUninspectableShell(command: string): string[] {
   return tokens;
 }
 
-const OWNER_LIFECYCLE_HINT =
-  /(?:^|&&|\|\||\||;|&|\n|\r|\()\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
-
 /**
  * Lifecycle verb inside a non-inspectable shell command (#4431).
  *
@@ -735,20 +755,17 @@ const OWNER_LIFECYCLE_HINT =
  * and attachLifecycleIdentityRewrite used to pass that through as allow.
  * This hint fails that path closed without classifying ordinary shell.
  * Quoted strings and # comments are stripped first so echo/grep of the syntax
- * is not a lifecycle invocation.
+ * is not a lifecycle invocation. Tokenizer scan (not a regex) finds the verb
+ * after `{`, `then`, `do`, and the other chain tokens.
  */
 export function hintUninspectableLifecycleCommand(payload: unknown): ExactLifecycleVerb | null {
   if (exactLifecyclePayload(payload) !== null) return null;
   const command = hookShellCommand(payload);
   if (command === null) return null;
-  const match = OWNER_LIFECYCLE_HINT.exec(shellCommandOutsideQuotesAndComments(command));
-  if (match === null) return null;
-  const token = match[1] ?? "";
-  if (token === "swarm-launch") return "swarm:launch";
-  if ((EXACT_LIFECYCLE_VERBS as readonly string[]).includes(token)) {
-    return token as ExactLifecycleVerb;
-  }
-  return null;
+  const windows = lifecycleInvocationWindows(
+    tokenizeUninspectableShell(shellCommandOutsideQuotesAndComments(command)),
+  );
+  return windows[0]?.verb ?? null;
 }
 
 interface SessionIdArgs {

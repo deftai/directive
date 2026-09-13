@@ -366,4 +366,41 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       }),
     ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
   });
+
+  it("does not fail-open brace-group or then-branch lifecycle commands", () => {
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "{ deft session:start; }" },
+      }),
+    ).toBe("session:start");
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "if true; then deft session:start; fi" },
+      }),
+    ).toBe("session:start");
+    expect(
+      exactLifecycleCommandVerb({
+        tool_name: "Bash",
+        tool_input: { command: "{ deft session:start; }" },
+      }),
+    ).toBeNull();
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "{ deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h; }",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "if true; then deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h; fi",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
+  });
 });
