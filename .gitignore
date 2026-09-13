@@ -185,9 +185,11 @@ docs/rule-map/
 
 xbrief/.triage-cache/scm-label-mirror-discovery-state.json
 
-# Agent-host working state (#3502). Selective only -- .claude/settings.json,
+# Agent-host working state (#3502 / #4431). Selective only -- .claude/settings.json,
 # .claude/skills/ and .claude/commands/ are managed Directive deposits and
-# must stay trackable. This repo is not a consumer deposit, so it does not
+# must stay trackable. Do not add a blanket `.claude/` to .git/info/exclude:
+# that overrides this policy per-clone and is invisible to git status.
+# This repo is not a consumer deposit, so it does not
 # inherit CANONICAL_GITIGNORE_BASELINE reconciliation.
 .claude/worktrees/
 .claude/settings.local.json

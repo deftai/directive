@@ -19,6 +19,7 @@ export {
   type HookHostIdentityResolution,
   type HookHostIdentitySource,
   type HookHostIdentityStatus,
+  hintUninspectableLifecycleCommand,
   hookHostIdentitySource,
   hostIdentityFallsBackToExplicitOwner,
   inspectExactLifecycleCommand,

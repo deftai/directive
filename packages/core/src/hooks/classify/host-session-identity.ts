@@ -21,6 +21,7 @@ import {
   readHostEnvIdentity,
 } from "../../session/host-session-owner.js";
 import { isShellTool } from "../tools.js";
+import { hookShellCommand } from "./paths.js";
 import { record, toolInputRecord } from "./payload.js";
 import { hookToolName } from "./tool-name.js";
 
@@ -535,6 +536,30 @@ function exactLifecyclePayload(payload: unknown): ExactLifecyclePayload | null {
 /** Logical lifecycle verb for one exact, simple shell command; otherwise null. */
 export function exactLifecycleCommandVerb(payload: unknown): ExactLifecycleVerb | null {
   return exactLifecyclePayload(payload)?.invocation.verb ?? null;
+}
+
+const OWNER_LIFECYCLE_HINT =
+  /(?:^|[^A-Za-z0-9_./\\-])(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
+
+/**
+ * Lifecycle verb inside a non-inspectable shell command (#4431).
+ *
+ * exactLifecycleInvocation returns null on quoting, redirect, pipe, or chain,
+ * and attachLifecycleIdentityRewrite used to pass that through as allow.
+ * This hint fails that path closed without classifying ordinary shell.
+ */
+export function hintUninspectableLifecycleCommand(payload: unknown): ExactLifecycleVerb | null {
+  if (exactLifecyclePayload(payload) !== null) return null;
+  const command = hookShellCommand(payload);
+  if (command === null) return null;
+  const match = OWNER_LIFECYCLE_HINT.exec(command);
+  if (match === null) return null;
+  const token = match[1] ?? "";
+  if (token === "swarm-launch") return "swarm:launch";
+  if ((EXACT_LIFECYCLE_VERBS as readonly string[]).includes(token)) {
+    return token as ExactLifecycleVerb;
+  }
+  return null;
 }
 
 interface SessionIdArgs {

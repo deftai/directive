@@ -196,6 +196,18 @@ export function runSessionReady(
     env,
     newSessionId: options.sessionStartOptions?.newSessionId,
   });
+  if (claim.status === "refuse-mint") {
+    lines.push(claim.message);
+    return {
+      code: 1,
+      sessionId: "",
+      message: claim.message,
+      path: SESSION_READY_FAILED,
+      lines,
+      steps,
+      duration_ms: elapsedMs(started),
+    };
+  }
   const sessionId = claim.sessionId;
   let nestedStartClaimedOccupancy = false;
 
@@ -215,6 +227,7 @@ export function runSessionReady(
     occupant: options.sessionStartOptions?.occupant,
     intent: options.sessionStartOptions?.occupancyIntent ?? "mutation",
     write,
+    identityProvenance: claim.provenance,
   });
   const requestedSteal = options.sessionStartOptions?.steal === true;
   const previewOccupancy = applyOccupancy(projectRoot, occupancyInput(false, requestedSteal));

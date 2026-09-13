@@ -208,20 +208,20 @@ describe("worktree occupancy lease (#3433)", () => {
         env: { DEFT_SESSION_ID: "env-id" },
         newSessionId: () => "minted",
       }),
-    ).toEqual({ sessionId: "env-id", source: "environment" });
+    ).toEqual({ status: "ok", sessionId: "env-id", source: "environment", provenance: "environment" });
     expect(
       resolveOccupancySessionClaim({
         sessionId: "explicit-id",
         env: { DEFT_SESSION_ID: "env-id" },
         newSessionId: () => "minted",
       }),
-    ).toEqual({ sessionId: "explicit-id", source: "explicit" });
+    ).toEqual({ status: "ok", sessionId: "explicit-id", source: "explicit", provenance: "explicit" });
     expect(
       resolveOccupancySessionClaim({
         env: {},
         newSessionId: () => "minted-uuid",
       }),
-    ).toEqual({ sessionId: "minted-uuid", source: "mint" });
+    ).toEqual({ status: "ok", sessionId: "minted-uuid", source: "mint", provenance: "minted" });
     expect(formatOccupancyClaimProvenance({ sessionId: "minted-uuid", source: "mint" })).toContain(
       "minted occupancy owner minted-uuid",
     );

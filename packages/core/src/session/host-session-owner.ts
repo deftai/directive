@@ -33,6 +33,10 @@ const HOST_IDENTITY_SOURCES: Readonly<Record<HookHostIdentityProvider, HookHostI
   grok: { kind: "host-env", variable: "GROK_SESSION_ID" },
 };
 
+// #4431: payload hosts stay payload-only. Adding CLAUDE_CODE_SESSION_ID (or a
+// Codex/Cursor env twin) as host-env is refused: the value is shell-reachable
+// and not distinct per agent session, so a child inherits its parent's owner.
+
 /**
  * The `host-env` half of the table above, resolved once.
  *
@@ -191,4 +195,61 @@ export function ambientHostSessionOwner(environ: NodeJS.ProcessEnv = process.env
     if (value.status === "ok") resolved.push(canonicalHostSessionId(provider, value.rawSessionId));
   }
   return resolved.length === 1 ? (resolved[0] as string) : null;
+}
+
+/**
+ * Env markers that mean a declared identity-contract host is running here
+ * (#4431). Presence is not an occupancy identity source: it only tells the
+ * claim path to refuse a mint instead of binding a UUID no later hook can
+ * present.
+ */
+const DECLARED_IDENTITY_HOST_PRESENCE: Readonly<
+  Record<HookHostIdentityProvider, readonly string[]>
+> = {
+  grok: ["GROK_AGENT", "GROK_SESSION_ID"],
+  claude: ["CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID"],
+  cursor: ["CURSOR_AGENT", "CURSOR_TRACE_ID", "CURSOR_SESSION_ID"],
+  codex: ["CODEX_SANDBOX", "CODEX_CI", "OPENAI_CODEX"],
+};
+
+/**
+ * Print-only companions for payload-identity hosts (#4431).
+ *
+ * These can name the owner a later hook would present when no PreToolUse hook
+ * is registered. They are not occupancy identity sources and must not join
+ * HOST_ENV_IDENTITY_VARIABLES: CLAUDE_CODE_SESSION_ID is shell-reachable and
+ * inherited by child sessions, so claiming from it reopens the #4066 class.
+ */
+const PAYLOAD_HOST_PRINT_COMPANIONS: Readonly<Partial<Record<HookHostIdentityProvider, string>>> = {
+  claude: "CLAUDE_CODE_SESSION_ID",
+};
+
+function envMarkerPresent(environ: NodeJS.ProcessEnv, name: string): boolean {
+  const raw = environ[name];
+  return raw !== undefined && raw.length > 0;
+}
+
+/** Hosts with a declared identity contract visible in this process environment. */
+export function detectDeclaredIdentityHosts(
+  environ: NodeJS.ProcessEnv = process.env,
+): readonly HookHostIdentityProvider[] {
+  return HOST_IDENTITY_PROVIDERS.filter((provider) =>
+    DECLARED_IDENTITY_HOST_PRESENCE[provider].some((name) => envMarkerPresent(environ, name)),
+  );
+}
+
+/**
+ * Canonical owner a payload host can print for recovery, or null.
+ *
+ * Print-only: never feed this into the claim lookup chain.
+ */
+export function printCompanionHostOwner(
+  provider: HookHostIdentityProvider,
+  environ: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const variable = PAYLOAD_HOST_PRINT_COMPANIONS[provider];
+  if (variable === undefined) return null;
+  const value = readHostEnvIdentity(environ, variable);
+  if (value.status !== "ok") return null;
+  return canonicalHostSessionId(provider, value.rawSessionId);
 }
