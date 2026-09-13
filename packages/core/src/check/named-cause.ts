@@ -37,6 +37,10 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
   "verify:scope-provenance": "Record approved scope provenance for the failing paths",
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
+  "verify:evaluator-surface":
+    "Add xbrief/evaluator-surface-disposition.json covering the changed evaluator paths (disclosure only; not #3164 authorization)",
+  "verify:consumer-test-lane":
+    "Fix the project's declared test command, or set plan.policy.testCommand; do not invent a suite",
   "verify:forward-coverage":
     "Add tests for new source files and uncovered changed branches (task verify:forward-coverage)",
   "verify:scm-boundary": "Move SCM mutations off GraphQL-heavy paths or wait for rate-limit reset",

@@ -309,8 +309,28 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:scope-provenance --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  evaluator-surface:
+    desc: "Declared evaluator-surface diff gate (#4386 / #3156): fail when Taskfile.yml, tasks/verify.yml, gate-lists, coverage config, or the detector itself changes without xbrief/evaluator-surface-disposition.json covering those paths. Disclosure only -- a commit-body issue/PR URL is not #3164 authorization. Prior color is unobserved. Flags: --base-ref / --staged / --path / --quiet. Three-state exit (0 skip or disclosed / 1 missing disposition / 2 config)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:evaluator-surface --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  consumer-test-lane:
+    desc: "Consumer declared-test-command lane (#4386): run plan.policy.testCommand or package.json scripts.test. Skip when undeclared -- do not invent go test ./... or a shipped-library default. Does not replace verify:ac (PRODUCT_FIRST_AC_GATE). Flags: --quiet. Three-state exit (0 skip or pass / 1 declared command failed / 2 config)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:consumer-test-lane --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   consumer-check-contract:
-    desc: "Consumer check-composition contract (#3145): fail when tasks/verify.yml or check aggregate omit required enforcement gates (verify:test-boundary, verify:scope-provenance, verify:consumer-check-contract). CI omissions warn by default. Flags: --framework-source / --enforce / --warn / --quiet. Three-state exit (0 clean or warn / 1 missing / 2 config)."
+    desc: "Consumer check-composition contract (#3145): fail when tasks/verify.yml or check aggregate omit required enforcement gates (verify:test-boundary, verify:scope-provenance, verify:consumer-check-contract, verify:evaluator-surface, verify:consumer-test-lane). CI omissions warn by default. Flags: --framework-source / --enforce / --warn / --quiet. Three-state exit (0 clean or warn / 1 missing / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
