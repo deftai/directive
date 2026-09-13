@@ -14,6 +14,7 @@ import {
 import {
   assertDestinationNotSymlink,
   assertProjectionContained,
+  assertWriteTargetSafe,
   ProjectionContainmentError,
 } from "./projection-containment.js";
 
@@ -163,6 +164,36 @@ describe("assertDestinationNotSymlink (#2912)", () => {
     expect(() =>
       assertDestinationNotSymlink(projectDir, join(projectDir, ".gitattributes")),
     ).toThrow(ProjectionContainmentError);
+  });
+});
+
+describe("assertWriteTargetSafe delegates to assertDestinationNotSymlink (#3953)", () => {
+  it("passes for a real nested file", () => {
+    const projectDir = freshDir("write-safe-real-");
+    mkdirSync(join(projectDir, "docs"), { recursive: true });
+    expect(() =>
+      assertWriteTargetSafe(projectDir, join(projectDir, "docs", "CHANGELOG.md")),
+    ).not.toThrow();
+  });
+
+  itSymlink("refuses an IN-TREE destination leaf symlink", () => {
+    const projectDir = freshDir("write-safe-intree-leaf-");
+    const victim = join(projectDir, "real-agents.md");
+    writeFileSync(victim, "KEEP\n", "utf8");
+    symlinkSync(victim, join(projectDir, "AGENTS.md"));
+    expect(() => assertWriteTargetSafe(projectDir, join(projectDir, "AGENTS.md"))).toThrow(
+      /in-tree destination symlinks are refused/,
+    );
+  });
+
+  itSymlink("refuses an IN-TREE parent-directory symlink (former leaf-only hole)", () => {
+    const projectDir = freshDir("write-safe-intree-parent-");
+    const realDir = join(projectDir, ".deft", "core");
+    mkdirSync(realDir, { recursive: true });
+    symlinkSync(realDir, join(projectDir, ".github"), "dir");
+    expect(() =>
+      assertWriteTargetSafe(projectDir, join(projectDir, ".github", "codeql", "codeql-config.yml")),
+    ).toThrow(/symlink on the destination path/);
   });
 });
 

@@ -1,5 +1,6 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   buildSpecRenderBanner,
   DEFAULT_INCLUDE_SCOPES_MODE,
@@ -90,6 +91,11 @@ export interface RenderSpecOptions {
   readonly includeScopes?: boolean | IncludeScopesMode;
   /** When true, emit the LegacyArtifacts narrative. Default false (#1566). */
   readonly includeLegacyArtifacts?: boolean;
+  /**
+   * Trusted containment root for the output write (#3953). Absolute preferred.
+   * Defaults to `process.cwd()`. Out-of-root outputs and symlink parents fail closed.
+   */
+  readonly root?: string;
 }
 
 function shouldRenderNarrativeKey(key: string, includeLegacyArtifacts: boolean): boolean {
@@ -225,7 +231,20 @@ export function renderSpec(
 ): RenderSpecResult {
   const result = renderSpecMarkdown(specPath, options);
   if (!result.ok) return [false, result.message];
-  writeFileSync(outPath, result.markdown, "utf8");
+  const root = resolve(options.root ?? process.cwd());
+  try {
+    containedWrite({
+      root,
+      target: outPath,
+      data: result.markdown,
+      mode: "replace",
+    });
+  } catch (err) {
+    if (err instanceof ContainedWriteError) {
+      return [false, err.message];
+    }
+    throw err;
+  }
   return [true, `✓ Rendered to ${outPath}`];
 }
 
@@ -277,6 +296,26 @@ export function parseIncludeScopesFlag(argv: readonly string[]): {
   return { includeScopes, includeLegacyArtifacts, remaining, errors };
 }
 
+/** Named containment root: cwd when the output is inside it, else the spec's project. */
+export function resolveSpecRenderRoot(
+  specPath: string,
+  outPath: string,
+  cwd = process.cwd(),
+): string {
+  const cwdAbs = resolve(cwd);
+  const outAbs = isAbsolute(outPath) ? resolve(outPath) : resolve(cwdAbs, outPath);
+  const relOut = relative(cwdAbs, outAbs);
+  if (relOut !== ".." && !relOut.startsWith(`..${sep}`) && !isAbsolute(relOut)) {
+    return cwdAbs;
+  }
+  const specDir = dirname(resolve(specPath));
+  const leaf = basename(specDir);
+  if (leaf === "xbrief" || leaf === "vbrief") {
+    return dirname(specDir);
+  }
+  return specDir;
+}
+
 /** CLI entry (mirrors ``scripts/spec_render.main``). */
 export function main(argv: readonly string[]): number {
   const { includeScopes, includeLegacyArtifacts, remaining, errors } = parseIncludeScopesFlag(argv);
@@ -304,6 +343,7 @@ export function main(argv: readonly string[]): number {
   const [ok, message] = renderSpec(specPath, outPath, {
     includeScopes,
     includeLegacyArtifacts,
+    root: resolveSpecRenderRoot(specPath, outPath),
   });
   process.stdout.write(`${message}\n`);
   return ok ? 0 : 1;

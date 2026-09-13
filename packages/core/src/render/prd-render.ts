@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveSpecArtifactPath } from "../layout/resolve.js";
 import { generatedSourcePath } from "../spec-authority/constants.js";
 import {
@@ -14,6 +15,11 @@ type JsonObject = Record<string, unknown>;
 
 export interface RenderPrdOptions {
   readonly force?: boolean;
+  /**
+   * Trusted containment root for the output write (#3953). Defaults to
+   * `process.cwd()`. Out-of-root outputs and symlink parents fail closed.
+   */
+  readonly root?: string;
 }
 
 function isDeftGenerated(path: string): boolean {
@@ -33,6 +39,7 @@ function writePrd(
   sourcePath: string,
   outputPath: string,
   force: boolean,
+  root: string,
 ): void {
   if (!force && !isDeftGenerated(outputPath)) {
     process.stderr.write(
@@ -47,7 +54,12 @@ function writePrd(
     process.stderr.write(`Warning: no narratives found in ${sourcePath}\n`);
   }
 
-  writeFileSync(outputPath, buildPrdMarkdown(title, narratives, sourcePath), "utf8");
+  containedWrite({
+    root,
+    target: outputPath,
+    data: buildPrdMarkdown(title, narratives, sourcePath),
+    mode: "replace",
+  });
   process.stdout.write(`PRD.md written to ${outputPath}\n`);
 }
 
@@ -186,7 +198,8 @@ export function renderPrd(
     process.exit(1);
   }
   const { title, narratives } = loadTitleAndNarratives(specPath);
-  writePrd(title, narratives, specPath, outputPath, options.force ?? false);
+  const root = resolve(options.root ?? process.cwd());
+  writePrd(title, narratives, specPath, outputPath, options.force ?? false, root);
 }
 
 /** Resolve full-spec or greenfield project authority and write a stakeholder-safe PRD. */
@@ -201,7 +214,7 @@ export function renderProjectPrd(
     try {
       const compatibilitySpecPath = resolveSpecArtifactPath(root);
       if (existsSync(compatibilitySpecPath)) {
-        renderPrd(compatibilitySpecPath, outputPath, options);
+        renderPrd(compatibilitySpecPath, outputPath, { ...options, root });
         return;
       }
     } catch {
@@ -231,6 +244,7 @@ export function renderProjectPrd(
     authority.sourcePath,
     outputPath,
     options.force ?? false,
+    root,
   );
 }
 
@@ -241,10 +255,46 @@ export interface PrdCliArgs {
   readonly force?: boolean;
 }
 
+function inferPrdContainmentRoot(specPath: string | undefined): string {
+  if (specPath === undefined) return resolve(process.cwd());
+  const specDir = dirname(resolve(specPath));
+  const leaf = basename(specDir);
+  if (leaf === "xbrief" || leaf === "vbrief") return dirname(specDir);
+  return specDir;
+}
+
+/**
+ * Trusted write root for PRD output (#3953). Relative outputs stay under cwd
+ * so `prd-render --spec ../other/xbrief/specification.xbrief.json` still writes
+ * `./PRD.md`. Absolute outputs outside cwd use --project-root or the spec tree.
+ */
+export function resolvePrdRenderRoot(input: {
+  readonly specPath?: string;
+  readonly projectRoot?: string;
+  readonly outputPath: string;
+  readonly cwd?: string;
+}): string {
+  const cwdAbs = resolve(input.cwd ?? process.cwd());
+  const outAbs = isAbsolute(input.outputPath)
+    ? resolve(input.outputPath)
+    : resolve(cwdAbs, input.outputPath);
+  const relOut = relative(cwdAbs, outAbs);
+  if (relOut !== ".." && !relOut.startsWith(`..${sep}`) && !isAbsolute(relOut)) {
+    return cwdAbs;
+  }
+  if (input.projectRoot !== undefined) return resolve(input.projectRoot);
+  return inferPrdContainmentRoot(input.specPath);
+}
+
 /** CLI entry (mirrors ``scripts/prd_render.main``). */
 export function main(args: PrdCliArgs = {}): void {
   const outputPath = args.output ?? "PRD.md";
-  const options = { force: args.force ?? false };
+  const namedRoot = resolvePrdRenderRoot({
+    specPath: args.spec,
+    projectRoot: args.projectRoot,
+    outputPath,
+  });
+  const options = { force: args.force ?? false, root: namedRoot };
   if (args.spec !== undefined) {
     renderPrd(args.spec, outputPath, options);
   } else if (args.projectRoot !== undefined) {

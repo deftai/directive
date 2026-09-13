@@ -67,15 +67,12 @@ export const CONTAINED_WRITES_ALLOWLIST: readonly string[] = [
   "packages/core/src/issue-sync/sync-from-xbrief.ts",
   // probe-session.ts removed from allowlist after #3042 contained writeSession.
   "packages/core/src/orchestration/verify-judgment-gates.ts",
-  "packages/core/src/platform/changelog-cli.ts",
+  // #3953: changelog-cli, export-spec, prd-render, spec-render migrated to containedWrite.
   "packages/core/src/release/gh.ts",
   "packages/core/src/release/pipeline-fixture.ts",
   "packages/core/src/release/pipeline.ts",
-  "packages/core/src/render/export-spec.ts",
-  "packages/core/src/render/prd-render.ts",
   "packages/core/src/render/roadmap-render.ts",
   "packages/core/src/render/rule-map.ts",
-  "packages/core/src/render/spec-render.ts",
   "packages/core/src/scm/gh-rest.ts",
   "packages/core/src/triage/actions/candidates-log.ts",
   "packages/core/src/triage/bootstrap/index.ts",

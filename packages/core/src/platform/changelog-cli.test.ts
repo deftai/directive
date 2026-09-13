@@ -2,11 +2,13 @@
  * Vitest tests for changelog-cli.ts (wire-flip CLI wrapper for changelog:resolve-unreleased).
  */
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { changelogResolveUnreleasedMain } from "./changelog-cli.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 const MINIMAL_CHANGELOG = `# Changelog
 
@@ -23,12 +25,16 @@ const MINIMAL_CHANGELOG = `# Changelog
 
 describe("changelogResolveUnreleasedMain", () => {
   let dir = "";
+  let prevCwd = "";
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "changelog-cli-test-"));
+    prevCwd = process.cwd();
+    process.chdir(dir);
   });
 
   afterEach(() => {
+    process.chdir(prevCwd);
     if (dir) {
       rmSync(dir, { recursive: true, force: true });
       dir = "";
@@ -78,5 +84,42 @@ describe("changelogResolveUnreleasedMain", () => {
     mkdirSync(subdir);
     const code = changelogResolveUnreleasedMain(["--changelog-path", subdir, "--dry-run"]);
     expect(code).not.toBe(0);
+  });
+
+  it("refuses out-of-root --changelog-path (#3953)", () => {
+    const outside = mkdtempSync(join(tmpdir(), "changelog-cli-outside-"));
+    try {
+      const p = join(outside, "CHANGELOG.md");
+      writeFileSync(p, MINIMAL_CHANGELOG, "utf8");
+      const code = changelogResolveUnreleasedMain(["--changelog-path", p, "--dry-run"]);
+      expect(code).toBe(2);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  itSymlink("uses lstat so a leaf symlink is not a regular file (#3953)", () => {
+    const victim = join(dir, "real.md");
+    writeFileSync(victim, MINIMAL_CHANGELOG, "utf8");
+    symlinkSync(victim, join(dir, "CHANGELOG.md"));
+    const code = changelogResolveUnreleasedMain([
+      "--changelog-path",
+      join(dir, "CHANGELOG.md"),
+      "--dry-run",
+    ]);
+    expect(code).toBe(2);
+  });
+
+  itSymlink("refuses a symlinked parent directory on the changelog path (#3953)", () => {
+    const realDir = join(dir, "real-docs");
+    mkdirSync(realDir, { recursive: true });
+    writeFileSync(join(realDir, "CHANGELOG.md"), MINIMAL_CHANGELOG, "utf8");
+    symlinkSync(realDir, join(dir, "docs"), "dir");
+    const code = changelogResolveUnreleasedMain([
+      "--changelog-path",
+      join(dir, "docs", "CHANGELOG.md"),
+      "--dry-run",
+    ]);
+    expect(code).toBe(2);
   });
 });

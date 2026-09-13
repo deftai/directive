@@ -1,5 +1,11 @@
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import {
+  ContainedWriteError,
+  containedWrite,
+  resolveContainedTarget,
+} from "../fs/contained-write.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { evaluateChangelogPath } from "./resolve-changelog-unreleased.js";
 
 function parseChangelogCliArgs(argv: string[]): {
@@ -34,6 +40,15 @@ function parseChangelogCliArgs(argv: string[]): {
   return { changelogPath, dryRun, quiet };
 }
 
+function lstatExistsIsFile(absPath: string): { exists: boolean; isFile: boolean } {
+  try {
+    const st = lstatSync(absPath);
+    return { exists: true, isFile: st.isFile() };
+  } catch {
+    return { exists: false, isFile: false };
+  }
+}
+
 /** CLI entry for changelog:resolve-unreleased (mirrors resolve_changelog_unreleased.py). */
 export function changelogResolveUnreleasedMain(argv: string[]): number {
   const parsed = parseChangelogCliArgs(argv);
@@ -45,16 +60,46 @@ export function changelogResolveUnreleasedMain(argv: string[]): number {
     return 2;
   }
 
-  const absPath = resolve(parsed.changelogPath);
-  const exists = existsSync(absPath);
-  const isFile = exists && statSync(absPath).isFile();
+  const root = resolve(process.cwd());
+  let absPath: string;
+  try {
+    absPath = resolveContainedTarget(root, parsed.changelogPath);
+  } catch (err) {
+    const detail = err instanceof ContainedWriteError ? err.message : String(err);
+    process.stderr.write(
+      `config error: --changelog-path is outside the project root (${root}): ${parsed.changelogPath}\n  ${detail}\n`,
+    );
+    return 2;
+  }
+
+  try {
+    assertWriteTargetSafe(root, absPath);
+  } catch (err) {
+    const detail =
+      err instanceof ProjectionContainmentError || err instanceof ContainedWriteError
+        ? err.message
+        : String(err);
+    process.stderr.write(
+      `config error: CHANGELOG path is not a contained write target: ${detail}\n`,
+    );
+    return 2;
+  }
+
+  const { exists, isFile } = lstatExistsIsFile(absPath);
 
   const [code, message, warnings] = evaluateChangelogPath(absPath, {
     exists,
     isFile,
     readText: () => readFileSync(absPath, "utf8"),
     dryRun: parsed.dryRun,
-    writeText: (content) => writeFileSync(absPath, content, "utf8"),
+    writeText: (content) => {
+      containedWrite({
+        root,
+        target: absPath,
+        data: content,
+        mode: "replace",
+      });
+    },
   });
 
   for (const w of warnings) {

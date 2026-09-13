@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   type AuthzDecision,
@@ -17,10 +17,7 @@ import {
 import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/protected-dest-realpath.js";
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
-import {
-  assertProjectionContained,
-  ProjectionContainmentError,
-} from "../fs/projection-containment.js";
+import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
   detectDeftDirectiveDisable,
@@ -521,9 +518,16 @@ export const ASSIST_SCRATCH_ROOT_PREFIXES = [".deft-scratch/", "temp/"] as const
  * Fail closed on null/empty/unparseable targets and on path escape (`..`).
  * Does not authorize tracked product paths even under assist posture.
  *
- * #3186: after lexical allowlist match, realpath the scratch root and require
- * {@link assertProjectionContained}; refuse symlink scratch roots and any
- * realpath outside the project (host Write would follow the link).
+ * #3186 / #3953: after lexical allowlist match, walk every existing component
+ * from project root to the concrete leaf via {@link assertWriteTargetSafe}.
+ * Refuse when the target or any parent between root and leaf is a symlink,
+ * including in-tree, before `write-assist-scratch-ready`. Ordinary real files
+ * under the scratch roots stay assist-ready.
+ *
+ * Residual (named, #3953): this is a PreToolUse classification check, not
+ * atomic containment of the later host Write. A check/use race remains;
+ * do not describe classification-time checking as atomic containment.
+ *
  * When the project root cannot be realpath'd (unit fixtures), lexical classification wins.
  */
 export function isAllowlistedAssistScratchPath(
@@ -544,7 +548,6 @@ export function isAllowlistedAssistScratchPath(
   }
   if (matchedPrefix === null) return false;
 
-  // #3186 containment: realpath scratch root + projection fence (symlink escape).
   const projectAbs = resolve(projectRoot);
   try {
     realpathSync(projectAbs);
@@ -553,28 +556,9 @@ export function isAllowlistedAssistScratchPath(
     return true;
   }
 
-  const scratchRootName = matchedPrefix.slice(0, -1); // ".deft-scratch" | "temp"
-  const scratchRootAbs = resolve(projectAbs, scratchRootName);
+  const targetAbs = resolve(projectAbs, posix);
   try {
-    // Refuse when the scratch root (or any parent on the path) escapes via symlink.
-    assertProjectionContained(projectAbs, scratchRootAbs);
-  } catch (err) {
-    if (err instanceof ProjectionContainmentError) return false;
-    return false;
-  }
-
-  // Refuse symlink scratch roots entirely (#3186) — even in-tree links can divert Write.
-  try {
-    const st = lstatSync(scratchRootAbs);
-    if (st.isSymbolicLink()) return false;
-  } catch {
-    // Scratch root does not exist yet — mkdir will create a real directory; allow.
-  }
-
-  // Also fence the concrete write target when it already exists on disk.
-  const targetAbs = resolve(projectAbs, targetPath.replace(/\\/g, "/"));
-  try {
-    assertProjectionContained(projectAbs, targetAbs);
+    assertWriteTargetSafe(projectAbs, targetAbs);
   } catch (err) {
     if (err instanceof ProjectionContainmentError) return false;
     return false;

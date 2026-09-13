@@ -61,7 +61,7 @@ describe("test_machine_generated_banner", () => {
     mkdirSync(join(dir, "vbrief"), { recursive: true });
     writeFileSync(specPath, JSON.stringify(SPEC_FIXTURE), "utf8");
     const out = join(dir, "SPECIFICATION.md");
-    const [ok] = renderSpec(specPath, out, { includeScopes: false });
+    const [ok] = renderSpec(specPath, out, { includeScopes: false, root: dir });
     expect(ok).toBe(true);
     assertCanonicalBanner(
       readFileSync(out, "utf8"),
@@ -78,7 +78,7 @@ describe("test_machine_generated_banner", () => {
     mkdirSync(join(dir, "vbrief"), { recursive: true });
     writeFileSync(specPath, JSON.stringify(SPEC_FIXTURE), "utf8");
     const out = join(dir, "PRD.md");
-    renderPrd(specPath, out);
+    renderPrd(specPath, out, { root: dir });
     assertCanonicalBanner(
       readFileSync(out, "utf8"),
       "rendered PRD",

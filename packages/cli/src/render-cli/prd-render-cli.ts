@@ -35,7 +35,7 @@ export function runPrdRenderCli(argv: readonly string[]): number {
   const parsedArgs = parsePrdArgv(remaining);
   prdRenderMain({
     ...parsedArgs,
-    projectRoot: parsedArgs.spec === undefined ? projectRoot : undefined,
+    projectRoot: projectRoot ?? parsedArgs.projectRoot,
   });
   return 0;
 }

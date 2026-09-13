@@ -2,13 +2,14 @@
  * contained-write.ts — mandatory contained-write API for product sinks (#2951 Phase 1).
  *
  * Single primitive that resolves a path under an explicit root, refuses symlink
- * escape / out-of-root targets (via {@link assertWriteTargetSafe}), then writes
- * with an explicit mode: create | replace | append.
+ * escape / out-of-root targets and any in-tree path-component symlink (via
+ * {@link assertWriteTargetSafe} → {@link assertDestinationNotSymlink}), then
+ * writes with an explicit mode: create | replace | append.
  *
  * Hard rules:
  * - Final write target must resolve **inside** `root` after normalization.
- * - Symlink escape (or leaf symlink on the write path) → fail closed with a
- *   stable error code.
+ * - Symlink on any existing component from root to leaf (in-tree parent,
+ *   escaping parent, or leaf) → fail closed with a stable error code.
  * - No silent fallback to raw write on failure.
  *
  * Prefer this API for all new product write sinks. Prefer migrating call sites
@@ -60,7 +61,7 @@ import { assertWriteTargetSafe, ProjectionContainmentError } from "./projection-
 export const ContainedWriteErrorCode = {
   /** Target path escapes the containment root (`..` or absolute outside root). */
   ESCAPE: "CONTAINED_WRITE_ESCAPE",
-  /** Target or intermediate path is a symlink (leaf or escaping). */
+  /** Target or intermediate path is a symlink (leaf, in-tree parent, or escaping). */
   SYMLINK: "CONTAINED_WRITE_SYMLINK",
   /** `mode: "create"` but the target already exists. */
   EXISTS: "CONTAINED_WRITE_EXISTS",
@@ -129,8 +130,8 @@ export interface ContainedWriteInput {
   readonly mkdir?: boolean;
   /**
    * When true, follow symlinks that resolve inside root (not recommended).
-   * Default `false` — leaf and path-component symlinks are refused via
-   * {@link assertWriteTargetSafe}.
+   * Default `false` — every existing path component (leaf and parents) is
+   * refused via {@link assertWriteTargetSafe} / {@link assertDestinationNotSymlink}.
    */
   readonly followSymlinks?: boolean;
   /**
@@ -383,8 +384,8 @@ function writeNoFollow(targetAbs: string, buf: Buffer, flags: number): number {
 }
 
 /**
- * Contained write: resolve under root, refuse symlink escape / out-of-root,
- * then write with the requested mode.
+ * Contained write: resolve under root, refuse symlink escape / out-of-root /
+ * in-tree parent or leaf symlink, then write with the requested mode.
  *
  * @throws {ContainedWriteError} on containment refusal or mode violation
  */

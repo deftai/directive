@@ -8,7 +8,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 AppSec mediums kept reappearing as “N more symlink / path-escape write sinks” (#2470, #2521, #2632, #2668, #2710, #2766, #2807, #2847, #2869, …). Patching call sites one-by-one does not end the class. Epic **#2951** requires:
 
-1. One **contained write contract** (resolve under root → refuse escape/symlink → write).
+1. One **contained write contract** (resolve under root → refuse escape and any path-component symlink → write).
 2. Migration of product sinks onto that API.
 3. Enforcement so new raw `writeFileSync` / similar outside an allowlist cannot land silently.
 
@@ -35,7 +35,7 @@ containedWrite({
 
 - ! Final write target MUST resolve **inside** `root` after path normalization (segment containment via `path.relative`, not string prefix).
 - ! Symlink escape of the target or intermediate segments MUST fail closed (no write).
-- ! Leaf symlink on the write path MUST fail closed (parity with `assertWriteTargetSafe`).
+- ! Any existing path component from `root` to the leaf MUST fail closed if it is a symlink, including **in-tree** parent directories and the leaf. `assertWriteTargetSafe` delegates to `assertDestinationNotSymlink`; `containedWrite` calls that walk. A leaf-only lstat after an escape-only walk is not sufficient (#3953).
 - ! Modes:
   - `create` — fail if the target already exists (`CONTAINED_WRITE_EXISTS`).
   - `replace` — create or truncate then write.
@@ -49,7 +49,7 @@ containedWrite({
 | Code | Meaning |
 | --- | --- |
 | `CONTAINED_WRITE_ESCAPE` | Target not nested under root (`..` or absolute outside root). |
-| `CONTAINED_WRITE_SYMLINK` | Symlink on the write path (leaf, parent, or escaping). |
+| `CONTAINED_WRITE_SYMLINK` | Symlink on the write path (leaf, in-tree parent, or escaping). |
 | `CONTAINED_WRITE_EXISTS` | `mode: "create"` but target already exists. |
 | `CONTAINED_WRITE_ROOT_MISSING` | Containment root does not exist. |
 | `CONTAINED_WRITE_INVALID_MODE` | Unsupported mode / options. |
@@ -65,7 +65,7 @@ Containment helpers (escape/symlink walk): `packages/core/src/fs/projection-cont
 - ! **Agents** adding a write path MUST call `containedWrite` rather than `node:fs` write helpers, unless the file is:
   - a unit/integration **test** or fixture, or
   - an explicitly allowlisted implementation module (see below).
-- ~ **AppSec “N mediums” issues** SHOULD prefer migrating the sink onto `containedWrite` over another one-off `assertWriteTargetSafe` + raw write pair when behavior is equivalent.
+- ~ **AppSec “N mediums” issues** SHOULD prefer migrating the sink onto `containedWrite` over another one-off `assertWriteTargetSafe` + raw write pair when behavior is equivalent. A per-sink assertion plus raw `writeFileSync` is not a close of the parent-dir hole (#3953).
 - ? Test-only temp-tree setup MAY keep using `writeFileSync` (tests are allowlisted by the inventory gate).
 
 ## Inventory gate (`task verify:contained-writes`)
@@ -80,7 +80,7 @@ task verify:contained-writes -- --enforce   # fail closed on findings
 - Skips a **shrinking allowlist** of containment primitives plus temporary residual product modules (#2980 wave D).
 - **CLI default remains fail-open** — prints an advisory report and exits **0** even when findings remain (local inventory).
 - Pass `--enforce` to exit **1** on findings. **`task check` / `check:framework-source` wire `--enforce`** via `verify-contained-writes-enforce` (#2980 residual complete).
-- Phase 2 removed `cache/io.ts` and `lifecycle/events.ts` after migration. Waves A–D migrate high-volume product sinks (init-deposit, ledgers, eval/doctor, triage/session/scope leftovers). Temporary allowlist entries remain for lower-volume residual modules and lock/stream primitives — shrink further in follow-ups.
+- Phase 2 removed `cache/io.ts` and `lifecycle/events.ts` after migration. Waves A–D migrate high-volume product sinks (init-deposit, ledgers, eval/doctor, triage/session/scope leftovers). **#3953** removed `platform/changelog-cli.ts`, `render/export-spec.ts`, `render/prd-render.ts`, and `render/spec-render.ts` after they migrated onto `containedWrite`. Temporary allowlist entries remain for lower-volume residual modules and lock/stream primitives — shrink further in follow-ups. Adding a new allowlist entry requires updating the frozen snapshot test.
 
 Allowlist lives in `packages/core/src/verify-source/contained-writes.ts` (`CONTAINED_WRITES_ALLOWLIST`). Harness exclusions live in `NON_PRODUCT_HARNESS_PATH_MARKERS` (prefer exclusion over permanent product allowlist). New allowlist exceptions need a comment + entry with issue citation.
 
@@ -90,7 +90,12 @@ Allowlist lives in `packages/core/src/verify-source/contained-writes.ts` (`CONTA
 - **Go installer / `cmd/deft-install` contained-write API is deferred/frozen.** It is **not** required to close residual #2980 for the TS engine. A Go equivalent may return as a later optional issue if the freeze lifts.
 - Temporary allowlist entries (non-primitive) are residual shrink targets — do not add new raw product writes; migrate and remove the entry instead.
 - TOCTOU between check and open is mitigated on platforms that honor `O_NOFOLLOW` on open; residual races can remain on some Windows paths. Document rather than claim zero residual risk (epic non-goal).
+- Assist-scratch PreToolUse classification (`isAllowlistedAssistScratchPath`) walks the same symlink components before `write-assist-scratch-ready`. That check is **not** atomic with the later host Write — the hook check/use race is a named residual (#3953). Do not describe classification-time checking as atomic containment.
 - Reads are not covered by this API.
+
+## False-deny audit (#3953)
+
+Widening `assertWriteTargetSafe` to the `assertDestinationNotSymlink` walk refuses in-tree parent-directory symlinks that the previous leaf-only lstat allowed. Direct callers are product write gates (inventory in `packages/core/src/fs/write-target-safe-callers.test.ts`). None of those modules require following an in-tree parent directory symlink; that was never a supported feature. Init-deposit sinks already used the stronger walk.
 
 ## Migration checklist
 
