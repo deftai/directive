@@ -143,16 +143,6 @@
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
-        "file_scope": [
-          "packages/core/src/session/occupancy.ts",
-          "packages/core/src/session/occupancy.test.ts",
-          "packages/core/src/swarm/launch.ts",
-          "packages/core/src/swarm/launch.test.ts",
-          "packages/core/src/swarm/complete-cohort.ts",
-          "packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts",
-          "content/commands.md",
-          "CHANGELOG.md"
-        ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/session/occupancy.test.ts packages/core/src/swarm/launch.test.ts packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts"
         ],
@@ -164,7 +154,6 @@
         "depends_on": [],
         "conflict_group": "occupancy-steal-recipe",
         "size": "small",
-        "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Bound-remedy harvest from successor lean 5650046670; no spec-section requirement trace applies."
       },
