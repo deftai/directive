@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4423",
-    "updated": "2026-09-13T01:34:16Z"
+    "updated": "2026-09-13T02:36:43Z"
   },
   "plan": {
     "title": "bug(scope): lifecycle stamps write 'updated' with no chronology validation, shipping updated<created artifacts the vendor's own reviewer then flags",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(scope): lifecycle stamps write 'updated' with no chronology validation, shipping updated<created artifacts the vendor's own reviewer then flags",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4423",
@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "Land created/updated chronology detection on validateAll / vbrief:validate / verify:vbrief-conformance (warnings or error). Already in consumer check composition.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/chronology.test.ts",
+          "recorded_at": "2026-09-13T02:36:00Z",
+          "recorded_by": "leaf-implementation/4423"
+        }
       },
       {
         "title": "Route every plan.updated writer through stampExistingEnvelopes so envelope and plan stay aligned. Cover undo and demote, not only commitTransition.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/undo.test.ts#co-stamps",
+          "recorded_at": "2026-09-13T02:36:00Z",
+          "recorded_by": "leaf-implementation/4423"
+        }
       },
       {
         "title": "Do not clamp created to updated. If a write-time repair is kept, leave created byte-identical and record the stamp in plan.metadata.lifecycleWrite.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/brief-envelope.test.ts#leaves-created-byte-identical",
+          "recorded_at": "2026-09-13T02:36:00Z",
+          "recorded_by": "leaf-implementation/4423"
+        }
       },
       {
         "title": "If a reject arm exists, name a remediation that exists and add skew tolerance. Do not cite --stamp-created as if it ships.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/brief-envelope.test.ts#no-stamp-created",
+          "recorded_at": "2026-09-13T02:36:00Z",
+          "recorded_by": "leaf-implementation/4423"
+        }
       },
       {
         "title": "Split item completed >= created out; lifecycle never writes item created/updated/completed.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/chronology.test.ts#does-not-lint-item-completed",
+          "recorded_at": "2026-09-13T02:36:00Z",
+          "recorded_by": "leaf-implementation/4423"
+        }
       }
     ],
     "tags": [
@@ -124,9 +154,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "edaaa129d92726c5196291cec5ae94f38727a14942711b4fb93a7806c561d3b8"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4459,
+        "prBase": null,
+        "mergeCommit": "d0fab8779b8b3428acfc301aa630876bdd3bcbbb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d0fab8779b8b3428acfc301aa630876bdd3bcbbb",
+        "verifiedAt": "2026-09-13T02:36:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4NjAtZDNmYy03NWEzLTkyMDYtYzBiYTVmOTYzZWE2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T02:36:43Z"
+      },
+      "completedAt": "2026-09-13T02:36:43Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4NjAtZDNmYy03NWEzLTkyMDYtYzBiYTVmOTYzZWE2",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5427810270",
-    "updated": "2026-09-13T01:34:16Z"
+    "updated": "2026-09-13T02:36:43Z"
   }
 }
