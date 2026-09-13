@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "keep-the-missing-pin-doctor-note-as-a-proceed-warning-do-not-pro",
+  "decision": "Keep the missing-pin doctor note as a proceed warning; do not promote it to error",
+  "governingRule": {
+    "description": "Expected #3: choose one. warning cannot change doctor exit. error retro-fails pre-pin consumers.",
+    "path": "xbrief/active/2026-09-13-4429-buginit-greenfield-init-gitignores-deftcore-without-the-2269.xbrief.json",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "severity error",
+      "whyNot": "Changes doctor exit via errorCount and retro-fails every pre-pin consumer."
+    },
+    {
+      "option": "Reuse DOCTOR_ADVISORY_FAIL_CHECKS",
+      "whyNot": "Opposite polarity: that set demotes a fail to a warning."
+    }
+  ],
+  "whyWinner": "Doctor exit is errorCount-only. The reconstitution gap is closed by writing the pin on greenfield. Existing pre-pin consumers keep a proceed warning.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-09-13-4429-buginit-greenfield-init-gitignores-deftcore-without-the-2269.xbrief.json"
+  ],
+  "timestamp": "2026-09-13T00:27:04Z",
+  "revisitTrigger": "If a consumer-facing gate starts treating the missing-pin note as blocking.",
+  "tags": [
+    "init",
+    "doctor",
+    "pin"
+  ],
+  "relatedIssues": [
+    4429
+  ]
+}

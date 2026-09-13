@@ -24,6 +24,7 @@ import {
   userConfigDir,
 } from "./init-deposit.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
+import { PIN_DEPENDENCY_NAME } from "./scaffold.js";
 
 // `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
 // so a guarded parse keeps property reads from blowing up with a TypeError
@@ -194,12 +195,59 @@ describe("runInitDeposit", () => {
     );
     expect(readFileSync(join(project, "greptile.json"), "utf8")).toContain(".deft/core/**");
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft/core/");
+    const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
+    expect(pkg.private).toBe(true);
+    expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.53.0");
     expect(readFileSync(join(project, ".codex", "hooks.json"), "utf8")).toContain(
       "deft-hook --host codex --event tool.before",
     );
     expect(result.taskfileWired).toBe(true);
     expect(lines.join("")).toContain("AGENTS.md created");
     expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it("directive init adds the canonical pin to an existing package.json (#4429)", async () => {
+    const project = freshRoot("init-deposit-existing-pkg-");
+    const contentRoot = installFakeContentPackage(project);
+    writeFileSync(
+      join(project, "package.json"),
+      JSON.stringify({ name: "consumer-app", scripts: { build: "tsc" } }, null, 2),
+      "utf8",
+    );
+
+    await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+      },
+    );
+
+    const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
+    expect(pkg.name).toBe("consumer-app");
+    expect((pkg.scripts as Record<string, string>).build).toBe("tsc");
+    expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.53.0");
+    expect("private" in pkg).toBe(false);
+  });
+
+  it("does not gitignore .deft/core/ when the pin write throws (#4429 order)", async () => {
+    const project = freshRoot("init-deposit-pin-throw-");
+    const contentRoot = installFakeContentPackage(project);
+    writeFileSync(join(project, "package.json"), "not-json", "utf8");
+
+    await expect(
+      runInitDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        },
+      ),
+    ).rejects.toThrow(/could not parse package.json/);
+
+    expect(existsSync(join(project, ".gitignore"))).toBe(false);
   });
 
   it("emits JSON on stdout and wizard UX on stderr in --json mode", async () => {

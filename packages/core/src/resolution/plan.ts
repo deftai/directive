@@ -213,6 +213,11 @@ function resolvePlan(
   }
 
   // 3c: no committed pin — cannot reconcile; proceed but warn.
+  // #4429 Expected #3: keep `proceed` + warning. `severity: "error"` is the
+  // only level that changes doctor exit (`errorCount`), and it would retro-fail
+  // every pre-pin consumer. Do not reuse DOCTOR_ADVISORY_FAIL_CHECKS for the
+  // opposite polarity (that set demotes a fail to a warning). Greenfield init
+  // now writes the pin so new deposits do not hit this path.
   if (facts.pinVersion === null) {
     warnings.push(
       "no committed package.json pin on @deftai/directive; skipping engine/pin reconciliation",

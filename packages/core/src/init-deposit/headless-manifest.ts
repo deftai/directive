@@ -209,7 +209,13 @@ function collectXbriefScaffoldFiles(): ResolutionFile[] {
   }));
 }
 
-/** The pinned `package.json` devDependency snippet (exact, private workspace). */
+/**
+ * Canonical greenfield pin (exact, private workspace).
+ *
+ * Invariant (#4429): every greenfield surface emits this pin. This collector
+ * is the existing correct reference; executing `directive init` reuses
+ * `ensurePackageJsonPin` rather than a second writer.
+ */
 function collectPackageJsonFile(version: string): ResolutionFile {
   const pinVersion = version.trim().replace(/^v/i, "");
   const pkg = {

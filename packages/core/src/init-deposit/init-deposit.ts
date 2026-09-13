@@ -42,6 +42,7 @@ import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
+  ensurePackageJsonPin,
   ensureTaskfile,
   type InitDepositIo,
   type InstallManifestFields,
@@ -256,14 +257,23 @@ export async function runInitDeposit(
   await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
   await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
   assertLiveProcedureDepositClean(deftDir);
-  ensureInitGitignoreLines(projectDir, io);
-  ensurePrettierIgnoreLines(projectDir, io);
 
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const version = readContentVersion(
     contentRoot,
     seams.readPackageVersion ?? readCorePackageVersion,
   );
+  // #4429: every greenfield surface emits the canonical pin. Headless already
+  // does (`headless-manifest.ts` collectPackageJsonFile). Executing init must
+  // reuse ensurePackageJsonPin -- not a second writer, not a refusal-to-gitignore
+  // fork. Pin write precedes ensureInitGitignoreLines so a throw on unparseable
+  // package.json cannot leave `.deft/core/` ignored without a reconstitution
+  // anchor. Existing package.json is updated here (the prior "left untouched"
+  // behaviour is the defect this call site closes).
+  ensurePackageJsonPin(projectDir, version, io);
+  ensureInitGitignoreLines(projectDir, io);
+  ensurePrettierIgnoreLines(projectDir, io);
+
   const manifestFields: InstallManifestFields = {
     ref: version.startsWith("v") ? version : `v${version}`,
     sha: "content-package",
