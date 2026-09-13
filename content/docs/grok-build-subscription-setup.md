@@ -129,9 +129,39 @@ Run from a **Grok** `run_terminal_command` child after the new session. Close st
 
 ## Design-critique dispatch
 
-When a Grok Build parent runs an N≥3 design-critique panel, this playbook's CLIs are the other-family launchers. Probe `claude` / `codex` on PATH and CLI-spawn those seats. Paste-ready is the fallback when a CLI is absent, not the default recovery. Normative stop: [`contracts/design-critique.md`](../contracts/design-critique.md) Envelope and ceiling (#4067).
+When a Grok Build parent runs an N≥3 design-critique panel, this playbook's CLIs are the other-family launchers. Probe `claude` / `codex` on PATH and CLI-spawn those seats. Paste-ready is the fallback when a CLI is absent, not the default recovery. Normative stop: [`contracts/design-critique.md`](../contracts/design-critique.md) Envelope and ceiling (#4067 / #4432).
 
-The Verification pong above stays the auth probe. Critic spawn is a second recipe. Do not launch a critic by copying the issue-body spawn snippet. Recipe source: field instance 5628651806 plus the critic inventory.
+N≥3 spend is a launchability posture, not a Claude Code host-class gap. A parent in `bypassPermissions` can fill three families. ⊗ Name Claude Code native subagent as the only sanctioned Claude-family seat.
+
+### Launch probe (before panel-deposit)
+
+The Verification pong above stays the auth probe. It does not prove launchability: it omits the critic bypass flags.
+
+Before the panel-deposit, re-run that pong with the critic argv class (bypass flags included). Benign fixed prompt. No envelope path. No thread access. Close stdin. This is not a critic dispatch.
+
+**Claude** (cwd = dest):
+
+```text
+claude -p "Do not use tools. Reply with the single word: pong" --permission-mode bypassPermissions --output-format text
+```
+
+**Codex** (`-C` dest):
+
+```text
+codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> "Do not use tools. Reply with the single word: pong"
+```
+
+**Grok last-resort** after writing the same pong text to a dest file (not the envelope):
+
+```text
+grok --cwd <dest> --prompt-file <benign-pong-file> --permission-mode bypassPermissions --always-approve --output-format plain
+```
+
+Pass: claimed families reply `pong` at rc 0. Fail: record amend-the-spend-down with the reason, or halt as dispatch-fail. ⊗ Add a new halt token.
+
+⊗ Pass the envelope path or `Read and follow <envelope-path>` as the probe. That spawn is a critic, and a denied envelope probe is not "no critic ran".
+
+Critic spawn is a second recipe. Do not launch a critic by copying the issue-body spawn snippet. Recipe source: field instance 5628651806 plus the critic inventory.
 
 ### Critic spawn (second recipe)
 

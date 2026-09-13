@@ -3,6 +3,7 @@
  *
  * Input is parent-claimed families plus a PATH probe. This does not classify
  * model slugs, and it does not observe live GitHub comments (#3850).
+ * It does not observe launchability (#4432).
  */
 
 export type SeatLauncher = "spawn_subagent" | "grok" | "claude" | "codex" | "paste-ready";
@@ -68,6 +69,79 @@ export function evaluatePanelSeatComposition(input: {
         remediation: PASTE_READY_FIRST_REMEDIATION,
       };
     }
+  }
+
+  return { ok: true };
+}
+
+/** Existing Verification pong prompt. Launch probe reuses it with critic bypass flags. */
+export const BENIGN_PONG_PROMPT = "Do not use tools. Reply with the single word: pong";
+
+export type LaunchProbeArgvClass = "critic-bypass" | "auth-pong" | "envelope";
+
+export type LaunchProbeRecovery = "amend-spend" | "dispatch-fail";
+
+export type LaunchProbeFailureCode = "probe-invalid" | "not-launchable";
+
+export type LaunchProbeHaltToken = "dispatch-fail";
+
+export type LaunchProbeVerdict =
+  | { ok: true }
+  | {
+      ok: false;
+      code: LaunchProbeFailureCode;
+      recovery: LaunchProbeRecovery;
+      haltToken: LaunchProbeHaltToken | null;
+    };
+
+export type N3LaunchProbeInput = {
+  spendN: number;
+  argvClass: LaunchProbeArgvClass;
+  prompt: string;
+  envelopePath: string | null;
+  threadAccess: boolean;
+  launchableFamilies: readonly string[];
+  onFail: LaunchProbeRecovery;
+};
+
+function failLaunchProbe(
+  onFail: LaunchProbeRecovery,
+  code: LaunchProbeFailureCode,
+): LaunchProbeVerdict {
+  return {
+    ok: false,
+    code,
+    recovery: onFail,
+    haltToken: onFail === "dispatch-fail" ? "dispatch-fail" : null,
+  };
+}
+
+/**
+ * N≥3 launchability is a parent-claimed posture probe (#4432).
+ * It does not spawn. evaluatePanelSeatComposition does not call this.
+ */
+export function evaluateN3LaunchProbe(input: N3LaunchProbeInput): LaunchProbeVerdict {
+  if (input.spendN < 3) {
+    return { ok: true };
+  }
+
+  const prompt = input.prompt.trim();
+  const envelopeLike = input.envelopePath !== null || /read and follow/i.test(prompt);
+  const probeValid =
+    input.argvClass === "critic-bypass" &&
+    prompt === BENIGN_PONG_PROMPT &&
+    !envelopeLike &&
+    input.threadAccess === false;
+
+  if (!probeValid) {
+    return failLaunchProbe(input.onFail, "probe-invalid");
+  }
+
+  const families = input.launchableFamilies
+    .map((name) => normalizeFamily(name))
+    .filter((name) => name.length > 0);
+  if (new Set(families).size < 3) {
+    return failLaunchProbe(input.onFail, "not-launchable");
   }
 
   return { ok: true };

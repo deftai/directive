@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **N≥3 design-critique spend now requires a launch-probe pong with critic bypass flags before the panel-deposit (#4432).** The three-family MUST stays host-neutral; the blocked variable is permission posture, not Claude Code as a host class. A failed probe amends spend down with a reason or halts as dispatch-fail. Seat composition still takes claimed families plus PATH and does not observe launchability. Does not close #3850. Closes #4432.
+
 ### Removed
 
 ## [0.118.0] - 2026-09-13
