@@ -243,6 +243,21 @@ export function ensurePackageJsonPin(
     return { changed: false, pinVersion, created: false };
   }
 
+  const prodDeps: Record<string, unknown> =
+    typeof pkg.dependencies === "object" &&
+    pkg.dependencies !== null &&
+    !Array.isArray(pkg.dependencies)
+      ? { ...(pkg.dependencies as Record<string, unknown>) }
+      : {};
+  // readPin accepts either block. An exact pin already in dependencies is the
+  // reconstitution anchor; do not duplicate it under devDependencies.
+  if (prodDeps[PIN_DEPENDENCY_NAME] === pinVersion) {
+    io.printf(
+      `package.json already pins ${PIN_DEPENDENCY_NAME}@${pinVersion} in dependencies — skipping.\n`,
+    );
+    return { changed: false, pinVersion, created: false };
+  }
+
   devDeps[PIN_DEPENDENCY_NAME] = pinVersion;
   pkg.devDependencies = devDeps;
 

@@ -144,6 +144,32 @@ function readContentVersion(contentRoot: string, readVersion = readCorePackageVe
   return readVersion();
 }
 
+const LOCKFILE_REFRESH_COMMANDS: ReadonlyArray<{ readonly file: string; readonly command: string }> =
+  [
+    { file: "package-lock.json", command: "npm install --package-lock-only" },
+    { file: "pnpm-lock.yaml", command: "pnpm install --lockfile-only" },
+    { file: "yarn.lock", command: "yarn install" },
+  ];
+
+/**
+ * Init does not spawn a package manager (offline-safe). When a lockfile exists
+ * after a pin write, print the refresh command so the next `npm ci` / frozen
+ * install is not left mismatched.
+ */
+function printLockfilePinGuidance(
+  projectDir: string,
+  pinChanged: boolean,
+  io: InitDepositIo,
+): void {
+  if (!pinChanged) return;
+  const hits = LOCKFILE_REFRESH_COMMANDS.filter((row) => existsSync(join(projectDir, row.file)));
+  if (hits.length === 0) return;
+  io.printf(
+    "package.json pin written; refresh the lockfile before npm ci / frozen install:\n" +
+      hits.map((row) => `  ${row.command}\n`).join(""),
+  );
+}
+
 export function buildInstallSummaryJson(input: {
   result: InitDepositResult;
   options: InitDepositArgs;
@@ -270,7 +296,8 @@ export async function runInitDeposit(
   // package.json cannot leave `.deft/core/` ignored without a reconstitution
   // anchor. Existing package.json is updated here (the prior "left untouched"
   // behaviour is the defect this call site closes).
-  ensurePackageJsonPin(projectDir, version, io);
+  const pin = ensurePackageJsonPin(projectDir, version, io);
+  printLockfilePinGuidance(projectDir, pin.changed, io);
   ensureInitGitignoreLines(projectDir, io);
   ensurePrettierIgnoreLines(projectDir, io);
 

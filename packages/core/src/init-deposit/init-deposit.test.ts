@@ -231,6 +231,33 @@ describe("runInitDeposit", () => {
     expect("private" in pkg).toBe(false);
   });
 
+  it("prints lockfile refresh guidance when package-lock.json exists (#4429)", async () => {
+    const project = freshRoot("init-deposit-lockfile-");
+    const contentRoot = installFakeContentPackage(project);
+    writeFileSync(
+      join(project, "package.json"),
+      JSON.stringify({ name: "consumer-app" }, null, 2),
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "package-lock.json"),
+      JSON.stringify({ lockfileVersion: 3, packages: {} }, null, 2),
+      "utf8",
+    );
+    const lines: string[] = [];
+
+    await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: (text) => lines.push(text) },
+      {
+        resolveContentRoot: async () => contentRoot,
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+      },
+    );
+
+    expect(lines.join("")).toContain("npm install --package-lock-only");
+  });
+
   it("does not gitignore .deft/core/ when the pin write throws (#4429 order)", async () => {
     const project = freshRoot("init-deposit-pin-throw-");
     const contentRoot = installFakeContentPackage(project);
