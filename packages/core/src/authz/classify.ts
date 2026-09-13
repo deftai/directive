@@ -2407,7 +2407,11 @@ function jarCreateArchiveDest(words: readonly string[], execIndex: number): stri
     const raw = words[i] as string;
     const n = normalizeToken(raw);
     if (n.startsWith("--file=")) {
-      fileDest = zipShellWordLiteral(raw.slice(raw.indexOf("=") + 1));
+      // Slice raw first so dest case is preserved; fall back to quote-stripped
+      // `n` when wrapping quotes on the whole token leave zipShellWordLiteral
+      // unbalanced (`'--file=DEST'`).
+      const afterEq = raw.slice(raw.indexOf("=") + 1);
+      fileDest = zipShellWordLiteral(afterEq) ?? zipShellWordLiteral(n.slice(n.indexOf("=") + 1));
       continue;
     }
     if (n === "--file" || n === "-f") {
