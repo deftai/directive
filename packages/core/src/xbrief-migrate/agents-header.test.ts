@@ -139,6 +139,37 @@ describe("patchAgentsMdHeader", () => {
     expect(outcome.replacements).toHaveLength(0);
   });
 
+  itSymlink("refuses an in-tree AGENTS.md symlink to package.json (#3593)", () => {
+    const root = mkdtempSync(join(tmpdir(), "header-intree-"));
+    temps.push(root);
+    writeFileSync(
+      join(root, "package.json"),
+      '{ "name": "victim", "see": "vbrief/active/x.vbrief.json" }\n',
+      "utf8",
+    );
+    symlinkSync(join(root, "package.json"), join(root, "AGENTS.md"));
+    const outcome = patchAgentsMdHeader(root);
+    expect(outcome.kind).toBe("failed");
+    expect(outcome.error).toMatch(/symlink/);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toContain("vbrief/active");
+  });
+
+  itSymlink("refuses an in-tree symlink on the writeText seam (#3593)", () => {
+    const root = mkdtempSync(join(tmpdir(), "header-seam-"));
+    temps.push(root);
+    writeFileSync(join(root, "package.json"), "vbrief:preflight\n", "utf8");
+    symlinkSync(join(root, "package.json"), join(root, "AGENTS.md"));
+    let wrote = false;
+    const outcome = patchAgentsMdHeader(root, {
+      readText: () => "run vbrief:preflight -- vbrief/active/x.xbrief.json\n",
+      writeText: () => {
+        wrote = true;
+      },
+    });
+    expect(outcome.kind).toBe("failed");
+    expect(wrote).toBe(false);
+  });
+
   it("returns absent when AGENTS.md does not exist", () => {
     const root = mkdtempSync(join(tmpdir(), "header-absent-"));
     temps.push(root);

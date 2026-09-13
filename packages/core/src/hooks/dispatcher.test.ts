@@ -4837,3 +4837,100 @@ describe("Cursor Task parallel review spawn class (#4321)", () => {
     expect(parentIdx).toBeGreaterThan(exploreIdx);
   });
 });
+
+describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
+  const ritualNotReady = readySeams({
+    inspectRitual: () => ({
+      ...READY_RITUAL,
+      code: 1,
+      message: "ritual state missing",
+    }),
+  });
+
+  it("routes mcp filesystem write with a path through Write gates", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "mcp__filesystem__write_file",
+          tool_input: { path: "src/app.ts", contents: "x" },
+        },
+      },
+      ritualNotReady,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+  });
+
+  it("unwraps CallMcpTool inner write + nested arguments.path", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "CallMcpTool",
+          tool_input: {
+            tool_name: "write_file",
+            arguments: { path: ".deft/authz/grants/evil.json", contents: "{}" },
+          },
+        },
+      },
+      ritualNotReady,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+  });
+
+  it("unwraps Grok use_tool inner write", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "use_tool",
+          tool_input: {
+            tool_name: "mcp__filesystem__write_file",
+            arguments: { path: "packages/core/src/x.ts" },
+          },
+        },
+      },
+      ritualNotReady,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+  });
+
+  it("keeps MCP reads without write shape fail-open", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "mcp__github__list_issues",
+          tool_input: { query: "open" },
+        },
+      },
+      ritualNotReady,
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
+
+  it("routes dest-bearing edit_file through Write gates", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "edit_file",
+          tool_input: { target_file: "src/app.ts", contents: "x" },
+        },
+      },
+      ritualNotReady,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+  });
+});

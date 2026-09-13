@@ -53,5 +53,7 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
     }
     expect(MCP_HOOK_MATCHER).toContain("mcp__.*");
     expect(MCP_HOOK_MATCHER).toContain("git[_-]?push");
+    expect(MCP_HOOK_MATCHER).toContain("CallMcpTool");
+    expect(MCP_HOOK_MATCHER).toContain("use_tool");
   });
 });

@@ -132,7 +132,14 @@ import {
   inspectActiveScope,
 } from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
-import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
+import {
+  effectiveHookToolName,
+  isDirectWriteTool,
+  isMcpTool,
+  isMcpWriteShaped,
+  isShellTool,
+  isSpawnTool,
+} from "./tools.js";
 
 // Pure parse/classify helpers are defined in ./classify/ and re-exported from
 // ./index.ts (#2950). Dispatcher is orchestration: classify → policy → decision.
@@ -152,13 +159,16 @@ export {
 export {
   DIRECT_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_TOOL_NAMES,
+  effectiveHookToolName,
   GROK_MUTATION_TOOL_CATALOG,
   GROK_NON_MUTATION_TOOLS,
   HOST_TOOL_SURFACE_AUDIT,
   type HostMutationToolCatalog,
   type HostToolSurfaceAudit,
   isDirectWriteTool,
+  isMcpProxyWrapper,
   isMcpTool,
+  isMcpWriteShaped,
   isShellTool,
   isSpawnTool,
   MCP_HOOK_MATCHER,
@@ -2829,6 +2839,22 @@ function routeHookDecision(
     }
     const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams, observation);
     return attachLifecycleIdentityRewrite(input, toolName, decision, seams);
+  }
+
+  // #3593: dest-bearing write-shaped MCP / proxy wrappers share inspectMutationGates
+  // with Write/Edit. Unwrap CallMcpTool / use_tool inner names. Reads (list_issues)
+  // stay on the runtime-authority fail-open path.
+  const effectiveName = effectiveHookToolName(toolName, input.payload);
+  if (
+    isMcpWriteShaped(effectiveName) &&
+    !isShellTool(toolName) &&
+    !isSpawnTool(toolName) &&
+    hookMutationTargetPaths(input.payload).length > 0
+  ) {
+    return inspectMutationGates(input, effectiveName, seams, {
+      proposedLifecycleExempt: true,
+      observation,
+    });
   }
 
   // Classifiable MCP: enforce scopes.push / scopes.merge (#2711).
