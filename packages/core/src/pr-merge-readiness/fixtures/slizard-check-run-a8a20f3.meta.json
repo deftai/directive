@@ -1,0 +1,13 @@
+{
+  "schema": "deft.captured-check-run.v1",
+  "repo": "deftai/bs-deepwordle",
+  "pr": 4,
+  "head_sha": "a8a20f376c3b4af53f3ba4fe3cccf4fcb3ab60a4",
+  "check_run_id": 103182122466,
+  "check_run_name": "SLizard",
+  "conclusion": "failure",
+  "captured_at": "2026-09-13T02:36:00Z",
+  "api": "GET /repos/deftai/bs-deepwordle/commits/a8a20f376c3b4af53f3ba4fe3cccf4fcb3ab60a4/check-runs",
+  "field": "output.summary",
+  "notes": "Live check-run summary has no <!-- slizard:verdict --> block. That HTML comment lives on the PR review body for the same SHA (finding_count: 0). Reading the review body is an input-architecture change, not a regex swap on this file."
+}
