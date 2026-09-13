@@ -29,3 +29,29 @@ describe("hookToolName (#2628 / #2669 / #2950)", () => {
     );
   });
 });
+
+describe("unlisted write-shaped tool names (#4199)", () => {
+  it("infers write-shaped payload for an unlisted name", () => {
+    expect(
+      hookToolName({
+        tool_name: "edit_file",
+        tool_input: { old_string: "a", new_string: "b", path: "src/a.ts" },
+      }),
+    ).toBe("StrReplace");
+    expect(
+      hookToolName({
+        tool_name: "mystery_notebook",
+        tool_input: { cell_id: "c1", cells: [] },
+      }),
+    ).toBe("NotebookEdit");
+  });
+
+  it("does not infer from bare file_path on an unlisted name", () => {
+    expect(
+      hookToolName({
+        tool_name: "Read",
+        tool_input: { file_path: "src/a.ts" },
+      }),
+    ).toBe("Read");
+  });
+});

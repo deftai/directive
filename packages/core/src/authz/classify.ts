@@ -2010,7 +2010,8 @@ function zipShellWordRedirection(raw: string): ZipShellRedirection | null {
         (raw[targetIndex] === "<" ||
           raw[targetIndex] === ">" ||
           raw[targetIndex] === "&" ||
-          raw[targetIndex] === "|")
+          raw[targetIndex] === "|" ||
+          raw[targetIndex] === "!")
       ) {
         targetIndex++;
       }
@@ -2931,23 +2932,11 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
   }
   if (!mentionsKill) return false;
 
-  // Redirect dest region after each `>` / `>>` (O(n)); check raw + quote-stripped.
+  // Redirect dest region after each `>` operator, including noclobber forms (#4199).
   for (const hay of [lower, stripped]) {
     for (let i = 0; i < hay.length; i++) {
       if (hay[i] !== ">") continue;
-      let j = i + 1;
-      if (j < hay.length && hay[j] === ">") j++;
-      let end = j;
-      while (
-        end < hay.length &&
-        hay[end] !== "|" &&
-        hay[end] !== ";" &&
-        hay[end] !== "&" &&
-        hay[end] !== "\n"
-      ) {
-        end++;
-      }
-      const dest = hay.slice(j, end);
+      const dest = redirectDestSlice(hay, i);
       for (const name of KILL_SWITCH_BASENAMES) {
         if (dest.includes(name)) return true;
       }
@@ -3437,6 +3426,27 @@ function pathishIsSettingsStoreDir(pathish: string): boolean {
   return pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish);
 }
 
+/** After `>` at `gtIndex`, skip the rest of the redirect operator and return dest. */
+function redirectDestSlice(hay: string, gtIndex: number): string {
+  let j = gtIndex + 1;
+  while (j < hay.length) {
+    const c = hay[j];
+    if (c === ">" || c === "<" || c === "&" || c === "|" || c === "!") j += 1;
+    else break;
+  }
+  let end = j;
+  while (
+    end < hay.length &&
+    hay[end] !== "|" &&
+    hay[end] !== ";" &&
+    hay[end] !== "&" &&
+    hay[end] !== "\n"
+  ) {
+    end += 1;
+  }
+  return hay.slice(j, end);
+}
+
 /** True when dest is a settings-store path or a split-path `authz` segment after `.deft`. */
 function destMentionsAuthzSegment(dest: string): boolean {
   const p = canonicalizePathish(pathishToken(dest).trim());
@@ -3462,25 +3472,12 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
   // Quote-stripped contiguous form for redirect dest checks (#3213).
   const stripped = lower.replace(/['"]/g, "");
 
-  // Redirect dest region after each `>` / `>>` (O(n); no nested-quantifier regex).
+  // Redirect dest region after each `>` operator, including `>|` / `>&` / `>&!` / `>!` (#4199).
   // Check both raw and quote-stripped so quote-split dests still match.
   for (const hay of [lower, stripped]) {
     for (let i = 0; i < hay.length; i++) {
       if (hay[i] !== ">") continue;
-      let j = i + 1;
-      if (j < hay.length && hay[j] === ">") j++;
-      // Dest until pipe/semicolon/ampersand/newline.
-      let end = j;
-      while (
-        end < hay.length &&
-        hay[end] !== "|" &&
-        hay[end] !== ";" &&
-        hay[end] !== "&" &&
-        hay[end] !== "\n"
-      ) {
-        end++;
-      }
-      if (pathishIsSettingsStoreDir(hay.slice(j, end))) return true;
+      if (pathishIsSettingsStoreDir(redirectDestSlice(hay, i))) return true;
     }
   }
 
@@ -3960,19 +3957,7 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
       const lower = cmd.toLowerCase().replace(/\\/g, "/");
       for (let i = 0; i < lower.length; i++) {
         if (lower[i] !== ">") continue;
-        let j = i + 1;
-        if (j < lower.length && lower[j] === ">") j++;
-        let end = j;
-        while (
-          end < lower.length &&
-          lower[end] !== "|" &&
-          lower[end] !== ";" &&
-          lower[end] !== "&" &&
-          lower[end] !== "\n"
-        ) {
-          end++;
-        }
-        if (destMentionsAuthzSegment(lower.slice(j, end))) {
+        if (destMentionsAuthzSegment(redirectDestSlice(lower, i))) {
           found.add("settings");
           break;
         }
@@ -3996,8 +3981,135 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   ) {
     found.add("unknown");
   }
+  // #4199: write-shaped Shell with a visible protected dest must not fail open as [].
+  if (!found.has("settings") && hasWriteShapedProtectedSettingsDest(cmd, tokens)) {
+    found.add("unknown");
+  }
 
   return [...found];
+}
+
+const EMPTY_OPS_WRAPPER_BINS = new Set([
+  "sudo",
+  "doas",
+  "exec",
+  "time",
+  "env",
+  "nice",
+  "nohup",
+  "command",
+  "builtin",
+  "stdbuf",
+]);
+
+function firstCommandBin(tokens: readonly string[]): string {
+  let skipNext = false;
+  for (const t of tokens) {
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (t.includes("=") && !t.startsWith("-") && !t.startsWith(".")) {
+      if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) continue;
+    }
+    const lower = t.toLowerCase();
+    if (t.startsWith("-")) {
+      if (lower === "-u" || lower === "--user" || lower === "--group") skipNext = true;
+      continue;
+    }
+    const bin = writeBinName(t).replace(/^\(+/, "");
+    if (bin.length === 0) continue;
+    if (EMPTY_OPS_WRAPPER_BINS.has(bin)) continue;
+    return bin;
+  }
+  return "";
+}
+
+function pathishIsProtectedMutationDest(pathish: string): boolean {
+  return pathishIsSettingsStoreDir(pathish) || pathishMentionsKillSwitch(pathish);
+}
+
+function redirectDestIsProtectedSettings(command: string): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  const stripped = lower.replace(/['"]/g, "");
+  for (const hay of [lower, stripped]) {
+    for (let i = 0; i < hay.length; i++) {
+      if (hay[i] !== ">") continue;
+      if (pathishIsProtectedMutationDest(redirectDestSlice(hay, i))) return true;
+    }
+  }
+  return false;
+}
+
+const EMPTY_OPS_LAST_DEST_BINS = new Set(["makeself", "puppet", "yq", "dasel", "nomad"]);
+
+const EMPTY_OPS_DEST_FLAGS = new Set([
+  "--file",
+  "--inplace",
+  "--output",
+  "--dest",
+  "--destination",
+  "-out",
+  "-f",
+]);
+
+const EMPTY_OPS_READ_OR_ARCHIVE_BINS = new Set([
+  ...DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS,
+  "xxd",
+  "openssl",
+  "zip",
+  "unzip",
+  "tar",
+  "gzip",
+  "get-content",
+  "get-item",
+  "gc",
+  "type",
+  "find",
+  "xargs",
+]);
+
+function destFlagOperandIsProtectedSettings(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    const eq = raw.indexOf("=");
+    if (raw.startsWith("--") && eq > 1) {
+      const flag = raw.slice(0, eq).toLowerCase();
+      const val = raw.slice(eq + 1);
+      if (EMPTY_OPS_DEST_FLAGS.has(flag) && pathishIsProtectedMutationDest(pathishToken(val))) {
+        return true;
+      }
+    }
+    const flag = raw.toLowerCase();
+    if (!EMPTY_OPS_DEST_FLAGS.has(flag)) continue;
+    if (i + 1 >= tokens.length) continue;
+    if (pathishIsProtectedMutationDest(pathishToken(tokens[i + 1] as string))) return true;
+  }
+  return false;
+}
+
+function lastNonFlagToken(tokens: readonly string[]): string {
+  let last = "";
+  for (const t of tokens) {
+    if (t.startsWith("-")) continue;
+    last = t;
+  }
+  return last;
+}
+
+function hasWriteShapedProtectedSettingsDest(command: string, tokens: readonly string[]): boolean {
+  if (redirectDestIsProtectedSettings(command)) return true;
+  const first = firstCommandBin(tokens);
+  if (first.length === 0) return false;
+  if (EMPTY_OPS_READ_OR_ARCHIVE_BINS.has(first)) return false;
+  if (destFlagOperandIsProtectedSettings(tokens)) return true;
+  const inplace = tokens.some((tok) => tok === "-i" || tok.toLowerCase() === "--inplace");
+  const last = lastNonFlagToken(tokens);
+  if (inplace && pathishIsProtectedMutationDest(pathishToken(last))) return true;
+  if (EMPTY_OPS_LAST_DEST_BINS.has(first) && pathishIsProtectedMutationDest(pathishToken(last))) {
+    return true;
+  }
+  return false;
 }
 
 /** Map a PreToolUse tool name + optional shell command to authz ops. */

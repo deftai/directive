@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DIRECT_WRITE_HOOK_MATCHER,
   isDirectWriteTool,
   isMcpTool,
   isShellTool,
@@ -39,6 +40,10 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
   it("isDirectWriteTool and isSpawnTool stay narrow", () => {
     expect(isDirectWriteTool("Write")).toBe(true);
     expect(isDirectWriteTool("Edit")).toBe(true);
+    expect(isDirectWriteTool("EditNotebook")).toBe(true);
+    expect(isDirectWriteTool("edit_notebook")).toBe(true);
+    expect(DIRECT_WRITE_HOOK_MATCHER.split("|")).toContain("EditNotebook");
+    expect(DIRECT_WRITE_HOOK_MATCHER.split("|")).toContain("edit_notebook");
     expect(isDirectWriteTool("Shell")).toBe(false);
     expect(isSpawnTool("Task")).toBe(true);
     expect(isSpawnTool("Shell")).toBe(false);
