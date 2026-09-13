@@ -1,3 +1,4 @@
+import { firstString, record, toolInputRecord } from "./classify/payload.js";
 import type { ClassifyHookHost } from "./classify/types.js";
 
 /** Host spellings that install-time matchers and runtime classification share. */
@@ -90,6 +91,68 @@ export function isMcpTool(toolName: string): boolean {
   return false;
 }
 
+/** Host wrappers whose inner MCP/tool name lives in the payload (#3593). */
+export function isMcpProxyWrapper(toolName: string): boolean {
+  const n = normalizedToolName(toolName);
+  return n === "callmcptool" || n === "usetool";
+}
+
+const MCP_WRITE_NAME_MARKERS = [
+  "write",
+  "edit",
+  "replace",
+  "patch",
+  "save",
+  "create",
+  "delete",
+  "mkdir",
+  "unlink",
+  "rename",
+  "append",
+  "move",
+] as const;
+
+/**
+ * Write-vs-read lattice for MCP/proxy names (#3593). Dest-bearing writes go
+ * through inspectMutationGates. Reads such as list_issues stay unclassifiable.
+ * Not a matcher catalog: classifier-side only.
+ */
+export function isMcpWriteShaped(toolName: string): boolean {
+  if (isDirectWriteTool(toolName)) return true;
+  const n = normalizedToolName(toolName);
+  if (n.includes("searchreplace") || n.includes("applypatch") || n.includes("applyedit")) {
+    return true;
+  }
+  if (n.includes("read") || n.includes("list") || n.includes("grep") || n.includes("fetch")) {
+    if (!n.includes("write") && !n.includes("edit") && !n.includes("replace")) return false;
+  }
+  return MCP_WRITE_NAME_MARKERS.some((marker) => n.includes(marker));
+}
+
+/** Inner tool name for CallMcpTool / use_tool payloads. */
+export function innerMcpToolName(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input);
+  const nested =
+    toolInput !== null
+      ? (record(toolInput.arguments) ?? record(toolInput.tool_input) ?? record(toolInput.params))
+      : null;
+  return firstString([
+    toolInput?.tool_name,
+    toolInput?.toolName,
+    toolInput?.name,
+    nested?.tool_name,
+    nested?.name,
+    input.tool_name,
+  ]);
+}
+
+export function effectiveHookToolName(toolName: string, payload: unknown): string {
+  if (!isMcpProxyWrapper(toolName)) return toolName;
+  return innerMcpToolName(payload) ?? toolName;
+}
+
 /**
  * Bare tool names that hosts may emit without mcp__/server__ prefixes and that
  * `classifyMcpTool` treats as push or merge (#2711).
@@ -179,10 +242,9 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
         "full spawn stack (ritual + active xBRIEF), a new deny class that needs a deliberate " +
         "policy decision rather than a coverage edit (#3987 residual)",
       use_tool:
-        "mcp-class and NOT covered: the dispatcher classifies on the outer tool name, and the " +
-        "MCP tool actually invoked is nested in tool_input.tool_name, so a matcher entry alone " +
-        "buys a hook invocation and no enforcement; reading the inner name is a classifier " +
-        "change, not a matcher change (#3987 residual)",
+        "mcp-class wrapper: dispatcher unwraps tool_input.tool_name and routes dest-bearing " +
+        "write-shaped inners through inspectMutationGates (#3593). Matcher entry still does " +
+        "not enforce; classifier unwrap does.",
     },
     unobservedReason: null,
     source:

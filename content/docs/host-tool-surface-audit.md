@@ -52,7 +52,7 @@ recorded on [#3987](https://github.com/deftai/directive/issues/3987).
 | `enter_plan_mode`, `exit_plan_mode` | out of scope — session posture |
 | `image_gen`, `image_edit`, `image_to_video`, `reference_to_video` | out of scope — generated media lands in session scratch, never a tracked product path |
 | `scheduler_create` | **known gap, not covered** — see below |
-| `use_tool` | **known gap, not covered** — see below |
+| `use_tool` | dest-bearing write-shaped inners unwrap into inspectMutationGates (#3593); matcher still does not enforce |
 
 ### `scheduler_create` — spawn-class, needs a policy decision
 
@@ -63,13 +63,13 @@ xBRIEF), which denies a shape that works today — a new deny class, not a
 coverage repair. That is a deliberate policy call and belongs in its own change,
 not in a matcher edit.
 
-### `use_tool` — mcp-class, needs a classifier change
+### `use_tool` — mcp-class proxy, classifier unwraps dest-bearing writes (#3593)
 
 `use_tool` is a proxy: the MCP tool actually invoked is nested in
-`tool_input.tool_name`, and the dispatcher classifies on the outer name only. A
-matcher entry alone would buy a hook invocation and no enforcement, because
-`isMcpTool("use_tool")` is false and `classifyMcpTool` returns null. Reading the
-inner name is a classifier change with its own untrusted-input surface.
+`tool_input.tool_name`. A matcher entry alone still does not enforce. The
+dispatcher now unwraps the inner name and routes dest-bearing write-shaped
+inners through `inspectMutationGates`. Reads such as `list_issues` stay on the
+runtime-authority fail-open path. Cursor `CallMcpTool` uses the same unwrap.
 
 ---
 

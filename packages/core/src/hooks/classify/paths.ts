@@ -4,6 +4,35 @@
  */
 
 import { firstString, record, toolInputRecord } from "./payload.js";
+
+const PATHISH_KEYS = [
+  "file_path",
+  "filePath",
+  "path",
+  "target_file",
+  "targetFile",
+  "target_path",
+  "targetPath",
+] as const;
+
+/** Nested MCP/proxy arguments (#3593). Depth-capped; does not invent free-text paths. */
+function collectPathishFields(value: unknown, into: string[], depth: number): void {
+  if (depth > 4) return;
+  const rec = record(value);
+  if (rec === null) return;
+  for (const key of PATHISH_KEYS) {
+    const candidate = rec[key];
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      into.push(candidate.trim());
+    }
+  }
+  collectPathishFields(rec.arguments, into, depth + 1);
+  collectPathishFields(rec.tool_input, into, depth + 1);
+  collectPathishFields(rec.toolInput, into, depth + 1);
+  collectPathishFields(rec.input, into, depth + 1);
+  collectPathishFields(rec.params, into, depth + 1);
+}
+
 import { applyPatchMutationPaths } from "./stdin.js";
 
 /**
@@ -14,10 +43,18 @@ export function hookWriteTargetPath(payload: unknown): string | null {
   const input = record(payload);
   if (input === null) return null;
   const toolInput = toolInputRecord(input);
+  const nested =
+    toolInput !== null
+      ? (record(toolInput.arguments) ?? record(toolInput.tool_input) ?? record(toolInput.params))
+      : null;
   return firstString([
     toolInput?.file_path,
     toolInput?.filePath,
     toolInput?.path,
+    toolInput?.target_file,
+    nested?.file_path,
+    nested?.path,
+    nested?.target_file,
     input.file_path,
     input.filePath,
     input.path,
@@ -57,6 +94,9 @@ export function hookMutationTargetPaths(payload: unknown): string[] {
     seen.add(value);
     out.push(value);
   };
+  const collected: string[] = [];
+  collectPathishFields(payload, collected, 0);
+  for (const path of collected) push(path);
   push(hookWriteTargetPath(payload));
   for (const path of hookApplyPatchBodyPaths(payload)) push(path);
   return out;

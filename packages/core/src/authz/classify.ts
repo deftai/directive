@@ -2346,6 +2346,79 @@ function argv0HasExistingDestGrammar(name: string): boolean {
   return false;
 }
 
+const INTERPRETER_CODE_FLAGS = new Set(["-e", "-c", "--eval", "--command"]);
+
+/** Quoted path-like literals inside -e/-c/eval payloads (#3593). */
+function quotedStringLiterals(payload: string): string[] {
+  const dests: string[] = [];
+  for (const re of [/"([^"]{1,512})"/g, /'([^']{1,512})'/g, /`([^`]{1,512})`/g]) {
+    for (const match of payload.matchAll(re)) {
+      const inner = match[1];
+      if (inner !== undefined && inner.length > 0) dests.push(inner);
+    }
+  }
+  return dests;
+}
+
+const INTERPRETER_WRITE_MARKERS = [
+  "write",
+  "spurt",
+  "spit",
+  "open(",
+  "dump(",
+  "save(",
+  "mkdir",
+  "unlink",
+  "rename",
+  "put(",
+  "create",
+] as const;
+
+function interpreterPayloadLooksLikeWrite(payload: string): boolean {
+  const lower = payload.toLowerCase();
+  return INTERPRETER_WRITE_MARKERS.some((marker) => lower.includes(marker));
+}
+
+function harvestInterpreterPayloadDests(words: readonly string[], execIndex: number): string[] {
+  const dests: string[] = [];
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const flag = normalizeToken(words[i] as string);
+    if (!INTERPRETER_CODE_FLAGS.has(flag) && flag !== "eval") continue;
+    const payload = words[i + 1];
+    if (payload === undefined || !interpreterPayloadLooksLikeWrite(payload)) continue;
+    dests.push(...quotedStringLiterals(payload));
+  }
+  return dests;
+}
+
+/** jar cf DEST inputs — dest is the first positional, not the last (#3593). */
+function jarCreateArchiveDest(words: readonly string[], execIndex: number): string | null {
+  const name = argv0BareName(words, execIndex);
+  if (name !== "jar" && name !== "fastjar") return null;
+  let create = false;
+  let firstPositional: string | null = null;
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-") && n !== "--") {
+      const cluster = n.replace(/^-*/, "");
+      if (cluster.includes("c")) create = true;
+      continue;
+    }
+    if (!n.startsWith("-") && n !== "--") {
+      // Compact `cf` / `cfe` without a dash.
+      if (n.length <= 4 && /^[tfxcuv0-9]+$/.test(n) && n.includes("c")) {
+        create = true;
+        continue;
+      }
+      firstPositional = raw;
+      break;
+    }
+  }
+  if (!create || firstPositional === null) return null;
+  return zipShellWordLiteral(firstPositional);
+}
+
 function lastNonFlagWord(words: readonly string[], execIndex: number): string | null {
   let last: string | null = null;
   for (let i = execIndex + 1; i < words.length; i++) {
@@ -2432,6 +2505,11 @@ function hasProtectedUnprovenReadOnlyDestOfWrite(command: string): boolean {
     const literal = argv0Literal(segment.words, segment.execIndex);
     const name = argv0BareName(segment.words, segment.execIndex);
     if (name === null) continue;
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && isRelativePayloadProtectedDest(jarDest)) return true;
+    for (const dest of harvestInterpreterPayloadDests(segment.words, segment.execIndex)) {
+      if (isRelativePayloadProtectedDest(dest)) return true;
+    }
     const pathQualified = literal !== null && argv0IsPathQualified(literal);
     // Path-qualified `./cat` is not a proven reader. Still skip catalogued
     // writers (they already emit settings). Do not apply print/read first-bin
@@ -2477,6 +2555,11 @@ export function harvestDestsOfWriteForRealpath(command: string): string[] {
     const pathQualified = literal !== null && argv0IsPathQualified(literal);
     if (!pathQualified && DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(name)) continue;
     if (!pathQualified && TEST_BINS.has(name)) continue;
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && jarDest.length > 0) dests.push(jarDest);
+    for (const interp of harvestInterpreterPayloadDests(segment.words, segment.execIndex)) {
+      dests.push(interp);
+    }
     const last = lastNonFlagWord(segment.words, segment.execIndex);
     if (last === null || zipShellWordHasExpansion(last)) continue;
     const destLiteral = zipShellWordLiteral(last);

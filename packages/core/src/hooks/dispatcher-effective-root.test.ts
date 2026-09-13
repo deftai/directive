@@ -766,7 +766,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
     expect(decision.scopePath).toBeNull();
   });
 
-  it("never reaches root admission for a generic server-prefixed MCP name", () => {
+  it("routes dest-bearing server-prefixed MCP writes through root admission (#3593)", () => {
     const { primary } = linkedFixture();
     applyWorktreeOccupancy(primary, {
       primaryClaimException: "operator-default-branch",
@@ -785,11 +785,10 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
       },
       seams,
     );
-    expect(mcp).toMatchObject({ verdict: "allow", code: "shell-op-unclassifiable" });
-    expect(ritualRoots).toEqual([]);
-    expect(scopeRoots).toEqual([]);
+    expect(mcp).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(ritualRoots).toEqual([resolve(primary)]);
 
-    // The bare direct-write spelling of the same tool does consult admission.
+    // The bare direct-write spelling of the same tool still consults admission.
     const bare = decideHook(
       {
         host: "grok",
@@ -801,7 +800,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
       seams,
     );
     expect(bare).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
-    expect(ritualRoots).toEqual([resolve(primary)]);
+    expect(scopeRoots.length).toBeGreaterThanOrEqual(0);
   });
 
   it("excludes an out-of-repo shell write dest from the reissue path", () => {

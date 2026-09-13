@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dest-bearing MCP/proxy writes, interpreter-payload dests, and migrate header in-tree symlinks (#3593).** `CallMcpTool` / `use_tool` unwrap inner names; dest-bearing write-shaped MCP shares `inspectMutationGates` with Write. `-e`/`-c`/`eval` quoted write payloads and `jar cf DEST inputs` emit grant-immune `unknown`. `patchAgentsMdHeader` refuses in-tree destination symlinks on both branches. Does not grow settings/bin catalogs or fail-closed MCP reads. Closes #3593.
+
 - **Greenfield `directive init` writes the canonical package.json pin before gitignoring `.deft/core/` (#4429).** Reuses `ensurePackageJsonPin`; pin write precedes the gitignore line so a throw cannot leave an unreconstitutable deposit. Headless already emitted the same pin. Missing-pin doctor note stays a proceed warning (error would retro-fail pre-pin consumers). JSON reformat of an existing `package.json` is accepted. Closes #4429.
 
 - **UAT Shell fail-closes unknown writes to four protected dests (#4188).** Unknown last-positional dest-of-write to `.deft/authz/**`, `.deft/approved-scope/**`, `.deft-directive-disable`, or `.no-deft-directive` UAT-denies. Proven reads stay allow. Closes #4188.

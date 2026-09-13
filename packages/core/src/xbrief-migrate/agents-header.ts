@@ -1,6 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { assertProjectionContained } from "../fs/projection-containment.js";
+import {
+  assertDestinationNotSymlink,
+  assertProjectionContained,
+} from "../fs/projection-containment.js";
 import { iterManagedSections } from "../platform/agents-md.js";
 import { MIGRATED_ARTIFACT_DIR } from "./constants.js";
 import { isDirectory } from "./fs-helpers.js";
@@ -189,6 +192,20 @@ export function patchAgentsMdHeader(
   } = {},
 ): HeaderPatchOutcome {
   const agentsPath = join(projectRoot, "AGENTS.md");
+  if (existsSync(projectRoot)) {
+    try {
+      // #3593: refuse in-tree destination symlinks on both the projection
+      // branch and the writeText seam. Mirror init-deposit #2912 (walk).
+      assertDestinationNotSymlink(projectRoot, agentsPath);
+    } catch (err) {
+      return {
+        kind: "failed",
+        path: agentsPath,
+        replacements: [],
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
   const readText =
     seams.readText ??
     ((path: string) => {
