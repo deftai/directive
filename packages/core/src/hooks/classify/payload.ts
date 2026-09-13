@@ -116,7 +116,7 @@ export function landProcessOnlyFlagOnToolInput(payload: unknown): unknown {
     hasProcessOnlyFlag(input);
   if (!flagged) return payload;
   const current = record(input.tool_input);
-  if (current !== null && current.process_only === true) return payload;
-  const source = nested ?? camel ?? {};
+  if (camel === null && current !== null && current.process_only === true) return payload;
+  const source = { ...(camel ?? {}), ...(nested ?? {}) };
   return { ...input, tool_input: { ...source, process_only: true } };
 }

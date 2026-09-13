@@ -97,6 +97,22 @@ describe("landProcessOnlyFlagOnToolInput (#4315)", () => {
     expect(fromOne.tool_input?.process_only).toBe(true);
   });
 
+  it("merges Grok toolInput fields under a partial tool_input (#4315)", () => {
+    const landed = landProcessOnlyFlagOnToolInput({
+      tool_name: "spawn_subagent",
+      tool_input: { subagent_type: "general-purpose" },
+      toolInput: {
+        subagent_type: "general-purpose",
+        process_only: true,
+        cwd: "/dest",
+        prompt: "critic",
+      },
+    }) as { tool_input?: { process_only?: boolean; cwd?: string; prompt?: string } };
+    expect(landed.tool_input?.process_only).toBe(true);
+    expect(landed.tool_input?.cwd).toBe("/dest");
+    expect(landed.tool_input?.prompt).toBe("critic");
+  });
+
   it("does not invent process_only from dest-path or prompt text", () => {
     const unmarked = landProcessOnlyFlagOnToolInput({
       toolName: "spawn_subagent",
