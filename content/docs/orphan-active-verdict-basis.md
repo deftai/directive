@@ -126,6 +126,7 @@ an unverified one:
 ```text
 verify:orphan-active: no orphaned active/running xBRIEFs (scanned 3 running briefs in active/).
   Basis: inventory 2, cache 1 (max age 4m).
+  Origins: 0 of 3 scanned briefs resolved zero forge origins.
 ```
 
 ```text
@@ -138,9 +139,18 @@ verify:orphan-active: no orphaned active/running xBRIEFs (scanned 1 running brie
 
 `EvaluateResult.basis` carries the same counts structurally
 (`inventory`, `live`, `cache`, `unverified`, `maxCacheAgeMs`, `proxied`,
-`elapsedMs`, `budgetMs`).
+`elapsedMs`, `budgetMs`, `scanned`, `noOrigin`).
 
+`noOrigin` is how many evaluated briefs resolved zero forge origins
+(`#4426`). Scoped `--issue N` counts `scanned` / `noOrigin` only for
+briefs that name that issue — unrelated and originless briefs stay off
+those counters. It does not change the two unknown policies: the unscoped
+sweep stays fail-open; scoped `--issue N` stays fail-closed.
+
+⊗ Do not flatten the two unknown policies into one rule.
 ⊗ Do not cite an exit 0 with `unverified > 0` as evidence that a tree is clean.
+⊗ Do not cite an exit 0 with `noOrigin > 0` as evidence that those briefs
+  are clean of shipped residue — they were never origin-keyed.
 
 ---
 

@@ -840,6 +840,9 @@ describe("test_contracts.py", () => {
   it("strategies/emit-hints.md::./v0-20-contract.md", () => {
     expect(existsSync(resolveContentPath("strategies/v0-20-contract.md"))).toBe(true);
   });
+  it("strategies/emit-hints.md::../skills/deft-directive-setup/SKILL.md", () => {
+    expect(existsSync(resolveContentPath("skills/deft-directive-setup/SKILL.md"))).toBe(true);
+  });
   it("strategies/enterprise.md::./interview.md", () => {
     expect(existsSync(resolveContentPath("strategies/interview.md"))).toBe(true);
   });

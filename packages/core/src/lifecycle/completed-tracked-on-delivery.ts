@@ -55,6 +55,10 @@ export interface EvaluateCompletedTrackedResult {
   readonly stream: OutputStream;
   readonly missing: readonly MissingCompletedLand[];
   readonly tip: string | null;
+  /** Local lifecycle briefs with a parseable plan (#4426). */
+  readonly briefsScanned?: number;
+  /** Distinct forge origins resolved from those briefs and the tip (#4426). */
+  readonly originsResolved?: number;
 }
 
 export interface EvaluateCompletedTrackedOptions {
@@ -242,8 +246,12 @@ function collectIssuesFromPlan(
   }
 }
 
-function scanLocalOrigins(projectRoot: string, defaultRepo: string | null): OriginHit[] {
+function scanLocalOrigins(
+  projectRoot: string,
+  defaultRepo: string | null,
+): { hits: OriginHit[]; briefsScanned: number } {
   const hits: OriginHit[] = [];
+  let briefsScanned = 0;
   const roots: string[] = [];
   try {
     roots.push(resolveLifecycleRoot(projectRoot));
@@ -282,11 +290,12 @@ function scanLocalOrigins(projectRoot: string, defaultRepo: string | null): Orig
         if (plan === null) {
           continue;
         }
+        briefsScanned += 1;
         collectIssuesFromPlan(plan, defaultRepo, relPath(path, projectRoot), hits);
       }
     }
   }
-  return hits;
+  return { hits, briefsScanned };
 }
 
 function refExists(projectRoot: string, ref: string, runGit: GitRunner): boolean {
@@ -539,7 +548,8 @@ export function evaluateCompletedTracked(
     });
   };
 
-  const localHits = scanLocalOrigins(root, defaultRepo);
+  const localScan = scanLocalOrigins(root, defaultRepo);
+  const localHits = localScan.hits;
   const tipNonterminalPaths = listTreePaths(root, tip, nonterminalPrefixes(), runGit);
   // Delivery tip only — the land invariant is post-merge tip truth (#3264 AC).
   // Lifecycle PRs that commit completed/ on a feature branch are not expected
@@ -610,14 +620,27 @@ export function evaluateCompletedTracked(
 
   if (originMap.size === 0) {
     if (quiet) {
-      return { code: 0, message: "", stream: "none", missing: [], tip };
+      return {
+        code: 0,
+        message: "",
+        stream: "none",
+        missing: [],
+        tip,
+        briefsScanned: localScan.briefsScanned,
+        originsResolved: 0,
+      };
     }
+    const briefNoun = localScan.briefsScanned === 1 ? "brief" : "briefs";
     return {
       code: 0,
-      message: "verify:completed-tracked: no scoped lifecycle origins found; nothing to check.",
+      message:
+        `verify:completed-tracked: scanned ${localScan.briefsScanned} ${briefNoun}, ` +
+        "resolved 0 origins; nothing to check.",
       stream: "stdout",
       missing: [],
       tip,
+      briefsScanned: localScan.briefsScanned,
+      originsResolved: 0,
     };
   }
 
@@ -656,20 +679,32 @@ export function evaluateCompletedTracked(
       stream: "stderr",
       missing,
       tip,
+      briefsScanned: localScan.briefsScanned,
+      originsResolved: originMap.size,
     };
   }
 
   if (quiet) {
-    return { code: 0, message: "", stream: "none", missing: [], tip };
+    return {
+      code: 0,
+      message: "",
+      stream: "none",
+      missing: [],
+      tip,
+      briefsScanned: localScan.briefsScanned,
+      originsResolved: originMap.size,
+    };
   }
 
   return {
     code: 0,
     message:
       `verify:completed-tracked: all closed scoped issues have tracked completed/cancelled ` +
-      `on tip ${tip} (scoped origins checked: ${originMap.size}).`,
+      `on tip ${tip} (scanned ${localScan.briefsScanned} briefs, scoped origins checked: ${originMap.size}).`,
     stream: "stdout",
     missing: [],
     tip,
+    briefsScanned: localScan.briefsScanned,
+    originsResolved: originMap.size,
   };
 }

@@ -671,7 +671,7 @@ omit = [
 
 - ! Default based on repo state via the brownfield detector above (scoped/brownfield → Add scope; identity-only or greenfield → Starting new)
 - ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
-- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
+- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface Issue-emit hints (#4426) plus the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
 - ! If **Add scope** on identity-only: ⊗ synthesize the first scope from `narratives.Overview`, directory name, or init-seed identity. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm Phase 0 Step 0.5 `xbrief/proposed/` scan is in scope for that skip.
 - ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
@@ -680,7 +680,7 @@ omit = [
 - ⊗ Treat brownfield repos as "Starting new" by default
 - ⊗ Default identity-only to Add-scope because PROJECT-DEFINITION exists
 - ⊗ Accept vague confirmation (`proceed`, `ok`) for Replace/scrap
-- ⊗ Exit immediately after Add-scope write without the lifecycle bridge / export / handoff guidance
+- ⊗ Exit immediately after Add-scope write without Issue-emit hints / the lifecycle bridge / export / handoff guidance
 - ⊗ Auto-promote proposed scopes from this skill
 - ⊗ Change `directive init` brownfield-install classification from this Phase 3 detector
 
@@ -835,6 +835,15 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 ? Collect `plan.metadata.swarm.file_scope` only as operator-named declared members for later derived-stamp bind (`#4008`). ⊗ Invent paths. ⊗ Mint an approved-scope digest (`#3145` / `#3110`).
 ! Fields the gate requires: [`../../docs/plan-acceptance.md`](../../docs/plan-acceptance.md).
 
+### Issue-emit hints at emission (#4426)
+
+! After writing scope xBRIEFs to `xbrief/proposed/` (Light path, Full path, or Add-scope), surface the GitHub-issue tracking hint from [`../../strategies/emit-hints.md`](../../strategies/emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
+- The operator picks one or takes no action (the default). No issue is filed unless they explicitly run `task issue:emit` (maintainer) / `task deft:issue:emit` (consumer).
+- Origin references are operator-collected or minted by `task issue:emit`. ⊗ Agent-asserted `parent_issue` / `plan.references`. Same polarity as `file_scope`.
+- ⊗ State that issue-less scopes are outside the reconciliation model — emit-hints already records the vBRIEF-only default.
+- ⊗ Invent a forge origin so origin-keyed sweeps have something to resolve.
+
 ### Lifecycle Bridge to Downstream Skills (#1025)
 
 ! Scope xBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Add scope to this project" branch land in `xbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task xbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate xBRIEFs to live in `xbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.
@@ -919,3 +928,5 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Invent a full `deft config` verb family for experimental meta when setup re-entry suffices (#46)
 - ⊗ Default identity-only Phase 3 to Add-scope because PROJECT-DEFINITION exists (#4390)
 - ⊗ Synthesize the first proposed scope from Overview, directory name, or init seed (#4390)
+- ⊗ Skip emit-hints after Phase 3 writes to `xbrief/proposed/` (#4426)
+- ⊗ Agent-asserted `parent_issue` / `plan.references` at setup emission (#4426)

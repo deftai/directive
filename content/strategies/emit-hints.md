@@ -20,6 +20,7 @@ This file is not a standalone strategy — it is a shared hint referenced by oth
 
 - ! Referenced by spec-generating strategies: [speckit](./speckit.md) (Phase 4 and Phase 4.5), [enterprise](./enterprise.md), [rapid](./rapid.md), [interview](./interview.md), [yolo](./yolo.md)
 - ! Referenced by preparatory strategies: [bdd](./bdd.md), [discuss](./discuss.md), [research](./research.md), [map](./map.md), [probe](./probe.md)
+- ! Referenced by setup Phase 3: [deft-directive-setup](../skills/deft-directive-setup/SKILL.md) at the emission step after writing `xbrief/proposed/` scopes
 
 ## Workflow
 
