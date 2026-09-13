@@ -91,7 +91,22 @@ export function classifyLauncherFamilyArgv(
     }
     return NOT_LAUNCHER;
   }
-  return classifyLauncherSegment(segments[0] ?? "", payloadCwd);
+  const classified = classifyLauncherSegment(segments[0] ?? "", payloadCwd);
+  if (classified.kind === "launcher" && commandHasShellSubstitution(cmd)) {
+    return { kind: "compound", family: classified.family };
+  }
+  return classified;
+}
+
+/** $() / backticks / process substitution, including inside quotes. Fail closed. */
+function commandHasShellSubstitution(command: string): boolean {
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i];
+    if (c === "`") return true;
+    if (c === "$" && command[i + 1] === "(") return true;
+    if ((c === "<" || c === ">") && command[i + 1] === "(") return true;
+  }
+  return false;
 }
 
 function classifyLauncherSegment(segment: string, payloadCwd: string | null): LauncherArgvClass {

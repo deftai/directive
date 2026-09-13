@@ -146,6 +146,25 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
     });
   });
 
+  it("does not classify quoted command substitution as an allowable launcher", () => {
+    expect(classifyLauncherFamilyArgv('grok --cwd /wt --always-approve "$(rm target)"')).toEqual({
+      kind: "compound",
+      family: "grok",
+    });
+    expect(classifyLauncherFamilyArgv("grok --cwd /wt --always-approve `rm target`")).toEqual({
+      kind: "compound",
+      family: "grok",
+    });
+    expect(classifyLauncherFamilyArgv("grok --cwd /wt --always-approve <(echo x)")).toEqual({
+      kind: "compound",
+      family: "grok",
+    });
+    expect(classifyLauncherFamilyArgv('grok --cwd "$(pwd)/wt" --always-approve')).toEqual({
+      kind: "compound",
+      family: "grok",
+    });
+  });
+
   it("classifies claude --cwd in argv over payload cwd", () => {
     expect(
       classifyLauncherFamilyArgv(

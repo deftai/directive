@@ -2657,8 +2657,8 @@ function decideLauncherFamilyArgv(
         "spawn-not-ready",
         toolName,
         `Directive denied ${toolName}: launcher-family argv (${classified.family}) must be a single ` +
-          "simple command. Compound commands fail closed so trailing shell segments cannot bypass " +
-          "destructive git or dest-form gates.",
+          "simple command. Compound commands and shell substitution fail closed so trailing " +
+          "segments or $(...) / backticks cannot bypass destructive git or dest-form gates.",
       ),
     );
   }

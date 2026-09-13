@@ -2990,7 +2990,25 @@ describe("launcher-family argv classification (#4219)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.code).not.toBe("spawn-process-only-ready");
-    expect(decision.message).toMatch(/Compound commands fail closed/);
+    expect(decision.message).toMatch(/Compound commands and shell substitution fail closed/);
+  });
+
+  it("denies grok argv with quoted command substitution so $(rm) cannot skip gates", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: { command: 'grok --cwd /wt --always-approve "$(rm target)"' },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.code).not.toBe("spawn-process-only-ready");
+    expect(decision.message).toMatch(/shell substitution fail closed/);
   });
 
   it("leaves grok login as shell-op-unclassifiable", () => {
