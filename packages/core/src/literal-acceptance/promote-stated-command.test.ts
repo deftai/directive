@@ -1,0 +1,357 @@
+/**
+ * Labeled/fence/prompt task_statement rows must be promotable via documented
+ * slots without rewriting source (#4238). Inline mentions stay #3721.
+ */
+
+import { describe, expect, it } from "vitest";
+import {
+  evaluateLiteralAcceptanceFromPlan,
+  readStoredLiteralAcceptanceCommands,
+  runLiteralAcceptanceCommands,
+} from "./index.js";
+
+const COMMAND = "deft doctor";
+
+type SpanPrefix = "labeled@" | "fence@" | "prompt@";
+type Slot = "verify_commands" | "plan_item" | "metadata";
+
+function statedRow(spanPrefix: SpanPrefix) {
+  return {
+    command: COMMAND,
+    source: "task_statement" as const,
+    sourceSpan: `${spanPrefix}L27`,
+  };
+}
+
+function planFor(spanPrefix: SpanPrefix, slot: Slot | "none") {
+  const metadata: Record<string, unknown> = {
+    literal_acceptance_commands: [statedRow(spanPrefix)],
+  };
+  const items: Array<Record<string, unknown>> = [];
+  if (slot === "verify_commands") {
+    metadata.swarm = { verify_commands: [COMMAND] };
+  } else if (slot === "metadata") {
+    metadata.swarm = {
+      literal_acceptance_commands: [{ command: COMMAND, expectedExitCode: 0 }],
+    };
+  } else if (slot === "plan_item") {
+    items.push({ command: COMMAND });
+  }
+  return { title: "t", metadata, items };
+}
+
+const SPANS: SpanPrefix[] = ["labeled@", "fence@", "prompt@"];
+const SLOTS: Slot[] = ["verify_commands", "plan_item", "metadata"];
+const SLOT_SOURCE: Record<Slot, string> = {
+  verify_commands: "verify_commands",
+  plan_item: "plan_item",
+  metadata: "metadata",
+};
+
+describe("promote non-inline task_statement via documented slots (#4238)", () => {
+  for (const span of SPANS) {
+    for (const slot of SLOTS) {
+      it(`${span} row plus ${slot} coexists and evaluates without rewriting source`, () => {
+        const plan = planFor(span, slot);
+        const stored = readStoredLiteralAcceptanceCommands(plan);
+        expect(stored.map((c) => c.source)).toEqual(
+          expect.arrayContaining(["task_statement", SLOT_SOURCE[slot]]),
+        );
+        expect(stored.some((c) => c.source === "explicit")).toBe(false);
+        const stated = stored.find((c) => c.source === "task_statement");
+        expect(stated?.sourceSpan?.startsWith(span)).toBe(true);
+
+        let runs = 0;
+        const result = evaluateLiteralAcceptanceFromPlan(plan, {
+          projectRoot: process.cwd(),
+          captureFromNarratives: false,
+          runner: () => {
+            runs += 1;
+            return { exitCode: 0, stdout: "", stderr: "" };
+          },
+        });
+        expect(result.ok).toBe(true);
+        expect(runs).toBeGreaterThan(0);
+        expect(result.commands.some((c) => c.source === "task_statement")).toBe(true);
+        expect(result.commands.some((c) => c.source === SLOT_SOURCE[slot])).toBe(true);
+        expect(result.commands.some((c) => c.source === "explicit")).toBe(false);
+      });
+    }
+  }
+
+  it("labeled capture-only without a peer still fails closed", () => {
+    const plan = planFor("labeled@", "none");
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        throw new Error("must not execute unpromoted labeled statement");
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/capture-only|Promote/);
+    expect(readStoredLiteralAcceptanceCommands(plan).map((c) => c.source)).toEqual([
+      "task_statement",
+    ]);
+  });
+
+  it("inline@ mention plus verify_commands stays #3721 and does not require source rewrite", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          { command: COMMAND, source: "task_statement", sourceSpan: "inline@L27" },
+        ],
+        swarm: { verify_commands: [COMMAND] },
+      },
+      items: [],
+    };
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.commands.some((c) => c.sourceSpan?.startsWith("inline@"))).toBe(false);
+    expect(result.commands.some((c) => c.source === "verify_commands")).toBe(true);
+    expect(result.commands.some((c) => c.source === "explicit")).toBe(false);
+  });
+
+  it("does not run twice when two executable slots share the command", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [statedRow("labeled@")],
+        swarm: {
+          verify_commands: [COMMAND],
+          literal_acceptance_commands: [{ command: COMMAND, expectedExitCode: 0 }],
+        },
+      },
+      items: [{ command: COMMAND }],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(new Set(stored.map((c) => c.source))).toEqual(
+      new Set(["task_statement", "verify_commands", "metadata", "plan_item"]),
+    );
+    let runs = 0;
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+
+  it("keeps a labeled narrative capture beside a stored executable peer", () => {
+    const plan = {
+      title: "t",
+      narratives: { Overview: "verify: deft doctor" },
+      metadata: {
+        literal_acceptance_commands: [{ command: COMMAND, source: "explicit" }],
+      },
+      items: [],
+    };
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: true,
+      runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.commands.some((c) => c.source === "task_statement")).toBe(true);
+    expect(result.commands.some((c) => c.source === "explicit")).toBe(true);
+  });
+
+  it("keeps a later executable peer whose expectedStdout matches the stated row", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: COMMAND,
+            source: "task_statement",
+            sourceSpan: "labeled@L27",
+            expectedStdout: "ok",
+          },
+        ],
+        swarm: {
+          verify_commands: [COMMAND],
+          literal_acceptance_commands: [{ command: COMMAND, expectedStdout: "ok" }],
+        },
+      },
+      items: [],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    expect(stored.some((c) => c.source !== "task_statement" && c.expectedStdout === "ok")).toBe(
+      true,
+    );
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("runs once when executable peers differ only by expectedStdout", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: COMMAND,
+            source: "task_statement",
+            sourceSpan: "labeled@L27",
+            expectedStdout: "ok",
+          },
+        ],
+        swarm: {
+          verify_commands: [COMMAND],
+          literal_acceptance_commands: [{ command: COMMAND, expectedStdout: "ok" }],
+        },
+      },
+      items: [],
+    };
+    let runs = 0;
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+
+  it("retains two executable peers with different nonempty expectedStdout", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: COMMAND,
+            source: "task_statement",
+            sourceSpan: "labeled@L27",
+          },
+          { command: COMMAND, expectedStdout: "ok" },
+        ],
+        swarm: {
+          literal_acceptance_commands: [{ command: COMMAND, expectedStdout: "pass" }],
+        },
+      },
+      items: [],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    const execStdout = stored
+      .filter((c) => c.source !== "task_statement" && typeof c.expectedStdout === "string")
+      .map((c) => c.expectedStdout)
+      .sort();
+    expect(execStdout).toEqual(["ok", "pass"]);
+    expect(stored.some((c) => c.source === "task_statement")).toBe(true);
+    expect(stored.some((c) => c.source === "explicit")).toBe(true);
+    expect(stored.some((c) => c.source === "metadata")).toBe(true);
+
+    let runs = 0;
+    const fail = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.message).toMatch(/pass/);
+    expect(runs).toBe(1);
+
+    runs = 0;
+    const pass = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok\npass", stderr: "" };
+      },
+    });
+    expect(pass.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+
+  it("validates every retained expectedStdout after a single run", () => {
+    const commands = [
+      { command: COMMAND, source: "metadata" as const, expectedStdout: "ok" },
+      { command: COMMAND, source: "explicit" as const, expectedStdout: "pass" },
+    ];
+    let runs = 0;
+    const fail = runLiteralAcceptanceCommands(commands, {
+      projectRoot: process.cwd(),
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.message).toMatch(/pass/);
+    expect(runs).toBe(1);
+
+    runs = 0;
+    const pass = runLiteralAcceptanceCommands(commands, {
+      projectRoot: process.cwd(),
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok\npass", stderr: "" };
+      },
+    });
+    expect(pass.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+
+  it("validates stated expectedStdout after one run when the executable peer differs", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: COMMAND,
+            source: "task_statement",
+            sourceSpan: "labeled@L27",
+            expectedStdout: "pass",
+          },
+        ],
+        swarm: {
+          literal_acceptance_commands: [{ command: COMMAND, expectedStdout: "ok" }],
+        },
+      },
+      items: [],
+    };
+    let runs = 0;
+    const fail = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.message).toMatch(/pass/);
+    expect(runs).toBe(1);
+
+    runs = 0;
+    const pass = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok\npass", stderr: "" };
+      },
+    });
+    expect(pass.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+});
