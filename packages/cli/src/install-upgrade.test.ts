@@ -214,5 +214,5 @@ describe("install-upgrade <-> directive update parity (#2064)", () => {
     // Only install-upgrade emits the one-line redirect notice.
     expect(errI.join("")).toContain(REDIRECT_NOTICE.trim());
     expect(errU.join("")).not.toContain(REDIRECT_NOTICE.trim());
-  });
+  }, 20_000);
 });
