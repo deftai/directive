@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Setup-created scopes: count unresolved origins, offer emit-hints, keep origin writes off the agent (#4426).** `verify:orphan-active` reports `noOrigin` of scanned briefs that resolved zero forge origins; the unscoped sweep stays fail-open. `verify:completed-tracked` names briefs scanned versus origins resolved. Setup Phase 3 surfaces emit-hints (none / umbrella / per-vBRIEF). Origin references are operator-collected or `task issue:emit`; ⊗ agent-asserted `parent_issue`. Leaves #3826 complete-reader and the unknown-policy split in place. Closes #4426.
+
 ### Changed
 
 - **Land leftover completed-tracked artifact for #4188 (#3264 / #3476).** The #4188 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4449. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.

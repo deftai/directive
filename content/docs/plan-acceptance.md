@@ -25,6 +25,7 @@ when a pass line shows `0 verified`.
 | `ambiguity_attestation` | Required when `clauses[]` is non-empty and no clause has ambiguous readings. Value `none_found` | Derivation (`prepareClauseStamp`). ⊗ A second `none_found` default on the derivation path |
 | `clauses[].artifact_path` | Bound from declared `plan.metadata.swarm.file_scope` when `source_rung === "derived"` (`#4008`) | Promote bind, not setup |
 | `plan.metadata.swarm.file_scope` | Operator-collected declared members for derived-stamp bind | Operator. ⊗ Agent-invented paths. ⊗ Approved-scope digest mint (`#3145` / `#3110` / `#4383`) |
+| `plan.references` / `plan.metadata["x-tracking"].parent_issue` | Forge origin for origin-keyed sweeps | Operator-collected or minted by `task issue:emit`. ⊗ Agent-asserted. Same polarity as `file_scope` (`#4426`) |
 
 Missing attestation is **not** "derivation forgot `none_found`". It fires when
 setup or an agent wrote clauses and skipped `#3323` / `#3360`. Provenance is a

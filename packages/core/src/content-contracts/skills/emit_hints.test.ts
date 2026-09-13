@@ -58,4 +58,15 @@ describe("test_emit_hints", () => {
     expect(link_idx).not.toBe(-1);
     expect(link_idx).toBeGreaterThan(first_emission);
   });
+
+  it("setup Phase 3 offers emit-hints at the proposed/ emission step (#4426)", () => {
+    const text = readRepoFile("skills/deft-directive-setup/SKILL.md");
+    expect(text).toContain("](../../strategies/emit-hints.md");
+    expect(text).toContain("none / `--umbrella` / `--per-vbrief`");
+    expect(text).toContain("⊗ Agent-asserted `parent_issue`");
+    const emission = text.indexOf("xbrief/proposed/");
+    const link = text.indexOf("](../../strategies/emit-hints.md");
+    expect(emission).not.toBe(-1);
+    expect(link).toBeGreaterThan(emission);
+  });
 });

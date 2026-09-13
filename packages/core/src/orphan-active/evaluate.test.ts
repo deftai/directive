@@ -854,6 +854,42 @@ describe("evaluate", () => {
       restore();
     }
   });
+
+  it("counts noOrigin for running briefs with zero forge refs and stays fail-open on the unscoped sweep (#4426)", () => {
+    const root = makeRepo();
+    writeBrief(root, "setup-created.xbrief.json", {
+      status: "running",
+      title: "core-engine",
+    });
+    writeBrief(root, "issue-linked.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/2321",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 2321, "open");
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(0);
+    expect(result.basis.scanned).toBe(2);
+    expect(result.basis.noOrigin).toBe(1);
+    expect(result.message).toContain("scanned 2 running briefs");
+    expect(result.message).toContain("Origins: 1 of 2 scanned briefs resolved zero forge origins.");
+  });
+
+  it("does not treat noOrigin as a non-zero unscoped verdict (#4426)", () => {
+    const root = makeRepo();
+    writeBrief(root, "setup-a.xbrief.json", { status: "running", title: "a" });
+    writeBrief(root, "setup-b.xbrief.json", { status: "running", title: "b" });
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(0);
+    expect(result.orphans).toEqual([]);
+    expect(result.basis.scanned).toBe(2);
+    expect(result.basis.noOrigin).toBe(2);
+    expect(result.message).toContain("no orphaned active/running xBRIEFs");
+  });
 });
 
 function stripGhGhxFromPath(): () => void {

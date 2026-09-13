@@ -50,6 +50,13 @@ export interface OrphanActiveBasis {
   readonly proxied: boolean;
   readonly elapsedMs: number;
   readonly budgetMs: number;
+  /** Running briefs this run actually evaluated (after `--changed-only` skip). */
+  readonly scanned: number;
+  /**
+   * Evaluated briefs whose `collectGithubRefs` returned zero issues and zero
+   * PRs (#4426). Reporting only — does not change the two unknown policies.
+   */
+  readonly noOrigin: number;
 }
 
 /** What merge-chokepoint scoping decided for this run (#3893). */
@@ -331,6 +338,10 @@ function briefReferencesIssue(issues: readonly IssueRef[], issue: number): boole
 /** Basis, ghx caveat, and budget lines shared by the pass and refusal messages (#3767). */
 function basisLines(tally: BasisTally, basis: OrphanActiveBasis): string[] {
   const lines = [`  Basis: ${tally.summary()}.`];
+  const briefNoun = basis.scanned === 1 ? "brief" : "briefs";
+  lines.push(
+    `  Origins: ${basis.noOrigin} of ${basis.scanned} scanned ${briefNoun} resolved zero forge origins.`,
+  );
   if (tally.unverified > 0) {
     lines.push(
       "  UNVERIFIED: state could not be established for the references below, so this run is",
@@ -457,6 +468,8 @@ function emptyBasis(budgetMs: number): OrphanActiveBasis {
     proxied: false,
     elapsedMs: 0,
     budgetMs,
+    scanned: 0,
+    noOrigin: 0,
   };
 }
 
@@ -569,6 +582,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     const orphans: OrphanActiveBrief[] = [];
     let scanned = 0;
     let skipped = 0;
+    let noOrigin = 0;
     for (const brief of briefs) {
       if (scope?.kind === "diff" && !scope.paths.has(normalizeScopePath(brief.path))) {
         skipped += 1;
@@ -576,11 +590,12 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       }
       scanned += 1;
       const { issues, prs } = collectGithubRefs(brief.plan, defaultRepo);
-      // --issue N is one origin: briefs that name that issue. PR-only briefs stay on the unscoped scan (#3429).
-      if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
+      if (issues.length === 0 && prs.length === 0) {
+        noOrigin += 1;
         continue;
       }
-      if (issues.length === 0 && prs.length === 0) {
+      // --issue N is one origin: briefs that name that issue. PR-only briefs stay on the unscoped scan (#3429).
+      if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
         continue;
       }
       const assessment = assessOrphanSignature(issues, prs, ctx, issueFilter, tally);
@@ -602,6 +617,8 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       proxied: runner?.proxied ?? false,
       elapsedMs: Math.max(0, clock() - startedMs),
       budgetMs,
+      scanned,
+      noOrigin,
     };
 
     const scopeSummary = summarizeScope(scope, skipped);

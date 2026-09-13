@@ -666,6 +666,38 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(events[0]?.terminalCount).toBe(1);
     expect(events[1]?.terminalCount).toBe(1);
   });
+
+  it("reports briefs scanned versus origins resolved when setup-created briefs have no forge origin (#4426)", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "active", "setup-scope.xbrief.json", {
+      status: "running",
+      title: "core-engine",
+    });
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(result.code).toBe(0);
+    expect(result.missing).toEqual([]);
+    expect(result.briefsScanned).toBe(1);
+    expect(result.originsResolved).toBe(0);
+    expect(result.message).toContain("scanned 1 brief, resolved 0 origins; nothing to check.");
+    expect(result.message).not.toContain("functional but unsweepable");
+  });
+
+  it("distinguishes zero briefs from briefs that resolved zero origins (#4426)", () => {
+    const root = makeGitRepo();
+    const empty = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+    });
+    expect(empty.code).toBe(0);
+    expect(empty.briefsScanned).toBe(0);
+    expect(empty.originsResolved).toBe(0);
+    expect(empty.message).toContain("scanned 0 briefs, resolved 0 origins; nothing to check.");
+  });
 });
 
 describe("shouldAnnounceProgress (#3673)", () => {
