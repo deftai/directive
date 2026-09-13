@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4430",
-    "updated": "2026-09-13T00:26:16Z"
+    "updated": "2026-09-13T03:14:25Z"
   },
   "plan": {
     "title": "bug(agents,bootstrap): both managed AGENTS.md recovery pointers dangle on a fresh clone; #2273 guard misses agents-entry.md",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(agents,bootstrap): both managed AGENTS.md recovery pointers dangle on a fresh clone; #2273 guard misses agents-entry.md",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4430",
@@ -17,38 +17,80 @@
     "items": [
       {
         "title": "Add a resolvability property in packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts: named recovery targets must resolve on a greenfield clone and when the payload is committed. Separate carrier list; do not reuse CANONICAL_PATHS.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts",
+          "recorded_at": "2026-09-13T03:15:00Z",
+          "recorded_by": "leaf-implementation/grok-build/4430-residual"
+        }
       },
       {
         "title": "Repoint the recovery fallback and Bootstrap cold-start clause in content/templates/agents-entry.md onto the #4090 ladder: doctor-first then npm i -g @deftai/directive, pin from committed package.json. Do not mint a fused fourth spelling.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4456",
+          "recorded_at": "2026-09-13T03:15:00Z",
+          "recorded_by": "leaf-implementation/grok-build/4430-residual"
+        }
       },
       {
         "title": "Extend the one-spelling assertion in packages/core/src/content-contracts/standards/recovery_ladder.test.ts to the managed carrier.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/recovery_ladder.test.ts",
+          "recorded_at": "2026-09-13T03:15:00Z",
+          "recorded_by": "leaf-implementation/grok-build/4430-residual"
+        }
       },
       {
         "title": "Repoint the cold-start recovery preamble in main.md onto the #4090 ladder. Do not add a payload-path spelling denylist.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4456",
+          "recorded_at": "2026-09-13T03:15:00Z",
+          "recorded_by": "leaf-implementation/grok-build/4430-residual"
+        }
       },
       {
         "title": "Repoint the cold-start recovery preamble in SKILL.md onto the #4090 ladder.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4456",
+          "recorded_at": "2026-09-13T03:15:00Z",
+          "recorded_by": "leaf-implementation/grok-build/4430-residual"
+        }
       },
       {
         "title": "Keep CANONICAL_PATHS without adding the managed-section carrier in packages/core/src/content-contracts/skills/main_md_preamble.test.ts.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/main_md_preamble.test.ts",
+          "recorded_at": "2026-09-13T03:15:00Z",
+          "recorded_by": "leaf-implementation/grok-build/4430-residual"
+        }
       },
       {
         "title": "Record in CHANGELOG.md that Option A is an absence-triggered global install from a consumer-unrepairable prompt, not strictly safer than a rewritten committed block. Do not deposit a README cold-start block.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4456",
+          "recorded_at": "2026-09-13T03:15:00Z",
+          "recorded_by": "leaf-implementation/grok-build/4430-residual"
+        }
       }
     ],
     "tags": [
@@ -169,9 +211,34 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Dest-placed leaf; operator did not mint approved-scope (#3110). file_scope left undeclared per #3145 undeclared-cohort outcome. Ingested from successor lean 5640690178 Bound-remedy."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4456,
+        "prBase": null,
+        "mergeCommit": "82179402405ac0f9a311a2dbfa836fc1c5f098e9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "82179402405ac0f9a311a2dbfa836fc1c5f098e9",
+        "verifiedAt": "2026-09-13T03:14:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4OTYtODdkNC03MjQyLWJjMzYtMzU2MDg2MmJiYjJl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T03:14:25Z"
+      },
+      "completedAt": "2026-09-13T03:14:25Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4OTYtODdkNC03MjQyLWJjMzYtMzU2MDg2MmJiYjJl",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5428339874",
-    "updated": "2026-09-13T00:26:16Z"
+    "updated": "2026-09-13T03:14:25Z"
   }
 }
