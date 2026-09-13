@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF from GitHub issue #4315 Bound-remedy harvest (comment 5654179470)",
-    "updated": "2026-09-13T15:56:53Z"
+    "updated": "2026-09-13T16:46:03Z"
   },
   "plan": {
     "title": "fix(design-critique): land process_only on Grok PreToolUse tool_input for general-purpose plus dest cwd",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(design-critique): land process_only on Grok PreToolUse tool_input for general-purpose plus dest cwd",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4315",
@@ -16,31 +16,73 @@
     "items": [
       {
         "title": "Do not re-open #4296. Do not skip #2885 on dest-path. Do not make plan the critic seat.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts keeps #2885 on destProven implement-class without process_only; content/docs/grok-build-subscription-setup.md Do not make plan the critic seat",
+          "recorded_at": "2026-09-13T16:46:00Z",
+          "recorded_by": "4315-leaf-implementation"
+        }
       },
       {
         "title": "Host (or equivalent adapter) lands process_only on Grok PreToolUse tool_input for general-purpose plus dest cwd. Regression exercises that stdin shape.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/payload.ts landProcessOnlyFlagOnToolInput; packages/core/src/hooks/classify/stdin.test.ts lands process_only from Grok PreToolUse stdin",
+          "recorded_at": "2026-09-13T16:46:00Z",
+          "recorded_by": "4315-leaf-implementation"
+        }
       },
       {
         "title": "Unmarked dest-cwd general-purpose is never a critic seat: zero briefs is #2885; one eligible is implement-class dest-lock. Skip class distinguishes them.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts keeps #2885 on destProven implement-class without process_only",
+          "recorded_at": "2026-09-13T16:46:00Z",
+          "recorded_by": "4315-leaf-implementation"
+        }
       },
       {
         "title": "Acceptance requires spawn-process-only-ready, no dest occupancy, no leftover file_scope. Zero, one, and multiple eligible briefs.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts lands Grok stdin process_only as spawn-process-only-ready at 0, 1, and many leftover briefs; packages/core/src/session/spawn-occupancy.test.ts Grok toolInput process_only skips dest occupancy",
+          "recorded_at": "2026-09-13T16:46:00Z",
+          "recorded_by": "4315-leaf-implementation"
+        }
       },
       {
         "title": "Implement-class never sets process_only. Implement-envelope conflict stays fail-closed.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/readonly.test.ts refuses process_only skip when implement envelope fields are set",
+          "recorded_at": "2026-09-13T16:46:00Z",
+          "recorded_by": "4315-leaf-implementation"
+        }
       },
       {
         "title": "grok CLI last-resort after any native outcome that is not skip-class. No dual-launch. Parent relay is not native completion.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/grok-build-subscription-setup.md any native outcome that is not skip-class; Dual-launch native + CLI forbidden",
+          "recorded_at": "2026-09-13T16:46:00Z",
+          "recorded_by": "4315-leaf-implementation"
+        }
       },
       {
         "title": "Separate in-repo deliverable from any upstream xAI schema ask.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/grok-build-subscription-setup.md Advertised JSON omitting the field is a separate upstream xAI schema ask; packages/core/src/content-contracts/standards/design_critique_contract.test.ts locks Grok native process_only stdin lander",
+          "recorded_at": "2026-09-13T16:46:00Z",
+          "recorded_by": "4315-leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -146,9 +188,33 @@
         "algorithm": "sha256",
         "sha256": "3c63452fcac10e7b84332369c4a1dc2f6cb845f8e0162c7c4a8261e2c2c5fb2c"
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4486,
+        "prBase": null,
+        "mergeCommit": "e9336c3eb78e53ee1f17a7dcfa9040e955d29ed6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e9336c3eb78e53ee1f17a7dcfa9040e955d29ed6",
+        "verifiedAt": "2026-09-13T16:46:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDliNzMtMTg1NS03YmMyLTgwNjQtOGEzNmU1ZTMyNGJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T16:46:03Z"
+      },
+      "completedAt": "2026-09-13T16:46:03Z",
+      "completedSessionId": "host:grok:v1:MDFhMDliNzMtMTg1NS03YmMyLTgwNjQtOGEzNmU1ZTMyNGJm"
     },
     "id": "github.issue.5413338515",
-    "updated": "2026-09-13T15:56:53Z"
+    "updated": "2026-09-13T16:46:03Z"
   }
 }
