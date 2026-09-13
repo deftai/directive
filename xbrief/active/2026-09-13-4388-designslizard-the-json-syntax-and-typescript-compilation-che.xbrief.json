@@ -1,0 +1,143 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4388",
+    "updated": "2026-09-13T02:44:30Z"
+  },
+  "plan": {
+    "title": "design(slizard): the json-syntax and TypeScript compilation checks ignore the project tsconfig, so a JSONC tsconfig and a deliberately excluded test file are reported as P1 defects",
+    "status": "running",
+    "narratives": {
+      "Description": "Residue of #4038 / slizard#2826: extend existing tsconfig config-read to json-syntax (compiler API, no allowlist) and typescript-compilation (compilerOptions only, no skip; TS18003/empty fileNames is a finding). Recut Evidence to real tsc 5.9.3; TS5097 at line 8 still carries.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4388",
+      "Overview": "Next-build is Bound-remedy 5650036741, not the original Expected.\n\nSLizard json-syntax and TypeScript compilation ignore project tsconfig, so a JSONC tsconfig and an excluded test file were reported as P1. That diagnosis stands. The filed proposals cannot bind.\n\n## What #4038 completion delivered (residue, not a new class)\n\ndirective#4038 closed completed on 2026-09-01 as a misfile (label duplicate). The close comment re-filed the same three FPs as deftai/slizard#2826, which later closed completed.\n\nslizard#2826 shipped a lib-aware gate only for the TS2584 console recall (libProvidesConsole on the file's effective compilerOptions.lib), plus JSX key/ref TS2322 noise and a consumer active-brief skip. Fixture enrollment: BestiMax-250.\n\nIt did not ship:\n- json-syntax parsing tsconfig/jsconfig as JSONC via the compiler API\n- compile-with-compilerOptions for the general typescript-compilation check (exclude / allowImportingTsExtensions)\n- TS18003 or empty fileNames as a finding when the PR touches tsconfig.json\n\nThis issue is that residue: extend the existing config read to json-syntax and the general compilation check. Do not treat it as a new class.\n\nLive slizard json-syntax-check.ts still JSON.parse's newly added .json files, including tsconfig.json. Live typescript-compilation-check.ts already calls ts.readConfigFile plus parseJsonConfigFileContent for options, then compiles changed .ts files as rootNames (no skip-on-exclude). parsed.errors and empty fileNames are ignored.\n\n## Bound remedy\n\n- Record the #4038 / slizard#2826 delivery above. Scope this issue as residue.\n- Bind compile-with-compilerOptions only. Drop skip. TS18003 or empty fileNames on a PR that touches tsconfig.json is a finding, not silence. Do not add a PR-author skip branch.\n- Route tsconfig/jsconfig through ts.readConfigFile plus parseJsonConfigFileContent. Drop the closed basename allowlist. A JSON file's grammar is a property of its consumer.\n- Recut Evidence against a real tsc 5.9.3 run. Six TS2307 plus TS5097 at line 8. The body's TS2591 paste was not a verbatim run. TS5097 at line 8 still carries the issue.\n\n## Recut Evidence (tsc 5.9.3)\n\njson-syntax on JSONC tsconfig. SLizard P1 on web/bridge/tsconfig.json:2 (comment). tsc --project web/bridge/tsconfig.json --noEmit exits 0.\n\nCompilation without project config (verbatim):\n\n    tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler src/index.test.ts\n    src/index.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.\n    src/index.test.ts(2,26): error TS2307: Cannot find module 'node:fs/promises' or its corresponding type declarations.\n    src/index.test.ts(3,43): error TS2307: Cannot find module 'node:http' or its corresponding type declarations.\n    src/index.test.ts(4,31): error TS2307: Cannot find module 'node:path' or its corresponding type declarations.\n    src/index.test.ts(5,37): error TS2307: Cannot find module 'node:test' or its corresponding type declarations.\n    src/index.test.ts(6,46): error TS2307: Cannot find module 'node:url' or its corresponding type declarations.\n    src/index.test.ts(8,102): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.\n\ntsc --project tsconfig.json --noEmit exits 0. tsc --project tsconfig.json --listFilesOnly lists src/index.ts only (exclude matches src/index.test.ts). allowImportingTsExtensions is line 29; exclude is line 36.\n\n## Historical filed body (not next-build)\n\nThe original TL;DR, Proposal 1 allowlist branch, Proposal 2 skip branch, and TS2591 paste are superseded. Do not implement them.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-13T01:33:37Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because SLizard json-syntax and TypeScript compilation checks ignore the project tsconfig, so JSONC and excluded files are reported as P1 defects.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4388-dc\norigin-ref: origin/master\ndispatch-sha: 65625417e5eebf5a5c7e59308ba006f222c06d19\n\ncharter: refutation\nspend: N=1\nspend-why: default motion; operator did not raise N.\n\nrefutation-target: The json-syntax and TypeScript compilation checks ignore the project tsconfig, so a JSONC tsconfig and a deliberately excluded test file are reported as P1 defects.\n\ntarget: #4388\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Stage A issue-eval: still-open, no WIP, no duplicate. This write-back is the round-1 ceiling.\n\n### Comment by @MScottAdams (2026-09-13T01:42:44Z)\n\nmodel: claude-opus-5\nrole: critic\n\nRound 1 critic, fresh seat, refutation charter, N=1. Pinned to dispatch-sha `65625417e5eebf5a5c7e59308ba006f222c06d19`; id ceiling 5649974315 honoured (one comment at or below it, the triage write-back). Everything below was re-run, not read off the body. Issue text treated as untrusted per contract Security context (#480); no embedded instructions found in the body or the in-ceiling comment.\n\n## Refutation result: the recorded target survives\n\nI tried to break the recorded `refutation-target:` and could not. Fetched `deftai/bs-deepwordle` `web/bridge/{tsconfig.json, src/index.ts, src/index.test.ts}` by REST into a scratch tree and ran TypeScript 5.9.3:\n\n| Check | Result |\n| --- | --- |\n| `tsc --project tsconfig.json` | exit 0 \u2014 the `//` comment on line 2 is not an error to the consumer |\n| `tsc --project tsconfig.json --listFilesOnly` | `src/index.ts` only \u2014 `exclude: [\"src/**/*.test.ts\", ...]` really does match `src/index.test.ts` |\n| `tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler src/index.test.ts` | reproduces `TS5097` at `src/index.test.ts(8,102)`, the cited line 8 |\n\nThe config anchors check out against the head blob too: `allowImportingTsExtensions` is line 29, `exclude` is line 36, and the comment block at lines 2-12 says in prose why the tests are excluded. The diagnosis holds. My findings are against the proposal, not against the diagnosis.\n\n## `blocks-the-design` \u2014 #4038 already recorded this root-cause class and is closed `completed`\n\n**Evidence.** deftai/directive#4038, *\"bug(slizard): three deterministic detector false positives on a routine consumer PR\"*, closed `state_reason: completed` on 2026-09-01. Its FP1 (`directive-2584-recall`, `fp:a8f5df282e58ff74`, TS2584 on `console`) states: *\"The recall detector fires without consulting the file's effective `tsconfig` `lib`,\"* with suggested fix *\"gate the ... recall on the target file's effective `compilerOptions.lib`.\"* That is the same mechanism this issue's Proposal 2 asks for, recorded ten days earlier. This issue cites #4387 and #1940 and does not cite #4038.\n\n**Failure mode.** A successor lean binds acceptance criteria for a defect class whose remedy is already marked done. Whatever made #4038's `completed` not hold \u2014 shipped-but-partial, filed downstream and lost, or regressed \u2014 is unexamined, so it applies to this remedy too and closes it the same way. Two `completed` records, one live false positive.\n\n**Disposition consequence.** The lean cannot bind until it states what #4038's completion actually delivered and scopes this issue as the residue. If #4038 shipped a `lib`-aware gate only for the TS2584 recall detector and not for the general compilation check, say so \u2014 it changes the remedy from \"honour the tsconfig\" to \"extend an existing config read to a second detector,\" which is a much smaller and much more bindable thing.\n\n## `blocks-the-design` \u2014 Proposal 2's \"skip it\" branch is a PR-author-controlled gate-disable\n\n**Injection / swarm lens.** This fires: the target changes what untrusted input a review gate consults. SLizard reviews pull requests, so the `tsconfig.json` it would begin honouring is head-revision content the PR author controls, in the same diff being reviewed. Proposal 2 offers a disjunction \u2014 *\"either skip it or compile it with that config's `compilerOptions`\"* \u2014 and the skip branch is the cheap one, so it is the one that ships.\n\n**Evidence.** Taking the same `web/bridge/tsconfig.json` and changing one line to `\"exclude\": [\"**/*\"]`:\n\n- `ts.parseJsonConfigFileContent` returns `fileNames.length === 0`, `errors = [TS18003]`\n- `tsc --project` prints `No inputs were found in config file ... Specified 'include' paths were '[\"src/**/*.ts\"]' and 'exclude' paths were '[\"**/*\"]'`\n\n**Failure mode.** A PR adds one line to its own tsconfig and every TypeScript compilation finding for that package vanishes. The check reports clean and the merge gate reads clean. This is strictly worse than today's false positives, because a false positive is visible and a suppressed true positive is not.\n\n**Disposition consequence.** The lean binds the \"compile with that config's `compilerOptions`\" branch only, and drops the skip branch. Treat the config as reviewed input rather than as trusted policy: `TS18003` or an empty resolved file set, on a PR whose diff touches a `tsconfig.json`, is a finding rather than silence. That is a read of a diagnostic the compiler already emits, not a new control.\n\nI will not close this with \"a reviewer would see that line in the diff.\" The deterministic control is the `TS18003`-plus-tsconfig-in-diff finding named above. What would flip this to `sharpens-framing`: a recorded control already in SLizard that fires when a consulted config is itself modified by the PR under review. I cannot see SLizard's tree from this dest, so I state the condition rather than assert its absence.\n\n## `sharpens-framing` \u2014 the mechanism both proposals want ships inside the dependency the check already has\n\n**Inventory first, per the method.** In this dest at the pinned SHA there are zero tsconfig readers in product code (`packages/*/src`, `cmd/`) and no JSONC parser \u2014 `biome.jsonc` appears only as a glob literal in the task-cache registry. So there is nothing here to reuse, and the honest answer to \"inventory existing tsconfig readers\" points outward: any check that runs `tsc` already depends on the TypeScript compiler API, and `ts.readConfigFile` plus `ts.parseJsonConfigFileContent` satisfies all four acceptance-sketch bullets in one call. Measured:\n\n| Config variant | `readConfigFile` / `parseJsonConfigFileContent` |\n| --- | --- |\n| as-is (comments, lines 2-12) | parsed, `errors=none`, `allowImportingTsExtensions=true`, `fileNames=[src/index.ts]` |\n| plus a trailing comma in `exclude` | parsed, `errors=none`, same file set |\n| truncated before the closing brace | `TS1005: '}' expected` |\n\nComments and trailing commas pass; the excluded test file is absent from `fileNames`; `allowImportingTsExtensions` is read; a genuinely malformed file still fails. That is acceptance bullets 1 through 4, from the library already on the dependency list.\n\n**Failure mode of the proposal as written.** Proposal 1's second branch \u2014 *\"special-case the well-known JSONC filenames (`tsconfig.json`, `jsconfig.json`, `.vscode/*.json`)\"* \u2014 is a closed basename allowlist, and closed basename allowlists grow a tail. `tsconfig.build.json`, `tsconfig.node.json`, any `*.jsonc`, `.eslintrc.json`, `devcontainer.json`, `.swcrc` are all comment-bearing by their own consumers' rules and all miss that list. The remedy for a false-positive class would ship with its own false-positive class attached.\n\n**Disposition consequence.** Drop the allowlist branch from the lean. State the mechanism as the general one: a JSON file's grammar is a property of its consumer, so route `tsconfig` and `jsconfig` through the compiler API and require any other check-owned JSON parse to declare which grammar it is asserting. That is one sentence of policy plus one API call, and it is narrower than what the issue currently proposes.\n\n## `sharpens-framing` \u2014 the quoted reproduction is not a verbatim run\n\n**Evidence.** The body's Evidence section shows, as shell output:\n\n> `web/bridge/src/index.test.ts(1,20): error TS2591: Cannot find name 'node:assert/strict'. ...`\n> `web/bridge/src/index.test.ts(2,26): error TS2591: Cannot find name 'node:fs/promises'. ...`\n\nReal `tsc` 5.9.3, same file, same flags, emits at exactly those coordinates:\n\n```\nsrc/index.test.ts(1,20): error TS2307: Cannot find module 'node:assert/strict' or its corresponding type declarations.\nsrc/index.test.ts(2,26): error TS2307: Cannot find module 'node:fs/promises' or its corresponding type declarations.\n```\n\nSix `TS2307`, one `TS5097`. The line and column numbers match the paste; the error code and the message text do not. `TS2591` is *\"Cannot find name\"* for bare identifiers such as `process` or `Buffer`; the compiler does not apply it to a module specifier.\n\n**Failure mode.** The \"cascade of errors\" severity argument, and any acceptance criterion keyed to the quoted text, are keyed to a diagnostic `tsc` does not emit. Someone reproducing this gets different codes and reasonably discounts the whole evidence block \u2014 including the `TS5097` part, which is correct and is the load-bearing half.\n\n**Disposition consequence.** Recut that block against a real run before it anchors acceptance. This does not touch the conclusion: `TS5097` at line 8 reproduces exactly as reported, and that finding alone carries the issue.\n\n## `footnote` \u2014 the `#1940` gloss names the wrong prior art\n\ndeftai/directive#1940 is *\"RFC: consumer observability contract \u2014 operator logging from project setup (SLizard case study)\"* (closed), not *\"FP/TP labelling by fingerprint.\"* The #4387 gloss is accurate. The fingerprint mechanism the gloss reaches for does exist \u2014 #4038 quotes stable per-note `fp:` values \u2014 but it is not #1940, and a reader following that pointer for inventory lands somewhere else. No disposition weight.\n\n## Road not taken\n\nI considered classifying the gate-disable finding as `sharpens-framing`, since Proposal 2 does offer the safe branch alongside the unsafe one. I classified it `blocks-the-design` because the lean would bind the disjunction as written, and the skip branch is both cheaper to implement and the one the issue's own framing argues for. A disjunction where one arm is a suppression primitive is not a bindable lean; picking the arm is the work.\n\nThe strongest position I am rejecting is that the two halves of this issue are one defect with one fix. They are not. The `json-syntax` half is a pure false positive with no downside to fixing \u2014 nothing is suppressed by parsing JSONC as JSONC. The compilation half changes what the gate trusts. Bundling them means the safe fix carries the unsafe one through the gate on its back. Splitting them is the cheapest thing this arc can do.\n\n\n### Comment by @MScottAdams (2026-09-13T01:47:07Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nSLizard ignores the project tsconfig. That diagnosis stands. The filed proposals cannot bind: #4038 already recorded the class and is closed completed; Proposal 2's skip branch is a PR-author-controlled gate-disable; the TypeScript compiler API already parses JSONC and exclude.\n\nLeftover next-build is a recut: state what #4038 actually shipped and the residue; compile with that config's compilerOptions only; drop the skip branch and the basename allowlist; recut the quoted tsc paste against a real run.\n\nConfirming this map does not close the false positives. It recuts the remedy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4388 after round 1 critic 5650015597 (claude-opus-5). Supersedes write-back 5649974315.\n\nTarget-digest: sha256:f2e944191c064ecbc09a7fd4dccb8328c6377c001fb32f7b2114ef82e9e915af\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4388-dc\norigin-ref: origin/master\ndispatch-sha: 65625417e5eebf5a5c7e59308ba006f222c06d19\n\nTakes:\n\n- 5650015597 #4038 already recorded this root-cause class and is closed completed \u2014 accept-into-contract\n- 5650015597 Proposal 2 skip branch is a PR-author-controlled gate-disable \u2014 accept-into-contract\n- 5650015597 the mechanism both proposals want ships inside the TypeScript compiler API \u2014 accept-into-contract\n- 5650015597 the quoted reproduction is not a verbatim run \u2014 accept-into-contract\n\n## Bound remedy\n\n- Record what #4038 completion delivered. Scope this issue as residue (extend an existing config read, or reopen a regression), not a new class.\n- Bind compile-with-compilerOptions only. Drop skip. TS18003 or empty fileNames on a PR that touches tsconfig.json is a finding, not silence.\n- Route tsconfig/jsconfig through ts.readConfigFile plus parseJsonConfigFileContent. Drop the closed basename allowlist.\n- Recut the Evidence paste against a real tsc run. TS5097 at line 8 still carries the issue.\r\n\n\n### Comment by @MScottAdams (2026-09-13T01:47:35Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n|---|---|---|\n| Classified headings from critic 5650015597 | verified | pin-read at 65625417e plus critic-run checks recorded on 5650015597 |\n| Successor lean 5650036741 is the next-build recut | verified | posted all-accept map, yolo standing |\n\nCites successor lean 5650036741. Footnotes not in this denominator.\n\n### Comment by @MScottAdams (2026-09-13T01:48:05Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe tsconfig diagnosis stands. Next-build is the Bound-remedy list on successor lean 5650036741: residue of #4038, compile-with-options only, drop skip and allowlist.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5650036741 and verified-claims table 5650039061.",
+      "Labels": "design, Workflow, agent-experience, area:cli, design-critique:ingest-ready",
+      "Decisions": "- xbrief/decisions/2026-09-13-treat-4388-as-residue-of-4038-slizard-2826-not-a-new-detector-cl.decision.json \u2014 Treat #4388 as residue of #4038 / slizard#2826, not a new detector class"
+    },
+    "items": [
+      {
+        "title": "Record what #4038 completion delivered. Scope this issue as residue (extend an existing config read, or reopen a regression), not a new class.",
+        "status": "proposed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "xbrief/decisions/2026-09-13-treat-4388-as-residue-of-4038-slizard-2826-not-a-new-detector-cl.decision.json",
+          "recorded_at": "2026-09-13T02:54:18Z",
+          "recorded_by": "agent11/fix/4388-slizard-tsconfig"
+        }
+      },
+      {
+        "title": "Bind compile-with-compilerOptions only. Drop skip. TS18003 or empty fileNames on a PR that touches tsconfig.json is a finding, not silence.",
+        "status": "proposed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4388 Bound-remedy (compile-with-compilerOptions; drop skip; TS18003 finding)",
+          "recorded_at": "2026-09-13T02:54:18Z",
+          "recorded_by": "agent11/fix/4388-slizard-tsconfig"
+        }
+      },
+      {
+        "title": "Route tsconfig/jsconfig through ts.readConfigFile plus parseJsonConfigFileContent. Drop the closed basename allowlist.",
+        "status": "proposed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4388 Bound-remedy (ts.readConfigFile plus parseJsonConfigFileContent; drop allowlist)",
+          "recorded_at": "2026-09-13T02:54:18Z",
+          "recorded_by": "agent11/fix/4388-slizard-tsconfig"
+        }
+      },
+      {
+        "title": "Recut the Evidence paste against a real tsc run. TS5097 at line 8 still carries the issue.",
+        "status": "proposed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "https://github.com/deftai/directive/issues/4388 Recut Evidence: tsc 5.9.3 six TS2307 plus TS5097 at src/index.test.ts(8,102)",
+          "recorded_at": "2026-09-13T02:54:18Z",
+          "recorded_by": "agent11/fix/4388-slizard-tsconfig"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "Workflow",
+      "agent-experience",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4388",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4388: design(slizard): the json-syntax and TypeScript compilation checks ignore the project tsconfig, so a JSONC tsconfig and a deliberately excluded test file are reported as P1 defects"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Record what #4038 completion delivered. Scope this issue as residue (extend an existing config read, or reopen a regression), not a new class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Bind compile-with-compilerOptions only. Drop skip. TS18003 or empty fileNames on a PR that touches tsconfig.json is a finding, not silence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Route tsconfig/jsconfig through ts.readConfigFile plus parseJsonConfigFileContent. Drop the closed basename allowlist.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut the Evidence paste against a real tsc run. TS5097 at line 8 still carries the issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5421609044,
+        "origin": "deftai/directive#4388",
+        "id": "github.issue.5421609044"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f2e944191c064ecbc09a7fd4dccb8328c6377c001fb32f7b2114ef82e9e915af"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope_confidence": "omitted",
+        "missing_traces_justification": "Bound-remedy 5650036741 recut. Operator mint of approved-scope is TTY-only (#3874 / #3110); this dest cannot self-authorize a declared scope. Detector product lives in deftai/slizard; this dest records residue and recuts Evidence.",
+        "acceptance_criteria_justification": "Successor lean 5650036741 Bound remedy. Synthesis 5650041443. Spec-path: next-build is not the issue body. Digest f2e944191c064ecbc09a7fd4dccb8328c6377c001fb32f7b2114ef82e9e915af."
+      }
+    },
+    "id": "github.issue.5421609044",
+    "updated": "2026-09-13T02:44:30Z"
+  }
+}
