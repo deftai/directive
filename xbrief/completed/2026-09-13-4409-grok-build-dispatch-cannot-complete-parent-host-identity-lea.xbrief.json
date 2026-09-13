@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4409",
-    "updated": "2026-09-13T02:39:28Z"
+    "updated": "2026-09-13T04:40:03Z"
   },
   "plan": {
     "title": "bug(occupancy): recut — isolate --host argv remainder; deposit stays on #4443",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(occupancy): recut — isolate --host argv remainder; deposit stays on #4443",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4409",
@@ -16,19 +16,43 @@
     "items": [
       {
         "title": "Split the conjunct. Deposit reconstitution stays on #4443.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4472",
+          "recorded_at": "2026-09-13T04:37:00Z",
+          "recorded_by": "leaf-implementation/4409"
+        }
       },
       {
         "title": "Do not honour DEFT_SESSION_ID over a derived host owner as a blanket override.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-grok-identity.test.ts#does not honour DEFT_SESSION_ID over a derived grok host owner",
+          "recorded_at": "2026-09-13T04:37:00Z",
+          "recorded_by": "leaf-implementation/4409"
+        }
       },
       {
         "title": "Repro the child argv --host value. Remainder is host flag / derivation, not inherited CLAUDE_* as the owner producer.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-grok-identity.test.ts#pins the child argv --host spelling",
+          "recorded_at": "2026-09-13T04:37:00Z",
+          "recorded_by": "leaf-implementation/4409"
+        }
       },
       {
         "title": "Recovery must preserve a presented identity, not infer ownership from a previous invocation.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-ready.test.ts",
+          "recorded_at": "2026-09-13T04:37:00Z",
+          "recorded_by": "leaf-implementation/4409"
+        }
       }
     ],
     "tags": [
@@ -105,9 +129,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "2bac98bbebf1354a66a57f52031b59b698aa97bd2364906dfb80afb5e2caf8f1"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4472,
+        "prBase": null,
+        "mergeCommit": "af1a02f34ec6ff6e90b349b8e493f4b1b960fd40",
+        "deliveryBranch": "master",
+        "deliveryCommit": "af1a02f34ec6ff6e90b349b8e493f4b1b960fd40",
+        "verifiedAt": "2026-09-13T04:40:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJiYy03M2YzLWE3NTctYzc2NzAzNTExNDlm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T04:40:03Z"
+      },
+      "completedAt": "2026-09-13T04:40:03Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJiYy03M2YzLWE3NTctYzc2NzAzNTExNDlm",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5426949032",
-    "updated": "2026-09-13T02:39:28Z"
+    "updated": "2026-09-13T04:40:03Z"
   }
 }
