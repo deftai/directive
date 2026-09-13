@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { resolveSpecArtifactPath } from "../layout/resolve.js";
 import { generatedSourcePath } from "../spec-authority/constants.js";
@@ -279,7 +279,7 @@ export function resolvePrdRenderRoot(input: {
     ? resolve(input.outputPath)
     : resolve(cwdAbs, input.outputPath);
   const relOut = relative(cwdAbs, outAbs);
-  if (!relOut.startsWith("..") && !isAbsolute(relOut)) {
+  if (relOut !== ".." && !relOut.startsWith(`..${sep}`) && !isAbsolute(relOut)) {
     return cwdAbs;
   }
   if (input.projectRoot !== undefined) return resolve(input.projectRoot);

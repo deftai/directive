@@ -419,6 +419,9 @@ describe("spec-render", () => {
     expect(resolveSpecRenderRoot(join(dir, "xbrief", "spec.json"), join(dir, "out.md"), cwd)).toBe(
       dir,
     );
+    expect(resolveSpecRenderRoot(join(dir, "xbrief", "spec.json"), "..draft/out.md", cwd)).toBe(
+      cwd,
+    );
     rmSync(dir, { recursive: true, force: true });
     rmSync(cwd, { recursive: true, force: true });
   });
@@ -541,6 +544,13 @@ describe("prd-render", () => {
       resolvePrdRenderRoot({
         specPath: join(specTree, "xbrief", "specification.xbrief.json"),
         outputPath: "PRD.md",
+        cwd,
+      }),
+    ).toBe(cwd);
+    expect(
+      resolvePrdRenderRoot({
+        specPath: join(specTree, "xbrief", "specification.xbrief.json"),
+        outputPath: "..draft/PRD.md",
         cwd,
       }),
     ).toBe(cwd);

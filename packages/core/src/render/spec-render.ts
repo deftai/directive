@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   buildSpecRenderBanner,
@@ -303,9 +303,9 @@ export function resolveSpecRenderRoot(
   cwd = process.cwd(),
 ): string {
   const cwdAbs = resolve(cwd);
-  const outAbs = resolve(outPath);
+  const outAbs = isAbsolute(outPath) ? resolve(outPath) : resolve(cwdAbs, outPath);
   const relOut = relative(cwdAbs, outAbs);
-  if (relOut.length > 0 && !relOut.startsWith("..") && !isAbsolute(relOut)) {
+  if (relOut !== ".." && !relOut.startsWith(`..${sep}`) && !isAbsolute(relOut)) {
     return cwdAbs;
   }
   const specDir = dirname(resolve(specPath));
