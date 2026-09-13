@@ -66,6 +66,8 @@ export interface PlanOptions {
    * invisible (locked non-goal, issue #2197).
    */
   readonly packageManager?: PackageManager;
+  /** #4443: linked worktree missing hybrid payload uses local update, not init. */
+  readonly linkedWorktree?: boolean;
 }
 
 const RUNG_TO_MODE: Record<LadderRung, ResolutionPlan["mode"]> = {
@@ -170,6 +172,19 @@ function resolvePlan(
 
   // Row 2: no usable deposit — deposit / reconstitute one.
   if (!facts.hasDeftCore) {
+    if (options.linkedWorktree && facts.hasManagedSection) {
+      return makePlan(
+        "update",
+        {
+          command: "directive update",
+          rootCause:
+            "linked worktree is missing the .deft/core/ payload (hybrid deposit not reconstituted)",
+          remediation:
+            "Reconstitute .deft/core from the local content payload with `directive update` (no network init).",
+        },
+        warnings,
+      );
+    }
     const rootCause = facts.hasManagedSection
       ? "AGENTS.md carries a managed section but the .deft/core/ payload is absent (hybrid deposit not reconstituted)"
       : facts.hasAppCode || facts.hasGit

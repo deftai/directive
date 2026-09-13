@@ -4,6 +4,7 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
 import { C3_FIELDS } from "./constants.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import { runText, type TextCaptureResult } from "./subprocess.js";
@@ -171,6 +172,14 @@ function createWorktree(
     throw new WorktreeMapConfigError(
       `\`git worktree add --detach ${worktreePath} ${baseBranch}\` failed ` +
         `(rc=${proc.returncode}): ${proc.stderr.trim() || "<no stderr>"}`,
+    );
+  }
+  const deposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
+    preferPrimaryCore: true,
+  });
+  if (deposit.status === "refused") {
+    throw new WorktreeMapConfigError(
+      `deposit reconstitution refused for ${worktreePath}: ${deposit.message}`,
     );
   }
 }

@@ -102,6 +102,21 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
     expect(p.nextAction.rootCause).toContain("payload is absent");
   });
 
+  it("linked worktree + managed section + missing payload -> local update (#4443)", () => {
+    const p = plan(
+      facts({ hasDeftCore: false, hasManagedSection: true }),
+      {},
+      {
+        linkedWorktree: true,
+      },
+    );
+    expect(p.mode).toBe("update");
+    expect(p.nextAction.command).toBe("directive update");
+    expect(p.nextAction.command).not.toMatch(/npx|dlx|init/);
+    expect(p.nextAction.rootCause).toContain("linked worktree");
+    expect(p.nextAction.remediation).toContain("directive update");
+  });
+
   it("initialized-stale (content behind pin) -> update", () => {
     const p = plan(facts({ deftCorePayloadVersion: "0.63.0" }));
     expect(p.mode).toBe("update");

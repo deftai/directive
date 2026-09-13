@@ -21,6 +21,7 @@ import {
   GITIGNORE_DEFT_CORE_LINE,
   isDepositTrackedInGit,
   reconstituteDepositFromContent,
+  reconstituteLinkedWorktreeDeposit,
   resolveInitGitignoreLines,
   UNTRACK_CORE_GITIGNORE_LINES,
 } from "./gitignore.js";
@@ -429,5 +430,121 @@ describe("init-deposit gitignore projection containment (#2839)", () => {
       );
       expect(covering).toEqual([]);
     }
+  });
+});
+
+describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    created.push(dir);
+    return dir;
+  }
+
+  it("skips a non-linked tree", () => {
+    const project = freshRoot("wt-dep-nolink-");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => false,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => join(project, "payload"),
+    });
+    expect(result.status).toBe("skipped");
+    expect(result.message).toContain("not a linked worktree");
+  });
+
+  it("skips a framework source checkout", () => {
+    const project = freshRoot("wt-dep-src-");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => true,
+      resolvePayloadSource: () => join(project, "payload"),
+    });
+    expect(result.status).toBe("skipped");
+    expect(result.message).toContain("framework source");
+    expect(existsSync(join(project, ".deft", "core"))).toBe(false);
+  });
+
+  it("copies payload-only bytes and never occupancy or ritual files", () => {
+    const project = freshRoot("wt-dep-copy-");
+    const payload = join(project, "payload");
+    mkdirSync(payload, { recursive: true });
+    writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    writeFileSync(join(payload, "QUICK-START.md"), "# qs\n", "utf8");
+    writeFileSync(join(payload, "occupancy.json"), '{"stolen":true}\n', "utf8");
+    writeFileSync(join(payload, "ritual-state.json"), '{"ready":true}\n', "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => payload,
+    });
+    expect(result.status).toBe("reconstituted");
+    const dest = join(project, ".deft", "core");
+    expect(readFileSync(join(dest, "main.md"), "utf8")).toContain("# payload");
+    expect(readFileSync(join(dest, "QUICK-START.md"), "utf8")).toContain("# qs");
+    expect(existsSync(join(dest, "occupancy.json"))).toBe(false);
+    expect(existsSync(join(dest, "ritual-state.json"))).toBe(false);
+    expect(existsSync(join(project, ".deft", "occupancy.json"))).toBe(false);
+  });
+
+  it("reconstitutes when dest has VERSION but no main.md", () => {
+    const project = freshRoot("wt-dep-incomplete-");
+    const dest = join(project, ".deft", "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "VERSION"), "0.1.0\n", "utf8");
+    const payload = join(project, "payload");
+    mkdirSync(payload, { recursive: true });
+    writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => payload,
+    });
+    expect(result.status).toBe("reconstituted");
+    expect(readFileSync(join(dest, "main.md"), "utf8")).toContain("# payload");
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "refuses to copy through a destination file symlink",
+    () => {
+      const project = freshRoot("wt-dep-destlink-");
+      const dest = join(project, ".deft", "core");
+      mkdirSync(dest, { recursive: true });
+      const escapeTarget = join(project, "escape.txt");
+      writeFileSync(escapeTarget, "keep\n", "utf8");
+      symlinkSync(escapeTarget, join(dest, "main.md"));
+      const payload = join(project, "payload");
+      mkdirSync(payload, { recursive: true });
+      writeFileSync(join(payload, "main.md"), "# payload\n", "utf8");
+      expect(() =>
+        reconstituteLinkedWorktreeDeposit(project, {
+          isLinkedWorktree: () => true,
+          isFrameworkSource: () => false,
+          resolvePayloadSource: () => payload,
+        }),
+      ).toThrow(/destination symlink/);
+      expect(readFileSync(escapeTarget, "utf8")).toBe("keep\n");
+    },
+  );
+
+  it("reports already-present without rewriting occupancy", () => {
+    const project = freshRoot("wt-dep-present-");
+    const dest = join(project, ".deft", "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "main.md"), "# existing\n", "utf8");
+    const result = reconstituteLinkedWorktreeDeposit(project, {
+      isLinkedWorktree: () => true,
+      isFrameworkSource: () => false,
+      resolvePayloadSource: () => {
+        throw new Error("must not copy when present");
+      },
+    });
+    expect(result.status).toBe("already-present");
   });
 });

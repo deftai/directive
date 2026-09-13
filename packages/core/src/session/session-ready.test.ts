@@ -974,3 +974,45 @@ describe("session:ready presented identity (#4409)", () => {
     expect(result.message).toContain("minted-this-invocation");
   });
 });
+
+describe("runSessionReady worktree deposit (#4443)", () => {
+  it("reconstitutes payload before gated inspect", () => {
+    const reconstituteWorktreeDeposit = vi.fn(() => ({
+      status: "reconstituted",
+      source: "/payload",
+      dest: "/proj/.deft/core",
+      message: "reconstituted .deft/core from local payload",
+    }));
+    const inspectRitual = vi.fn(() => okVerify());
+    const verifyRitual = vi.fn(() => okVerify());
+    const result = ready("/proj", {
+      inspectRitual,
+      verifyRitual,
+      runStart: vi.fn(),
+      fetchAll: vi.fn(),
+      reconstituteWorktreeDeposit,
+    });
+    expect(reconstituteWorktreeDeposit).toHaveBeenCalled();
+    expect(result.code).toBe(0);
+    expect(result.steps[0]).toBe("worktree-deposit");
+    expect(result.lines.join("\n")).toContain("reconstituted .deft/core");
+  });
+
+  it("fails closed on a refused deposit without claiming success", () => {
+    const applyOccupancy = vi.fn(() => stubOccupancy());
+    const result = ready("/proj", {
+      applyOccupancy,
+      inspectRitual: vi.fn(() => okVerify()),
+      verifyRitual: vi.fn(() => okVerify()),
+      reconstituteWorktreeDeposit: () => ({
+        status: "refused",
+        source: "/payload",
+        dest: "/proj/.deft/core",
+        message: "deposit refused: symlink escaping the project tree",
+      }),
+    });
+    expect(result.code).toBe(2);
+    expect(result.path).toBe(SESSION_READY_FAILED);
+    expect(result.message).toContain("symlink escaping");
+  });
+});

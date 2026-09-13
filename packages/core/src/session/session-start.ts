@@ -2,6 +2,10 @@ import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { emitSessionEvalReadback } from "../eval/readback.js";
 import { bindSessionGeneration } from "../freshness/bind.js";
 import { readLiveGeneration } from "../freshness/generation.js";
+import {
+  reconstituteLinkedWorktreeDeposit,
+  type WorktreeDepositReconstituteResult,
+} from "../init-deposit/gitignore.js";
 import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposit/migrate.js";
 import {
   evaluateLifecycleVisible,
@@ -376,6 +380,11 @@ export interface SessionStartOptions {
    * Inject in tests; default walks lifecycle xBRIEFs and GETs labels.
    */
   readonly scanWorkClaims?: (projectRoot: string) => readonly string[];
+  /**
+   * #4443: payload-only reconstitution for a linked worktree missing .deft/core.
+   * Inject in tests. Default copies a local payload; never occupancy/ritual.
+   */
+  readonly reconstituteWorktreeDeposit?: (projectRoot: string) => WorktreeDepositReconstituteResult;
 }
 
 function pushWorkClaimScan(
@@ -1033,6 +1042,11 @@ function runSessionRearm(
     return occupancyDeniedResult(plannedOccupancy, environment);
   }
 
+  const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
+  if ("deny" in linkedDeposit) {
+    return linkedDeposit.deny;
+  }
+
   const resolveUserMd =
     options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
   const userMd = resolveUserMd(projectRoot);
@@ -1050,6 +1064,7 @@ function runSessionRearm(
   const effortBudget = resolveEffortBudget(options);
 
   const lines: string[] = [
+    ...(linkedDeposit.reconstituted !== null ? [linkedDeposit.reconstituted] : []),
     READ_ONLY_ALIGNMENT_MESSAGE,
     userMdLine,
     formatEnvironmentContext(environment),
@@ -1282,6 +1297,37 @@ function runSessionRearm(
   };
 }
 
+function applyLinkedWorktreeDeposit(
+  projectRoot: string,
+  options: SessionStartOptions,
+  environment: EnvironmentContext,
+): { deny: SessionStartResult } | { reconstituted: string | null } {
+  const reconstitute =
+    options.reconstituteWorktreeDeposit ??
+    ((root) => reconstituteLinkedWorktreeDeposit(root, { runGit: options.runGit }));
+  const deposit = reconstitute(projectRoot);
+  if (deposit.status === "refused") {
+    const message = deposit.message;
+    return {
+      deny: {
+        code: 2,
+        payload: {
+          ready: false,
+          exit_code: 2,
+          posture: MUTATION_POSTURE,
+          environment: environmentContextToDict(environment),
+          message,
+        },
+        lines: [formatEnvironmentContext(environment), message],
+      },
+    };
+  }
+  if (deposit.status === "reconstituted") {
+    return { reconstituted: `[deft session] ${deposit.message}` };
+  }
+  return { reconstituted: null };
+}
+
 export function runSessionStart(
   projectRoot: string,
   options: SessionStartOptions = {},
@@ -1458,6 +1504,11 @@ export function runSessionStart(
     return occupancyDeniedResult(plannedOccupancy, environment);
   }
 
+  const linkedDeposit = applyLinkedWorktreeDeposit(projectRoot, options, environment);
+  if ("deny" in linkedDeposit) {
+    return linkedDeposit.deny;
+  }
+
   const quickSteps: Record<string, Record<string, unknown>> = recordDeferredSteps(
     QUICK_STEPS,
     effectiveDeferrals,
@@ -1469,6 +1520,9 @@ export function runSessionStart(
     instant,
   );
   const lines: string[] = [];
+  if (linkedDeposit.reconstituted !== null) {
+    lines.push(linkedDeposit.reconstituted);
+  }
   lines.push(
     formatCeremonyDialStatusLine(ceremonyDialSelection, {
       startTierProvenance,

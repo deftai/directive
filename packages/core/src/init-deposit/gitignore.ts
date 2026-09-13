@@ -6,15 +6,21 @@
  * deposit is born ignored (node_modules model). Existing tracked deposits are left
  * alone — the vendored→hybrid un-commit is owned by #1941.
  *
- * Refs #1942, #1941, #1015, #1464, #1672.
+ * Refs #1942, #1941, #1015, #1464, #1672, #4443.
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
+import { CONTENT_PACKAGE_NAME } from "../content-root.js";
+import { assertDepositContained } from "../deposit/contain.js";
+import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { DEFT_DIRECTIVE_DISABLE_GITIGNORE_LINE } from "../policy/deft-directive-disable.js";
+import type { GitRunner } from "../session/git.js";
+import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import {
   FORBIDDEN_BLANKET_EVAL_LINES,
   stripGitignoreInlineComment,
@@ -102,7 +108,8 @@ const DEFT_FRAMEWORK_GITIGNORE_HEADER =
   "# Deft framework: ignore local-only caches and scratch directories\n";
 
 const DEFT_CORE_GITIGNORE_RATIONALE =
-  "# Hybrid deposit (#1942): reconstituted by `directive init` like node_modules.\n" +
+  "# Hybrid deposit (#1942 / #4443): reconstituted locally like node_modules " +
+  "(`directive update` / session:ready in a linked worktree; `directive init` for a missing footprint).\n" +
   "# The vendored→hybrid un-commit for existing tracked deposits is #1941.\n";
 
 export interface EnsureInitGitignoreResult {
@@ -444,4 +451,186 @@ export async function reconstituteDepositFromContent(
   const wasAbsent = !existsSync(deftDir);
   await copyContent(contentRoot, deftDir);
   return { reconstituted: wasAbsent };
+}
+
+export type WorktreeDepositReconstituteStatus =
+  | "reconstituted"
+  | "already-present"
+  | "skipped"
+  | "refused";
+
+export interface WorktreeDepositReconstituteResult {
+  readonly status: WorktreeDepositReconstituteStatus;
+  readonly source: string | null;
+  readonly dest: string;
+  readonly message: string;
+}
+
+export interface WorktreeDepositReconstituteSeams {
+  readonly isLinkedWorktree?: (projectRoot: string) => boolean;
+  readonly isFrameworkSource?: (projectRoot: string) => boolean;
+  readonly resolvePayloadSource?: (projectRoot: string) => string | null;
+  readonly copyPayload?: (src: string, dst: string) => void;
+  readonly runGit?: GitRunner;
+  /** Reservation path: copy only from primary `.deft/core`, never the engine package. */
+  readonly preferPrimaryCore?: boolean;
+}
+
+const PAYLOAD_ENTRY = "main.md";
+const PER_TREE_SKIP_NAMES = new Set(["occupancy.json", "ritual-state.json", "last-session.json"]);
+
+function isRealDirectory(path: string): boolean {
+  try {
+    const st = lstatSync(path);
+    return st.isDirectory() && !st.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+function looksLikePayload(dir: string): boolean {
+  if (!isRealDirectory(dir)) return false;
+  return existsSync(join(dir, PAYLOAD_ENTRY));
+}
+
+function resolveEngineContentPackage(): string | null {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require.resolve(`${CONTENT_PACKAGE_NAME}/package.json`);
+    const root = dirname(pkg);
+    return looksLikePayload(root) ? root : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolvePrimaryCore(projectRoot: string, runGit?: GitRunner): string | null {
+  const primary = mainWorktreeRoot(projectRoot, runGit);
+  if (primary === null) return null;
+  const deft = join(primary, ".deft");
+  const core = join(deft, "core");
+  try {
+    if (lstatSync(deft).isSymbolicLink()) return null;
+  } catch {
+    // Missing primary .deft is not a source.
+  }
+  try {
+    if (lstatSync(core).isSymbolicLink()) return null;
+  } catch {
+    return null;
+  }
+  return looksLikePayload(core) ? core : null;
+}
+
+export function resolveWorktreePayloadSource(
+  projectRoot: string,
+  seams: WorktreeDepositReconstituteSeams = {},
+): string | null {
+  if (seams.resolvePayloadSource) return seams.resolvePayloadSource(projectRoot);
+  if (seams.preferPrimaryCore) {
+    return resolvePrimaryCore(projectRoot, seams.runGit);
+  }
+  const engine = resolveEngineContentPackage();
+  if (engine) return engine;
+  const primaryCore = resolvePrimaryCore(projectRoot, seams.runGit);
+  if (primaryCore) return primaryCore;
+  return null;
+}
+
+function assertNotDestSymlink(path: string): void {
+  try {
+    if (lstatSync(path).isSymbolicLink()) {
+      throw new Error(
+        `copyWorktreePayloadSync: refusing to write through destination symlink ${path}`,
+      );
+    }
+  } catch (err) {
+    if (
+      err instanceof Error &&
+      err.message.includes("refusing to write through destination symlink")
+    ) {
+      throw err;
+    }
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw err;
+  }
+}
+
+export function copyWorktreePayloadSync(src: string, dst: string): void {
+  assertNotDestSymlink(dst);
+  mkdirSync(dst, { recursive: true, mode: 0o755 });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    if (entry.isSymbolicLink() || PER_TREE_SKIP_NAMES.has(entry.name)) continue;
+    const from = join(src, entry.name);
+    const to = join(dst, entry.name);
+    if (entry.isDirectory()) copyWorktreePayloadSync(from, to);
+    else {
+      assertNotDestSymlink(to);
+      copyFileSync(from, to);
+    }
+  }
+}
+
+/**
+ * Payload-only reconstitution for a linked worktree missing `.deft/core` (#4443).
+ *
+ * Copies flattened content into dest `.deft/core` after `assertDepositContained`.
+ * Never copies occupancy/ritual files, never creates a symlink to another tree,
+ * and never writes during a framework-source checkout (would flip maintainer mode).
+ */
+export function reconstituteLinkedWorktreeDeposit(
+  projectRoot: string,
+  seams: WorktreeDepositReconstituteSeams = {},
+): WorktreeDepositReconstituteResult {
+  const dest = join(resolve(projectRoot), ".deft", "core");
+  const linked = (seams.isLinkedWorktree ?? isLinkedWorktreePath)(projectRoot);
+  if (!linked) {
+    return {
+      status: "skipped",
+      source: null,
+      dest,
+      message: "not a linked worktree",
+    };
+  }
+  const framework = (seams.isFrameworkSource ?? runningInsideDeftRepo)(projectRoot);
+  if (framework) {
+    return {
+      status: "skipped",
+      source: null,
+      dest,
+      message: "framework source checkout - leave .deft/core absent",
+    };
+  }
+  if (looksLikePayload(dest)) {
+    return {
+      status: "already-present",
+      source: null,
+      dest,
+      message: "payload already present",
+    };
+  }
+  const source = resolveWorktreePayloadSource(projectRoot, seams);
+  if (source === null) {
+    return {
+      status: "skipped",
+      source: null,
+      dest,
+      message: "no local payload source",
+    };
+  }
+  try {
+    assertDepositContained(projectRoot, dest);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { status: "refused", source, dest, message };
+  }
+  const copy = seams.copyPayload ?? copyWorktreePayloadSync;
+  mkdirSync(join(resolve(projectRoot), ".deft"), { recursive: true, mode: 0o755 });
+  copy(source, dest);
+  return {
+    status: "reconstituted",
+    source,
+    dest,
+    message: `reconstituted .deft/core from local payload (${source})`,
+  };
 }

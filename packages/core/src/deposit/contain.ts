@@ -15,9 +15,11 @@
  * using path-SEGMENT containment (not string `startsWith`).
  *
  * Callers MUST invoke it BEFORE the first copy/mkdir/reconstitute so a refusal
- * deposits nothing.
+ * deposits nothing. Linked-worktree payload reconstitution (#4443) copies
+ * .deft/core bytes only -- it MUST NOT symlink or junction that directory to
+ * another checkout (this guard refuses that escape).
  *
- * Refs #2305.
+ * Refs #2305, #4443.
  */
 
 import { lstatSync, realpathSync } from "node:fs";

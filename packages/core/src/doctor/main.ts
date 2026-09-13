@@ -36,6 +36,7 @@ import {
   reconcileVersions,
   plan as resolvePlan,
 } from "../resolution/index.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { evaluateAgentHooks } from "../verify-env/agent-hooks.js";
 import { probeAgentHooksLive } from "../verify-env/agent-hooks-live-probe.js";
@@ -1673,11 +1674,17 @@ export function enforceDirectiveSurface(
 }
 
 /** Human-facing operating mode derived from the orthogonal fact-set. */
-export function resolveOperatingMode(facts: ResolutionFacts): string {
+export function resolveOperatingMode(
+  facts: ResolutionFacts,
+  extras: { linkedWorktree?: boolean } = {},
+): string {
   if (facts.preCutoverArtifacts) {
     return "pre-cutover (pre-v0.20 document model -- migrate first)";
   }
   if (!facts.hasDeftCore) {
+    if (extras.linkedWorktree && facts.hasManagedSection) {
+      return "linked-worktree (managed AGENTS.md present; .deft/core/ payload not reconstituted; run directive update)";
+    }
     if (facts.hasManagedSection) {
       return "hybrid (managed AGENTS.md present; .deft/core/ payload not reconstituted)";
     }
@@ -1812,8 +1819,13 @@ export function runResolutionDecision(
     ...(seams.readText ? { readText: seams.readText } : {}),
     ...(seams.engineProbe ? { engineProbe: seams.engineProbe } : {}),
   });
-  const plan = resolvePlan(facts, {}, { platform: process.platform, interactive: false });
-  const operatingMode = resolveOperatingMode(facts);
+  const linkedWorktree = isLinkedWorktreePath(projectRoot);
+  const plan = resolvePlan(
+    facts,
+    {},
+    { linkedWorktree, platform: process.platform, interactive: false },
+  );
+  const operatingMode = resolveOperatingMode(facts, { linkedWorktree });
   const reconciliation = resolveReconciliationLine(facts);
   const skew = resolvePlatformSkew(projectRoot, seams);
   const hasTaskfileWiring = resolveTaskfileWiring(projectRoot, seams);

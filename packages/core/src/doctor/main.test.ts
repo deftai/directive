@@ -383,6 +383,9 @@ describe("resolveOperatingMode (#2267)", () => {
     expect(resolveOperatingMode({ ...FACTS_BASE, preCutoverArtifacts: true })).toContain(
       "pre-cutover",
     );
+    expect(
+      resolveOperatingMode({ ...FACTS_BASE, hasManagedSection: true }, { linkedWorktree: true }),
+    ).toContain("linked-worktree");
   });
 });
 
@@ -1177,5 +1180,22 @@ describe("framework-layout split identities (#4162)", () => {
       LAYOUT_TREE.FRAMEWORK_CONTENT,
     );
     expect(layout.find((f) => f.directory === "xbrief")?.tree).toBe(LAYOUT_TREE.PROJECT_LIFECYCLE);
+  });
+});
+
+describe("linked worktree missing payload (#4443)", () => {
+  it("names a local update command instead of npx init", () => {
+    const root = makeRoot();
+    writeFileSync(join(root, ".git"), "gitdir: /tmp/fake.git\n", "utf8");
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->\nbody\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
+    expect(summary.operatingMode).toContain("linked-worktree");
+    expect(summary.nextCommand).toBe("directive update");
+    expect(summary.nextCommand).not.toMatch(/npx|init/);
+    expect(summary.rootCause).toContain("linked worktree");
   });
 });

@@ -1054,3 +1054,70 @@ describe("runSessionStart primary-claim exception (#4266)", () => {
     expect(result.lines.join("\n")).toContain("occupancy:steal requires --confirm");
   });
 });
+
+describe("runSessionStart worktree deposit reconstitution (#4443)", () => {
+  function occupancyOk(root: string, input: ApplyOccupancyInput): OccupancyDecision {
+    const resolved = input.sessionId ?? "sess";
+    return {
+      action: input.write === false ? "claimed" : "heartbeat",
+      sessionId: resolved,
+      record: null,
+      path: join(root, ".deft", "occupancy.json"),
+      message: `occupancy ${resolved}`,
+      code: 0,
+    };
+  }
+
+  it("reconstitutes a linked-worktree payload on the mutation path", () => {
+    const root = tempRoot();
+    const reconstituteWorktreeDeposit = vi.fn(() => ({
+      status: "reconstituted",
+      source: "/payload",
+      dest: join(root, ".deft", "core"),
+      message: "reconstituted .deft/core from local payload",
+    }));
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:deposit",
+      applyOccupancy: (_projectRoot, input) => occupancyOk(root, input),
+      reconstituteWorktreeDeposit,
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(reconstituteWorktreeDeposit).toHaveBeenCalled();
+    expect(result.lines.join("\n")).toContain("reconstituted .deft/core");
+  });
+
+  it("does not reconstitute on read-only posture", () => {
+    const root = tempRoot();
+    const reconstituteWorktreeDeposit = vi.fn(() => {
+      throw new Error("must not write on read-only");
+    });
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      posture: READ_ONLY_POSTURE,
+      reconstituteWorktreeDeposit,
+    });
+    expect(result.code).toBe(0);
+    expect(reconstituteWorktreeDeposit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when reconstitution is refused", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:refuse",
+      applyOccupancy: (_projectRoot, input) => occupancyOk(root, input),
+      reconstituteWorktreeDeposit: () => ({
+        status: "refused",
+        source: "/payload",
+        dest: join(root, ".deft", "core"),
+        message: "deposit refused: symlink escaping the project tree",
+      }),
+      orientation: null,
+    });
+    expect(result.code).toBe(2);
+    expect(result.payload.ready).toBe(false);
+    expect(String(result.payload.message)).toContain("symlink escaping");
+  });
+});

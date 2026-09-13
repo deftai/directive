@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -437,6 +437,23 @@ describe("swarm worktrees", () => {
       expect((err as Error).message).toContain(sha);
       expect((err as Error).message).toContain("(missing)");
     }
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("provisions .deft/core from the primary payload and does not copy occupancy.json (#4443)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-dep-"));
+    gitInit(repo);
+    mkdirSync(join(repo, ".deft", "core"), { recursive: true });
+    writeFileSync(join(repo, ".deft", "core", "main.md"), "# primary payload\n", "utf8");
+    writeFileSync(join(repo, ".deft", "occupancy.json"), '{"sessionId":"primary"}\n', "utf8");
+    writeFileSync(join(repo, ".deft", "ritual-state.json"), '{"ready":true}\n', "utf8");
+    const wt = join(repo, "wt-dep");
+    resolveWorktreeMap([{ story_id: "s-dep", worktree_path: wt }], "master", true, {
+      repoRoot: repo,
+    });
+    expect(existsSync(join(wt, ".deft", "core", "main.md"))).toBe(true);
+    expect(existsSync(join(wt, ".deft", "occupancy.json"))).toBe(false);
+    expect(existsSync(join(wt, ".deft", "ritual-state.json"))).toBe(false);
     rmSync(repo, { recursive: true, force: true });
   });
 });

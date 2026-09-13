@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **N≥3 design-critique spend now requires a launch-probe pong with critic bypass flags before the panel-deposit (#4432).** The three-family MUST stays host-neutral; the blocked variable is permission posture, not Claude Code as a host class. A failed probe amends spend down with a reason or halts as dispatch-fail. Seat composition still takes claimed families plus PATH and does not observe launchability. Does not close #3850. Closes #4432.
+- **Linked worktree missing deposit reconstitutes `.deft/core` locally (#4443).** `session:start` / `session:ready` copy a contained payload into dest `.deft/core` before gated doctor (no per-tree `npx init`). Swarm worktree reservation provisions the same payload from the primary core. Doctor names `directive update` for a linked worktree missing payload. Occupancy, ritual-state, and identity stay per-tree; escaping `.deft/core` links stay refused. Deposit reconstitution stays on #4443 rather than the identity recut. Closes #4443.
 
 ### Removed
 
