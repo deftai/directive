@@ -14,5 +14,5 @@
     "xbrief/evaluator-surface-disposition.json",
     "vitest.config.ts"
   ],
-  "note": "Disclosure of evaluator-surface wiring for #4386, including process-tree spawn for the declared consumer test lane. Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record."
+  "note": "Disclosure of evaluator-surface wiring for #4386, including bounded process-tree spawn for the declared consumer test lane. Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record."
 }

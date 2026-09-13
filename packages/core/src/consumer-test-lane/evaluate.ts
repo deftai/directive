@@ -10,7 +10,12 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { cliSpawnPlan } from "../check/cli-native-gates.js";
-import { killDescendantTree } from "../check/suite-gate-supervisor-lib.js";
+import {
+  appendBoundedCapture,
+  boundedCaptureText,
+  createBoundedCapture,
+  killDescendantTree,
+} from "../check/suite-gate-supervisor-lib.js";
 import { PRODUCT_AC_GATE_ID } from "../product-first-done-gate/types.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
@@ -131,13 +136,13 @@ function defaultSpawn(
     detached: platform !== "win32",
     windowsHide: true,
   });
-  let stdout = "";
-  let stderr = "";
+  const stdoutCap = createBoundedCapture();
+  const stderrCap = createBoundedCapture();
   child.stdout?.on("data", (chunk: Buffer) => {
-    stdout += chunk.toString("utf8");
+    appendBoundedCapture(stdoutCap, chunk);
   });
   child.stderr?.on("data", (chunk: Buffer) => {
-    stderr += chunk.toString("utf8");
+    appendBoundedCapture(stderrCap, chunk);
   });
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -151,7 +156,7 @@ function defaultSpawn(
       clearTimeout(timer);
       resolveSpawn({
         exitCode: 2,
-        stdout,
+        stdout: boundedCaptureText(stdoutCap),
         stderr: error.message,
       });
     });
@@ -159,8 +164,8 @@ function defaultSpawn(
       clearTimeout(timer);
       resolveSpawn({
         exitCode: timedOut ? 124 : (code ?? 2),
-        stdout,
-        stderr,
+        stdout: boundedCaptureText(stdoutCap),
+        stderr: boundedCaptureText(stderrCap),
       });
     });
   });
