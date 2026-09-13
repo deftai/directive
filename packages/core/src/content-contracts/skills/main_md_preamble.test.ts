@@ -6,12 +6,13 @@ import { readRepoFile, repoFileExists } from "./helpers.js";
 const PREAMBLE_MARKER = "<!-- DEFT-PREAMBLE-V1 -->";
 // #2022 / #1933 (Option 1, deprecate-by-disuse): canonical carriers (main.md,
 // SKILL.md) no longer mandate the frozen `deft-install gate` health probe. The
-// DEFT-PREAMBLE carries a cold-start fallback. #2273: the recovery pointer is
-// now payload-INDEPENDENT -- it points at the Cold-start bootstrap block at the
-// top of the committed `README.md`, NOT at `.deft/core/UPGRADING.md` (the exact
-// vendored payload that is absent when recovery is needed).
+// DEFT-PREAMBLE carries a cold-start fallback. #2273 / #4430: recovery is the
+// #4090 ladder (doctor-first, then pinned npm global), NOT an undeposited
+// README block and NOT `.deft/core/UPGRADING.md` (the vendored payload that is
+// absent when recovery is needed). Do not generalize this to a `.deft/core/`
+// spelling denylist -- that red-fails prose about payload independence.
 const GATE_INSTRUCTION_CANONICAL = "Cold-start check";
-const COLD_START_REFERENCE_CANONICAL = "README.md";
+const COLD_START_REFERENCE_CANONICAL = "directive doctor";
 
 const CANONICAL_PATHS = ["main.md", "SKILL.md"] as const;
 
