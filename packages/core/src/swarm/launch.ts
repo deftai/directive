@@ -1121,9 +1121,8 @@ export function swarmLaunch(args: LaunchArgs): {
     if (newlyClaimed) {
       const recovery =
         "Occupancy release failed after this launch error; the lease may still be live. " +
-        "The occupant may release (occupancy:release / session:end). A replacement owner must " +
-        "run session:start --steal --confirm --occupant <reported-session-id> " +
-        "--session-id=<your-session-id> to align lease and ritual state.";
+        "The occupant may release (occupancy:release / session:end). Isolate in another " +
+        "worktree rather than taking a live lease.";
       try {
         const release = args.releaseOccupancyFn ?? releaseOccupancy;
         const decision = release(projectRoot, {

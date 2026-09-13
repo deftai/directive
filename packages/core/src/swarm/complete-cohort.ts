@@ -631,8 +631,8 @@ export function completeCohort(args: {
         result.ok = false;
         result.errors.push(
           "swarm close-out occupancy record is missing or belongs to a different cohort. " +
-            "Re-establish an aligned owner with session:start --steal --confirm " +
-            "--occupant <reported-session-id> --session-id=<your-session-id>.",
+            "The occupant may release (`occupancy:release` / `session:end`). Isolate in another " +
+            "worktree rather than taking a live lease.",
         );
       } else if (envSession.length > 0 && envSession !== resolved.sessionId) {
         result.ok = false;
