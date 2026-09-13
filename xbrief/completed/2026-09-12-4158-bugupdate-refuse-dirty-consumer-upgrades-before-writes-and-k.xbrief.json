@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4158",
-    "updated": "2026-09-12T19:50:57Z"
+    "updated": "2026-09-12T23:59:50Z"
   },
   "plan": {
     "title": "bug(update): refuse dirty consumer upgrades before writes and keep the index unmixed",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(update): refuse dirty consumer upgrades before writes and keep the index unmixed",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4158",
@@ -16,31 +16,73 @@
     "items": [
       {
         "title": "Split undeterminable Git: no-repository proceeds (staging is already off); repository present but unreadable (missing git, `safe.directory`, locked/corrupt index, parse failure) refuses, and the dirty escape does not waive that.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/update-git-preflight.test.ts:proceeds for no-repository when required; refuses unreadable even with --allow-dirty-no-stage",
+          "recorded_at": "2026-09-12T23:59:16.565Z",
+          "recorded_by": "leftover-4158"
+        }
       },
       {
         "title": "The cleanliness read is a non-mutating three-state probe (`git --no-optional-locks status --porcelain=v1 -z --untracked-files=all` or equivalent), with stderr kept. Dirty or unreadable-repo refuses before the first updater write. Refusal leaves dest, index bytes, common Git configuration, and external user-state paths unchanged.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts:refuses a dirty repo before dest writes and leaves the tree unchanged (#4158); update-git-preflight.test.ts:uses --no-optional-locks porcelain v1 -z --untracked-files=all",
+          "recorded_at": "2026-09-12T23:59:16.565Z",
+          "recorded_by": "leftover-4158"
+        }
       },
       {
         "title": "Dest-only plan. Do not extend the ledger to `$HOME` or typed git-config effects in this issue. Git preflight still runs when an `UPDATE_DRY_RUN_EXCLUSIONS` / out-of-root writer might fire this run, including an empty dest plan. Empty dest plan and no such writer is the only no-op. `alreadyCurrent` is not no-op.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/update-git-preflight.test.ts:skips preflight only when dest plan is empty and no out-of-root writer; refresh.test.ts:alreadyCurrent dirty still preflights and refuses (#4158)",
+          "recorded_at": "2026-09-12T23:59:16.565Z",
+          "recorded_by": "leftover-4158"
+        }
       },
       {
         "title": "Dry-run and live share the same Git preflight result and the same dest-rooted mutation membership. Record-mode dest-skip is not an incoming-tree overlay; that overlay is #4446. Deposit-integrity refusals stay apply-phase; do not reopen #4389.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts:dry-run JSON carries measured dirty_tree/dirty_files without writing (#4158)",
+          "recorded_at": "2026-09-12T23:59:16.565Z",
+          "recorded_by": "leftover-4158"
+        }
       },
       {
         "title": "`--allow-dirty-no-stage` disables automatic `git add` for the entire run. `git config core.hooksPath` still runs; that is dest-mutating common Git and accepted risk of the escape, not staging. Commit guidance is `git commit -- <written paths>`, not add-then-bare-commit. Print measured dirt and the plan, then apply; no TTY confirm. `--json` / `--yes` keep the same refuse-or-apply decision. Unknown flags fail parse. `--allow-dirty` and `--force` are not this escape.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts:--allow-dirty-no-stage applies without git add and keeps hooksPath (#4158); update-git-preflight.test.ts:rejects --allow-dirty and --force as not this escape",
+          "recorded_at": "2026-09-12T23:59:16.565Z",
+          "recorded_by": "leftover-4158"
+        }
       },
       {
         "title": "Recoverable post-write owns a ledger snapshot across success and failure; it is not `success`. Refusal and dry-run JSON carry measured `dirty_tree` / `dirty_files` (those shapes gain the fields). Carrier is a sibling `error_code`; do not widen `UpdateState` in this issue.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts:dry-run JSON carries measured dirty_tree/dirty_files without writing (#4158); update-git-preflight.test.ts:refuses dirty without the escape (error_code dirty_tree)",
+          "recorded_at": "2026-09-12T23:59:16.565Z",
+          "recorded_by": "leftover-4158"
+        }
       },
       {
         "title": "The gate refuses dirt observed before the first write. It is not concurrent-mutation serialization. Occupancy / common-Git-dir lease stays a non-goal. Do not add pre-stage porcelain revalidation in this issue.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts:refuses a dirty repo before dest writes and leaves the tree unchanged (#4158)",
+          "recorded_at": "2026-09-12T23:59:16.565Z",
+          "recorded_by": "leftover-4158"
+        }
       }
     ],
     "tags": [
@@ -92,7 +134,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "226c60faf39579354b5215bf01feb387621dd59401cdedb78dfd2f00957d734e"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4448,
+        "prBase": null,
+        "mergeCommit": "21d9a951a2b7a0d0d0812706c58afccb8c2b285c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "21d9a951a2b7a0d0d0812706c58afccb8c2b285c",
+        "verifiedAt": "2026-09-12T23:59:50Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkyNDItMDJhNS03ZmEwLTk1ZmUtOTM1NjNjMDJmZTg3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-12T23:59:50Z"
+      },
+      "completedAt": "2026-09-12T23:59:50Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkyNDItMDJhNS03ZmEwLTk1ZmUtOTM1NjNjMDJmZTg3",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -153,6 +220,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5336455266",
-    "updated": "2026-09-12T19:50:57Z"
+    "updated": "2026-09-12T23:59:50Z"
   }
 }
