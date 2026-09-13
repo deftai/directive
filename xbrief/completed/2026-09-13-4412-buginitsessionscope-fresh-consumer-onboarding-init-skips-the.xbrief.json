@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4412",
-    "updated": "2026-09-13T01:31:22Z"
+    "updated": "2026-09-13T03:03:42Z"
   },
   "plan": {
     "title": "bug(init,session,scope): fresh consumer onboarding -- init skips the promised package.json pin, then each printed recovery leads to the next denial (6 failures to write one file)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(init,session,scope): fresh consumer onboarding -- init skips the promised package.json pin, then each printed recovery leads to the next denial (6 failures to write one file)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4412",
@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "Measure a Claude Bash tool-call of bare deft session:ready: did PreToolUse emit updatedInput, and did the executed command carry the owner. Do not bind a second identity rewrite until that is recorded.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts Claude Bash deft session:ready emits updatedInput host:claude:v1:...; host apply of updatedInput unobserved in CI; no second rewrite; merge c7d2ff9a263ae59150b87257630898735c74ecd4 PR 4461",
+          "recorded_at": "2026-09-13T03:03:28Z",
+          "recorded_by": "agent/leaf-implementation/4412"
+        }
       },
       {
         "title": "Dispose Defect 1 to #4429 (ensurePackageJsonPin unwired; headless vs executing init diverge).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4412#issuecomment-5650026340 dispose Defect 1 (ensurePackageJsonPin unwired; headless vs executing init diverge) to #4429",
+          "recorded_at": "2026-09-13T03:03:28Z",
+          "recorded_by": "agent/leaf-implementation/4412"
+        }
       },
       {
         "title": "formatOccupancyRemediation interpolates occupantArg into the grant command and SWARM_WORKER_ROLES into --role. Two interpolations. Route ids through commandSessionId / renderEchoedSessionId.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.ts occupancyGrantCommand interpolates occupantArg as --session-id and SWARM_WORKER_ROLES into --role; occupancy.test.ts; merge c7d2ff9a PR 4461",
+          "recorded_at": "2026-09-13T03:03:28Z",
+          "recorded_by": "agent/leaf-implementation/4412"
+        }
       },
       {
         "title": "At the activate-from-proposed rejection and the dispatcher deny, print the derived two-step promote then activate hint. Record auto-promote as refused.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/transition-hint.ts deriveBridgeAction activate-from-proposed only; SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE AUTO_PROMOTE_REFUSED; transition.ts and dispatcher.ts; merge c7d2ff9a PR 4461",
+          "recorded_at": "2026-09-13T03:03:28Z",
+          "recorded_by": "agent/leaf-implementation/4412"
+        }
       },
       {
         "title": "Surface mint versus resolve at session:ready claim time.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-ready.ts formatOccupancyClaimProvenance mint versus resolve at claim; occupancy.ts resolveOccupancySessionClaim; merge c7d2ff9a PR 4461",
+          "recorded_at": "2026-09-13T03:03:28Z",
+          "recorded_by": "agent/leaf-implementation/4412"
+        }
       }
     ],
     "tags": [
@@ -111,9 +141,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "3986df592f978a4626c4a8ac9498b4ca51fcf5a83083a2c3298730be7256fdf5"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4461,
+        "prBase": null,
+        "mergeCommit": "c7d2ff9a263ae59150b87257630898735c74ecd4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "466f0307c9858e200d08f6cc9c0614c232eea0c0",
+        "verifiedAt": "2026-09-13T03:03:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4NjAtZDQ3Ni03MjUxLTgxMTAtY2QwZjNhM2ExMjRk"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T03:03:42Z"
+      },
+      "completedAt": "2026-09-13T03:03:42Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4NjAtZDQ3Ni03MjUxLTgxMTAtY2QwZjNhM2ExMjRk",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5426971716",
-    "updated": "2026-09-13T01:31:22Z"
+    "updated": "2026-09-13T03:03:42Z"
   }
 }
