@@ -12,7 +12,9 @@
  * Pipes, quotes, redirects, and chains are not rewritten.
  * Guarantees: a lifecycle verb in unquoted command text fails closed unless an
  * explicit matching --session-id is already present. Quoted strings and #
- * comments are not invocations.
+ * comments are not invocations. POSIX env-assignment prefixes (FOO=bar cmd)
+ * bind like the unprefixed command or fail closed on chains; they do not
+ * fail-open.
  * Non-goals: full shell parse; injecting --session-id into compound commands.
  */
 
@@ -248,6 +250,20 @@ export type ExactLifecycleCommandResult =
 // closed, but they remain outside the auto-approved rewrite surface below.
 const INSPECTABLE_TOKEN_PATTERN = /^[A-Za-z0-9_./\\:+=,-]+$/;
 
+function isShellEnvAssignToken(token: string): boolean {
+  const eq = token.indexOf("=");
+  if (eq <= 0) return false;
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.slice(0, eq));
+}
+
+function skipLeadingEnvAssignments(tokens: readonly string[]): number {
+  let index = 0;
+  while (index < tokens.length && isShellEnvAssignToken(tokens[index] ?? "")) {
+    index += 1;
+  }
+  return index;
+}
+
 interface ExactInvocation {
   readonly verb: ExactLifecycleVerb;
   readonly task: boolean;
@@ -482,14 +498,15 @@ function exactLifecycleInvocation(command: string): ExactInvocation | null {
   if (tokens.some((token) => token.length === 0 || !INSPECTABLE_TOKEN_PATTERN.test(token))) {
     return null;
   }
-  if (tokens.length < 2) return null;
+  const start = skipLeadingEnvAssignments(tokens);
+  if (tokens.length - start < 2) return null;
 
-  const executable = tokens[0];
-  const verb = tokens[1];
+  const executable = tokens[start];
+  const verb = tokens[start + 1];
   if (executable === "deft" || executable === "directive") {
     const typedVerb = verb === undefined ? undefined : DIRECT_LIFECYCLE_VERBS[verb];
     if (typedVerb === undefined) return null;
-    const forwardedArgs = tokens.slice(2);
+    const forwardedArgs = tokens.slice(start + 2);
     const { rewriteSafe, readOnly } = analyzeLifecycleArguments(typedVerb, forwardedArgs);
     const requiresOwner = typedVerb !== "session:start" || !readOnly;
     return {
@@ -503,7 +520,7 @@ function exactLifecycleInvocation(command: string): ExactInvocation | null {
   if (executable !== "task") return null;
   if (!(EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verb ?? "")) return null;
   const typedVerb = verb as ExactLifecycleVerb;
-  if (tokens.length === 2) {
+  if (tokens.length - start === 2) {
     return {
       verb: typedVerb,
       task: true,
@@ -514,8 +531,8 @@ function exactLifecycleInvocation(command: string): ExactInvocation | null {
   }
   // Go Task's canonical CLI_ARGS boundary. Flags without `--` are ambiguous
   // Task CLI flags and must not receive an auto-approving rewrite.
-  if (tokens[2] !== "--") return null;
-  const forwardedArgs = tokens.slice(3);
+  if (tokens[start + 2] !== "--") return null;
+  const forwardedArgs = tokens.slice(start + 3);
   const { rewriteSafe, readOnly } = analyzeLifecycleArguments(typedVerb, forwardedArgs);
   const requiresOwner = typedVerb !== "session:start" || !readOnly;
   return {
@@ -702,7 +719,7 @@ function tokenizeUninspectableShell(command: string): string[] {
 }
 
 const OWNER_LIFECYCLE_HINT =
-  /(?:^|&&|\|\||\||;)\s*(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
+  /(?:^|&&|\|\||\||;)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
 
 /**
  * Lifecycle verb inside a non-inspectable shell command (#4431).
@@ -850,7 +867,9 @@ export function rewriteExactLifecycleCommand(
     };
   }
 
-  const taskForwarding = invocation.task && originalCommand.split(" ").length === 2 ? " --" : "";
+  const commandTokens = originalCommand.split(" ");
+  const unprefixed = commandTokens.slice(skipLeadingEnvAssignments(commandTokens));
+  const taskForwarding = invocation.task && unprefixed.length === 2 ? " --" : "";
   const rewrittenCommand = `${originalCommand}${taskForwarding} --session-id=${sessionId}`;
   return {
     kind: "rewrite",

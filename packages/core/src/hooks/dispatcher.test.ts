@@ -4989,6 +4989,74 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
     expect(decision.code).toBe("occupancy-identity-unavailable");
   });
 
+  it("fails closed on an assignment-prefixed chained session:start", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: { command: "FOO=bar deft session:start && echo ok" },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "deny",
+      code: "occupancy-identity-unavailable",
+    });
+    expect(decision.message).toContain("not inspectable");
+    expect(decision.message).toContain("--session-id=host:claude:v1:c2Vzc2lvbi1h");
+  });
+
+  it("allows an assignment-prefixed chained session:start that already names the matching owner", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: {
+            command:
+              "FOO=bar deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && echo ok",
+          },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("binds an assignment-prefixed exact session:start like the unprefixed command", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: { command: "FOO=bar deft session:start" },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      updatedInput: {
+        command: "FOO=bar deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h",
+      },
+    });
+  });
+
   it("denies a compound command whose later lifecycle segment names a foreign owner", () => {
     const decision = decideHook(
       {
