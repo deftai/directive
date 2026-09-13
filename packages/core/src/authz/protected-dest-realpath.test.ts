@@ -59,9 +59,7 @@ describe("payload-root dest realpath (#4188)", () => {
     expect(resolvedDestIsPayloadRootProtected(root, "build-cache/grants/missing.json")).toBe(true);
     // Missing nested ancestors: walk must keep the leaf filename
     // (probe.slice would resolve to .../authz/newdir and miss evil.json).
-    expect(
-      resolvedDestIsPayloadRootProtected(root, "build-cache/newdir/evil.json"),
-    ).toBe(true);
+    expect(resolvedDestIsPayloadRootProtected(root, "build-cache/newdir/evil.json")).toBe(true);
     expect(
       shellCommandHasPayloadRootProtectedDestAfterRealpath(
         root,
