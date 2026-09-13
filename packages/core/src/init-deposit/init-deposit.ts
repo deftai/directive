@@ -292,23 +292,21 @@ export async function runInitDeposit(
 
   const contentRoot = await resolveContent();
   assertLiveProcedureDepositClean(contentRoot);
-  await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
-  await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-  assertLiveProcedureDepositClean(deftDir);
-
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const version = readContentVersion(
     contentRoot,
     seams.readPackageVersion ?? readCorePackageVersion,
   );
-  // #4429: every greenfield surface emits the canonical pin. Headless already
-  // does (`headless-manifest.ts` collectPackageJsonFile). Executing init must
-  // reuse ensurePackageJsonPin -- not a second writer, not a refusal-to-gitignore
-  // fork. Pin write precedes ensureInitGitignoreLines so a throw on unparseable
-  // package.json cannot leave `.deft/core/` ignored without a reconstitution
-  // anchor. Existing package.json is updated here (the prior "left untouched"
-  // behaviour is the defect this call site closes).
+  // #4429: refuse a lockfile mismatch before any deposit mutation so a throw
+  // cannot leave .deft/core materialized without a pin. Then write the pin
+  // before ensureInitGitignoreLines. Headless already emits the same pin
+  // (headless-manifest.ts collectPackageJsonFile). Existing package.json is
+  // updated here (the prior "left untouched" behaviour is the defect this
+  // call site closes).
   assertLockfileAllowsPinWrite(projectDir, version);
+  await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
+  await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
+  assertLiveProcedureDepositClean(deftDir);
   ensurePackageJsonPin(projectDir, version, io);
   ensureInitGitignoreLines(projectDir, io);
   ensurePrettierIgnoreLines(projectDir, io);

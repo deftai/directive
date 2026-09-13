@@ -259,6 +259,7 @@ describe("runInitDeposit", () => {
     const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
     expect(pkg.devDependencies).toBeUndefined();
     expect(existsSync(join(project, ".gitignore"))).toBe(false);
+    expect(existsSync(join(project, ".deft", "core"))).toBe(false);
   });
 
   it("does not gitignore .deft/core/ when the pin write throws (#4429 order)", async () => {
