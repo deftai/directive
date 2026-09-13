@@ -403,4 +403,19 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       }),
     ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
   });
+
+  it("does not treat argument-position deft as a lifecycle invocation", () => {
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "echo deft session:start" },
+      }),
+    ).toBeNull();
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "grep deft session:start file" },
+      }),
+    ).toBeNull();
+  });
 });

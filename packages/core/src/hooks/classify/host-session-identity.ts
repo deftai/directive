@@ -258,8 +258,8 @@ function isShellEnvAssignToken(token: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.slice(0, eq));
 }
 
-function skipLeadingEnvAssignments(tokens: readonly string[]): number {
-  let index = 0;
+function skipLeadingEnvAssignments(tokens: readonly string[], start = 0): number {
+  let index = start;
   while (index < tokens.length && isShellEnvAssignToken(tokens[index] ?? "")) {
     index += 1;
   }
@@ -643,6 +643,7 @@ const CHAIN_TOKENS = new Set([
   "|",
   ";",
   "&",
+  "\n",
   "(",
   ")",
   "{",
@@ -667,21 +668,34 @@ function lifecycleInvocationWindows(
   tokens: readonly string[],
 ): { verb: ExactLifecycleVerb; args: string[] }[] {
   const windows: { verb: ExactLifecycleVerb; args: string[] }[] = [];
-  for (let i = 0; i < tokens.length; i += 1) {
-    const exe = (tokens[i] ?? "").toLowerCase();
-    if (!LIFECYCLE_EXECUTABLES.has(exe)) continue;
-    let verbTok = tokens[i + 1] ?? "";
-    if (verbTok === "swarm-launch") verbTok = "swarm:launch";
-    if (!(EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verbTok)) continue;
-    const args: string[] = [];
-    let j = i + 2;
-    for (; j < tokens.length; j += 1) {
-      const tok = tokens[j] ?? "";
-      if (CHAIN_TOKENS.has(tok)) break;
-      args.push(tok);
+  let i = skipLeadingEnvAssignments(tokens, 0);
+  while (i < tokens.length) {
+    const tok = tokens[i] ?? "";
+    if (CHAIN_TOKENS.has(tok)) {
+      i = skipLeadingEnvAssignments(tokens, i + 1);
+      continue;
     }
-    windows.push({ verb: verbTok as ExactLifecycleVerb, args });
-    i = j;
+    const exe = tok.toLowerCase();
+    if (LIFECYCLE_EXECUTABLES.has(exe)) {
+      let verbTok = tokens[i + 1] ?? "";
+      if (verbTok === "swarm-launch") verbTok = "swarm:launch";
+      if ((EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verbTok)) {
+        const args: string[] = [];
+        let j = i + 2;
+        for (; j < tokens.length; j += 1) {
+          const next = tokens[j] ?? "";
+          if (CHAIN_TOKENS.has(next)) break;
+          args.push(next);
+        }
+        windows.push({ verb: verbTok as ExactLifecycleVerb, args });
+        i = j;
+        continue;
+      }
+    }
+    i += 1;
+    while (i < tokens.length && !CHAIN_TOKENS.has(tokens[i] ?? "")) {
+      i += 1;
+    }
   }
   return windows;
 }
@@ -702,10 +716,18 @@ function tokenizeUninspectableShell(command: string): string[] {
       flush();
       const nl = command.indexOf("\n", i + 1);
       if (nl < 0) break;
+      tokens.push("\n");
       i = nl + 1;
       continue;
     }
-    if (c === "\n" || /\s/.test(c)) {
+    if (c === "\n" || c === "\r") {
+      flush();
+      tokens.push("\n");
+      if (c === "\r" && command[i + 1] === "\n") i += 2;
+      else i += 1;
+      continue;
+    }
+    if (/\s/.test(c)) {
       flush();
       i += 1;
       continue;
@@ -756,7 +778,7 @@ function tokenizeUninspectableShell(command: string): string[] {
  * This hint fails that path closed without classifying ordinary shell.
  * Quoted strings and # comments are stripped first so echo/grep of the syntax
  * is not a lifecycle invocation. Tokenizer scan (not a regex) finds the verb
- * after `{`, `then`, `do`, and the other chain tokens.
+ * after `{`, `then`, `do`, newline, and the other chain tokens.
  */
 export function hintUninspectableLifecycleCommand(payload: unknown): ExactLifecycleVerb | null {
   if (exactLifecyclePayload(payload) !== null) return null;

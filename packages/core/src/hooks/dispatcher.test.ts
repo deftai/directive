@@ -5520,4 +5520,24 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       expect(decision.updatedInput, command).toBeUndefined();
     }
   });
+
+  it("does not deny argument-position deft text as a lifecycle command", () => {
+    for (const command of ["echo deft session:start", "grep deft session:start file"]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            session_id: "session-a",
+            tool_input: { command },
+          },
+          environ: {},
+        },
+        readySeams(),
+      );
+      expect(decision.verdict, command).toBe("allow");
+    }
+  });
 });
