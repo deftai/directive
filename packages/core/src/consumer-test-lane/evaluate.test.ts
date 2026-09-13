@@ -79,15 +79,15 @@ describe("resolveDeclaredTestCommand (#4386)", () => {
 });
 
 describe("evaluate consumer-test-lane", () => {
-  it("skips when nothing is declared", () => {
-    const result = evaluate({ projectRoot: seedRoot() });
+  it("skips when nothing is declared", async () => {
+    const result = await evaluate({ projectRoot: seedRoot() });
     expect(result.code).toBe(0);
     expect(result.skipped).toBe(true);
     expect(result.message).toMatch(/no declared test command/);
     expect(result.message).toMatch(PRODUCT_AC_GATE_ID);
   });
 
-  it("runs the declared command and passes on exit 0", () => {
+  it("runs the declared command and passes on exit 0", async () => {
     const root = seedRoot();
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
@@ -98,7 +98,7 @@ describe("evaluate consumer-test-lane", () => {
       }),
       "utf8",
     );
-    const result = evaluate({
+    const result = await evaluate({
       projectRoot: root,
       spawn: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
     });
@@ -108,14 +108,14 @@ describe("evaluate consumer-test-lane", () => {
     expect(result.message).toMatch(/not replaced/);
   });
 
-  it("fails when the declared command is red", () => {
+  it("fails when the declared command is red", async () => {
     const root = seedRoot();
     writeFileSync(
       join(root, "package.json"),
       JSON.stringify({ scripts: { test: "vitest run" } }),
       "utf8",
     );
-    const result = evaluate({
+    const result = await evaluate({
       projectRoot: root,
       spawn: () => ({ exitCode: 1, stdout: "", stderr: "failing suite" }),
     });

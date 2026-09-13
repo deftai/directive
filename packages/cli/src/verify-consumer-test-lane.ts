@@ -36,14 +36,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
 }
 
 /** Run the gate and return the process exit code. */
-export function run(argv: string[]): number {
+export async function run(argv: string[]): Promise<number> {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`verify_consumer_test_lane: ${args.error}\n`);
     return 2;
   }
 
-  const result = evaluate({
+  const result = await evaluate({
     projectRoot: resolve(args.projectRoot),
     quiet: args.quiet,
   });
@@ -60,5 +60,5 @@ export function run(argv: string[]): number {
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  process.exit(run(process.argv.slice(2)));
+  void run(process.argv.slice(2)).then((code) => process.exit(code));
 }

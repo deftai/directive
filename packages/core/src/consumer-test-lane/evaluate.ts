@@ -6,13 +6,12 @@
  * PRODUCT_FIRST_AC_GATE (`verify:ac`) stays first and is not replaced.
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { cliSpawnPlan } from "../check/cli-native-gates.js";
 import { killDescendantTree } from "../check/suite-gate-supervisor-lib.js";
 import { PRODUCT_AC_GATE_ID } from "../product-first-done-gate/types.js";
-import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -123,30 +122,48 @@ function defaultSpawn(
   args: readonly string[],
   cwd: string,
   timeoutMs: number,
-): SpawnResult {
+): Promise<SpawnResult> {
   const plan = cliSpawnPlan(command, [...args]);
-  const result = spawnSync(plan.command, plan.args, {
+  const platform = process.platform;
+  const child = spawn(plan.command, plan.args, {
     cwd,
-    encoding: "utf8",
-    timeout: timeoutMs,
-    maxBuffer: SUBPROCESS_MAX_BUFFER,
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: platform !== "win32",
     windowsHide: true,
-    killSignal: "SIGKILL",
   });
-  if (typeof result.pid === "number" && result.pid > 0) {
-    killDescendantTree(result.pid);
-  }
-  const stderr =
-    result.stderr !== undefined && result.stderr.length > 0
-      ? result.stderr
-      : result.error !== undefined
-        ? String(result.error.message)
-        : "";
-  return {
-    exitCode: result.status ?? 2,
-    stdout: result.stdout ?? "",
-    stderr,
-  };
+  let stdout = "";
+  let stderr = "";
+  child.stdout?.on("data", (chunk: Buffer) => {
+    stdout += chunk.toString("utf8");
+  });
+  child.stderr?.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString("utf8");
+  });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    if (child.pid !== undefined) {
+      killDescendantTree(child.pid, { platform });
+    }
+  }, timeoutMs);
+  return new Promise((resolveSpawn) => {
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolveSpawn({
+        exitCode: 2,
+        stdout,
+        stderr: error.message,
+      });
+    });
+    child.on("exit", (code) => {
+      clearTimeout(timer);
+      resolveSpawn({
+        exitCode: timedOut ? 124 : (code ?? 2),
+        stdout,
+        stderr,
+      });
+    });
+  });
 }
 
 function formatSkip(): string {
@@ -177,7 +194,7 @@ function formatFail(declared: DeclaredTestCommand, exitCode: number, stderr: str
 }
 
 /** Run the declared consumer test command, or skip when none is declared. */
-export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
+export async function evaluate(options: EvaluateOptions = {}): Promise<EvaluateResult> {
   const projectRoot = resolve(options.projectRoot ?? ".");
   const declared = resolveDeclaredTestCommand(projectRoot);
   if (declared === null) {
@@ -190,11 +207,11 @@ export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
   }
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_TEST_TIMEOUT_MS;
-  const spawn = options.spawn;
+  const spawnFn = options.spawn;
   const result =
-    spawn !== undefined
-      ? spawn(declared.command, declared.args, projectRoot)
-      : defaultSpawn(declared.command, declared.args, projectRoot, timeoutMs);
+    spawnFn !== undefined
+      ? spawnFn(declared.command, declared.args, projectRoot)
+      : await defaultSpawn(declared.command, declared.args, projectRoot, timeoutMs);
 
   if (result.exitCode === 0) {
     return {
