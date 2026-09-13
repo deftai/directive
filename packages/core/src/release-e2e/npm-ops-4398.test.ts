@@ -19,32 +19,44 @@ const ETARGET = "npm error ETARGET: No matching version found for @deftai/direct
 describe("post-publish install retry (#4398)", () => {
   it("classifies propagation vs real install failure", () => {
     expect(isRegistryPropagationFailure(ETARGET)).toBe(true);
-    expect(isRegistryPropagationFailure("npm error 404 Not Found")).toBe(true);
     expect(
-      isRegistryPropagationFailure("Your package is being processed and may take a few minutes"),
+      isRegistryPropagationFailure(
+        "npm error 404 Not Found - GET https://registry.npmjs.org/@deftai/directive-core/0.116.0",
+      ),
     ).toBe(true);
-    expect(isRegistryPropagationFailure("E404 Not Found")).toBe(true);
+    expect(
+      isRegistryPropagationFailure(
+        "Your package is being processed and may take a few minutes @deftai/directive-core",
+      ),
+    ).toBe(true);
+    expect(isRegistryPropagationFailure("E404 Not Found")).toBe(false);
     expect(isRegistryPropagationFailure("npm error E401 Unauthorized")).toBe(false);
     expect(isRegistryPropagationFailure("npm error E403 Forbidden")).toBe(false);
     expect(isRegistryPropagationFailure("EPERM unlink")).toBe(false);
+    expect(
+      isRegistryPropagationFailure(
+        "npm error ETARGET: No matching version found for lodash@1.0.0",
+        ["@deftai/directive-core@0.116.0"],
+      ),
+    ).toBe(false);
   });
 
   it("fuzzes the propagation classifier without a live registry", () => {
     const hits = [
-      "ETARGET",
-      "etarget: No matching version found",
-      "npm ERR! code ETARGET",
+      "ETARGET No matching version found for @deftai/directive-core@0.116.0",
+      "etarget: No matching version found for @deftai/directive-core",
+      "npm ERR! code ETARGET @deftai/directive-core",
       "No matching version found for @deftai/directive@1.0.0",
-      "E404",
-      "e404 not found",
-      "404 Not Found",
-      "npm error 404 Not Found",
-      "being processed",
-      "Your package is being processed",
+      "E404 @deftai/directive-types",
+      "e404 not found @deftai/directive-content",
+      "404 Not Found @deftai/directive",
+      "npm error 404 Not Found @deftai/directive-core",
+      "being processed @deftai/directive-core",
+      "Your package is being processed @deftai/directive",
       "Not Found - GET https://registry.npmjs.org/@deftai/directive-core/0.116.0",
-      "ETARGET\nNo matching version found",
-      "npm error E404",
-      "still being processed and may take a few minutes to become available",
+      "ETARGET\nNo matching version found for @deftai/directive-core",
+      "npm error E404 @deftai/directive-core",
+      "still being processed and may take a few minutes to become available @deftai/directive-core",
     ];
     const misses = [
       "E401 Unauthorized",
@@ -83,6 +95,11 @@ describe("post-publish install retry (#4398)", () => {
       "ELOOP",
       "EISDIR",
       "not a git repository",
+      "ETARGET",
+      "E404",
+      "404 Not Found",
+      "being processed",
+      "npm error ETARGET: No matching version found for lodash@1.0.0",
     ];
     expect(hits.length + misses.length).toBeGreaterThanOrEqual(50);
     for (const sample of hits) expect(isRegistryPropagationFailure(sample)).toBe(true);
@@ -105,10 +122,14 @@ describe("post-publish install retry (#4398)", () => {
           sleeps.push(ms);
           now += ms;
         },
-        spawnText: (_cmd, args) => {
+        spawnText: (_cmd, args, options) => {
           expect(args).toContain("install");
           expect(args).toContain("--ignore-scripts");
           expect(args.includes("view")).toBe(false);
+          if (attempts === 0) {
+            expect(options?.timeoutMs).toBe(POST_PUBLISH_INSTALL_RETRY_BOUND_MS);
+          }
+          expect(options?.timeoutMs).toBeLessThanOrEqual(POST_PUBLISH_INSTALL_RETRY_BOUND_MS);
           attempts += 1;
           if (attempts === 1) {
             return { status: 1, stdout: "", stderr: ETARGET };
@@ -182,6 +203,56 @@ describe("post-publish install retry (#4398)", () => {
       exitCode: 1,
       stream: "stderr",
     });
+  });
+
+  it("hard-fails ETARGET for an unrelated transitive dependency", () => {
+    const sleeps: number[] = [];
+    const [ok, reason] = runTagBoundRegistryInstall(
+      {
+        npmPath: "/usr/bin/npm",
+        cleanDir: mkdtempSync(join(tmpdir(), "deft-4398-unrelated-")),
+        specs: ["@deftai/directive-core@0.116.0"],
+      },
+      {
+        sleepMs: (ms) => sleeps.push(ms),
+        spawnText: () => ({
+          status: 1,
+          stdout: "",
+          stderr: "npm error ETARGET: No matching version found for lodash@1.0.0",
+        }),
+      },
+    );
+    expect(ok).toBe(false);
+    expect(reason).toContain("lodash");
+    expect(sleeps).toEqual([]);
+  });
+
+  it("caps each install spawn to the remaining bound", () => {
+    const timeouts: number[] = [];
+    let now = 0;
+    let spawns = 0;
+    runTagBoundRegistryInstall(
+      {
+        npmPath: "/usr/bin/npm",
+        cleanDir: mkdtempSync(join(tmpdir(), "deft-4398-cap-")),
+        specs: ["@deftai/directive-core@0.116.0"],
+      },
+      {
+        now: () => new Date(now),
+        sleepMs: (ms) => {
+          now += ms;
+        },
+        spawnText: (_cmd, _args, options) => {
+          timeouts.push(options?.timeoutMs ?? 0);
+          spawns += 1;
+          if (spawns === 1) now = POST_PUBLISH_INSTALL_RETRY_BOUND_MS - 45_000;
+          return { status: 1, stdout: "", stderr: ETARGET };
+        },
+      },
+    );
+    expect(timeouts[0]).toBe(POST_PUBLISH_INSTALL_RETRY_BOUND_MS);
+    expect(timeouts[1]).toBe(30_000);
+    expect(timeouts.every((ms) => ms <= POST_PUBLISH_INSTALL_RETRY_BOUND_MS)).toBe(true);
   });
 
   it("fixture returns deferred warn without dropping tag-bind on success", () => {

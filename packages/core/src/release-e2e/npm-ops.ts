@@ -616,10 +616,27 @@ export function defaultPostPublishSleepMs(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-/** True when npm install failed because the cut is still propagating. */
-export function isRegistryPropagationFailure(detail: string): boolean {
+function packageNameFromSpec(spec: string): string {
+  if (spec.startsWith("@")) {
+    const slash = spec.indexOf("/");
+    const restAt = spec.indexOf("@", Math.max(slash, 0) + 1);
+    return restAt === -1 ? spec : spec.slice(0, restAt);
+  }
+  const at = spec.lastIndexOf("@");
+  return at > 0 ? spec.slice(0, at) : spec;
+}
+
+/** True when npm install failed because this cut is still propagating. */
+export function isRegistryPropagationFailure(
+  detail: string,
+  specs: readonly string[] = [],
+): boolean {
   const lower = detail.toLowerCase();
-  return REGISTRY_PROPAGATION_MARKERS.some((marker) => lower.includes(marker.toLowerCase()));
+  if (!REGISTRY_PROPAGATION_MARKERS.some((marker) => lower.includes(marker.toLowerCase()))) {
+    return false;
+  }
+  const names = specs.length > 0 ? specs.map(packageNameFromSpec) : ["@deftai/directive"];
+  return names.some((name) => lower.includes(name.toLowerCase()));
 }
 
 /** True when the fixture returned the #4398 warn-only deferred result. */
@@ -672,27 +689,38 @@ export function runTagBoundRegistryInstall(
   let attempt = 0;
   let lastReason = "";
   while (true) {
+    const elapsed = nowMsFromSeams(seams) - start;
+    const remainingMs = POST_PUBLISH_INSTALL_RETRY_BOUND_MS - elapsed;
+    if (remainingMs <= 0) {
+      return lastReason.length > 0
+        ? deferredTwoPassWarning(lastReason)
+        : [false, "tag-bound registry install bound exhausted"];
+    }
+    const timeoutSeconds = Math.max(
+      1,
+      Math.min(NPM_INSTALL_TIMEOUT_SECONDS, Math.ceil(remainingMs / 1000)),
+    );
     const [ok, reason] = runNpmStep(
       [options.npmPath, "install", "--ignore-scripts", ...options.specs],
       options.cleanDir,
       env,
       "tag-bound registry install",
-      NPM_INSTALL_TIMEOUT_SECONDS,
+      timeoutSeconds,
       seams,
     );
     if (ok) return [true, reason];
     lastReason = reason;
-    if (!isRegistryPropagationFailure(reason)) {
+    if (!isRegistryPropagationFailure(reason, options.specs)) {
       return [false, reason];
     }
-    const elapsed = nowMsFromSeams(seams) - start;
-    if (elapsed >= POST_PUBLISH_INSTALL_RETRY_BOUND_MS) {
+    const elapsedAfter = nowMsFromSeams(seams) - start;
+    if (elapsedAfter >= POST_PUBLISH_INSTALL_RETRY_BOUND_MS) {
       return deferredTwoPassWarning(lastReason);
     }
     const slot = Math.min(attempt, POST_PUBLISH_INSTALL_BACKOFF_MS.length - 1);
-    const remaining = POST_PUBLISH_INSTALL_RETRY_BOUND_MS - elapsed;
-    const backoff = POST_PUBLISH_INSTALL_BACKOFF_MS[slot] ?? remaining;
-    const delay = Math.min(backoff, remaining);
+    const remainingAfter = POST_PUBLISH_INSTALL_RETRY_BOUND_MS - elapsedAfter;
+    const backoff = POST_PUBLISH_INSTALL_BACKOFF_MS[slot] ?? remainingAfter;
+    const delay = Math.min(backoff, remainingAfter);
     if (delay <= 0) {
       return deferredTwoPassWarning(lastReason);
     }
