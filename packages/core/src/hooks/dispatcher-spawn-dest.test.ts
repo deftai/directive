@@ -441,6 +441,185 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(secondIncarnation).not.toBe(firstIncarnation);
   });
 
+  it("allows dest-present grok launcher argv as process-only skip, not implement spawn (#4219)", () => {
+    const { root, dest } = destFixture();
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const prepareArcDest = vi.fn(() => ({
+      dest: {
+        destPath: dest,
+        dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        originRef: "origin/main",
+        pinKind: "origin-default" as const,
+        reused: true,
+      },
+      record:
+        "arc-mode: no-ingest\ndest: " +
+        dest +
+        "\ndispatch-sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: `grok --cwd "${dest}" --prompt-file /e.md --permission-mode bypassPermissions --always-approve --output-format plain`,
+          },
+        },
+      },
+      readySeams({ inspectRitual, inspectScope, prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.code).not.toBe("spawn-ready");
+    expect(decision.code).not.toBe("shell-op-unclassifiable");
+    expect(decision.message).toMatch(/argv-reachable process-only skip/);
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("allows dest-present grok launcher argv under read-only (#4219)", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = vi.fn(() => ({
+      dest: {
+        destPath: dest,
+        dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        originRef: "origin/main",
+        pinKind: "origin-default" as const,
+        reused: true,
+      },
+      record: "arc-mode: no-ingest",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: `grok --cwd "${dest}" --prompt-file /e.md --always-approve`,
+          },
+        },
+        environ: { DEFT_HOOK_READ_ONLY: "1" },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.code).not.toBe("read-only-deny");
+  });
+
+  it("allows dest-present claude argv via payload cwd (#4219)", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = vi.fn(() => ({
+      dest: {
+        destPath: dest,
+        dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        originRef: "origin/main",
+        pinKind: "origin-default" as const,
+        reused: true,
+      },
+      record: "arc-mode: no-ingest",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            cwd: dest,
+            command:
+              'claude -p "Read and follow /e.md" --model opus --permission-mode bypassPermissions --output-format text',
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.message).toMatch(/claude/);
+  });
+
+  it("allows dest-present codex exec -C argv (#4219)", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = vi.fn(() => ({
+      dest: {
+        destPath: dest,
+        dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        originRef: "origin/main",
+        pinKind: "origin-default" as const,
+        reused: true,
+      },
+      record: "arc-mode: no-ingest",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: `codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C "${dest}" "Read and follow /e.md"`,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.message).toMatch(/codex/);
+  });
+
+  it("denies dest-present launcher argv when dest prepare fails (#4219)", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = vi.fn(() => {
+      throw new Error("fetch failed");
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: `grok --cwd "${dest}" --prompt-file /e.md --always-approve`,
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/dest prepare failed/);
+  });
+
+  it("denies grok --cwd aimed at the primary checkout (#4219)", () => {
+    const { root } = destFixture();
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: { command: `grok --cwd "${root}" --always-approve` },
+        },
+      },
+      readySeams({ inspectRitual }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.code).not.toBe("shell-op-unclassifiable");
+    expect(inspectRitual).not.toHaveBeenCalled();
+  });
+
   it("names isolation=worktree plus cwd as invalid-extra-destination, not dest-missing (#4391)", () => {
     const { root, dest } = destFixture();
     const inspectRitual = vi.fn(() => STALE_RITUAL);

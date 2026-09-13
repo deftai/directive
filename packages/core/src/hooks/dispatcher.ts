@@ -110,6 +110,7 @@ import {
   payloadWithInjectedWriteTarget,
 } from "./dest-form.js";
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
+import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
 import { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite } from "./outside-project-root.js";
 import {
   type OwnerLivenessInput,
@@ -2582,24 +2583,36 @@ function restampOwnerLiveness(
   }
 }
 
-function prepareProcessOnlyCriticDest(
-  payload: unknown,
-  projectRoot: string,
-  seams: HookPolicySeams,
-): { ok: true; record: string } | { ok: false; message: string } | null {
+function hookExecutionCwd(payload: unknown): string | null {
   const input = record(payload);
   if (input === null) return null;
   const toolInput = toolInputRecord(input) ?? input;
-  const cwd = fieldString(toolInput, "cwd");
-  if (cwd === null || !existsSync(cwd) || !isLinkedWorktreePath(cwd)) return null;
+  return (
+    fieldString(toolInput, "cwd") ??
+    fieldString(toolInput, "working_directory") ??
+    fieldString(toolInput, "workingDirectory") ??
+    fieldString(input, "cwd")
+  );
+}
+
+function prepareProcessOnlyDestPath(
+  destPath: string,
+  projectRoot: string,
+  seams: HookPolicySeams,
+  payload: unknown,
+): { ok: true; record: string } | { ok: false; message: string } | null {
+  if (!existsSync(destPath) || !isLinkedWorktreePath(destPath)) return null;
+  const input = record(payload);
+  const toolInput = input !== null ? (toolInputRecord(input) ?? input) : null;
   const against =
-    fieldString(toolInput, "dispatch_sha") ??
-    fieldString(toolInput, "against_implementation_sha") ??
-    undefined;
+    (toolInput !== null
+      ? (fieldString(toolInput, "dispatch_sha") ??
+        fieldString(toolInput, "against_implementation_sha"))
+      : null) ?? undefined;
   try {
     const prepared = (seams.prepareArcDest ?? prepareGithubOnlyDest)({
       repoRoot: projectRoot,
-      destPath: cwd,
+      destPath,
       againstImplementationSha: against,
     });
     return { ok: true, record: prepared.record };
@@ -2611,6 +2624,76 @@ function prepareProcessOnlyCriticDest(
         "Parent must fetch origin and create or verify the dest at origin/<default> before spawn.",
     };
   }
+}
+
+function prepareProcessOnlyCriticDest(
+  payload: unknown,
+  projectRoot: string,
+  seams: HookPolicySeams,
+): { ok: true; record: string } | { ok: false; message: string } | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input) ?? input;
+  const cwd = fieldString(toolInput, "cwd");
+  if (cwd === null) return null;
+  return prepareProcessOnlyDestPath(cwd, projectRoot, seams, payload);
+}
+
+function decideLauncherFamilyArgv(
+  input: HookDispatchInput,
+  toolName: string,
+  classified: Extract<LauncherArgvClass, { kind: "launcher" }>,
+  seams: HookPolicySeams,
+): HookDecision {
+  const environ = input.environ ?? process.env;
+  const readOnly = isReadOnlyHookContext(input.payload, environ);
+  const projectRoot = resolve(input.projectRoot);
+  const prepared =
+    classified.dest !== null
+      ? prepareProcessOnlyDestPath(classified.dest, projectRoot, seams, input.payload)
+      : null;
+  if (prepared !== null && prepared.ok === true) {
+    return {
+      verdict: "allow",
+      code: "spawn-process-only-ready",
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message:
+        `Directive allowed process-only critic ${toolName} launcher argv (${classified.family}) ` +
+        "without dest occupancy or implementation gates (argv-reachable process-only skip). " +
+        prepared.record,
+      scopePath: null,
+    };
+  }
+  if (prepared !== null && prepared.ok === false) {
+    return overlayGrokCriticSpawnNotReadyRecovery(
+      input,
+      toolName,
+      deny(input, "spawn-not-ready", toolName, prepared.message),
+    );
+  }
+  if (readOnly) {
+    return deny(
+      input,
+      "read-only-deny",
+      toolName,
+      `Directive denied ${toolName}: read-only posture blocks launcher-family argv ` +
+        `(${classified.family}) without a dest-proven process-only skip.`,
+    );
+  }
+  return overlayGrokCriticSpawnNotReadyRecovery(
+    input,
+    toolName,
+    deny(
+      input,
+      "spawn-not-ready",
+      toolName,
+      `Directive denied ${toolName}: launcher-family argv (${classified.family}) requires a dest ` +
+        "worktree. Dest-absent fails closed (#4066). Do not inherit parent cwd.",
+    ),
+  );
 }
 
 /** Decide a normalized event using only the P0 direct-write policy. */
@@ -2934,6 +3017,15 @@ function routeHookDecision(
   // with Edit/Write (assist/scratch, proposed lifecycle, file_scope). Push/merge stay
   // on runtimeAuthority (#2711). Non-dest unclassifiable shell (git status) fail-open.
   if (isShellTool(toolName)) {
+    const command = hookShellCommand(input.payload);
+    if (command !== null) {
+      const launcher = classifyLauncherFamilyArgv(command, {
+        payloadCwd: hookExecutionCwd(input.payload),
+      });
+      if (launcher.kind === "launcher") {
+        return decideLauncherFamilyArgv(input, toolName, launcher, seams);
+      }
+    }
     const destructive = decideGitDestructive(input, toolName);
     if (destructive !== null) {
       return attachLifecycleIdentityRewrite(input, toolName, destructive, seams);

@@ -149,7 +149,8 @@ export const GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE =
  */
 export const GROK_CRITIC_SPAWN_NOT_READY_RECOVERY =
   "Critic recovery after this recorded native deny: dest-rooted grok --cwd --prompt-file " +
-  "(envelope-only process-only until #4219). Dest still required (#4066). " +
+  "(classified process-only skip when dest is present; dest-absent fails closed). Dest still required (#4066). " +
+  "Native first; CLI last-resort after recorded native miss. " +
   "Native admit without skip-class (spawn-process-only-ready) is not a critic seat. " +
   "Do not dual-launch.";
 

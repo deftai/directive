@@ -171,7 +171,7 @@ grok CLI is last-resort after any native outcome that is not skip-class (`spawn-
 grok --cwd <dest> --prompt-file <path> --permission-mode bypassPermissions --always-approve --output-format plain
 ```
 
-That CLI is envelope-only process-only until #4219. Dest still required (#4066 dest-proven). Do not skip dest.
+That CLI is classified launcher-family argv (#4219): dest-present linked dest is process-only skip; dest-absent fails closed (#4066 dest-proven). Native first. Dest still required. Do not skip dest. Do not classify as implement spawn-class.
 
 ⊗ Dual-launch native + CLI. ⊗ Retarget the contract Grok seat to CLI.
 

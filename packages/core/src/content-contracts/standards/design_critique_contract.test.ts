@@ -1020,9 +1020,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(dispatch).toContain("implement-class");
     expect(dispatch).toContain("invalid-extra-destination");
     expect(dispatch).toContain("not dest-missing");
-    expect(dispatch).toContain("envelope-only");
+    expect(dispatch).toContain("process-only skip");
+    expect(dispatch).toContain("dest-absent");
     expect(dispatch).toContain("#4219");
     expect(dispatch).toContain("#4066");
+    expect(dispatch).not.toContain("envelope-only process-only until #4219");
     expect(dispatch).toContain("DEFT_ACTIVE_SCOPE");
     expect(dispatch).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
     expect(dispatch).toContain("grok --cwd <dest> --prompt-file");

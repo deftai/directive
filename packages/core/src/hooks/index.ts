@@ -4,6 +4,7 @@ export * from "./dest-form.js";
 export * from "./dispatcher.js";
 export * from "./fixtures/index.js";
 export * from "./git-destructive-log.js";
+export * from "./launcher-argv.js";
 export * from "./owner-liveness.js";
 export * from "./scope.js";
 export * from "./shell-write-targets.js";
