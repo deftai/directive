@@ -1534,9 +1534,7 @@ describe("worktree occupancy lease (#3433)", () => {
     vi.unstubAllEnvs();
     expect(live.exitCode).toBe(1);
     expect(live.sweep?.errors.some((err) => err.includes("session:start --steal"))).toBe(false);
-    expect(
-      live.sweep?.errors.some((err) => err.includes("The occupant may release")),
-    ).toBe(true);
+    expect(live.sweep?.errors.some((err) => err.includes("The occupant may release"))).toBe(true);
     expect(readOccupancy(root)?.sessionId).toBeTruthy();
   });
 });
