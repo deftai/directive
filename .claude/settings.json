@@ -1,0 +1,79 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deft-hook --host claude --event session.start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|WriteFile|CreateFile|MultiEdit|NotebookEdit|StrReplace|SearchReplace|Delete|DeleteFile|ApplyPatch|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deft-hook --host claude --event tool.before",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Task|SubagentStart|spawn_subagent|start_agent|CreateAgent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deft-hook --host claude --event tool.before",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Shell|Bash|BashTool|shell|bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deft-hook --host claude --event tool.before",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*|mcp_.*|.*__.*|merge_pull_request|merge-pull-request|pull_request_merge|pull-request-merge|merge_pr|pr_merge|pr-merge|git_push|git-push|push_branch|push-branch|.*merge[_-]?pull[_-]?request.*|.*pull[_-]?request[_-]?merge.*|.*(?:^|[_-])merge_pr(?:$|[_-]).*|.*pr[_-]?merge.*|.*git[_-]?push.*|.*push[_-]?branch.*|.*push.*(?:git|branch|remote|ref).*|.*(?:git|branch|remote|ref).*push.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deft-hook --host claude --event tool.before",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deft-hook --host claude --event session.compact",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deft-hook --host claude --event session.compact",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

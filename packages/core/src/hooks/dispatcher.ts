@@ -86,6 +86,7 @@ import {
 import {
   fieldString,
   type HookPayloadContext,
+  hintUninspectableLifecycleCommand,
   hookApplyPatchBodyPaths,
   hookApplyPatchBodyText,
   hookMcpArgsText,
@@ -2287,7 +2288,27 @@ function attachLifecycleIdentityRewrite(
   if (decision.verdict !== "allow") return decision;
   if (!hostAcceptsUpdatedInput(input.host)) return decision;
   const lifecycle = inspectExactLifecycleCommand(input.payload);
-  if (lifecycle === null) return decision;
+  if (lifecycle === null) {
+    const hinted = hintUninspectableLifecycleCommand(input.payload);
+    if (hinted === null) return decision;
+    const identity = resolveHookHostIdentity(
+      input.host,
+      input.payload,
+      input.environ ?? process.env,
+    );
+    const named =
+      identity.status === "ok" && identity.sessionId !== null
+        ? identity.sessionId
+        : "<host-published-id>";
+    return deny(
+      input,
+      "occupancy-identity-unavailable",
+      toolName,
+      `Directive denied lifecycle command ${hinted}: the invocation is not inspectable ` +
+        "(quoting, redirect, pipe, or chain). Re-run as a simple command with " +
+        `--session-id=${named}.`,
+    );
+  }
   if (!lifecycle.requiresOwner) return decision;
   if (lifecycle.sessionIdStatus === "invalid") {
     return deny(

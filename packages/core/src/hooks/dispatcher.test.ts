@@ -4837,3 +4837,49 @@ describe("Cursor Task parallel review spawn class (#4321)", () => {
     expect(parentIdx).toBeGreaterThan(exploreIdx);
   });
 });
+
+describe("uninspectable lifecycle identity rewrite (#4431)", () => {
+  it("fails closed on a chained session:start instead of allowing a mint", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: { command: "deft session:start && echo ok" },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "deny",
+      code: "occupancy-identity-unavailable",
+    });
+    expect(decision.message).toContain("not inspectable");
+    expect(decision.message).toContain("--session-id=host:claude:v1:c2Vzc2lvbi1h");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("fails closed on a redirected session:ready", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: { command: "deft session:ready 2>&1" },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+    expect(decision.message).toContain("session:ready");
+  });
+});

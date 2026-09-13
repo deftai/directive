@@ -93,8 +93,9 @@ import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   type OccupancyDecision,
+  type OccupancyIdentityProvenance,
   type PrimaryClaimException,
-  resolveOccupancySessionId,
+  resolveOccupancySessionClaim,
 } from "./occupancy.js";
 import {
   type OrientationBundle,
@@ -274,6 +275,8 @@ export interface SessionStartOptions {
    */
   readonly primaryClaimException?: PrimaryClaimException;
   readonly occupancyIntent?: ApplyOccupancyInput["intent"];
+  /** Claim-time occupancy identity provenance (#4431). */
+  readonly identityProvenance?: OccupancyIdentityProvenance;
   readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
   readonly runTriageWelcome?: (
     projectRoot: string,
@@ -855,6 +858,7 @@ function occupancyInput(
   sessionId: string,
   now: Date,
   write: boolean,
+  identityProvenance?: OccupancyIdentityProvenance,
 ): ApplyOccupancyInput {
   return {
     sessionId,
@@ -866,6 +870,7 @@ function occupancyInput(
     intent: options.occupancyIntent ?? "mutation",
     write,
     primaryClaimException: options.primaryClaimException,
+    identityProvenance: identityProvenance ?? options.identityProvenance,
   };
 }
 
@@ -875,9 +880,10 @@ function runOccupancy(
   sessionId: string,
   now: Date,
   write: boolean,
+  identityProvenance?: OccupancyIdentityProvenance,
 ): OccupancyDecision {
   const apply = options.applyOccupancy ?? applyWorktreeOccupancy;
-  return apply(projectRoot, occupancyInput(options, sessionId, now, write));
+  return apply(projectRoot, occupancyInput(options, sessionId, now, write, identityProvenance));
 }
 
 function occupancyReport(occupancy: OccupancyDecision): {
@@ -1354,11 +1360,26 @@ export function runSessionStart(
 
   // #3611: resolve once per mutation invocation. Every occupancy evaluation,
   // persistence write, and ritual-state payload below receives this exact ID.
-  const sessionId = resolveOccupancySessionId({
+  const claim = resolveOccupancySessionClaim({
     sessionId: options.sessionId,
     env: options.env,
     newSessionId: options.newSessionId,
   });
+  if (claim.status === "refuse-mint") {
+    return {
+      code: 1,
+      payload: {
+        ready: false,
+        exit_code: 1,
+        posture: MUTATION_POSTURE,
+        environment: environmentContextToDict(environment),
+        message: claim.message,
+      },
+      lines: claim.message.split("\n"),
+    };
+  }
+  const sessionId = claim.sessionId;
+  options = { ...options, identityProvenance: claim.provenance };
 
   // #2992: re-arm path refreshes clock/bind without fat cold ceremony.
   if (ceremonyTier === REARM_CEREMONY_TIER) {

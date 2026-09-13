@@ -23,7 +23,7 @@ import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   type OccupancyDecision,
-  resolveOccupancySessionId,
+  resolveOccupancySessionClaim,
 } from "./occupancy.js";
 import {
   runSessionStart,
@@ -190,11 +190,24 @@ export function runSessionReady(
   // #3611: resolve once before any occupancy preview or nested lifecycle call.
   // A nested start must report the same persisted owner; adopting a different
   // result would silently split the invocation's identity.
-  const sessionId = resolveOccupancySessionId({
+  const claim = resolveOccupancySessionClaim({
     sessionId: options.sessionId,
     env,
     newSessionId: options.sessionStartOptions?.newSessionId,
   });
+  if (claim.status === "refuse-mint") {
+    lines.push(claim.message);
+    return {
+      code: 1,
+      sessionId: "",
+      message: claim.message,
+      path: SESSION_READY_FAILED,
+      lines,
+      steps,
+      duration_ms: elapsedMs(started),
+    };
+  }
+  const sessionId = claim.sessionId;
   let nestedStartClaimedOccupancy = false;
 
   const inspect = options.inspectRitual ?? inspectSessionRitual;
@@ -213,6 +226,7 @@ export function runSessionReady(
     occupant: options.sessionStartOptions?.occupant,
     intent: options.sessionStartOptions?.occupancyIntent ?? "mutation",
     write,
+    identityProvenance: claim.provenance,
   });
   const requestedSteal = options.sessionStartOptions?.steal === true;
   const previewOccupancy = applyOccupancy(projectRoot, occupancyInput(false, requestedSteal));
