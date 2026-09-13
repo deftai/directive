@@ -170,14 +170,15 @@ describe("remediation commands stay parseable (#3873)", () => {
     return readOccupancy(root) as NonNullable<ReturnType<typeof readOccupancy>>;
   }
 
-  it("inlines a bare-token id into the printed grant and steal commands", () => {
+  it("inlines a bare-token id into the printed grant command", () => {
     const message = formatOccupancyRemediation(leased("owner-1"), new Date(), GROK_OWNER);
 
     expect(message).toContain(
       `occupancy:grant --session-id=owner-1 --child-session-id=${GROK_OWNER} ` +
         "--role <leaf-implementation|orchestrator|review-monitor|merge-release>",
     );
-    expect(message).toContain(`--occupant owner-1 --session-id=${GROK_OWNER}`);
+    expect(message).not.toContain("--occupant");
+    expect(message).not.toMatch(/session:start --steal/);
   });
 
   it("keeps the placeholder when an id would not survive a shell", () => {
@@ -193,9 +194,9 @@ describe("remediation commands stay parseable (#3873)", () => {
     expect(message).toContain(
       "occupancy:grant --session-id=<reported-session-id> --child-session-id=<your-session-id>",
     );
-    expect(message).toContain("--occupant <reported-session-id> --session-id=<your-session-id>");
     expect(message).not.toContain("--child-session-id=actor with spaces");
     expect(message).not.toContain("--occupant owner; rm -rf /");
+    expect(message).not.toMatch(/session:start --steal/);
   });
 
   it("keeps the placeholder for an option-shaped id the CLI would reject", () => {
@@ -210,9 +211,9 @@ describe("remediation commands stay parseable (#3873)", () => {
     expect(message).toContain(
       "occupancy:grant --session-id=<reported-session-id> --child-session-id=<your-session-id>",
     );
-    expect(message).toContain("--occupant <reported-session-id> --session-id=<your-session-id>");
     expect(message).not.toContain("--child-session-id=--weird-actor");
     expect(message).not.toContain("--occupant --weird-owner");
+    expect(message).not.toMatch(/session:start --steal/);
   });
 
   it("keeps the placeholder in the empty-actor release remediation", () => {
