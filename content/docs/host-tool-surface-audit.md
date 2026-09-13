@@ -52,7 +52,7 @@ recorded on [#3987](https://github.com/deftai/directive/issues/3987).
 | `enter_plan_mode`, `exit_plan_mode` | out of scope — session posture |
 | `image_gen`, `image_edit`, `image_to_video`, `reference_to_video` | out of scope — generated media lands in session scratch, never a tracked product path |
 | `scheduler_create` | **known gap, not covered** — see below |
-| `use_tool` | dest-bearing write-shaped inners unwrap into inspectMutationGates (#3593); matcher still does not enforce |
+| `use_tool` | MCP_HOOK_MATCHER selects the outer name; dest-bearing write-shaped inners unwrap into inspectMutationGates (#3593) |
 
 ### `scheduler_create` — spawn-class, needs a policy decision
 
@@ -66,8 +66,8 @@ not in a matcher edit.
 ### `use_tool` — mcp-class proxy, classifier unwraps dest-bearing writes (#3593)
 
 `use_tool` is a proxy: the MCP tool actually invoked is nested in
-`tool_input.tool_name`. A matcher entry alone still does not enforce. The
-dispatcher now unwraps the inner name and routes dest-bearing write-shaped
+`tool_input.tool_name`. `MCP_HOOK_MATCHER` now includes `use_tool` and `CallMcpTool` so the hook runs.
+The dispatcher unwraps the inner name and routes dest-bearing write-shaped
 inners through `inspectMutationGates`. Reads such as `list_issues` stay on the
 runtime-authority fail-open path. Cursor `CallMcpTool` uses the same unwrap.
 

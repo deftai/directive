@@ -2351,7 +2351,12 @@ const INTERPRETER_CODE_FLAGS = new Set(["-e", "-c", "--eval", "--command"]);
 /** Quoted path-like literals inside -e/-c/eval payloads (#3593). */
 function quotedStringLiterals(payload: string): string[] {
   const dests: string[] = [];
-  for (const re of [/"([^"]{1,512})"/g, /'([^']{1,512})'/g, /`([^`]{1,512})`/g]) {
+  for (const re of [
+    /"([^"]{1,512})"/g,
+    /'([^']{1,512})'/g,
+    /`([^`]{1,512})`/g,
+    /(?:q|qq|Q|%q|%Q)\{([^}]{1,512})\}/g,
+  ]) {
     for (const match of payload.matchAll(re)) {
       const inner = match[1];
       if (inner !== undefined && inner.length > 0) dests.push(inner);
@@ -2396,10 +2401,27 @@ function jarCreateArchiveDest(words: readonly string[], execIndex: number): stri
   const name = argv0BareName(words, execIndex);
   if (name !== "jar" && name !== "fastjar") return null;
   let create = false;
+  let fileDest: string | null = null;
   let firstPositional: string | null = null;
   for (let i = execIndex + 1; i < words.length; i++) {
     const raw = words[i] as string;
     const n = normalizeToken(raw);
+    if (n.startsWith("--file=")) {
+      fileDest = zipShellWordLiteral(raw.slice(raw.indexOf("=") + 1));
+      continue;
+    }
+    if (n === "--file" || n === "-f") {
+      const next = words[i + 1];
+      if (next !== undefined) {
+        fileDest = zipShellWordLiteral(next);
+        i += 1;
+      }
+      continue;
+    }
+    if (n === "--create") {
+      create = true;
+      continue;
+    }
     if (n.startsWith("-") && n !== "--") {
       const cluster = n.replace(/^-*/, "");
       if (cluster.includes("c")) create = true;
@@ -2415,8 +2437,9 @@ function jarCreateArchiveDest(words: readonly string[], execIndex: number): stri
       break;
     }
   }
-  if (!create || firstPositional === null) return null;
-  return zipShellWordLiteral(firstPositional);
+  if (!create) return null;
+  const dest = fileDest ?? (firstPositional !== null ? zipShellWordLiteral(firstPositional) : null);
+  return dest !== null && dest.length > 0 ? dest : null;
 }
 
 function lastNonFlagWord(words: readonly string[], execIndex: number): string | null {
@@ -2491,6 +2514,14 @@ function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
     out.push({ words, execIndex });
   }
   return out;
+}
+
+function hasProtectedJarCreateArchiveDest(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && isRelativePayloadProtectedDest(jarDest)) return true;
+  }
+  return false;
 }
 
 /**
@@ -2907,6 +2938,8 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       }
     }
     if (isScpFamilyBin(currentBin) || currentBin === "cpio") continue;
+    // jar `--file=` / `-f` is dest-of-write grammar (#3593), not a dest-flag plant (#4188).
+    if (currentBin === "jar" || currentBin === "fastjar") continue;
     // Env-style dest assignments (`DESTDIR=`, `PREFIX=`) without a leading dash (#3545).
     if (n.includes("=") && !n.startsWith("-")) {
       const eq = raw.indexOf("=");
@@ -4073,10 +4106,12 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // unrelated always-allowed token matches such as an input named `pytest`.
   // Dest-flag plants stay settings (grantable). Zip first-positional and
   // unknown-argv0 last-positional dests emit unknown (grant-immune under UAT).
-  if (
-    !found.has("settings") &&
-    (hasProtectedZipArchiveDestination(cmd) || hasProtectedUnprovenReadOnlyDestOfWrite(cmd))
-  ) {
+  // #3593: jar archive dest is dest-of-write even when `--file=` also looks
+  // like a dest-flag (genericProtectedDests skips jar; keep unknown if settings
+  // still landed some other way).
+  const destOfWriteUnknown =
+    hasProtectedZipArchiveDestination(cmd) || hasProtectedUnprovenReadOnlyDestOfWrite(cmd);
+  if (destOfWriteUnknown && (!found.has("settings") || hasProtectedJarCreateArchiveDest(cmd))) {
     found.add("unknown");
   }
 

@@ -1769,6 +1769,8 @@ describe("interpreter payload and jar dest-grammar (#3593)", () => {
       'graalpy -c \'open(".deft-directive-disable", "w").write("x")\'',
       'clojure -e \'(spit ".deft/authz/grants/evil.json" "{}")\'',
       'crystal eval \'File.write(".deft/approved-scope/story.json", "x")\'',
+      "raku -e 'spurt(q{.deft/authz/grants/evil.json}, \"{}\")'",
+      "crystal eval 'File.write(%q{.deft/approved-scope/story.json}, \"x\")'",
     ]) {
       expect(classifyShellAuthzOps(command), command).toEqual(["unknown"]);
     }
@@ -1776,6 +1778,15 @@ describe("interpreter payload and jar dest-grammar (#3593)", () => {
 
   it("treats jar cf DEST inputs as dest-of-write, not last-positional input", () => {
     expect(classifyShellAuthzOps("jar cf .deft/authz/grants/evil.json files")).toEqual(["unknown"]);
+    expect(
+      classifyShellAuthzOps("jar --create --file=.deft/authz/grants/evil.json input.txt"),
+    ).toContain("unknown");
+    expect(
+      classifyShellAuthzOps("jar --create --file .deft/authz/grants/evil.json input.txt"),
+    ).toContain("unknown");
+    expect(
+      classifyShellAuthzOps("jar --create -f .deft/authz/grants/evil.json input.txt"),
+    ).toContain("unknown");
   });
 
   it("keeps git status fail-open", () => {

@@ -123,10 +123,11 @@ export function isMcpWriteShaped(toolName: string): boolean {
   if (n.includes("searchreplace") || n.includes("applypatch") || n.includes("applyedit")) {
     return true;
   }
+  if (MCP_WRITE_NAME_MARKERS.some((marker) => n.includes(marker))) return true;
   if (n.includes("read") || n.includes("list") || n.includes("grep") || n.includes("fetch")) {
-    if (!n.includes("write") && !n.includes("edit") && !n.includes("replace")) return false;
+    return false;
   }
-  return MCP_WRITE_NAME_MARKERS.some((marker) => n.includes(marker));
+  return false;
 }
 
 /** Inner tool name for CallMcpTool / use_tool payloads. */
@@ -242,9 +243,9 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
         "full spawn stack (ritual + active xBRIEF), a new deny class that needs a deliberate " +
         "policy decision rather than a coverage edit (#3987 residual)",
       use_tool:
-        "mcp-class wrapper: dispatcher unwraps tool_input.tool_name and routes dest-bearing " +
-        "write-shaped inners through inspectMutationGates (#3593). Matcher entry still does " +
-        "not enforce; classifier unwrap does.",
+        "mcp-class wrapper: MCP_HOOK_MATCHER selects the outer name so the hook runs; " +
+        "dispatcher unwraps tool_input.tool_name and routes dest-bearing write-shaped inners " +
+        "through inspectMutationGates (#3593).",
     },
     unobservedReason: null,
     source:
@@ -309,6 +310,9 @@ export const MCP_HOOK_MATCHER = [
   "mcp__.*",
   "mcp_.*",
   ".*__.*",
+  // Outer proxy wrappers: matcher must select these so unwrap can run (#3593).
+  "CallMcpTool",
+  "use_tool",
   // Bare names classifyMcpTool recognizes without prefixes.
   ...MCP_PUSH_MERGE_BARE_NAMES,
   // Name fragments for hosts that strip server prefixes differently.
