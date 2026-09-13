@@ -135,7 +135,8 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "kind": "story",
