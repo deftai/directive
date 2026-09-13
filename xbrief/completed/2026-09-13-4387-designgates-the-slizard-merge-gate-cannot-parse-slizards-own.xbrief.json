@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4387",
-    "updated": "2026-09-13T02:39:47Z"
+    "updated": "2026-09-13T03:39:55Z"
   },
   "plan": {
     "title": "design(gates): the SLizard merge gate cannot parse SLizard's own verdict, prints severities it did not read from the verdict, and blocks forever on a request_changes with zero findings",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "design(gates): the SLizard merge gate cannot parse SLizard's own verdict, prints severities it did not read from the verdict, and blocks forever on a request_changes with zero findings",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4387",
@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "Name the conclusion=failure plus zero-finding policy, or drop the forever-block clause from this issue.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/slizard-gate.test.ts#does not block conclusion=failure when the same summary parses to zero findings",
+          "recorded_at": "2026-09-13T03:38:32Z",
+          "recorded_by": "leaf-implementation/4387"
+        }
       },
       {
         "title": "Land finding-count with or before parse repair. Do not ship any-one-of-these ordering.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/slizard-gate.test.ts#lands finding-count with parse: request_changes plus zero findings stays ready",
+          "recorded_at": "2026-09-13T03:38:32Z",
+          "recorded_by": "leaf-implementation/4387"
+        }
       },
       {
         "title": "Capture a live check-run output.summary. If the verdict lives on the review body, that is an input-architecture change, not a regex swap.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/fixtures/slizard-check-run-a8a20f3.summary.txt",
+          "recorded_at": "2026-09-13T03:38:32Z",
+          "recorded_by": "leaf-implementation/4387"
+        }
       },
       {
         "title": "Route through greptile-detector.ts or record why a second detector is warranted. Anchor Decision and Merge impact if countFor is anchored.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/greptile-detector.slizard-check-run.test.ts",
+          "recorded_at": "2026-09-13T03:38:32Z",
+          "recorded_by": "leaf-implementation/4387"
+        }
       },
       {
         "title": "Acceptance needs a captured-payload fixture, not another hand-written summary.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-merge-readiness/fixtures/slizard-check-run-a8a20f3.meta.json",
+          "recorded_at": "2026-09-13T03:38:32Z",
+          "recorded_by": "leaf-implementation/4387"
+        }
       }
     ],
     "tags": [
@@ -110,9 +140,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "6a83fedd8729781786ebe79220722ca116ee4e5162a4a57b0ab670e59c3e419b"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4469,
+        "prBase": null,
+        "mergeCommit": "92faa438de1586b53f07784ddde8ace2619bdc4e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "92faa438de1586b53f07784ddde8ace2619bdc4e",
+        "verifiedAt": "2026-09-13T03:39:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJmYi03YmQyLWIwMWEtOTExM2Y2N2I0ZWQ0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T03:39:55Z"
+      },
+      "completedAt": "2026-09-13T03:39:55Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJmYi03YmQyLWIwMWEtOTExM2Y2N2I0ZWQ0",
+      "capacityBucket": "agentic-debt"
     },
     "id": "github.issue.5421606379",
-    "updated": "2026-09-13T02:39:47Z"
+    "updated": "2026-09-13T03:39:55Z"
   }
 }
