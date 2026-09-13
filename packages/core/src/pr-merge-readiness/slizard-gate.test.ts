@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { computeGateResult } from "./compute.js";
 import type { CheckRunRecord } from "./gh.js";
@@ -9,6 +12,11 @@ import {
 } from "./slizard-gate.js";
 import { withGraphqlInlineStub } from "./test-gh-fixtures.helpers.js";
 import type { RunGhFn } from "./types.js";
+
+const capturedSummary = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "fixtures/slizard-check-run-a8a20f3.summary.txt"),
+  "utf8",
+);
 
 const BLOCKING_SUMMARY = [
   "Decision: request_changes",
@@ -42,9 +50,18 @@ describe("parseSlizardVerdict", () => {
     const v = parseSlizardVerdict(BLOCKING_SUMMARY);
     expect(v.decision).toBe("request_changes");
     expect(v.mergeImpact).toBe("blocking");
+    expect(v.findingCount).toBe(2);
     expect(v.p0Count).toBe(0);
     expect(v.p1Count).toBe(1);
     expect(v.p2Count).toBe(0);
+  });
+
+  it("parses the captured live check-run summary (emphasized Decision)", () => {
+    const v = parseSlizardVerdict(capturedSummary);
+    expect(v.decision).toBe("request_changes");
+    expect(v.mergeImpact).toBe("blocking");
+    expect(v.findingCount).toBe(1);
+    expect(v.p1Count).toBe(1);
   });
 
   it("returns nulls for a missing/empty summary", () => {
@@ -109,6 +126,57 @@ describe("evaluateSlizardGate", () => {
       skipSlizard: true,
     });
     expect(result.summary.ready_state).toBe("skipped");
+    expect(result.failures).toHaveLength(0);
+  });
+
+  it("blocks the captured live summary: check-run reports 1 finding and conclusion=failure", () => {
+    const result = evaluateSlizardGate([
+      slizardRun({ conclusion: "failure", summary: capturedSummary }),
+    ]);
+    expect(result.summary.ready_state).toBe("blocked");
+    expect(result.failures[0]).toContain("conclusion=failure");
+    expect(result.failures[0]).toContain("P1=1");
+  });
+
+  it("does not block conclusion=failure when the same summary parses to zero findings", () => {
+    const zero = capturedSummary
+      .replace(
+        "**Findings**: 1 actionable, 5 advisory",
+        () => "**Findings**: 0 actionable, 5 advisory",
+      )
+      .replace(
+        "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
+        () => "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
+      );
+    const result = evaluateSlizardGate([slizardRun({ conclusion: "failure", summary: zero })]);
+    expect(result.summary.ready_state).toBe("ready");
+    expect(result.failures).toHaveLength(0);
+    expect(result.summary.summary_line).toContain("findings=0");
+    expect(result.summary.summary_line).toContain("advisory");
+    expect(result.summary.verdict?.decision).toBe("request_changes");
+  });
+
+  it("still blocks when Findings is 0 but Severity counts report a P1", () => {
+    const mixed = [
+      "**Decision**: request_changes",
+      "**Merge impact**: blocking",
+      "**Findings**: 0 actionable, 5 advisory",
+      "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
+    ].join("\n");
+    const result = evaluateSlizardGate([slizardRun({ conclusion: "failure", summary: mixed })]);
+    expect(result.summary.ready_state).toBe("blocked");
+    expect(result.failures[0]).toContain("P1=1");
+  });
+
+  it("lands finding-count with parse: request_changes plus zero findings stays ready", () => {
+    const zero = [
+      "**Decision**: request_changes",
+      "**Merge impact**: blocking",
+      "**Findings**: 0 actionable, 0 advisory",
+      "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
+    ].join("\n");
+    const result = evaluateSlizardGate([slizardRun({ conclusion: "success", summary: zero })]);
+    expect(result.summary.ready_state).toBe("ready");
     expect(result.failures).toHaveLength(0);
   });
 });

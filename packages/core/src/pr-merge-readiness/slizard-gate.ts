@@ -1,19 +1,32 @@
+import {
+  parseSlizardCheckRunSummary,
+  type SlizardCheckRunVerdict,
+  slizardCheckRunHasZeroFindings,
+} from "../content-contracts/skills/greptile-detector.js";
 import type { CheckRunRecord } from "./gh.js";
 
 /**
- * Dedicated gate for the SLizard second-reviewer verdict (#2189).
+ * Dedicated gate for the SLizard second-reviewer verdict (#2189 / #4387).
  *
- * SLizard posts a check-run whose `output.summary` carries a structured verdict:
+ * SLizard posts a check-run whose `output.summary` looks like (live capture
+ * `deftai/bs-deepwordle#4` SHA a8a20f3):
  *
- *   Decision: request_changes
- *   Merge impact: blocking
- *   Findings: 2 (P0: 0, P1: 1, P2: 0, P3: 0)
+ *   **Decision**: request_changes
+ *   **Merge impact**: blocking
+ *   **Findings**: 1 actionable, 5 advisory
+ *   **Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0
  *
- * The generic CI check-run gate (#2169) only fails closed on a check-run
- * `conclusion` in the failed set, so a blocking *decision* carried on a
- * non-`failure` conclusion (e.g. `neutral`) would slip through and the review
- * is surfaced indistinctly among build/test checks. This gate parses the
- * structured verdict and fails merge-readiness on a blocking decision.
+ * Parse goes through `parseSlizardCheckRunSummary` in greptile-detector.ts
+ * (same module as the canonical review-body detector; `detect()` is the wrong
+ * function for this surface). Finding-count lands with parse repair: a parsed
+ * `request_changes` / `merge_impact=blocking` / `conclusion=failure` is
+ * merge-blocking only when the same summary is not zero-finding.
+ *
+ * Policy (#4387 Bound-remedy): `conclusion=failure` plus zero findings on the
+ * check-run summary is advisory, not a block. Crash/timeout/cancelled with no
+ * parseable zero-finding verdict still block. The HTML `slizard:verdict` block
+ * is not on the live check-run; it lives on the PR review body. This gate does
+ * not fetch reviews.
  */
 
 /** Canonical SLizard check-run name; matching is case-insensitive substring for resilience. */
@@ -32,6 +45,7 @@ export interface SlizardGateOptions {
 export interface SlizardVerdict {
   readonly decision: string | null;
   readonly mergeImpact: string | null;
+  readonly findingCount: number | null;
   readonly p0Count: number | null;
   readonly p1Count: number | null;
   readonly p2Count: number | null;
@@ -56,28 +70,20 @@ export function isSlizardCheck(name: string): boolean {
   return name.toLowerCase().includes("slizard");
 }
 
-function firstMatch(text: string, re: RegExp): string | null {
-  const m = re.exec(text);
-  return m?.[1] !== undefined ? m[1].trim() : null;
-}
-
-function countFor(text: string, sev: "P0" | "P1" | "P2"): number | null {
-  const m = new RegExp(`${sev}\\s*:\\s*(\\d+)`, "i").exec(text);
-  return m?.[1] !== undefined ? Number.parseInt(m[1], 10) : null;
+function toSlizardVerdict(parsed: SlizardCheckRunVerdict): SlizardVerdict {
+  return {
+    decision: parsed.decision,
+    mergeImpact: parsed.mergeImpact,
+    findingCount: parsed.findingCount,
+    p0Count: parsed.p0Count,
+    p1Count: parsed.p1Count,
+    p2Count: parsed.p2Count,
+  };
 }
 
 /** Parse a SLizard check-run `output.summary` into a structured verdict. */
 export function parseSlizardVerdict(summary: string | undefined | null): SlizardVerdict {
-  const text = summary ?? "";
-  const decision = firstMatch(text, /Decision\s*:\s*([A-Za-z_]+)/i);
-  const mergeImpact = firstMatch(text, /Merge impact\s*:\s*([A-Za-z_-]+)/i);
-  return {
-    decision: decision ? decision.toLowerCase() : null,
-    mergeImpact: mergeImpact ? mergeImpact.toLowerCase() : null,
-    p0Count: countFor(text, "P0"),
-    p1Count: countFor(text, "P1"),
-    p2Count: countFor(text, "P2"),
-  };
+  return toSlizardVerdict(parseSlizardCheckRunSummary(summary));
 }
 
 function skippedSummary(reason: string): SlizardGateSummary {
@@ -113,15 +119,18 @@ export function evaluateSlizardGate(
     return { failures: [], summary: skippedSummary("no SLizard check-run on this commit") };
   }
 
-  const verdict = parseSlizardVerdict(run.summary);
+  const parsed = parseSlizardCheckRunSummary(run.summary);
+  const verdict = toSlizardVerdict(parsed);
+  const zeroFindings = slizardCheckRunHasZeroFindings(parsed);
   const blockingDecision = verdict.decision !== null && BLOCKING_DECISIONS.has(verdict.decision);
   const blockingImpact = verdict.mergeImpact === "blocking";
   const failedConclusion = FAILED_CONCLUSIONS.has(run.conclusion);
+  const wouldBlock = blockingDecision || blockingImpact || failedConclusion;
 
   const failures: string[] = [];
   let readyState: SlizardReadyState;
 
-  if (blockingDecision || blockingImpact || failedConclusion) {
+  if (wouldBlock && !zeroFindings) {
     readyState = "blocked";
     const reasons: string[] = [];
     if (verdict.decision !== null) {
@@ -154,6 +163,9 @@ export function evaluateSlizardGate(
     `decision=${verdict.decision ?? "?"}`,
     `impact=${verdict.mergeImpact ?? "?"}`,
   ];
+  if (zeroFindings && wouldBlock) {
+    parts.push("findings=0", "advisory");
+  }
   return {
     failures,
     summary: {

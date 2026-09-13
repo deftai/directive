@@ -1,0 +1,17 @@
+slizard v0.3.4432 reviewed PR #4 at `a8a20f3`.
+
+**Decision**: request_changes
+**Merge impact**: blocking
+**Review confidence**: 0.90
+**Decision confidence**: 0.95
+**Finding confidence**: 0.95
+**Reason**: Verified blocking finding policy triggered by 1 finding(s).
+**Findings**: 1 actionable, 5 advisory
+**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0
+**Fingerprints (actionable)**: `7006f2a1b3f8b4b8`
+**Duration**: 146.6s
+**Reviewed files**: 16
+**Skipped files**: 0
+**Context notes**: 2
+
+**Important files**: `web/bridge/src/index.ts` (P1, 1 finding(s), confidence 0.95)

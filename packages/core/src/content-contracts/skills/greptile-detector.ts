@@ -339,6 +339,168 @@ export function parseCommentsAdded(summary: string | null | undefined): number |
   return Number.parseInt(m[1] ?? "", 10);
 }
 
+/**
+ * SLizard check-run `output.summary` parser (#4387 Bound-remedy).
+ *
+ * Lives in this module because `pr-watch/probe.ts` already records "no second
+ * detector" (#1056 AC-2). `detect()` is the review-body finding counter
+ * (badges, `**P0` headings, count-prose) and does not read `Decision:` /
+ * `Severity counts:` lines; routing a check-run summary through `detect()`
+ * misses the live P1 count. This function is the check-run path.
+ *
+ * The HTML `<!-- slizard:verdict ... -->` block is parsed only when it is on
+ * the summary text already in hand. A live capture of
+ * `deftai/bs-deepwordle#4` SHA `a8a20f3` has no such block on the check-run;
+ * that comment lives on the PR review body. Fetching reviews is an
+ * input-architecture change, not a regex swap.
+ */
+export type SlizardCheckRunVerdictSource = "html-comment" | "prose" | "empty";
+
+export interface SlizardCheckRunVerdict {
+  readonly decision: string | null;
+  readonly mergeImpact: string | null;
+  readonly findingCount: number | null;
+  readonly p0Count: number | null;
+  readonly p1Count: number | null;
+  readonly p2Count: number | null;
+  readonly source: SlizardCheckRunVerdictSource;
+}
+
+const EMPTY_SLIZARD_CHECK_RUN_VERDICT: SlizardCheckRunVerdict = {
+  decision: null,
+  mergeImpact: null,
+  findingCount: null,
+  p0Count: null,
+  p1Count: null,
+  p2Count: null,
+  source: "empty",
+};
+
+function stripMarkdownEmphasis(text: string): string {
+  // Stars and backticks only. Underscores are legal in values (`request_changes`).
+  return text.replace(/[*`]/g, "");
+}
+
+function anchoredField(text: string, label: string): string | null {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`^${escaped}\\s*:\\s*(.+)$`, "im");
+  const m = re.exec(text);
+  const value = m?.[1];
+  return value !== undefined ? value.trim() : null;
+}
+
+function firstToken(value: string, pattern: RegExp): string | null {
+  const m = pattern.exec(value);
+  const token = m?.[1];
+  return token !== undefined ? token.toLowerCase() : null;
+}
+
+function countOnLine(line: string, sev: "P0" | "P1" | "P2"): number | null {
+  const m = new RegExp(`${sev}\\s*:\\s*(\\d+)`, "i").exec(line);
+  return m?.[1] !== undefined ? Number.parseInt(m[1], 10) : null;
+}
+
+function parseFindingCount(findingsLine: string | null): number | null {
+  if (findingsLine === null) {
+    return null;
+  }
+  const actionable = /^(\d+)\s+actionable\b/i.exec(findingsLine);
+  if (actionable?.[1] !== undefined) {
+    return Number.parseInt(actionable[1], 10);
+  }
+  const bare = /^(\d+)\b/.exec(findingsLine);
+  return bare?.[1] !== undefined ? Number.parseInt(bare[1], 10) : null;
+}
+
+function asSeverityMap(value: unknown): Record<string, unknown> | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function numberField(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function parseHtmlVerdictComment(text: string): SlizardCheckRunVerdict | null {
+  const marker = "<!-- slizard:verdict";
+  const start = text.indexOf(marker);
+  if (start === -1) {
+    return null;
+  }
+  const jsonStart = text.indexOf("{", start);
+  if (jsonStart === -1) {
+    return null;
+  }
+  const end = text.indexOf("-->", jsonStart);
+  const jsonText = (end === -1 ? text.slice(jsonStart) : text.slice(jsonStart, end)).trim();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText) as unknown;
+  } catch {
+    return null;
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  const inner = (parsed as Record<string, unknown>).slizard_verdict;
+  if (inner === null || typeof inner !== "object" || Array.isArray(inner)) {
+    return null;
+  }
+  const verdict = inner as Record<string, unknown>;
+  const severity = asSeverityMap(verdict.severity);
+  const decision = typeof verdict.decision === "string" ? verdict.decision.toLowerCase() : null;
+  const mergeImpact =
+    typeof verdict.merge_impact === "string" ? verdict.merge_impact.toLowerCase() : null;
+  return {
+    decision,
+    mergeImpact,
+    findingCount: numberField(verdict.finding_count),
+    p0Count: severity === null ? null : numberField(severity.P0),
+    p1Count: severity === null ? null : numberField(severity.P1),
+    p2Count: severity === null ? null : numberField(severity.P2),
+    source: "html-comment",
+  };
+}
+
+export function parseSlizardCheckRunSummary(
+  summary: string | undefined | null,
+): SlizardCheckRunVerdict {
+  const raw = (summary ?? "").replace(/\r\n/g, "\n");
+  if (raw.length === 0) {
+    return EMPTY_SLIZARD_CHECK_RUN_VERDICT;
+  }
+  const unfenced = stripCodeFences(raw);
+  const fromComment = parseHtmlVerdictComment(unfenced);
+  if (fromComment !== null) {
+    return fromComment;
+  }
+  const text = stripMarkdownEmphasis(unfenced);
+  const decisionField = anchoredField(text, "Decision");
+  const impactField = anchoredField(text, "Merge impact");
+  const findingsLine = anchoredField(text, "Findings");
+  const severityLine = anchoredField(text, "Severity counts");
+  const countLine = severityLine ?? findingsLine ?? "";
+  return {
+    decision: decisionField === null ? null : firstToken(decisionField, /^([A-Za-z_]+)/),
+    mergeImpact: impactField === null ? null : firstToken(impactField, /^([A-Za-z_-]+)/),
+    findingCount: parseFindingCount(findingsLine),
+    p0Count: countOnLine(countLine, "P0"),
+    p1Count: countOnLine(countLine, "P1"),
+    p2Count: countOnLine(countLine, "P2"),
+    source: "prose",
+  };
+}
+
+/** True only when the check-run summary itself parsed to zero findings. Unknown is not zero. */
+export function slizardCheckRunHasZeroFindings(verdict: SlizardCheckRunVerdict): boolean {
+  if (verdict.findingCount !== null && verdict.findingCount > 0) {
+    return false;
+  }
+  return verdict.p0Count === 0 && verdict.p1Count === 0 && verdict.p2Count === 0;
+}
+
 export function isGreptileReviewTerminal(
   status: string | null | undefined,
   conclusion: string | null | undefined,

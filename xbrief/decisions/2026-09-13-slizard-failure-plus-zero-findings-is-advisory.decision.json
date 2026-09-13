@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "slizard-failure-plus-zero-findings-is-advisory",
+  "decision": "A SLizard check-run conclusion=failure (or parsed request_changes / merge_impact=blocking) is merge-blocking only when the same check-run output.summary is not zero-finding. Zero findings on that summary is advisory. Crash/timeout/cancelled with no parseable zero-finding verdict still block. The gate does not fetch PR review bodies.",
+  "governingRule": {
+    "description": "Bound-remedy #4387: name the conclusion=failure plus zero-finding policy, or drop the forever-block clause. Land finding-count with or before parse repair. If the verdict lives on the review body, that is an input-architecture change, not a regex swap.",
+    "path": "xbrief/active/2026-09-13-4387-designgates-the-slizard-merge-gate-cannot-parse-slizards-own.xbrief.json",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep blocking on failedConclusion even when the check-run summary parses to zero findings",
+      "whyNot": "Leaves the forever-block clause unsolved on the surface the gate reads. ci-gate already excludes SLizard from the required set, so failedConclusion is the crash signal -- that signal stays for unparseable/empty summaries."
+    },
+    {
+      "option": "Fetch PR reviews and parse <!-- slizard:verdict --> from the review body",
+      "whyNot": "Live capture of check-run 103182122466 has no verdict HTML comment. That comment is on the review body (finding_count: 0 for SHA a8a20f3 while the check-run reports 1 actionable). Fetching reviews is an input-architecture change; this recut stays on output.summary."
+    },
+    {
+      "option": "Repair Decision/Merge-impact parse without a finding-count gate",
+      "whyNot": "Widens the blocked set: a request_changes that currently fails to parse would start blocking zero-finding reviews."
+    },
+    {
+      "option": "Score the check-run summary with detect()",
+      "whyNot": "detect() is the review-body finding counter. On the captured summary it returns p1_count=0 while Severity counts say P1: 1."
+    }
+  ],
+  "whyWinner": "Names the policy on the surface the gate already reads, lands finding-count with parse, and records that the machine-readable verdict is on the review body so this PR does not pretend a regex swap reaches it.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-09-13-4387-designgates-the-slizard-merge-gate-cannot-parse-slizards-own.xbrief.json"
+  ],
+  "timestamp": "2026-09-13T02:45:00Z",
+  "revisitTrigger": "If SLizard starts putting <!-- slizard:verdict --> on check-run output.summary, or if a later issue takes the review-body fetch as an input-architecture change.",
+  "tags": [
+    "slizard",
+    "merge-gate",
+    "4387"
+  ],
+  "relatedIssues": [
+    4387,
+    2189
+  ]
+}
