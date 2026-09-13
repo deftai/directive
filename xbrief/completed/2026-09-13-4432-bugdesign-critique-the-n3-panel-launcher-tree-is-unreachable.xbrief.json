@@ -1,0 +1,219 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4432",
+    "updated": "2026-09-13T22:25:40Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): the N>=3 panel launcher tree is unreachable from a Claude Code parent, so it claims three families and can deliver one",
+    "status": "completed",
+    "narratives": {
+      "Description": "N>=3 spend is host-neutral while the documented launcher tree is Grok-Build scoped. The next-build contract is a benign launch-probe with critic argv flags before panel-deposit, not a Claude-only host-class rewrite.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4432",
+      "Overview": "## Summary\n\n`contracts/design-critique.md` § Envelope and ceiling requires a cross-family panel for spend N≥3 and refuses a same-family sibling set. The launcher tree that delivers those families is reachable only from a Grok Build parent. A Claude Code parent cannot spawn the `claude` or `codex` seats, because every launcher in the tree carries an approval-bypass flag and the host's auto-mode classifier denies nested agent spawns that carry one.\n\nThe result is that a Claude Code parent running an arc on a high-blast-radius target can claim three families in the panel-deposit, then deliver exactly one, and the contract then forbids it from leaning the set it actually has.\n\n## Observed\n\nFiled from a live arc on #4431 (high blast radius on an authority mechanism; charter refutation, spend N=3 recorded at Stop 1). Parent is a Claude Code session.\n\nPATH probe passed for all three families, so `evaluatePanelSeatComposition`'s paste-ready-first refusal applies — paste-ready is not the sanctioned recovery here:\n\n```\nclaude: /c/Users/msada/.local/bin/claude\ncodex:  /c/Users/msada/AppData/Local/Programs/OpenAI/Codex/bin/codex\ngrok:   /c/Users/msada/.grok/bin/grok\n```\n\nBoth attempted spawns were denied by the host, not by the binary:\n\n```\nclaude -p \"Read and follow <envelope>\" --model opus --permission-mode bypassPermissions --output-format text\n  -> Permission for this action was denied by the Claude Code auto mode classifier.\n\ncodex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> \"Read and follow <envelope>\"\n  -> Permission for this action was denied by the Claude Code auto mode classifier.\n```\n\nThe grok last-resort launcher (`--permission-mode bypassPermissions --always-approve`) is the same flag class and was treated as blocked without a third denial.\n\nThe native seat is also unavailable: `spawn_subagent` is a Grok Build host tool, so the contract's primary grok launcher does not exist in a Claude Code parent either.\n\n## Why this is a contract gap, not a host misconfiguration\n\nThe denial is the host doing its job. A nested agent spawned with approvals bypassed is exactly what that control exists to stop, and `docs/grok-build-subscription-setup.md` § Critic spawn mandates the bypass flags in every row of the tree — including the explicit `⊗ --dangerously-skip-permissions as a synonym` note, which shows the bypass is intentional and load-bearing rather than incidental.\n\nSo the two rules compose into an unreachable state for one host class:\n\n- `! For spend N≥3, the panel-deposit or a sibling-seat record names three claimed families before the first sibling spawn.`\n- `! A same-family sibling set is not a panel. ⊗ Lean it. Printed recovery is re-seat (or halt), not wait for Stop 5.`\n\nA Claude Code parent can satisfy the first and then never satisfy the second. Its only in-host critic launcher is the native subagent tool, which is the `claude` family — so every sibling it can actually deliver shares one family.\n\n`evaluatePanelSeatComposition` does not catch this: it is a fixture over claimed families plus a PATH probe. PATH resolves, families are claimed, composition passes — and the spawn still cannot run. The predicate measures the wrong precondition for this failure.\n\n## Consequences\n\n1. The panel permission in the Stop 2 variant table is effectively Grok-Build-only. Every high-blast-radius or genuinely-open-solution-space target critiqued from a Claude Code parent silently drops to the N=1 default, or halts.\n2. A parent that does not notice will post a deposit claiming three families and lean a one-family set, which is a contract breach no gate observes (§ Envelope and ceiling already records that panel completeness is unobserved, #3850).\n3. The sanctioned recovery ladder has no rung for it. Paste-ready is refused because the CLIs resolve; re-seat cannot help because no second family is reachable; halt discards an arc that had a legitimate reason to spend a panel.\n\n## Expected\n\n1. Name the host class in the launcher tree. A Claude Code parent's in-host critic launcher is its native subagent tool, and that is the `claude` seat — the direct analogue of Grok's `spawn_subagent`. Document it so a Claude Code parent has one sanctioned seat it can actually fill.\n2. Decide what a parent does when it can reach fewer families than the spend it recorded. Options worth weighing rather than assuming: amend the recorded spend down to the deliverable N with the reason recorded on the thread; or treat unreachable-launcher as a distinct halt cause separate from dispatch-fail; or admit paste-ready when the CLI resolves but the host refuses the spawn, which is the case `evaluatePanelSeatComposition`'s PATH probe currently cannot distinguish from a healthy launcher.\n3. Extend the seat-composition predicate past a PATH probe, or state plainly in the contract that it does not observe launchability and that the parent carries that obligation unobserved — the same disclosure § Envelope and ceiling already makes for panel completeness.\n4. Consider whether the bypass flags are required for a process-only critic at all. A critic that only reads at a pinned SHA and posts one comment needs far less authority than the tree currently requests, and a narrower envelope might pass a host control that a blanket bypass cannot.\n\n## Related\n\n- `content/contracts/design-critique.md` § Envelope and ceiling (#4067) — seat families, same-family refusal, paste-ready-first refusal.\n- `content/docs/grok-build-subscription-setup.md` § Critic spawn (second recipe) — the launcher tree and its bypass flags.\n- `packages/core/src/design-critique/panel-seat-families.ts` — `evaluatePanelSeatComposition`.\n- #3850 — panel completeness is contract text with no observing predicate; this is the composition-side sibling.\n- #4431 — the arc that surfaced it.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-13T00:44:14Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because the N>=3 launcher tree is a recording obligation: a Claude Code parent can claim three families and deliver one, then the contract forbids leaning that set.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4432-dc\norigin-ref: origin/master\ndispatch-sha: bf9d26c8ccac6599d5241a1d3ea1a3a636bee982\n\ncharter: refutation\nspend: N=1\nspend-why: default motion; operator did not raise N.\n\nrefutation-target: The N>=3 panel launcher tree is unreachable from a Claude Code parent, so it claims three families and can deliver one.\n\ntarget: #4432\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Stage A issue-eval: still-open, no WIP, no duplicate. This write-back is the round-1 ceiling.\n\n### Comment by @MScottAdams (2026-09-13T00:52:33Z)\n\nmodel: claude-opus-5\nrole: critic\n\nRound 1 critic, fresh. Charter refutation, spend N=1, as recorded at Stop 1. Reads pinned to `bf9d26c8ccac6599d5241a1d3ea1a3a636bee982`. Input ceiling 5649747772 (the triage write-back); one comment at or below it, nothing later read.\n\n## Verdict\n\nThe refutation target does not survive as stated. Quoting the recorded Stop 1 field: *\"The N>=3 panel launcher tree is unreachable from a Claude Code parent, so it claims three families and can deliver one.\"* The first clause is false at the host-class level, and it is the clause every Consequence and Expected item rests on. A narrower defect does survive, restated in the second finding.\n\n## Re-verified anchors\n\nLine cites are claims, so these were run, not read:\n\n- `contracts/design-critique.md` Envelope and ceiling — holds. The N>=3 three-families MUST, the same-family refusal, and the paste-ready-first refusal are present and unconditional on host.\n- Same section, launcher tree — the MUST is literally headed **\"Grok Build launcher tree\"**, and `docs/grok-build-subscription-setup.md` Design-critique dispatch opens *\"When a Grok Build parent runs an N>=3 design-critique panel...\"*. The tree never claimed host-neutrality. The composition problem the issue names is real only because the N>=3 obligations above are host-neutral while the only documented tree is host-scoped.\n- `panel-seat-families.ts` `evaluatePanelSeatComposition` — holds. Inputs are `claimedSeats` plus `PathProbe { claude, codex }`. No launch input of any kind.\n- PATH probe at the dest — `claude`, `codex`, `grok` all resolve, so the body is right that paste-ready-first would refuse. Confirmed.\n- Critic spawn bypass flags — holds. Every row carries a bypass flag, and the `--dangerously-skip-permissions as a synonym` prohibition is present, so the flag choice is curated rather than incidental.\n\n## blocks-the-design — the diagnosis is permission posture, not host class\n\n**Evidence.** Run from a Claude Code parent in `bypassPermissions` mode, cwd = the arc dest, at the pinned SHA:\n\n```text\n$ claude -p \"Reply with exactly the word: pong\" --model haiku --permission-mode bypassPermissions --output-format text </dev/null\npong\nrc 0\n\n$ codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-sandbox -C <dest> \"Reply with exactly the word: pong\" </dev/null\napproval: never   sandbox: danger-full-access   model: gpt-6-astra\npong\nrc 0\n```\n\nBoth spawns the body records as denied ran to completion from a Claude Code parent. The denial the body quotes names the **auto mode classifier** in its own text; a parent not in auto mode does not consult it. The blocked variable is the parent's permission mode, which the operator selects, not the host class, which they do not.\n\nTwo supporting weaknesses in the evidence chain as filed. The grok last-resort row was *\"treated as blocked without a third denial\"* — one of three rows was never probed, yet the conclusion is asserted over the whole tree. And the contract's grok seat reads `spawn_subagent` (or `grok`), so the absence of `spawn_subagent` outside Grok Build does not remove that family; the CLI alias is inside the MUST itself.\n\n**Failure mode.** Both live Expected items encode the artifact as the invariant. Expected 1 names a host class: a Claude Code parent in `bypassPermissions` would be told its one sanctioned seat is the native subagent when it can in fact fill three, and a Grok Build parent under a restrictive approval posture would hit the identical wall with no rule covering it. The unreachable-launcher halt cause in Expected 2 would fire on a condition the operator can clear with one posture change, converting a recoverable dispatch into a discarded arc.\n\n**Disposition consequence.** The lean cannot bind as written. Restate the target as a posture precondition on N>=3 and re-scope Expected 1 and 2 to it; the host-class framing should not reach a successor lean.\n\n## sharpens-framing — what survives is an unstated precondition and an unprobed one\n\n**Evidence.** Consequence 2 stands on its own once the host framing is removed: an auto-mode parent really can post a deposit claiming three families, be denied on sibling 1, and land on a set the same-family rule forbids it to lean. Nothing states the precondition — a grep for `launchab` and for the classifier over `content` and `packages` at the pinned SHA returns nothing. And nothing probes it: `evaluatePanelSeatComposition` takes `PathProbe` only, while the playbook's Verification pong steps 3 and 4 run `claude -p` with no `--permission-mode` and `codex exec --sandbox read-only` — the auth probe deliberately does **not** exercise the bypass flag class, so the existing pong cannot detect this.\n\n**Failure mode.** A parent that follows every written rule — probe PATH, claim three families, deposit, spawn — discovers the denial after the deposit is durable, which is the one ordering the deposit MUST exists to prevent.\n\n**Disposition consequence.** The remedy moves off contract restructuring and onto a dispatch-time launch probe: re-run the existing pong idiom with the **critic's actual argv class** (bypass flag included) before the first sibling spawn. That is an inventory item, not a new mechanism — the pong recipe, its close-stdin rules, and its pass/fail reporting already exist in that playbook; only the flag class and the timing change.\n\n## sharpens-framing — the probe must not be the envelope, and must precede the deposit\n\n**Evidence.** Injection / swarm lens, fired by the target changing prompts, envelopes and host spawn. The Critic spawn argv is `claude -p \"Read and follow <envelope-path>\"`. The natural way to probe launchability is to dispatch the real thing and see whether it runs.\n\n**Failure mode.** A probe that passes the envelope path *is* a critic dispatch. It reads the untrusted issue thread, it can post, and it makes sibling 1 precede the panel-deposit — breaking *\"names three claimed families before the first sibling spawn\"* while appearing to satisfy it. A denied envelope probe is worse: the child may already have read the thread before the host refused a later tool call, so \"the probe failed\" and \"no critic ran\" are not the same statement.\n\n**Disposition consequence.** Any probe rung added to the ladder must be pinned to a benign fixed prompt with no envelope path and no thread access, and must be ordered before the deposit. Without that constraint the remedy reintroduces the ordering defect the issue is trying to close.\n\n## sharpens-framing — Expected 3 as written buys a field, not an observation\n\n**Evidence.** The predicate is fail-closed over parent-claimed input by construction; the contract says so twice (*\"a fixture over claimed families plus a PATH probe\"*, and at Test surface *\"a fixture over claimed families, not a live sibling-count gate\"*), and #3850 is the standing disclosure for exactly this shape. `PathProbe` is itself parent-supplied.\n\n**Failure mode.** Adding a `launchable` input does not make the predicate observe launchability. A parent that never probed passes identically to one that did, and the new field reads as coverage. That is the pattern the contract already had to disclose twice.\n\n**Disposition consequence.** The two halves of Expected 3 are not equal. The honest gain is in *what* is probed, not in *how observed* the answer is — a spawn-probe input is exactly as parent-claimed as `PathProbe`, no better. Take the second half (state plainly that the predicate does not observe launchability and that the parent carries it) and, if the input is added, land it with that disclosure rather than as a fix.\n\n## sharpens-framing — the halt-cause option in Expected 2 duplicates dispatch-fail\n\n**Evidence.** Dual stop already carries *\"Dispatch failure (no comment posted, spawn died) is a separate halt. It does not spend a retry slot. Stop and inform. Do not stamp.\"* The Halt line enumerates cap, same-fingerprint, dispatch-fail, and is explicit: *\"Presence, shape, and authority only. Do not score the because-clause.\"*\n\n**Failure mode.** A host-refused spawn is already a dispatch failure that does not spend a retry slot. A new cause token adds vocabulary no predicate reads, inside a clause no predicate scores, and invites a classification argument at halt time over a distinction with no consequence.\n\n**Disposition consequence.** Drop that option from Expected 2. The because-clause already carries the reason in prose; the recovery ladder needs a probe rung, not a halt rung.\n\n## footnote — a host discriminator already exists\n\n`resolveArcRunPostureForHost` (`run-posture.ts`, #4202) already takes `grokBotDetected: boolean` and branches Stop 1 defaults on it. If a host-scoped rule is still wanted after the re-scope, that is the existing seam, not a new concept.\n\n## footnote — Expected 4 stays live and untested here\n\nMy probes carried the full bypass flags, so they say nothing about whether a narrower envelope also passes. The question remains a good one, and there is a concrete axis for it — `--allowedTools` narrowing rather than a blanket bypass — though a print-mode child with no TTY cannot answer an approval prompt, so \"no bypass at all\" is not obviously available. Worth a separate measurement, not a guess folded into this arc.\n\n## Road not taken\n\nI weighed making the amend-the-spend-down option in Expected 2 the primary remedy instead of a probe rung. Rejected: it is still needed as the fallback when the probe fails and the operator declines to change posture, but as the primary it rewards not probing, and an amended-down N is indistinguishable on the thread from a parent that never attempted a second family.\n\n## Steelman\n\nThe strongest rejected position is that there is no defect at all. Stop 2 grants N>=3 as *\"permitted, not selected\"* — spend is a permission. On that reading a parent that records N=3 and delivers N=1 has declined a permission rather than breached a MUST, Consequence 2 evaporates, and the issue reduces to a one-line amend-and-say-why. What would flip my verdict: contract text making the three-families claim revisable before the first spawn. What stops me taking it today is that the same-family rule is a prohibition that bites at bind time regardless of how the claim was framed, so a parent holding a one-family set is blocked whether or not its recorded N was a permission.\n\n## Probe disclosure\n\nSubstituted a benign prompt and `--model haiku` for `--model opus`; the recorded denial is on the spawn's flag class, not on the model or the prompt, and codex ran its default model. Not probed: the grok CLI last-resort row. Nothing was written to a tracked file and no sibling was dispatched. Panel completeness stays unobserved either way (#3850) — nothing above should be read as closing it.\n\n\n### Comment by @MScottAdams (2026-09-13T00:56:07Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe N>=3 family MUST is host-neutral, and the documented launcher tree is Grok-Build-scoped. That composition is real. The filed diagnosis is not: a Claude Code parent in bypassPermissions can spawn claude and codex today. The blocked variable is permission posture, not host class.\n\nLeftover next-build on this number is a recut: state the N>=3 precondition as launchability under the critic argv class; run a benign pong with bypass flags before the panel-deposit; do not treat a host-class native-subagent seat as the Claude Code analogue of a three-family panel.\n\nConfirming this map does not close panel completeness (#3850). It recuts the remedy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4432 after round 1 critic 5649785909 (claude-opus-5). Supersedes write-back 5649747772.\n\nTarget-digest: sha256:fa6c7ec955ce6615e1e794e026dd689b00d043641b820172046f7ad27def869c\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4432-dc\norigin-ref: origin/master\ndispatch-sha: bf9d26c8ccac6599d5241a1d3ea1a3a636bee982\n\nTakes:\n\n- 5649785909 the diagnosis is permission posture, not host class — accept-into-contract\n- 5649785909 what survives is an unstated precondition and an unprobed one — accept-into-contract\n- 5649785909 the probe must not be the envelope, and must precede the deposit — accept-into-contract\n- 5649785909 Expected 3 as written buys a field, not an observation — accept-into-contract\n- 5649785909 the halt-cause option in Expected 2 duplicates dispatch-fail — accept-into-contract\n\n## Bound remedy\n\n- Restate the target as a posture precondition on N>=3, not a Claude Code host-class gap.\n- Before panel-deposit, re-run the existing pong with the critic argv class (bypass flags included). Benign fixed prompt. No envelope path. No thread access.\n- If the probe fails, record amend-the-spend-down with the reason, or halt as dispatch-fail. Do not add a new halt token.\n- Keep evaluatePanelSeatComposition as a fixture over claimed families plus PATH. State plainly that it does not observe launchability.\n- Do not name Claude Code native subagent as the one sanctioned Claude-family seat for a parent that can fill three under bypassPermissions.\r\n\n\n### Comment by @MScottAdams (2026-09-13T00:56:41Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n|---|---|---|\n| N>=3 family MUST is host-neutral; documented tree is Grok-Build-scoped | verified | critic 5649785909 pin-read design-critique.md Envelope and grok-build-subscription-setup.md |\n| claude and codex spawn under bypassPermissions from a Claude Code parent | verified | critic live pong rc 0 at dest with critic argv class |\n| evaluatePanelSeatComposition is PATH plus claimed families | verified | pin-read panel-seat-families.ts |\n| Existing pong does not exercise bypass flags | verified | pin-read playbook Verification steps 3-4 |\n| Dispatch-fail already covers host-refused spawn | verified | pin-read Dual stop halt line |\n\nCites successor lean 5649802710. Classified headings from critic 5649785909. Footnotes not in this denominator.\r\n\n\n### Comment by @MScottAdams (2026-09-13T00:57:15Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe N>=3 MUST is host-neutral; the launcher tree is not. The filed host-class diagnosis cannot bind. Next-build is the Bound-remedy list on successor lean 5649802710: launch-probe pong with bypass flags before deposit.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5649802710 and verified-claims table 5649805205.",
+      "Labels": "bug, agent-experience, process, critic, design-critique:ingest-ready",
+      "UserStory": "As a design-critique parent, I want N>=3 spend gated on a benign launch-probe with the critic argv class before panel-deposit, so that I do not claim three families I cannot launch.",
+      "ImplementationPlan": "1. Update content/contracts/design-critique.md and the grok-build critic spawn module so N>=3 requires a launchability probe, not a host-class seat rewrite.\n2. Run the existing pong with critic bypass flags, a benign prompt, and no envelope path before panel-deposit.\n3. Verify with tests that a failed probe records amend-spend or dispatch-fail and that evaluatePanelSeatComposition still takes PATH plus claimed families."
+    },
+    "items": [
+      {
+        "title": "Restate the target as a posture precondition on N>=3, not a Claude Code host-class gap.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the contract restates N>=3, it records launchability under the critic argv class and rejects a Claude Code host-class diagnosis.",
+          "Traces": "FR-1"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-09-13T22:24:21Z",
+          "recorded_by": "leaf-implementation/grok-4.6",
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/panel-seat-families.test.ts; packages/core/src/content-contracts/standards/design_critique_contract.test.ts; PR 4498 merge 1f439c507e3cff71a9a6268f4ccc16decf7dbd15"
+        }
+      },
+      {
+        "title": "Before panel-deposit, re-run the existing pong with the critic argv class (bypass flags included). Benign fixed prompt. No envelope path. No thread access.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a parent records N>=3, it runs a benign pong with critic bypass flags and returns launchable or not before posting panel-deposit.",
+          "Traces": "FR-2"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-09-13T22:24:21Z",
+          "recorded_by": "leaf-implementation/grok-4.6",
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/panel-seat-families.test.ts; packages/core/src/content-contracts/standards/design_critique_contract.test.ts; PR 4498 merge 1f439c507e3cff71a9a6268f4ccc16decf7dbd15"
+        }
+      },
+      {
+        "title": "If the probe fails, record amend-the-spend-down with the reason, or halt as dispatch-fail. Do not add a new halt token.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When that probe fails, the parent records amend-the-spend-down with a reason or halt as dispatch-fail and does not emit a new halt token.",
+          "Traces": "FR-3"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-09-13T22:24:21Z",
+          "recorded_by": "leaf-implementation/grok-4.6",
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/panel-seat-families.test.ts; packages/core/src/content-contracts/standards/design_critique_contract.test.ts; PR 4498 merge 1f439c507e3cff71a9a6268f4ccc16decf7dbd15"
+        }
+      },
+      {
+        "title": "Keep evaluatePanelSeatComposition as a fixture over claimed families plus PATH. State plainly that it does not observe launchability.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When evaluatePanelSeatComposition runs, it still returns a fixture over claimed families plus PATH and does not claim live launchability.",
+          "Traces": "FR-4"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-09-13T22:24:21Z",
+          "recorded_by": "leaf-implementation/grok-4.6",
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/panel-seat-families.test.ts; packages/core/src/content-contracts/standards/design_critique_contract.test.ts; PR 4498 merge 1f439c507e3cff71a9a6268f4ccc16decf7dbd15"
+        }
+      },
+      {
+        "title": "Do not name Claude Code native subagent as the one sanctioned Claude-family seat for a parent that can fill three under bypassPermissions.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a Claude Code parent is in bypassPermissions, the contract rejects naming native subagent as the only sanctioned Claude-family seat.",
+          "Traces": "FR-5"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-09-13T22:24:21Z",
+          "recorded_by": "leaf-implementation/grok-4.6",
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/panel-seat-families.test.ts; packages/core/src/content-contracts/standards/design_critique_contract.test.ts; PR 4498 merge 1f439c507e3cff71a9a6268f4ccc16decf7dbd15"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "critic",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4432",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4432: bug(design-critique): the N>=3 panel launcher tree is unreachable from a Claude Code parent, so it claims three families and can deliver one"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Restate the target as a posture precondition on N>=3, not a Claude Code host-class gap.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Before panel-deposit, re-run the existing pong with the critic argv class (bypass flags included). Benign fixed prompt. No envelope path. No thread access.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "If the probe fails, record amend-the-spend-down with the reason, or halt as dispatch-fail. Do not add a new halt token.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep evaluatePanelSeatComposition as a fixture over claimed families plus PATH. State plainly that it does not observe launchability.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not name Claude Code native subagent as the one sanctioned Claude-family seat for a parent that can fill three under bypassPermissions.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5428472323,
+        "origin": "deftai/directive#4432",
+        "id": "github.issue.5428472323"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fa6c7ec955ce6615e1e794e026dd689b00d043641b820172046f7ad27def869c"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "depends_on": [],
+        "conflict_group": "4432-dc-launch-probe",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/docs/grok-build-subscription-setup.md",
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/design-critique"
+        ],
+        "expected_outputs": [
+          "pong-with-bypass documented before panel-deposit",
+          "evaluatePanelSeatComposition stays PATH plus claimed families",
+          "PR merged"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4498,
+        "prBase": null,
+        "mergeCommit": "1f439c507e3cff71a9a6268f4ccc16decf7dbd15",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1f439c507e3cff71a9a6268f4ccc16decf7dbd15",
+        "verifiedAt": "2026-09-13T22:25:40Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDljODQtMDI5My03ZjIzLWFjYzQtMWY3MzkxMGNlMzIy"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T22:25:40Z"
+      },
+      "completedAt": "2026-09-13T22:25:40Z",
+      "completedSessionId": "host:claude:v1:MDFhMDljODQtMDI5My03ZjIzLWFjYzQtMWY3MzkxMGNlMzIy",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5428472323",
+    "updated": "2026-09-13T22:25:40Z"
+  }
+}
