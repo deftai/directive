@@ -249,7 +249,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     const parent = makeTempRoot("deft-consumer-prd-");
     const consumer = createConsumerProject(parent);
     const output = join(consumer, "PRD.md");
-    renderPrd(join(consumer, "xbrief", "specification.xbrief.json"), output);
+    renderPrd(join(consumer, "xbrief", "specification.xbrief.json"), output, { root: consumer });
     expect(existsSync(output)).toBe(true);
     const content = readFileSync(output, "utf8");
     expect(content).toContain(PRD_GENERATED_SENTINEL);
@@ -280,7 +280,9 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     }) as typeof process.exit;
     try {
       expect(() =>
-        renderPrd(join(consumer, "xbrief", "specification.xbrief.json"), handAuthored),
+        renderPrd(join(consumer, "xbrief", "specification.xbrief.json"), handAuthored, {
+          root: consumer,
+        }),
       ).toThrow(/process.exit:2/);
       expect(exitCode).toBe(2);
       expect(stderr.join("").toLowerCase()).toContain("refusing to overwrite");

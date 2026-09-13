@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Unify write containment and migrate four #3953 sinks.** `assertWriteTargetSafe` now matches `assertDestinationNotSymlink` (full path-component walk). `containedWrite` refuses in-tree parent-directory symlinks. `changelog-cli`, `renderSpec`, `renderPrd`, and `exportSpec` write through `containedWrite` with a named root. Assist-scratch classification refuses in-tree leaf and parent symlinks before `write-assist-scratch-ready`; the hook check/use race is a named residual. The four modules leave `CONTAINED_WRITES_ALLOWLIST`. Does not close #3764 finding 4 or #3593 finding 5. UAT classifier work stays on #4199. Closes #3953.
 - **Greenfield `directive init` writes the canonical package.json pin before gitignoring `.deft/core/` (#4429).** Reuses `ensurePackageJsonPin`; pin write precedes the gitignore line so a throw cannot leave an unreconstitutable deposit. Headless already emitted the same pin. Missing-pin doctor note stays a proceed warning (error would retro-fail pre-pin consumers). JSON reformat of an existing `package.json` is accepted. Closes #4429.
 
 - **UAT Shell fail-closes unknown writes to four protected dests (#4188).** Unknown last-positional dest-of-write to `.deft/authz/**`, `.deft/approved-scope/**`, `.deft-directive-disable`, or `.no-deft-directive` UAT-denies. Proven reads stay allow. Closes #4188.

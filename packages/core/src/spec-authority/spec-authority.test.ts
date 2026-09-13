@@ -523,7 +523,7 @@ describe("spec-authority resolver", () => {
     writeJson(explicitSpecPath, specification);
 
     const out = join(root, "SPECIFICATION.md");
-    const [ok] = renderSpec(explicitSpecPath, out);
+    const [ok] = renderSpec(explicitSpecPath, out, { root });
 
     expect(ok).toBe(true);
     expect(readFileSync(out, "utf8")).toContain(
@@ -589,7 +589,7 @@ describe("spec-authority resolver", () => {
       writeJson(explicitSpecPath, specification);
 
       const out = join(root, "SPECIFICATION.md");
-      const [ok] = renderSpec(explicitSpecPath, out);
+      const [ok] = renderSpec(explicitSpecPath, out, { root });
       const sourceLine = readFileSync(out, "utf8")
         .split("\n")
         .find((line) => line.startsWith("<!-- Source of truth:"));

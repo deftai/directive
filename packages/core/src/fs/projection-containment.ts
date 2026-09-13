@@ -146,24 +146,17 @@ export function assertProjectionContained(projectDir: string, targetPath: string
 }
 
 /**
- * Refuse writes when the resolved target already exists as a symlink (#2626 / #2632).
- * Pair with {@link assertProjectionContained} before read/write/mkdir/append.
+ * Refuse writes when any existing path component from the project root to the
+ * leaf is a symlink (#2626 / #2632 / #3953).
+ *
+ * Delegates to {@link assertDestinationNotSymlink}. The previous leaf-only
+ * lstat after an escape-only walk left in-tree parent-directory diversion open
+ * (`containedWrite` used this weaker check). Direct callers are product write
+ * gates; following an in-tree parent symlink was never a supported feature
+ * (false-deny audit #3953).
  */
 export function assertWriteTargetSafe(projectDir: string, targetPath: string): void {
-  assertProjectionContained(projectDir, targetPath);
-  const targetAbs = resolve(targetPath);
-  let info: ReturnType<typeof lstatSync>;
-  try {
-    info = lstatSync(targetAbs);
-  } catch {
-    return;
-  }
-  if (info.isSymbolicLink()) {
-    throw new ProjectionContainmentError(
-      `projection write refused: ${targetAbs} is a symlink on the write path`,
-      { projectDir: resolve(projectDir), targetPath: targetAbs, offendingPath: targetAbs },
-    );
-  }
+  assertDestinationNotSymlink(projectDir, targetPath);
 }
 
 /**

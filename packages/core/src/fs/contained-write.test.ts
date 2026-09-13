@@ -276,6 +276,29 @@ describe("containedWrite symlink-outside-root (#2951)", () => {
     }
     expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
   });
+
+  itSymlink("refuses in-tree parent-directory symlink on containedWrite itself (#3953)", () => {
+    const root = freshDir("cw-sym-intree-parent-");
+    const realDir = join(root, "real-docs");
+    mkdirSync(realDir, { recursive: true });
+    writeFileSync(join(realDir, "keep.txt"), "KEEP\n", "utf8");
+    symlinkSync(realDir, join(root, "docs"), "dir");
+
+    try {
+      containedWrite({
+        root,
+        target: join("docs", "new.txt"),
+        data: "PWN\n",
+        mode: "create",
+      });
+      expect.fail("expected ContainedWriteError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ContainedWriteError);
+      expect((err as ContainedWriteError).code).toBe(ContainedWriteErrorCode.SYMLINK);
+    }
+    expect(readFileSync(join(realDir, "keep.txt"), "utf8")).toBe("KEEP\n");
+    expect(existsSync(join(realDir, "new.txt"))).toBe(false);
+  });
 });
 
 describe("containedWrite nested create under root (#2951)", () => {

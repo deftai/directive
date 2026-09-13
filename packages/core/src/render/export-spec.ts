@@ -1,5 +1,6 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   greenfieldOverviewNonEmpty,
   renderNarrativeSections,
@@ -21,6 +22,7 @@ type JsonObject = Record<string, unknown>;
 export type ExportAudience = "stakeholder" | "internal";
 
 export interface ExportSpecOptions {
+  /** Trusted containment root for the output write (#3953). Defaults to cwd. */
   readonly projectRoot?: string;
   readonly outPath?: string;
   readonly audience?: ExportAudience;
@@ -146,7 +148,19 @@ export function exportSpec(options: ExportSpecOptions = {}): ExportSpecResult {
     if (scopeLines.length > 0) lines.push(...scopeLines);
   }
 
-  writeFileSync(outPath, stripTrailingWhitespace(lines.join("\n")), "utf8");
+  try {
+    containedWrite({
+      root: projectRoot,
+      target: outPath,
+      data: stripTrailingWhitespace(lines.join("\n")),
+      mode: "replace",
+    });
+  } catch (err) {
+    if (err instanceof ContainedWriteError) {
+      return [false, err.message];
+    }
+    throw err;
+  }
   return [true, `✓ Exported spec to ${outPath}`];
 }
 
