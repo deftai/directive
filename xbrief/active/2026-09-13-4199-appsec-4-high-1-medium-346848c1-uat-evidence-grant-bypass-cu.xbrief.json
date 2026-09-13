@@ -16,19 +16,43 @@
     "items": [
       {
         "title": "Narrow UAT safe-write globs to repo-root evidence and uat-evidence trees; nested product `evidence` paths deny under active UAT without a grant.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/evaluate.test.ts#denies nested product evidence paths under UAT (#4199)",
+          "recorded_at": "2026-09-13T00:50:00Z",
+          "recorded_by": "4199-impl"
+        }
       },
       {
         "title": "Treat an unlisted tool name that carries a write-shaped payload as a direct write under active UAT. Pin `EditNotebook` on the catalog and matcher; do not treat two spellings as the class close; do not claim a Cursor host observation without a payload.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/hooks/classify/tool-name.test.ts#unlisted write-shaped tool names (#4199)",
+          "recorded_at": "2026-09-13T00:50:00Z",
+          "recorded_by": "4199-impl"
+        }
       },
       {
         "title": "For write-shaped Shell with a visible protected destination, empty classification must become `settings` or `unknown` and deny under active UAT. Redirect grammar includes `>|`, `>&`, and `>&!`, not strip-`!` alone. Named writers and noclobber forms are regression witnesses, not a second denylist.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/classify.test.ts#classifyShellAuthzOps protected dest harvest (#4199)",
+          "recorded_at": "2026-09-13T00:50:00Z",
+          "recorded_by": "4199-impl"
+        }
       },
       {
         "title": "Drop kill-switch from the HIGH 3 miss list; keep it only where dest-form writers still miss. Strike body imperatives that constrain later disposition.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.test.ts#does not treat kill-switch echo+redirect as a dest-harvest miss",
+          "recorded_at": "2026-09-13T00:50:00Z",
+          "recorded_by": "4199-impl"
+        }
       }
     ],
     "tags": [
