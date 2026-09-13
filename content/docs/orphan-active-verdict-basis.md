@@ -142,7 +142,9 @@ verify:orphan-active: no orphaned active/running xBRIEFs (scanned 1 running brie
 `elapsedMs`, `budgetMs`, `scanned`, `noOrigin`).
 
 `noOrigin` is how many evaluated briefs resolved zero forge origins
-(`#4426`). It does not change the two unknown policies: the unscoped
+(`#4426`). Scoped `--issue N` counts `scanned` / `noOrigin` only for
+briefs that name that issue — unrelated and originless briefs stay off
+those counters. It does not change the two unknown policies: the unscoped
 sweep stays fail-open; scoped `--issue N` stays fail-closed.
 
 ⊗ Do not flatten the two unknown policies into one rule.

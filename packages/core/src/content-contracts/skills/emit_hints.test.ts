@@ -69,4 +69,13 @@ describe("test_emit_hints", () => {
     expect(emission).not.toBe(-1);
     expect(link).toBeGreaterThan(emission);
   });
+
+  it("setup Add-scope branch names emit-hints in the post-write sequence (#4426)", () => {
+    const text = readRepoFile("skills/deft-directive-setup/SKILL.md");
+    const addScope = text.indexOf("! If **Add scope**:");
+    expect(addScope).not.toBe(-1);
+    const addScopeLine = text.slice(addScope, text.indexOf("\n", addScope));
+    expect(addScopeLine).toContain("Issue-emit hints");
+    expect(addScopeLine).toContain("Lifecycle Bridge");
+  });
 });

@@ -588,14 +588,17 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         skipped += 1;
         continue;
       }
-      scanned += 1;
       const { issues, prs } = collectGithubRefs(brief.plan, defaultRepo);
-      if (issues.length === 0 && prs.length === 0) {
-        noOrigin += 1;
+      // --issue N is one origin: briefs that name that issue. Count scanned /
+      // noOrigin only after that filter so a scoped verdict does not mix in
+      // unrelated or originless briefs (#4426). PR-only briefs stay on the
+      // unscoped scan (#3429).
+      if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
         continue;
       }
-      // --issue N is one origin: briefs that name that issue. PR-only briefs stay on the unscoped scan (#3429).
-      if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
+      scanned += 1;
+      if (issues.length === 0 && prs.length === 0) {
+        noOrigin += 1;
         continue;
       }
       const assessment = assessOrphanSignature(issues, prs, ctx, issueFilter, tally);

@@ -890,6 +890,40 @@ describe("evaluate", () => {
     expect(result.basis.noOrigin).toBe(2);
     expect(result.message).toContain("no orphaned active/running xBRIEFs");
   });
+
+  it("scoped --issue N scanned/noOrigin exclude unrelated and originless briefs (#4426)", () => {
+    const root = makeRepo();
+    writeBrief(root, "setup-created.xbrief.json", {
+      status: "running",
+      title: "core-engine",
+    });
+    writeBrief(root, "other-issue.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/9999",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeBrief(root, "target-issue.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/2321",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 2321, "open");
+    writeCachedIssue(root, "deftai/directive", 9999, "open");
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true, issue: 2321 });
+    expect(result.code).toBe(0);
+    expect(result.basis.scanned).toBe(1);
+    expect(result.basis.noOrigin).toBe(0);
+    expect(result.message).toContain("scanned 1 running brief");
+    expect(result.message).toContain("Origins: 0 of 1 scanned brief resolved zero forge origins.");
+  });
 });
 
 function stripGhGhxFromPath(): () => void {

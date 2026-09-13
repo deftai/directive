@@ -671,7 +671,7 @@ omit = [
 
 - ! Default based on repo state via the brownfield detector above (scoped/brownfield → Add scope; identity-only or greenfield → Starting new)
 - ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
-- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
+- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface Issue-emit hints (#4426) plus the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
 - ! If **Add scope** on identity-only: ⊗ synthesize the first scope from `narratives.Overview`, directory name, or init-seed identity. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm Phase 0 Step 0.5 `xbrief/proposed/` scan is in scope for that skip.
 - ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
@@ -680,7 +680,7 @@ omit = [
 - ⊗ Treat brownfield repos as "Starting new" by default
 - ⊗ Default identity-only to Add-scope because PROJECT-DEFINITION exists
 - ⊗ Accept vague confirmation (`proceed`, `ok`) for Replace/scrap
-- ⊗ Exit immediately after Add-scope write without the lifecycle bridge / export / handoff guidance
+- ⊗ Exit immediately after Add-scope write without Issue-emit hints / the lifecycle bridge / export / handoff guidance
 - ⊗ Auto-promote proposed scopes from this skill
 - ⊗ Change `directive init` brownfield-install classification from this Phase 3 detector
 
