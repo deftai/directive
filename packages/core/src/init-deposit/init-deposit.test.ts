@@ -231,7 +231,7 @@ describe("runInitDeposit", () => {
     expect("private" in pkg).toBe(false);
   });
 
-  it("prints lockfile refresh guidance when package-lock.json exists (#4429)", async () => {
+  it("refuses the pin write when a lockfile exists without the exact pin (#4429)", async () => {
     const project = freshRoot("init-deposit-lockfile-");
     const contentRoot = installFakeContentPackage(project);
     writeFileSync(
@@ -244,18 +244,21 @@ describe("runInitDeposit", () => {
       JSON.stringify({ lockfileVersion: 3, packages: {} }, null, 2),
       "utf8",
     );
-    const lines: string[] = [];
 
-    await runInitDeposit(
-      { projectDir: project, jsonOut: false, nonInteractive: true },
-      { printf: (text) => lines.push(text) },
-      {
-        resolveContentRoot: async () => contentRoot,
-        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
-      },
-    );
+    await expect(
+      runInitDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        },
+      ),
+    ).rejects.toThrow(/npm install --package-lock-only/);
 
-    expect(lines.join("")).toContain("npm install --package-lock-only");
+    const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
+    expect(pkg.devDependencies).toBeUndefined();
+    expect(existsSync(join(project, ".gitignore"))).toBe(false);
   });
 
   it("does not gitignore .deft/core/ when the pin write throws (#4429 order)", async () => {

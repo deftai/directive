@@ -17,6 +17,7 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { stampLiveGeneration } from "../freshness/generation.js";
 import { renderProjectDefinition } from "../render/project-render.js";
+import { readPin } from "../resolution/pin.js";
 import { depositOpenClawSoftRebindSkill } from "../session/openclaw-soft-rebind-deposit.js";
 import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import {
@@ -144,29 +145,40 @@ function readContentVersion(contentRoot: string, readVersion = readCorePackageVe
   return readVersion();
 }
 
-const LOCKFILE_REFRESH_COMMANDS: ReadonlyArray<{ readonly file: string; readonly command: string }> =
-  [
-    { file: "package-lock.json", command: "npm install --package-lock-only" },
-    { file: "pnpm-lock.yaml", command: "pnpm install --lockfile-only" },
-    { file: "yarn.lock", command: "yarn install" },
-  ];
+const LOCKFILE_REFRESH_COMMANDS: ReadonlyArray<{
+  readonly file: string;
+  readonly command: string;
+}> = [
+  { file: "package-lock.json", command: "npm install --package-lock-only" },
+  { file: "pnpm-lock.yaml", command: "pnpm install --lockfile-only" },
+  { file: "yarn.lock", command: "yarn install" },
+];
+
+function presentLockfiles(
+  projectDir: string,
+): ReadonlyArray<(typeof LOCKFILE_REFRESH_COMMANDS)[number]> {
+  return LOCKFILE_REFRESH_COMMANDS.filter((row) => existsSync(join(projectDir, row.file)));
+}
 
 /**
- * Init does not spawn a package manager (offline-safe). When a lockfile exists
- * after a pin write, print the refresh command so the next `npm ci` / frozen
- * install is not left mismatched.
+ * Init does not spawn a package manager (offline-safe). A committed lockfile
+ * that does not already carry the exact pin would make the next `npm ci` /
+ * frozen install fail. Refuse the pin write until the operator refreshes the
+ * lockfile, so gitignore cannot land on an unreconstitutable mismatch.
  */
-function printLockfilePinGuidance(
-  projectDir: string,
-  pinChanged: boolean,
-  io: InitDepositIo,
-): void {
-  if (!pinChanged) return;
-  const hits = LOCKFILE_REFRESH_COMMANDS.filter((row) => existsSync(join(projectDir, row.file)));
+function assertLockfileAllowsPinWrite(projectDir: string, pinVersion: string): void {
+  const hits = presentLockfiles(projectDir);
   if (hits.length === 0) return;
-  io.printf(
-    "package.json pin written; refresh the lockfile before npm ci / frozen install:\n" +
-      hits.map((row) => `  ${row.command}\n`).join(""),
+  const current = readPin(projectDir).pinVersion;
+  const needed = pinVersion.trim().replace(/^v/i, "");
+  if (current === needed) return;
+  const files = hits.map((row) => row.file).join(", ");
+  const commands = hits.map((row) => `  ${row.command}`).join("\n");
+  throw new Error(
+    `Refusing to write package.json pin while ${files} exist and do not already ` +
+      `pin @deftai/directive@${needed}. Init does not rewrite lockfiles. Run:\n` +
+      `${commands}\n` +
+      `after adding the exact pin as a devDependency, then re-run directive init.`,
   );
 }
 
@@ -296,8 +308,8 @@ export async function runInitDeposit(
   // package.json cannot leave `.deft/core/` ignored without a reconstitution
   // anchor. Existing package.json is updated here (the prior "left untouched"
   // behaviour is the defect this call site closes).
-  const pin = ensurePackageJsonPin(projectDir, version, io);
-  printLockfilePinGuidance(projectDir, pin.changed, io);
+  assertLockfileAllowsPinWrite(projectDir, version);
+  ensurePackageJsonPin(projectDir, version, io);
   ensureInitGitignoreLines(projectDir, io);
   ensurePrettierIgnoreLines(projectDir, io);
 
