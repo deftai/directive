@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4426",
-    "updated": "2026-09-13T00:22:26Z"
+    "updated": "2026-09-13T02:10:01Z"
   },
   "plan": {
     "title": "design(scope,verify): setup-created scopes carry no forge origin, so four lifecycle detectors silently no-op at exit 0 and scope:complete reports a vacuous acceptance",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "design(scope,verify): setup-created scopes carry no forge origin, so four lifecycle detectors silently no-op at exit 0 and scope:complete reports a vacuous acceptance",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4426",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Do not implement sketch bullet 4 as \"unbound clause set is a refusal\" unless the lean explicitly reverses #3826 for the `complete` reader and sequences behind #4383. Re-take the `scope:complete` transcript at 24867a867; what survives is exit code and completion, not the old `verify:ac passed` label.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/orphan-active/evaluate.test.ts#does not treat noOrigin as a non-zero unscoped verdict (#4426)",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Drop \"and exit code\" from sketch bullet 2, or scope it to `--issue`. Extend `OrphanActiveBasis` with a `noOrigin` counter: scanned briefs versus briefs that resolved zero origins. Do not flatten the two unknown policies.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/orphan-active/evaluate.test.ts#counts noOrigin for running briefs with zero forge refs and stays fail-open on the unscoped sweep (#4426)",
@@ -36,7 +36,7 @@
       },
       {
         "title": "Restate sketch bullet 3 as briefs scanned versus origins resolved. Drop \"the detector is functional but unsweepable\" as substantiation of `--issue 1`.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts#briefsScanned/originsResolved empty-sweep message",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Origin references are operator-collected or minted by `task issue:emit`. ⊗ Agent-asserted `parent_issue` / `plan.references`. Same polarity as `file_scope`.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/skills/emit_hints.test.ts#setup Phase 3 offers emit-hints at the proposed/ emission step (#4426)",
@@ -56,7 +56,7 @@
       },
       {
         "title": "Setup Phase 3 offers emit-hints (none / umbrella / per-vBRIEF) at the emission step. Strike \"state that issue-less scopes are outside the reconciliation model\" — emit-hints already says that.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/skills/emit_hints.test.ts#setup Add-scope branch names emit-hints in the post-write sequence (#4426)",
@@ -66,7 +66,7 @@
       },
       {
         "title": "Do not carry comment 5640274557's claims that `verified` requires a stamped command and that `failed` is only missing-path. Do not derive a test name or command from clause prose (#3835).",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "https://github.com/deftai/directive/pull/4455#issuecomment-5649879796",
@@ -138,7 +138,32 @@
           "command": "deft verify:completed-tracked --issue 1",
           "reason": "Successor lean drops --issue 1 as substantiation that the brief was unsweepable. Capture is evidence, not acceptance (#3721 / #4426)."
         }
-      ]
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4455,
+        "prBase": null,
+        "mergeCommit": "18213bb52652e080db7749d41ffa7f1f4e963f17",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9a28d509811c7df9288184df9b961f936bab5fd6",
+        "verifiedAt": "2026-09-13T02:10:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4MjEtMmQ0ZS03ZTAwLTk1NWQtYTYxOGVkYjdkNjcz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T02:10:01Z"
+      },
+      "completedAt": "2026-09-13T02:10:01Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4MjEtMmQ0ZS03ZTAwLTk1NWQtYTYxOGVkYjdkNjcz",
+      "capacityBucket": "agentic-debt"
     },
     "acceptance": {
       "commands": [],
@@ -192,6 +217,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5427961885",
-    "updated": "2026-09-13T00:22:26Z"
+    "updated": "2026-09-13T02:10:01Z"
   }
 }
