@@ -878,6 +878,21 @@ interface MutationActorResolution {
 }
 
 /**
+ * The child argv `--host` that produced this hook identity (#4409).
+ *
+ * Occupancy owner is derived from that flag plus the host's identity source.
+ * Inherited `CLAUDE_*` is not an owner producer. Naming the flag on identity
+ * denials is the repro surface; it is not a blanket `DEFT_SESSION_ID` override.
+ */
+export function formatHookHostArgv(host: string): string {
+  return `hook --host ${host}`;
+}
+
+function withHookHostArgv(host: string, detail: string): string {
+  return `${formatHookHostArgv(host)}: ${detail}`;
+}
+
+/**
  * Resolve the cooperative actor presented to the occupancy gate.
  * A resolved host identity is authoritative; ambient identity may only
  * corroborate. Hosts whose identity source is the hook environment fall back to
@@ -905,9 +920,11 @@ function resolveMutationActor(
       return {
         sessionId: hostIdentity.sessionId,
         issue: "conflict",
-        message:
+        message: withHookHostArgv(
+          input.host,
           `Host owner ${hostIdentity.sessionId} conflicts with ` +
-          `DEFT_SESSION_ID ${environmentId}.`,
+            `DEFT_SESSION_ID ${environmentId}.`,
+        ),
         hostAuthoritative: true,
       };
     }
@@ -921,7 +938,8 @@ function resolveMutationActor(
   return {
     sessionId: undefined,
     issue: hostIdentity.status === "conflict" ? "conflict" : "unavailable",
-    message: hostIdentity.message,
+    message:
+      hostIdentity.message === null ? null : withHookHostArgv(input.host, hostIdentity.message),
     hostAuthoritative: true,
   };
 }
@@ -2350,11 +2368,15 @@ function attachLifecycleIdentityRewrite(
   const lifecycle = inspectExactLifecycleCommand(input.payload);
   if (lifecycle === null) return decision;
   if (!lifecycle.requiresOwner) return decision;
+  type LifecycleIdentityCode = Extract<
+    HookDecisionCode,
+    "occupancy-identity-conflict" | "occupancy-identity-unavailable"
+  >;
+  const denyIdentity = (code: LifecycleIdentityCode, detail: string): HookDecision =>
+    deny(input, code, toolName, withHookHostArgv(input.host, detail));
   if (lifecycle.sessionIdStatus === "invalid") {
-    return deny(
-      input,
+    return denyIdentity(
       "occupancy-identity-conflict",
-      toolName,
       `Directive denied exact lifecycle command ${lifecycle.verb}: ` +
         "--session-id is empty, duplicated, or otherwise ambiguous.",
     );
@@ -2370,14 +2392,12 @@ function attachLifecycleIdentityRewrite(
     return decision;
   }
   if (identity.status !== "ok" || identity.sessionId === null) {
-    const code: HookDecisionCode =
+    const code =
       identity.status === "conflict"
-        ? "occupancy-identity-conflict"
-        : "occupancy-identity-unavailable";
-    return deny(
-      input,
+        ? ("occupancy-identity-conflict" as const)
+        : ("occupancy-identity-unavailable" as const);
+    return denyIdentity(
       code,
-      toolName,
       `Directive denied exact lifecycle command ${lifecycle.verb}: ` +
         `${identity.message ?? "host session identity is unavailable"}. ` +
         "Directive cannot bind the occupancy claim without a stable host owner; " +
@@ -2390,19 +2410,15 @@ function attachLifecycleIdentityRewrite(
     environmentId.length > 0 &&
     environmentId !== identity.sessionId
   ) {
-    return deny(
-      input,
+    return denyIdentity(
       "occupancy-identity-conflict",
-      toolName,
       `Directive denied ${toolName}: host owner ${identity.sessionId} conflicts with ` +
         `DEFT_SESSION_ID ${environmentId}; refusing an auto-approved lifecycle rewrite.`,
     );
   }
   if (lifecycle.sessionIdStatus === "present" && lifecycle.sessionId !== identity.sessionId) {
-    return deny(
-      input,
+    return denyIdentity(
       "occupancy-identity-conflict",
-      toolName,
       `Directive denied ${toolName}: lifecycle command ${lifecycle.verb} names ` +
         `${lifecycle.sessionId ?? "<missing>"}, but the host owner is ` +
         `${identity.sessionId}.`,
@@ -2419,10 +2435,8 @@ function attachLifecycleIdentityRewrite(
     identity.sessionId,
   );
   if (!executionRoot.aligned) {
-    return deny(
-      input,
+    return denyIdentity(
       "occupancy-identity-conflict",
-      toolName,
       `Directive denied exact lifecycle command ${lifecycle.verb}: ${executionRoot.message}. ` +
         `Run the lifecycle command from ${normalizeHookProjectRoot(resolve(input.projectRoot))} ` +
         "so policy, lease, and ritual state target the same worktree.",
@@ -2436,10 +2450,8 @@ function attachLifecycleIdentityRewrite(
     } else {
       reason = "this argument shape is outside the narrowly auto-approved rewrite surface";
     }
-    return deny(
-      input,
+    return denyIdentity(
       "occupancy-identity-unavailable",
-      toolName,
       `Directive denied exact lifecycle command ${lifecycle.verb}: ${reason}. ` +
         `Re-run the command with --session-id=${identity.sessionId}; Directive will verify ` +
         "that explicit owner without auto-approving or replacing the command.",
@@ -2448,10 +2460,8 @@ function attachLifecycleIdentityRewrite(
   const rewrite = rewriteExactLifecycleCommand(input.payload, identity.sessionId);
   if (rewrite === null) return decision;
   if (rewrite.kind === "conflict") {
-    return deny(
-      input,
+    return denyIdentity(
       "occupancy-identity-conflict",
-      toolName,
       `Directive denied ${toolName}: ${rewrite.message} Host payload owner is ` +
         `${identity.sessionId}, but the command names ${rewrite.existingSessionId}.`,
     );

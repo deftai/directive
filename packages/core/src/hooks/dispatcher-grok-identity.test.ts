@@ -13,13 +13,19 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import {
   applyWorktreeOccupancy,
   grantOccupancyMembership,
   releaseOccupancy,
   resolveOccupancySessionId,
 } from "../session/occupancy.js";
-import { decideHook, type HookPolicySeams, renderHostDecision } from "./index.js";
+import {
+  decideHook,
+  formatHookHostArgv,
+  type HookPolicySeams,
+  renderHostDecision,
+} from "./index.js";
 
 const GROK_RAW_SESSION_ID = "grok-session-a";
 const GROK_OWNER = "host:grok:v1:Z3Jvay1zZXNzaW9uLWE";
@@ -222,6 +228,7 @@ describe("Grok claim binding and fail-closed residue (#3873)", () => {
     });
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-unavailable" });
+    expect(decision.message).toContain("hook --host grok");
     expect(decision.message).toContain("has invalid GROK_SESSION_ID");
   });
 
@@ -232,6 +239,8 @@ describe("Grok claim binding and fail-closed residue (#3873)", () => {
     });
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("hook --host grok");
+    expect(decision.message).toContain(`Host owner ${GROK_OWNER} conflicts with`);
   });
 
   it("admits a granted child because the presented id is now grantable", () => {
@@ -263,5 +272,116 @@ describe("Grok claim binding and fail-closed residue (#3873)", () => {
       verdict: "allow",
       code: "write-ready",
     });
+  });
+});
+
+describe("Grok child argv --host remainder (#4409)", () => {
+  const CLAUDE_RAW = "01a09164-982a-7002-96a3-18d23edecb86";
+  const OBSERVED_CLAUDE_OWNER = canonicalHostSessionId("claude", CLAUDE_RAW);
+  const CLAUDE_LEAK_ENV = {
+    CLAUDECODE: "1",
+    CLAUDE_CODE: "1",
+    CLAUDE_CODE_SESSION_ID: CLAUDE_RAW,
+    CLAUDE_CODE_HOST_SESSION_ID: CLAUDE_RAW,
+    CLAUDE_CODE_ENTRYPOINT: "cli",
+    DEFT_SESSION_ID: "b6349785-5f9f-4af9-a807-509280395ba1",
+  } as const;
+
+  it("does not produce a claude owner from inherited CLAUDE_* under --host grok", () => {
+    const holder = CLAUDE_LEAK_ENV.DEFT_SESSION_ID;
+    const decision = writeDecision(
+      leasedRoot(holder),
+      { ...CLAUDE_LEAK_ENV },
+      {
+        verifyRitual: readyRitual(holder),
+      },
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(decision.message ?? "").not.toContain("host:claude:");
+  });
+
+  it("does not honour DEFT_SESSION_ID over a derived grok host owner", () => {
+    const decision = writeDecision(leasedRoot(), {
+      ...HOST_ENVIRON,
+      ...CLAUDE_LEAK_ENV,
+    });
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("hook --host grok");
+    expect(decision.message).toContain(GROK_OWNER);
+    expect(decision.message).not.toContain("host:claude:");
+  });
+
+  it("reproduces the observed owner from --host claude plus payload session_id", () => {
+    const root = leasedRoot("b6349785-5f9f-4af9-a807-509280395ba1");
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, "src", "app.ts") },
+          session_id: CLAUDE_RAW,
+        },
+        environ: { ...CLAUDE_LEAK_ENV },
+      },
+      seams({ verifyRitual: readyRitual(OBSERVED_CLAUDE_OWNER) }),
+    );
+
+    expect(OBSERVED_CLAUDE_OWNER).toBe(
+      "host:claude:v1:MDFhMDkxNjQtOTgyYS03MDAyLTk2YTMtMThkMjNlZGVjYjg2",
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("hook --host claude");
+    expect(decision.message).toContain(OBSERVED_CLAUDE_OWNER);
+  });
+
+  it("pins the child argv --host spelling independently of denial assertions", () => {
+    expect(formatHookHostArgv("grok")).toBe("hook --host grok");
+    expect(formatHookHostArgv("claude")).toBe("hook --host claude");
+  });
+
+  it("names hook --host on lifecycle payload identity conflict with DEFT_SESSION_ID", () => {
+    const root = leasedRoot();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: CLAUDE_RAW,
+          tool_input: { command: "deft session:start" },
+        },
+        environ: { DEFT_SESSION_ID: "some-other-session" },
+      },
+      seams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("hook --host claude");
+    expect(decision.message).toContain(OBSERVED_CLAUDE_OWNER);
+  });
+
+  it("names hook --host when exact lifecycle cannot bind missing payload identity", () => {
+    const root = leasedRoot();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "deft session:start --rearm" },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-unavailable" });
+    expect(decision.message).toContain("hook --host claude");
   });
 });
