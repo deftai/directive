@@ -228,6 +228,7 @@ describe("Grok claim binding and fail-closed residue (#3873)", () => {
     });
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-unavailable" });
+    expect(decision.message).toContain("hook --host grok");
     expect(decision.message).toContain("has invalid GROK_SESSION_ID");
   });
 
@@ -238,7 +239,7 @@ describe("Grok claim binding and fail-closed residue (#3873)", () => {
     });
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
-    expect(decision.message).toContain(formatHookHostArgv("grok"));
+    expect(decision.message).toContain("hook --host grok");
     expect(decision.message).toContain(`Host owner ${GROK_OWNER} conflicts with`);
   });
 
@@ -307,7 +308,7 @@ describe("Grok child argv --host remainder (#4409)", () => {
     });
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
-    expect(decision.message).toContain(formatHookHostArgv("grok"));
+    expect(decision.message).toContain("hook --host grok");
     expect(decision.message).toContain(GROK_OWNER);
     expect(decision.message).not.toContain("host:claude:");
   });
@@ -333,7 +334,54 @@ describe("Grok child argv --host remainder (#4409)", () => {
       "host:claude:v1:MDFhMDkxNjQtOTgyYS03MDAyLTk2YTMtMThkMjNlZGVjYjg2",
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
-    expect(decision.message).toContain(formatHookHostArgv("claude"));
+    expect(decision.message).toContain("hook --host claude");
     expect(decision.message).toContain(OBSERVED_CLAUDE_OWNER);
+  });
+
+  it("pins the child argv --host spelling independently of denial assertions", () => {
+    expect(formatHookHostArgv("grok")).toBe("hook --host grok");
+    expect(formatHookHostArgv("claude")).toBe("hook --host claude");
+  });
+
+  it("names hook --host on lifecycle payload identity conflict with DEFT_SESSION_ID", () => {
+    const root = leasedRoot();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: CLAUDE_RAW,
+          tool_input: { command: "deft session:start" },
+        },
+        environ: { DEFT_SESSION_ID: "some-other-session" },
+      },
+      seams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("hook --host claude");
+    expect(decision.message).toContain(OBSERVED_CLAUDE_OWNER);
+  });
+
+  it("names hook --host when exact lifecycle cannot bind missing payload identity", () => {
+    const root = leasedRoot();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "deft session:start --rearm" },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-unavailable" });
+    expect(decision.message).toContain("hook --host claude");
   });
 });
