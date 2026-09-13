@@ -546,6 +546,27 @@ export function exactLifecycleCommandVerb(payload: unknown): ExactLifecycleVerb 
   return exactLifecyclePayload(payload)?.invocation.verb ?? null;
 }
 
+function readQuotedSpan(
+  command: string,
+  start: number,
+  quote: string,
+): { end: number; content: string } {
+  let i = start + 1;
+  let content = "";
+  while (i < command.length) {
+    const ch = command[i] ?? "";
+    if (quote === '"' && ch === "\\" && i + 1 < command.length) {
+      content += command[i + 1] ?? "";
+      i += 2;
+      continue;
+    }
+    if (ch === quote) return { end: i + 1, content };
+    content += ch;
+    i += 1;
+  }
+  return { end: i, content };
+}
+
 function shellCommandOutsideQuotesAndComments(command: string): string {
   let out = "";
   let i = 0;
@@ -559,26 +580,40 @@ function shellCommandOutsideQuotesAndComments(command: string): string {
       continue;
     }
     if (c === "'" || c === '"') {
-      const quote = c;
-      i += 1;
-      while (i < command.length) {
-        if (quote === '"' && command[i] === "\\" && i + 1 < command.length) {
-          i += 2;
-          continue;
-        }
-        if (command[i] === quote) {
-          i += 1;
-          break;
-        }
-        i += 1;
-      }
-      out += " ";
+      const span = readQuotedSpan(command, i, c);
+      out += /\s/.test(span.content) ? " " : span.content;
+      i = span.end;
       continue;
     }
     out += c;
     i += 1;
   }
   return out;
+}
+
+const CHAIN_TOKENS = new Set(["&&", "||", "|", ";", "&"]);
+const LIFECYCLE_EXECUTABLES = new Set([
+  "deft",
+  "directive",
+  "task",
+  "deft.exe",
+  "directive.exe",
+  "task.exe",
+]);
+
+function lifecycleInvocationArgWindow(tokens: readonly string[]): string[] {
+  for (let i = 0; i < tokens.length; i += 1) {
+    const exe = (tokens[i] ?? "").toLowerCase();
+    if (!LIFECYCLE_EXECUTABLES.has(exe)) continue;
+    const window: string[] = [];
+    for (let j = i + 2; j < tokens.length; j += 1) {
+      const tok = tokens[j] ?? "";
+      if (CHAIN_TOKENS.has(tok)) break;
+      window.push(tok);
+    }
+    return window;
+  }
+  return [];
 }
 
 function tokenizeUninspectableShell(command: string): string[] {
@@ -706,7 +741,10 @@ export function inspectHintedLifecycleSessionId(payload: unknown): HintedLifecyc
   }
   const command = hookShellCommand(payload);
   if (command === null) return { status: "absent", sessionId: null };
-  const session = sessionIdArgs(hinted, tokenizeUninspectableShell(command));
+  const session = sessionIdArgs(
+    hinted,
+    lifecycleInvocationArgWindow(tokenizeUninspectableShell(command)),
+  );
   return {
     status: session.status,
     sessionId: session.status === "present" ? (session.values[0] ?? null) : null,

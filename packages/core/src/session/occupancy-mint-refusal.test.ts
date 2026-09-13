@@ -225,4 +225,30 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       }),
     ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
   });
+
+  it("still hints a quoted executable name as a lifecycle invocation", () => {
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: '"deft" session:start && echo ok' },
+      }),
+    ).toBe("session:start");
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: 'd"ef"t session:start | cat' },
+      }),
+    ).toBe("session:start");
+  });
+
+  it("does not treat a sibling --session-id as binding the lifecycle command", () => {
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "deft session:start && other-command --session-id=host:claude:v1:c2Vzc2lvbi1h",
+        },
+      }),
+    ).toEqual({ status: "absent", sessionId: null });
+  });
 });

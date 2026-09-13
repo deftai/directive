@@ -4948,4 +4948,44 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       expect(decision.verdict, command).toBe("allow");
     }
   });
+
+  it("denies a chained session:start whose matching --session-id is on a sibling", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: {
+            command: "deft session:start && other-command --session-id=host:claude:v1:c2Vzc2lvbi1h",
+          },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+  });
+
+  it("denies a quoted executable lifecycle command that omits --session-id", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: { command: '"deft" session:start && echo ok' },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+  });
 });
