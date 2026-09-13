@@ -1,0 +1,113 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4409",
+    "updated": "2026-09-13T02:39:28Z"
+  },
+  "plan": {
+    "title": "bug(occupancy): recut — isolate --host argv remainder; deposit stays on #4443",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(occupancy): recut — isolate --host argv remainder; deposit stays on #4443",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4409",
+      "Overview": "> Recut 2026-09-13 to Bound-remedy on successor lean 5650050406, synthesis accepted 5650054019. Next-build is this list, not the original Expected.\n\n## Summary\n\nThe sanctioned Grok dispatch path did not complete. That operator tax is real. The filed diagnosis cannot bind: inherited CLAUDE_* variables are not the occupancy owner producer, honouring DEFT_SESSION_ID as a blanket override inverts host-authoritative occupancy (#4066), and the deposit half is #4443.\n\n## Bound remedy (this number)\n\n- Split the conjunct. Deposit reconstitution stays on #4443.\n- Do not honour DEFT_SESSION_ID over a derived host owner as a blanket override.\n- Repro the child argv --host value. Remainder is host flag / derivation, not inherited CLAUDE_* as the owner producer.\n- Recovery must preserve a presented identity, not infer ownership from a previous invocation.\n\n## Out of scope\n\n- #4443 deposit reconstitution. Do not close that issue from this recut.\n- #4410 occupancy deny steal recipe.\n- Treating CLAUDE_* leak as the owner producer.\n- Honouring DEFT_SESSION_ID over a derived host owner.\n\n## Relationship\n\n- #4443 occupies linked-worktree deposit reconstitution.\n- #4431 occupies payload-host mint on claim.\n- #4424 kept traveling host-hook trees as fences.\n",
+      "Labels": "bug, doctor, agent-experience, grok-build, vendored-deposit, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Split the conjunct. Deposit reconstitution stays on #4443.",
+        "status": "proposed"
+      },
+      {
+        "title": "Do not honour DEFT_SESSION_ID over a derived host owner as a blanket override.",
+        "status": "proposed"
+      },
+      {
+        "title": "Repro the child argv --host value. Remainder is host flag / derivation, not inherited CLAUDE_* as the owner producer.",
+        "status": "proposed"
+      },
+      {
+        "title": "Recovery must preserve a presented identity, not infer ownership from a previous invocation.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "grok-build",
+      "vendored-deposit",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4409",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4409: recut Bound-remedy; isolate --host argv remainder; deposit stays on #4443"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4443",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4443: deposit reconstitution (related, not closed by this recut)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Split the conjunct. Deposit reconstitution stays on #4443.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Do not honour DEFT_SESSION_ID over a derived host owner as a blanket override.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Repro the child argv --host value. Remainder is host flag / derivation, not inherited CLAUDE_* as the owner producer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recovery must preserve a presented identity, not infer ownership from a previous invocation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5426949032,
+        "origin": "deftai/directive#4409",
+        "id": "github.issue.5426949032"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2bac98bbebf1354a66a57f52031b59b698aa97bd2364906dfb80afb5e2caf8f1"
+      }
+    },
+    "id": "github.issue.5426949032",
+    "updated": "2026-09-13T02:39:28Z"
+  }
+}

@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type ApplyOccupancyInput,
+  applyWorktreeOccupancy,
   type OccupancyDecision,
   resolveOccupancySessionId,
 } from "./occupancy.js";
@@ -918,5 +922,55 @@ describe("runSessionReady (#2993)", () => {
 
     expect(result.code).toBe(1);
     expect(result.message).toMatch(/bypassed|DEFT_SESSION_RITUAL_SKIP/i);
+  });
+});
+
+describe("session:ready presented identity (#4409)", () => {
+  const temps: string[] = [];
+  afterEach(() => {
+    for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+  });
+
+  it("does not adopt occupancy.json occupant as the presented identity", () => {
+    const root = mkdtempSync(join(tmpdir(), "session-ready-4409-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    applyWorktreeOccupancy(root, { sessionId: "occupant-from-previous-invocation" });
+
+    const result = runSessionReady(root, {
+      sessionId: "presented-this-invocation",
+      env: {},
+      inspectRitual: () => okVerify({ boundSessionId: "presented-this-invocation" }),
+      verifyRitual: () => okVerify({ boundSessionId: "presented-this-invocation" }),
+      runStart: vi.fn(),
+      fetchAll: vi.fn(),
+      skipCacheRecovery: true,
+    });
+
+    expect(result.sessionId).toBe("presented-this-invocation");
+    expect(result.sessionId).not.toBe("occupant-from-previous-invocation");
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("presented-this-invocation");
+  });
+
+  it("mints rather than inferring ownership from a previous invocation", () => {
+    const root = mkdtempSync(join(tmpdir(), "session-ready-4409-mint-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    applyWorktreeOccupancy(root, { sessionId: "occupant-from-previous-invocation" });
+
+    const result = runSessionReady(root, {
+      env: {},
+      sessionStartOptions: { newSessionId: () => "minted-this-invocation" },
+      inspectRitual: () => okVerify({ boundSessionId: "minted-this-invocation" }),
+      verifyRitual: () => okVerify({ boundSessionId: "minted-this-invocation" }),
+      runStart: vi.fn(),
+      fetchAll: vi.fn(),
+      skipCacheRecovery: true,
+    });
+
+    expect(result.sessionId).toBe("minted-this-invocation");
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("minted-this-invocation");
   });
 });

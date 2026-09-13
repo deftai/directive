@@ -158,6 +158,32 @@ describe("host-env session identity (#3873)", () => {
     });
   });
 
+  it("does not treat inherited CLAUDE_* as a grok owner producer (#4409)", () => {
+    const claudeLeak = {
+      CLAUDECODE: "1",
+      CLAUDE_CODE_SESSION_ID: "01a09164-982a-7002-96a3-18d23edecb86",
+      CLAUDE_CODE_HOST_SESSION_ID: "01a09164-982a-7002-96a3-18d23edecb86",
+      DEFT_SESSION_ID: "b6349785-5f9f-4af9-a807-509280395ba1",
+    };
+    expect(
+      resolveHookHostIdentity(
+        "grok",
+        { session_id: claudeLeak.CLAUDE_CODE_SESSION_ID },
+        claudeLeak,
+      ),
+    ).toMatchObject({
+      status: "missing",
+      provider: "grok",
+      sessionId: null,
+    });
+    expect(
+      hostIdentityFallsBackToExplicitOwner(
+        "grok",
+        resolveHookHostIdentity("grok", {}, claudeLeak),
+      ),
+    ).toBe(true);
+  });
+
   it("never reads the unverified Grok payload session_id, even as a fallback", () => {
     expect(resolveHookHostIdentity("grok", { session_id: "payload-owner" }, {})).toMatchObject({
       status: "missing",

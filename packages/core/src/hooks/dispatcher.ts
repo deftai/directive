@@ -878,6 +878,21 @@ interface MutationActorResolution {
 }
 
 /**
+ * The child argv `--host` that produced this hook identity (#4409).
+ *
+ * Occupancy owner is derived from that flag plus the host's identity source.
+ * Inherited `CLAUDE_*` is not an owner producer. Naming the flag on identity
+ * denials is the repro surface; it is not a blanket `DEFT_SESSION_ID` override.
+ */
+export function formatHookHostArgv(host: string): string {
+  return `hook --host ${host}`;
+}
+
+function withHookHostArgv(host: string, detail: string): string {
+  return `${formatHookHostArgv(host)}: ${detail}`;
+}
+
+/**
  * Resolve the cooperative actor presented to the occupancy gate.
  * A resolved host identity is authoritative; ambient identity may only
  * corroborate. Hosts whose identity source is the hook environment fall back to
@@ -905,9 +920,11 @@ function resolveMutationActor(
       return {
         sessionId: hostIdentity.sessionId,
         issue: "conflict",
-        message:
+        message: withHookHostArgv(
+          input.host,
           `Host owner ${hostIdentity.sessionId} conflicts with ` +
-          `DEFT_SESSION_ID ${environmentId}.`,
+            `DEFT_SESSION_ID ${environmentId}.`,
+        ),
         hostAuthoritative: true,
       };
     }
@@ -921,7 +938,10 @@ function resolveMutationActor(
   return {
     sessionId: undefined,
     issue: hostIdentity.status === "conflict" ? "conflict" : "unavailable",
-    message: hostIdentity.message,
+    message:
+      hostIdentity.message === null
+        ? null
+        : withHookHostArgv(input.host, hostIdentity.message),
     hostAuthoritative: true,
   };
 }
