@@ -76,7 +76,6 @@ tasks:
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
-      - verify:consumer-test-lane
       - verify:branch
 `;
 
@@ -106,7 +105,7 @@ describe("consumer-check-contract helpers (#3145)", () => {
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:scope-provenance");
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:consumer-check-contract");
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:evaluator-surface");
-    expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:consumer-test-lane");
+    expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).not.toContain("verify:consumer-test-lane");
   });
 });
 
