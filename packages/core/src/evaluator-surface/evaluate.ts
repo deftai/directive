@@ -33,7 +33,44 @@ export const EVALUATOR_SURFACE_PATH_PATTERNS = [
   "packages/core/src/check/gate-lists.ts",
   "packages/core/src/consumer-check-contract/evaluate.ts",
   "packages/core/src/evaluator-surface/**",
+  "packages/core/src/consumer-test-lane/**",
+  "packages/cli/src/verify-evaluator-surface.ts",
+  "packages/cli/src/verify-consumer-test-lane.ts",
+  DISPOSITION_REL,
 ] as const;
+
+const ORIGIN_DEFAULT_CANDIDATES = ["origin/HEAD", "origin/main", "origin/master"] as const;
+
+/**
+ * Resolve the remote default branch. Do not impose this repo's `origin/master`
+ * on consumers that track `main`.
+ */
+export function resolveDefaultBaseRef(
+  projectRoot: string,
+  runGit: (args: readonly string[]) => string | null = (args) => {
+    try {
+      return execFileSync("git", ["-C", projectRoot, ...args], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    } catch {
+      return null;
+    }
+  },
+): string | { error: string } {
+  const abbrev = runGit(["rev-parse", "--abbrev-ref", "origin/HEAD"]);
+  if (abbrev !== null && abbrev.length > 0 && abbrev !== "origin/HEAD") {
+    return abbrev;
+  }
+  for (const candidate of ORIGIN_DEFAULT_CANDIDATES) {
+    const ok = runGit(["rev-parse", "--verify", `${candidate}^{commit}`]);
+    if (ok !== null) return candidate;
+  }
+  return {
+    error:
+      "could not resolve origin default branch (tried origin/HEAD, origin/main, origin/master)",
+  };
+}
 
 export interface EvaluateResult {
   readonly code: 0 | 1 | 2;
@@ -226,8 +263,20 @@ export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
   if (options.paths !== undefined) {
     paths = [...options.paths];
   } else {
+    let baseRef = options.baseRef;
+    if ((baseRef === undefined || baseRef.length === 0) && options.staged !== true) {
+      const resolved = resolveDefaultBaseRef(projectRoot);
+      if (typeof resolved !== "string") {
+        return {
+          code: 2,
+          message: `verify:evaluator-surface: ${resolved.error}`,
+          stream: "stderr",
+        };
+      }
+      baseRef = resolved;
+    }
     const collected = collectChangedPaths(projectRoot, {
-      baseRef: options.baseRef ?? "origin/master",
+      baseRef,
       staged: options.staged === true,
     });
     if (!Array.isArray(collected)) {
@@ -262,6 +311,18 @@ export function evaluate(options: EvaluateOptions = {}): EvaluateResult {
     return {
       code: 1,
       message: formatFailMessage(classified.matchedPaths, `Missing ${DISPOSITION_REL}.`),
+      stream: "stderr",
+    };
+  }
+
+  const dispositionInDiff = paths.map(normalizePath).includes(normalizePath(DISPOSITION_REL));
+  if (options.dispositionText === undefined && !dispositionInDiff) {
+    return {
+      code: 1,
+      message: formatFailMessage(
+        classified.matchedPaths,
+        `Disposition must be renewed in this diff (include ${DISPOSITION_REL}). A leftover record does not cover later evaluator-surface changes.`,
+      ),
       stream: "stderr",
     };
   }

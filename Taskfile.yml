@@ -509,9 +509,7 @@ tasks:
       - verify:test-boundary
       - verify:scope-provenance
       - verify:consumer-check-contract
-      - task: verify:evaluator-surface
-        vars:
-          CLI_ARGS: "--base-ref origin/master"
+      - verify:evaluator-surface
       - vbrief:validate
       - verify-strategy-output
       - verify:consumer-test-lane

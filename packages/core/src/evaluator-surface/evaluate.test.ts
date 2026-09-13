@@ -12,6 +12,7 @@ import {
   evaluate,
   isEvaluatorSurfacePath,
   parseDisposition,
+  resolveDefaultBaseRef,
 } from "./evaluate.js";
 
 const temps: string[] = [];
@@ -32,7 +33,7 @@ const disclosure = {
   schema: DISPOSITION_SCHEMA,
   kind: DISPOSITION_KIND_DISCLOSURE,
   issue: 4386,
-  surfaces: ["Taskfile.yml", "packages/core/src/evaluator-surface/**"],
+  surfaces: ["Taskfile.yml", "packages/core/src/evaluator-surface/**", DISPOSITION_REL],
   note: "Disclosure only.",
 };
 
@@ -42,6 +43,9 @@ describe("declared evaluator surfaces (#4386)", () => {
     expect(isEvaluatorSurfacePath("tasks/verify.yml")).toBe(true);
     expect(isEvaluatorSurfacePath("packages/core/src/check/gate-lists.ts")).toBe(true);
     expect(isEvaluatorSurfacePath("packages/core/src/evaluator-surface/evaluate.ts")).toBe(true);
+    expect(isEvaluatorSurfacePath("packages/core/src/consumer-test-lane/evaluate.ts")).toBe(true);
+    expect(isEvaluatorSurfacePath("packages/cli/src/verify-consumer-test-lane.ts")).toBe(true);
+    expect(isEvaluatorSurfacePath(DISPOSITION_REL)).toBe(true);
     expect(isEvaluatorSurfacePath("packages/core/src/foo.ts")).toBe(false);
     expect(EVALUATOR_SURFACE_PATH_PATTERNS.length).toBeGreaterThan(0);
   });
@@ -133,14 +137,35 @@ describe("evaluate (#4386)", () => {
     expect(result.message).toMatch(/disclosure/);
   });
 
-  it("reads the committed disposition file", () => {
+  it("reads the committed disposition file when it is renewed in the diff", () => {
+    const root = seedRoot();
+    writeFileSync(join(root, DISPOSITION_REL), `${JSON.stringify(disclosure)}\n`, "utf8");
+    const result = evaluate({
+      projectRoot: root,
+      paths: ["Taskfile.yml", DISPOSITION_REL],
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("fails when a leftover disposition is not renewed in the current diff", () => {
     const root = seedRoot();
     writeFileSync(join(root, DISPOSITION_REL), `${JSON.stringify(disclosure)}\n`, "utf8");
     const result = evaluate({
       projectRoot: root,
       paths: ["Taskfile.yml"],
     });
-    expect(result.code).toBe(0);
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/renewed in this diff/);
+  });
+
+  it("prefers origin/main over origin/master when origin/HEAD is missing", () => {
+    const resolved = resolveDefaultBaseRef("/tmp/consumer", (args) => {
+      const joined = args.join(" ");
+      if (joined.includes("origin/HEAD")) return null;
+      if (joined.includes("origin/main^{commit}")) return "abc";
+      return null;
+    });
+    expect(resolved).toBe("origin/main");
   });
 
   it("covers globbed detector paths", () => {

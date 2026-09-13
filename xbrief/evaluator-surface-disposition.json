@@ -8,6 +8,10 @@
     "packages/core/src/check/gate-lists.ts",
     "packages/core/src/consumer-check-contract/evaluate.ts",
     "packages/core/src/evaluator-surface/**",
+    "packages/core/src/consumer-test-lane/**",
+    "packages/cli/src/verify-evaluator-surface.ts",
+    "packages/cli/src/verify-consumer-test-lane.ts",
+    "xbrief/evaluator-surface-disposition.json",
     "vitest.config.ts"
   ],
   "note": "Disclosure of evaluator-surface wiring for #4386. Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record."
