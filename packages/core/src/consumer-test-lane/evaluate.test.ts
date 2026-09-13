@@ -26,6 +26,24 @@ describe("resolveDeclaredTestCommand (#4386)", () => {
     expect(resolveDeclaredTestCommand(root)).toBeNull();
   });
 
+  it("splits string testCommand on whitespace only (argv grammar)", () => {
+    const root = seedRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { policy: { testCommand: 'pnpm test --filter "my pkg"' } },
+      }),
+      "utf8",
+    );
+    expect(resolveDeclaredTestCommand(root)).toEqual({
+      command: "pnpm",
+      args: ["test", "--filter", '"my', 'pkg"'],
+      source: "plan.policy.testCommand",
+    });
+  });
+
   it("uses plan.policy.testCommand when declared", () => {
     const root = seedRoot();
     mkdirSync(join(root, "xbrief"), { recursive: true });

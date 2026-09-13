@@ -173,7 +173,7 @@ export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:test-boundary",
   "verify:scope-provenance",
   "verify:consumer-check-contract",
-  { task: "verify:evaluator-surface", args: ["--base-ref", "origin/master"] },
+  "verify:evaluator-surface",
   "vbrief:validate",
   "verify-strategy-output",
   // Declared project test command last (#4386). Skip when undeclared.

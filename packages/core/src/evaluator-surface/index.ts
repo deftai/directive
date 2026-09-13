@@ -15,4 +15,5 @@ export {
   type OutputStream,
   parseDisposition,
   readDisposition,
+  resolveDefaultBaseRef,
 } from "./evaluate.js";

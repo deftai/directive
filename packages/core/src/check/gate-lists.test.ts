@@ -204,6 +204,10 @@ describe("gate-lists fast-before-slow (#3188)", () => {
     expect(CONSUMER_CHECK_GATES.some(isSuiteCheckGate)).toBe(true);
     expect(ids).toContain("verify:evaluator-surface");
     expect(ids.indexOf("verify:ac")).toBe(0);
+    const consumerSurface = CONSUMER_CHECK_GATES.find(
+      (gate) => checkGateId(gate) === "verify:evaluator-surface",
+    );
+    expect(consumerSurface).toBe("verify:evaluator-surface");
   });
 
   it("rejects an ordering that puts a cheap gate after the suite", () => {

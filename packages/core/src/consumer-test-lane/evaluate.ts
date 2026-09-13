@@ -10,6 +10,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { cliSpawnPlan } from "../check/cli-native-gates.js";
+import { killDescendantTree } from "../check/suite-gate-supervisor-lib.js";
 import { PRODUCT_AC_GATE_ID } from "../product-first-done-gate/types.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
@@ -58,6 +59,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+/** Argv-only whitespace split. Quoted shells, env assignments, and composition are not parsed. Prefer a string[] in plan.policy.testCommand. */
 function tokenize(command: string): string[] {
   return command
     .trim()
@@ -128,7 +130,12 @@ function defaultSpawn(
     encoding: "utf8",
     timeout: timeoutMs,
     maxBuffer: SUBPROCESS_MAX_BUFFER,
+    windowsHide: true,
+    killSignal: "SIGKILL",
   });
+  if (typeof result.pid === "number" && result.pid > 0) {
+    killDescendantTree(result.pid);
+  }
   const stderr =
     result.stderr !== undefined && result.stderr.length > 0
       ? result.stderr
