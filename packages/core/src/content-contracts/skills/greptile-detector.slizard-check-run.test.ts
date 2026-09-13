@@ -64,12 +64,27 @@ describe("parseSlizardCheckRunSummary (captured check-run output.summary)", () =
     expect(slizardCheckRunHasZeroFindings(v)).toBe(true);
   });
 
+  it("does not treat findingCount 0 as zero-finding when a severity count is positive", () => {
+    const v = parseSlizardCheckRunSummary(
+      [
+        "**Findings**: 0 actionable, 5 advisory",
+        "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
+      ].join("\n"),
+    );
+    expect(v.findingCount).toBe(0);
+    expect(v.p1Count).toBe(1);
+    expect(slizardCheckRunHasZeroFindings(v)).toBe(false);
+  });
+
   it("treats Findings: 0 actionable as zero findings", () => {
     const zero = captured
-      .replace("**Findings**: 1 actionable, 5 advisory", "**Findings**: 0 actionable, 5 advisory")
+      .replace(
+        "**Findings**: 1 actionable, 5 advisory",
+        () => "**Findings**: 0 actionable, 5 advisory",
+      )
       .replace(
         "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
-        "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
+        () => "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
       );
     const v = parseSlizardCheckRunSummary(zero);
     expect(v.decision).toBe("request_changes");

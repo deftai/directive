@@ -495,9 +495,6 @@ export function parseSlizardCheckRunSummary(
 
 /** True only when the check-run summary itself parsed to zero findings. Unknown is not zero. */
 export function slizardCheckRunHasZeroFindings(verdict: SlizardCheckRunVerdict): boolean {
-  if (verdict.findingCount === 0) {
-    return true;
-  }
   if (verdict.findingCount !== null && verdict.findingCount > 0) {
     return false;
   }

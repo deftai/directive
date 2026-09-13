@@ -140,10 +140,13 @@ describe("evaluateSlizardGate", () => {
 
   it("does not block conclusion=failure when the same summary parses to zero findings", () => {
     const zero = capturedSummary
-      .replace("**Findings**: 1 actionable, 5 advisory", "**Findings**: 0 actionable, 5 advisory")
+      .replace(
+        "**Findings**: 1 actionable, 5 advisory",
+        () => "**Findings**: 0 actionable, 5 advisory",
+      )
       .replace(
         "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
-        "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
+        () => "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
       );
     const result = evaluateSlizardGate([slizardRun({ conclusion: "failure", summary: zero })]);
     expect(result.summary.ready_state).toBe("ready");
@@ -151,6 +154,18 @@ describe("evaluateSlizardGate", () => {
     expect(result.summary.summary_line).toContain("findings=0");
     expect(result.summary.summary_line).toContain("advisory");
     expect(result.summary.verdict?.decision).toBe("request_changes");
+  });
+
+  it("still blocks when Findings is 0 but Severity counts report a P1", () => {
+    const mixed = [
+      "**Decision**: request_changes",
+      "**Merge impact**: blocking",
+      "**Findings**: 0 actionable, 5 advisory",
+      "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
+    ].join("\n");
+    const result = evaluateSlizardGate([slizardRun({ conclusion: "failure", summary: mixed })]);
+    expect(result.summary.ready_state).toBe("blocked");
+    expect(result.failures[0]).toContain("P1=1");
   });
 
   it("lands finding-count with parse: request_changes plus zero findings stays ready", () => {
