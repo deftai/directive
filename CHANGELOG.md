@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Recut #4424 to reject host-scoped init, review allowlisting, and an undeposited README pointer.** Keep traveling host-hook trees and existing confirm-gated `hostHooks` / `disable-host-hooks`. Pin reconstitution stays #4429. AGENTS recovery pointers stay #4430. This is not a set-level ingest of those children. Closes #4424.
+- **Recut #4424 to keep traveling host-hook trees and reject the three filed remedies.** Pin reconstitution stays #4429. AGENTS pointers stay #4430. Closes #4424.
 - **Land leftover completed-tracked artifact for #4158 (#3264 / #3476).** The #4158 xBRIEF stayed in xbrief/active/ on origin/master after squash of PR 4448. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4246 (#3264 / #3476).** The #4246 xBRIEF stayed untracked after squash of PR 4437. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4245 (#3264 / #3476).** The #4245 xBRIEF stayed untracked after squash of PR 4438. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
