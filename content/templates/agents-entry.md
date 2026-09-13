@@ -12,7 +12,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Hook runtime unavailable (#3785)
 
-! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
+! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive@<pin>`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
 ⊗ Hand-edit `failClosed` in `.cursor/hooks.json` — the next `deft update` rewrites it and silently re-arms the lockout.
 
 ## Session routing (#2176)

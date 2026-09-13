@@ -191,6 +191,7 @@ describe("recovery ladder (#4090)", () => {
   it("managed carrier reuses #4090 ladder spellings and is doctor-first (#4430)", () => {
     const template = readText("templates/agents-entry.md");
     expect(template).toContain(`${RECOVERY_LADDER_NPM_GLOBAL}@<pin>`);
+    expect(template).toContain(`install the runtime (\`${RECOVERY_LADDER_NPM_GLOBAL}@<pin>\`)`);
     expect(template).toContain("directive doctor");
     expect(template).not.toContain(`${RECOVERY_LADDER_NPM_GLOBAL} && directive doctor`);
     const fallback = template.split("\n").find((line) => line.includes(".agents/skills")) ?? "";

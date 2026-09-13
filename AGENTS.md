@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=a9874dbf7b52 refreshed=2026-09-13T01:18:49Z session=6a5735384bca -->
+<!-- deft:managed-section v3 sha=42d46a292b3b refreshed=2026-09-13T01:50:02Z session=be555fbd5dad -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -174,7 +174,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Hook runtime unavailable (#3785)
 
-! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
+! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive@<pin>`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
 ⊗ Hand-edit `failClosed` in `.cursor/hooks.json` — the next `deft update` rewrites it and silently re-arms the lockout.
 
 ## Session routing (#2176)
