@@ -2396,11 +2396,11 @@ function harvestInterpreterPayloadDests(words: readonly string[], execIndex: num
   return dests;
 }
 
-/** jar cf DEST inputs — dest is the first positional, not the last (#3593). */
+/** jar create/update DEST — dest is `--file` or the first positional, not the last (#3593). */
 function jarCreateArchiveDest(words: readonly string[], execIndex: number): string | null {
   const name = argv0BareName(words, execIndex);
   if (name !== "jar" && name !== "fastjar") return null;
-  let create = false;
+  let writesArchive = false;
   let fileDest: string | null = null;
   let firstPositional: string | null = null;
   for (let i = execIndex + 1; i < words.length; i++) {
@@ -2418,26 +2418,26 @@ function jarCreateArchiveDest(words: readonly string[], execIndex: number): stri
       }
       continue;
     }
-    if (n === "--create") {
-      create = true;
+    if (n === "--create" || n === "--update") {
+      writesArchive = true;
       continue;
     }
     if (n.startsWith("-") && n !== "--") {
       const cluster = n.replace(/^-*/, "");
-      if (cluster.includes("c")) create = true;
+      if (cluster.includes("c") || cluster.includes("u")) writesArchive = true;
       continue;
     }
     if (!n.startsWith("-") && n !== "--") {
-      // Compact `cf` / `cfe` without a dash.
-      if (n.length <= 4 && /^[tfxcuv0-9]+$/.test(n) && n.includes("c")) {
-        create = true;
+      // Compact `cf` / `uf` / `cfe` without a dash.
+      if (n.length <= 4 && /^[tfxcuv0-9]+$/.test(n) && (n.includes("c") || n.includes("u"))) {
+        writesArchive = true;
         continue;
       }
       firstPositional = raw;
       break;
     }
   }
-  if (!create) return null;
+  if (!writesArchive) return null;
   const dest = fileDest ?? (firstPositional !== null ? zipShellWordLiteral(firstPositional) : null);
   return dest !== null && dest.length > 0 ? dest : null;
 }

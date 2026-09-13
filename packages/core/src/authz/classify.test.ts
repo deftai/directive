@@ -1787,6 +1787,10 @@ describe("interpreter payload and jar dest-grammar (#3593)", () => {
     expect(
       classifyShellAuthzOps("jar --create -f .deft/authz/grants/evil.json input.txt"),
     ).toContain("unknown");
+    expect(
+      classifyShellAuthzOps("jar --update --file=.deft/authz/grants/evil.jar input"),
+    ).toContain("unknown");
+    expect(classifyShellAuthzOps("jar uf .deft/authz/grants/evil.json files")).toEqual(["unknown"]);
   });
 
   it("keeps git status fail-open", () => {
