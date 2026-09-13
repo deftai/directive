@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "Do not implement sketch bullet 4 as \"unbound clause set is a refusal\" unless the lean explicitly reverses #3826 for the `complete` reader and sequences behind #4383. Re-take the `scope:complete` transcript at 24867a867; what survives is exit code and completion, not the old `verify:ac passed` label.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts#does not treat noOrigin as a non-zero unscoped verdict (#4426)",
+          "recorded_at": "2026-09-13T01:52:00Z",
+          "recorded_by": "leaf-implementation/4426"
+        }
       },
       {
         "title": "Drop \"and exit code\" from sketch bullet 2, or scope it to `--issue`. Extend `OrphanActiveBasis` with a `noOrigin` counter: scanned briefs versus briefs that resolved zero origins. Do not flatten the two unknown policies.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts#counts noOrigin for running briefs with zero forge refs and stays fail-open on the unscoped sweep (#4426)",
+          "recorded_at": "2026-09-13T01:52:00Z",
+          "recorded_by": "leaf-implementation/4426"
+        }
       },
       {
         "title": "Restate sketch bullet 3 as briefs scanned versus origins resolved. Drop \"the detector is functional but unsweepable\" as substantiation of `--issue 1`.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts#briefsScanned/originsResolved empty-sweep message",
+          "recorded_at": "2026-09-13T01:52:00Z",
+          "recorded_by": "leaf-implementation/4426"
+        }
       },
       {
         "title": "Origin references are operator-collected or minted by `task issue:emit`. ⊗ Agent-asserted `parent_issue` / `plan.references`. Same polarity as `file_scope`.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/emit_hints.test.ts#setup Phase 3 offers emit-hints at the proposed/ emission step (#4426)",
+          "recorded_at": "2026-09-13T01:52:00Z",
+          "recorded_by": "leaf-implementation/4426"
+        }
       },
       {
         "title": "Setup Phase 3 offers emit-hints (none / umbrella / per-vBRIEF) at the emission step. Strike \"state that issue-less scopes are outside the reconciliation model\" — emit-hints already says that.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/emit_hints.test.ts#setup Add-scope branch names emit-hints in the post-write sequence (#4426)",
+          "recorded_at": "2026-09-13T01:52:00Z",
+          "recorded_by": "leaf-implementation/4426"
+        }
       },
       {
         "title": "Do not carry comment 5640274557's claims that `verified` requires a stamped command and that `failed` is only missing-path. Do not derive a test name or command from clause prose (#3835).",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4455#issuecomment-5649879796",
+          "recorded_at": "2026-09-13T01:52:00Z",
+          "recorded_by": "leaf-implementation/4426"
+        }
       }
     ],
     "tags": [
