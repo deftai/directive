@@ -253,6 +253,7 @@ describe("scope branch coverage", () => {
     const completeRefuse = undoOne({ action: "complete", decision_id: "x" }, root, { logPath });
     expect(completeRefuse.ok).toBe(false);
     expect(completeRefuse.message).toMatch(/xbrief\/completed/i);
+    expect(completeRefuse.message).toMatch(/vbrief\/completed/i);
     expect(completeRefuse.message).toMatch(/git revert/i);
     expect(completeRefuse.message).not.toMatch(/scope:undo/i);
     expect(completeRefuse.message).not.toMatch(/hand-edit/i);

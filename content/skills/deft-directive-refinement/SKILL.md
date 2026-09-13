@@ -284,7 +284,7 @@ The task scans every xBRIEF with a GitHub-backed reference (whether the referenc
 - `task scope:block <file>` -- stays in active/ (status: blocked)
 - `task scope:unblock <file>` -- stays in active/ (status: running)
 - `task scope:fail <file>` (v0.6+) -- active/ -> completed/ (status: failed) — record a failure terminal state when a scope cannot complete but should not be cancelled
-- `task scope:undo <decision_id>` (D15 / #1134) -- reverse a single scope-lifecycle audit entry (`demote` -> re-promote, `cancel` -> restore-from-cancelled-to-prior-folder, `restore` -> re-cancel); terminal actions (`complete` / `fail`) are REFUSED -- to correct a completed record, Edit the artifact under xbrief/completed/; to reverse the complete itself, git revert the complete commit
+- `task scope:undo <decision_id>` (D15 / #1134) -- reverse a single scope-lifecycle audit entry (`demote` -> re-promote, `cancel` -> restore-from-cancelled-to-prior-folder, `restore` -> re-cancel); terminal actions (`complete` / `fail`) are REFUSED -- to correct a completed record, Edit the artifact under xbrief/completed/ (or legacy vbrief/completed/); to reverse the complete itself, git revert the complete commit
 - `task scope:undo --batch-id=<uuid>` (D15 / #1134) -- reverse every audit entry tagged with the batch_id (e.g. the cohort produced by `task scope:demote --batch`); idempotent on already-undone entries; the undo cohort is itself reversible via the `undo_batch_id` minted on the new entries. Optional `--dry-run` previews without writing.
 - `task scope:undo --latest` (D15 / #1134) -- reverse the most-recent reversible audit entry (`demote` / `cancel` / `restore` / `undo`) not already undone; convenience form used by the N6 / #1146 smoketest contract.
 

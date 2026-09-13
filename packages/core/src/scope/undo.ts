@@ -291,7 +291,7 @@ export function undoOne(
       ok: false,
       message:
         `Refusing to undo terminal action '${action}' (decision_id=${decisionId}). ` +
-        "To correct a completed record, Edit the artifact under xbrief/completed/. " +
+        "To correct a completed record, Edit the artifact under xbrief/completed/ (or legacy vbrief/completed/). " +
         "To reverse the complete itself, git revert the complete commit.",
       auditEntry: null,
     };
