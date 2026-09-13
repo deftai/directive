@@ -186,6 +186,19 @@ describe("evaluateN3LaunchProbe (#4432)", () => {
     expect(result.haltToken).toBe("dispatch-fail");
   });
 
+  it("does not let an invalid envelope probe inherit amend-spend", () => {
+    const result = evaluateN3LaunchProbe({
+      ...valid,
+      envelopePath: "dest/envelope.md",
+      onFail: "amend-spend",
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.code).toBe("probe-invalid");
+    expect(result.recovery).toBe("dispatch-fail");
+    expect(result.haltToken).toBe("dispatch-fail");
+  });
+
   it("refuses an envelope path or Read-and-follow prompt", () => {
     const withPath = evaluateN3LaunchProbe({
       ...valid,

@@ -134,7 +134,7 @@ export function evaluateN3LaunchProbe(input: N3LaunchProbeInput): LaunchProbeVer
     input.threadAccess === false;
 
   if (!probeValid) {
-    return failLaunchProbe(input.onFail, "probe-invalid");
+    return failLaunchProbe("dispatch-fail", "probe-invalid");
   }
 
   const families = input.launchableFamilies
