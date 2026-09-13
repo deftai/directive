@@ -14,8 +14,8 @@ export type LauncherArgvClass =
       readonly kind: "launcher";
       readonly family: LauncherFamily;
       readonly dest: string | null;
-      readonly compound: boolean;
-    };
+    }
+  | { readonly kind: "compound"; readonly family: LauncherFamily };
 
 export const NOT_LAUNCHER: LauncherArgvClass = { kind: "not-launcher" };
 
@@ -86,14 +86,12 @@ export function classifyLauncherFamilyArgv(
     for (const segment of segments) {
       const classified = classifyLauncherSegment(segment, payloadCwd);
       if (classified.kind === "launcher") {
-        return { ...classified, compound: true };
+        return { kind: "compound", family: classified.family };
       }
     }
     return NOT_LAUNCHER;
   }
-  const classified = classifyLauncherSegment(segments[0] ?? "", payloadCwd);
-  if (classified.kind === "launcher") return { ...classified, compound: false };
-  return NOT_LAUNCHER;
+  return classifyLauncherSegment(segments[0] ?? "", payloadCwd);
 }
 
 function classifyLauncherSegment(segment: string, payloadCwd: string | null): LauncherArgvClass {
@@ -109,7 +107,6 @@ function classifyLauncherSegment(segment: string, payloadCwd: string | null): La
     kind: "launcher",
     family,
     dest: destFromArgv(family, rest, payloadCwd),
-    compound: false,
   };
 }
 

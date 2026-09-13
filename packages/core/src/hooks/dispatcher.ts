@@ -2642,13 +2642,13 @@ function prepareProcessOnlyCriticDest(
 function decideLauncherFamilyArgv(
   input: HookDispatchInput,
   toolName: string,
-  classified: Extract<LauncherArgvClass, { kind: "launcher" }>,
+  classified: Extract<LauncherArgvClass, { kind: "launcher" | "compound" }>,
   seams: HookPolicySeams,
 ): HookDecision {
   const environ = input.environ ?? process.env;
   const readOnly = isReadOnlyHookContext(input.payload, environ);
   const projectRoot = resolve(input.projectRoot);
-  if (classified.compound) {
+  if (classified.kind === "compound") {
     return overlayGrokCriticSpawnNotReadyRecovery(
       input,
       toolName,
@@ -3036,7 +3036,7 @@ function routeHookDecision(
       const launcher = classifyLauncherFamilyArgv(command, {
         payloadCwd: hookExecutionCwd(input.payload),
       });
-      if (launcher.kind === "launcher") {
+      if (launcher.kind === "launcher" || launcher.kind === "compound") {
         return decideLauncherFamilyArgv(input, toolName, launcher, seams);
       }
     }
