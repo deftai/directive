@@ -448,10 +448,7 @@ export function isProposedLifecycleWrite(projectRoot: string, targetPath: string
  * Correcting a completed record under xbrief/completed/ (or legacy vbrief/completed/)
  * reuses the proposed/ exemption: all mutation targets, not the declared path (#4422).
  */
-export function isCompletedLifecycleWrite(
-  projectRoot: string,
-  targetPath: string | null,
-): boolean {
+export function isCompletedLifecycleWrite(projectRoot: string, targetPath: string | null): boolean {
   return isLifecycleFolderWrite(projectRoot, targetPath, "completed");
 }
 
