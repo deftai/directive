@@ -1,3 +1,4 @@
+export { validateCreatedUpdatedChronology } from "./chronology.js";
 export type {
   ConformanceEvaluateResult,
   ConformanceFinding,

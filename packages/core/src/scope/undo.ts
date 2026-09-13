@@ -3,6 +3,7 @@ import { basename, join, relative, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
+import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import { REVERSIBLE_ACTIONS, TERMINAL_ACTIONS } from "./constants.js";
 import { formatBriefJson, utcNowIso } from "./vbrief-json.js";
@@ -224,7 +225,7 @@ function moveAndFlip(
   }
   const planObj = plan as Record<string, unknown>;
   planObj.status = newStatus;
-  planObj.updated = timestamp;
+  stampExistingEnvelopes(data, timestamp);
   // #2980 wave D: product write sink routes through containedWrite.
   containedWrite({
     root: resolve(projectRoot),

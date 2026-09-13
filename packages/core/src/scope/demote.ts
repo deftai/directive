@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
+import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { stripTrailingPathSeparators } from "../text/redos-safe.js";
 import { append, canonicalLogPath, latestForPath, newDecisionId } from "./audit-log.js";
 import { resolveProjectRoot } from "./project-context.js";
@@ -113,7 +114,7 @@ export function demoteOne(
 
   const timestamp = utcNowIso(now);
   planObj.status = TARGET_STATUS;
-  planObj.updated = timestamp;
+  stampExistingEnvelopes(data, timestamp);
   // #2980 wave D: product write sink routes through containedWrite.
   containedWrite({
     root: resolve(projectRoot),

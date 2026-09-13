@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { hasArtifactSuffix, MIGRATED_ARTIFACT_DIR } from "../layout/resolve.js";
+import { validateCreatedUpdatedChronology } from "./chronology.js";
 import { LIFECYCLE_FOLDERS } from "./constants.js";
 import { validateNoRootDecompositionDrafts } from "./decomposition.js";
 import { validateEpicStoryLinks } from "./epic-links.js";
@@ -106,6 +107,7 @@ export function validateAll(
     errors.push(...validateFilename(display));
     errors.push(...validateFolderStatus(display, data, vbriefDir));
     warnings.push(...validateOriginProvenance(display, data, vbriefDir, strictOriginTypes));
+    warnings.push(...validateCreatedUpdatedChronology(data, display));
   }
 
   const normalizedDir = normalizeVbriefDir(vbriefDir);
@@ -129,6 +131,7 @@ export function validateAll(
       resolvedToOriginal.set(resolvedPd, projectDefDisplay);
       errors.push(...validateVbriefSchema(data, projectDefDisplay));
       errors.push(...validateProjectDefinition(projectDefDisplay, data, vbriefDir));
+      warnings.push(...validateCreatedUpdatedChronology(data, projectDefDisplay));
     }
   }
 

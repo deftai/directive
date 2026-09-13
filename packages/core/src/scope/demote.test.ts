@@ -49,6 +49,38 @@ describe("demote", () => {
     expect(existsSync(join(root, "xbrief", "proposed", "x.xbrief.json"))).toBe(true);
   });
 
+  it("stamps envelope.updated with plan.updated and does not clamp created (#4423)", () => {
+    root = makeRepo();
+    const created = "2026-06-01T12:03:00Z";
+    const path = join(root, "xbrief", "pending", "chrono.xbrief.json");
+    writeFileSync(
+      path,
+      formatBriefJson({
+        xBRIEFInfo: { version: "0.8", created, updated: "2026-05-01T00:00:00Z" },
+        plan: {
+          title: "T",
+          status: "pending",
+          created,
+          updated: "2026-05-01T00:00:00Z",
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const now = new Date("2026-06-01T12:00:43.000Z");
+    const result = demoteOne(path, root, "operator-requested", { now });
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "proposed", "chrono.xbrief.json");
+    const body = JSON.parse(readFileSync(dest, "utf8")) as {
+      xBRIEFInfo: { created: string; updated: string };
+      plan: { created: string; updated: string };
+    };
+    expect(body.xBRIEFInfo.created).toBe(created);
+    expect(body.plan.created).toBe(created);
+    expect(body.xBRIEFInfo.updated).toBe("2026-06-01T12:00:43Z");
+    expect(body.plan.updated).toBe(body.xBRIEFInfo.updated);
+  });
+
   it("batch demotes older pending files", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "pending", "old.xbrief.json");

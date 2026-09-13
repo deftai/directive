@@ -19,7 +19,10 @@ describe("brief envelope policy (#3933)", () => {
       plan: {},
     };
     expect(stampExistingEnvelopes(data, NOW)).toEqual(["xBRIEFInfo"]);
-    expect(data).toEqual({ xBRIEFInfo: { version: "0.8", updated: NOW }, plan: {} });
+    expect(data).toEqual({
+      xBRIEFInfo: { version: "0.8", updated: NOW },
+      plan: { updated: NOW },
+    });
   });
 
   it("stamps an existing legacy v0.6 envelope in place", () => {
@@ -41,10 +44,47 @@ describe("brief envelope policy (#3933)", () => {
     expect((data.vBRIEFInfo as { updated: string }).updated).toBe(NOW);
   });
 
-  it("reports no stamped key and mutates nothing when neither envelope is present", () => {
+  it("reports no stamped envelope key but still aligns plan.updated", () => {
     const data: Record<string, unknown> = { plan: { status: "pending" } };
     expect(stampExistingEnvelopes(data, NOW)).toEqual([]);
-    expect(data).toEqual({ plan: { status: "pending" } });
+    expect(data).toEqual({ plan: { status: "pending", updated: NOW } });
+  });
+
+  it("mutates nothing when neither envelope nor plan object is present", () => {
+    const data: Record<string, unknown> = { other: 1 };
+    expect(stampExistingEnvelopes(data, NOW)).toEqual([]);
+    expect(data).toEqual({ other: 1 });
+  });
+
+  it("leaves created byte-identical on envelope and plan (#4423)", () => {
+    const created = "2026-06-01T12:03:00Z";
+    const data: Record<string, unknown> = {
+      xBRIEFInfo: { version: "0.8", created, updated: "2026-01-01T00:00:00Z" },
+      plan: {
+        title: "T",
+        created,
+        updated: "2026-01-01T00:00:00Z",
+        items: [{ title: "i", status: "pending", created, updated: "old", completed: "old" }],
+      },
+    };
+    stampExistingEnvelopes(data, NOW);
+    const envelope = data.xBRIEFInfo as { created: string; updated: string };
+    const plan = data.plan as {
+      created: string;
+      updated: string;
+      items: Array<{ created: string; updated: string; completed: string }>;
+    };
+    expect(envelope.created).toBe(created);
+    expect(plan.created).toBe(created);
+    expect(envelope.updated).toBe(NOW);
+    expect(plan.updated).toBe(NOW);
+    expect(plan.items[0]).toEqual({
+      title: "i",
+      status: "pending",
+      created,
+      updated: "old",
+      completed: "old",
+    });
   });
 
   it("ignores non-object envelope values", () => {
