@@ -2248,7 +2248,7 @@ function hasProtectedZipArchiveDestination(command: string): boolean {
 /**
  * Closed read-only proof for #4188 dest-of-write. Inspection of authz state
  * stays allow. Absence of a near-zero-read measurement keeps this list load-bearing.
- * sort/awk prove only without -o/--output/--pretty-print (those stay dest-of-write).
+ * sort/awk prove only without -o/--output/--pretty-print or attached `-oFILE`.
  */
 const READ_ONLY_PROOF_BINS = new Set([
   "cat",
@@ -2274,6 +2274,10 @@ function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boo
     const n = normalizeToken(words[i] as string);
     if (READ_ONLY_PROOF_OUTPUT_DEST_FLAGS.has(n)) return true;
     if (n.startsWith("--output=") || n.startsWith("--pretty-print=")) return true;
+    // POSIX attached `-oFILE` (not `-out*` / `--`).
+    if (n.startsWith("-o") && !n.startsWith("-out") && !n.startsWith("--") && n.length > 2) {
+      return true;
+    }
   }
   return false;
 }

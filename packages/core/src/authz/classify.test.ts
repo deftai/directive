@@ -1618,8 +1618,9 @@ describe("classifyShellAuthzOps (#2944)", () => {
     for (const command of [
       "sort -o .deft/authz/grants/evil.json in.txt",
       "awk -o .deft/authz/grants/evil.json in.txt",
+      "sort -o.deft/authz/grants/evil.json input.txt",
     ]) {
-      expect(classifyShellAuthzOps(command), command).not.toEqual([]);
+      expect(classifyShellAuthzOps(command), command).toContain("settings");
     }
   });
 
