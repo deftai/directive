@@ -1034,6 +1034,26 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("--permission-mode bypassPermissions");
   });
 
+  it("locks Grok native process_only stdin lander (#4315)", () => {
+    const dispatch = markdownSection(
+      readText("docs/grok-build-subscription-setup.md"),
+      "## Design-critique dispatch",
+    );
+    expect(dispatch).toContain("subagent_type: general-purpose");
+    expect(dispatch).toContain("process_only");
+    expect(dispatch).toContain("tool_input");
+    expect(dispatch).toContain("toolInput");
+    expect(dispatch).toContain("spawn-process-only-ready");
+    expect(dispatch).toContain("zero, one, or many leftover eligible");
+    expect(dispatch).toContain("Unmarked dest-cwd general-purpose is never a critic seat");
+    expect(dispatch).toContain("Implement-class never sets");
+    expect(dispatch).toContain("upstream xAI schema ask");
+    expect(dispatch).toContain("any native outcome that is not skip-class");
+    expect(dispatch).not.toContain("wait on #4315");
+    expect(dispatch).toContain("Do not make plan the critic seat");
+    expect(dispatch).toContain("#4219");
+  });
+
   it("locks run-posture front door tokens and fixtures (#4072)", () => {
     const text = readText(CONTRACT);
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");

@@ -46,6 +46,49 @@ describe("hook-dispatch CLI", () => {
     expect(JSON.parse(out.join(""))).toMatchObject({ decision: "deny" });
   });
 
+  it("lands Grok PreToolUse process_only onto tool_input (#4315)", () => {
+    const parsed = parsePayload(
+      JSON.stringify({
+        hookEventName: "pre_tool_use",
+        hook_event_name: "PreToolUse",
+        toolName: "spawn_subagent",
+        toolInput: {
+          subagent_type: "general-purpose",
+          process_only: true,
+          cwd: "/dest",
+          prompt: "critic",
+        },
+      }),
+    );
+    const payload = parsed.payload as {
+      tool_input?: { process_only?: boolean; subagent_type?: string };
+    };
+    expect(payload.tool_input?.process_only).toBe(true);
+    expect(payload.tool_input?.subagent_type).toBe("general-purpose");
+
+    const out: string[] = [];
+    const code = run(["--host", "grok", "--event", "tool.before", "--project-root=/project"], {
+      readStdin: () =>
+        JSON.stringify({
+          hookEventName: "pre_tool_use",
+          toolName: "spawn_subagent",
+          toolInput: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            prompt: "critic",
+          },
+        }),
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+    });
+    expect(code).toBe(0);
+    const wire = JSON.parse(out.join("")) as { decision?: string; reason?: string };
+    expect(wire.decision).toBe("deny");
+    expect(wire.reason).toMatch(/process_only critic spawn requires tool_input.cwd/);
+    expect(wire.reason).not.toMatch(/No active xBRIEF/);
+  });
+
   it("parses the provider-neutral host/event contract", () => {
     expect(
       parseArgs(["--host", "grok", "--event", "tool.before", "--project-root=/project"]),

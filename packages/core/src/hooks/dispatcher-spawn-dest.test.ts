@@ -16,6 +16,7 @@ import {
   decideHook,
   type HookPolicySeams,
   inspectActiveScope,
+  parseHookStdin,
   spawnToolArgUpdatedInput,
 } from "./index.js";
 import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
@@ -176,6 +177,62 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(decision.message).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
     expect(inspectRitual).not.toHaveBeenCalled();
     expect(inspectScope).toHaveBeenCalled();
+  });
+
+  it("lands Grok stdin process_only as spawn-process-only-ready at 0, 1, and many leftover briefs (#4315)", () => {
+    const counts = [0, 1, 2] as const;
+    for (const leftover of counts) {
+      const { root, dest } = destFixture();
+      for (let i = 0; i < leftover; i += 1) {
+        writeRunning(root, `story-${i}.xbrief.json`, [`packages/${i}/**`]);
+      }
+      const inspectRitual = vi.fn(() => STALE_RITUAL);
+      const inspectScope = vi.fn((projectRoot: string) => inspectActiveScope(projectRoot));
+      const prepareArcDest = vi.fn(() => ({
+        dest: {
+          destPath: dest,
+          dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          originRef: "origin/main",
+          pinKind: "origin-default" as const,
+          reused: true,
+        },
+        record:
+          "arc-mode: no-ingest\ndest: " +
+          dest +
+          "\ndispatch-sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      }));
+      const { payload } = parseHookStdin(
+        JSON.stringify({
+          hookEventName: "pre_tool_use",
+          hook_event_name: "PreToolUse",
+          toolName: "spawn_subagent",
+          toolInput: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            cwd: dest,
+            prompt: "git show the dispatch sha and post a GitHub comment",
+          },
+        }),
+      );
+      expect(
+        (payload as { tool_input?: { process_only?: boolean } }).tool_input?.process_only,
+      ).toBe(true);
+      const decision = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: root,
+          payload,
+          environ: { DEFT_SESSION_ID: "parent-1" },
+        },
+        liveScopeSeams({ inspectRitual, inspectScope, prepareArcDest }),
+      );
+      expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+      expect(decision.message).toMatch(/without dest occupancy/);
+      expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+      expect(inspectRitual).not.toHaveBeenCalled();
+      expect(inspectScope).not.toHaveBeenCalled();
+    }
   });
 
   it("skips parent ritual when Grok cwd is dest-proven and parent identity is set", () => {

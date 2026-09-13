@@ -1,0 +1,154 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from GitHub issue #4315 Bound-remedy harvest (comment 5654179470)",
+    "updated": "2026-09-13T15:56:53Z"
+  },
+  "plan": {
+    "title": "fix(design-critique): land process_only on Grok PreToolUse tool_input for general-purpose plus dest cwd",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(design-critique): land process_only on Grok PreToolUse tool_input for general-purpose plus dest cwd",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4315",
+      "Overview": "Spec is Bound remedy lean 5654179470, not the filed Expected. Skip class already exists when the flag is on PreToolUse stdin. Next-build is the in-repo adapter that lands process_only on tool_input for general-purpose plus dest cwd, plus stdin-shape regression. Do not re-open #4296. Do not skip #2885 on dest-path. Do not make plan the critic seat. Do not implement sibling #4219. Unmarked dest-cwd general-purpose is never a critic seat. Implement-class never sets process_only. Full thread: https://github.com/deftai/directive/issues/4315",
+      "Labels": "bug, agent-experience, process, grok-build, critic, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not re-open #4296. Do not skip #2885 on dest-path. Do not make plan the critic seat.",
+        "status": "pending"
+      },
+      {
+        "title": "Host (or equivalent adapter) lands process_only on Grok PreToolUse tool_input for general-purpose plus dest cwd. Regression exercises that stdin shape.",
+        "status": "pending"
+      },
+      {
+        "title": "Unmarked dest-cwd general-purpose is never a critic seat: zero briefs is #2885; one eligible is implement-class dest-lock. Skip class distinguishes them.",
+        "status": "pending"
+      },
+      {
+        "title": "Acceptance requires spawn-process-only-ready, no dest occupancy, no leftover file_scope. Zero, one, and multiple eligible briefs.",
+        "status": "pending"
+      },
+      {
+        "title": "Implement-class never sets process_only. Implement-envelope conflict stays fail-closed.",
+        "status": "pending"
+      },
+      {
+        "title": "grok CLI last-resort after any native outcome that is not skip-class. No dual-launch. Parent relay is not native completion.",
+        "status": "pending"
+      },
+      {
+        "title": "Separate in-repo deliverable from any upstream xAI schema ask.",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "critic",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4315",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4315: fix(design-critique): Grok Build spawn_subagent schema cannot pass process_only so 3arc Grok seats hit #2885"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4315#issuecomment-5654179470",
+        "type": "x-xbrief/github-comment",
+        "title": "Issue #4315 comment 5654179470: Bound remedy"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from Bound remedy lean 5654179470 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not re-open #4296. Do not skip #2885 on dest-path. Do not make plan the critic seat.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Host (or equivalent adapter) lands process_only on Grok PreToolUse tool_input for general-purpose plus dest cwd. Regression exercises that stdin shape.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Unmarked dest-cwd general-purpose is never a critic seat: zero briefs is #2885; one eligible is implement-class dest-lock. Skip class distinguishes them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Acceptance requires spawn-process-only-ready, no dest occupancy, no leftover file_scope. Zero, one, and multiple eligible briefs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Implement-class never sets process_only. Implement-envelope conflict stays fail-closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "grok CLI last-resort after any native outcome that is not skip-class. No dual-launch. Parent relay is not native completion.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Separate in-repo deliverable from any upstream xAI schema ask.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/classify/stdin.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "content/docs/grok-build-subscription-setup.md"
+        ],
+        "module_boundary": "Grok PreToolUse stdin process_only lander for critic skip-class",
+        "cohesion_exemption": "dispatcher.ts and dispatcher-spawn-dest.test.ts already exceed FILE_SIZE_REVIEW_TRIGGER_LINES. This slice lands process_only onto canonical tool_input and adds stdin-shape regressions in those existing files. Splitting the hook dispatcher is out of scope."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5413338515,
+        "origin": "deftai/directive#4315",
+        "id": "github.issue.5413338515"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3c63452fcac10e7b84332369c4a1dc2f6cb845f8e0162c7c4a8261e2c2c5fb2c"
+      },
+      "capacityBucket": "bugfix"
+    },
+    "id": "github.issue.5413338515",
+    "updated": "2026-09-13T15:56:53Z"
+  }
+}

@@ -694,6 +694,51 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });
 
+  it("Grok toolInput process_only skips dest occupancy at 0, 1, and many leftover briefs (#4315)", () => {
+    const counts = [0, 1, 2] as const;
+    for (const leftover of counts) {
+      const root = mkdtempSync(join(tmpdir(), "spawn-occ-po-"));
+      temps.push(root);
+      gitInit(root);
+      const dest = join(root, "wt");
+      addLinkedWorktree(root, dest);
+      const active = join(root, "xbrief", "active");
+      mkdirSync(active, { recursive: true });
+      for (let i = 0; i < leftover; i += 1) {
+        writeFileSync(
+          join(active, `story-${i}.xbrief.json`),
+          JSON.stringify({
+            plan: {
+              status: "running",
+              metadata: { swarm: { file_scope: [`packages/${i}/**`] } },
+            },
+          }),
+          "utf8",
+        );
+      }
+      const evaluated = evaluateImplementSpawnOccupancy({
+        payload: {
+          hookEventName: "pre_tool_use",
+          toolName: "spawn_subagent",
+          toolInput: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            cwd: dest,
+            prompt: "critic",
+          },
+        },
+        payloadRoot: root,
+        host: "grok",
+        parentId: "parent-1",
+      });
+      expect(evaluated.allow).toBe(true);
+      if (!evaluated.allow) return;
+      expect(evaluated.exemption).toBe("process-only-critic");
+      expect(evaluated.reservation).toBeNull();
+      expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+    }
+  });
+
   it("keeps unique dest-lock for implement-class general-purpose (#4296)", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-lock-"));
     temps.push(root);

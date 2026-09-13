@@ -5,6 +5,7 @@ import {
   firstString,
   hookPayloadEnvironBag,
   hookPayloadTopLevelKeys,
+  landProcessOnlyFlagOnToolInput,
   mergeHookDispatchEnviron,
   record,
   toolInputRecord,
@@ -57,5 +58,70 @@ describe("spawn stdin env bag (#4393)", () => {
       DEFT_ACTIVE_SCOPE: "pinned.xbrief.json",
     });
     expect(mergeHookDispatchEnviron({ tool_name: "spawn_subagent" }, { A: "1" })).toBeUndefined();
+  });
+});
+
+describe("landProcessOnlyFlagOnToolInput (#4315)", () => {
+  it("lands process_only from Grok toolInput onto canonical tool_input", () => {
+    const landed = landProcessOnlyFlagOnToolInput({
+      hookEventName: "pre_tool_use",
+      toolName: "spawn_subagent",
+      toolInput: {
+        subagent_type: "general-purpose",
+        process_only: true,
+        cwd: "/dest",
+        prompt: "critic",
+      },
+    }) as { tool_input?: { process_only?: boolean; subagent_type?: string; cwd?: string } };
+    expect(landed.tool_input?.process_only).toBe(true);
+    expect(landed.tool_input?.subagent_type).toBe("general-purpose");
+    expect(landed.tool_input?.cwd).toBe("/dest");
+  });
+
+  it("lands processOnly camelCase and top-level flag spellings", () => {
+    const fromCamel = landProcessOnlyFlagOnToolInput({
+      toolName: "spawn_subagent",
+      toolInput: { subagent_type: "general-purpose", processOnly: "true" },
+    }) as { tool_input?: { process_only?: boolean } };
+    expect(fromCamel.tool_input?.process_only).toBe(true);
+    const fromTop = landProcessOnlyFlagOnToolInput({
+      tool_name: "spawn_subagent",
+      process_only: true,
+      toolInput: { subagent_type: "general-purpose", cwd: "/dest" },
+    }) as { tool_input?: { process_only?: boolean; cwd?: string } };
+    expect(fromTop.tool_input?.cwd).toBe("/dest");
+    const fromOne = landProcessOnlyFlagOnToolInput({
+      toolName: "spawn_subagent",
+      toolInput: { process_only: 1, subagent_type: "general-purpose" },
+    }) as { tool_input?: { process_only?: boolean } };
+    expect(fromOne.tool_input?.process_only).toBe(true);
+  });
+
+  it("does not invent process_only from dest-path or prompt text", () => {
+    const unmarked = landProcessOnlyFlagOnToolInput({
+      toolName: "spawn_subagent",
+      toolInput: {
+        subagent_type: "general-purpose",
+        cwd: "/dest/linked-worktree",
+        prompt: "You are a process_only critic",
+      },
+    }) as { tool_input?: { process_only?: boolean } };
+    expect(unmarked.tool_input?.process_only).toBeUndefined();
+    expect(unmarked).toEqual({
+      toolName: "spawn_subagent",
+      toolInput: {
+        subagent_type: "general-purpose",
+        cwd: "/dest/linked-worktree",
+        prompt: "You are a process_only critic",
+      },
+    });
+  });
+
+  it("is a no-op when tool_input.process_only is already true", () => {
+    const payload = {
+      tool_name: "spawn_subagent",
+      tool_input: { subagent_type: "general-purpose", process_only: true, cwd: "/dest" },
+    };
+    expect(landProcessOnlyFlagOnToolInput(payload)).toBe(payload);
   });
 });

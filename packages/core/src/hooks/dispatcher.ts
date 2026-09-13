@@ -96,6 +96,7 @@ import {
   hostIdentityFallsBackToExplicitOwner,
   inspectExactLifecycleCommand,
   inspectHintedLifecycleSessionId,
+  landProcessOnlyFlagOnToolInput,
   missingToolNameMessage,
   record,
   resolveHookHostIdentity,
@@ -2615,7 +2616,11 @@ function prepareProcessOnlyCriticDest(
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
   const observation: DispatchObservation = { effectiveRoots: [], foreignTarget: false };
-  const decision = routeHookDecision(input, seams, observation);
+  const landed: HookDispatchInput = {
+    ...input,
+    payload: landProcessOnlyFlagOnToolInput(input.payload),
+  };
+  const decision = routeHookDecision(landed, seams, observation);
   // Skipped for the #3039 kill-switch and #2926 opt-out, which short-circuit
   // before any Directive enforcement runs — including this bookkeeping.
   if (decision.code !== "directive-disabled" && decision.code !== "session-start-disabled") {

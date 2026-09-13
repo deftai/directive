@@ -44,6 +44,7 @@ export {
   firstString,
   hookPayloadEnvironBag,
   hookPayloadTopLevelKeys,
+  landProcessOnlyFlagOnToolInput,
   mergeHookDispatchEnviron,
   record,
   toolInputRecord,

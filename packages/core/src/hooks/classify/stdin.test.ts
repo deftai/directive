@@ -17,6 +17,27 @@ describe("parseHookStdin (#2734 / #2738 / #2950)", () => {
     expect(parseHookStdin("{bad")).toEqual({ payload: {}, context: { parseFailed: true } });
   });
 
+  it("lands process_only from Grok PreToolUse stdin onto tool_input (#4315)", () => {
+    const raw = JSON.stringify({
+      hookEventName: "pre_tool_use",
+      hook_event_name: "PreToolUse",
+      toolName: "spawn_subagent",
+      toolInput: {
+        subagent_type: "general-purpose",
+        process_only: true,
+        cwd: "/dest",
+        prompt: "git show the dispatch sha",
+      },
+    });
+    const parsed = parseHookStdin(raw);
+    const payload = parsed.payload as {
+      tool_input?: { process_only?: boolean; subagent_type?: string; cwd?: string };
+    };
+    expect(payload.tool_input?.process_only).toBe(true);
+    expect(payload.tool_input?.subagent_type).toBe("general-purpose");
+    expect(payload.tool_input?.cwd).toBe("/dest");
+  });
+
   it("synthesizes single-file free-form ApplyPatch", () => {
     const freeForm = ["*** Begin Patch", "*** Add File: only.txt", "+x", "*** End Patch"].join(
       "\n",

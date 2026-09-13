@@ -82,3 +82,41 @@ export function mergeHookDispatchEnviron(
   if (bag === null) return undefined;
   return { ...fallback, ...bag };
 }
+
+/** Host-visible process-only skip-class keys. Implement-class never sets these (#4315). */
+const PROCESS_ONLY_FLAG_KEYS = ["process_only", "processOnly"] as const;
+const PROCESS_ONLY_TRUTHY = new Set(["1", "true", "yes", "on"]);
+
+function fieldTruthy(input: Record<string, unknown>, key: string): boolean {
+  const value = input[key];
+  if (value === true) return true;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") return PROCESS_ONLY_TRUTHY.has(value.trim().toLowerCase());
+  return false;
+}
+
+function hasProcessOnlyFlag(input: Record<string, unknown>): boolean {
+  return PROCESS_ONLY_FLAG_KEYS.some((key) => fieldTruthy(input, key));
+}
+
+/**
+ * Land host-visible `process_only` onto canonical `tool_input` (#4315).
+ * Grok PreToolUse stdin uses `toolInput` (camelCase). Pass is the field on
+ * stdin, not advertised schema. Dest-path and prompt are not this class.
+ * Implement-class never sets the flag.
+ */
+export function landProcessOnlyFlagOnToolInput(payload: unknown): unknown {
+  const input = record(payload);
+  if (input === null) return payload;
+  const nested = toolInputRecord(input);
+  const camel = record(input.toolInput);
+  const flagged =
+    (nested !== null && hasProcessOnlyFlag(nested)) ||
+    (camel !== null && hasProcessOnlyFlag(camel)) ||
+    hasProcessOnlyFlag(input);
+  if (!flagged) return payload;
+  const current = record(input.tool_input);
+  if (current !== null && current.process_only === true) return payload;
+  const source = nested ?? camel ?? {};
+  return { ...input, tool_input: { ...source, process_only: true } };
+}

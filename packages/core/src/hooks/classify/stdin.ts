@@ -3,7 +3,7 @@
  * No process I/O — operates on an already-read string.
  */
 
-import { firstString, record, toolInputRecord } from "./payload.js";
+import { firstString, landProcessOnlyFlagOnToolInput, record, toolInputRecord } from "./payload.js";
 import type { ParsedHookPayload } from "./types.js";
 
 const UTF8_BOM = "\uFEFF";
@@ -139,7 +139,10 @@ export function parseHookStdin(raw: string): ParsedHookPayload {
   }
   try {
     const parsed = JSON.parse(normalized) as unknown;
-    return { payload: attachSynthesizedApplyPatchPath(parsed), context: {} };
+    return {
+      payload: landProcessOnlyFlagOnToolInput(attachSynthesizedApplyPatchPath(parsed)),
+      context: {},
+    };
   } catch {
     const synthesized = trySynthesizeFreeFormApplyPatch(normalized);
     if (synthesized !== null) return synthesized;
