@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Land leftover completed-tracked artifact for #4398 (#3264 / #3476).** After squash of PR 4489. Does not recut. Refs #2321, #3476.
+- **Complete tracking for #4398.** After PR 4489. Refs #2321, #3476.
 
 - **npm-publish post-publish fixture retries tag-bound install, then warns (#4398).** After four successful `npm publish --provenance` steps, the two-pass fixture retries `npm install --ignore-scripts` of the cut versions with real backoff (not a no-op sleep, not `npm view` as the pass). After the bound, warn-only so a still-propagating registry does not fail `npm-publish.yml`; two-pass closure is deferred for that cut, not deleted. Publish-step failure still fails the job. `assertTagBoundDirectiveVersions` stays. Does not fold `pollWorkspacePackages` / Phase 7 (#4267). Closes #4398. Refs #4271, #4267.
 
