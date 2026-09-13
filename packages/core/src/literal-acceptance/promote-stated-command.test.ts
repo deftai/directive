@@ -130,7 +130,9 @@ describe("promote non-inline task_statement via documented slots (#4238)", () =>
       items: [{ command: COMMAND }],
     };
     const stored = readStoredLiteralAcceptanceCommands(plan);
-    expect(stored.filter((c) => c.source !== "task_statement")).toHaveLength(1);
+    expect(new Set(stored.map((c) => c.source))).toEqual(
+      new Set(["task_statement", "verify_commands", "metadata", "plan_item"]),
+    );
     let runs = 0;
     const result = evaluateLiteralAcceptanceFromPlan(plan, {
       projectRoot: process.cwd(),
@@ -223,6 +225,60 @@ describe("promote non-inline task_statement via documented slots (#4238)", () =>
       },
     });
     expect(result.ok).toBe(true);
+    expect(runs).toBe(1);
+  });
+
+  it("retains two executable peers with different nonempty expectedStdout", () => {
+    const plan = {
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [
+          {
+            command: COMMAND,
+            source: "task_statement",
+            sourceSpan: "labeled@L27",
+          },
+          { command: COMMAND, expectedStdout: "ok" },
+        ],
+        swarm: {
+          literal_acceptance_commands: [{ command: COMMAND, expectedStdout: "pass" }],
+        },
+      },
+      items: [],
+    };
+    const stored = readStoredLiteralAcceptanceCommands(plan);
+    const execStdout = stored
+      .filter((c) => c.source !== "task_statement" && typeof c.expectedStdout === "string")
+      .map((c) => c.expectedStdout)
+      .sort();
+    expect(execStdout).toEqual(["ok", "pass"]);
+    expect(stored.some((c) => c.source === "task_statement")).toBe(true);
+    expect(stored.some((c) => c.source === "explicit")).toBe(true);
+    expect(stored.some((c) => c.source === "metadata")).toBe(true);
+
+    let runs = 0;
+    const fail = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(fail.ok).toBe(false);
+    expect(fail.message).toMatch(/pass/);
+    expect(runs).toBe(1);
+
+    runs = 0;
+    const pass = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        runs += 1;
+        return { exitCode: 0, stdout: "ok\npass", stderr: "" };
+      },
+    });
+    expect(pass.ok).toBe(true);
     expect(runs).toBe(1);
   });
 

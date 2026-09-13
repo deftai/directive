@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`verify:vbrief-conformance --staged` (and `--all`) run D7 filename checks before parse (#4245).** The installed pre-commit hook uses `--staged`, which previously scanned bare keys only, so a dotted-slug xBRIEF could commit and then redden `vbrief:validate` / `task check`. Reuses `validateFilename`; does not retarget the hook at `vbrief:validate` and does not weaken D7 for version dots. Closes #4245.
 
-- **A labeled, fence, or prompt `task_statement` row can be promoted through the documented slots (#4238).** Capture identity includes `source`, so `swarm.verify_commands`, a plan-item command, or `swarm.literal_acceptance_commands` can coexist with the original capture-only row. Inline mentions stay #3721. Does not retag `source` to `explicit`. Closes #4238.
+- **A labeled, fence, or prompt `task_statement` row can be promoted through the documented slots (#4238).** Capture identity is command+cwd+exit+source (not stdout), so documented slots coexist with the original capture-only row. Execution identity is command+cwd+exit and runs once; retained stdout expectations are checked after that run. Inline mentions stay #3721. Does not retag `source` to `explicit`. Closes #4238.
 
 ### Removed
 

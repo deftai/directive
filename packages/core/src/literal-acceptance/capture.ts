@@ -69,18 +69,16 @@ function looksLikeShellCommand(command: string): boolean {
 }
 
 /**
- * Capture identity: command + cwd + exit + source-bucket.
+ * Capture/promote matching identity: command + cwd + exit + source.
  * Source is required so a non-inline task_statement row does not swallow a
- * same-context agent peer from a documented promote slot (#4238). Executable
- * sources share one bucket and omit expectedStdout so two promote slots cannot
- * double-run. Capture-only rows still keep stdout; run.ts validates every
- * retained stdout after a single execution.
+ * same-context agent peer from a documented promote slot (#4238). Stdout is
+ * not part of this key — run.ts groups by execution identity (command+cwd+exit)
+ * and checks every retained expectedStdout after a single run.
  */
 export function commandDedupeKey(cmd: {
   readonly command: string;
   readonly cwd?: string | null;
   readonly expectedExitCode?: number;
-  readonly expectedStdout?: string | null;
   readonly source?: string;
 }): string {
   const cwd =
@@ -89,25 +87,8 @@ export function commandDedupeKey(cmd: {
     typeof cmd.expectedExitCode === "number" && Number.isFinite(cmd.expectedExitCode)
       ? cmd.expectedExitCode
       : 0;
-  const bucket = commandSourceBucket(cmd.source);
-  // Executable peers collapse on command+cwd+exit so they cannot double-run.
-  // Capture-only rows keep stdout so a stated expectation is not dropped (#4238).
-  if (bucket === "executable") {
-    return `${cmd.command}\0${cwd}\0${exit}\0${bucket}`;
-  }
-  const stdout =
-    cmd.expectedStdout !== null &&
-    cmd.expectedStdout !== undefined &&
-    String(cmd.expectedStdout).length > 0
-      ? String(cmd.expectedStdout)
-      : "";
-  return `${cmd.command}\0${cwd}\0${exit}\0${bucket}\0${stdout}`;
-}
-
-/** Executable sources share one identity bucket so two promote slots cannot double-run (#4238). */
-export function commandSourceBucket(source?: string): string {
-  if (typeof source === "string" && isExecutableSource(source)) return "executable";
-  return source ?? "";
+  const source = typeof cmd.source === "string" ? cmd.source : "";
+  return `${cmd.command}\0${cwd}\0${exit}\0${source}`;
 }
 
 interface CaptureBuckets {
@@ -163,12 +144,9 @@ function pushCommand(buckets: CaptureBuckets, cmd: LiteralAcceptanceCommand): vo
         source: cmd.source,
         sourceSpan: cmd.sourceSpan ?? null,
       };
-    } else if (
-      existing !== undefined &&
-      idx >= 0 &&
-      isExecutableSource(existing.source) &&
-      isExecutableSource(cmd.source)
-    ) {
+    } else if (existing !== undefined && idx >= 0) {
+      // Same capture identity (command+cwd+exit+source). Fill empty stdout
+      // from a later duplicate; do not drop a different-source peer (#4238).
       const existingStdout =
         existing.expectedStdout !== null &&
         existing.expectedStdout !== undefined &&
@@ -680,11 +658,11 @@ export function readStoredLiteralAcceptanceDetailed(
 
     const swarm = asRecord(metadata.swarm);
     if (swarm !== null) {
-      // swarm.verify_commands is a string list (legacy). Prefer richer
-      // executable rows already loaded — do not invent a null-cwd duplicate
-      // for the same command text. Capture-only (task_statement) rows must
-      // not claim the slot; they coexist with a promoted peer (#4238).
-      const alreadyHasCommand = (command: string): boolean =>
+      // swarm.verify_commands is a string list (legacy). Skip when an
+      // executable peer is already loaded so attach mirroring does not invent
+      // a null-cwd duplicate. Capture-only (task_statement) rows must not
+      // claim the slot; they coexist with a promoted peer (#4238).
+      const alreadyHasExecutable = (command: string): boolean =>
         buckets.out.some(
           (c) => c.command === command && !isInlineProseMention(c) && isExecutableSource(c.source),
         );
@@ -693,7 +671,7 @@ export function readStoredLiteralAcceptanceDetailed(
         "verify_commands",
         "swarm.verify_commands",
       )) {
-        if (alreadyHasCommand(cmd.command)) continue;
+        if (alreadyHasExecutable(cmd.command)) continue;
         pushCommand(buckets, cmd);
       }
       for (const cmd of coerceCommandList(
