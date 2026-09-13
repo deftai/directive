@@ -141,8 +141,11 @@ jobs:
             echo "Already published ${PKG}@${VER}, continuing"
           }
 
-      # Bound-remedy 4 (#4271): after the four packages publish, run the
-      # two-pass fixture from a clean directory. Do not call rehearseNpmInstallAndRun.
+      # Bound-remedy 4 (#4271 / #4398): after the four packages publish, run
+      # the two-pass fixture from a clean directory. The fixture retries the
+      # tag-bound registry install with real backoff, then warn-only if the
+      # registry is still propagating. Do not call rehearseNpmInstallAndRun.
+      # Publish-step failure still fails the job. Do not skip --provenance.
       - name: Post-publish two-pass fixture (#4271)
         shell: bash
         env:

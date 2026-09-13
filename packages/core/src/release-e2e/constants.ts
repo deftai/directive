@@ -17,6 +17,16 @@ export const NPM_PUBLISH_PACKAGES = ["types", "core", "content", "cli"] as const
 /** #1925: throwaway dist-tag so dry-run does not apply `latest` to 0.0.1. */
 export const NPM_E2E_REHEARSAL_TAG = "e2e-rehearsal";
 export const NPM_INSTALL_TIMEOUT_SECONDS = 600;
+/**
+ * #4398: retry bound for the post-publish tag-bound registry install.
+ * Measured lag: fixture died in ~1s; npm few minutes; core 404 several minutes on 0.116.0.
+ * After this bound the fixture warns instead of failing the publish job.
+ */
+export const POST_PUBLISH_INSTALL_RETRY_BOUND_MS = 8 * 60 * 1000;
+/** Real backoff steps for #4398. Do not use a no-op default sleep. */
+export const POST_PUBLISH_INSTALL_BACKOFF_MS = [
+  15_000, 30_000, 60_000, 90_000, 120_000, 180_000,
+] as const;
 export const NPM_BUILD_TIMEOUT_SECONDS = 600;
 export const NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS = 180;
 export const NPM_PACK_TIMEOUT_SECONDS = 300;

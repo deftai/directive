@@ -51,4 +51,9 @@ export interface E2ESeams {
   rollbackEntrypoint?: EntrypointFn;
   now?: () => Date;
   randomUuidHex?: () => string;
+  /**
+   * Synchronous sleep for #4398 tag-bound install retry. Production default is
+   * `Atomics.wait`. Tests inject a recorder. Must not default to a no-op.
+   */
+  sleepMs?: (ms: number) => void;
 }
