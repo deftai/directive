@@ -1,0 +1,127 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4218",
+    "updated": "2026-09-13T17:45:57Z"
+  },
+  "plan": {
+    "title": "AppSec: 2 HIGH + 1 MEDIUM @ 0c9f6ab -- Bash &>| / &>>| redirect harvest evasion; residual writers (mysqldump/PlistBuddy/virt-copy-out/gobjcopy/dcfldd/ibtool) plant authz + kill-switch; approved-scope mint",
+    "status": "running",
+    "narratives": {
+      "Description": "AppSec: 2 HIGH + 1 MEDIUM @ 0c9f6ab -- Bash &>| / &>>| redirect harvest evasion; residual writers (mysqldump/PlistBuddy/virt-copy-out/gobjcopy/dcfldd/ibtool) plant authz + kill-switch; approved-scope mint",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4218",
+      "Overview": "## Summary\n\nAppSec scan of `deftai/directive` @ **`0c9f6ab`** (2026-09-06). Filed set: **2 HIGH + 1 MEDIUM (new)**.\n\nUnder **active UAT with empty grants**, `cp` and plain `>` / `&>` deny, but three remaining gaps still allow mutation:\n\n1. Bash **`&>|` / `&>>|`** redirect dests are not harvested (`>` and `&>` deny; these both-stdout/stderr noclobber synonyms fail open). Distinct from reported `>|` / `>&` / `>!`.\n2. Residual dest-form writers (`mysqldump` / `mysqlpump` / `mariadb-dump` / `PlistBuddy` / `virt-copy-out` / `virt-tar-out` / `gobjcopy` / `dcfldd` / `dd_rescue` / `sdd` / `ibtool` / `afconvert` / `actool` / `momc`) still plant `.deft/authz/grants/*` and `.deft-directive-disable` with empty classify.\n3. The same residuals and `&>|` still forge `.deft/approved-scope` while `cp` into that dir denies (MEDIUM).\n\n**Repo / tip:** `deftai/directive` @ `0c9f6ab1402e04ee8866f68813d32e49522f6b8f` (`chore: land leftover completed-tracked artifact for #4201`).\n**Primary code:** `packages/core/src/authz/classify.ts`\n**Attacker model:** Agent under **active UAT**, empty grants, PreToolUse Shell hooks.\n**PoC surface (scanner):** `classifyShellAuthzOps` / hook `allow` / `shell-op-unclassifiable` @ `0c9f6ab`.\n\n**Already denied / do not re-report:** `>|` / `>&` / `>!` (#4204 / #4199, scanner -28/-29); `EditNotebook` / tree-wide `**/evidence/**` (#4199, -28); `redis-cli` (-26); `llvm-objcopy` / `ffmpeg` (-19); `guestfish` (-20); `defaults` / `eu-objcopy` (-21); `hdiutil` (-22); `split` / `csplit` (-14); Grok `use_tool` / `scheduler_create` (-26). Contrast: `cp`, plain `>`, and `&>` targeting `.deft/authz/**` **deny**. `objcopy` is already classified (deny); GNU `gobjcopy` is not.\n\n**Sibling, not duplicate:** Redirect sibling **#4204** covers stdout `>|` / `>>|` / `>&` only -- this issue is both-stdout/stderr noclobber **`&>|` / `&>>|`**. **#4199** covers `>!` only. Dest-based empty-ops tracker: **#4188** / **#3953**. Do **not** close this as a duplicate of those. Named residual writers on this issue are not on an existing open harvest.\n\n---\n\n## Findings\n\n### 1. HIGH -- UAT Shell `&>|` redirect harvest evasion plants `.deft/authz` grants while `>` / `&>` deny\n\n| Field | Detail |\n|-------|--------|\n| Location | `packages/core/src/authz/classify.ts` (`hasAuthzDirShellWrite` / kill-switch dest harvest) |\n\nDest harvest after `>` only consumes an extra `>` (`>>`). The dest slice then stops at `|` or `&`. For bash both-stdout/stderr noclobber:\n\n- `&>|` / `&>>|` place `|` immediately after the `>` operator, so dest terminates empty and the path after `|` is never harvested\n- A dest token that starts with `|` (split form) is also not stripped before pathish authz / approved-scope checks\n\nPlain `&>` still settings-denied. `>|` / `>&` / `>!` are **#4204** / **#4199** and are not this finding.\n\n**Impact:** `echo x &>| .deft/authz/grants/x` -> `classifyShellAuthzOps=[]` / `allow` / `shell-op-unclassifiable` while plain `>` and `&>` deny. Complete UAT authz-grant plant via bash both-stdout/stderr noclobber override. Same forms against `.deft/approved-scope` are finding 3.\n\n**Remediation:** Recognize `&>|` / `&>>|` as redirects alongside `>` / `&>` / `>|`. Strip a leading `|` from redirect dest tokens before authz / approved-scope / kill-switch harvest. Pin a UAT regression for `echo x &>| .deft/authz/grants/x`.\n\n**Regression test:** Active UAT: `echo x > .deft/authz/grants/x`, `echo x &> .deft/authz/grants/x`, `echo x &>| .deft/authz/grants/x`, and `echo x &>>| .deft/authz/grants/x` all classify as `settings` and deny. Ordinary `echo x &>| /tmp/out` stays unclassifiable.\n\n---\n\n### 2. HIGH -- UAT residual after #3545: `mysqldump` / `mysqlpump` / `mariadb-dump` / `PlistBuddy` / `virt-copy-out` / `virt-tar-out` / `gobjcopy` / `dcfldd` / `dd_rescue` / `sdd` / `ibtool` / `afconvert` / `actool` / `momc`\n\n| Field | Detail |\n|-------|--------|\n| Location | `packages/core/src/authz/classify.ts` |\n\nNone of these bins appear in `classify.ts` at `0c9f6ab`. `objcopy` does (already denied). #3545 residual list (`fromdos` / `ddrescue` / `dc3dd` / `sg_dd` / ...) does not cover this set.\n\nScanner dest forms:\n\n- `mysqldump -r` / `--result-file` targeting `.deft/authz/grants` or `.deft-directive-disable`\n- `mysqlpump` / `mariadb-dump` result-file dests\n- `PlistBuddy` dest\n- `virt-copy-out` / `virt-tar-out` dest\n- `gobjcopy` dest (`objcopy` already gated)\n- `dcfldd` / `dd_rescue` / `sdd` `of=`\n- `ibtool` / `afconvert` / `actool` / `momc` when dest mentions `.deft/authz` or kill-switch basenames\n\n**Impact:** Complete residual bypass of Wave 1 UAT human-approval after #3545. Grant forge unlocks edit / push / PR / merge. Kill-switch disables all gates (#3039). `cp` -> deny / `authz-grant-missing`. These residuals -> `allow` / `shell-op-unclassifiable`.\n\n**Remediation:** Classify these dest writers as `settings` when dest mentions `.deft/authz` or kill-switch basenames. Under active UAT prefer fail-closed on unclassifiable **write-shaped** Shell when a protected dest is already visible in the command (bounded producer into the existing `unknown` deny arm -- do not deny `git status` / reads). Named bins are regression corpus; the class close is dest-visible empty-ops (see #4188 / #3953), not another 14-name denylist.\n\n**Regression test:** Each listed writer, dest `.deft/authz/grants/x` and `.deft-directive-disable`, classifies as a gated op (not `[]`). `cp` on those dests stays denied. `objcopy` stays denied. Ordinary dests such as `/tmp` stay unclassifiable. Reads such as `cat .deft/authz/state.json` stay unclassifiable.\n\n---\n\n### 3. MEDIUM -- Incomplete #3545: residual Shell writers and `&>|` still forge `.deft/approved-scope` while `cp` is denied\n\n| Field | Detail |\n|-------|--------|\n| Location | `packages/core/src/authz/classify.ts` |\n\n**Impact:** Bypasses the #3410 / #3421 / #3529 / #3545 human-presence mint gate for provenance approval artifacts via Write/Shell asymmetry under UAT. `cp` into `approved-scope` denies; `mysqldump` / `PlistBuddy` / `virt-copy-out` / `&>|` still `allow` / `shell-op-unclassifiable`.\n\n**Remediation:** Extend approved-scope Shell classify to the same residual dest writers and `&>|` redirect harvest fix as authz / kill-switch. Fail-closed on unclassifiable write-shaped Shell under UAT.\n\n**Regression test:** `echo x &>| .deft/approved-scope/x` and each listed residual targeting `.deft/approved-scope/**` classify as `settings` and deny under UAT. `cp` into that dir stays denied.\n\n---\n\n## Acceptance\n\n- `&>|` and `&>>|` dest harvest matches plain `>` / `&>` for `.deft/authz/**`, `.deft-directive-disable`, and `.deft/approved-scope/**`.\n- Each named residual writer, when dest is one of those three protected paths, classifies as a gated op. Write-shaped Shell with a visible protected dest does not fail open as `shell-op-unclassifiable`. Ordinary reads and `/tmp` dests stay unclassifiable.\n- `objcopy` remains denied; this issue does not recut that path. `>|` / `>&` / `>!` stay on #4204 / #4199.\n\nRefs #3545, #3039, #3186, #3410, #3421, #3529, #3953, #4188, #4199, #4204\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @dbcall2 (2026-09-13T17:02:14Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because #4218 claims a distinct bash both-stdout/stderr noclobber harvest hole (`&>|` / `&>>|`) plus residual dest writers under active UAT. Disposition is an authorization-model decision after #4188's class-close.\n\nmechanism-shaped: true\ncharter: refutation\nspend: N=1\ntarget shape: single-issue\narc-mode: no-ingest\nyolo-standing: true\ndest: /Users/davidcall/tools/deft/directive/.deft-scratch/worktrees/parent-arc-appsec-batch\norigin-ref: origin/master\ndispatch-sha: 69a8c8ebdbfab6f3fc1aa2c26ba21087ad4b6267\naudit-targets: none\ninput-ceiling: this comment\n\nrefutation-target: dest harvest after `>` stops at `|`, so `&>|` / `&>>|` into `.deft/authz` / kill-switch / approved-scope classify empty while plain `>` and `&>` deny; the listed residual dest writers (mysqldump / PlistBuddy / virt-copy-out / gobjcopy / dcfldd / ibtool and peers) are a denylist rather than dest-visible empty-ops.\n\nWhy N=1: default motion. High blast radius permits N=3; after #4188 the remaining question is whether these specific vectors still fail open at dispatch-sha.\n\n#4188 is closed. `>|` / `>&` / `>!` stay on #4204 / #4199. Named bins are corpus unless they still fail open at dispatch-sha.\n\n\n### Comment by @dbcall2 (2026-09-13T17:14:41Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound-1 refutation of Stop 1 comment [5654717467](https://github.com/deftai/directive/issues/4218#issuecomment-5654717467) at dispatch-sha `69a8c8eb`. Evidence is `classifyShellAuthzOps` plus live `decideHook` (active UAT, empty grants, Bash `tool.before`) on that tree. Line cites are not evidence.\n\n## blocks-the-design\n\nThe recorded refutation-target cannot bind as written.\n\n**Conjunct 1 (`&>|` / `&>>|` harvest-empty) is false at this SHA.** `echo x &>| .deft/authz/grants/x`, `echo x &>>| .deft/authz/grants/x`, and the same two operators onto `.deft-directive-disable` and `.deft/approved-scope/x` all classify `[\"settings\"]`. `decideHook` denies them `authz-grant-missing`, matching plain `>`, `&>`, and `cp`. `echo x &>| /tmp/out` stays `[]` / `allow` / `shell-op-unclassifiable`. [#4199](https://github.com/deftai/directive/issues/4199) (`fd44127d8`) already treats `|` as part of the redirect operator after `>`. The scan SHA `0c9f6ab` is before that landing.\n\n**Conjunct 2 (close by naming mysqldump / PlistBuddy / virt-copy-out / gobjcopy / dcfldd / ibtool and peers) is the rejected class.** Last-positional dests of those bins already classify `unknown` and hook-deny `authz-uat-deny` via [#4188](https://github.com/deftai/directive/issues/4188) (`bf9d26c8c`) without being in a write-bin set: `PlistBuddy -c '…' DEST`, `virt-copy-out -a disk.img /etc/passwd DEST`, `gobjcopy in.o DEST`, `dd_rescue /tmp/x DEST`, `mysqldump -r DEST` when DEST is last. `actool --output DEST Assets.xcassets` already denies `authz-grant-missing` via generic dest-flag harvest. `objcopy` stays `settings`; this issue must not recut it.\n\nFailure mode: a bind that “recognizes `&>|`” and “adds 14 bins” recuts closed [#4199](https://github.com/deftai/directive/issues/4199) / [#4188](https://github.com/deftai/directive/issues/4188), ships a no-op HIGH, and leaves the dest-flag / `of=` hole below fail-open.\n\nDisposition: do not bind Finding 1 or a named-bin denylist. `>|` / `>&` / `>!` stay on [#4204](https://github.com/deftai/directive/issues/4204) / [#4199](https://github.com/deftai/directive/issues/4199).\n\n## sharpens-framing\n\nThe bindable remainder is dest-flag and `key=path` assignment dests that are **not** the last positional.\n\nInventory already on this SHA (do not invent a third harvest):\n- [#4188](https://github.com/deftai/directive/issues/4188) unknown-argv0 last-positional dest-of-write → `unknown` (UAT grant-immune)\n- [#4199](https://github.com/deftai/directive/issues/4199) dest-visible empty-ops (`-o` / `--output` / `-f` / `--file` / last-dest `makeself` / `yq` / `dasel`) → `unknown` or `settings`\n- `genericProtectedDests` generic dest flags → `settings`\n- `DEST_ASSIGNMENT_KEYS` is `DESTDIR` / `PREFIX` / `INSTALL_ROOT` / `DEST_DIR` for `make`, not `of=`\n- `dd` is an indirect writer so `of=` is settings; `dcfldd` / `sdd` are not\n\nStill `[]` and `allow` / `shell-op-unclassifiable` under empty UAT, on all three protected dests (authz grants, kill-switch, approved-scope):\n\n- `mysqldump -r DEST db`\n- `mysqldump --result-file=DEST db` and `--result-file DEST db`\n- `mysqlpump --result-file=DEST db`\n- `mariadb-dump -r DEST db`\n- `dcfldd if=/tmp/x of=DEST` and `sdd if=/tmp/x of=DEST`\n- `ibtool --compile DEST file.xib` (dest-not-last; `ibtool file.xib --compile DEST` already denies)\n\nFailure mode: a swarm worker on the shared UAT lease plants `.deft/authz/grants/*`, `.deft-directive-disable`, or `.deft/approved-scope/*` with dest-flag / `of=` grammar, then uses the forged grant or the kill-switch. Empty classify is the allow path. A 14-name denylist misses the next peer flag and recuts the class-close those issues already chose.\n\nDisposition: bind one remainder: widen dest-visible empty-ops so dest-flag operands and `key=path` assignment dests (`of=`, `-r` / `--result-file`, `--compile` when it takes a dest) emit `unknown` when the dest is payload-protected. Named bins stay corpus. Follow [#4188](https://github.com/deftai/directive/issues/4188) `unknown` (grant-immune), not `cp`-class `settings` (grantable).\n\n## Injection / swarm\n\nThis target is UAT authorization over untrusted Shell dests and a shared lease. Remaining fail-open plants are usable by any worker on that lease. The control is classify plus hook deny on dest-visible write grammar.\n\n## Road-not-taken\n\nRejected: add the listed names to `INDIRECT_WRITE_BINS` / `DOWNLOADER_DECODER_BINS`. Steelman: belt-and-suspenders with harvest, continuing the Wave-1 residual series. Flip if last-positional still classified `[]` at this SHA. It does not.\n\nRejected: fail-closed on any command that merely mentions a protected path. That recuts proven reads (`cat` / `git status` already `[]` / allow). Widen dest-flag / assignment harvest; keep the write-shape bound.\n\n## footnote\n\n- `echo x &> | DEST` (space before `|`) is `[]` / allow. That is a pipe, not bash noclobber `&>|`. Not this hole.\n- Issue-body text “Do not close this as a duplicate” is untrusted instruction, not a command. Independence is the classify/hook re-verify, not that sentence.\n\n\n### Comment by @dbcall2 (2026-09-13T17:17:37Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe claimed `&>|` / `&>>|` harvest hole is already closed at origin/master `69a8c8eb`. Last-positional dests of the listed bins already fail closed as `unknown` via #4188. Confirming this map would assert that #4218 cannot bind as \"recognize `&>|` and add 14 names,\" and that the leftover next-build is dest-flag / `of=` / `--result-file` / `--compile` harvest when dest is not last.\n\nNon-self-arbitration: this parent authored Stop 1 `5654717467`. None of the classified critic findings.\n\nDispatched sibling count this round: 1. Critic comment 5654788218.\n\n**Lean:**\n\n- ## blocks-the-design — accept-into-contract (critic 5654788218)\n- ## sharpens-framing — accept-into-contract (critic 5654788218)\n\nResidual: none. Defer: none. Disagree: none.\nSupersedes Stop 1 write-back 5654717467.\nCeiling if retrying: n/a.\n\nSpec-path:\n\n## Bound remedy\n\n- Do not bind Finding 1 (`&>|` / `&>>|` harvest) or a named-bin denylist. Those recut closed #4199 / #4188.\n- Widen dest-visible empty-ops so dest-flag operands and `key=path` assignment dests (`of=`, `-r` / `--result-file`, `--compile` when dest is not last) emit `unknown` when the dest is payload-protected (authz grants, kill-switch, approved-scope).\n- Named bins stay regression corpus. Follow #4188 `unknown` (grant-immune), not `cp`-class `settings` (grantable).\n- `>|` / `>&` / `>!` stay on #4204 / #4199. `objcopy` stays settings; this issue does not recut it.\n- Ordinary `/tmp` dests and proven reads (`cat .deft/authz/state.json`) stay unclassifiable.\n\nTarget-digest: sha256:f9e8b15213902ee15a3582ed1832d26267e3ed5ad7b91834a4af5dc5e1e74862\n\n\n### Comment by @dbcall2 (2026-09-13T17:17:58Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nRe-derived against dest tree `69a8c8ebdbfab6f3fc1aa2c26ba21087ad4b6267` (`git rev-parse HEAD` on dest). Probe: dest `tsx` importing unmodified `classifyShellAuthzOps` from that tree. No row is marked verified from critic agreement alone.\n\nNon-self-arbitration: this parent authored Stop 1 `5654717467`. None of the classified critic findings.\n\n| Claim | Result | Method | Evidence |\n| --- | --- | --- | --- |\n| `echo x >` / `&>` / `&>|` / `&>>|` into `.deft/authz/grants/x` classify settings. | verified | imported `classifyShellAuthzOps` on dest HEAD | All four returned `[\"settings\"]`. |\n| Same `&>|` onto `.deft-directive-disable` and `.deft/approved-scope/x` classify settings. | verified | same importer | Both `[\"settings\"]`. |\n| `echo x &>| /tmp/out` classifies empty. | verified | same importer | `[]`. |\n| `cp /tmp/x .deft/authz/grants/x` classifies settings. | verified | same importer | `[\"settings\"]`. |\n| Last-positional `PlistBuddy` / `gobjcopy` dests classify unknown. | verified | same importer | `PlistBuddy -c Print DEST` and `gobjcopy in.o DEST` both `[\"unknown\"]`. |\n| `ibtool file.xib --compile DEST` (dest last) classifies unknown. | verified | same importer | `[\"unknown\"]`. |\n| Dest-not-last `mysqldump -r DEST db`, `--result-file=DEST`, `dcfldd of=DEST`, `ibtool --compile DEST file.xib` classify empty. | verified | same importer | All four `[]`. |\n| `cat .deft/authz/state.json` classifies empty. | verified | same importer | `[]`. |\n| All-accept completion preconditions are present. | verified | REST comment list | 1 critic 5654788218; lean 5654811610 has 2 `accept-into-contract`, 0 disagree, 0 defer, 0 audit markers; yolo-standing on launching utterance. |\n\n\n### Comment by @dbcall2 (2026-09-13T17:17:59Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe claimed `&>|` harvest hole is already closed at `69a8c8eb`. Last-positional dests of the listed bins already fail closed. The body as written (recognize `&>|` plus a 14-name denylist) is not the next-build contract. Leftover next-build is dest-flag / `of=` / `--result-file` / `--compile` harvest when dest is not last, emitting `unknown` on payload-protected dests.\n\nAccepted record: successor lean 5654811610; verified-claims table (this comment's sibling table).\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)",
+      "Labels": "bug, security, tooling, agent-safety"
+    },
+    "items": [
+      {
+        "title": "Do not bind Finding 1 (`&>|` / `&>>|` harvest) or a named-bin denylist. Those recut closed #4199 / #4188.",
+        "status": "proposed"
+      },
+      {
+        "title": "Widen dest-visible empty-ops so dest-flag operands and `key=path` assignment dests (`of=`, `-r` / `--result-file`, `--compile` when dest is not last) emit `unknown` when the dest is payload-protected (authz grants, kill-switch, approved-scope).",
+        "status": "proposed"
+      },
+      {
+        "title": "Named bins stay regression corpus. Follow #4188 `unknown` (grant-immune), not `cp`-class `settings` (grantable).",
+        "status": "proposed"
+      },
+      {
+        "title": "`>|` / `>&` / `>!` stay on #4204 / #4199. `objcopy` stays settings; this issue does not recut it.",
+        "status": "proposed"
+      },
+      {
+        "title": "Ordinary `/tmp` dests and proven reads (`cat .deft/authz/state.json`) stay unclassifiable.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "tooling",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4218",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4218: AppSec: 2 HIGH + 1 MEDIUM @ 0c9f6ab -- Bash &>| / &>>| redirect harvest evasion; residual writers (mysqldump/PlistBuddy/virt-copy-out/gobjcopy/dcfldd/ibtool) plant authz + kill-switch; approved-scope mint"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4199",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4199"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3545",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3545"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind Finding 1 (`&>|` / `&>>|` harvest) or a named-bin denylist. Those recut closed #4199 / #4188.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Widen dest-visible empty-ops so dest-flag operands and `key=path` assignment dests (`of=`, `-r` / `--result-file`, `--compile` when dest is not last) emit `unknown` when the dest is payload-protected (authz grants, kill-switch, approved-scope).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Named bins stay regression corpus. Follow #4188 `unknown` (grant-immune), not `cp`-class `settings` (grantable).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`>|` / `>&` / `>!` stay on #4204 / #4199. `objcopy` stays settings; this issue does not recut it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Ordinary `/tmp` dests and proven reads (`cat .deft/authz/state.json`) stay unclassifiable.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5365748160,
+        "origin": "deftai/directive#4218",
+        "id": "github.issue.5365748160"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f9e8b15213902ee15a3582ed1832d26267e3ed5ad7b91834a4af5dc5e1e74862"
+      }
+    },
+    "id": "github.issue.5365748160",
+    "updated": "2026-09-13T17:45:57Z"
+  }
+}

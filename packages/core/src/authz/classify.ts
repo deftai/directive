@@ -2310,6 +2310,17 @@ function commandIndexAfterWrappers(words: readonly string[]): number | null {
       }
       break;
     }
+    // timeout DURATION cmd — duration is positional, not a value-flag.
+    if (wrapper === "timeout" && i < words.length) {
+      const duration = normalizeToken(words[i] as string);
+      if (
+        duration.length > 0 &&
+        !duration.startsWith("-") &&
+        wrapperBinName(words[i] as string) === null
+      ) {
+        i++;
+      }
+    }
     if (normalizeToken(words[i] ?? "") === "--") i++;
     if (wrapper === "env") {
       while (i < words.length && isEnvAssign(words[i] as string)) i++;
@@ -2574,11 +2585,22 @@ function isNonPathishTrailingToken(raw: string): boolean {
 
 /** Last dest-of-write positional, walking back past trailing non-path junk (#3764). */
 function lastDestOfWritePositional(words: readonly string[], execIndex: number): string | null {
+  const argv0 = argv0BareName(words, execIndex);
+  const wrappedBin = firstCommandBin(words.slice(execIndex));
+  const cargoArgv = isCargoArgv0(argv0) || isCargoArgv0(wrappedBin);
   const nonFlags: string[] = [];
   for (let i = execIndex + 1; i < words.length; i++) {
     const raw = words[i] as string;
     const n = normalizeToken(raw);
     if (n === "--") continue;
+    // cargo --target TRIPLE is a toolchain, not dest-of-write (#4204 negative).
+    if (cargoArgv && (n === "--target" || n.startsWith("--target="))) {
+      if (n === "--target") {
+        const next = words[i + 1];
+        if (next !== undefined && !normalizeToken(next).startsWith("-")) i++;
+      }
+      continue;
+    }
     if (n.startsWith("-")) continue;
     nonFlags.push(raw);
   }
@@ -4234,8 +4256,9 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   }
   // #4005 / #4188: a verified protected dest-of-write must not be hidden by
   // unrelated always-allowed token matches such as an input named `pytest`.
-  // Dest-flag plants stay settings (grantable). Zip first-positional and
-  // unknown-argv0 last-positional dests emit unknown (grant-immune under UAT).
+  // Generic dest-flag plants stay settings (grantable). Zip first-positional,
+  // unknown-argv0 last-positional, and dest-not-last dest-flag / of= empty-ops
+  // emit unknown (grant-immune under UAT).
   // #3593: jar archive dest is dest-of-write even when `--file=` also looks
   // like a dest-flag (genericProtectedDests skips jar; keep unknown if settings
   // still landed some other way).
@@ -4271,16 +4294,36 @@ const EMPTY_OPS_WRAPPER_BINS = new Set([
   "command",
   "builtin",
   "stdbuf",
+  "timeout",
+  "ionice",
 ]);
 
 function firstCommandBin(tokens: readonly string[]): string {
-  for (const t of tokens) {
-    if (isShellConnectorToken(t)) continue;
-    if (t.includes("=") && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) continue;
-    if (t.startsWith("-")) continue;
-    const bin = writeBinName(t).replace(/^\(+/, "");
+  let skipNext = false;
+  let skipDurationOperand = false;
+  for (const raw of tokens) {
+    if (isShellConnectorToken(raw)) continue;
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (raw.includes("=") && /^[A-Za-z_][A-Za-z0-9_]*=/.test(raw)) continue;
+    const lower = raw.toLowerCase();
+    if (raw.startsWith("-")) {
+      const flag = lower.includes("=") ? lower.slice(0, lower.indexOf("=")) : lower;
+      if (!raw.includes("=") && WRAPPER_VALUE_FLAGS.has(flag)) skipNext = true;
+      continue;
+    }
+    if (skipDurationOperand) {
+      skipDurationOperand = false;
+      continue;
+    }
+    const bin = writeBinName(raw).replace(/^\(+/, "");
     if (bin.length === 0) continue;
-    if (EMPTY_OPS_WRAPPER_BINS.has(bin)) continue;
+    if (EMPTY_OPS_WRAPPER_BINS.has(bin) || COMMAND_WRAPPER_BINS.has(bin)) {
+      if (bin === "timeout") skipDurationOperand = true;
+      continue;
+    }
     return bin;
   }
   return "";
@@ -4318,6 +4361,24 @@ function redirectDestIsProtectedSettings(command: string): boolean {
 
 const EMPTY_OPS_LAST_DEST_BINS = new Set(["makeself", "puppet", "yq", "dasel", "nomad"]);
 
+/**
+ * Dest-not-last dest-flag leftovers (#4204 / #4218 / #4161 / #3849 / #3918).
+ *
+ * Assumptions: these finite names are dest-of-write when the operand is a
+ * payload-protected path and the segment is not a proven read-shaped first bin.
+ * `--target` is dest-of-write except on cargo (toolchain triple; proven non-dest,
+ * not a named-bin harvest). `--jobname` is the long form of already-harvested
+ * `-jobname`.
+ *
+ * Guarantees: `restic restore --target DEST SNAPSHOT` emits `unknown`;
+ * `cargo --target ${grant}` (including `timeout`/`ionice`/`sudo`/`env` wrappers)
+ * stays unclassifiable; `grep -w`, `/tmp` dests, and dest-last generic `-o`
+ * stay as they were.
+ *
+ * Non-goals: do not add `--python_out` / `--stream-record` / `-p` / `-out:` to
+ * this set (#3918 bound-remedy). Attached `--*=` payload dests and last-positional
+ * dest-of-write stay on those other producers.
+ */
 const EMPTY_OPS_DEST_FLAGS = new Set([
   "--file",
   "--inplace",
@@ -4326,21 +4387,88 @@ const EMPTY_OPS_DEST_FLAGS = new Set([
   "--destination",
   "-out",
   "-f",
+  "-on",
+  "-ox",
+  "-og",
+  "-oa",
+  "-os",
+  "-w",
+  "--result-file",
+  "-r",
+  "--compile",
+  "-output",
+  "--out-file",
+  "--data-dir",
+  "-data-dir",
+  "-jobname",
+  "--jobname",
+  "-of",
+  "--target",
 ]);
+
+/** cargo `--target` is a toolchain triple, not a restore dest (#4204 negative). */
+function emptyOpsDestFlagIsCargoTarget(
+  flag: string,
+  tokens: readonly string[],
+  index: number,
+): boolean {
+  if (flag !== "--target") return false;
+  const first = firstCommandBin(segmentSliceAround(tokens, index));
+  return first === "cargo" || first === "cargo.exe";
+}
+
+function isCargoArgv0(name: string | null): boolean {
+  return name === "cargo" || name === "cargo.exe";
+}
+
+/** Bare `of=` assignment dests (`dcfldd of=dest`). Not DESTDIR= make harvest. */
+const EMPTY_OPS_DEST_ASSIGNMENT_KEYS = new Set(["of"]);
+
+function emptyOpsSegmentIsReadShaped(tokens: readonly string[], index: number): boolean {
+  const first = firstCommandBin(segmentSliceAround(tokens, index));
+  return READ_SHAPED_FILE_FLAG_BINS.has(first) || DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(first);
+}
 
 function destFlagOperandIsProtectedSettings(tokens: readonly string[]): boolean {
   for (let i = 0; i < tokens.length; i++) {
     const raw = tokens[i] as string;
+    const lower = raw.toLowerCase();
     const eq = raw.indexOf("=");
-    const eqFlag = raw.startsWith("--") && eq > 1 ? raw.slice(0, eq).toLowerCase() : "";
-    const flag = raw.toLowerCase();
-    const isEqDest = eqFlag.length > 0 && EMPTY_OPS_DEST_FLAGS.has(eqFlag);
-    const isBareDest = EMPTY_OPS_DEST_FLAGS.has(flag);
-    if (!isEqDest && !isBareDest) continue;
-    const first = firstCommandBin(segmentSliceAround(tokens, i));
-    if (READ_SHAPED_FILE_FLAG_BINS.has(first) || DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(first)) {
+    const colonPrefix = lower.startsWith("-out:")
+      ? "-out:"
+      : lower.startsWith("json:")
+        ? "json:"
+        : "";
+
+    // `of=dest` (no leading dash) and `-out:dest` / `json:DEST` attached dests.
+    if (eq > 0 && !raw.startsWith("-")) {
+      const key = raw.slice(0, eq).toLowerCase();
+      if (
+        EMPTY_OPS_DEST_ASSIGNMENT_KEYS.has(key) &&
+        !emptyOpsSegmentIsReadShaped(tokens, i) &&
+        pathishIsProtectedMutationDest(pathishToken(raw.slice(eq + 1)))
+      ) {
+        return true;
+      }
       continue;
     }
+    if (colonPrefix.length > 0 && raw.length > colonPrefix.length) {
+      if (
+        !emptyOpsSegmentIsReadShaped(tokens, i) &&
+        pathishIsProtectedMutationDest(pathishToken(raw.slice(colonPrefix.length)))
+      ) {
+        return true;
+      }
+      continue;
+    }
+
+    const eqFlag = eq > 1 && raw.startsWith("-") ? raw.slice(0, eq).toLowerCase() : "";
+    const isEqDest = eqFlag.length > 0 && EMPTY_OPS_DEST_FLAGS.has(eqFlag);
+    const isBareDest = EMPTY_OPS_DEST_FLAGS.has(lower);
+    if (!isEqDest && !isBareDest) continue;
+    const destFlagName = isEqDest ? eqFlag : lower;
+    if (emptyOpsDestFlagIsCargoTarget(destFlagName, tokens, i)) continue;
+    if (emptyOpsSegmentIsReadShaped(tokens, i)) continue;
     if (isEqDest) {
       const val = raw.slice(eq + 1);
       if (pathishIsProtectedMutationDest(pathishToken(val))) return true;

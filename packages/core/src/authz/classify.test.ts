@@ -1825,6 +1825,85 @@ describe("classifyShellAuthzOps protected dest harvest (#4199)", () => {
   });
 });
 
+describe("dest-flag dest-not-last empty-ops (#4204 / #4218 / #4161 / #3918 / #3849)", () => {
+  const grant = ".deft/authz/grants/evil.json";
+  const scope = ".deft/approved-scope/story.json";
+  const kill = ".deft-directive-disable";
+
+  it("emits unknown for dest-flag operands when dest is not last", () => {
+    for (const dest of [grant, scope, kill]) {
+      for (const command of [
+        `nmap -oN ${dest} HOST`,
+        `editcap -w ${dest} in.pcap`,
+        `ibtool --compile ${dest} file`,
+        `kotlinc-js -output ${dest} src`,
+        `restic restore --target ${dest} SNAPSHOT`,
+        `restic restore --target=${dest} SNAPSHOT`,
+        `pdflatex --jobname ${dest} extra.tex`,
+        `pdflatex --jobname=${dest} extra.tex`,
+      ]) {
+        expect(classifyShellAuthzOps(command), command).toEqual(["unknown"]);
+      }
+    }
+  });
+
+  it("emits unknown for key=path and attached dest-flag spellings", () => {
+    for (const dest of [grant, scope, kill]) {
+      for (const command of [
+        `dcfldd of=${dest}`,
+        `mysqldump --result-file=${dest}`,
+        `mysqldump -r ${dest} db`,
+        `pdflatex -jobname=${dest}`,
+        `odin -out:${dest}`,
+        `kotlinc-js --out-file ${dest} src`,
+        `inspec exec --reporter json:${dest} extra`,
+      ]) {
+        expect(classifyShellAuthzOps(command), command).toEqual(["unknown"]);
+      }
+    }
+  });
+
+  it("tokenizes quoted bash/sh/zsh -c dest-of-write as unknown", () => {
+    expect(classifyShellAuthzOps(`bash -c 'nmap -oN ${grant} HOST'`)).toEqual(["unknown"]);
+    expect(classifyShellAuthzOps(`sh -c "dcfldd of=${grant}"`)).toEqual(["unknown"]);
+    expect(classifyShellAuthzOps(`zsh -c 'ibtool --compile ${kill} file'`)).toEqual(["unknown"]);
+  });
+
+  it("keeps last-positional dest-of-write unknown", () => {
+    expect(classifyShellAuthzOps(`mkfile 1k ${grant}`)).toEqual(["unknown"]);
+    expect(classifyShellAuthzOps(`pdflatex ${scope}`)).toEqual(["unknown"]);
+  });
+
+  it("does not treat grep -w, cargo --target, proven reads, or /tmp dests as dest-of-write", () => {
+    for (const command of [
+      `grep -w ${grant}`,
+      `cargo --target ${grant}`,
+      `cargo --target=${grant}`,
+      `cargo build --target ${grant}`,
+      `timeout 30 cargo --target ${grant}`,
+      `timeout 30 cargo build --target ${grant}`,
+      `ionice -c 3 cargo --target ${grant}`,
+      `sudo cargo --target ${grant}`,
+      `env cargo --target ${grant}`,
+      `protoc --python_out=${grant} foo.proto`,
+      "cat .deft/authz/state.json",
+      "nmap -oN /tmp/out HOST",
+      "editcap -w /tmp/out in.pcap",
+      "dcfldd of=/tmp/out",
+      "bash -c 'cat .deft/authz/state.json'",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).not.toContain("unknown");
+      expect(classifyShellAuthzOps(command), command).not.toContain("settings");
+    }
+  });
+
+  it("keeps dest-last generic dest-flag plants settings, not unknown", () => {
+    const destFlagStillSettings = classifyShellAuthzOps(`weirdbin -o ${grant}`);
+    expect(destFlagStillSettings).toContain("settings");
+    expect(destFlagStillSettings).not.toContain("unknown");
+  });
+});
+
 describe("interpreter payload and jar dest-grammar (#3593)", () => {
   it("emits unknown when a protected dest is quoted inside -e/-c/eval", () => {
     for (const command of [
