@@ -127,9 +127,7 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(denied.message).toContain("Worktree occupied by session owner");
     expect(denied.message).toContain("intent=swarm");
     expect(denied.message).toContain("heartbeat 300s ago");
-    expect(denied.message).toContain(
-      "occupancy:grant --session-id=owner --child-session-id=other",
-    );
+    expect(denied.message).toContain("occupancy:grant --session-id=owner --child-session-id=other");
     expect(denied.message).toContain("session:start --steal --confirm");
     expect(denied.message).not.toContain("or steal (`occupancy:steal --confirm`)");
     expect(readOccupancy(root)?.sessionId).toBe("owner");
@@ -192,9 +190,9 @@ describe("worktree occupancy lease (#3433)", () => {
         newSessionId: () => "minted-uuid",
       }),
     ).toEqual({ sessionId: "minted-uuid", source: "mint" });
-    expect(
-      formatOccupancyClaimProvenance({ sessionId: "minted-uuid", source: "mint" }),
-    ).toContain("minted occupancy owner minted-uuid");
+    expect(formatOccupancyClaimProvenance({ sessionId: "minted-uuid", source: "mint" })).toContain(
+      "minted occupancy owner minted-uuid",
+    );
     expect(
       formatOccupancyClaimProvenance({ sessionId: "env-id", source: "environment" }),
     ).toContain("resolved occupancy owner env-id from DEFT_SESSION_ID");
