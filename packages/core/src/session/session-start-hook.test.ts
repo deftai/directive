@@ -5,6 +5,24 @@ import { describe, expect, it, vi } from "vitest";
 import { runSessionStartHookWrite } from "./session-start-hook.js";
 
 describe("session start hook", () => {
+  it("treats no active xBRIEF as a normal skip, not a fault (#4411)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-no-active-"));
+    const writeSentinelFn = vi.fn(() => {
+      throw new Error("sentinel must not run with no active xBRIEF");
+    });
+    const result = runSessionStartHookWrite(root, {
+      detectBranchFn: () => "feat/x",
+      detectLatestActiveVbriefFn: () => null,
+      resolveVersionFn: () => "0.9.0",
+      writeSentinelFn,
+    });
+    expect(result.code).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(`${result.stdout}${result.stderr}`).not.toContain("vbrief");
+    expect(writeSentinelFn).not.toHaveBeenCalled();
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("returns 2 when branch missing", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-"));
     const result = runSessionStartHookWrite(root, {

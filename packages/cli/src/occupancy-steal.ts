@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { stealOccupancy } from "@deftai/directive-core/session";
+import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
 
 export function parseArgs(argv: readonly string[]): {
   projectRoot: string;
@@ -63,7 +64,7 @@ export function parseArgs(argv: readonly string[]): {
       }
       parsed.sessionId = sessionId;
     } else {
-      return { ...parsed, error: `unrecognized argument: ${arg}` };
+      return { ...parsed, error: occupancyUnrecognizedArgument(arg) };
     }
   }
   return parsed;

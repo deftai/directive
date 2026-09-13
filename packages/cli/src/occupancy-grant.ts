@@ -6,6 +6,7 @@ import {
   type OccupancyJoinProtocol,
   revokeOccupancyMembership,
 } from "@deftai/directive-core/session";
+import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
 
 export interface GrantArgs {
   projectRoot: string;
@@ -63,7 +64,7 @@ export function parseArgs(argv: readonly string[]): GrantArgs {
       return {
         ...parsed,
         revoke: argv.includes("--revoke"),
-        error: `unrecognized argument: ${arg}`,
+        error: occupancyUnrecognizedArgument(arg),
       };
     }
     const read = readValue(argv, i, flag);

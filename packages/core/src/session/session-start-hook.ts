@@ -81,12 +81,8 @@ export function runSessionStartHookWrite(
   }
   const lastActive = detectVbriefFn(projectRoot);
   if (!lastActive) {
-    return {
-      code: 2,
-      stdout: "",
-      stderr:
-        "_session_start_hook.py: no active vBRIEF found under vbrief/active/; skipping sentinel write.\n",
-    };
+    // Empty active set is the routine steady state, not session-start-degraded (#4411).
+    return { code: 0, stdout: "", stderr: "" };
   }
   let deftVersion: string;
   try {
