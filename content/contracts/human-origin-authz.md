@@ -57,7 +57,7 @@ While UAT is **active** (and was started with human-origin provenance):
 | settings / deploy heuristics | **deny** |
 | Test execution (`vitest`, `pnpm test`, …) | **allow** |
 | Issue filing (`gh issue create`) | **allow** |
-| Evidence / defect capture writes (`xbrief/proposed/**`, `**/evidence/**`, `incidents/**`) | **allow** |
+| Evidence / defect capture writes (`xbrief/proposed/**`, `evidence/**`, `uat-evidence/**`, `incidents/**` at repo root) | **allow** |
 
 Approving one named fix cohort **does not** clear the UAT lock or authorize adjacent
 failures or other operations (e.g. edit grant ≠ push).

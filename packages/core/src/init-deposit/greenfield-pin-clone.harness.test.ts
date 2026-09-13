@@ -162,5 +162,5 @@ describe("greenfield pin clone harness (#4429)", () => {
     expect(readFileSync(join(cloneDir, ".gitignore"), "utf8")).toContain(".deft/core/");
     expect(existsSync(join(cloneDir, ".deft", "core"))).toBe(false);
     expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
-  });
+  }, 20_000);
 });

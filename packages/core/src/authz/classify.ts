@@ -2010,7 +2010,8 @@ function zipShellWordRedirection(raw: string): ZipShellRedirection | null {
         (raw[targetIndex] === "<" ||
           raw[targetIndex] === ">" ||
           raw[targetIndex] === "&" ||
-          raw[targetIndex] === "|")
+          raw[targetIndex] === "|" ||
+          raw[targetIndex] === "!")
       ) {
         targetIndex++;
       }
@@ -2247,8 +2248,39 @@ function hasProtectedZipArchiveDestination(command: string): boolean {
 /**
  * Closed read-only proof for #4188 dest-of-write. Inspection of authz state
  * stays allow. Absence of a near-zero-read measurement keeps this list load-bearing.
+ * sort/awk prove only without -o/--output/--pretty-print or attached `-oFILE`.
  */
-const READ_ONLY_PROOF_BINS = new Set(["cat", "ls", "grep", "diff", "get-content", "gc"]);
+const READ_ONLY_PROOF_BINS = new Set([
+  "cat",
+  "ls",
+  "grep",
+  "diff",
+  "get-content",
+  "gc",
+  "sha256sum",
+  "shasum",
+  "md5sum",
+  "cksum",
+  "sort",
+  "awk",
+  "gawk",
+  "nawk",
+]);
+
+const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
+
+function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boolean {
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const n = normalizeToken(words[i] as string);
+    if (READ_ONLY_PROOF_OUTPUT_DEST_FLAGS.has(n)) return true;
+    if (n.startsWith("--output=") || n.startsWith("--pretty-print=")) return true;
+    // POSIX attached `-oFILE` (not `-out*` / `--`).
+    if (n.startsWith("-o") && !n.startsWith("-out") && !n.startsWith("--") && n.length > 2) {
+      return true;
+    }
+  }
+  return false;
+}
 
 function wrapperBinName(raw: string): string | null {
   if (zipShellWordHasExpansion(raw)) return null;
@@ -2307,7 +2339,12 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
   const literal = argv0Literal(words, execIndex);
   if (literal === null || argv0IsPathQualified(literal)) return false;
   const name = writeBinName(literal);
-  if (READ_ONLY_PROOF_BINS.has(name)) return true;
+  if (READ_ONLY_PROOF_BINS.has(name)) {
+    if (name === "sort" || name === "awk" || name === "gawk" || name === "nawk") {
+      return !argvHasOutputDestFlag(words, execIndex);
+    }
+    return true;
+  }
   if (name === "git") {
     let i = execIndex + 1;
     while (i < words.length) {
@@ -2931,23 +2968,11 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
   }
   if (!mentionsKill) return false;
 
-  // Redirect dest region after each `>` / `>>` (O(n)); check raw + quote-stripped.
+  // Redirect dest region after each `>` operator, including noclobber forms (#4199).
   for (const hay of [lower, stripped]) {
     for (let i = 0; i < hay.length; i++) {
       if (hay[i] !== ">") continue;
-      let j = i + 1;
-      if (j < hay.length && hay[j] === ">") j++;
-      let end = j;
-      while (
-        end < hay.length &&
-        hay[end] !== "|" &&
-        hay[end] !== ";" &&
-        hay[end] !== "&" &&
-        hay[end] !== "\n"
-      ) {
-        end++;
-      }
-      const dest = hay.slice(j, end);
+      const dest = redirectDestSlice(hay, i);
       for (const name of KILL_SWITCH_BASENAMES) {
         if (dest.includes(name)) return true;
       }
@@ -3437,6 +3462,27 @@ function pathishIsSettingsStoreDir(pathish: string): boolean {
   return pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish);
 }
 
+/** After `>` at `gtIndex`, skip the rest of the redirect operator and return dest. */
+function redirectDestSlice(hay: string, gtIndex: number): string {
+  let j = gtIndex + 1;
+  while (j < hay.length) {
+    const c = hay[j];
+    if (c === ">" || c === "<" || c === "&" || c === "|" || c === "!") j += 1;
+    else break;
+  }
+  let end = j;
+  while (
+    end < hay.length &&
+    hay[end] !== "|" &&
+    hay[end] !== ";" &&
+    hay[end] !== "&" &&
+    hay[end] !== "\n"
+  ) {
+    end += 1;
+  }
+  return hay.slice(j, end);
+}
+
 /** True when dest is a settings-store path or a split-path `authz` segment after `.deft`. */
 function destMentionsAuthzSegment(dest: string): boolean {
   const p = canonicalizePathish(pathishToken(dest).trim());
@@ -3462,25 +3508,12 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
   // Quote-stripped contiguous form for redirect dest checks (#3213).
   const stripped = lower.replace(/['"]/g, "");
 
-  // Redirect dest region after each `>` / `>>` (O(n); no nested-quantifier regex).
+  // Redirect dest region after each `>` operator, including `>|` / `>&` / `>&!` / `>!` (#4199).
   // Check both raw and quote-stripped so quote-split dests still match.
   for (const hay of [lower, stripped]) {
     for (let i = 0; i < hay.length; i++) {
       if (hay[i] !== ">") continue;
-      let j = i + 1;
-      if (j < hay.length && hay[j] === ">") j++;
-      // Dest until pipe/semicolon/ampersand/newline.
-      let end = j;
-      while (
-        end < hay.length &&
-        hay[end] !== "|" &&
-        hay[end] !== ";" &&
-        hay[end] !== "&" &&
-        hay[end] !== "\n"
-      ) {
-        end++;
-      }
-      if (pathishIsSettingsStoreDir(hay.slice(j, end))) return true;
+      if (pathishIsSettingsStoreDir(redirectDestSlice(hay, i))) return true;
     }
   }
 
@@ -3960,19 +3993,7 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
       const lower = cmd.toLowerCase().replace(/\\/g, "/");
       for (let i = 0; i < lower.length; i++) {
         if (lower[i] !== ">") continue;
-        let j = i + 1;
-        if (j < lower.length && lower[j] === ">") j++;
-        let end = j;
-        while (
-          end < lower.length &&
-          lower[end] !== "|" &&
-          lower[end] !== ";" &&
-          lower[end] !== "&" &&
-          lower[end] !== "\n"
-        ) {
-          end++;
-        }
-        if (destMentionsAuthzSegment(lower.slice(j, end))) {
+        if (destMentionsAuthzSegment(redirectDestSlice(lower, i))) {
           found.add("settings");
           break;
         }
@@ -3996,8 +4017,128 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   ) {
     found.add("unknown");
   }
+  // #4199: write-shaped Shell with a visible protected dest must not fail open as [].
+  if (!found.has("settings") && hasWriteShapedProtectedSettingsDest(cmd, tokens)) {
+    found.add("unknown");
+  }
 
   return [...found];
+}
+
+function pathishIsProtectedMutationDest(pathish: string): boolean {
+  return pathishIsSettingsStoreDir(pathish) || pathishMentionsKillSwitch(pathish);
+}
+
+function isShellConnectorToken(token: string): boolean {
+  return token === "&&" || token === "||" || token === ";" || token === "|";
+}
+
+const EMPTY_OPS_WRAPPER_BINS = new Set([
+  "sudo",
+  "doas",
+  "exec",
+  "time",
+  "env",
+  "nice",
+  "nohup",
+  "command",
+  "builtin",
+  "stdbuf",
+]);
+
+function firstCommandBin(tokens: readonly string[]): string {
+  for (const t of tokens) {
+    if (isShellConnectorToken(t)) continue;
+    if (t.includes("=") && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) continue;
+    if (t.startsWith("-")) continue;
+    const bin = writeBinName(t).replace(/^\(+/, "");
+    if (bin.length === 0) continue;
+    if (EMPTY_OPS_WRAPPER_BINS.has(bin)) continue;
+    return bin;
+  }
+  return "";
+}
+
+function segmentSliceAround(tokens: readonly string[], index: number): readonly string[] {
+  let start = 0;
+  for (let i = index; i >= 0; i--) {
+    if (isShellConnectorToken(tokens[i] as string)) {
+      start = i + 1;
+      break;
+    }
+  }
+  let end = tokens.length;
+  for (let i = index; i < tokens.length; i++) {
+    if (isShellConnectorToken(tokens[i] as string)) {
+      end = i;
+      break;
+    }
+  }
+  return tokens.slice(start, end);
+}
+
+function redirectDestIsProtectedSettings(command: string): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  const stripped = lower.replace(/['"]/g, "");
+  for (const hay of [lower, stripped]) {
+    for (let i = 0; i < hay.length; i++) {
+      if (hay[i] !== ">") continue;
+      if (pathishIsProtectedMutationDest(redirectDestSlice(hay, i))) return true;
+    }
+  }
+  return false;
+}
+
+const EMPTY_OPS_LAST_DEST_BINS = new Set(["makeself", "puppet", "yq", "dasel", "nomad"]);
+
+const EMPTY_OPS_DEST_FLAGS = new Set([
+  "--file",
+  "--inplace",
+  "--output",
+  "--dest",
+  "--destination",
+  "-out",
+  "-f",
+]);
+
+function destFlagOperandIsProtectedSettings(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    const eq = raw.indexOf("=");
+    const eqFlag = raw.startsWith("--") && eq > 1 ? raw.slice(0, eq).toLowerCase() : "";
+    const flag = raw.toLowerCase();
+    const isEqDest = eqFlag.length > 0 && EMPTY_OPS_DEST_FLAGS.has(eqFlag);
+    const isBareDest = EMPTY_OPS_DEST_FLAGS.has(flag);
+    if (!isEqDest && !isBareDest) continue;
+    const first = firstCommandBin(segmentSliceAround(tokens, i));
+    if (READ_SHAPED_FILE_FLAG_BINS.has(first) || DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(first)) {
+      continue;
+    }
+    if (isEqDest) {
+      const val = raw.slice(eq + 1);
+      if (pathishIsProtectedMutationDest(pathishToken(val))) return true;
+      continue;
+    }
+    if (i + 1 >= tokens.length) continue;
+    if (pathishIsProtectedMutationDest(pathishToken(tokens[i + 1] as string))) return true;
+  }
+  return false;
+}
+
+function hasWriteShapedProtectedSettingsDest(command: string, tokens: readonly string[]): boolean {
+  if (redirectDestIsProtectedSettings(command)) return true;
+  if (destFlagOperandIsProtectedSettings(tokens)) return true;
+  for (let i = 0; i < tokens.length; i++) {
+    const bin = writeBinName(tokens[i] as string).replace(/^\(+/, "");
+    if (!EMPTY_OPS_LAST_DEST_BINS.has(bin)) continue;
+    for (let j = i + 1; j < tokens.length; j++) {
+      const tok = tokens[j] as string;
+      if (isShellConnectorToken(tok)) break;
+      if (tok.startsWith("-")) continue;
+      if (pathishIsProtectedMutationDest(pathishToken(tok))) return true;
+    }
+  }
+  return false;
 }
 
 /** Map a PreToolUse tool name + optional shell command to authz ops. */

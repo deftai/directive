@@ -26,8 +26,8 @@ import type {
 export const UAT_SAFE_WRITE_GLOBS: readonly string[] = [
   "xbrief/proposed/**",
   "vbrief/proposed/**",
-  "**/evidence/**",
-  "**/uat-evidence/**",
+  "evidence/**",
+  "uat-evidence/**",
   "incidents/**",
 ];
 
