@@ -27,6 +27,58 @@ describe("undo", () => {
     }
   });
 
+  it("co-stamps envelope and plan.updated and leaves created unchanged (#4423)", () => {
+    root = mkdtempSync(join(tmpdir(), "undo-chrono-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const created = "2026-06-01T12:03:00Z";
+    const pending = join(root, "xbrief", "pending", "z.xbrief.json");
+    writeFileSync(
+      pending,
+      formatBriefJson({
+        xBRIEFInfo: { version: "0.8", created, updated: "2026-05-01T00:00:00Z" },
+        plan: {
+          title: "T",
+          status: "pending",
+          created,
+          updated: "2026-05-01T00:00:00Z",
+          items: [{ title: "i", status: "pending", created, completed: "old" }],
+        },
+      }),
+      "utf8",
+    );
+    const demoteNow = new Date("2026-06-01T12:00:43.000Z");
+    const demote = demoteOne(pending, root, "test", { now: demoteNow });
+    expect(demote.ok).toBe(true);
+    const proposed = join(root, "xbrief", "proposed", "z.xbrief.json");
+    const afterDemote = JSON.parse(readFileSync(proposed, "utf8")) as {
+      xBRIEFInfo: { created: string; updated: string };
+      plan: {
+        created: string;
+        updated: string;
+        items: Array<{ created: string; completed: string }>;
+      };
+    };
+    expect(afterDemote.xBRIEFInfo.created).toBe(created);
+    expect(afterDemote.plan.created).toBe(created);
+    expect(afterDemote.xBRIEFInfo.updated).toBe("2026-06-01T12:00:43Z");
+    expect(afterDemote.plan.updated).toBe("2026-06-01T12:00:43Z");
+    expect(afterDemote.plan.items[0]?.created).toBe(created);
+    expect(afterDemote.plan.items[0]?.completed).toBe("old");
+
+    const undoNow = new Date("2026-06-01T12:05:00.000Z");
+    const undo = undoOne(demote.auditEntry as Record<string, unknown>, root, { now: undoNow });
+    expect(undo.ok).toBe(true);
+    const afterUndo = JSON.parse(readFileSync(pending, "utf8")) as {
+      xBRIEFInfo: { created: string; updated: string };
+      plan: { created: string; updated: string };
+    };
+    expect(afterUndo.xBRIEFInfo.created).toBe(created);
+    expect(afterUndo.plan.created).toBe(created);
+    expect(afterUndo.xBRIEFInfo.updated).toBe("2026-06-01T12:05:00Z");
+    expect(afterUndo.plan.updated).toBe("2026-06-01T12:05:00Z");
+  });
+
   it("undoes demote back to pending", () => {
     root = mkdtempSync(join(tmpdir(), "undo-test-"));
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });

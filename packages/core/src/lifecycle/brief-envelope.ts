@@ -27,9 +27,11 @@ export function presentEnvelopeKeys(data: Record<string, unknown>): BriefEnvelop
 }
 
 /**
- * Stamp `updated` on every envelope the artifact already carries; create none.
- * Returns the stamped keys so a caller can refuse an envelope-less artifact by
- * name instead of manufacturing one.
+ * Stamp `updated` on every envelope the artifact already carries, and on
+ * `plan.updated` when plan is an object, so envelope and plan stay aligned
+ * (#4423 / #2862). Creates no envelope. Never writes `created`.
+ * Returns the stamped envelope keys so a caller can refuse an envelope-less
+ * artifact by name instead of manufacturing one.
  */
 export function stampExistingEnvelopes(
   data: Record<string, unknown>,
@@ -38,6 +40,10 @@ export function stampExistingEnvelopes(
   const stamped = presentEnvelopeKeys(data);
   for (const key of stamped) {
     (data[key] as Record<string, unknown>).updated = nowIso;
+  }
+  const plan = data.plan;
+  if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
+    (plan as Record<string, unknown>).updated = nowIso;
   }
   return stamped;
 }

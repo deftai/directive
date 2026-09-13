@@ -8,6 +8,7 @@ import {
 } from "../encoding/git.js";
 import { fnmatchCase } from "../encoding/text.js";
 import { isLifecycleArtifactPath, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
+import { validateCreatedUpdatedChronology } from "./chronology.js";
 import { LIFECYCLE_FOLDERS } from "./constants.js";
 import { validateFilename } from "./filename.js";
 import { evaluateExtensionRoundtrip } from "./roundtrip.js";
@@ -231,6 +232,27 @@ function isVbriefPath(posix: string): boolean {
   return isLifecycleArtifactPath(posix);
 }
 
+function formatChronologyWarnings(warnings: readonly string[]): string {
+  if (warnings.length === 0) {
+    return "";
+  }
+  const header =
+    `verify_vbrief_conformance: ${warnings.length} created/updated ` +
+    "chronology warning(s) (#4423).";
+  return [header, ...warnings.map((warning) => `WARN: ${warning}`)].join("\n");
+}
+
+function withChronologyMessage(message: string, warnings: readonly string[]): string {
+  const extra = formatChronologyWarnings(warnings);
+  if (extra.length === 0) {
+    return message;
+  }
+  if (message.length === 0) {
+    return extra;
+  }
+  return `${message}\n${extra}`;
+}
+
 /** D7 applies to lifecycle-folder scope files, matching validateAll discoverVbriefs (#4245). */
 function isScopeLifecyclePath(posix: string): boolean {
   const parts = posix.split("/");
@@ -378,6 +400,7 @@ export function evaluateConformance(
 
   const findings: ConformanceFinding[] = [];
   const filenameErrors: string[] = [];
+  const chronologyWarnings: string[] = [];
   for (const candidate of candidates) {
     if (!candidate.configured && isScopeLifecyclePath(candidate.displayPath)) {
       filenameErrors.push(...validateFilename(candidate.displayPath));
@@ -413,6 +436,11 @@ export function evaluateConformance(
       continue;
     }
     findings.push(...scanVbrief(candidate.displayPath, data));
+    if (typeof data === "object" && data !== null && !Array.isArray(data)) {
+      chronologyWarnings.push(
+        ...validateCreatedUpdatedChronology(data as JsonObject, candidate.displayPath),
+      );
+    }
   }
 
   if (filenameErrors.length > 0 || findings.length > 0) {
@@ -449,7 +477,11 @@ export function evaluateConformance(
       }
       parts.push(`${header}\n${body}`);
     }
-    return { exitCode: 1, findings, message: parts.join("\n") };
+    return {
+      exitCode: 1,
+      findings,
+      message: withChronologyMessage(parts.join("\n"), chronologyWarnings),
+    };
   }
 
   const extensionRoundtrip = evaluateExtensionRoundtrip(root);
@@ -457,7 +489,7 @@ export function evaluateConformance(
     return {
       exitCode: extensionRoundtrip.exitCode,
       findings,
-      message: extensionRoundtrip.message,
+      message: withChronologyMessage(extensionRoundtrip.message, chronologyWarnings),
     };
   }
 
@@ -468,6 +500,9 @@ export function evaluateConformance(
   return {
     exitCode: 0,
     findings,
-    message: [extensionRoundtrip.message, bareKeysMessage].filter(Boolean).join("\n"),
+    message: withChronologyMessage(
+      [extensionRoundtrip.message, bareKeysMessage].filter(Boolean).join("\n"),
+      chronologyWarnings,
+    ),
   };
 }

@@ -30,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Lifecycle stamps keep envelope and plan clocks aligned and warn when updated predates created (#4423).** `stampExistingEnvelopes` now writes `plan.updated` with the envelope. `scope:undo` and `scope:demote` route through it. `validateAll` / `vbrief:validate` / `verify:vbrief-conformance` warn on reversed created/updated. Does not clamp `created`, does not add `--stamp-created`, and does not lint item `completed`. Closes #4423.
 - **Greenfield `directive init` writes the canonical package.json pin before gitignoring `.deft/core/` (#4429).** Reuses `ensurePackageJsonPin`; pin write precedes the gitignore line so a throw cannot leave an unreconstitutable deposit. Headless already emitted the same pin. Missing-pin doctor note stays a proceed warning (error would retro-fail pre-pin consumers). JSON reformat of an existing `package.json` is accepted. Closes #4429.
-
 - **UAT Shell fail-closes unknown writes to four protected dests (#4188).** Unknown last-positional dest-of-write to `.deft/authz/**`, `.deft/approved-scope/**`, `.deft-directive-disable`, or `.no-deft-directive` UAT-denies. Proven reads stay allow. Closes #4188.
 
 - **`deft update` refuses dirty or unreadable Git before dest writes (#4158).** Three-state porcelain probe (`git --no-optional-locks status --porcelain=v1 -z --untracked-files=all`). No-repo proceeds; repo-present-but-unreadable refuses; `--allow-dirty-no-stage` skips `git add` but not `core.hooksPath`. Dry-run and live share dest-plan membership and measured `dirty_tree`/`dirty_files` on sibling `error_code`. Does not overlay incoming trees (#4446), lease occupancy, or teach the ledger `$HOME`. Closes #4158.
