@@ -1,0 +1,156 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4424",
+    "updated": "2026-09-13T00:37:07Z"
+  },
+  "plan": {
+    "title": "bug(init): recut \u2014 keep traveling host-hook trees; reject three filed remedies",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(init): recut \u2014 keep traveling host-hook trees; reject three filed remedies",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4424",
+      "Overview": "> Recut 2026-09-13 to Bound-remedy on successor lean 5640729952, synthesis accepted 5640740048. The original filing proposed three remedies: host-scoped scaffolding, review-stack allowlisting, and pointing AGENTS.md at the README cold-start block. A three-critic panel refuted all three. History is in the thread.\n\n## Summary\n\nStock `directive init` is loud on a first PR. A fresh clone cannot follow the deposit. Those observations stand.\n\nThe three remedies in the original filing cannot bind:\n\n1. **Host-scoped scaffolding.** The first machine that runs init would decide which committed fences later contributors get. That fail-opens Cursor, the only `FAIL_CLOSED_HOOK_HOSTS` member. Existing confirm-gated `plan.policy.hostHooks` / `policy:disable-host-hooks` is the control for teams that standardize.\n2. **Review-stack allowlisting.** SLizard dangling-reference and Greptile P1 on stock init were true positives against a missing reconstitution pin. Allowlisting would hide that hole.\n3. **README cold-start pointer.** `agents-entry.md:6` must not point at the undeposited README cold-start block. Init deposits neither README nor pin, so that swap trades one dangling target for another.\n\n## Bound remedy (this number)\n\n- Keep committed per-host hook trees as traveling fences. Default stays all-hosts. Teams that standardize use existing confirm-gated `plan.policy.hostHooks` / `policy:disable-host-hooks`. Do not add init-time PATH detection or `hosts:add` as the default. Cursor remains `FAIL_CLOSED_HOOK_HOSTS`.\n- Do not allowlist SLizard dangling-reference or Greptile P1 on stock init output. Those findings were true positives against the missing pin.\n- Do not repoint `agents-entry.md:6` at the undeposited README cold-start block.\n- Pin reconstitution is #4429. AGENTS recovery pointers are #4430. This issue is not a set-level portfolio ingest of those children.\n- If a later cost complaint remains, scope it to skill/slash duplication and existing opt-outs, not hook-host PATH scoping.\n\n## Out of scope\n\n- #4429 pin reconstitution. Do not close that issue from this recut.\n- #4430 AGENTS recovery pointers. Do not close that issue from this recut.\n- Review-stack configuration.\n- PATH-scoped init or `hosts:add` as the default.\n\n## Environment\n\n- Directive: `@deftai/directive` 0.116.0 (fresh `npm i -g`, `directive init` in repo root)\n- Host actually present at report: Claude Code only\n- Consumer repo: initial commit = `docs/` with three markdown files; org review stack = Greptile Review (required check) + SLizard + Socket\n\n## Reproduction\n\n1. Repo containing only `docs/*.md`; Claude Code as the sole agent host.\n2. `npm i -g @deftai/directive@0.116.0 && directive init`\n3. Commit the scaffolding and open the first PR in an org running SLizard + Greptile.\n\nObserved: init writes host trees for every supported host, SLizard reports a wall of dangling-reference findings on unmodified deposit files, and Greptile flags the AGENTS.md fallback into gitignored `.deft/core/`. Those findings stay real. This number does not allowlist them.\n\n## Relationship\n\n- #4429 occupies pin reconstitution.\n- #4430 occupies AGENTS recovery pointers.\n- #4411 / #4412 are adjacent onboarding and gate failures, not this recut.\n",
+      "Labels": "bug, agent-experience, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Keep committed per-host hook trees as traveling fences. Default stays all-hosts. Teams that standardize use existing confirm-gated `plan.policy.hostHooks` / `policy:disable-host-hooks`. Do not add init-time PATH detection or `hosts:add` as the default. Cursor remains `FAIL_CLOSED_HOOK_HOSTS`.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "GitHub issue #4424 recut body + xbrief/active recut Overview + CHANGELOG [Unreleased] Changed; no init/host-hooks/agents-entry/review-allowlist product edits",
+          "recorded_at": "2026-09-13T00:28:36Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
+      },
+      {
+        "title": "Do not allowlist SLizard dangling-reference or Greptile P1 on stock init output. Those findings were true positives against the missing pin.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "GitHub issue #4424 recut body + xbrief/active recut Overview + CHANGELOG [Unreleased] Changed; no init/host-hooks/agents-entry/review-allowlist product edits",
+          "recorded_at": "2026-09-13T00:28:36Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
+      },
+      {
+        "title": "Do not repoint `agents-entry.md:6` at the undeposited README cold-start block.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "GitHub issue #4424 recut body + xbrief/active recut Overview + CHANGELOG [Unreleased] Changed; no init/host-hooks/agents-entry/review-allowlist product edits",
+          "recorded_at": "2026-09-13T00:28:36Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
+      },
+      {
+        "title": "Pin reconstitution is #4429. AGENTS recovery pointers are #4430. This issue's body is recut to reject the three filed remedies; it is not a set-level portfolio ingest.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "GitHub issue #4424 recut body + xbrief/active recut Overview + CHANGELOG [Unreleased] Changed; no init/host-hooks/agents-entry/review-allowlist product edits",
+          "recorded_at": "2026-09-13T00:28:36Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
+      },
+      {
+        "title": "If a later cost complaint remains, scope it to skill/slash duplication and existing opt-outs, not hook-host PATH scoping.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "GitHub issue #4424 recut body + xbrief/active recut Overview + CHANGELOG [Unreleased] Changed; no init/host-hooks/agents-entry/review-allowlist product edits",
+          "recorded_at": "2026-09-13T00:28:36Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4424",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4424: recut Bound-remedy; reject host-scoped init, review allowlisting, and undeposited README pointer"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4429",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4429: pin reconstitution (related, not closed by this recut)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4430",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4430: AGENTS recovery pointers (related, not closed by this recut)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep committed per-host hook trees as traveling fences. Default stays all-hosts. Teams that standardize use existing confirm-gated `plan.policy.hostHooks` / `policy:disable-host-hooks`. Do not add init-time PATH detection or `hosts:add` as the default. Cursor remains `FAIL_CLOSED_HOOK_HOSTS`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Do not allowlist SLizard dangling-reference or Greptile P1 on stock init output. Those findings were true positives against the missing pin.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not repoint `agents-entry.md:6` at the undeposited README cold-start block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Pin reconstitution is #4429. AGENTS recovery pointers are #4430. This issue's body is recut to reject the three filed remedies; it is not a set-level portfolio ingest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "If a later cost complaint remains, scope it to skill/slash duplication and existing opt-outs, not hook-host PATH scoping.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5427810469,
+        "origin": "deftai/directive#4424",
+        "id": "github.issue.5427810469"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "10a2bb85c7330a43f4f204b0f9ae463a1d53b122e8f1a323c52e1a3f4fe63dbb"
+      }
+    },
+    "id": "github.issue.5427810469",
+    "updated": "2026-09-13T00:27:48Z"
+  }
+}
