@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4188",
-    "updated": "2026-09-12T23:08:59Z"
+    "updated": "2026-09-13T00:46:10Z"
   },
   "plan": {
     "title": "fix(hooks,security): fail closed on unknown writes to UAT-protected destinations",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(hooks,security): fail closed on unknown writes to UAT-protected destinations",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4188",
@@ -16,35 +16,83 @@
     "items": [
       {
         "title": "Do not bind the filed write-shaped conjunct. Recut to one predicate: unproven-read-only command whose dest-of-write is a protected path (redirect dest, dest-flag value, or last positional of an unproven-read-only command). Drop write-shaped as a third argv0 test. Do not grow dest-flag or write-bin catalogs as the close.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.test.ts; packages/core/src/hooks/dispatcher.ts unknown dest-of-write to UAT-protected dests",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       },
       {
         "title": "Name a closed read-only proof list so \"proven read-only stays allowed\" is not vacuous. Inspection of authz state (`cat` / `ls` / `grep` / `git log` / `diff`) stays allow. A measurement that protected-path reads under UAT are near-zero may collapse that list; absence of the measurement keeps the list load-bearing.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/classify.test.ts proven reads cat/ls/grep/git log/diff stay allow; path-qualified cat is unknown",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       },
       {
         "title": "Dest-of-write, not mention. Protected source or input stays allow. Do not treat every protected operand of a write-capable command as a destination.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.test.ts dest-of-write not mention; protected source/input stays allow",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       },
       {
         "title": "Generalize the existing zip destination-anchored path: classify `unknown`, evaluate `authz-uat-deny` under active UAT, grant-immune. Recognition stays in classify; UAT condition stays in evaluate/dispatcher. Do not invent `protected-operation` without grant semantics. If `settings` is chosen instead, record that a settings grant is a plant grant.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/classify.test.ts unknown + authz-uat-deny grant-immune reusing #4005 zip path",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       },
       {
         "title": "Either narrow the guarantee to protected paths belonging to the payload root, or route proven protected Shell destinations through effective-root admission and define UAT/grant/audit for same-repo worktrees, foreign repos, unresolved paths, and multi-root commands.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/protected-dest-realpath.test.ts payload-root only; symlink dests realpath-resolved",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       },
       {
         "title": "Corpus is Shell residual bins extracted from the nine AppSec reports as fixtures, not a close of those issues. MCP write routing stays on #3593. Cite #3997 as the in-repo fail-open contract; this slice is four enumerated protected paths, not a re-litigation of that contract.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts corpus fixtures; nine AppSec issues remain open; MCP writes stay #3593",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       },
       {
         "title": "Table schema, not row count: destination-positive, protected-input/read negative, all four protected destination classes, active/inactive UAT, safe-op collision, wrapper/compound, linear-time/adversarial-length. Family names remain fixtures.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/classify.test.ts table schema: dest-positive, protected-input/read negative, four protected dest classes",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       },
       {
         "title": "Realpath-resolve the recovered destination before the protected-path test, or a non-shell symlink defeats the lexical dest anchor across calls.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/protected-dest-realpath.test.ts realpath-resolve recovered dest; missing-ancestor keeps dest leaf",
+          "recorded_at": "2026-09-13T00:44:26.323Z",
+          "recorded_by": "leftover-4188"
+        }
       }
     ],
     "references": [
@@ -136,9 +184,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "b3c228ea59c19e7fbbce959dfe7a6d3d1382435ce9ffa4c60964f95046d04026"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4449,
+        "prBase": null,
+        "mergeCommit": "bf9d26c8ccac6599d5241a1d3ea1a3a636bee982",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1437a8e29d5a8c8e1e6a07e78bcd9662c8754604",
+        "verifiedAt": "2026-09-13T00:46:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkyNDItMDJhNS03ZmEwLTk1ZmUtOTM1NjNjMDJmZTg3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T00:46:10Z"
+      },
+      "completedAt": "2026-09-13T00:46:10Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkyNDItMDJhNS03ZmEwLTk1ZmUtOTM1NjNjMDJmZTg3",
+      "capacityBucket": "new-capability"
     },
     "id": "github.issue.5348494903",
-    "updated": "2026-09-12T23:08:59Z"
+    "updated": "2026-09-13T00:46:10Z"
   }
 }
