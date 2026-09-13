@@ -1,11 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  RECOVERY_LADDER_NPM_GLOBAL,
-  RECOVERY_LADDER_NPX_PREFIX,
-} from "../../doctor/constants.js";
-import { readRepoFile, REPO_ROOT } from "./helpers.js";
+import { RECOVERY_LADDER_NPM_GLOBAL, RECOVERY_LADDER_NPX_PREFIX } from "../../doctor/constants.js";
+import { REPO_ROOT, readRepoFile } from "./helpers.js";
 
 /**
  * #4430 Bound-remedy: named recovery targets must resolve in a fresh consumer
@@ -113,15 +110,14 @@ describe("recovery target resolvability (#4430 / #2273)", () => {
     expect(preambleSrc).not.toMatch(/CANONICAL_PATHS = \[[^\]]*agents-entry/);
   });
 
-  it.each(RECOVERY_CARRIERS)(
-    "named recovery targets resolve on greenfield and tracked-payload clones: %s",
-    (relPath) => {
-      const window = recoveryWindow(relPath, readRepoFile(relPath));
-      const targets = namedRecoveryFileTargets(window);
-      const unresolved = targets.filter((target) => !resolvesOnBothLayouts(target));
-      expect(unresolved).toEqual([]);
-    },
-  );
+  it.each(
+    RECOVERY_CARRIERS,
+  )("named recovery targets resolve on greenfield and tracked-payload clones: %s", (relPath) => {
+    const window = recoveryWindow(relPath, readRepoFile(relPath));
+    const targets = namedRecoveryFileTargets(window);
+    const unresolved = targets.filter((target) => !resolvesOnBothLayouts(target));
+    expect(unresolved).toEqual([]);
+  });
 
   it("managed carrier reuses #4090 ladder, doctor-first, no fused fourth spelling", () => {
     const template = readRepoFile("templates/agents-entry.md");
