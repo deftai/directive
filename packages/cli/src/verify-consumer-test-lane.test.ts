@@ -8,7 +8,7 @@ describe("verify-consumer-test-lane CLI (#4386)", () => {
     expect(parsed.projectRoot).toBe(".");
   });
 
-  it("returns 2 on unrecognized arguments", () => {
-    expect(run(["--nope"])).toBe(2);
+  it("returns 2 on unrecognized arguments", async () => {
+    await expect(run(["--nope"])).resolves.toBe(2);
   });
 });
