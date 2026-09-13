@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4422",
-    "updated": "2026-09-13T02:40:09Z"
+    "updated": "2026-09-13T02:52:57Z"
   },
   "plan": {
     "title": "bug(gates,scope): a completed scope's record cannot be corrected -- every printed recovery is inapplicable and scope:undo is never mentioned",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(gates,scope): a completed scope's record cannot be corrected -- every printed recovery is inapplicable and scope:undo is never mentioned",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4422",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Name git revert or hand-edit only if that action can succeed after complete. Prefer repairing the undo refusal text, or restoring write authority after complete, over a new write class.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/scope/undo.ts#terminal-refusal + packages/core/src/hooks/dispatcher.test.ts#allows Write of xbrief/completed",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Do not enumerate scope:undo as the recovery for completed-record edits.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/scope/scope-branch-coverage.test.ts#undo terminal refusal + packages/core/src/hooks/dispatcher.test.ts#restates empty-active Write deny",
@@ -36,7 +36,7 @@
       },
       {
         "title": "If a completed-path write class binds at all, reuse allMutationTargetsAreProposedLifecycleWrites shape plus authz, runtimeAuthority, and occupancy rechecks. Do not key on the singular declared path.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher.test.ts#denies ApplyPatch when the declared completed path disagrees with the body",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Restate rung-1 failure as no approved xBRIEF available in a one-scope repo, not as a fake-scope prohibition.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher.test.ts#restates empty-active Write deny as no approved xBRIEF, not fake-scope or scope:undo",
@@ -128,9 +128,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "9ba29bd7722fc76365f8b72d954d37c6986fb91b356dbe76cb1602606bad3fbf"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4463,
+        "prBase": null,
+        "mergeCommit": "2802c382e9800af304046f9c47145533b80a2802",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2802c382e9800af304046f9c47145533b80a2802",
+        "verifiedAt": "2026-09-13T02:52:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4NjAtZDM4ZS03YzYyLWE3YmItMzg4MzZmOTg5YWFj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T02:52:57Z"
+      },
+      "completedAt": "2026-09-13T02:52:57Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4NjAtZDM4ZS03YzYyLWE3YmItMzg4MzZmOTg5YWFj",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5427809126",
-    "updated": "2026-09-13T02:40:09Z"
+    "updated": "2026-09-13T02:52:57Z"
   }
 }
