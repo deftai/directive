@@ -14,7 +14,8 @@ A consumer could omit Directive enforcement gates from its `check` task and CI w
 - `verify:scope-provenance`
 - `verify:consumer-check-contract`
 - `verify:evaluator-surface` (#4386)
-- `verify:consumer-test-lane` (#4386)
+
+`verify:consumer-test-lane` is composed on `check:consumer` / `CONSUMER_CHECK_GATES` only. It is not a required framework-source enforcement gate -- the framework suite remains `ts:check-lane`.
 
 It fails with a concrete repair path when definitions or explicit check deps omit them. CI workflows that neither invoke the gates nor a composing entrypoint (`task check` / `deft check`) produce **warnings** by default (migration).
 
