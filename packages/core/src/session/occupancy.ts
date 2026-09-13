@@ -509,9 +509,7 @@ export function formatOccupancyRemediation(
     return (
       `${header}${worktreeFirst} Stay read-only (\`session:start --read-only\`).\n` +
       `Ask the occupant for a write grant (\`${occupancyGrantCommand(occupantArg, "<your-session-id>")}\`, ` +
-      "run by the occupant). A confirmed owner transition " +
-      `(\`session:start --steal --confirm --occupant ${occupantArg} --session-id=<your-session-id>\`) ` +
-      `is last resort, not the default recovery.${tail}`
+      `run by the occupant).${tail}`
     );
   }
 
@@ -538,9 +536,7 @@ export function formatOccupancyRemediation(
     "write grant on it.\n" +
     `${worktreeFirst} Stay read-only (\`session:start --read-only\`).\n` +
     `Ask the occupant for a write grant (\`${occupancyGrantCommand(occupantArg, actorArg)}\`, ` +
-    "run by the occupant). A confirmed owner transition " +
-    `(\`session:start --steal --confirm --occupant ${occupantArg} --session-id=${actorArg}\`) ` +
-    `is last resort, not isolation.${tail}`
+    `run by the occupant).${tail}`
   );
 }
 
@@ -1859,9 +1855,8 @@ export function releaseSwarmOccupancy(
       path: occupancyPath(projectRoot),
       message:
         "swarm close-out has no occupancy_session_id (manifest missing or predates the field), " +
-        "DEFT_SESSION_ID is unset, and this host published no owner. Re-establish an aligned " +
-        "owner with session:start --steal --confirm --occupant <reported-session-id> " +
-        "--session-id=<your-session-id>.",
+        "DEFT_SESSION_ID is unset, and this host published no owner. The occupant may release " +
+        "(`occupancy:release` / `session:end`). Isolate in another worktree rather than taking a live lease.",
       code: 1,
     };
   }

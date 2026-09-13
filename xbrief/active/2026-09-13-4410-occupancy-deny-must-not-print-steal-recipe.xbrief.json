@@ -1,0 +1,185 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4410 Bound-remedy successor lean 5650046670: occupancy deny and close-out copy must not print the steal argv to the refused party.",
+    "updated": "2026-09-13T02:39:44Z"
+  },
+  "plan": {
+    "id": "github.issue.5426949267",
+    "title": "Occupancy deny text must not print the steal recipe to the refused party",
+    "status": "running",
+    "narratives": {
+      "Description": "Bound-remedy 5650046670: do not print the steal argv in a message the refused party reads. Occupancy has owner/member/stranger, not human/agent. No recency guard in this story. #4409 stays separate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4410 successor lean 5650046670",
+      "Overview": "Next-build is Bound-remedy from successor lean 5650046670, not the original Expected. Cover occupancy deny, --confirm-missing deny, releaseSwarmOccupancy, swarm/launch, complete-cohort, and commands.md agent-facing copy. Do not treat --confirm as a human gate. Do not ship a recency guard. Do not adopt an unevidenced convergence-protocol defect. Do not implement sibling #4409.",
+      "Labels": "bug, agent-experience, process, grok-build, design-critique:ingest-ready",
+      "UserStory": "As a refused occupant-stranger, I want a denial that names isolation, read-only, occupant grant, and occupant release, so I am not handed a copy-paste steal recipe.",
+      "ImplementationPlan": "1. Strip steal argv from formatOccupancyRemediation (covers occupancy deny and --confirm-missing deny). 2. Strip steal argv from releaseSwarmOccupancy, swarm launch failed-release recovery, and complete-cohort close-out. 3. Rewrite commands.md Transition/steal/release agent-facing copy. 4. Flip tests that currently require the recipe; pin that refused-party copy has no steal argv. 5. CHANGELOG Unreleased. Out of scope: recency guard, --confirm-as-human, #4409, convergence-protocol recut.",
+      "LockedDecisions": "Successor lean 5650046670 is bound SoT. Synthesis accepted 5650052306. --confirm is not a human gate. Occupancy has owner/member/stranger. No recency guard ships here (if one later ships, carry replaced last_write_at or treat null as recent). Do not adopt an unevidenced convergence-protocol defect from three steal payloads. #4409 stays a separate issue.",
+      "AcceptanceJustification": "Six independently pin-testable Bound-remedy surfaces plus the --confirm-is-not-human constraint."
+    },
+    "items": [
+      {
+        "title": "Occupancy deny does not print the steal argv",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a live occupant and a stranger write or claim, when occupancy deny runs, then the message names isolation, read-only, occupant grant, and occupant release, and does not contain session:start --steal --confirm or occupancy:steal --confirm --occupant."
+        }
+      },
+      {
+        "title": "--confirm-missing deny does not print the steal argv",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given occupancy:steal without --confirm, when the deny is printed, then it may name the missing --confirm flag of that verb and occupant recency, and does not contain session:start --steal --confirm --occupant."
+        }
+      },
+      {
+        "title": "releaseSwarmOccupancy deny does not print the steal argv",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given swarm close-out with no occupancy_session_id, unset DEFT_SESSION_ID, and no host owner, when releaseSwarmOccupancy denies, then the message does not contain session:start --steal --confirm."
+        }
+      },
+      {
+        "title": "swarm launch failed-release recovery does not print the steal argv",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a newly claimed launch lease whose later-step release throws, when swarm:launch reports recovery, then stderr does not contain session:start --steal --confirm."
+        }
+      },
+      {
+        "title": "complete-cohort close-out does not print the steal argv",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a live occupancy record missing or belonging to a different cohort, when complete-cohort errors, then the error does not contain session:start --steal --confirm."
+        }
+      },
+      {
+        "title": "commands.md agent-facing copy does not print the steal argv",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given content/commands.md Transition, steal, and release copy, when an agent reads it, then it does not contain session:start --steal --confirm --occupant or occupancy:steal --confirm --occupant, and still names occupant release plus ritual alignment without treating --confirm as a human gate."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4410",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4410: Occupancy deny text hands an autonomous agent the steal recipe"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4410#issuecomment-5650046670",
+        "type": "x-xbrief/github-comment",
+        "title": "Successor lean 5650046670 Bound remedy"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable Bound-remedy surfaces from successor lean 5650046670 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not print the steal argv in occupancy deny.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Do not print the steal argv in --confirm-missing deny.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not print the steal argv in releaseSwarmOccupancy.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not print the steal argv in swarm/launch failed-release recovery.",
+          "artifact_path": "packages/core/src/swarm/launch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not print the steal argv in complete-cohort close-out.",
+          "artifact_path": "packages/core/src/swarm/complete-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Do not print the steal argv in commands.md agent-facing copy. Do not treat --confirm as a human gate.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "packages/core/src/swarm/complete-cohort.ts",
+          "packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/occupancy.test.ts packages/core/src/swarm/launch.test.ts packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts"
+        ],
+        "expected_outputs": [
+          "occupancy deny, confirm-missing, releaseSwarmOccupancy, launch recovery, and complete-cohort errors omit steal argv",
+          "commands.md Transition/steal/release copy omits steal argv",
+          "CHANGELOG Unreleased names #4410"
+        ],
+        "depends_on": [],
+        "conflict_group": "occupancy-steal-recipe",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound-remedy harvest from successor lean 5650046670; no spec-section requirement trace applies."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5426949267,
+        "origin": "deftai/directive#4410",
+        "id": "github.issue.5426949267"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6f622c977315879f2a9b6f046aaf0db32b1f8d99a4ed3ee217647ca4908dc974"
+      }
+    },
+    "updated": "2026-09-13T02:39:44Z"
+  }
+}

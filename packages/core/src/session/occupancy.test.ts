@@ -128,9 +128,41 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(denied.message).toContain("intent=swarm");
     expect(denied.message).toContain("heartbeat 300s ago");
     expect(denied.message).toContain("occupancy:grant --session-id=owner --child-session-id=other");
-    expect(denied.message).toContain("session:start --steal --confirm");
+    expect(denied.message).toContain("Use another worktree");
+    expect(denied.message).toContain("occupancy:release");
+    expect(denied.message).not.toContain("session:start --steal --confirm");
+    expect(denied.message).not.toContain("occupancy:steal --confirm --occupant");
     expect(denied.message).not.toContain("or steal (`occupancy:steal --confirm`)");
     expect(readOccupancy(root)?.sessionId).toBe("owner");
+  });
+
+  it("does not print the steal argv to a refused party (#4410)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt, intent: "swarm" });
+    const later = new Date("2026-08-17T12:05:00Z");
+    const record = readOccupancy(root);
+    expect(record).not.toBeNull();
+    const presented = formatOccupancyRemediation(
+      record as NonNullable<typeof record>,
+      later,
+      "other",
+    );
+    expect(presented).toContain("neither holds that lease");
+    expect(presented).toContain("occupancy:grant --child-session-id=");
+    expect(presented).not.toMatch(/--steal/);
+    const unconfirmed = stealOccupancy(root, {
+      sessionId: "other",
+      occupant: "owner",
+      now: later,
+    });
+    expect(unconfirmed.code).toBe(2);
+    expect(unconfirmed.message).toContain("occupancy:steal requires --confirm");
+    expect(unconfirmed.message).not.toMatch(/session:start --steal/);
+    const closeout = releaseSwarmOccupancy(root, { env: {}, now: later });
+    expect(closeout.code).toBe(1);
+    expect(closeout.message).toContain("The occupant may release");
+    expect(closeout.message).not.toMatch(/session:start --steal/);
   });
 
   it("read-only callers never write occupancy", () => {
@@ -713,6 +745,9 @@ describe("worktree occupancy lease (#3433)", () => {
     });
     expect(unconfirmed.code).toBe(2);
     expect(unconfirmed.message).toContain("last write 30s ago");
+    expect(unconfirmed.message).toContain("occupancy:steal requires --confirm");
+    expect(unconfirmed.message).not.toContain("session:start --steal --confirm");
+    expect(unconfirmed.message).not.toContain("occupancy:steal --confirm --occupant");
 
     const stolen = stealOccupancy(root, {
       sessionId: "thief",
@@ -1498,7 +1533,10 @@ describe("worktree occupancy lease (#3433)", () => {
     });
     vi.unstubAllEnvs();
     expect(live.exitCode).toBe(1);
-    expect(live.sweep?.errors.some((err) => err.includes("session:start --steal"))).toBe(true);
+    expect(live.sweep?.errors.some((err) => err.includes("session:start --steal"))).toBe(false);
+    expect(
+      live.sweep?.errors.some((err) => err.includes("The occupant may release")),
+    ).toBe(true);
     expect(readOccupancy(root)?.sessionId).toBeTruthy();
   });
 });
