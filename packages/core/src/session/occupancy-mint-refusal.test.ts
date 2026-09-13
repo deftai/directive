@@ -261,6 +261,35 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
     ).toBeNull();
   });
 
+  it("does not fail-open an env-assignment prefix before a lifecycle executable", () => {
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "FOO=bar deft session:start && echo ok" },
+      }),
+    ).toBe("session:start");
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "FOO=bar BAZ=1 deft session:start && echo ok" },
+      }),
+    ).toBe("session:start");
+    expect(
+      exactLifecycleCommandVerb({
+        tool_name: "Bash",
+        tool_input: { command: "FOO=bar deft session:start" },
+      }),
+    ).toBe("session:start");
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "FOO=bar deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && echo ok",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
+  });
+
   it("requires every lifecycle segment to carry the same matching --session-id", () => {
     expect(
       inspectHintedLifecycleSessionId({
