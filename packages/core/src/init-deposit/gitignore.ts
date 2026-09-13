@@ -490,7 +490,12 @@ function isRealDirectory(path: string): boolean {
 
 function looksLikePayload(dir: string): boolean {
   if (!isRealDirectory(dir)) return false;
-  return existsSync(join(dir, PAYLOAD_ENTRY));
+  try {
+    const st = lstatSync(join(dir, PAYLOAD_ENTRY));
+    return st.isFile() && !st.isSymbolicLink();
+  } catch {
+    return false;
+  }
 }
 
 function resolveEngineContentPackage(): string | null {
