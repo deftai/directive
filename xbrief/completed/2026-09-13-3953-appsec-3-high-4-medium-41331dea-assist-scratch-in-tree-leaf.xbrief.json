@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3953",
-    "updated": "2026-09-13T12:46:53Z"
+    "updated": "2026-09-13T13:19:24Z"
   },
   "plan": {
     "title": "AppSec: 3 HIGH + 4 MEDIUM @ 41331dea - assist-scratch in-tree leaf diversion (#3186 residual); assertWriteTargetSafe parent-dir gap; prd/spec + changelog-cli unguarded writes; post-#3545 UAT Shell residuals (llvm-ar/emar/xorriso/virt-sparsify/lxc/incus/sam/f2py/termrec)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "AppSec: 3 HIGH + 4 MEDIUM @ 41331dea - assist-scratch in-tree leaf diversion (#3186 residual); assertWriteTargetSafe parent-dir gap; prd/spec + changelog-cli unguarded writes; post-#3545 UAT Shell residuals (llvm-ar/emar/xorriso/virt-sparsify/lxc/incus/sam/f2py/termrec)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3953",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "**Do not bind the body-stated finding 5/6 remediations as the close.** A disjunction of `assertWriteTargetSafe` / `assertDestinationNotSymlink`, or a per-sink assertion plus raw `writeFileSync`, leaves the HIGH and the parent-dir hole open.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "200b386c953c6724c8b3cb059a7eaee22d967f96 packages/core/src/fs/contained-write.ts + contained-write.test.ts: containedWrite calls the full path-component walk (assertWriteTargetSafe delegates to assertDestinationNotSymlink). No per-sink assert+raw writeFileSync close. PR https://github.com/deftai/directive/pull/4457",
@@ -26,7 +26,7 @@
       },
       {
         "title": "**Unify the write primitive first.** `assertWriteTargetSafe` must match `assertDestinationNotSymlink` (delegate, or delete the weaker one). `containedWrite` must call that walk. Add an in-tree parent-directory regression on `containedWrite` itself. Amend `docs/reference/contained-write.md` as the single contract. If the primitive is widened, carry a false-deny audit of the ~30 direct callers as an AC; primitive first, sinks second.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "200b386c953c6724c8b3cb059a7eaee22d967f96 packages/core/src/fs/contained-write.test.ts 'refuses in-tree parent-directory symlink on containedWrite itself (#3953)'; docs/reference/contained-write.md is the single contract. PR https://github.com/deftai/directive/pull/4457",
@@ -36,7 +36,7 @@
       },
       {
         "title": "**Then migrate the #3953 product sinks onto `containedWrite`.** Not `assertWriteTargetSafe` plus raw write. `changelog-cli` needs `lstat` for the existence probe, a resolved project root, and refusal of out-of-root `--changelog-path`. `renderSpec` / `renderPrd` / `exportSpec` must name the trusted root. Tests cover a symlinked parent and an outside-root output.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "200b386c953c6724c8b3cb059a7eaee22d967f96 changelog-cli.test.ts lstat+out-of-root; spec-render/prd-render/export-spec containedWrite with named root; symlinked-parent and outside-root coverage. PR https://github.com/deftai/directive/pull/4457",
@@ -46,7 +46,7 @@
       },
       {
         "title": "**Assist-scratch HIGH is its own AC.** Refuse when the concrete target or any component between project root and leaf is a symlink, including in-tree, before `write-assist-scratch-ready`. Ordinary real files under the scratch roots stay assist-ready. Record the hook check/use race as a named residual; do not describe classification-time checking as atomic containment.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "200b386c953c6724c8b3cb059a7eaee22d967f96 packages/core/src/hooks/dispatcher.test.ts refuses in-tree leaf and parent assist-scratch symlinks before write-assist-scratch-ready; hook check/use race named residual in CHANGELOG. PR https://github.com/deftai/directive/pull/4457",
@@ -56,7 +56,7 @@
       },
       {
         "title": "**Vehicle.** Do not bind #3953 as both classifier-authz tracker and containment story. Rewrite this body to findings 1/4/5/6 only and name surviving issue #4199. Before any body recut, do not steal #4199's bins; this story is containment. Classifier-authz work stays on open #4199; PR #4452 owns classify/evaluate/tools. Do not implement classifier work here.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "https://github.com/deftai/directive/issues/3953#issuecomment-5649924499 recut to findings 1/4/5/6 and names surviving #4199 (dbcall2 cannot PATCH issue body / UpdateIssue 403). Classifier work stays on open #4199 / PR #4452. Not implemented here.",
@@ -66,7 +66,7 @@
       },
       {
         "title": "**Sister sinks stay live unless this story carries them.** #3764 finding 4 and #3593 finding 5 are not closed by a #3953-only slice. This story does not claim the containment class closed.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "200b386c953c6724c8b3cb059a7eaee22d967f96 CHANGELOG and PR https://github.com/deftai/directive/pull/4457 body: does not close #3764 finding 4 or #3593 finding 5. task pr:check-protected-issues --protected 3764,3593,4199 OK (closingIssuesReferences = [3953] only).",
@@ -76,7 +76,7 @@
       },
       {
         "title": "**Allowlist ratchet.** Remove each migrated product module from `CONTAINED_WRITES_ALLOWLIST`. Enforced inventory must stay clean after removal. Add a no-new-entries test. The four named sinks are the first instalment, not the deliverable.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "200b386c953c6724c8b3cb059a7eaee22d967f96 packages/core/src/verify-source/contained-writes.test.ts: changelog-cli/export-spec/prd-render/spec-render removed from CONTAINED_WRITES_ALLOWLIST; frozen no-new-entries assertion. PR https://github.com/deftai/directive/pull/4457",
@@ -174,9 +174,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "7a860a31072d85eeed6b235834a526fcae13faff65473b7cdd1a258d1ba864bc"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4457,
+        "prBase": null,
+        "mergeCommit": "9dcd5fdb57aa994fde571754bdec3fb78994a235",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9dcd5fdb57aa994fde571754bdec3fb78994a235",
+        "verifiedAt": "2026-09-13T13:19:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDlhYzktN2QxMi03NGEzLWE2ZDEtOWMyOTQ2Njc0ZDNh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T13:19:24Z"
+      },
+      "completedAt": "2026-09-13T13:19:24Z",
+      "completedSessionId": "host:grok:v1:MDFhMDlhYzktN2QxMi03NGEzLWE2ZDEtOWMyOTQ2Njc0ZDNh",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5292839279",
-    "updated": "2026-09-13T12:46:53Z"
+    "updated": "2026-09-13T13:19:24Z"
   }
 }
