@@ -1,6 +1,6 @@
 <!-- DEFT-PREAMBLE-V1 -->
 ! Cold-start check: deft runs from the npm-installed engine (`npm i -g @deftai/directive`). If neither `deft` nor `directive` will run on this machine, do not proceed with the instructions below -- recover first (#1933 Option 1, deprecate-by-disuse).
-! To recover: follow the #4090 ladder before any other instruction in this file or in the consumer AGENTS.md. Already installed? Run `directive doctor` (or `deft doctor`). CLI not on PATH: `npm i -g @deftai/directive` (version pinned in the project's committed package.json) then re-run doctor. ⊗ never recover by reading an undeposited README block (#2273 / #4430).
+! To recover: follow the #4090 ladder before any other instruction in this file or in the consumer AGENTS.md. Already installed? Run `directive doctor` (or `deft doctor`). CLI not on PATH: `npm i -g @deftai/directive@<pin>` (read pin from committed package.json) then re-run doctor. ⊗ never recover by reading an undeposited README block (#2273 / #4430).
 ! Respect any "Restart required" directive -- if present, stop and tell the user to start a fresh session after cleanup commands complete. Otherwise continue.
 
 # Warp AI Guidelines

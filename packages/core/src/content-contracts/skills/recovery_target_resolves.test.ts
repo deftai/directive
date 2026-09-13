@@ -32,9 +32,13 @@ function isTriggerPath(token: string): boolean {
   return token.includes(".agents/skills");
 }
 
+const RECOVERY_LADDER_NPM_GLOBAL_PINNED = `${RECOVERY_LADDER_NPM_GLOBAL}@<pin>`;
+
 function isFilelessCommand(token: string): boolean {
   return (
     token === RECOVERY_LADDER_NPM_GLOBAL ||
+    token === RECOVERY_LADDER_NPM_GLOBAL_PINNED ||
+    token.startsWith(`${RECOVERY_LADDER_NPM_GLOBAL}@`) ||
     token === RECOVERY_LADDER_NPX_PREFIX ||
     token.startsWith(`${RECOVERY_LADDER_NPX_PREFIX} `) ||
     token === "directive doctor" ||
@@ -122,17 +126,29 @@ describe("recovery target resolvability (#4430 / #2273)", () => {
   it("managed carrier reuses #4090 ladder, doctor-first, no fused fourth spelling", () => {
     const template = readRepoFile("templates/agents-entry.md");
     const window = recoveryWindow("templates/agents-entry.md", template);
-    expect(window).toContain(RECOVERY_LADDER_NPM_GLOBAL);
+    expect(window).toContain(RECOVERY_LADDER_NPM_GLOBAL_PINNED);
     expect(window).toContain("directive doctor");
     expect(window).not.toContain(FUSED_FOURTH_SPELLING);
     expect(window).not.toContain(".deft/core/QUICK-START.md");
     expect(window).not.toMatch(/README\s*§\s*Cold-start/);
     for (const instruction of recoveryInstructions(window)) {
       const doctorAt = instruction.indexOf("directive doctor");
-      const installAt = instruction.indexOf(RECOVERY_LADDER_NPM_GLOBAL);
+      const installAt = instruction.indexOf(RECOVERY_LADDER_NPM_GLOBAL_PINNED);
       expect(doctorAt).toBeGreaterThanOrEqual(0);
       expect(installAt).toBeGreaterThanOrEqual(0);
       expect(doctorAt).toBeLessThan(installAt);
+    }
+  });
+
+  it.each(
+    RECOVERY_CARRIERS,
+  )("recovery install appends @<pin> from package.json, not an unversioned registry default: %s", (relPath) => {
+    const window = recoveryWindow(relPath, readRepoFile(relPath));
+    const instructions = recoveryInstructions(window);
+    expect(instructions.length).toBeGreaterThan(0);
+    for (const instruction of instructions) {
+      expect(instruction).toContain(RECOVERY_LADDER_NPM_GLOBAL_PINNED);
+      expect(instruction).not.toMatch(/`npm i -g @deftai\/directive`/);
     }
   });
 });
