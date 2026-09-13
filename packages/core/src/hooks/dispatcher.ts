@@ -211,6 +211,8 @@ export type HookDecisionCode =
   | "foreign-repository-deny"
   | "scope-not-ready"
   | "write-propose-ready"
+  /** Completed-record correction under the proposed/ all-targets exemption (#4422). */
+  | "write-completed-ready"
   /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
   | "write-assist-scratch-ready"
   | "write-ready"
@@ -420,18 +422,34 @@ export function toProjectRelativePosix(projectRoot: string, targetPath: string):
 
 export { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite };
 
-/**
- * Proposing a scope under xbrief/proposed/ (or legacy vbrief/proposed/) is
- * planning, not implementation dispatch — exempt from the active-scope gate (#2625).
- */
-export function isProposedLifecycleWrite(projectRoot: string, targetPath: string | null): boolean {
+function isLifecycleFolderWrite(
+  projectRoot: string,
+  targetPath: string | null,
+  folder: "proposed" | "completed",
+): boolean {
   if (targetPath === null || targetPath.trim().length === 0) return false;
   const posix = toProjectRelativePosix(projectRoot, targetPath);
   // resolve()+relative() collapses mid-path `..`; only outside-root `..` remains.
   if (posix.startsWith("..")) return false;
   const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
   if (!hasArtifactSuffix(base)) return false;
-  return posix.startsWith("xbrief/proposed/") || posix.startsWith("vbrief/proposed/");
+  return posix.startsWith(`xbrief/${folder}/`) || posix.startsWith(`vbrief/${folder}/`);
+}
+
+/**
+ * Proposing a scope under xbrief/proposed/ (or legacy vbrief/proposed/) is
+ * planning, not implementation dispatch — exempt from the active-scope gate (#2625).
+ */
+export function isProposedLifecycleWrite(projectRoot: string, targetPath: string | null): boolean {
+  return isLifecycleFolderWrite(projectRoot, targetPath, "proposed");
+}
+
+/**
+ * Correcting a completed record under xbrief/completed/ (or legacy vbrief/completed/)
+ * reuses the proposed/ exemption: all mutation targets, not the declared path (#4422).
+ */
+export function isCompletedLifecycleWrite(projectRoot: string, targetPath: string | null): boolean {
+  return isLifecycleFolderWrite(projectRoot, targetPath, "completed");
 }
 
 /**
@@ -444,17 +462,32 @@ function applyPatchBodyUnclassified(payload: unknown): boolean {
 }
 
 /**
- * Proposed-lifecycle exemption is universally quantified over every mutated
- * path, not the declared write target alone (#3614).
+ * Lifecycle exemption is universally quantified over every mutated path, not
+ * the declared write target alone (#3614 / #4422).
  */
-function allMutationTargetsAreProposedLifecycleWrites(
+function allMutationTargetsMatch(
   projectRoot: string,
   payload: unknown,
+  match: (root: string, target: string) => boolean,
 ): boolean {
   if (applyPatchBodyUnclassified(payload)) return false;
   const targets = hookMutationTargetPaths(payload);
   if (targets.length === 0) return false;
-  return targets.every((target) => isProposedLifecycleWrite(projectRoot, target));
+  return targets.every((target) => match(projectRoot, target));
+}
+
+function allMutationTargetsAreProposedLifecycleWrites(
+  projectRoot: string,
+  payload: unknown,
+): boolean {
+  return allMutationTargetsMatch(projectRoot, payload, isProposedLifecycleWrite);
+}
+
+function allMutationTargetsAreCompletedLifecycleWrites(
+  projectRoot: string,
+  payload: unknown,
+): boolean {
+  return allMutationTargetsMatch(projectRoot, payload, isCompletedLifecycleWrite);
 }
 
 function authzForMutationTargets(
@@ -1661,10 +1694,15 @@ function inspectMutationGates(
     occupancyWarning === null ? message : `${message} ${occupancyWarning}`;
 
   if (options.proposedLifecycleExempt) {
-    if (allMutationTargetsAreProposedLifecycleWrites(effectiveRoot, input.payload)) {
-      // UAT still allows xbrief/proposed/** as evidence/defect capture (#2944).
-      // Authz and the write fence run on every mutated path, not the declared
-      // one (#3614).
+    // UAT still allows xbrief/proposed/** as evidence/defect capture (#2944).
+    // Completed-record correction reuses the same all-targets predicate plus
+    // authz, runtimeAuthority, and occupancy rechecks (#4422 / #3614).
+    const allowExemptLifecycleWrite = (
+      allTargetsMatch: boolean,
+      code: "write-propose-ready" | "write-completed-ready",
+      message: string,
+    ): HookDecision | null => {
+      if (!allTargetsMatch) return null;
       const authzDeny = authzForMutationTargets(input, toolName, seams, {
         isDirectWrite: true,
         scopePath: null,
@@ -1684,18 +1722,29 @@ function inspectMutationGates(
       if (occupancyDeny !== null) return occupancyDeny;
       return {
         verdict: "allow",
-        code: "write-propose-ready",
+        code,
         event: input.event,
         host: input.host,
         toolName,
         projectRoot,
-        message: withOccupancyWarning(
-          `Directive write gate allowed ${toolName} for a proposed lifecycle xBRIEF ` +
-            "(planning write; active scope not required).",
-        ),
+        message: withOccupancyWarning(message),
         scopePath: null,
       };
-    }
+    };
+    const proposedAllow = allowExemptLifecycleWrite(
+      allMutationTargetsAreProposedLifecycleWrites(effectiveRoot, input.payload),
+      "write-propose-ready",
+      `Directive write gate allowed ${toolName} for a proposed lifecycle xBRIEF ` +
+        "(planning write; active scope not required).",
+    );
+    if (proposedAllow !== null) return proposedAllow;
+    const completedAllow = allowExemptLifecycleWrite(
+      allMutationTargetsAreCompletedLifecycleWrites(effectiveRoot, input.payload),
+      "write-completed-ready",
+      `Directive write gate allowed ${toolName} for a completed lifecycle xBRIEF ` +
+        "(record correction; active scope not required).",
+    );
+    if (completedAllow !== null) return completedAllow;
   }
 
   let scope: ActiveScopeInspection;
@@ -1760,17 +1809,18 @@ function inspectMutationGates(
           "filename (*.xbrief.json) in the Write/Edit payload so the gate can exempt " +
           "planning writes (#2625).";
       } else {
-        proposedPathHint =
-          " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
-          (options.proposedLifecycleExempt
-            ? "or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption), " +
-              "or for disposable research notes write under `.deft-scratch/` (or `temp/`) " +
-              "with assist/ephemeral posture (`DEFT_SESSION_POSTURE=assist` or " +
-              "`worker_role: assist` / ephemeral — see commands.md #1802 / #3080). " +
-              "Do not invent a fake scope only to capture Obsidian/scratch notes."
-            : "then re-run the pre-start_agent gate stack. " +
-              "For disposable research notes only: write under `.deft-scratch/` with " +
-              "assist posture (commands.md #1802) — do not fake `scope:activate` for notes.");
+        proposedPathHint = options.proposedLifecycleExempt
+          ? " Recovery: no approved xBRIEF is available to activate " +
+            "(in a one-scope repo after complete, completing the only scope emptied the active set). " +
+            "If an approved xBRIEF exists in pending/, run `deft scope:activate -- <path>`. " +
+            "Or Write a new proposal to xbrief/proposed/*.xbrief.json (planning exemption), " +
+            "or for disposable research notes write under `.deft-scratch/` (or `temp/`) " +
+            "with assist/ephemeral posture (`DEFT_SESSION_POSTURE=assist` or " +
+            "`worker_role: assist` / ephemeral — see commands.md #1802 / #3080)."
+          : " Recovery: run `deft scope:activate -- <path>` for the approved xBRIEF, " +
+            "then re-run the pre-start_agent gate stack. " +
+            "For disposable research notes only: write under `.deft-scratch/` with " +
+            "assist posture (commands.md #1802) — do not fake `scope:activate` for notes.";
       }
       const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
       // #3794: the recovery has to run in the tree whose active scope was read.

@@ -90,6 +90,7 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `foreign-repository-deny` | deny | Write target resolved to a Git repository that does not share git-common-dir with payloadRoot (#3794) |
 | `scope-not-ready` | deny | No active running scope for in-root write |
 | `write-propose-ready` | allow | Write to proposed lifecycle path allowed |
+| `write-completed-ready` | allow | Write to completed lifecycle path allowed (all-targets, #4422) |
 | `write-assist-scratch-ready` | allow | Allowlisted assist/scratch write without active xBRIEF (#1802) |
 | `write-ready` | allow | Direct write allowed under ready gates |
 | `read-only-deny` | deny | `DEFT_HOOK_READ_ONLY` / read-only posture |
