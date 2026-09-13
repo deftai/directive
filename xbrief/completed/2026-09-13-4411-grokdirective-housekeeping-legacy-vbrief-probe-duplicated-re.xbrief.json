@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4411",
-    "updated": "2026-09-13T02:37:47Z"
+    "updated": "2026-09-13T03:53:49Z"
   },
   "plan": {
     "title": "Housekeeping recut: xbrief stderr + no-active normal, occupancy --help names deft help, drop inner recovery append",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Bound-remedy recut of #4411 from successor lean 5650036623. Not the original four-item Expected.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4411; next-build is Bound-remedy 5650036623",
@@ -16,23 +16,47 @@
     "items": [
       {
         "title": "Restate item 1 as (a) stale stderr literal vbrief at session-start-hook.ts:88 and (b) code 2 for no-active-xBRIEF is a normal state, not session-start-degraded.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-start-hook.test.ts treats no active xBRIEF as code 0 with no vbrief stderr; coverage-boost.test.ts matches. Merged https://github.com/deftai/directive/pull/4467 242a51ed4930674a90343c9c9f0b26c9ace71737",
+          "recorded_at": "2026-09-13T03:53:30Z",
+          "recorded_by": "agent/leaf-implementation/4411"
+        }
       },
       {
         "title": "Do not add a playbook note that You are not authenticated does not mean what it says. Presence of auth.json is not a live session.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4467 does not touch content/docs/grok-build-subscription-setup.md; Greptile CLEAN 5/5 on 1ad887eb82c1. No playbook auth recut.",
+          "recorded_at": "2026-09-13T03:53:30Z",
+          "recorded_by": "agent/leaf-implementation/4411"
+        }
       },
       {
         "title": "occupancy:grant --help is the occupancy-namespace parse shape, not one verb. Either dispatcher-wide --help or the error names deft help / deft commands.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/occupancy-unrecognized.test.ts: grant/heartbeat/release/steal --help names deft help / deft commands and exits 2. Merged https://github.com/deftai/directive/pull/4467 242a51ed4930674a90343c9c9f0b26c9ace71737",
+          "recorded_at": "2026-09-13T03:53:30Z",
+          "recorded_by": "agent/leaf-implementation/4411"
+        }
       },
       {
         "title": "Drop the inner recovery append at verify-session-ritual.ts:404-409. That is the one edit that fixes hook and CLI without regressing other branches.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/verify-session-ritual-messages.test.ts: gated-step message does not contain Recovery: run. Merged https://github.com/deftai/directive/pull/4467 242a51ed4930674a90343c9c9f0b26c9ace71737",
+          "recorded_at": "2026-09-13T03:53:30Z",
+          "recorded_by": "agent/leaf-implementation/4411"
+        }
       }
     ],
     "tags": [
@@ -103,9 +127,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "d7856bae58fb9ff54760e0ebc84522c433641fb48a1a69a64ff4c1f6e0181c62"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4467,
+        "prBase": null,
+        "mergeCommit": "242a51ed4930674a90343c9c9f0b26c9ace71737",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f331d0c4bc167b58c9a4b28bb28cf6f783969c0d",
+        "verifiedAt": "2026-09-13T03:53:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJiYS03ZTYyLWE2ZDMtMmJlOWUwZGEyYzI5"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T03:53:49Z"
+      },
+      "completedAt": "2026-09-13T03:53:49Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJiYS03ZTYyLWE2ZDMtMmJlOWUwZGEyYzI5",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5426949380",
-    "updated": "2026-09-13T02:37:47Z"
+    "updated": "2026-09-13T03:53:49Z"
   }
 }
