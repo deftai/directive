@@ -20,7 +20,7 @@ import {
   normalizeTaskSeparator,
   runFrameworkCommand,
 } from "./framework-commands.js";
-import { renderPrd } from "./prd-render.js";
+import { renderPrd, resolvePrdRenderRoot } from "./prd-render.js";
 import { renderProjectDefinition } from "./project-render.js";
 import { generateRoadmapContent } from "./roadmap-render.js";
 import {
@@ -534,6 +534,28 @@ describe("export-spec full-spec", () => {
 });
 
 describe("prd-render", () => {
+  it("keeps relative PRD output under cwd when --spec is in another tree (#3953)", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "deft-prd-cwd-"));
+    const specTree = mkdtempSync(join(tmpdir(), "deft-prd-spec-tree-"));
+    expect(
+      resolvePrdRenderRoot({
+        specPath: join(specTree, "xbrief", "specification.xbrief.json"),
+        outputPath: "PRD.md",
+        cwd,
+      }),
+    ).toBe(cwd);
+    expect(
+      resolvePrdRenderRoot({
+        specPath: join(specTree, "xbrief", "specification.xbrief.json"),
+        projectRoot: specTree,
+        outputPath: join(specTree, "PRD.md"),
+        cwd,
+      }),
+    ).toBe(specTree);
+    rmSync(cwd, { recursive: true, force: true });
+    rmSync(specTree, { recursive: true, force: true });
+  });
+
   it("writes PRD with generated banner", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-prd-"));
     const specPath = join(dir, "spec.json");

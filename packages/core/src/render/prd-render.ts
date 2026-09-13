@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { resolveSpecArtifactPath } from "../layout/resolve.js";
 import { generatedSourcePath } from "../spec-authority/constants.js";
@@ -263,10 +263,37 @@ function inferPrdContainmentRoot(specPath: string | undefined): string {
   return specDir;
 }
 
+/**
+ * Trusted write root for PRD output (#3953). Relative outputs stay under cwd
+ * so `prd-render --spec ../other/xbrief/specification.xbrief.json` still writes
+ * `./PRD.md`. Absolute outputs outside cwd use --project-root or the spec tree.
+ */
+export function resolvePrdRenderRoot(input: {
+  readonly specPath?: string;
+  readonly projectRoot?: string;
+  readonly outputPath: string;
+  readonly cwd?: string;
+}): string {
+  const cwdAbs = resolve(input.cwd ?? process.cwd());
+  const outAbs = isAbsolute(input.outputPath)
+    ? resolve(input.outputPath)
+    : resolve(cwdAbs, input.outputPath);
+  const relOut = relative(cwdAbs, outAbs);
+  if (!relOut.startsWith("..") && !isAbsolute(relOut)) {
+    return cwdAbs;
+  }
+  if (input.projectRoot !== undefined) return resolve(input.projectRoot);
+  return inferPrdContainmentRoot(input.specPath);
+}
+
 /** CLI entry (mirrors ``scripts/prd_render.main``). */
 export function main(args: PrdCliArgs = {}): void {
   const outputPath = args.output ?? "PRD.md";
-  const namedRoot = args.projectRoot ?? inferPrdContainmentRoot(args.spec);
+  const namedRoot = resolvePrdRenderRoot({
+    specPath: args.spec,
+    projectRoot: args.projectRoot,
+    outputPath,
+  });
   const options = { force: args.force ?? false, root: namedRoot };
   if (args.spec !== undefined) {
     renderPrd(args.spec, outputPath, options);
