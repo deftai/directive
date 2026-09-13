@@ -19,12 +19,22 @@
 import { createHash } from "node:crypto";
 import {
   ACCEPTED_CITATION_FORMS,
+  ACCEPTED_PAIN_CITE_FORMS,
+  ACCEPTED_PAIN_LIST_FORMS,
   type Citation,
   type CitationScan,
   classifyPosition,
   scanCitations,
+  scanPainCites,
+  scanPainList,
 } from "./citation-grammar.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "./exclusive-chip.js";
+import {
+  type AuditEnvelope,
+  buildPainCoverageDeposit,
+  evaluateParentAudit,
+  extractOperativeAuditTargets,
+} from "./parent-audit.js";
 
 export type ThreadComment = {
   readonly id: number;
@@ -47,6 +57,10 @@ export const COMPLETED_ARC_BLOCK_REASONS = [
   "cancelled",
   "set-level-body",
   "stale-target",
+  "missing-pain",
+  "malformed-pain",
+  "unrelieved-pain",
+  "unresolved-pain-audit",
 ] as const;
 
 export type CompletedArcBlockReason = (typeof COMPLETED_ARC_BLOCK_REASONS)[number];
@@ -295,6 +309,188 @@ function latestTargetShapeIsSetLevel(comments: readonly ThreadComment[]): boolea
   return latest?.setLevel === true;
 }
 
+const WARRANTED_SHAPE_RE = /(?:^|\n)\s*design-critique:\s*warranted,\s*because\b/i;
+
+function hasOperativeWarrantedShape(body: string): boolean {
+  const re = new RegExp(WARRANTED_SHAPE_RE.source, "gi");
+  for (const match of body.matchAll(re)) {
+    const matchOffset = match.index ?? 0;
+    const inner = match[0].search(/design-critique:/i);
+    const offset = matchOffset + (inner >= 0 ? inner : 0);
+    if (classifyPosition(body, offset) === null) return true;
+  }
+  return false;
+}
+
+function latestStop1(comments: readonly ThreadComment[]): ThreadComment | undefined {
+  let latest: ThreadComment | undefined;
+  for (const comment of comments) {
+    if (!isParentOrTriageAuthority(comment.body)) continue;
+    if (!hasOperativeWarrantedShape(comment.body)) continue;
+    if (latest === undefined || comment.id > latest.id) latest = comment;
+  }
+  return latest;
+}
+
+function criticEnvelopes(comments: readonly ThreadComment[]): AuditEnvelope[] {
+  const envelopes: AuditEnvelope[] = [];
+  for (const comment of comments) {
+    if (!CRITIC_ROLE_RE.test(comment.body)) continue;
+    const envelope = extractOperativeAuditTargets(comment.body);
+    if (envelope !== null) envelopes.push(envelope);
+  }
+  return envelopes;
+}
+
+function applyPainCoverage(
+  verdict: CompletedArcVerdict,
+  comments: readonly ThreadComment[],
+  issueNumber: number | undefined,
+): CompletedArcVerdict {
+  if (verdict.status !== "complete") return verdict;
+  const stop1 = latestStop1(comments);
+  if (stop1 === undefined) return verdict;
+  const pain = scanPainList(stop1.body);
+  if (!pain.present || pain.ids.length === 0) {
+    return {
+      status: "blocked",
+      reason: "missing-pain",
+      detail:
+        "Stop 1 write-back " +
+        String(stop1.id) +
+        " has no operative non-vacuous pain: list; accepted forms: " +
+        ACCEPTED_PAIN_LIST_FORMS.join(" | "),
+    };
+  }
+  if (pain.duplicates.length > 0) {
+    return {
+      status: "blocked",
+      reason: "malformed-pain",
+      detail:
+        "Stop 1 write-back " +
+        String(stop1.id) +
+        " repeats pain id(s) " +
+        pain.duplicates.join(", ") +
+        "; duplicate ids fail closed",
+    };
+  }
+  const citedLean = comments.find((comment) => comment.id === verdict.citedLeanId);
+  if (citedLean === undefined) {
+    return {
+      status: "blocked",
+      reason: "unrelieved-pain",
+      detail: "cited successor lean is missing from this thread",
+    };
+  }
+  const byId = new Map<string, ReturnType<typeof scanPainCites>["cites"][number][]>();
+  for (const cite of scanPainCites(citedLean.body).cites) {
+    const rows = byId.get(cite.painId) ?? [];
+    rows.push(cite);
+    byId.set(cite.painId, rows);
+  }
+  const unknown = [...byId.keys()].filter((id) => !pain.ids.includes(id));
+  if (unknown.length > 0) {
+    return {
+      status: "blocked",
+      reason: "malformed-pain",
+      detail:
+        "successor lean cites unknown pain id(s) " +
+        unknown.join(", ") +
+        "; Stop 1 list is " +
+        pain.ids.join(", "),
+    };
+  }
+  const residual: string[] = [];
+  const sameIssue: string[] = [];
+  const deferred: string[] = [];
+  const conflicting: string[] = [];
+  for (const id of pain.ids) {
+    const rows = byId.get(id) ?? [];
+    if (rows.length === 0) {
+      residual.push(id);
+      continue;
+    }
+    const dispositions = new Set(rows.map((row) => row.disposition));
+    if (dispositions.size > 1) {
+      conflicting.push(id);
+      continue;
+    }
+    const row = rows[0];
+    if (row === undefined || row.disposition === "does-not-relieve") {
+      residual.push(id);
+      continue;
+    }
+    if (row.disposition === "operator-deferred") {
+      if (row.deferredIssueNumber === null) {
+        conflicting.push(id);
+        continue;
+      }
+      if (issueNumber === undefined || row.deferredIssueNumber === issueNumber) {
+        sameIssue.push(id);
+        continue;
+      }
+      deferred.push(id);
+    }
+  }
+  if (conflicting.length > 0) {
+    return {
+      status: "blocked",
+      reason: "malformed-pain",
+      detail:
+        "successor lean has conflicting or incomplete dispositions for pain id(s) " +
+        conflicting.join(", "),
+    };
+  }
+  if (residual.length > 0 || sameIssue.length > 0) {
+    const parts: string[] = [];
+    if (residual.length > 0) {
+      parts.push(`uncited residual pain id(s) ${residual.join(", ")}`);
+    }
+    if (sameIssue.length > 0) {
+      parts.push(
+        "operator-deferred " +
+          sameIssue.join(", ") +
+          " cites this issue" +
+          (issueNumber === undefined ? "" : ` #${String(issueNumber)}`) +
+          "; same-number leftover is not ingest clearance",
+      );
+    }
+    return {
+      status: "blocked",
+      reason: "unrelieved-pain",
+      detail: `${parts.join("; ")}; accepted cite forms: ${ACCEPTED_PAIN_CITE_FORMS.join(" | ")}`,
+    };
+  }
+  if (deferred.length === 0) return verdict;
+  const audit = evaluateParentAudit(
+    buildPainCoverageDeposit({
+      leanCommentId: citedLean.id,
+      deferredPainIds: deferred,
+      criticEnvelopes: criticEnvelopes(comments),
+    }),
+  );
+  if (audit.ok) return verdict;
+  const codes = [...new Set(audit.failures.map((row) => row.code))].join(", ");
+  return {
+    status: "blocked",
+    reason: "unresolved-pain-audit",
+    detail:
+      "operator-deferred pain id(s) " +
+      deferred.join(", ") +
+      " remain unresolved audit markers (" +
+      codes +
+      ") until a critic targets them",
+  };
+}
+
+function finalizeComplete(
+  comments: readonly ThreadComment[],
+  verdict: CompletedArcVerdict,
+  issueNumber: number | undefined,
+): CompletedArcVerdict {
+  return applyPainCoverage(refuseSetLevelBody(comments, verdict), comments, issueNumber);
+}
+
 function refuseSetLevelBody(
   comments: readonly ThreadComment[],
   verdict: CompletedArcVerdict,
@@ -495,6 +691,7 @@ function verdictForSynthesis(
 export function evaluateCompletedArcRecord(input: {
   readonly labels?: readonly string[];
   readonly comments: readonly ThreadComment[];
+  readonly issueNumber?: number;
 }): CompletedArcVerdict {
   const comments = input.comments;
   const cancel = latestCancelled(comments);
@@ -528,9 +725,10 @@ export function evaluateCompletedArcRecord(input: {
         ? completeRecords
         : completeRecords.filter((record) => record.citedLeanId === latestLean.id);
     if (matching.length > 0) {
-      return refuseSetLevelBody(
+      return finalizeComplete(
         recutComments,
         matching.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b)),
+        input.issueNumber,
       );
     }
     const latestCompleteId = completeRecords.reduce(
@@ -540,7 +738,11 @@ export function evaluateCompletedArcRecord(input: {
     const laterSynthesis = synthesis.filter((comment) => comment.id > latestCompleteId);
     if (laterSynthesis.length > 0) {
       const latest = laterSynthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-      return refuseSetLevelBody(recutComments, verdictForSynthesis(latest, recutComments));
+      return finalizeComplete(
+        recutComments,
+        verdictForSynthesis(latest, recutComments),
+        input.issueNumber,
+      );
     }
     const citedLeanIds = completeRecords.map((record) => record.citedLeanId);
     const latestLeanId = latestLean === undefined ? "unknown" : String(latestLean.id);
@@ -555,7 +757,11 @@ export function evaluateCompletedArcRecord(input: {
   }
   if (synthesis.length > 0) {
     const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-    return refuseSetLevelBody(recutComments, verdictForSynthesis(latest, recutComments));
+    return finalizeComplete(
+      recutComments,
+      verdictForSynthesis(latest, recutComments),
+      input.issueNumber,
+    );
   }
   // Labels are not SoT: in-arc membership is thread-only (#4298).
   const inArc = isInFlightCritiqueThread(recutComments);
@@ -577,7 +783,11 @@ export function assertCompletedArcAllowsIngest(input: {
   readonly labels?: readonly string[];
   readonly comments: readonly ThreadComment[];
 }): CompletedArcVerdict {
-  const verdict = evaluateCompletedArcRecord(input);
+  const verdict = evaluateCompletedArcRecord({
+    labels: input.labels,
+    comments: input.comments,
+    issueNumber: input.issueNumber,
+  });
   if (verdict.status === "blocked") {
     throw new DesignCritiqueIngestBlockedError(input.issueNumber, verdict.reason, verdict.detail);
   }

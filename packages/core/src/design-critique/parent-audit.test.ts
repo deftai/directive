@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPainCoverageDeposit,
   evaluateParentAudit,
+  extractOperativeAuditTargets,
   formatAuditToken,
   type ParentAuditDeposit,
+  painMarkerId,
   parseAuditToken,
 } from "./parent-audit.js";
 
@@ -202,5 +205,50 @@ describe("design-critique parent-side substantiation (#3651)", () => {
     expect(result.ok).toBe(false);
     expect(result.failures.some((f) => f.code === "marker-collision")).toBe(true);
     expect(result.failures.some((f) => f.code === "bind-unresolved")).toBe(true);
+  });
+});
+
+describe("pain-coverage parent audit (#4496)", () => {
+  it("parses an operative audit-targets field and ignores a quoted copy", () => {
+    expect(extractOperativeAuditTargets("role: critic\naudit-targets: pain-P1\n")).toEqual({
+      auditTargets: ["pain-P1"],
+      declaredNone: false,
+    });
+    expect(extractOperativeAuditTargets("> audit-targets: pain-P1\n")).toBeNull();
+  });
+
+  it("keeps operator-deferred unresolved until a critic targets it", () => {
+    const unresolved = evaluateParentAudit(
+      buildPainCoverageDeposit({
+        leanCommentId: 5654755223,
+        deferredPainIds: ["P1"],
+        criticEnvelopes: [],
+      }),
+    );
+    expect(unresolved.ok).toBe(false);
+    expect(unresolved.failures.some((row) => row.code === "bind-unresolved")).toBe(true);
+    expect(painMarkerId("P1")).toBe("pain-P1");
+
+    const cleared = evaluateParentAudit(
+      buildPainCoverageDeposit({
+        leanCommentId: 5654755223,
+        deferredPainIds: ["P1"],
+        criticEnvelopes: [{ auditTargets: ["pain-P1"], declaredNone: false }],
+      }),
+    );
+    expect(cleared.ok).toBe(true);
+  });
+
+  it("fails closed when a parent clears a deferred pain marker", () => {
+    const result = evaluateParentAudit(
+      buildPainCoverageDeposit({
+        leanCommentId: 5654755223,
+        deferredPainIds: ["P1"],
+        criticEnvelopes: [{ auditTargets: ["pain-P1"], declaredNone: false }],
+        parentClearedMarkerIds: ["pain-P1"],
+      }),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((row) => row.code === "parent-self-clear")).toBe(true);
   });
 });

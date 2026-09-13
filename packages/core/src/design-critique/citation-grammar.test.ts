@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ACCEPTED_CITATION_FORMS, scanCitations } from "./citation-grammar.js";
+import {
+  ACCEPTED_CITATION_FORMS,
+  ACCEPTED_PAIN_CITE_FORMS,
+  ACCEPTED_PAIN_LIST_FORMS,
+  scanCitations,
+  scanPainCites,
+  scanPainList,
+} from "./citation-grammar.js";
 
 const ID = 5439547122;
 const TABLE_ID = 5439956893;
@@ -363,5 +370,51 @@ describe("scanCitations diagnostics surface (#3831)", () => {
     expect(scan.citations).toEqual([]);
     expect(scan.rejected).toEqual([]);
     expect(scan.idShapedRuns).toEqual([]);
+  });
+});
+
+describe("scanPainList / scanPainCites (#4496)", () => {
+  it("reads the published list forms", () => {
+    expect(scanPainList("pain: P1").ids).toEqual(["P1"]);
+    expect(scanPainList("pain: P1, P2").ids).toEqual(["P1", "P2"]);
+    expect(scanPainList("pain:\n- P1\n- P2\n").ids).toEqual(["P1", "P2"]);
+    expect(ACCEPTED_PAIN_LIST_FORMS).toContain("pain: P1");
+  });
+
+  it("reports duplicates instead of dropping them", () => {
+    expect(scanPainList("pain: P1, P1")).toEqual({
+      present: true,
+      ids: ["P1"],
+      duplicates: ["P1"],
+    });
+  });
+
+  it("ignores fence, quote, strike, and inline-code", () => {
+    expect(scanPainList("```\npain: P1\n```\n").present).toBe(false);
+    expect(scanPainList("> pain: P1\n").present).toBe(false);
+    expect(scanPainList("~~pain: P1~~\n").present).toBe(false);
+    expect(scanPainList("see `pain: P1` in the example\n").present).toBe(false);
+  });
+
+  it("reads published cite forms and keeps does-not-relieve distinct", () => {
+    expect(scanPainCites("relieves: P1").cites).toEqual([
+      { painId: "P1", disposition: "relieves", deferredIssueNumber: null },
+    ]);
+    expect(scanPainCites("does-not-relieve: P1").cites).toEqual([
+      { painId: "P1", disposition: "does-not-relieve", deferredIssueNumber: null },
+    ]);
+    expect(scanPainCites("operator-deferred: P1 #4377").cites).toEqual([
+      { painId: "P1", disposition: "operator-deferred", deferredIssueNumber: 4377 },
+    ]);
+    expect(scanPainCites("operator-deferred: P1 issue 4377").cites).toEqual([
+      { painId: "P1", disposition: "operator-deferred", deferredIssueNumber: 4377 },
+    ]);
+    expect(ACCEPTED_PAIN_CITE_FORMS).toContain("relieves: P1");
+  });
+
+  it("does not let a quoted cite discharge the denominator", () => {
+    const scan = scanPainCites("> relieves: P1\n");
+    expect(scan.cites).toEqual([]);
+    expect(scan.rejected).toEqual([{ painId: "P1", reason: "blockquote" }]);
   });
 });

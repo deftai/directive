@@ -1542,6 +1542,21 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(grammar).toContain("⊗ Merge two states under one reason when their remedies differ.");
     expect(grammar).toContain("That is conformance to it, not a second rule.");
 
+    const pain = markdownSection(text, "### Pain coverage (#4496)");
+    expect(pain).toContain("### Pain coverage (#4496)");
+    expect(pain).toContain("evaluateCompletedArcRecord");
+    expect(pain).toContain("`pain: P1`");
+    expect(pain).toContain("relieves: P1");
+    expect(pain).toContain("does-not-relieve: P1");
+    expect(pain).toContain("operator-deferred: P1 #4377");
+    expect(pain).toContain("classifyPosition");
+    expect(pain).toContain("scanPainList");
+    expect(pain).toContain("evaluateParentAudit");
+    expect(pain).toContain("halt-for-human or later-arc");
+    expect(pain).toContain("Do not restore `design-critique:recut-needed`");
+    expect(pain).toContain("Do not grow `resolveAutoStampCatalogChip`");
+    expect(pain).not.toContain("recut-needed` as a catalog chip");
+
     const testSurface = markdownSection(text, "## Test surface");
     expect(testSurface).toContain("### Verified-claims table heading");
     expect(testSurface).toContain("#3942");

@@ -595,7 +595,7 @@ The intake cross-ref scanners (`packages/core/src/intake/markdown-scanners.ts`) 
 - ! Clearance is set membership: the record clears when the cited set contains the latest successor lean id. Position in the body does not select the lean, so citing the prior lean that `## Successor lean` requires cannot block.
 - ! A block detail reports what was scanned, what was found, and the accepted forms. ⊗ Guess at a cause. A guessed detail sends the operator back to re-post the same body and reproduce the refusal.
 
-`CompletedArcBlockReason` is closed. A block detail names one of these nine:
+`CompletedArcBlockReason` is closed. A block detail names one of these thirteen:
 
 | Reason | What it reports |
 | --- | --- |
@@ -608,11 +608,50 @@ The intake cross-ref scanners (`packages/core/src/intake/markdown-scanners.ts`) 
 | `cancelled` | `design-critique: cancelled, because ...` is the latest terminal record; no later successor lean |
 | `set-level-body` | completed-arc is present and the latest `target shape:` field is `set-level` |
 | `stale-target` | cited successor lean carries `Target-digest:` and the live REST issue body hash does not match; nothing written. Legacy leans with no digest stay admitted. Spec-path without digest stays on #4237 |
+| `missing-pain` | Stop 1 write-back has no operative non-vacuous `pain:` list |
+| `malformed-pain` | duplicate Stop 1 ids, unknown cite ids, or conflicting/incomplete dispositions |
+| `unrelieved-pain` | named pain is uncited, `does-not-relieve`, or same-number `operator-deferred` leftover |
+| `unresolved-pain-audit` | different-issue `operator-deferred` remains an unresolved ADR-006 marker until a critic targets it |
 
 - ! Publish a reason in that table before the evaluator returns it. An unpublished reason code is the same gap as an unpublished citation form.
 - ⊗ Merge two states under one reason when their remedies differ. `missing-table-cite` and `unshaped-table-cite` were one reason and one detail until #3942, and the shared detail asserted an absent id in both, so an author whose table was on the thread read a true citation being called false and had no path to the missing heading.
 
 The `unshaped-table-cite` detail names the heading because the diagnostics rule above already requires a detail to report what was found and the accepted form. That is conformance to it, not a second rule.
+
+
+### Pain coverage (#4496)
+
+Named Stop 1 warrant pains are a bind conjunct on `evaluateCompletedArcRecord`. Critic-heading all-accept is not coverage. Catalog chip `design-critique:ingest-ready` is list state, not clearance. Do not grow `resolveAutoStampCatalogChip` as this gate. Do not restore `design-critique:recut-needed`.
+
+Authority. The latest Stop 1 write-back (`design-critique: warranted, because ...` on `role: parent` or `role: triage`) owns the denominator. The cited successor lean owns the cites. Fence, quote, strike, and inline-code do not count (`classifyPosition`). A quoted example does not create, replace, or discharge the denominator. A superseding warrant is a new Stop 1, not last-writer prose elsewhere on the thread.
+
+Closed pain-id form: `P` plus 1-8 digits (`P1`).
+
+Closed list forms:
+
+- `pain: P1`
+- `pain: P1, P2`
+- `pain:` then list items `- P1`
+
+Missing, refused-position-only, or vacuous `pain:` fails closed as `missing-pain`. Duplicate ids fail closed as `malformed-pain`.
+
+Closed cite forms on the successor lean (no third coverage-map type):
+
+- `relieves: P1` / `relieves P1`
+- `does-not-relieve: P1`
+- `operator-deferred: P1 #4377` / `operator-deferred: P1 issue 4377`
+
+Uncited ids and `does-not-relieve` stay residual headings (`unrelieved-pain`). Unknown ids and conflicting dispositions fail closed as `malformed-pain`. `operator-deferred` must cite a **different** issue id; same-number leftover is `unrelieved-pain`, not yolo-confirmable leftover, and is halt or a later lean that binds relief, without ingest clearance.
+
+A `relieves` cite is an ADR-006 asserted premise. The engine does not grade whether relief is true (ADR-005). Parent cannot self-clear. A later critic must target it. `operator-deferred` to a different issue is an unresolved audit marker until a critic targets it (`unresolved-pain-audit`, `evaluateParentAudit`).
+
+Path-1 `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` does not yield `complete` while any of those reasons hold. Dual-stop spent plus unrelieved pain prints halt-for-human or later-arc, not ingest.
+
+- ! Publish a reason in the table above before the evaluator returns it.
+- ! Reuse `scanPainList`, `scanPainCites`, and `classifyPosition`.
+- ⊗ NLP-grade the because-clause or Bound-remedy English.
+- ⊗ Treat the ingest-ready chip as clearance.
+
 
 ## Failure and budget stop
 

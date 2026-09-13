@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assertCompletedArcAllowsIngest,
+  COMPLETED_ARC_BLOCK_REASONS,
   DesignCritiqueIngestBlockedError,
   evaluateCompletedArcRecord,
   evaluateTargetDigestAdmission,
@@ -1210,5 +1211,229 @@ describe("Target-digest admission (#4243)", () => {
     expect(
       evaluateTargetDigestAdmission({ citedLeanBody: cited, liveIssueBody: restBody }),
     ).toMatchObject({ status: "blocked", reason: "stale-target" });
+  });
+});
+
+describe("pain coverage (#4496)", () => {
+  const STOP1_ID = 5654639130;
+  const LEAN_4378 = 5654755223;
+  const TABLE_4378 = 5654759568;
+  const SYNTHESIS_4378 = 5654759686;
+
+  const table4378: ThreadComment = {
+    id: TABLE_4378,
+    body: "## Verified-claims table\n\n| # | Claim | Method | Status |\n",
+  };
+
+  const synthesis4378: ThreadComment = {
+    id: SYNTHESIS_4378,
+    body:
+      "model: grok-4.6\nrole: parent\n\n" +
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      `Citing successor lean ${LEAN_4378} and verified-claims table ${TABLE_4378}.\n`,
+  };
+
+  const leftoverLean: ThreadComment = {
+    id: LEAN_4378,
+    body:
+      "**Lean:** take map over round 1 panel.\n\nSpec-path:\n\n## Bound remedy\n\n" +
+      "1. Personal always-wins stays operator-authored.\n" +
+      "2. Reuse existing step protocol.\n" +
+      "3. Version-stamp bug: use the live version source.\n",
+  };
+
+  function stop1(body: string, id = STOP1_ID): ThreadComment {
+    return { id, body };
+  }
+
+  it("still completes a record with no Stop 1 write-back", () => {
+    expect(evaluateCompletedArcRecord({ comments: [lean, table, synthesis] })).toMatchObject({
+      status: "complete",
+    });
+  });
+
+  it("fails closed when Stop 1 is missing pain:", () => {
+    const warrant = stop1(
+      "model: grok-4.6\nrole: parent\n\n" +
+        "design-critique: warranted, because USER.md onboarding is still a chat loop.\n",
+    );
+    const verdict = evaluateCompletedArcRecord({
+      issueNumber: 4378,
+      comments: [warrant, leftoverLean, table4378, synthesis4378],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-pain" });
+    expect(() =>
+      assertCompletedArcAllowsIngest({
+        issueNumber: 4378,
+        comments: [warrant, leftoverLean, table4378, synthesis4378],
+      }),
+    ).toThrow(DesignCritiqueIngestBlockedError);
+  });
+
+  it("refuses the annotated #4378 leftover Bound-remedy window", () => {
+    const warrant = stop1(
+      "model: grok-4.6\nrole: parent\n\n" +
+        "design-critique: warranted, because USER.md onboarding is still a chat loop.\n\n" +
+        "pain: P1\npain: P2\npain: P3\npain: P4\n",
+    );
+    const verdict = evaluateCompletedArcRecord({
+      issueNumber: 4378,
+      labels: ["design-critique:ingest-ready"],
+      comments: [warrant, leftoverLean, table4378, synthesis4378],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain("P1");
+      expect(verdict.detail).toContain("P4");
+    }
+  });
+
+  it("does not restore recut-needed as a block reason", () => {
+    expect(evaluateCompletedArcRecord({ comments: [lean, table, synthesis] }).status).toBe(
+      "complete",
+    );
+    expect(COMPLETED_ARC_BLOCK_REASONS).not.toContain("recut-needed");
+  });
+
+  it("completes when every named pain is cited as relieves", () => {
+    const warrant = stop1(
+      "role: parent\n\ndesign-critique: warranted, because coverage gap.\n\npain: P1\npain: P2\n",
+    );
+    const covered: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** bind relief.\n\nrelieves: P1\nrelieves: P2\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        issueNumber: 4496,
+        comments: [warrant, covered, table, synthesis],
+      }),
+    ).toMatchObject({
+      status: "complete",
+      citedLeanId: LEAN_ID,
+    });
+  });
+
+  it("does not let a path-1 empty-disagreement line complete while residual holds", () => {
+    const warrant = stop1(
+      "role: parent\n\ndesign-critique: warranted, because leftover warrant.\n\npain: P1\n",
+    );
+    const leanResidual: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** forbids only.\n\ndoes-not-relieve: P1\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        issueNumber: 4496,
+        comments: [warrant, leanResidual, table, synthesis],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
+  });
+
+  it("treats same-number operator-deferred as leftover, not ingest clearance", () => {
+    const warrant = stop1(
+      "role: parent\n\ndesign-critique: warranted, because leftover warrant.\n\npain: P1\n",
+    );
+    const deferredSame: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** defer on this number.\n\noperator-deferred: P1 #4496\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        issueNumber: 4496,
+        comments: [warrant, deferredSame, table, synthesis],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
+  });
+
+  it("keeps operator-deferred to a different issue unresolved until a critic targets it", () => {
+    const warrant = stop1(
+      "role: parent\n\ndesign-critique: warranted, because leftover warrant.\n\npain: P1\n",
+    );
+    const deferredOther: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** later slice.\n\noperator-deferred: P1 #4377\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        issueNumber: 4496,
+        comments: [warrant, deferredOther, table, synthesis],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+
+    const critic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "role: critic\n\naudit-targets: pain-P1\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        issueNumber: 4496,
+        comments: [warrant, deferredOther, table, critic, synthesis],
+      }),
+    ).toMatchObject({ status: "complete" });
+  });
+
+  it("fails closed on duplicate and unknown pain ids", () => {
+    const dup = stop1(
+      "role: parent\n\ndesign-critique: warranted, because x.\n\npain: P1\npain: P1\n",
+    );
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [dup, leftoverLean, table4378, synthesis4378],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "malformed-pain" });
+
+    const warrant = stop1("role: parent\n\ndesign-critique: warranted, because x.\n\npain: P1\n");
+    const unknown: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** cites a ghost.\n\nrelieves: P9\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [warrant, unknown, table, synthesis],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "malformed-pain" });
+  });
+
+  it("does not let a quoted Stop 1 pain list create the denominator", () => {
+    const warrant = stop1("role: parent\n\ndesign-critique: warranted, because x.\n\n> pain: P1\n");
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [warrant, leftoverLean, table4378, synthesis4378],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "missing-pain" });
+  });
+
+  it("does not let a quoted relieves cite discharge residual", () => {
+    const warrant = stop1("role: parent\n\ndesign-critique: warranted, because x.\n\npain: P1\n");
+    const quoted: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** example only.\n\n> relieves: P1\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [warrant, quoted, table, synthesis],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
+  });
+
+  it("takes a later Stop 1 as the superseding warrant", () => {
+    const oldWarrant = stop1(
+      "role: parent\n\ndesign-critique: warranted, because old.\n\npain: P1\n",
+      STOP1_ID,
+    );
+    const newWarrant = stop1(
+      "role: parent\n\ndesign-critique: warranted, because recut warrant.\n\npain: P2\n",
+      STOP1_ID + 1,
+    );
+    const covered: ThreadComment = {
+      id: LEAN_ID,
+      body: "**Lean:** relieves the new denominator.\n\nrelieves: P2\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [oldWarrant, newWarrant, covered, table, synthesis],
+      }),
+    ).toMatchObject({ status: "complete" });
   });
 });

@@ -1,5 +1,7 @@
 /** Parent-side substantiation deposit + fail-closed evaluator (#3651 / ADR-006). */
 
+import { classifyPosition } from "./citation-grammar.js";
+
 export type AuditReading = "measured" | "asserted";
 export type AuditRole = "parent" | "critic" | "triage";
 
@@ -202,4 +204,80 @@ export function evaluateParentAudit(deposit: ParentAuditDeposit): {
   }
 
   return { ok: failures.length === 0, failures };
+}
+
+export function painMarkerId(painId: string): string {
+  return `pain-${painId}`;
+}
+
+const AUDIT_TARGETS_RE = /(?:^|\n)[ \t]*audit-targets:[ \t]*([^\n]*)/gi;
+
+/** Latest operative `audit-targets:` field, or null when none is operative. */
+export function extractOperativeAuditTargets(body: string): AuditEnvelope | null {
+  const re = new RegExp(AUDIT_TARGETS_RE.source, "gi");
+  let last: AuditEnvelope | null = null;
+  for (const match of body.matchAll(re)) {
+    const offset = match.index ?? 0;
+    const inner = match[0].search(/audit-targets:/i);
+    const tokenOffset = offset + (inner >= 0 ? inner : 0);
+    if (classifyPosition(body, tokenOffset) !== null) continue;
+    const raw = (match[1] ?? "").trim();
+    if (/^none$/i.test(raw)) {
+      last = { auditTargets: [], declaredNone: true };
+      continue;
+    }
+    const auditTargets = raw.split(/[, \t]+/).filter((part) => part.length > 0);
+    last = { auditTargets, declaredNone: false };
+  }
+  return last;
+}
+
+function leanSha(leanCommentId: number): string {
+  const hex = leanCommentId.toString(16);
+  return hex.length >= 7 ? hex.slice(0, 40) : hex.padStart(7, "0");
+}
+
+/**
+ * Deferred pain cites are unresolved ADR-006 markers until a critic targets them.
+ * Relief cites are asserted premises for a later critic; they are not this bind.
+ */
+export function buildPainCoverageDeposit(input: {
+  readonly leanCommentId: number;
+  readonly deferredPainIds: readonly string[];
+  readonly criticEnvelopes: readonly AuditEnvelope[];
+  readonly parentClearedMarkerIds?: readonly string[];
+}): ParentAuditDeposit {
+  const premises: AuditPremise[] = input.deferredPainIds.map((painId) => ({
+    markerId: painMarkerId(painId),
+    sha: leanSha(input.leanCommentId),
+    pointer: `lean:${input.leanCommentId}`,
+    reading: "asserted",
+    introducedByRole: "parent",
+    loadBearing: true,
+  }));
+  const named = premises.map((row) => row.markerId);
+  const clearances: AuditClearance[] = [];
+  for (const envelope of input.criticEnvelopes) {
+    for (const id of envelope.auditTargets) {
+      if (named.includes(id)) {
+        clearances.push({ markerId: id, clearedByRole: "critic", targetsMarker: true });
+      }
+    }
+  }
+  for (const id of input.parentClearedMarkerIds ?? []) {
+    clearances.push({ markerId: id, clearedByRole: "parent", targetsMarker: true });
+  }
+  const independentlyClearedIds = new Set(
+    clearances
+      .filter((row) => row.clearedByRole === "critic" && row.targetsMarker)
+      .map((row) => row.markerId),
+  );
+  const unresolved = named.filter((id) => !independentlyClearedIds.has(id));
+  return {
+    premises,
+    clearances,
+    envelopes: input.criticEnvelopes,
+    namedAuditTargets: named,
+    bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: unresolved },
+  };
 }
