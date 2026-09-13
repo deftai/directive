@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "treat-4388-as-residue-of-4038-slizard-2826-not-a-new-detector-cl",
+  "decision": "Treat #4388 as residue of #4038 / slizard#2826, not a new detector class",
+  "governingRule": {
+    "description": "Bound-remedy 5650036741: record what #4038 completion delivered; bind compile-with-compilerOptions only; drop skip and basename allowlist; recut Evidence to a real tsc run.",
+    "path": "https://github.com/deftai/directive/issues/4388#issuecomment-5650036741",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Treat #4388 as a new honour-the-tsconfig class",
+      "whyNot": "The same config-read class was already recorded on #4038 and shipped partial on slizard#2826. A second completed record would close the same way."
+    },
+    {
+      "option": "Bind Proposal 2 skip-on-exclude",
+      "whyNot": "exclude-all is a PR-author-controlled gate-disable. TS18003 or empty fileNames on a tsconfig-touching PR must be a finding."
+    },
+    {
+      "option": "Special-case JSONC by closed basename allowlist",
+      "whyNot": "tsconfig.build.json, tsconfig.node.json, and other comment-bearing configs miss the list and grow a new false-positive class."
+    }
+  ],
+  "whyWinner": "slizard#2826 shipped libProvidesConsole for TS2584 console plus JSX key/ref and active-brief skip. json-syntax still JSON.parse's tsconfig.json. typescript-compilation-check already reads compilerOptions via ts.readConfigFile but ignores parsed.errors and empty fileNames and still compiles changed .ts as rootNames. Residue is extend that config read: compilerOptions only, no skip, compiler API for tsconfig/jsconfig, recut Evidence to tsc 5.9.3 TS2307 plus TS5097 at line 8.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-09-13-4388-designslizard-the-json-syntax-and-typescript-compilation-che.xbrief.json"
+  ],
+  "timestamp": "2026-09-13T02:46:22Z",
+  "revisitTrigger": "If slizard json-syntax routes tsconfig/jsconfig through ts.readConfigFile plus parseJsonConfigFileContent, and typescript-compilation reports TS18003 or empty fileNames when the PR touches tsconfig.json.",
+  "tags": [
+    "slizard",
+    "tsconfig",
+    "json-syntax",
+    "residue"
+  ],
+  "relatedIssues": [
+    4388,
+    4038
+  ]
+}
