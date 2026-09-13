@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4410 Bound-remedy successor lean 5650046670: occupancy deny and close-out copy must not print the steal argv to the refused party.",
-    "updated": "2026-09-13T02:39:44Z"
+    "updated": "2026-09-13T04:12:15Z"
   },
   "plan": {
     "id": "github.issue.5426949267",
     "title": "Occupancy deny text must not print the steal recipe to the refused party",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Bound-remedy 5650046670: do not print the steal argv in a message the refused party reads. Occupancy has owner/member/stranger, not human/agent. No recency guard in this story. #4409 stays separate.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4410 successor lean 5650046670",
@@ -21,48 +21,84 @@
     "items": [
       {
         "title": "Occupancy deny does not print the steal argv",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#does not print steal argv to refused party",
+          "recorded_at": "2026-09-13T04:10:00Z",
+          "recorded_by": "leaf-implementation/4410"
+        },
         "narrative": {
           "Acceptance": "Given a live occupant and a stranger write or claim, when occupancy deny runs, then the message names isolation, read-only, occupant grant, and occupant release, and does not contain session:start --steal --confirm or occupancy:steal --confirm --occupant."
         }
       },
       {
         "title": "--confirm-missing deny does not print the steal argv",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#confirm-missing deny omits steal argv",
+          "recorded_at": "2026-09-13T04:10:00Z",
+          "recorded_by": "leaf-implementation/4410"
+        },
         "narrative": {
           "Acceptance": "Given occupancy:steal without --confirm, when the deny is printed, then it may name the missing --confirm flag of that verb and occupant recency, and does not contain session:start --steal --confirm --occupant."
         }
       },
       {
         "title": "releaseSwarmOccupancy deny does not print the steal argv",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#releaseSwarmOccupancy omits steal argv",
+          "recorded_at": "2026-09-13T04:10:00Z",
+          "recorded_by": "leaf-implementation/4410"
+        },
         "narrative": {
           "Acceptance": "Given swarm close-out with no occupancy_session_id, unset DEFT_SESSION_ID, and no host owner, when releaseSwarmOccupancy denies, then the message does not contain session:start --steal --confirm."
         }
       },
       {
         "title": "swarm launch failed-release recovery does not print the steal argv",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/launch.test.ts#failed-release recovery omits steal argv",
+          "recorded_at": "2026-09-13T04:10:00Z",
+          "recorded_by": "leaf-implementation/4410"
+        },
         "narrative": {
           "Acceptance": "Given a newly claimed launch lease whose later-step release throws, when swarm:launch reports recovery, then stderr does not contain session:start --steal --confirm."
         }
       },
       {
         "title": "complete-cohort close-out does not print the steal argv",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#complete-cohort close-out omits steal argv",
+          "recorded_at": "2026-09-13T04:10:00Z",
+          "recorded_by": "leaf-implementation/4410"
+        },
         "narrative": {
           "Acceptance": "Given a live occupancy record missing or belonging to a different cohort, when complete-cohort errors, then the error does not contain session:start --steal --confirm."
         }
       },
       {
         "title": "commands.md agent-facing copy does not print the steal argv",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts",
+          "recorded_at": "2026-09-13T04:10:00Z",
+          "recorded_by": "leaf-implementation/4410"
+        },
         "narrative": {
           "Acceptance": "Given content/commands.md Transition, steal, and release copy, when an agent reads it, then it does not contain session:start --steal --confirm --occupant or occupancy:steal --confirm --occupant, and still names occupant release plus ritual alignment without treating --confirm as a human gate."
         }
@@ -168,8 +204,33 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "6f622c977315879f2a9b6f046aaf0db32b1f8d99a4ed3ee217647ca4908dc974"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4474,
+        "prBase": null,
+        "mergeCommit": "16ddb23eff83fab32068c2c9e7dd9d91223a940a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "16ddb23eff83fab32068c2c9e7dd9d91223a940a",
+        "verifiedAt": "2026-09-13T04:12:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJjMS03MGExLTljMmMtZGFmYTZhYjliMmNl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T04:12:15Z"
+      },
+      "completedAt": "2026-09-13T04:12:15Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4OWMtYWJjMS03MGExLTljMmMtZGFmYTZhYjliMmNl",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-09-13T02:39:44Z"
+    "updated": "2026-09-13T04:12:15Z"
   }
 }
