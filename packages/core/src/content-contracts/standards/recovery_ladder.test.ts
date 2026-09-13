@@ -193,10 +193,10 @@ describe("recovery ladder (#4090)", () => {
     expect(template).toContain(RECOVERY_LADDER_NPM_GLOBAL);
     expect(template).toContain("directive doctor");
     expect(template).not.toContain(`${RECOVERY_LADDER_NPM_GLOBAL} && directive doctor`);
-    const fallback = template.split("\n").find((line) => line.includes(".agents/skills"));
-    expect(fallback).toBeDefined();
-    const doctorAt = fallback!.indexOf("directive doctor");
-    const installAt = fallback!.indexOf(RECOVERY_LADDER_NPM_GLOBAL);
+    const fallback = template.split("\n").find((line) => line.includes(".agents/skills")) ?? "";
+    expect(fallback.length).toBeGreaterThan(0);
+    const doctorAt = fallback.indexOf("directive doctor");
+    const installAt = fallback.indexOf(RECOVERY_LADDER_NPM_GLOBAL);
     expect(doctorAt).toBeGreaterThanOrEqual(0);
     expect(installAt).toBeGreaterThanOrEqual(0);
     expect(doctorAt).toBeLessThan(installAt);

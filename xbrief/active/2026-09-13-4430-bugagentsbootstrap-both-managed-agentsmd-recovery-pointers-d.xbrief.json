@@ -153,16 +153,7 @@
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
-        "file_scope": [
-          "content/templates/agents-entry.md",
-          "AGENTS.md",
-          "main.md",
-          "SKILL.md",
-          "packages/core/src/content-contracts/skills/main_md_preamble.test.ts",
-          "packages/core/src/content-contracts/standards/recovery_ladder.test.ts",
-          "packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts",
-          "CHANGELOG.md"
-        ],
+        "file_scope": [],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts packages/core/src/content-contracts/skills/main_md_preamble.test.ts packages/core/src/content-contracts/standards/recovery_ladder.test.ts packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
         ],
@@ -177,7 +168,7 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "standard",
-        "missing_traces_justification": "Ingested from successor lean 5640690178 Bound-remedy; GitHub Expected is history. No spec-section requirement trace applies."
+        "missing_traces_justification": "Dest-placed leaf; operator did not mint approved-scope (#3110). file_scope left undeclared per #3145 undeclared-cohort outcome. Ingested from successor lean 5640690178 Bound-remedy."
       }
     },
     "id": "github.issue.5428339874",
