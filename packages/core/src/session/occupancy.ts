@@ -64,8 +64,11 @@ import { recordChildOccupancyLease } from "./child-occupancy.js";
 import {
   ambientHostSessionOwner,
   claimsHostSessionIdShape,
+  detectDeclaredIdentityHosts,
+  type HookHostIdentityProvider,
   isUsableHostSessionId,
   parseCanonicalHostSessionId,
+  printCompanionHostOwner,
 } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
 import { isContendedPrimaryCheckout } from "./main-worktree.js";
@@ -184,6 +187,12 @@ export interface OccupancyRecord {
    * refresh interval.
    */
   readonly lastWriteAt: Date | null;
+  /**
+   * How the occupant was bound at claim time (#4431). Absent on pre-#4431
+   * records. Denial text keys on this rather than on write history: a live
+   * peer that has claimed and not yet written is not a minted phantom.
+   */
+  readonly identityProvenance: OccupancyIdentityProvenance | null;
   readonly host: string;
   readonly address: string;
   readonly retainCapable: boolean;
@@ -237,6 +246,8 @@ export interface ApplyOccupancyInput {
    * an exception key.
    */
   readonly primaryClaimException?: PrimaryClaimException | string;
+  /** Claim-time identity provenance to persist on a fresh lease (#4431). */
+  readonly identityProvenance?: OccupancyIdentityProvenance | null;
 }
 
 export function occupancyPath(projectRoot: string): string {
@@ -488,6 +499,7 @@ export function formatOccupancyRemediation(
   record: OccupancyRecord,
   now: Date = new Date(),
   presented?: string,
+  env?: NodeJS.ProcessEnv,
 ): string {
   const age = heartbeatAgeSeconds(record, now);
   const header =
@@ -495,6 +507,21 @@ export function formatOccupancyRemediation(
     `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n`;
   const tail = "\nThe occupant may release (`occupancy:release` / `session:end`).";
   const worktreeFirst = "Use another worktree.";
+  const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
+  if (record.identityProvenance === "minted") {
+    const hosts = detectDeclaredIdentityHosts(env ?? process.env);
+    const suggested = uniquePrintCompanion(hosts, env ?? process.env);
+    const named =
+      suggested === null
+        ? "<host-published-id>"
+        : commandSessionId(suggested, "<host-published-id>");
+    return (
+      `${header}This lease was claimed under a minted owner. No later hook process can present that id.\n` +
+      `${worktreeFirst} Do not steal this lease. Stay read-only (\`session:start --read-only\`), or ` +
+      `release it (\`occupancy:release --session-id=${occupantArg}\` / \`session:end\`) and re-claim ` +
+      `with the host-published owner (\`session:start --session-id=${named}\`).${tail}`
+    );
+  }
 
   if (presented === undefined) {
     return (
@@ -507,7 +534,6 @@ export function formatOccupancyRemediation(
   }
 
   const actor = presented.trim();
-  const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
   if (actor.length === 0) {
     return (
       `${header}This process presented no session identity, so a write grant cannot name it ` +
@@ -557,6 +583,71 @@ export function formatOccupancyMemberAdministrationRefusal(
 
 /** Which step of the shared lookup chain produced the actor (#3954). */
 export type PresentedIdentitySource = "explicit" | "environment" | "host" | "none";
+
+/** How a lease owner was bound (#4431). `minted` is last-resort only. */
+export const OCCUPANCY_IDENTITY_PROVENANCES = [
+  "explicit",
+  "environment",
+  "host",
+  "minted",
+] as const;
+export type OccupancyIdentityProvenance = (typeof OCCUPANCY_IDENTITY_PROVENANCES)[number];
+
+export type OccupancySessionClaim =
+  | {
+      readonly status: "ok";
+      readonly sessionId: string;
+      readonly provenance: OccupancyIdentityProvenance;
+    }
+  | {
+      readonly status: "refuse-mint";
+      readonly sessionId: "";
+      readonly provenance: null;
+      readonly hosts: readonly HookHostIdentityProvider[];
+      readonly suggestedSessionId: string | null;
+      readonly message: string;
+    };
+
+export class OccupancyMintRefusedError extends Error {
+  readonly hosts: readonly HookHostIdentityProvider[];
+  readonly suggestedSessionId: string | null;
+  constructor(message: string, claim: Extract<OccupancySessionClaim, { status: "refuse-mint" }>) {
+    super(message);
+    this.name = "OccupancyMintRefusedError";
+    this.hosts = claim.hosts;
+    this.suggestedSessionId = claim.suggestedSessionId;
+  }
+}
+
+function uniquePrintCompanion(
+  hosts: readonly HookHostIdentityProvider[],
+  env: NodeJS.ProcessEnv,
+): string | null {
+  const printed = hosts
+    .map((host) => printCompanionHostOwner(host, env))
+    .filter((value): value is string => value !== null);
+  return printed.length === 1 ? (printed[0] as string) : null;
+}
+
+export function formatOccupancyMintRefusal(input: {
+  readonly hosts: readonly HookHostIdentityProvider[];
+  readonly suggestedSessionId: string | null;
+}): string {
+  const hostList = input.hosts.join(", ");
+  const named =
+    input.suggestedSessionId === null
+      ? null
+      : commandSessionId(input.suggestedSessionId, "<host-published-id>");
+  const reRun =
+    named === null
+      ? "Re-run with `--session-id=<host-published-id>` from a session that has a Directive hook registered."
+      : `Re-run with \`--session-id=${named}\`.`;
+  return (
+    `occupancy refuses to mint an owner on host ${hostList}: this host has a declared ` +
+    "identity contract, and minting binds the lease to an id no later hook can present. " +
+    reRun
+  );
+}
 
 export interface PresentedIdentity {
   /** The id this surface acts under; empty when nothing was presented. */
@@ -633,6 +724,46 @@ export function formatPresentedIdentityDisagreement(identity: PresentedIdentity)
   );
 }
 
+/** Shared claim lookup with refuse-to-mint on declared-contract hosts (#4431). */
+export function resolveOccupancySessionClaim(
+  input: ApplyOccupancyInput = {},
+): OccupancySessionClaim {
+  const identity = resolvePresentedIdentity(input);
+  // #4066: host-authoritative claim. Inherited DEFT_SESSION_ID must not beat the
+  // host-published owner -- that split is the measured steal-from-self loop.
+  if (identity.source === "environment" && identity.disagreeingHostOwner !== null) {
+    return {
+      status: "ok",
+      sessionId: identity.disagreeingHostOwner,
+      provenance: "host",
+    };
+  }
+  if (identity.sessionId.length > 0) {
+    const provenance: OccupancyIdentityProvenance =
+      identity.source === "none" ? "minted" : identity.source;
+    return { status: "ok", sessionId: identity.sessionId, provenance };
+  }
+  const env = input.env ?? process.env;
+  const hosts = detectDeclaredIdentityHosts(env);
+  if (hosts.length > 0) {
+    const suggested = uniquePrintCompanion(hosts, env);
+    const message = formatOccupancyMintRefusal({ hosts, suggestedSessionId: suggested });
+    return {
+      status: "refuse-mint",
+      sessionId: "",
+      provenance: null,
+      hosts,
+      suggestedSessionId: suggested,
+      message,
+    };
+  }
+  return {
+    status: "ok",
+    sessionId: (input.newSessionId ?? randomUUID)(),
+    provenance: "minted",
+  };
+}
+
 /**
  * The owner a claim is made under: the shared lookup chain, then a mint.
  *
@@ -641,16 +772,30 @@ export function formatPresentedIdentityDisagreement(identity: PresentedIdentity)
  * so the session that claimed the worktree is refused by its own lease. The
  * mint stays as the last resort for hosts that publish nothing, and it is the
  * one terminal the prove-surfaces deliberately do not share (#3954).
+ *
+ * #4431: a host with a declared identity contract must not mint. That control
+ * holds whether or not the lifecycle rewrite could inspect the invocation.
  */
 export function resolveOccupancySessionId(input: ApplyOccupancyInput = {}): string {
-  const identity = resolvePresentedIdentity(input);
-  // #4066: host-authoritative claim. Inherited DEFT_SESSION_ID must not beat the
-  // host-published owner -- that split is the measured steal-from-self loop.
-  if (identity.source === "environment" && identity.disagreeingHostOwner !== null) {
-    return identity.disagreeingHostOwner;
+  const claim = resolveOccupancySessionClaim(input);
+  if (claim.status === "refuse-mint") {
+    throw new OccupancyMintRefusedError(claim.message, claim);
   }
-  if (identity.sessionId.length > 0) return identity.sessionId;
-  return (input.newSessionId ?? randomUUID)();
+  return claim.sessionId;
+}
+
+function occupancyMintRefusalDecision(
+  projectRoot: string,
+  claim: Extract<OccupancySessionClaim, { status: "refuse-mint" }>,
+): OccupancyDecision {
+  return {
+    action: "denied",
+    sessionId: "",
+    record: readOccupancy(projectRoot),
+    path: occupancyPath(projectRoot),
+    message: claim.message,
+    code: 1,
+  };
 }
 
 export function readOccupancy(projectRoot: string): OccupancyRecord | null {
@@ -703,7 +848,9 @@ export function applyWorktreeOccupancy(
 ): OccupancyDecision {
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
-  const incoming = resolveOccupancySessionId(input);
+  const claim = resolveOccupancySessionClaim(input);
+  if (claim.status === "refuse-mint") return occupancyMintRefusalDecision(projectRoot, claim);
+  const incoming = claim.sessionId;
   const existing = readOccupancy(projectRoot);
   const live = liveOccupancyOnTree(projectRoot, existing, now);
   const primaryBlocked =
@@ -772,6 +919,8 @@ export function applyWorktreeOccupancy(
           claimedAt: liveLocked?.claimedAt ?? now,
           heartbeatAt: now,
           lastWriteAt: input.markWrite === true ? now : (liveLocked?.lastWriteAt ?? null),
+          identityProvenance:
+            liveLocked?.identityProvenance ?? input.identityProvenance ?? claim.provenance,
           host: input.host ?? liveLocked?.host ?? occupancyHost(input.env),
           address: input.address ?? liveLocked?.address ?? occupancyAddress(input.env),
           retainCapable: input.retainCapable ?? liveLocked?.retainCapable ?? false,
@@ -839,7 +988,9 @@ export function stealOccupancy(
 ): OccupancyDecision {
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
-  const incoming = resolveOccupancySessionId(input);
+  const claim = resolveOccupancySessionClaim(input);
+  if (claim.status === "refuse-mint") return occupancyMintRefusalDecision(projectRoot, claim);
+  const incoming = claim.sessionId;
   if (
     input.write !== false &&
     isContendedPrimaryCheckout(projectRoot) &&
@@ -963,6 +1114,7 @@ export function stealOccupancy(
           claimedAt: now,
           heartbeatAt: now,
           lastWriteAt: null,
+          identityProvenance: input.identityProvenance ?? claim.provenance,
           host: input.host ?? occupancyHost(input.env),
           address: input.address ?? occupancyAddress(input.env),
           retainCapable: input.retainCapable ?? false,
@@ -1326,6 +1478,7 @@ export function grantOccupancyMembership(
           // heartbeat_at records; claimed_at is untouched, so the cap holds.
           heartbeatAt: now,
           lastWriteAt: live.lastWriteAt,
+          identityProvenance: live.identityProvenance,
           host: live.host,
           address: live.address,
           retainCapable: live.retainCapable,
@@ -1428,6 +1581,7 @@ export function revokeOccupancyMembership(
           claimedAt: live.claimedAt,
           heartbeatAt: now,
           lastWriteAt: live.lastWriteAt,
+          identityProvenance: live.identityProvenance,
           host: live.host,
           address: live.address,
           retainCapable: live.retainCapable,
@@ -1536,7 +1690,7 @@ export function evaluateOccupancyWriteGate(
       // The refused caller is told what identity it actually presented (#3873).
       // A hook process cannot otherwise know, and the grant this message offers
       // is only runnable when the occupant can name a non-empty child.
-      message: formatOccupancyRemediation(live, now, incoming),
+      message: formatOccupancyRemediation(live, now, incoming, input.env),
       occupant: live,
       refreshed: false,
       warning: null,
@@ -1682,6 +1836,7 @@ function restampOccupancyHeartbeat(
             claimedAt: current.claimedAt,
             heartbeatAt: now,
             lastWriteAt: markWrite ? now : current.lastWriteAt,
+            identityProvenance: current.identityProvenance,
             host: current.host,
             address: current.address,
             retainCapable: current.retainCapable,
@@ -1864,6 +2019,12 @@ function parseOccupancy(payload: unknown, fallbackWorktree: string): OccupancyRe
   // Additive and optional (#3599): records written before the field exists,
   // and by older CLIs, stay readable — absence means "no recorded write".
   const lastWriteAt = parseTimestamp(obj.last_write_at);
+  const provenanceRaw = typeof obj.identity_provenance === "string" ? obj.identity_provenance : "";
+  const identityProvenance = (OCCUPANCY_IDENTITY_PROVENANCES as readonly string[]).includes(
+    provenanceRaw,
+  )
+    ? (provenanceRaw as OccupancyIdentityProvenance)
+    : null;
   const joinRaw = typeof obj.join_protocol === "string" ? obj.join_protocol : "none";
   const joinProtocol = (OCCUPANCY_JOIN_PROTOCOLS as readonly string[]).includes(joinRaw)
     ? (joinRaw as OccupancyJoinProtocol)
@@ -1881,6 +2042,7 @@ function parseOccupancy(payload: unknown, fallbackWorktree: string): OccupancyRe
     claimedAt,
     heartbeatAt,
     lastWriteAt,
+    identityProvenance,
     host: typeof obj.host === "string" && obj.host.length > 0 ? obj.host : "none",
     address: typeof obj.address === "string" && obj.address.length > 0 ? obj.address : "none",
     retainCapable: obj.retain_capable === true,
@@ -1946,6 +2108,7 @@ interface OccupancyWriteFields {
   readonly claimedAt: Date;
   readonly heartbeatAt: Date;
   readonly lastWriteAt: Date | null;
+  readonly identityProvenance: OccupancyIdentityProvenance | null;
   readonly host: string;
   readonly address: string;
   readonly retainCapable: boolean;
@@ -1962,6 +2125,9 @@ function occupancyPayload(record: OccupancyWriteFields): Record<string, unknown>
     claimed_at: timestampIso(record.claimedAt),
     heartbeat_at: timestampIso(record.heartbeatAt),
     ...(record.lastWriteAt === null ? {} : { last_write_at: timestampIso(record.lastWriteAt) }),
+    ...(record.identityProvenance === null
+      ? {}
+      : { identity_provenance: record.identityProvenance }),
     host: record.host,
     address: record.address,
     retain_capable: record.retainCapable,

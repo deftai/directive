@@ -6,6 +6,16 @@
  * assumption. The provider table and the canonical owner form live in
  * `session/host-session-owner.ts` because the CLI claim path resolves the same
  * owner from the same host (#3873).
+ *
+ * Uninspectable lifecycle (#4431):
+ * Assumptions: rewrite injects --session-id only into exactLifecycleInvocation.
+ * Pipes, quotes, redirects, and chains are not rewritten.
+ * Guarantees: a lifecycle verb in unquoted command text fails closed unless an
+ * explicit matching --session-id is already present. Quoted strings and #
+ * comments are not invocations. POSIX env-assignment prefixes (FOO=bar cmd)
+ * bind like the unprefixed command or fail closed on chains; they do not
+ * fail-open.
+ * Non-goals: full shell parse; injecting --session-id into compound commands.
  */
 
 import {
@@ -21,6 +31,7 @@ import {
   readHostEnvIdentity,
 } from "../../session/host-session-owner.js";
 import { isShellTool } from "../tools.js";
+import { hookShellCommand } from "./paths.js";
 import { record, toolInputRecord } from "./payload.js";
 import { hookToolName } from "./tool-name.js";
 
@@ -238,6 +249,20 @@ export type ExactLifecycleCommandResult =
 // Backslashes are inspectable so Windows path-bearing lifecycle commands fail
 // closed, but they remain outside the auto-approved rewrite surface below.
 const INSPECTABLE_TOKEN_PATTERN = /^[A-Za-z0-9_./\\:+=,-]+$/;
+
+function isShellEnvAssignToken(token: string): boolean {
+  const eq = token.indexOf("=");
+  if (eq <= 0) return false;
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.slice(0, eq));
+}
+
+function skipLeadingEnvAssignments(tokens: readonly string[]): number {
+  let index = 0;
+  while (index < tokens.length && isShellEnvAssignToken(tokens[index] ?? "")) {
+    index += 1;
+  }
+  return index;
+}
 
 interface ExactInvocation {
   readonly verb: ExactLifecycleVerb;
@@ -473,14 +498,15 @@ function exactLifecycleInvocation(command: string): ExactInvocation | null {
   if (tokens.some((token) => token.length === 0 || !INSPECTABLE_TOKEN_PATTERN.test(token))) {
     return null;
   }
-  if (tokens.length < 2) return null;
+  const start = skipLeadingEnvAssignments(tokens);
+  if (tokens.length - start < 2) return null;
 
-  const executable = tokens[0];
-  const verb = tokens[1];
+  const executable = tokens[start];
+  const verb = tokens[start + 1];
   if (executable === "deft" || executable === "directive") {
     const typedVerb = verb === undefined ? undefined : DIRECT_LIFECYCLE_VERBS[verb];
     if (typedVerb === undefined) return null;
-    const forwardedArgs = tokens.slice(2);
+    const forwardedArgs = tokens.slice(start + 2);
     const { rewriteSafe, readOnly } = analyzeLifecycleArguments(typedVerb, forwardedArgs);
     const requiresOwner = typedVerb !== "session:start" || !readOnly;
     return {
@@ -494,7 +520,7 @@ function exactLifecycleInvocation(command: string): ExactInvocation | null {
   if (executable !== "task") return null;
   if (!(EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verb ?? "")) return null;
   const typedVerb = verb as ExactLifecycleVerb;
-  if (tokens.length === 2) {
+  if (tokens.length - start === 2) {
     return {
       verb: typedVerb,
       task: true,
@@ -505,8 +531,8 @@ function exactLifecycleInvocation(command: string): ExactInvocation | null {
   }
   // Go Task's canonical CLI_ARGS boundary. Flags without `--` are ambiguous
   // Task CLI flags and must not receive an auto-approving rewrite.
-  if (tokens[2] !== "--") return null;
-  const forwardedArgs = tokens.slice(3);
+  if (tokens[start + 2] !== "--") return null;
+  const forwardedArgs = tokens.slice(start + 3);
   const { rewriteSafe, readOnly } = analyzeLifecycleArguments(typedVerb, forwardedArgs);
   const requiresOwner = typedVerb !== "session:start" || !readOnly;
   return {
@@ -535,6 +561,187 @@ function exactLifecyclePayload(payload: unknown): ExactLifecyclePayload | null {
 /** Logical lifecycle verb for one exact, simple shell command; otherwise null. */
 export function exactLifecycleCommandVerb(payload: unknown): ExactLifecycleVerb | null {
   return exactLifecyclePayload(payload)?.invocation.verb ?? null;
+}
+
+function readQuotedSpan(
+  command: string,
+  start: number,
+  quote: string,
+): { end: number; content: string } {
+  let i = start + 1;
+  let content = "";
+  while (i < command.length) {
+    const ch = command[i] ?? "";
+    if (quote === '"' && ch === "\\" && i + 1 < command.length) {
+      content += command[i + 1] ?? "";
+      i += 2;
+      continue;
+    }
+    if (ch === quote) return { end: i + 1, content };
+    content += ch;
+    i += 1;
+  }
+  return { end: i, content };
+}
+
+function shellCommandOutsideQuotesAndComments(command: string): string {
+  let out = "";
+  let i = 0;
+  let executablePos = true;
+  let inToken = false;
+  while (i < command.length) {
+    const c = command[i];
+    if (c === "#") {
+      const nl = command.indexOf("\n", i + 1);
+      if (nl < 0) break;
+      out += "\n";
+      i = nl + 1;
+      executablePos = true;
+      inToken = false;
+      continue;
+    }
+    if (c === "\n" || /\s/.test(c ?? "")) {
+      if (inToken) executablePos = false;
+      inToken = false;
+      out += c;
+      i += 1;
+      continue;
+    }
+    if (command.startsWith("&&", i) || command.startsWith("||", i)) {
+      out += command.slice(i, i + 2);
+      i += 2;
+      executablePos = true;
+      inToken = false;
+      continue;
+    }
+    if (c === "|" || c === ";") {
+      out += c;
+      i += 1;
+      executablePos = true;
+      inToken = false;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const span = readQuotedSpan(command, i, c);
+      out += executablePos && !/\s/.test(span.content) ? span.content : " ";
+      inToken = true;
+      i = span.end;
+      continue;
+    }
+    out += c;
+    inToken = true;
+    i += 1;
+  }
+  return out;
+}
+
+const CHAIN_TOKENS = new Set(["&&", "||", "|", ";", "&"]);
+const LIFECYCLE_EXECUTABLES = new Set([
+  "deft",
+  "directive",
+  "task",
+  "deft.exe",
+  "directive.exe",
+  "task.exe",
+]);
+
+function lifecycleInvocationWindows(
+  tokens: readonly string[],
+): { verb: ExactLifecycleVerb; args: string[] }[] {
+  const windows: { verb: ExactLifecycleVerb; args: string[] }[] = [];
+  for (let i = 0; i < tokens.length; i += 1) {
+    const exe = (tokens[i] ?? "").toLowerCase();
+    if (!LIFECYCLE_EXECUTABLES.has(exe)) continue;
+    let verbTok = tokens[i + 1] ?? "";
+    if (verbTok === "swarm-launch") verbTok = "swarm:launch";
+    if (!(EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verbTok)) continue;
+    const args: string[] = [];
+    let j = i + 2;
+    for (; j < tokens.length; j += 1) {
+      const tok = tokens[j] ?? "";
+      if (CHAIN_TOKENS.has(tok)) break;
+      args.push(tok);
+    }
+    windows.push({ verb: verbTok as ExactLifecycleVerb, args });
+    i = j;
+  }
+  return windows;
+}
+
+function tokenizeUninspectableShell(command: string): string[] {
+  const tokens: string[] = [];
+  let cur = "";
+  let i = 0;
+  const flush = (): void => {
+    if (cur.length > 0) {
+      tokens.push(cur);
+      cur = "";
+    }
+  };
+  while (i < command.length) {
+    const c = command[i] ?? "";
+    if (c === "#") {
+      flush();
+      const nl = command.indexOf("\n", i + 1);
+      if (nl < 0) break;
+      i = nl + 1;
+      continue;
+    }
+    if (c === "\n" || /\s/.test(c)) {
+      flush();
+      i += 1;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const quote = c;
+      i += 1;
+      while (i < command.length) {
+        const ch = command[i] ?? "";
+        if (quote === '"' && ch === "\\" && i + 1 < command.length) {
+          cur += command[i + 1] ?? "";
+          i += 2;
+          continue;
+        }
+        if (ch === quote) {
+          i += 1;
+          break;
+        }
+        cur += ch;
+        i += 1;
+      }
+      continue;
+    }
+    cur += c;
+    i += 1;
+  }
+  flush();
+  return tokens;
+}
+
+const OWNER_LIFECYCLE_HINT =
+  /(?:^|&&|\|\||\||;)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
+
+/**
+ * Lifecycle verb inside a non-inspectable shell command (#4431).
+ *
+ * exactLifecycleInvocation returns null on quoting, redirect, pipe, or chain,
+ * and attachLifecycleIdentityRewrite used to pass that through as allow.
+ * This hint fails that path closed without classifying ordinary shell.
+ * Quoted strings and # comments are stripped first so echo/grep of the syntax
+ * is not a lifecycle invocation.
+ */
+export function hintUninspectableLifecycleCommand(payload: unknown): ExactLifecycleVerb | null {
+  if (exactLifecyclePayload(payload) !== null) return null;
+  const command = hookShellCommand(payload);
+  if (command === null) return null;
+  const match = OWNER_LIFECYCLE_HINT.exec(shellCommandOutsideQuotesAndComments(command));
+  if (match === null) return null;
+  const token = match[1] ?? "";
+  if (token === "swarm-launch") return "swarm:launch";
+  if ((EXACT_LIFECYCLE_VERBS as readonly string[]).includes(token)) {
+    return token as ExactLifecycleVerb;
+  }
+  return null;
 }
 
 interface SessionIdArgs {
@@ -571,6 +778,33 @@ function sessionIdArgs(verb: ExactLifecycleVerb, args: readonly string[]): Sessi
   if (values.length === 0) return { status: "absent", values };
   if (values.length !== 1) return { status: "invalid", values };
   return { status: "present", values };
+}
+
+export interface HintedLifecycleSessionId {
+  readonly status: "absent" | "present" | "invalid";
+  readonly sessionId: string | null;
+}
+
+/** --session-id already bound on an uninspectable lifecycle command (#4431). */
+export function inspectHintedLifecycleSessionId(payload: unknown): HintedLifecycleSessionId {
+  if (hintUninspectableLifecycleCommand(payload) === null) {
+    return { status: "absent", sessionId: null };
+  }
+  const command = hookShellCommand(payload);
+  if (command === null) return { status: "absent", sessionId: null };
+  const windows = lifecycleInvocationWindows(tokenizeUninspectableShell(command));
+  if (windows.length === 0) return { status: "absent", sessionId: null };
+  const ids: string[] = [];
+  for (const w of windows) {
+    const session = sessionIdArgs(w.verb, w.args);
+    if (session.status === "invalid") return { status: "invalid", sessionId: null };
+    if (session.status !== "present" || session.values[0] === undefined) {
+      return { status: "absent", sessionId: null };
+    }
+    ids.push(session.values[0]);
+  }
+  if (new Set(ids).size !== 1) return { status: "invalid", sessionId: null };
+  return { status: "present", sessionId: ids[0] ?? null };
 }
 
 export interface ExactLifecycleCommandInspection {
@@ -633,7 +867,9 @@ export function rewriteExactLifecycleCommand(
     };
   }
 
-  const taskForwarding = invocation.task && originalCommand.split(" ").length === 2 ? " --" : "";
+  const commandTokens = originalCommand.split(" ");
+  const unprefixed = commandTokens.slice(skipLeadingEnvAssignments(commandTokens));
+  const taskForwarding = invocation.task && unprefixed.length === 2 ? " --" : "";
   const rewrittenCommand = `${originalCommand}${taskForwarding} --session-id=${sessionId}`;
   return {
     kind: "rewrite",
