@@ -251,4 +251,34 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       }),
     ).toEqual({ status: "absent", sessionId: null });
   });
+
+  it("does not reconstruct argument-position quote fragments as a lifecycle executable", () => {
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: 'echo d"ef"t session:start' },
+      }),
+    ).toBeNull();
+  });
+
+  it("requires every lifecycle segment to carry the same matching --session-id", () => {
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command:
+            "deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && deft session:end --session-id=foreign",
+        },
+      }),
+    ).toEqual({ status: "invalid", sessionId: null });
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command:
+            "deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && deft session:end --session-id=host:claude:v1:c2Vzc2lvbi1h",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
+  });
 });
