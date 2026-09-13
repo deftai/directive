@@ -3989,6 +3989,14 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   return [...found];
 }
 
+function pathishIsProtectedMutationDest(pathish: string): boolean {
+  return pathishIsSettingsStoreDir(pathish) || pathishMentionsKillSwitch(pathish);
+}
+
+function isShellConnectorToken(token: string): boolean {
+  return token === "&&" || token === "||" || token === ";" || token === "|";
+}
+
 const EMPTY_OPS_WRAPPER_BINS = new Set([
   "sudo",
   "doas",
@@ -4003,20 +4011,10 @@ const EMPTY_OPS_WRAPPER_BINS = new Set([
 ]);
 
 function firstCommandBin(tokens: readonly string[]): string {
-  let skipNext = false;
   for (const t of tokens) {
-    if (skipNext) {
-      skipNext = false;
-      continue;
-    }
-    if (t.includes("=") && !t.startsWith("-") && !t.startsWith(".")) {
-      if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) continue;
-    }
-    const lower = t.toLowerCase();
-    if (t.startsWith("-")) {
-      if (lower === "-u" || lower === "--user" || lower === "--group") skipNext = true;
-      continue;
-    }
+    if (isShellConnectorToken(t)) continue;
+    if (t.includes("=") && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t)) continue;
+    if (t.startsWith("-")) continue;
     const bin = writeBinName(t).replace(/^\(+/, "");
     if (bin.length === 0) continue;
     if (EMPTY_OPS_WRAPPER_BINS.has(bin)) continue;
@@ -4025,8 +4023,22 @@ function firstCommandBin(tokens: readonly string[]): string {
   return "";
 }
 
-function pathishIsProtectedMutationDest(pathish: string): boolean {
-  return pathishIsSettingsStoreDir(pathish) || pathishMentionsKillSwitch(pathish);
+function segmentSliceAround(tokens: readonly string[], index: number): readonly string[] {
+  let start = 0;
+  for (let i = index; i >= 0; i--) {
+    if (isShellConnectorToken(tokens[i] as string)) {
+      start = i + 1;
+      break;
+    }
+  }
+  let end = tokens.length;
+  for (let i = index; i < tokens.length; i++) {
+    if (isShellConnectorToken(tokens[i] as string)) {
+      end = i;
+      break;
+    }
+  }
+  return tokens.slice(start, end);
 }
 
 function redirectDestIsProtectedSettings(command: string): boolean {
@@ -4053,61 +4065,42 @@ const EMPTY_OPS_DEST_FLAGS = new Set([
   "-f",
 ]);
 
-const EMPTY_OPS_READ_OR_ARCHIVE_BINS = new Set([
-  ...DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS,
-  "xxd",
-  "openssl",
-  "zip",
-  "unzip",
-  "tar",
-  "gzip",
-  "get-content",
-  "get-item",
-  "gc",
-  "type",
-  "find",
-  "xargs",
-]);
-
 function destFlagOperandIsProtectedSettings(tokens: readonly string[]): boolean {
   for (let i = 0; i < tokens.length; i++) {
     const raw = tokens[i] as string;
     const eq = raw.indexOf("=");
-    if (raw.startsWith("--") && eq > 1) {
-      const flag = raw.slice(0, eq).toLowerCase();
-      const val = raw.slice(eq + 1);
-      if (EMPTY_OPS_DEST_FLAGS.has(flag) && pathishIsProtectedMutationDest(pathishToken(val))) {
-        return true;
-      }
-    }
+    const eqFlag = raw.startsWith("--") && eq > 1 ? raw.slice(0, eq).toLowerCase() : "";
     const flag = raw.toLowerCase();
-    if (!EMPTY_OPS_DEST_FLAGS.has(flag)) continue;
+    const isEqDest = eqFlag.length > 0 && EMPTY_OPS_DEST_FLAGS.has(eqFlag);
+    const isBareDest = EMPTY_OPS_DEST_FLAGS.has(flag);
+    if (!isEqDest && !isBareDest) continue;
+    const first = firstCommandBin(segmentSliceAround(tokens, i));
+    if (READ_SHAPED_FILE_FLAG_BINS.has(first) || DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(first)) {
+      continue;
+    }
+    if (isEqDest) {
+      const val = raw.slice(eq + 1);
+      if (pathishIsProtectedMutationDest(pathishToken(val))) return true;
+      continue;
+    }
     if (i + 1 >= tokens.length) continue;
     if (pathishIsProtectedMutationDest(pathishToken(tokens[i + 1] as string))) return true;
   }
   return false;
 }
 
-function lastNonFlagToken(tokens: readonly string[]): string {
-  let last = "";
-  for (const t of tokens) {
-    if (t.startsWith("-")) continue;
-    last = t;
-  }
-  return last;
-}
-
 function hasWriteShapedProtectedSettingsDest(command: string, tokens: readonly string[]): boolean {
   if (redirectDestIsProtectedSettings(command)) return true;
-  const first = firstCommandBin(tokens);
-  if (first.length === 0) return false;
-  if (EMPTY_OPS_READ_OR_ARCHIVE_BINS.has(first)) return false;
   if (destFlagOperandIsProtectedSettings(tokens)) return true;
-  const inplace = tokens.some((tok) => tok === "-i" || tok.toLowerCase() === "--inplace");
-  const last = lastNonFlagToken(tokens);
-  if (inplace && pathishIsProtectedMutationDest(pathishToken(last))) return true;
-  if (EMPTY_OPS_LAST_DEST_BINS.has(first) && pathishIsProtectedMutationDest(pathishToken(last))) {
-    return true;
+  for (let i = 0; i < tokens.length; i++) {
+    const bin = writeBinName(tokens[i] as string).replace(/^\(+/, "");
+    if (!EMPTY_OPS_LAST_DEST_BINS.has(bin)) continue;
+    for (let j = i + 1; j < tokens.length; j++) {
+      const tok = tokens[j] as string;
+      if (isShellConnectorToken(tok)) break;
+      if (tok.startsWith("-")) continue;
+      if (pathishIsProtectedMutationDest(pathishToken(tok))) return true;
+    }
   }
   return false;
 }

@@ -1806,4 +1806,12 @@ describe("classifyShellAuthzOps protected dest harvest (#4199)", () => {
     expect(classifyShellAuthzOps(`sudo yq -i '.a="x"' ${grant}`)).toContain("unknown");
     expect(classifyShellAuthzOps(`time yq -i '.a="x"' ${grant}`)).toContain("unknown");
   });
+
+  it("classifies dest-visible writers after a leading read segment", () => {
+    expect(classifyShellAuthzOps(`git status && yq -i '.x=1' ${grant}`)).toContain("unknown");
+  });
+
+  it("classifies last-dest writers when the dest is not the final token", () => {
+    expect(classifyShellAuthzOps(`makeself src ${grant} label`)).toContain("unknown");
+  });
 });
