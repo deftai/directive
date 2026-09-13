@@ -84,7 +84,12 @@ describe("payload-host mint refusal (#4431)", () => {
       env: {},
       newSessionId: () => "minted-uuid",
     });
-    expect(claim).toEqual({ status: "ok", sessionId: "minted-uuid", provenance: "minted" });
+    expect(claim).toEqual({
+      status: "ok",
+      sessionId: "minted-uuid",
+      provenance: "minted",
+      source: "mint",
+    });
   });
 
   it("detects declared hosts from presence markers", () => {
@@ -306,6 +311,57 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
         tool_input: {
           command:
             "deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && deft session:end --session-id=host:claude:v1:c2Vzc2lvbi1h",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
+  });
+
+  it("does not fail-open newline, single ampersand, or grouped lifecycle commands", () => {
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "echo ready\ndeft session:start" },
+      }),
+    ).toBe("session:start");
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "echo ready & deft session:start" },
+      }),
+    ).toBe("session:start");
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "(deft session:start)" },
+      }),
+    ).toBe("session:start");
+    expect(
+      exactLifecycleCommandVerb({
+        tool_name: "Bash",
+        tool_input: { command: "(deft session:start)" },
+      }),
+    ).toBeNull();
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "(deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h)",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "echo ready & deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "echo ready\ndeft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h",
         },
       }),
     ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });

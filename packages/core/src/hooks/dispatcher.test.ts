@@ -5180,6 +5180,8 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
       ritualNotReady,
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+  });
+});
 
 describe("uninspectable lifecycle identity rewrite (#4431)", () => {
   it("fails closed on a chained session:start instead of allowing a mint", () => {
@@ -5420,5 +5422,56 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
     );
     expect(decision.verdict).toBe("deny");
     expect(decision.code).toBe("occupancy-identity-conflict");
+  });
+
+  it("fails closed on newline, single ampersand, and grouped session:start", () => {
+    for (const command of [
+      "echo ready\ndeft session:start",
+      "echo ready & deft session:start",
+      "(deft session:start)",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            session_id: "session-a",
+            tool_input: { command },
+          },
+          environ: {},
+        },
+        readySeams(),
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toBe("occupancy-identity-unavailable");
+      expect(decision.message, command).toContain("session:start");
+    }
+  });
+
+  it("allows newline, single ampersand, and grouped session:start that already name the matching owner", () => {
+    for (const command of [
+      "echo ready\ndeft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h",
+      "echo ready & deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h",
+      "(deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h)",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            session_id: "session-a",
+            tool_input: { command },
+          },
+          environ: {},
+        },
+        readySeams(),
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.updatedInput, command).toBeUndefined();
+    }
   });
 });

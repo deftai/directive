@@ -14,7 +14,8 @@
  * explicit matching --session-id is already present. Quoted strings and #
  * comments are not invocations. POSIX env-assignment prefixes (FOO=bar cmd)
  * bind like the unprefixed command or fail closed on chains; they do not
- * fail-open.
+ * fail-open. Newline, single `&`, and grouped `(cmd)` forms are the same
+ * fail-closed hint, not a rewrite.
  * Non-goals: full shell parse; injecting --session-id into compound commands.
  */
 
@@ -635,7 +636,7 @@ function shellCommandOutsideQuotesAndComments(command: string): string {
   return out;
 }
 
-const CHAIN_TOKENS = new Set(["&&", "||", "|", ";", "&"]);
+const CHAIN_TOKENS = new Set(["&&", "||", "|", ";", "&", "(", ")"]);
 const LIFECYCLE_EXECUTABLES = new Set([
   "deft",
   "directive",
@@ -711,6 +712,12 @@ function tokenizeUninspectableShell(command: string): string[] {
       }
       continue;
     }
+    if (c === "(" || c === ")" || c === "&") {
+      flush();
+      tokens.push(c);
+      i += 1;
+      continue;
+    }
     cur += c;
     i += 1;
   }
@@ -719,7 +726,7 @@ function tokenizeUninspectableShell(command: string): string[] {
 }
 
 const OWNER_LIFECYCLE_HINT =
-  /(?:^|&&|\|\||\||;)\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
+  /(?:^|&&|\|\||\||;|&|\n|\r|\()\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:deft|directive|task)(?:\.exe)?\s+(session:start|session:ready|session:end|occupancy:steal|occupancy:release|occupancy:heartbeat|occupancy:grant|swarm:launch|swarm-launch)(?=$|[^A-Za-z0-9_:])/i;
 
 /**
  * Lifecycle verb inside a non-inspectable shell command (#4431).

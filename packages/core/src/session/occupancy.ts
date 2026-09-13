@@ -837,7 +837,6 @@ function occupancyMintRefusalDecision(
     code: 1,
   };
 }
-}
 
 export function readOccupancy(projectRoot: string): OccupancyRecord | null {
   const path = occupancyPath(projectRoot);
