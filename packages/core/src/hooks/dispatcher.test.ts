@@ -4988,4 +4988,26 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
     expect(decision.verdict).toBe("deny");
     expect(decision.code).toBe("occupancy-identity-unavailable");
   });
+
+  it("denies a compound command whose later lifecycle segment names a foreign owner", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: {
+            command:
+              "deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && deft session:end --session-id=foreign",
+          },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-conflict");
+  });
 });
