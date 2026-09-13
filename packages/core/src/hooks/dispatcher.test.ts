@@ -34,6 +34,7 @@ import {
   hookWriteTargetPath,
   isAllowlistedAssistScratchPath,
   isAssistScratchWrite,
+  isCompletedLifecycleWrite,
   isDirectWriteTool,
   isHookEvent,
   isHookHost,
@@ -1366,6 +1367,159 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
+  });
+
+  describe("completed-record recovery (#4422 Bound-remedy 5649802911)", () => {
+    const noScope = () =>
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      });
+
+    it("allows Write of xbrief/completed/*.xbrief.json with no active scope", () => {
+      const inspectScope = vi.fn(() => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }));
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            cwd: "/project",
+            tool_input: {
+              file_path: "/project/xbrief/completed/2026-09-13-story.xbrief.json",
+            },
+          },
+        },
+        readySeams({ inspectScope }),
+      );
+      expect(decision).toMatchObject({ verdict: "allow", code: "write-completed-ready" });
+      expect(inspectScope).not.toHaveBeenCalled();
+    });
+
+    it("allows Edit of a completed lifecycle artifact with no active scope", () => {
+      const decision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Edit",
+            tool_input: { path: "xbrief/completed/2026-09-13-story.xbrief.json" },
+          },
+        },
+        noScope(),
+      );
+      expect(decision).toMatchObject({ verdict: "allow", code: "write-completed-ready" });
+    });
+
+    it("allows ApplyPatch when every mutation target is a completed lifecycle write", () => {
+      const completed = "xbrief/completed/2026-09-13-story.xbrief.json";
+      const decision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "ApplyPatch",
+            tool_input: {
+              path: completed,
+              patch: `*** Begin Patch\n*** Update File: ${completed}\n+probe\n*** End Patch`,
+            },
+          },
+        },
+        noScope(),
+      );
+      expect(decision).toMatchObject({ verdict: "allow", code: "write-completed-ready" });
+    });
+
+    it("denies ApplyPatch when the declared completed path disagrees with the body", () => {
+      const decision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "ApplyPatch",
+            tool_input: {
+              path: "xbrief/completed/2026-09-13-story.xbrief.json",
+              patch: "*** Begin Patch\n*** Add File: src/index.ts\n+pwned\n*** End Patch",
+            },
+          },
+        },
+        noScope(),
+      );
+      expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    });
+
+    it("denies a mixed completed plus product-path patch", () => {
+      const completed = "xbrief/completed/2026-09-13-story.xbrief.json";
+      const body = [
+        "*** Begin Patch",
+        `*** Update File: ${completed}`,
+        "+ok",
+        "*** Update File: src/index.ts",
+        "+x",
+        "*** End Patch",
+      ].join("\n");
+      const decision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "ApplyPatch",
+            tool_input: { path: completed, patch: body },
+          },
+        },
+        noScope(),
+      );
+      expect(decision.verdict).toBe("deny");
+      expect(decision.code).not.toBe("write-completed-ready");
+    });
+
+    it("restates empty-active Write deny as no approved xBRIEF, not fake-scope or scope:undo", () => {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            cwd: "/project",
+            tool_input: { file_path: "/project/src/index.ts" },
+          },
+        },
+        noScope(),
+      );
+      expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+      expect(decision.message).toMatch(/no approved xBRIEF is available/i);
+      expect(decision.message).toMatch(/one-scope repo/i);
+      expect(decision.message).not.toMatch(/invent a fake scope/i);
+      expect(decision.message).not.toMatch(/scope:undo/i);
+    });
+
+    it("classifies completed lifecycle writes and rejects non-artifact or other folders", () => {
+      expect(
+        isCompletedLifecycleWrite("/project", "xbrief/completed/2026-09-13-story.xbrief.json"),
+      ).toBe(true);
+      expect(isCompletedLifecycleWrite("/project", "vbrief/completed/legacy.vbrief.json")).toBe(
+        true,
+      );
+      expect(isCompletedLifecycleWrite("/project", "xbrief/proposed/story.xbrief.json")).toBe(
+        false,
+      );
+      expect(isCompletedLifecycleWrite("/project", "xbrief/completed/README.md")).toBe(false);
+      expect(isCompletedLifecycleWrite("/project", "src/index.ts")).toBe(false);
+      expect(isCompletedLifecycleWrite("/project", null)).toBe(false);
+    });
   });
 
   it("allows a direct write only when both canonical predicates pass", () => {

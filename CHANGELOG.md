@@ -30,7 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Completed-record Edit after complete names a recovery that can succeed (#4422).** Empty-active Write deny restates "no approved xBRIEF is available" in a one-scope repo, not a fake-scope prohibition. Terminal `scope:undo` of complete/fail points at Edit under `xbrief/completed/` or `git revert` of the complete commit, not a denied hand-edit. Completed-path writes reuse the proposed/ all-targets exemption plus authz, runtimeAuthority, and occupancy rechecks. Does not print `scope:undo` as the next rung. Closes #4422.
 - **Lifecycle stamps keep envelope and plan clocks aligned and warn when updated predates created (#4423).** `stampExistingEnvelopes` now writes `plan.updated` with the envelope. `scope:undo` and `scope:demote` route through it. `validateAll` / `vbrief:validate` / `verify:vbrief-conformance` warn on reversed created/updated. Does not clamp `created`, does not add `--stamp-created`, and does not lint item `completed`. Closes #4423.
+
 - **Greenfield `directive init` writes the canonical package.json pin before gitignoring `.deft/core/` (#4429).** Reuses `ensurePackageJsonPin`; pin write precedes the gitignore line so a throw cannot leave an unreconstitutable deposit. Headless already emitted the same pin. Missing-pin doctor note stays a proceed warning (error would retro-fail pre-pin consumers). JSON reformat of an existing `package.json` is accepted. Closes #4429.
 - **UAT Shell fail-closes unknown writes to four protected dests (#4188).** Unknown last-positional dest-of-write to `.deft/authz/**`, `.deft/approved-scope/**`, `.deft-directive-disable`, or `.no-deft-directive` UAT-denies. Proven reads stay allow. Closes #4188.
 

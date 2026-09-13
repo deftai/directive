@@ -250,7 +250,12 @@ describe("scope branch coverage", () => {
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
 
-    expect(undoOne({ action: "complete", decision_id: "x" }, root, { logPath }).ok).toBe(false);
+    const completeRefuse = undoOne({ action: "complete", decision_id: "x" }, root, { logPath });
+    expect(completeRefuse.ok).toBe(false);
+    expect(completeRefuse.message).toMatch(/xbrief\/completed/i);
+    expect(completeRefuse.message).toMatch(/git revert/i);
+    expect(completeRefuse.message).not.toMatch(/scope:undo/i);
+    expect(completeRefuse.message).not.toMatch(/hand-edit/i);
     expect(undoOne({ action: "weird", decision_id: "x" }, root, { logPath }).ok).toBe(false);
 
     const restoreId = newDecisionId();
