@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3593",
-    "updated": "2026-09-13T01:55:50Z"
+    "updated": "2026-09-13T13:53:08Z"
   },
   "plan": {
     "title": "AppSec: 3 HIGH + 2 MEDIUM — MCP write routing around UAT; post-#3545 residual writers (raku/graalpy/crystal/…); migrate agents-header symlink (#2912 miss)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "AppSec: 3 HIGH + 2 MEDIUM — MCP write routing around UAT; post-#3545 residual writers (raku/graalpy/crystal/…); migrate agents-header symlink (#2912 miss)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3593",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Do not bind Expected (1)/(2)/(3) as written. Recut off this body. Catalog additions, if any, are an explicit stop-gap subordinate to the invariants below, not the close.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "CHANGELOG.md Unreleased #3593 recut (no catalog close); PR https://github.com/deftai/directive/pull/4460 Greptile 5/5 on 5e55cc32536fe2764bee1d2fffb56bc12fba9305",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Record the #3953 split this thread already carried: findings 2-4 dominated into dest-based classification (landed positional dest-of-write in #4449 / #4188; residue parked on #4199); finding 1 is MCP/proxy routing; finding 5 is containment. This arc supersedes write-back 5649902250 and does not re-open that split as one five-finding next-build.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "xbrief/active/2026-09-13-3593-appsec-3-high-2-medium-mcp-write-routing-around-uat-post-354.xbrief.json Bound-remedy items; CHANGELOG #3593 does not recut #3953/#4199",
@@ -36,7 +36,7 @@
       },
       {
         "title": "MCP/proxy story: unwrap wrapper inner names (`CallMcpTool`, `use_tool`, and audited equivalents) as a classifier change, not a matcher token. Extract every mutation target from effective arguments and run `inspectMutationGates`. Under active UAT, dest-bearing writes to `.deft/authz/**`, `.deft/approved-scope/**`, or a kill-switch basename fail closed on the dest-of-write / `unknown` path. Do not fail-closed every unclassifiable MCP (reads such as `list_issues` share that class). Kill-switch dest is dest-keyed, not channel-keyed.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "uat",
           "pointer": "packages/core/src/hooks/dispatcher.test.ts unwraps Grok use_tool inner write; routes dest-bearing edit_file through Write gates; packages/core/src/hooks/dispatcher-effective-root.test.ts dest-bearing server-prefixed MCP writes through root admission",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Dest residual story: do not extend programmatic-write / dest-writer sets as grantable `settings`. Positional protected dests are already `unknown` / grant-immune. Surviving gaps are interpreter-payload harvest (`-e`/`-c`/`eval` script text is not a filesystem path today) and archive dest-grammar (`jar cf dest inputs`). Keep `git status` fail-open. Ordinary dests such as `/tmp` stay unclassifiable.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/authz/classify.test.ts interpreter payload and jar dest-grammar (#3593); jar cmf/cfe/cfm operand-order dest harvest",
@@ -56,7 +56,7 @@
       },
       {
         "title": "Header story: `patchAgentsMdHeader` calls `assertDestinationNotSymlink` (or equivalent walk) before read and before write, on both the projection branch and the `writeText` seam. Do not place the only guard inside `projectionTarget`. This is reuse of the #2912 primitive, not a new containment API. Production `migrate:xbrief` currently exits earlier at `runAgentsRefresh`; keep a helper-level test so a future seam caller cannot regress.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/xbrief-migrate/agents-header.test.ts in-tree destination symlink refuse on both branches",
@@ -66,7 +66,7 @@
       },
       {
         "title": "Observed Cursor `preToolUse` payloads and host-tool-surface audit consistency are acceptance evidence for the MCP story, not inferred from fixture names.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "packages/core/src/hooks/tools.ts HOST_TOOL_SURFACE_AUDIT.cursor.unobservedReason; content/docs/host-tool-surface-audit.md use_tool unwrap into inspectMutationGates",
@@ -161,9 +161,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "2763fb88c5917d4e7d4f6a836a5a1d6051e88f672de8dbd0047c37c80752e5b1"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4460,
+        "prBase": null,
+        "mergeCommit": "9eff90fec71d7c0f186f0f43900ef66e2185a4c0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9eff90fec71d7c0f186f0f43900ef66e2185a4c0",
+        "verifiedAt": "2026-09-13T13:53:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDlhY2ItNjdiMi03ZDcwLWJkZGUtMzhmODM4ZmQxNjJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T13:53:08Z"
+      },
+      "completedAt": "2026-09-13T13:53:08Z",
+      "completedSessionId": "host:grok:v1:MDFhMDlhY2ItNjdiMi03ZDcwLWJkZGUtMzhmODM4ZmQxNjJm",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5214905567",
-    "updated": "2026-09-13T01:55:50Z"
+    "updated": "2026-09-13T13:53:08Z"
   }
 }
