@@ -288,9 +288,13 @@ describe("Grok child argv --host remainder (#4409)", () => {
 
   it("does not produce a claude owner from inherited CLAUDE_* under --host grok", () => {
     const holder = CLAUDE_LEAK_ENV.DEFT_SESSION_ID;
-    const decision = writeDecision(leasedRoot(holder), { ...CLAUDE_LEAK_ENV }, {
-      verifyRitual: readyRitual(holder),
-    });
+    const decision = writeDecision(
+      leasedRoot(holder),
+      { ...CLAUDE_LEAK_ENV },
+      {
+        verifyRitual: readyRitual(holder),
+      },
+    );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
     expect(decision.message ?? "").not.toContain("host:claude:");

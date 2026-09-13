@@ -939,9 +939,7 @@ function resolveMutationActor(
     sessionId: undefined,
     issue: hostIdentity.status === "conflict" ? "conflict" : "unavailable",
     message:
-      hostIdentity.message === null
-        ? null
-        : withHookHostArgv(input.host, hostIdentity.message),
+      hostIdentity.message === null ? null : withHookHostArgv(input.host, hostIdentity.message),
     hostAuthoritative: true,
   };
 }

@@ -177,10 +177,7 @@ describe("host-env session identity (#3873)", () => {
       sessionId: null,
     });
     expect(
-      hostIdentityFallsBackToExplicitOwner(
-        "grok",
-        resolveHookHostIdentity("grok", {}, claudeLeak),
-      ),
+      hostIdentityFallsBackToExplicitOwner("grok", resolveHookHostIdentity("grok", {}, claudeLeak)),
     ).toBe(true);
   });
 
