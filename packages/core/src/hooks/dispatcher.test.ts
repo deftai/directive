@@ -3011,6 +3011,25 @@ describe("launcher-family argv classification (#4219)", () => {
     expect(decision.message).toMatch(/shell substitution fail closed/);
   });
 
+  it("does not deny single-quoted substitution syntax as compound", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: {
+            command: "grok --cwd /wt --always-approve --prompt 'explain $(...)'",
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision.message).not.toMatch(/shell substitution fail closed/);
+    expect(decision.code).not.toBe("spawn-ready");
+  });
+
   it("leaves grok login as shell-op-unclassifiable", () => {
     const decision = decideHook(
       {

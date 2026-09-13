@@ -98,10 +98,38 @@ export function classifyLauncherFamilyArgv(
   return classified;
 }
 
-/** $() / backticks / process substitution, including inside quotes. Fail closed. */
+/**
+ * Executable `$()` / backticks / process substitution. Fail closed.
+ * Single-quoted and escaped forms are literals (shell does not run them).
+ * Double-quoted `$()` and backticks still expand -- keep those denied.
+ */
 function commandHasShellSubstitution(command: string): boolean {
+  let quote: "'" | '"' | null = null;
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
+    if (c === undefined) break;
+    if (quote !== null) {
+      if (quote === '"' && c === "\\" && i + 1 < command.length) {
+        i++;
+        continue;
+      }
+      if (c === quote) {
+        quote = null;
+        continue;
+      }
+      if (quote === "'") continue;
+      if (c === "`") return true;
+      if (c === "$" && command[i + 1] === "(") return true;
+      continue;
+    }
+    if (c === "\\" && i + 1 < command.length) {
+      i++;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      quote = c;
+      continue;
+    }
     if (c === "`") return true;
     if (c === "$" && command[i + 1] === "(") return true;
     if ((c === "<" || c === ">") && command[i + 1] === "(") return true;

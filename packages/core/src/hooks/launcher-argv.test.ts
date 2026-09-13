@@ -155,6 +155,10 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "compound",
       family: "grok",
     });
+    expect(classifyLauncherFamilyArgv("grok --cwd /wt --always-approve $(rm target)")).toEqual({
+      kind: "compound",
+      family: "grok",
+    });
     expect(classifyLauncherFamilyArgv("grok --cwd /wt --always-approve <(echo x)")).toEqual({
       kind: "compound",
       family: "grok",
@@ -163,6 +167,27 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       kind: "compound",
       family: "grok",
     });
+    expect(
+      classifyLauncherFamilyArgv('grok --cwd /wt --always-approve --prompt "use `whoami`"'),
+    ).toEqual({ kind: "compound", family: "grok" });
+  });
+
+  it("does not treat single-quoted or escaped substitution syntax as compound", () => {
+    expect(
+      classifyLauncherFamilyArgv("grok --cwd /wt --always-approve --prompt 'explain $(...)'"),
+    ).toEqual({ kind: "launcher", family: "grok", dest: "/wt" });
+    expect(classifyLauncherFamilyArgv("grok --cwd /wt --always-approve --prompt \\$(...)")).toEqual(
+      { kind: "launcher", family: "grok", dest: "/wt" },
+    );
+    expect(
+      classifyLauncherFamilyArgv("grok --cwd /wt --always-approve --prompt 'use `code`'"),
+    ).toEqual({ kind: "launcher", family: "grok", dest: "/wt" });
+    expect(
+      classifyLauncherFamilyArgv("grok --cwd /wt --always-approve --prompt \\`code\\`"),
+    ).toEqual({ kind: "launcher", family: "grok", dest: "/wt" });
+    expect(
+      classifyLauncherFamilyArgv('grok --cwd /wt --always-approve --prompt "\\$(...)"'),
+    ).toEqual({ kind: "launcher", family: "grok", dest: "/wt" });
   });
 
   it("classifies claude --cwd in argv over payload cwd", () => {
