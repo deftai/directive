@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4431",
-    "updated": "2026-09-12T23:47:15Z"
+    "updated": "2026-09-13T16:31:48Z"
   },
   "plan": {
     "title": "bug(session,occupancy): payload-identity hosts mint a UUID lease on claim, so session:start/ready locks the session out of its own worktree",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(session,occupancy): payload-identity hosts mint a UUID lease on claim, so session:start/ready locks the session out of its own worktree",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4431",
@@ -16,39 +16,93 @@
     "items": [
       {
         "title": "Withdraw expected-item 1 of the issue body. Adding `CLAUDE_CODE_SESSION_ID` as a `host-env` identity source is refused on measured grounds: the value is shell-reachable and unvalidated, and it is not distinct per agent session, so a child inherits its parent's owner verbatim.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "PR 4440; CLAUDE_CODE_SESSION_ID not added as host-env",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Recut the reported root cause. The identity-stamping path exists and is correctly wired for the three payload-identity hosts, and it fails open to the mint on any non-inspectable invocation, where non-inspectable is far wider than chaining alone and includes a bare verb carrying a redirect. Record that as a confirmed defect.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts; payload-identity hosts refuse UUID mint",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Determine which cause produced the filed reproduction before building a fix for it. Reproduction step 3 records a bare `deft session:ready`, which is inspectable and rewrite-safe, so the fail-open above does not explain it on its own. At least two candidates stand: a non-inspectable invocation shape that differs from what was filed, and an operator terminal in which no hook was registered at all. The build settles this; the arc does not.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts; assignment-prefix and executable-position tokenizer",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Keep expected-item 2 as the primary remedy and re-scope it: refuse to mint an owner on a host that has a declared identity contract, independent of whether the invocation was inspectable.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts; refuse mint on declared-identity host",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Give that refusal a named companion before it ships. Where no hook is registered, `ambientHostSessionOwner` is null on `claude`, so `disagreeingHostOwner` is null and the disagreement formatter returns an empty string — the refusal cannot name the id it instructs the operator to pass, and the only remaining escape is hand-constructing the canonical owner. Either extend bridge coverage to that path or add an affordance that prints the host-published owner.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts; named companion when ambientHostSessionOwner is null",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Re-scope expected-item 3. The \"non-canonical owner plus no recorded write\" predicate also matches a live peer that has claimed and not yet written; key the refusal on recorded identity provenance rather than on write history.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.ts; non-canonical owner plus no recorded write does not steal a live peer",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Reconcile the ignore surfaces rather than treating host-settings tracking as an open question. A per-clone `.git/info/exclude` entry blanket-excludes `.claude/`, overriding the tracked `.gitignore` policy that `.claude/settings.json`, `.claude/skills/` and `.claude/commands/` stay trackable. It is invisible to `git status` and does not travel between clones.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "PR 4440 CHANGELOG; ignore-surface recut",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Carry the ingest-republication vector to its own issue, scoped by the security document that governs it rather than by the concurrency non-goal.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "ingest-republication carried off this issue",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       },
       {
         "title": "Carry the two contract findings to the design-critique contract: the panel-deposit sits above every round-1 critic's ceiling by construction, and a single `reading=` field cannot express a compound premise, so a well-formed token can over-claim one conjunct without the audit evaluator noticing.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "design-critique contract findings carried off this issue",
+          "recorded_at": "2026-09-13T16:31:25.234Z",
+          "recorded_by": "leftover-4431"
+        }
       }
     ],
     "tags": [
@@ -152,10 +206,35 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "5c4fb0ddb85743980b705d1d01ff224fb39f2ab389453df50a45401c08cae8a4"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4440,
+        "prBase": null,
+        "mergeCommit": "dfc2e056ca222657e6a76a6043e333afbcfc4ae9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dfc2e056ca222657e6a76a6043e333afbcfc4ae9",
+        "verifiedAt": "2026-09-13T16:31:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDkyNDItMDJhNS03ZmEwLTk1ZmUtOTM1NjNjMDJmZTg3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T16:31:48Z"
+      },
+      "completedAt": "2026-09-13T16:31:48Z",
+      "completedSessionId": "host:grok:v1:MDFhMDkyNDItMDJhNS03ZmEwLTk1ZmUtOTM1NjNjMDJmZTg3",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5428378824",
-    "updated": "2026-09-12T23:47:15Z",
+    "updated": "2026-09-13T16:31:48Z",
     "architecture": {
       "systemOfRecord": {
         "note": "This story does not add durable product state. Occupancy stays a cooperative local bearer-id lease; the change is refuse-to-mint, print-only companion, identity_provenance, and fail-closed non-inspectable lifecycle rewrite.",
