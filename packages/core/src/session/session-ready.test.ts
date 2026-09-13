@@ -115,6 +115,7 @@ describe("runSessionReady (#2993)", () => {
     expect(result.sessionId).toBe("ready-session");
     expect(result.path).toBe(SESSION_READY_FAST_PATH);
     expect(result.message).toContain("already fresh");
+    expect(result.message).toContain("minted occupancy owner ready-session");
     expect(result.steps).toEqual(["verify:session-ritual:gated"]);
     expect(runStart).not.toHaveBeenCalled();
     expect(verifyRitual).toHaveBeenCalledWith(
@@ -304,6 +305,9 @@ describe("runSessionReady (#2993)", () => {
     expect(result.code).toBe(0);
     expect(newSessionId).not.toHaveBeenCalled();
     expect(result.sessionId).toBe("host:cursor:v1:Y29udmVyc2F0aW9u");
+    expect(result.message).toContain(
+      "resolved occupancy owner host:cursor:v1:Y29udmVyc2F0aW9u from explicit --session-id",
+    );
     expect(occupancyInputs.map((input) => input.sessionId)).toEqual([
       "host:cursor:v1:Y29udmVyc2F0aW9u",
       "host:cursor:v1:Y29udmVyc2F0aW9u",

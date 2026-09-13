@@ -36,12 +36,14 @@ import {
 } from "./clause-file-scope-bind.js";
 import {
   LIFECYCLE_FOLDERS,
+  type LifecycleFolder,
   MOVE_LABELS,
   type ScopeAction,
   STATUS_PRECONDITIONS,
   STAY_LABELS,
   TRANSITIONS,
 } from "./constants.js";
+import { formatUnreachableTransitionHint } from "./transition-hint.js";
 import {
   detectLifecycleFolder,
   updateDecomposedChildBackReferences,
@@ -175,11 +177,15 @@ export function runTransition(
     !allowedSources.includes(currentFolder as (typeof allowedSources)[number])
   ) {
     const allowedStr = allowedSources.map((s) => `${s}/`).join(", ");
+    const derivedHint = LIFECYCLE_FOLDERS.includes(currentFolder as LifecycleFolder)
+      ? formatUnreachableTransitionHint(act, currentFolder as LifecycleFolder, basename)
+      : null;
     return {
       ok: false,
       message:
         `Invalid transition: '${act}' requires file in ${allowedStr}. ` +
-        `File is in ${currentFolder}/.`,
+        `File is in ${currentFolder}/.` +
+        (derivedHint !== null ? ` ${derivedHint}` : ""),
     };
   }
 

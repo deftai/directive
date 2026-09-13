@@ -22,8 +22,9 @@ import type { GitRunner } from "./git.js";
 import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
+  formatOccupancyClaimProvenance,
   type OccupancyDecision,
-  resolveOccupancySessionId,
+  resolveOccupancySessionClaim,
 } from "./occupancy.js";
 import {
   runSessionStart,
@@ -190,11 +191,12 @@ export function runSessionReady(
   // #3611: resolve once before any occupancy preview or nested lifecycle call.
   // A nested start must report the same persisted owner; adopting a different
   // result would silently split the invocation's identity.
-  const sessionId = resolveOccupancySessionId({
+  const claim = resolveOccupancySessionClaim({
     sessionId: options.sessionId,
     env,
     newSessionId: options.sessionStartOptions?.newSessionId,
   });
+  const sessionId = claim.sessionId;
   let nestedStartClaimedOccupancy = false;
 
   const inspect = options.inspectRitual ?? inspectSessionRitual;
@@ -279,11 +281,13 @@ export function runSessionReady(
         duration_ms: elapsedMs(started),
       };
     }
-    lines.push(message);
+    const provenance = formatOccupancyClaimProvenance(claim);
+    const combined = `${message}\n${provenance}`;
+    lines.push(combined);
     return {
       code: 0,
       sessionId,
-      message,
+      message: combined,
       path,
       lines,
       steps,

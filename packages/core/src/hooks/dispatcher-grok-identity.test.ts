@@ -235,13 +235,15 @@ describe("Grok claim binding and fail-closed residue (#3873)", () => {
   });
 
   it("admits a granted child because the presented id is now grantable", () => {
-    // The occupied message recommends `occupancy:grant --child-session-id=<id>`.
+    // The occupied message recommends occupant-run occupancy:grant with --session-id.
     // That recommendation was unreachable while the hook presented an empty id:
     // grantOccupancyMembership refuses a zero-length child.
     const root = leasedRoot("some-other-session");
     const occupant = { verifyRitual: readyRitual("some-other-session") };
     const denied = writeDecision(root, HOST_ENVIRON, occupant);
-    expect(denied.message).toContain(`occupancy:grant --child-session-id=${GROK_OWNER}`);
+    expect(denied.message).toContain(
+      `occupancy:grant --session-id=some-other-session --child-session-id=${GROK_OWNER}`,
+    );
 
     expect(
       grantOccupancyMembership(root, {

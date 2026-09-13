@@ -173,7 +173,10 @@ describe("remediation commands stay parseable (#3873)", () => {
   it("inlines a bare-token id into the printed grant and steal commands", () => {
     const message = formatOccupancyRemediation(leased("owner-1"), new Date(), GROK_OWNER);
 
-    expect(message).toContain(`occupancy:grant --child-session-id=${GROK_OWNER}`);
+    expect(message).toContain(
+      `occupancy:grant --session-id=owner-1 --child-session-id=${GROK_OWNER} ` +
+        "--role <leaf-implementation|orchestrator|review-monitor|merge-release>",
+    );
     expect(message).toContain(`--occupant owner-1 --session-id=${GROK_OWNER}`);
   });
 
@@ -187,7 +190,9 @@ describe("remediation commands stay parseable (#3873)", () => {
     );
 
     expect(message).toContain("This process presented session actor with spaces");
-    expect(message).toContain("occupancy:grant --child-session-id=<your-session-id>");
+    expect(message).toContain(
+      "occupancy:grant --session-id=<reported-session-id> --child-session-id=<your-session-id>",
+    );
     expect(message).toContain("--occupant <reported-session-id> --session-id=<your-session-id>");
     expect(message).not.toContain("--child-session-id=actor with spaces");
     expect(message).not.toContain("--occupant owner; rm -rf /");
@@ -202,7 +207,9 @@ describe("remediation commands stay parseable (#3873)", () => {
       "--weird-actor",
     );
 
-    expect(message).toContain("occupancy:grant --child-session-id=<your-session-id>");
+    expect(message).toContain(
+      "occupancy:grant --session-id=<reported-session-id> --child-session-id=<your-session-id>",
+    );
     expect(message).toContain("--occupant <reported-session-id> --session-id=<your-session-id>");
     expect(message).not.toContain("--child-session-id=--weird-actor");
     expect(message).not.toContain("--occupant --weird-owner");

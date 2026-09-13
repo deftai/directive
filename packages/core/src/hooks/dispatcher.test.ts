@@ -585,7 +585,9 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("deft scope:promote");
     expect(decision.message).toContain("deft scope:activate");
+    expect(decision.message).toContain("auto-promote from proposed/ is refused");
     expect(decision.message).toMatch(/direct-write/);
     expect(decision.message).toMatch(/spawn/);
     // #3828: the coverage sentence names the policy in force. `readySeams` carries
@@ -3142,6 +3144,39 @@ describe("provider codecs", () => {
     expect(renderHostDecision("claude", allow)).toBe("");
     expect(renderHostDecision("grok", allow)).toBe("");
     expect(renderHostDecision("codex", allow)).toBe("");
+  });
+
+  it("Claude Bash of bare deft session:ready emits updatedInput carrying the owner (#4412)", () => {
+    // Directive emission is the measured half. CI cannot observe Claude applying
+    // updatedInput to the executed command; this story does not bind a second rewrite.
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: { command: "deft session:ready" },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+
+    expect(decision).toMatchObject({
+      verdict: "allow",
+      updatedInput: {
+        command: "deft session:ready --session-id=host:claude:v1:c2Vzc2lvbi1h",
+      },
+    });
+    expect(JSON.parse(renderHostDecision("claude", decision))).toEqual({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "allow",
+        updatedInput: decision.updatedInput,
+      },
+    });
   });
 
   it("rewrites an exact Codex lifecycle command and renders the required allow shape (#3611)", () => {
