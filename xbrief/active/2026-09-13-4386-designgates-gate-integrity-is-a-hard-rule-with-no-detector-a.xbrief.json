@@ -162,36 +162,7 @@
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
-        "file_scope": [
-          "packages/core/src/evaluator-surface/evaluate.ts",
-          "packages/core/src/evaluator-surface/evaluate.test.ts",
-          "packages/core/src/evaluator-surface/index.ts",
-          "packages/core/src/consumer-test-lane/evaluate.ts",
-          "packages/core/src/consumer-test-lane/evaluate.test.ts",
-          "packages/core/src/consumer-test-lane/index.ts",
-          "packages/core/src/check/gate-lists.ts",
-          "packages/core/src/check/gate-lists.test.ts",
-          "packages/core/src/check/named-cause.ts",
-          "packages/core/src/consumer-check-contract/evaluate.ts",
-          "packages/core/src/consumer-check-contract/evaluate.test.ts",
-          "packages/core/src/consumer-check-contract/index.test.ts",
-          "packages/cli/src/verify-evaluator-surface.ts",
-          "packages/cli/src/verify-evaluator-surface.test.ts",
-          "packages/cli/src/verify-consumer-test-lane.ts",
-          "packages/cli/src/verify-consumer-test-lane.test.ts",
-          "packages/cli/src/dispatch.ts",
-          "packages/cli/src/gates-cli/verify-gates-cli.test.ts",
-          "packages/core/package.json",
-          "tasks/verify.yml",
-          "Taskfile.yml",
-          "content/docs/gate-integrity.md",
-          "content/docs/consumer-check-contract.md",
-          "xbrief/evaluator-surface-disposition.json",
-          "CHANGELOG.md",
-          "vitest.config.ts",
-          "packages/core/src/evaluator-surface/index.test.ts",
-          "packages/core/src/consumer-test-lane/index.test.ts"
-        ],
+        "file_scope": [],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/evaluator-surface/evaluate.test.ts packages/core/src/consumer-test-lane/evaluate.test.ts packages/core/src/check/gate-lists.test.ts packages/cli/src/verify-evaluator-surface.test.ts packages/cli/src/verify-consumer-test-lane.test.ts"
         ],
@@ -206,7 +177,7 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard",
-        "missing_traces_justification": "Bound-remedy 5650046740; next-build is successor lean not original Expected."
+        "missing_traces_justification": "Bound-remedy 5650046740. file_scope left undeclared: dest-placed allocation did not mint approved-scope on the merge base (#3110 / #3205). intended_placement.files records the write set. Empty file_scope is the unminted-cohort outcome, not a post-failure undeclare."
       }
     },
     "id": "github.issue.5421179798",
