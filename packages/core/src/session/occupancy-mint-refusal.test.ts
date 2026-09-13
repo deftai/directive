@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   exactLifecycleCommandVerb,
   hintUninspectableLifecycleCommand,
+  inspectHintedLifecycleSessionId,
 } from "../hooks/classify/host-session-identity.js";
 import {
   canonicalHostSessionId,
@@ -191,5 +192,37 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
         tool_input: { command: "deft session:ready" },
       }),
     ).toBeNull();
+  });
+
+  it("does not treat quoted or comment lifecycle text as an invocation", () => {
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: 'echo "deft session:start"' },
+      }),
+    ).toBeNull();
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: 'grep "task occupancy:steal" file' },
+      }),
+    ).toBeNull();
+    expect(
+      hintUninspectableLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command: "echo hi # deft session:start" },
+      }),
+    ).toBeNull();
+  });
+
+  it("reads an explicit matching --session-id from a chained command", () => {
+    expect(
+      inspectHintedLifecycleSessionId({
+        tool_name: "Bash",
+        tool_input: {
+          command: "deft session:start --session-id=host:claude:v1:c2Vzc2lvbi1h && echo ok",
+        },
+      }),
+    ).toEqual({ status: "present", sessionId: "host:claude:v1:c2Vzc2lvbi1h" });
   });
 });
