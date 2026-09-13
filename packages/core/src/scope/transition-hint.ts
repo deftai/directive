@@ -21,14 +21,15 @@ export const SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE =
 
 /**
  * The action whose source is `currentFolder` and whose target is an allowed
- * source of `act`. Null when `act` already applies or no single bridge exists.
+ * source of `act`. Bound-remedy only names the activate-from-proposed pair:
+ * a folder-only search would recommend cancel-then-restore or activate-then-unblock.
  */
 export function deriveBridgeAction(
   act: ScopeAction,
   currentFolder: LifecycleFolder,
 ): ScopeAction | null {
+  if (act !== "activate" || currentFolder !== "proposed") return null;
   const requested = TRANSITIONS[act];
-  if (requested.allowedSources.includes(currentFolder)) return null;
   const bridges = (Object.keys(TRANSITIONS) as ScopeAction[]).filter((name) => {
     const spec = TRANSITIONS[name];
     return (

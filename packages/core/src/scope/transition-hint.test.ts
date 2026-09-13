@@ -19,6 +19,12 @@ describe("deriveBridgeAction (#4412)", () => {
     expect(deriveBridgeAction("promote", "active")).toBeNull();
     expect(deriveBridgeAction("activate", "completed")).toBeNull();
   });
+
+  it("does not recommend cancel or activate-then-unblock for other pairs", () => {
+    expect(deriveBridgeAction("restore", "active")).toBeNull();
+    expect(deriveBridgeAction("unblock", "pending")).toBeNull();
+    expect(deriveBridgeAction("complete", "pending")).toBeNull();
+  });
 });
 
 describe("formatUnreachableTransitionHint (#4412)", () => {
@@ -31,6 +37,8 @@ describe("formatUnreachableTransitionHint (#4412)", () => {
 
   it("returns null when there is no derived bridge", () => {
     expect(formatUnreachableTransitionHint("promote", "active", "story.xbrief.json")).toBeNull();
+    expect(formatUnreachableTransitionHint("restore", "active", "story.xbrief.json")).toBeNull();
+    expect(formatUnreachableTransitionHint("unblock", "pending", "story.xbrief.json")).toBeNull();
   });
 });
 

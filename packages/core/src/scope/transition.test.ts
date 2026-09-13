@@ -994,6 +994,16 @@ describe("runTransition", () => {
     expect(existsSync(join(root, "xbrief", "pending", "story.xbrief.json"))).toBe(false);
   });
 
+  it("does not hint cancel-then-restore when restore is asked of active/ (#4412)", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("restore", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Invalid transition");
+    expect(result.message).not.toContain("scope:cancel");
+    expect(existsSync(file)).toBe(true);
+  });
+
   it("rejects move when destination already exists (#2578)", () => {
     root = makeRepo();
     const file = writeVbrief(root, "active", "running", "dup.xbrief.json");
