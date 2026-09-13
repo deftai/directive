@@ -2248,8 +2248,35 @@ function hasProtectedZipArchiveDestination(command: string): boolean {
 /**
  * Closed read-only proof for #4188 dest-of-write. Inspection of authz state
  * stays allow. Absence of a near-zero-read measurement keeps this list load-bearing.
+ * sort/awk prove only without -o/--output/--pretty-print (those stay dest-of-write).
  */
-const READ_ONLY_PROOF_BINS = new Set(["cat", "ls", "grep", "diff", "get-content", "gc"]);
+const READ_ONLY_PROOF_BINS = new Set([
+  "cat",
+  "ls",
+  "grep",
+  "diff",
+  "get-content",
+  "gc",
+  "sha256sum",
+  "shasum",
+  "md5sum",
+  "cksum",
+  "sort",
+  "awk",
+  "gawk",
+  "nawk",
+]);
+
+const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
+
+function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boolean {
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const n = normalizeToken(words[i] as string);
+    if (READ_ONLY_PROOF_OUTPUT_DEST_FLAGS.has(n)) return true;
+    if (n.startsWith("--output=") || n.startsWith("--pretty-print=")) return true;
+  }
+  return false;
+}
 
 function wrapperBinName(raw: string): string | null {
   if (zipShellWordHasExpansion(raw)) return null;
@@ -2308,7 +2335,12 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
   const literal = argv0Literal(words, execIndex);
   if (literal === null || argv0IsPathQualified(literal)) return false;
   const name = writeBinName(literal);
-  if (READ_ONLY_PROOF_BINS.has(name)) return true;
+  if (READ_ONLY_PROOF_BINS.has(name)) {
+    if (name === "sort" || name === "awk" || name === "gawk" || name === "nawk") {
+      return !argvHasOutputDestFlag(words, execIndex);
+    }
+    return true;
+  }
   if (name === "git") {
     let i = execIndex + 1;
     while (i < words.length) {

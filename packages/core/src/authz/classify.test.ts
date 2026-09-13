@@ -1599,6 +1599,9 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "diff /tmp/a .deft/authz/state.json",
       "Get-Content -Path .deft/authz/state.json",
       "gc .deft/authz/state.json",
+      "sort .deft/authz/state.json",
+      "sha256sum .deft/authz/state.json",
+      "awk '{print}' .deft/authz/state.json",
       "ffmpeg -i .deft/authz/grants/x.json /tmp/out.wav",
       "sox .deft/authz/grants/x.json /tmp/out.wav",
       "typst compile .deft/authz/grants/x.json /tmp/out.pdf",
@@ -1610,6 +1613,13 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "python -c \"print('.deft/authz/grants/evil.json')\"",
     ]) {
       expect(classifyShellAuthzOps(command), command).not.toContain("unknown");
+    }
+
+    for (const command of [
+      "sort -o .deft/authz/grants/evil.json in.txt",
+      "awk -o .deft/authz/grants/evil.json in.txt",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).not.toEqual([]);
     }
   });
 
