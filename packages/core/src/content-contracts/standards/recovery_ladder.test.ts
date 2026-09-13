@@ -188,6 +188,20 @@ describe("recovery ladder (#4090)", () => {
     expect(future.message).toContain("will not write");
   });
 
+  it("managed carrier reuses #4090 ladder spellings and is doctor-first (#4430)", () => {
+    const template = readText("templates/agents-entry.md");
+    expect(template).toContain(RECOVERY_LADDER_NPM_GLOBAL);
+    expect(template).toContain("directive doctor");
+    expect(template).not.toContain(`${RECOVERY_LADDER_NPM_GLOBAL} && directive doctor`);
+    const fallback = template.split("\n").find((line) => line.includes(".agents/skills"));
+    expect(fallback).toBeDefined();
+    const doctorAt = fallback!.indexOf("directive doctor");
+    const installAt = fallback!.indexOf(RECOVERY_LADDER_NPM_GLOBAL);
+    expect(doctorAt).toBeGreaterThanOrEqual(0);
+    expect(installAt).toBeGreaterThanOrEqual(0);
+    expect(doctorAt).toBeLessThan(installAt);
+  });
+
   it("QUICK-START is not a second parser and does not append Case G", () => {
     const qs = readText("QUICK-START.md");
     expect(qs).toContain("deft agents:refresh");

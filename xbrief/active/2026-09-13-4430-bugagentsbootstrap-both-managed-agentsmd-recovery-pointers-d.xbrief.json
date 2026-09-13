@@ -1,0 +1,186 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4430",
+    "updated": "2026-09-13T00:26:16Z"
+  },
+  "plan": {
+    "title": "bug(agents,bootstrap): both managed AGENTS.md recovery pointers dangle on a fresh clone; #2273 guard misses agents-entry.md",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(agents,bootstrap): both managed AGENTS.md recovery pointers dangle on a fresh clone; #2273 guard misses agents-entry.md",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4430",
+      "Overview": "## Summary\n\nBoth bootstrap-recovery pointers in the managed `AGENTS.md` section name paths that do not exist in a fresh consumer clone. One is circular (it routes recovery into the payload whose absence triggers it); the other names a file `directive init` never deposits. The #2273 guard that was written to prevent exactly this does not cover the carrier the pointers live in.\n\n## The two pointers\n\nSource: `content/templates/agents-entry.md`, rendered into the consumer's managed `AGENTS.md` section.\n\n**1. Circular fallback** (`agents-entry.md:6`):\n\n> `! If any .deft/core/.agents/skills/ path here cannot be read (missing, stale, or a redirect stub), read .deft/core/QUICK-START.md and follow it`\n\nThe trigger condition is a `.deft/core/` path being unreadable. The remedy is to read another `.deft/core/` path. `init` adds `.deft/core/` to `.gitignore`, so on a fresh clone the target is guaranteed absent at exactly the moment the line fires.\n\nThis also contradicts the rule stated fourteen lines below it in the same file (`agents-entry.md:20`):\n\n> `Bootstrap: cold-start → README § Cold-start (#2273) ⊗ never .deft/core/`\n\n**2. Undeposited target** (the rule above, as rendered into a consumer repo).\n\n`README § Cold-start` refers to the `deft:cold-start-bootstrap v1` block. That block exists only in this repository's own `README.md`. `packages/core/src/init-deposit/scaffold.ts` never writes a `README.md`, so a consumer repo without one has no such block — and a greenfield `directive init` does not create it.\n\nThe block's own text asserts a guarantee that is false for every consumer:\n\n> This block is always committed (never gitignored) and does **not** depend on the `.deft/core/` payload being present, so it is reachable on a fresh clone even when the vendored framework is missing.\n\nSo the designated safe target is itself unreachable in the repos it was designed to protect.\n\n## Why the #2273 guard did not catch this\n\n`packages/core/src/content-contracts/skills/main_md_preamble.test.ts` encodes the rule:\n\n> #2273: the recovery pointer is now payload-INDEPENDENT -- it points at the Cold-start bootstrap block at the top of the committed `README.md`, NOT at `.deft/core/UPGRADING.md` (the exact vendored payload that is absent when recovery is needed).\n\nTwo gaps:\n\n1. **Scope.** `CANONICAL_PATHS = [\"main.md\", \"SKILL.md\"]`. `content/templates/agents-entry.md` is not covered.\n2. **Shape.** The assertion is a single-literal denylist — `expect(head).not.toContain(\".deft/core/UPGRADING.md\")`. `.deft/core/QUICK-START.md` is a different literal and passes.\n\nSeparately, `agents_entry_contract.test.ts` lists `\"## Cold-start bootstrap (#2273)\"` under `retiredFullTextMarkers`, i.e. the cold-start block was deliberately thinned out of `AGENTS.md` down to a pointer. That left `agents-entry.md:6` as the only bootstrap escape hatch in the carrier, still aimed at the gitignored payload.\n\nThe managed section also means a consumer cannot repair either line locally without sha drift against `agents:refresh`.\n\n## Reproduction (v0.116.0)\n\n1. Greenfield repo, `directive init --yes`, commit, clone the branch fresh.\n2. In the clone: `.deft/` is absent, `.deft/core/QUICK-START.md` is absent, no `README.md` exists.\n3. Resolve every `.deft/core/*` reference in the committed tree — all dangle, including the fallback target.\n\n## Expected\n\n1. Repoint the `agents-entry.md:6` fallback at something guaranteed present in a fresh consumer clone. Options, in preference order:\n   - A fileless instruction (`npm i -g @deftai/directive && directive doctor`) — depends on no repo file at all.\n   - The README cold-start block, **if** `init` is changed to deposit it (creating `README.md` when absent).\n   Do not simply swap `QUICK-START.md` for the README reference; today that trades one dangling target for another.\n2. Generalize the #2273 guard from a single-literal denylist to the property it stands for: no bootstrap-recovery pointer in any managed carrier may name a `.deft/core/` path. Extend `CANONICAL_PATHS` to include `content/templates/agents-entry.md`.\n3. If the README block is chosen as the target, `init` must deposit it, and a test must assert it survives a fresh clone.\n\n## Related\n\n- #2273 — established payload-independent cold-start recovery; this is the carrier it missed.\n- #2065 — managed vs unmanaged `AGENTS.md` header, why the consumer cannot self-repair.\n- #4424 — consumer report; the P1 on this fallback is the one finding in that report that is a product bug rather than review scoping.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-11T21:00:28Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because the managed AGENTS.md recovery pointers are a recording obligation: both name paths a fresh consumer clone cannot read, and the #2273 guard that was written to prevent payload-dependent recovery does not cover the carrier they live in.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4430-dc\norigin-ref: origin/master\ndispatch-sha: 24867a867124743197cead9b5314a2cf31a4c26b\n\ncharter: refutation\nspend: N=1\nspend-why: default motion; operator did not raise N.\n\nrefutation-target: Both bootstrap-recovery pointers in the managed AGENTS.md section name paths that do not exist in a fresh consumer clone, and the #2273 guard does not cover agents-entry.md.\n\ntarget: #4430\ntarget-shape: single-issue (default)\naudit-targets: none\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This issue is mechanism-shaped: a fail-closed recovery pointer whose designated targets are gitignored or never deposited, so the consumer cannot repair them without sha drift against agents:refresh.\n\n\n### Comment by @MScottAdams (2026-09-11T21:09:47Z)\n\nmodel: claude-opus-5\nrole: critic\n\n## Verdict\n\nThe refutation target survives. Re-verified at `24867a86`: both pointers do dangle on a greenfield fresh clone, and the #2273 guard does not cover the carrier. I found no way to refute it.\n\nThree blocking findings are against the **Expected remedy**, not the premise. As written, items 1-3 cannot be implemented: the proposed property red-fails the two carriers already under the guard, the proposed `CANONICAL_PATHS` extension breaks three sibling assertions, and the chosen-target option that satisfies item 1 leaves the second pointer defective at three more sites.\n\n**Re-verification method.** `vitest` could not run in the dest (no `node_modules`). I replicated the guard's exact assertions -- first-12-line window, the three `toContain` needles, the `not.toContain` denylist -- with a script over blobs read via `git show 24867a86:<path>`. Results are quoted below, not cited.\n\n---\n\n## blocks-the-design -- Expected 2's property red-fails `main.md` and `SKILL.md` on day one\n\n**Evidence.** Replicating the head-12 window over the pinned blobs:\n\n```\nmain.md          head names ANY .deft/core/ path : true\nSKILL.md         head names ANY .deft/core/ path : true\nagents-entry.md  head names ANY .deft/core/ path : true\n```\n\n`main.md:3` and `SKILL.md:4` both read \"does not depend on the `.deft/core/` payload being present\". That is prose *about* the payload, not a pointer at it -- but it is the same substring.\n\n**Failure mode.** Implement \"no bootstrap-recovery pointer in any managed carrier may name a `.deft/core/` path\" as a head-window denylist and the suite goes red immediately on the two carriers `CANONICAL_PATHS` already holds, for text that is correct. The predictable repair is to carve an exception, and the exception is the hole again.\n\n**Disposition consequence.** Expected 2 cannot bind as stated. The property that actually covers both pointers is *the named recovery target resolves in a fresh consumer clone*, evaluated over resolved targets -- not a path-spelling denylist. See also the `content/UPGRADING.md` finding below, which a `.deft/core/` denylist cannot match at all.\n\n---\n\n## blocks-the-design -- extending `CANONICAL_PATHS` breaks three sibling assertions\n\n**Evidence.** `CANONICAL_PATHS` drives five `it.each` blocks (`main_md_preamble.test.ts:19-45`), not one. Against the pinned `agents-entry.md`:\n\n```\nline1 == \"<!-- DEFT-PREAMBLE-V1 -->\"     : false   (actual: <!-- deft:managed-section v3 -->)\nhead contains \"Cold-start check\"         : false\nhead contains \"README.md\"                : false\nhead contains \".deft/core/UPGRADING.md\"  : false   <- the denylist that was supposed to fire\n```\n\n**Failure mode.** Adding `agents-entry.md` to that list fails `preamble_marker_at_line_one`, `preamble_includes_gate_instruction` and `preamble_references_cold_start_recovery` -- three failures that have nothing to do with #2273 -- while the one assertion the issue wants still passes.\n\n**Disposition consequence.** Expected 2 must name a *separate* carrier list scoped to the payload-independence assertion, not reuse `CANONICAL_PATHS`. Secondary: the spelling. `resolveRepoPath` probes `content/<rel>` first and falls back to repo root (`helpers.ts:19-29`), so the layout-agnostic spelling is `templates/agents-entry.md` -- the convention `agents_entry_contract.test.ts:792` already uses. `content/templates/agents-entry.md` resolves in the source repo only by fallback and does not survive the C1 flatten.\n\n---\n\n## blocks-the-design -- option A satisfies item 1 while leaving pointer 2 defective at three sites\n\n**Evidence.** The README pointer is not only at `agents-entry.md:20`. `main.md:3` and `SKILL.md:4` carry it verbatim, including the guarantee the issue correctly identifies as false:\n\n> read the **Cold-start bootstrap** block at the top of the project's `README.md` ... `README.md` is always committed (never gitignored) and does not depend on the `.deft/core/` payload\n\n**Failure mode.** Expected 1 offers two options; Expected 3 is conditional on option B being chosen. Take option A (fileless) and the issue closes with `agents-entry.md:6` repaired, `agents-entry.md:20` / `main.md:3` / `SKILL.md:4` still naming a block no consumer repo has, and no proposed test firing on any of them.\n\n**Honest scoping.** `main.md` and `SKILL.md` deposit into `.deft/core/` (content-manifest C1), so on a *fresh* clone they are absent and their pointer is moot. The live case is the other two-thirds of `agents-entry.md:6`'s own trigger -- \"stale, or a redirect stub\" -- where the payload is present, the pointer fires, and the target does not exist.\n\n**Disposition consequence.** Either make Expected 3 unconditional, or make Expected 1 repoint all four sites. The current Expected can be fully satisfied with the defect intact.\n\n---\n\n## sharpens-framing -- a registered recovery ladder already exists; Expected 1 proposes a fourth spelling\n\n**Inventory.** `packages/core/src/doctor/constants.ts:19-23` -- \"One recovery ladder for doctor FAIL `suggested_fix` (#4090). One spelling per rung\":\n\n```\nRECOVERY_LADDER_AGENTS_REFRESH = \"deft agents:refresh\"\nRECOVERY_LADDER_UPDATE         = \"deft update\"\nRECOVERY_LADDER_NPX_PREFIX     = \"npx @deftai/directive\"\nRECOVERY_LADDER_NPM_GLOBAL     = \"npm i -g @deftai/directive\"\n```\n\nMore directly: `checkQuickStartResolves` (`doctor/checks.ts:495-525`) **is** the \"does the recovery target resolve\" check, aimed at `<installRoot>/QUICK-START.md`, and its fail path hands back the fileless ladder. `recovery_ladder.test.ts:98-127` pins those spellings and asserts the fail detail never names `.deft/core/run`.\n\n**Failure mode.** Expected 1's literal `npm i -g @deftai/directive && directive doctor` is a new spelling in a carrier nothing pins. `recovery_ladder.test.ts` holds the registered rungs; the template string drifts alone, and #4090's one-spelling invariant is quietly broken by the fix for #4430.\n\n**Disposition consequence.** State the remedy as *reuse the #4090 ladder constant* and extend the one-spelling assertion to cover the managed carrier. Do not mint a template literal.\n\n---\n\n## sharpens-framing -- depositing the README block verbatim reintroduces a payload-dependent recovery link\n\n**Evidence.** The only link inside the `deft:cold-start-bootstrap v1` block (`README.md:1-14`) is at rung 5:\n\n```\n](./content/UPGRADING.md#corporate-or-mirrored-npm-registry)\n```\n\n`content/` flattens to `.deft/core/` in a consumer deposit (content-manifest C1 LOCATION INVARIANT). `README.md:16`, just below the block, has the same shape (`./content/docs/SUPPORT.md`).\n\n**Failure mode.** Expected 3 deposits the block; the E404 / ETARGET mirror rung -- a recovery rung, inside the block whose stated purpose is payload independence -- points into the gitignored payload. Worse for the guard: the committed spelling is `content/UPGRADING.md`, which `not.toContain(\".deft/core/UPGRADING.md\")` does not match, so the #2273 assertion stays green over a reintroduced payload-dependent recovery link.\n\n**Disposition consequence.** Expected 3 must say *deposit a rewritten block whose every rung is fileless or repo-root-committed*, and this case is the reason the Expected-2 property has to resolve targets rather than match path spellings.\n\n---\n\n## sharpens-framing -- \"guaranteed absent\" is greenfield-only\n\n**Evidence.** `init-deposit/gitignore.ts:25,32` -- `.deft/core/` is the \"greenfield only per Option B / #1941 split\" line; `CANONICAL_GITIGNORE_BASELINE` deliberately excludes it. `gitignore.test.ts:195` and `:214` pin \"does not add `.deft/core` to gitignore when the deposit is already tracked.\"\n\n**Failure mode.** The Summary's \"`init` adds `.deft/core/` to `.gitignore`, so on a fresh clone the target is guaranteed absent\" holds for the greenfield repro and not for a tracked/hybrid-committed deposit. The risk is an acceptance test written as \"assert the target is absent after a fresh clone\", which passes greenfield and is vacuous on a tracked deposit.\n\n**Disposition consequence.** Scope the claim to greenfield / untracked deposits, and state that the fix must hold on both -- the pointer must resolve whether or not the payload happens to be committed.\n\n---\n\n## Injection / swarm lens -- fires (managed prompt surface, attacker-influenced trigger)\n\nNot N/A: the target is the managed `AGENTS.md` section -- an always-loaded agent prompt that, per #2065, a consumer cannot repair locally without sha drift against `agents:refresh`.\n\n**Evidence.** `agents-entry.md:6`'s trigger is \"missing, stale, or a **redirect stub**\" -- a *file-absence or file-content* condition, writable by anything with the checkout: a stale `deft update`, a sibling worktree, a PR that deletes a skill file, a planted stub.\n\n**Failure mode.** Today that trigger fails closed: the target dangles, the agent stops or asks. Expected 1 option A replaces it with an unconditional \"install a global npm package and run it\", so deleting or stubbing any `.deft/core/.agents/skills/*` path reliably drives an unpinned `npm i -g` in every subsequent agent session, from a prompt line the consumer cannot edit. This is a swarm amplifier: N dispatched subagents all read the same managed section.\n\n**Deterministic control (not reviewer attention).** The README ladder already carries both mitigations and Expected 1's one-liner drops both -- rung 1 is \"Already installed? Run `directive doctor`\" before any install, and the block preamble fixes the version: \"the version to install is always the one pinned in the project's committed `package.json`\". If option A is chosen, the carrier line must be doctor-first and pinned, sourced from the #4090 constant so `recovery_ladder.test.ts` holds its shape.\n\n**Disposition consequence.** Option A is not strictly safer than option B; it trades a dangling target for an absence-triggered install. That trade belongs in the Expected preference order, which currently ranks A first on \"depends on no repo file at all\" alone.\n\n---\n\n## footnote -- the retired marker's recorded canonical home is `commands.md`, not README\n\n`agents_entry_contract.test.ts:512-526` lists `\"## Cold-start bootstrap (#2273)\"` under `retiredFullTextMarkers` for spec `session-routing-2493`, whose `canonicalHome` is `commands.md` -- i.e. `.deft/core/commands.md`. The issue's reading (thinned down to a pointer) is right about the thinning; the destination recorded in the test is a third target, itself payload-resident. Worth one line in whatever replaces the guard, so the relocation record and the pointer agree.\n\n## footnote -- recording obligations\n\nStop 1 write-back (`5640576934`) carries the model/role lead, the clearance line, `mechanism-shaped: true`, `arc-mode: no-ingest`, `yolo-standing`, dest, `origin-ref`, `dispatch-sha`, charter, spend + why, `refutation-target`, target, target-shape, audit-targets. Round-1 ceiling is the write-back, as the contract requires. `N=1`, so no panel-deposit is owed. Nothing to flag.\n\n---\n\n## Road not taken\n\nI considered proposing a new committed-surface registry -- enumerate every path named in a managed carrier, resolve each against the post-init committed tree. Rejected: the content-manifest already classifies which entries flatten into `.deft/core/`, so target resolvability is derivable from existing data, and `checkQuickStartResolves` already supplies the check shape. A new registry would be a second source of truth for the same fact. What would flip this: if the manifest records only the *shippable* set and not the post-init *committed* set, the derivation does not close and a registry is warranted.\n\n## Steelman of the position I am arguing against\n\nThe strongest case for the Expected as written: the single-literal denylist is a two-line fix, adding `.deft/core/QUICK-START.md` and the carrier path is cheap, and it is green today. Shipping that beats designing a resolvability property nobody has budget for.\n\nIt fails on pointer 2. `README § Cold-start` contains no `.deft/core/` literal at all, and the deposited-block variant would spell its dangling link `content/UPGRADING.md`. A literal denylist cannot reach the harder half of the bug, and shipping it records the bug as fixed.\n\nWhat would flip me: change `init` to deposit a *rewritten* cold-start block whose every rung is fileless or repo-root-committed. Then every remaining recovery target is committed by construction, and a path-spelling denylist plus a deposit-survives-fresh-clone test is genuinely sufficient. That is Expected option B done unconditionally -- which is the disposition I would take.\n\n\n### Comment by @MScottAdams (2026-09-11T21:11:40Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nBoth managed AGENTS.md recovery pointers dangle on a greenfield fresh clone, and the #2273 guard does not cover agents-entry.md. That premise stands. The filed Expected cannot be built as written: a `.deft/core/` spelling denylist red-fails main.md and SKILL.md, putting agents-entry.md on CANONICAL_PATHS breaks three sibling assertions, and taking the fileless option leaves the README pointer defective at three more sites.\n\nLeftover next-build on this number is a recut of Expected: resolve whether the named recovery target exists in a fresh consumer clone; keep a separate carrier list; reuse the #4090 recovery-ladder constants; if a README block is deposited, rewrite every rung so none points into the payload.\n\nConfirming this map does not close the premise. It recuts the remedy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4430 after round 1 critic 5640672461 (claude-opus-5). Supersedes write-back 5640576934.\n\nTarget-digest: sha256:9e71ff9d2d6b64be6d20c5622b8bf846699cc265147a918f3671c2097d57849d\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4430-dc\norigin-ref: origin/master\ndispatch-sha: 24867a867124743197cead9b5314a2cf31a4c26b\n\nTakes:\n\n- 5640672461 Expected 2's property red-fails main.md and SKILL.md on day one — accept-into-contract\n- 5640672461 extending CANONICAL_PATHS breaks three sibling assertions — accept-into-contract\n- 5640672461 option A satisfies item 1 while leaving pointer 2 defective at three sites — accept-into-contract\n- 5640672461 a registered recovery ladder already exists; Expected 1 proposes a fourth spelling — accept-into-contract\n- 5640672461 depositing the README block verbatim reintroduces a payload-dependent recovery link — accept-into-contract\n- 5640672461 \"guaranteed absent\" is greenfield-only — accept-into-contract\n\n## Bound remedy\n\n- Replace Expected 2's path-spelling denylist with a resolvability property: the named recovery target must resolve in a fresh consumer clone. Do not reuse CANONICAL_PATHS; add a separate carrier list for that assertion. Use the layout-agnostic spelling `templates/agents-entry.md`.\n- Expected 1 reuses the #4090 recovery-ladder constants (`RECOVERY_LADDER_*` in doctor/constants.ts), doctor-first then pinned install. Do not mint a new template literal. Extend the one-spelling assertion to the managed carrier.\n- Make Expected 3 unconditional, or make Expected 1 repoint all four sites (agents-entry.md:6, agents-entry.md:20, main.md:3, SKILL.md:4). If a README cold-start block is deposited, rewrite every rung so it is fileless or repo-root-committed; do not copy `./content/UPGRADING.md`.\n- Scope \"guaranteed absent\" to greenfield / untracked deposits. The pointer must resolve whether or not the payload happens to be committed.\n- Option A is an absence-triggered global install from a consumer-unrepairable prompt. Rank it with that trade, not as strictly safer than depositing a rewritten committed block.\n\n\n### Comment by @MScottAdams (2026-09-11T21:12:13Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n|---|---|---|\n| Both managed AGENTS.md recovery pointers dangle on a greenfield fresh clone; #2273 guard misses agents-entry.md | verified | critic 5640672461 replicated the head-12 window and denylist over `git show 24867a867:<path>` blobs (vitest unavailable in dest); parent accepts that measured method |\n| Expected 2 as a `.deft/core/` spelling denylist red-fails main.md and SKILL.md | verified | same git-show head-window script; both heads contain the payload substring in prose about independence |\n| Adding agents-entry.md to CANONICAL_PATHS fails three sibling it.each assertions | verified | same blob assertions: preamble marker, Cold-start check, README.md needles fail on agents-entry.md |\n| Fileless Expected 1 leaves agents-entry.md:20, main.md:3, SKILL.md:4 naming an undeposited README block | verified | pin-read of those three sites at 24867a867 |\n| #4090 RECOVERY_LADDER_* already exists; Expected 1 mints a fourth spelling | verified | pin-read doctor/constants.ts:19-23 and recovery_ladder.test.ts |\n| Depositing README cold-start verbatim reintroduces `./content/UPGRADING.md` | verified | pin-read README.md:1-16 at 24867a867 |\n| \"Guaranteed absent\" is greenfield-only (#1941 split) | verified | pin-read init-deposit/gitignore.ts CANONICAL_GITIGNORE_BASELINE and gitignore.test.ts:195,214 |\n\nCites successor lean 5640690178. Classified headings from critic 5640672461. Footnotes not in this denominator.\n\n\n### Comment by @MScottAdams (2026-09-11T21:12:38Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe two managed recovery pointers dangle on a greenfield clone, and the #2273 guard missed the carrier. That is the bug. The filed Expected is the wrong repair: a path-spelling denylist and a CANONICAL_PATHS extension cannot be implemented, and the fileless option leaves the README pointer broken. Next-build is the Bound-remedy list on successor lean 5640690178: resolvability, a separate carrier list, the #4090 ladder, and a rewritten committed block if one is deposited.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5640690178 and verified-claims table 5640695419.",
+      "Labels": "bug, agent-experience, design-critique:ingest-ready",
+      "Build contract": "Next-build is Bound-remedy from successor lean 5640690178, NOT original Expected. Premise stands: both managed AGENTS.md recovery pointers dangle on a greenfield clone, and #2273 misses agents-entry.md. Take Expected 1 as repoint-all-four-sites (agents-entry.md:6, :20, main.md:3, SKILL.md:4) onto the #4090 ladder: doctor-first then RECOVERY_LADDER_NPM_GLOBAL, pin from committed package.json. Do not deposit a README cold-start block in this story. Rank that trade honestly: Option A is an absence-triggered global install from a consumer-unrepairable prompt, not strictly safer than a rewritten committed block. Replace Expected 2 denylist with a resolvability property on a separate carrier list (layout-agnostic templates/agents-entry.md). Do not reuse CANONICAL_PATHS. Do not add a .deft/core/ spelling denylist that red-fails main.md/SKILL.md. Scope guaranteed-absent to greenfield/untracked deposits; pointers must resolve whether or not the payload is committed. Do not implement sibling #4424 or #4429."
+    },
+    "items": [
+      {
+        "title": "Add a resolvability property in packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts: named recovery targets must resolve on a greenfield clone and when the payload is committed. Separate carrier list; do not reuse CANONICAL_PATHS.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Repoint the recovery fallback and Bootstrap cold-start clause in content/templates/agents-entry.md onto the #4090 ladder: doctor-first then npm i -g @deftai/directive, pin from committed package.json. Do not mint a fused fourth spelling.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Extend the one-spelling assertion in packages/core/src/content-contracts/standards/recovery_ladder.test.ts to the managed carrier.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Repoint the cold-start recovery preamble in main.md onto the #4090 ladder. Do not add a payload-path spelling denylist.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Repoint the cold-start recovery preamble in SKILL.md onto the #4090 ladder.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Keep CANONICAL_PATHS without adding the managed-section carrier in packages/core/src/content-contracts/skills/main_md_preamble.test.ts.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Record in CHANGELOG.md that Option A is an absence-triggered global install from a consumer-unrepairable prompt, not strictly safer than a rewritten committed block. Do not deposit a README cold-start block.",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4430",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4430: bug(agents,bootstrap): both managed AGENTS.md recovery pointers dangle on a fresh clone; #2273 guard misses agents-entry.md"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from Bound-remedy file-bound items before product edit (#3323 / #4008)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add a resolvability property in packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts: named recovery targets must resolve on a greenfield clone and when the payload is committed. Separate carrier list; do not reuse CANONICAL_PATHS.",
+          "artifact_path": "packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Repoint the recovery fallback and Bootstrap cold-start clause in content/templates/agents-entry.md onto the #4090 ladder: doctor-first then npm i -g @deftai/directive, pin from committed package.json. Do not mint a fused fourth spelling.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Extend the one-spelling assertion in packages/core/src/content-contracts/standards/recovery_ladder.test.ts to the managed carrier.",
+          "artifact_path": "packages/core/src/content-contracts/standards/recovery_ladder.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Repoint the cold-start recovery preamble in main.md onto the #4090 ladder. Do not add a payload-path spelling denylist.",
+          "artifact_path": "main.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Repoint the cold-start recovery preamble in SKILL.md onto the #4090 ladder.",
+          "artifact_path": "SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep CANONICAL_PATHS without adding the managed-section carrier in packages/core/src/content-contracts/skills/main_md_preamble.test.ts.",
+          "artifact_path": "packages/core/src/content-contracts/skills/main_md_preamble.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Record in CHANGELOG.md that Option A is an absence-triggered global install from a consumer-unrepairable prompt, not strictly safer than a rewritten committed block. Do not deposit a README cold-start block.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "main.md",
+          "SKILL.md",
+          "packages/core/src/content-contracts/skills/main_md_preamble.test.ts",
+          "packages/core/src/content-contracts/standards/recovery_ladder.test.ts",
+          "packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "framework-content + content-contracts",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; this slice only adds the #4430 ship note. AGENTS.md is the managed-section refresh of content/templates/agents-entry.md, not a module split."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5428339874,
+        "origin": "deftai/directive#4430",
+        "id": "github.issue.5428339874"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9e71ff9d2d6b64be6d20c5622b8bf846699cc265147a918f3671c2097d57849d"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "main.md",
+          "SKILL.md",
+          "packages/core/src/content-contracts/skills/main_md_preamble.test.ts",
+          "packages/core/src/content-contracts/standards/recovery_ladder.test.ts",
+          "packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts packages/core/src/content-contracts/skills/main_md_preamble.test.ts packages/core/src/content-contracts/standards/recovery_ladder.test.ts packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "agents-entry recovery pointers are fileless #4090 ladder (doctor-first, then npm i -g @deftai/directive)",
+          "separate RECOVERY_CARRIERS list includes templates/agents-entry.md",
+          "CANONICAL_PATHS unchanged",
+          "named recovery targets resolve on greenfield and tracked-payload clones"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-bootstrap-pointers",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from successor lean 5640690178 Bound-remedy; GitHub Expected is history. No spec-section requirement trace applies."
+      }
+    },
+    "id": "github.issue.5428339874",
+    "updated": "2026-09-13T00:26:16Z"
+  }
+}
