@@ -29,7 +29,7 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
-          "pointer": "xbrief/active/2026-09-13-3593-appsec-3-high-2-medium-mcp-write-routing-around-uat-post-354.xbrief.json Bound-remedy items; CHANGELOG #3593 does not recut #3953/#4199",
+          "pointer": "xbrief/completed/2026-09-13-3593-appsec-3-high-2-medium-mcp-write-routing-around-uat-post-354.xbrief.json Bound-remedy items; CHANGELOG #3593 does not recut #3953/#4199",
           "recorded_at": "2026-09-13T13:43:18Z",
           "recorded_by": "dest-worker/3593"
         }
