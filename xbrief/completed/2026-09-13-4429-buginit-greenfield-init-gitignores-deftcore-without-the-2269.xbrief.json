@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4429",
-    "updated": "2026-09-13T00:22:32Z"
+    "updated": "2026-09-13T01:50:27Z"
   },
   "plan": {
     "title": "bug(init): greenfield init gitignores .deft/core/ without the #2269 reconstitution-anchor gate (no package.json pin written)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(init): greenfield init gitignores .deft/core/ without the #2269 reconstitution-anchor gate (no package.json pin written)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4429",
@@ -17,31 +17,73 @@
     "items": [
       {
         "title": "Wire `ensurePackageJsonPin` (`scaffold.ts:203`) into executing init. Do not write a second pin writer. Drop Expected #2 (refusal-to-gitignore as co-equal).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/init-deposit.ts:310 ensurePackageJsonPin call; init-deposit.test.ts:209 existing package.json pin; merge 75ba827f0d99503d87a7d1888ac440873d793aee PR 4454",
+          "recorded_at": "2026-09-13T01:49:26Z",
+          "recorded_by": "agent/leaf-implementation/4429"
+        }
       },
       {
         "title": "Pin write precedes `ensureInitGitignoreLines`, or the `.deft/core/` gitignore line is written only after the pin write succeeds.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/init-deposit.ts:310-311 pin then gitignore; init-deposit.test.ts:265 pin-throw leaves no .deft/core gitignore",
+          "recorded_at": "2026-09-13T01:49:26Z",
+          "recorded_by": "agent/leaf-implementation/4429"
+        }
       },
       {
         "title": "Delete the stale `#2265` ownership comment at `scaffold.ts:199-201`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/scaffold.ts:200-206 wiring comment replaces closed #2265 ownership pointer",
+          "recorded_at": "2026-09-13T01:49:26Z",
+          "recorded_by": "agent/leaf-implementation/4429"
+        }
       },
       {
         "title": "State the invariant as every greenfield surface emits the canonical pin; cite `headless-manifest.ts:213` as the existing correct reference, not an unrelated module. Scope \"existing package.json is left untouched\" to the `directive init` verb.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/headless-manifest.ts:213-217 collectPackageJsonFile invariant; init-deposit.ts:300-305 existing package.json updated on directive init",
+          "recorded_at": "2026-09-13T01:49:26Z",
+          "recorded_by": "agent/leaf-implementation/4429"
+        }
       },
       {
         "title": "Expected #3: choose one. `severity: \"warning\"` cannot change doctor exit. `severity: \"error\"` changes exit and retro-fails every pre-pin consumer. Record that blast radius if error is chosen. Do not reuse `DOCTOR_ADVISORY_FAIL_CHECKS` for the opposite polarity.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "xbrief/decisions/2026-09-13-keep-the-missing-pin-doctor-note-as-a-proceed-warning-do-not-pro.decision.json keep proceed warning; blast radius of error recorded in alternativesConsidered",
+          "recorded_at": "2026-09-13T01:49:26Z",
+          "recorded_by": "agent/leaf-implementation/4429"
+        }
       },
       {
         "title": "Staging of `package.json` needs no new work. Expected #4 is new harness work (commit-then-fresh-clone), not an assertion add in the 433-line smoke file.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "smoke",
+          "pointer": "packages/core/src/init-deposit/greenfield-pin-clone.harness.test.ts commit-then-fresh-clone harness; not an add on greenfield-python-free-smoke.ts",
+          "recorded_at": "2026-09-13T01:49:26Z",
+          "recorded_by": "agent/leaf-implementation/4429"
+        }
       },
       {
         "title": "Preserve or explicitly accept JSON reformat cost when rewriting a consumer `package.json`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/scaffold.ts:204-206 and :264 accepted JSON.stringify 2-space reformat cost",
+          "recorded_at": "2026-09-13T01:49:26Z",
+          "recorded_by": "agent/leaf-implementation/4429"
+        }
       }
     ],
     "tags": [
@@ -131,9 +173,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "9546b50b85281d0cb0c90cac0656d554eb8901af1c76e51e988c63894f873a95"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4454,
+        "prBase": null,
+        "mergeCommit": "75ba827f0d99503d87a7d1888ac440873d793aee",
+        "deliveryBranch": "master",
+        "deliveryCommit": "75ba827f0d99503d87a7d1888ac440873d793aee",
+        "verifiedAt": "2026-09-13T01:50:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDk4MjEtMmQ3MS03YjgzLWIxODQtYWJlZTIzYzdmNTM5"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-13T01:50:27Z"
+      },
+      "completedAt": "2026-09-13T01:50:27Z",
+      "completedSessionId": "host:grok:v1:MDFhMDk4MjEtMmQ3MS03YjgzLWIxODQtYWJlZTIzYzdmNTM5",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5428334213",
-    "updated": "2026-09-13T00:22:32Z"
+    "updated": "2026-09-13T01:50:27Z"
   }
 }
