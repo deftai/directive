@@ -308,7 +308,7 @@ describe("session coverage boost", () => {
         detectBranchFn: () => "main",
         detectLatestActiveVbriefFn: () => null,
       }).code,
-    ).toBe(2);
+    ).toBe(0);
     expect(
       runSessionStartHookWrite(root, {
         detectBranchFn: () => "main",

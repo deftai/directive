@@ -194,6 +194,43 @@ describe("verify-session-ritual failed-step messaging", () => {
     expect(result.message).toContain("doctor");
   });
 
+  it("does not embed ritual recovery in the gated-step message (#4411)", () => {
+    const { root, head } = initRoot();
+    writeRitualState(
+      root,
+      newRitualStatePayload({
+        sessionId: "s",
+        gitHead: head,
+        worktreePath: resolve(root),
+        startedAt: NOW,
+        quickSteps: {
+          alignment: ritualStep({ ok: true, ts: NOW }),
+          branch_policy: ritualStep({ ok: true, ts: NOW }),
+          triage_welcome: ritualStep({ ok: true, ts: NOW }),
+          verify_tools: ritualStep({ ok: true, ts: NOW }),
+        },
+        gatedSteps: {
+          agent_hooks: ritualStep({ ok: true, ts: NOW }),
+          cache_fresh: ritualStep({ ok: true, ts: NOW }),
+        },
+      }),
+    );
+    const result = verifySessionRitual(root, {
+      bypass: false,
+      tier: "gated",
+      now: NOW,
+      runGit: fakeGit(head, resolve(root)),
+      runner: (command) =>
+        command[0] === "doctor"
+          ? { code: 1, stdout: "", stderr: "doctor exited 1" }
+          : { code: 0, stdout: "ok", stderr: "" },
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("gated step 'doctor' failed");
+    expect(result.message).not.toContain("Recovery: run");
+    expect(result.recoveryTier).toBe("cold");
+  });
+
   it("reports gated cache_fresh stale recovery with runnable cache fetch-all (#2574)", () => {
     const { root, head } = initRoot();
     const repo = "deftai/cartograph";
