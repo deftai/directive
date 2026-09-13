@@ -17,6 +17,7 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { stampLiveGeneration } from "../freshness/generation.js";
 import { renderProjectDefinition } from "../render/project-render.js";
+import { readPin } from "../resolution/pin.js";
 import { depositOpenClawSoftRebindSkill } from "../session/openclaw-soft-rebind-deposit.js";
 import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import {
@@ -42,6 +43,7 @@ import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
+  ensurePackageJsonPin,
   ensureTaskfile,
   type InitDepositIo,
   type InstallManifestFields,
@@ -141,6 +143,43 @@ function readContentVersion(contentRoot: string, readVersion = readCorePackageVe
     // fall through
   }
   return readVersion();
+}
+
+const LOCKFILE_REFRESH_COMMANDS: ReadonlyArray<{
+  readonly file: string;
+  readonly command: string;
+}> = [
+  { file: "package-lock.json", command: "npm install --package-lock-only" },
+  { file: "pnpm-lock.yaml", command: "pnpm install --lockfile-only" },
+  { file: "yarn.lock", command: "yarn install" },
+];
+
+function presentLockfiles(
+  projectDir: string,
+): ReadonlyArray<(typeof LOCKFILE_REFRESH_COMMANDS)[number]> {
+  return LOCKFILE_REFRESH_COMMANDS.filter((row) => existsSync(join(projectDir, row.file)));
+}
+
+/**
+ * Init does not spawn a package manager (offline-safe). A committed lockfile
+ * that does not already carry the exact pin would make the next `npm ci` /
+ * frozen install fail. Refuse the pin write until the operator refreshes the
+ * lockfile, so gitignore cannot land on an unreconstitutable mismatch.
+ */
+function assertLockfileAllowsPinWrite(projectDir: string, pinVersion: string): void {
+  const hits = presentLockfiles(projectDir);
+  if (hits.length === 0) return;
+  const current = readPin(projectDir).pinVersion;
+  const needed = pinVersion.trim().replace(/^v/i, "");
+  if (current === needed) return;
+  const files = hits.map((row) => row.file).join(", ");
+  const commands = hits.map((row) => `  ${row.command}`).join("\n");
+  throw new Error(
+    `Refusing to write package.json pin while ${files} exist and do not already ` +
+      `pin @deftai/directive@${needed}. Init does not rewrite lockfiles. Run:\n` +
+      `${commands}\n` +
+      `after adding the exact pin as a devDependency, then re-run directive init.`,
+  );
 }
 
 export function buildInstallSummaryJson(input: {
@@ -253,17 +292,25 @@ export async function runInitDeposit(
 
   const contentRoot = await resolveContent();
   assertLiveProcedureDepositClean(contentRoot);
-  await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
-  await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-  assertLiveProcedureDepositClean(deftDir);
-  ensureInitGitignoreLines(projectDir, io);
-  ensurePrettierIgnoreLines(projectDir, io);
-
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const version = readContentVersion(
     contentRoot,
     seams.readPackageVersion ?? readCorePackageVersion,
   );
+  // #4429: refuse a lockfile mismatch before any deposit mutation so a throw
+  // cannot leave .deft/core materialized without a pin. Then write the pin
+  // before ensureInitGitignoreLines. Headless already emits the same pin
+  // (headless-manifest.ts collectPackageJsonFile). Existing package.json is
+  // updated here (the prior "left untouched" behaviour is the defect this
+  // call site closes).
+  assertLockfileAllowsPinWrite(projectDir, version);
+  await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
+  await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
+  assertLiveProcedureDepositClean(deftDir);
+  ensurePackageJsonPin(projectDir, version, io);
+  ensureInitGitignoreLines(projectDir, io);
+  ensurePrettierIgnoreLines(projectDir, io);
+
   const manifestFields: InstallManifestFields = {
     ref: version.startsWith("v") ? version : `v${version}`,
     sha: "content-package",

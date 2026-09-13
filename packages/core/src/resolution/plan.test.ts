@@ -208,7 +208,10 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
   it("no committed pin but engine reachable -> proceed with a warning", () => {
     const p = plan(facts({ pinVersion: null }));
     expect(p.mode).toBe("proceed");
+    expect(p.nextAction.command).toBeNull();
     expect(p.warnings.join(" ")).toContain("no committed package.json pin");
+    // #4429: missing-pin stays a proceed warning. error would change doctor
+    // exit and retro-fail every pre-pin consumer.
   });
 
   it("deposit with managed section but null sha is treated as stale -> update", () => {

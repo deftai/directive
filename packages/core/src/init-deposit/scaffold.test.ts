@@ -654,6 +654,22 @@ describe("init-deposit scaffold", () => {
       expect("private" in pkg).toBe(false);
     });
 
+    it("does not duplicate an exact pin already in dependencies", () => {
+      const project = freshRoot("scaffold-pin-prod-");
+      writeFileSync(
+        join(project, "package.json"),
+        JSON.stringify({ name: "app", dependencies: { [PIN_DEPENDENCY_NAME]: "0.65.0" } }, null, 2),
+        "utf8",
+      );
+      const { lines, io } = captureIo();
+      const result = ensurePackageJsonPin(project, "0.65.0", io);
+      expect(result.changed).toBe(false);
+      const pkg = readPkg(project);
+      expect((pkg.dependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.65.0");
+      expect(pkg.devDependencies).toBeUndefined();
+      expect(lines.join("")).toContain("dependencies");
+    });
+
     it("is idempotent when the exact pin already matches", () => {
       const project = freshRoot("scaffold-pin-idem-");
       const { io } = captureIo();

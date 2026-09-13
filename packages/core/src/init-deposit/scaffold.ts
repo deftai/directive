@@ -197,8 +197,13 @@ export interface EnsurePackageJsonPinResult {
  *  - absent `package.json`    -> a minimal `{ "private": true, ... }` is created.
  *  - idempotent               -> re-running with the same pin makes no change.
  *
- * This is a deposit primitive; wiring it into the `init` verb flow is owned by
- * #2265 (the init-consumes-plan child), per the #2264 scope guard.
+ * Wired from executing `directive init` (`init-deposit.ts`) before the
+ * `.deft/core/` gitignore write. Headless greenfield emits the same pin via
+ * `headless-manifest.ts` collectPackageJsonFile.
+ *
+ * #4429 accepted cost: `JSON.stringify(pkg, null, 2)` reformats the whole
+ * file (indent and key order). First pin-write of an existing consumer
+ * package.json can produce a whole-file diff.
  */
 export function ensurePackageJsonPin(
   projectDir: string,
@@ -238,9 +243,25 @@ export function ensurePackageJsonPin(
     return { changed: false, pinVersion, created: false };
   }
 
+  const prodDeps: Record<string, unknown> =
+    typeof pkg.dependencies === "object" &&
+    pkg.dependencies !== null &&
+    !Array.isArray(pkg.dependencies)
+      ? { ...(pkg.dependencies as Record<string, unknown>) }
+      : {};
+  // readPin accepts either block. An exact pin already in dependencies is the
+  // reconstitution anchor; do not duplicate it under devDependencies.
+  if (prodDeps[PIN_DEPENDENCY_NAME] === pinVersion) {
+    io.printf(
+      `package.json already pins ${PIN_DEPENDENCY_NAME}@${pinVersion} in dependencies — skipping.\n`,
+    );
+    return { changed: false, pinVersion, created: false };
+  }
+
   devDeps[PIN_DEPENDENCY_NAME] = pinVersion;
   pkg.devDependencies = devDeps;
 
+  // #4429 accepted cost: 2-space JSON reformat of the consumer package.json.
   containedProjectWrite(projectDir, path, `${JSON.stringify(pkg, null, 2)}\n`);
   io.printf(
     existed
