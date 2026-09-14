@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3928. Bound contract is successor lean 5669603759 + synthesis 5669809576 + verified-claims 5669803327.",
-    "updated": "2026-09-14T23:20:00Z"
+    "updated": "2026-09-14T23:34:07Z"
   },
   "plan": {
     "id": "3928-tool-turn-denominator",
     "title": "bug(telemetry): one tool_turn_denominator per session_id",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "One tool_turn_denominator per session_id at session start, always with denominator_source. emitKnown as a second event is the defect. Check-time must not emit this kind.",
       "Origin": "https://github.com/deftai/directive/issues/3928 bound by comments 5669603759, 5669803327, 5669809576.",
@@ -104,14 +104,39 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-09-14T23:20:00Z",
+    "updated": "2026-09-14T23:34:07Z",
     "metadata": {
       "kind": "story",
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
         "verify_commands": []
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4552,
+        "prBase": null,
+        "mergeCommit": "a2a0ae72990cd06aef22d431d8857cc04c36df5b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a2a0ae72990cd06aef22d431d8857cc04c36df5b",
+        "verifiedAt": "2026-09-14T23:34:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGExODgtOWQ0ZS03MmYxLWEzNjItMTI2YmFkYzk5Y2Jj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-14T23:34:07Z"
+      },
+      "completedAt": "2026-09-14T23:34:07Z",
+      "completedSessionId": "host:claude:v1:MDFhMGExODgtOWQ0ZS03MmYxLWEzNjItMTI2YmFkYzk5Y2Jj",
+      "capacityBucket": "technical-debt"
     }
   }
 }
