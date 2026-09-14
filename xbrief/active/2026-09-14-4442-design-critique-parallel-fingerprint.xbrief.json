@@ -103,12 +103,6 @@
       "swarm": {
         "readiness": "sequential",
         "parallel_safe": false,
-        "file_scope": [
-          "content/contracts/design-critique.md",
-          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
-          "packages/core/src/design-critique/parent-audit.test.ts",
-          "CHANGELOG.md"
-        ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts packages/core/src/design-critique/parent-audit.test.ts"
         ],
@@ -120,7 +114,6 @@
         "depends_on": [],
         "conflict_group": "design-critique-contract",
         "size": "S",
-        "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": [
           "Traces are FR-4442-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
@@ -129,12 +122,7 @@
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
-        "files": [
-          "content/contracts/design-critique.md",
-          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
-          "packages/core/src/design-critique/parent-audit.test.ts",
-          "CHANGELOG.md"
-        ],
+        "files": [],
         "module_boundary": "content/contracts",
         "cohesion_exemption": "CHANGELOG.md and parent-audit tests sit outside the contract module boundary."
       },
