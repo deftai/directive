@@ -713,6 +713,22 @@ export function printUpdateComplete(
   io.printf("\n");
 }
 
+/**
+ * Record-mode payload reads use the incoming content root on the swap path
+ * so dest plans match live apply (#4446). Not a VFS overlay. already-current
+ * stays dest-rooted because live does not swap. Dest C3 stays apply-phase (#4389).
+ *
+ * Enumerated projections: writeAgentsMd, syncConsumerXbriefSchemas,
+ * writeConsumerGitHooks.
+ */
+export function recordModePayloadRoot(input: {
+  readonly contentRoot: string;
+  readonly deftDir: string;
+  readonly alreadyCurrent: boolean;
+}): string {
+  return isPortRecordMode() && !input.alreadyCurrent ? input.contentRoot : input.deftDir;
+}
+
 export async function runRefreshDeposit(
   args: RefreshDepositArgs,
   io: InitDepositIo,
@@ -758,6 +774,7 @@ export async function runRefreshDeposit(
     previousDepositVersion !== null &&
     normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
   const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
+  const payloadReadRoot = recordModePayloadRoot({ contentRoot, deftDir, alreadyCurrent });
 
   if (alreadyCurrent) {
     io.printf("[deft update] Framework payload already current; skipping payload copy.\n");
@@ -846,7 +863,7 @@ export async function runRefreshDeposit(
   // Do not turn a legacy-only or cache-only support tree into canonical
   // lifecycle content before migrate:xbrief can transactionally converge it.
   if (hasCanonicalXbriefLifecycle(projectDir)) {
-    syncConsumerXbriefSchemas(projectDir, deftDir);
+    syncConsumerXbriefSchemas(projectDir, payloadReadRoot);
     removeStaleMigratedFrameworkNarrative(projectDir);
   }
 
@@ -861,7 +878,7 @@ export async function runRefreshDeposit(
     // Policy migration is best-effort; never block framework refresh (#2822).
   }
 
-  const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
+  const agentsMdUpdated = writeAgentsMd(projectDir, payloadReadRoot, io);
   writeAgentHookDeposit(projectDir, io);
   // #75 residual: multi-host thin skill discovery (mirror `.agents/skills` inventory).
   writeMultiHostSkillDiscovery(projectDir, io);
@@ -875,7 +892,7 @@ export async function runRefreshDeposit(
   });
   // #2530: root `.githooks/` is a consumer derivative like #2595 marker/schemas —
   // repair on every refresh, including the already-current no-op path.
-  writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
+  writeConsumerGitHooks(projectDir, payloadReadRoot, io, seams.gitHooks);
 
   // #2148: the deft-core-guard CI workflow is only meaningful when the deposit
   // is git-tracked (committed vendor layout). On an npm-managed (gitignored)
