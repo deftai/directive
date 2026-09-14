@@ -88,14 +88,18 @@ export function listLinkedWorktreeCheckouts(
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
       const gitdirFile = join(dir, entry.name, "gitdir");
-      if (!existsSync(gitdirFile)) continue;
-      const raw = (
-        readFileSync(gitdirFile, { encoding: "utf8" }).trim().split("\n")[0] ?? ""
-      ).replace("\r", "");
-      if (raw.length === 0) continue;
-      const checkout = dirname(raw);
-      if (!existsSync(checkout)) continue;
-      out.push(resolve(checkout));
+      try {
+        if (!existsSync(gitdirFile)) continue;
+        const raw = (
+          readFileSync(gitdirFile, { encoding: "utf8" }).trim().split("\n")[0] ?? ""
+        ).replaceAll("\r", "");
+        if (raw.length === 0) continue;
+        const checkout = dirname(raw);
+        if (!existsSync(checkout)) continue;
+        out.push(resolve(checkout));
+      } catch {
+        // One unreadable gitdir must not hide other live siblings (#4445).
+      }
     }
     return out;
   } catch {

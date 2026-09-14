@@ -3,13 +3,14 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decideHook } from "../hooks/dispatcher.js";
 import { completeCohort } from "../swarm/complete-cohort.js";
@@ -2811,5 +2812,31 @@ describe("live sibling-lease discriminator (#4445)", () => {
     expect(denied.message).toContain(
       "deft session:start --primary-claim-exception=operator-default-branch",
     );
+  });
+  it("still refuses the primary when a live sibling sits beside an unreadable gitdir (#4445)", () => {
+    const root = gitRepo();
+    const live = addLinked(root, "live");
+    const bad = addLinked(root, "bad");
+    const now = new Date("2026-09-14T12:00:00Z");
+    expect(applyWorktreeOccupancy(live, { sessionId: "peer", now, intent: "mutation" }).code).toBe(
+      0,
+    );
+    const worktrees = join(root, ".git", "worktrees");
+    const admin = readdirSync(worktrees).find((name) => {
+      const gitdirFile = join(worktrees, name, "gitdir");
+      try {
+        return readFileSync(gitdirFile, "utf8").toLowerCase().includes("bad");
+      } catch {
+        return false;
+      }
+    });
+    expect(admin).toBeDefined();
+    const gitdirFile = join(worktrees, admin ?? "", "gitdir");
+    rmSync(gitdirFile, { force: true });
+    mkdirSync(gitdirFile);
+    const denied = applyWorktreeOccupancy(root, { sessionId: "solo", now, intent: "mutation" });
+    expect(denied.code).toBe(1);
+    expect(denied.action).toBe("denied");
+    expect(dirname(bad)).toBe(root);
   });
 });
