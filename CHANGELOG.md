@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Design-critique unrelieved pain after recut prints Handoff, not another refutation (#4531).** Closes #4531.
+- **Complete tracking for #4531.** After PR 4548. The #4531 xBRIEF stayed in xbrief/pending/ after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Complete tracking for #4542.** After PR 4550. The #4542 xBRIEF stayed untracked after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Complete tracking for #4495.** After PR 4505. Records post-merge lifecycle completion without reopening or recutting the issue. Refs #2321, #3476.
 - **Complete tracking for #4447.** After PR 4513. The #4447 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.

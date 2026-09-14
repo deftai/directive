@@ -1,0 +1,133 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #4531. Bound contract is successor lean 5669167400 + synthesis 5670095470.",
+    "updated": "2026-09-14T22:01:42Z"
+  },
+  "plan": {
+    "id": "4531-critique-handoff",
+    "title": "design(design-critique): unrelieved pain after recut defaults to Handoff not refutation",
+    "status": "completed",
+    "narratives": {
+      "Description": "After unrelieved pain plus recut, default next is Handoff, not Retry-as-refutation. open-question is Spec-path-class wrapping. Dual-stop reserved slot is not P1 relief.",
+      "Origin": "https://github.com/deftai/directive/issues/4531 bound by 5669167400, 5670086263, 5670095470.",
+      "Overview": "Drop five-mechanism bundle. No reframe-needed in evaluateCompletedArcRecord.",
+      "Labels": "design,rfc,agent-experience,process,area:skills"
+    },
+    "items": [
+      {
+        "title": "Handoff print condition from closed pain-cite plus Recut/Spec-path",
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4548",
+          "recorded_at": "2026-09-14T22:01:19.489Z",
+          "recorded_by": "host:claude:v1:MDFhMGExOWEtODhhZi03OWQwLTk2NzItNzhjZTVlZjg4NTNm"
+        }
+      },
+      {
+        "title": "open-question reserved line-start on parent handoff comment",
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4548",
+          "recorded_at": "2026-09-14T22:01:19.489Z",
+          "recorded_by": "host:claude:v1:MDFhMGExOWEtODhhZi03OWQwLTk2NzItNzhjZTVlZjg4NTNm"
+        }
+      },
+      {
+        "title": "Post-handoff Stop 1 open critique omits refutation-target",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4548",
+          "recorded_at": "2026-09-14T22:01:19.489Z",
+          "recorded_by": "host:claude:v1:MDFhMGExOWEtODhhZi03OWQwLTk2NzItNzhjZTVlZjg4NTNm"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] #4531",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4548",
+          "recorded_at": "2026-09-14T22:01:19.489Z",
+          "recorded_by": "host:claude:v1:MDFhMGExOWEtODhhZi03OWQwLTk2NzItNzhjZTVlZjg4NTNm"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "rfc",
+      "agent-experience",
+      "process",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4531",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4531"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "clauses",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "After unrelieved pain plus recut, default next is Handoff not Retry-as-refutation",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-14T22:01:42Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": []
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4548,
+        "prBase": null,
+        "mergeCommit": "e44322e23e30d79b1933199af452154ceb46128a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e44322e23e30d79b1933199af452154ceb46128a",
+        "verifiedAt": "2026-09-14T22:01:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGExOWEtODhhZi03OWQwLTk2NzItNzhjZTVlZjg4NTNm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-14T22:01:42Z"
+      },
+      "completedAt": "2026-09-14T22:01:42Z",
+      "completedSessionId": "host:claude:v1:MDFhMGExOWEtODhhZi03OWQwLTk2NzItNzhjZTVlZjg4NTNm",
+      "capacityBucket": "agentic-debt"
+    }
+  }
+}
