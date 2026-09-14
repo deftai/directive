@@ -22,6 +22,7 @@ describe("session-start parseArgs", () => {
     steal: false,
     confirm: false,
     occupant: null,
+    posture: null,
     primaryClaimException: null,
     sessionId: null,
   };
@@ -72,6 +73,13 @@ describe("session-start parseArgs", () => {
       ceremonyTier: "cold",
       ...emptyDial,
     });
+  });
+
+  it("parses --posture=requirements", () => {
+    expect(parseArgs(["--posture=requirements"]).posture).toBe("requirements");
+    expect(parseArgs(["--posture", "requirements"]).posture).toBe("requirements");
+    expect(parseArgs(["--posture=docs"]).error).toMatch(/scratch-only/);
+    expect(parseArgs(["--posture=requirement"]).error).toMatch(/closed set/);
   });
 
   it("parses --read-only", () => {
