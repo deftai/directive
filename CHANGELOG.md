@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Design-critique Dual stop no longer treats the merged parallel map as a comparable fingerprint (#4442).** A parallel round has no early-halt path and runs to the operator-gated cap. Sequential same-fingerprint halt composes with #3448 (primary fingerprint plus material-delta). Marker clearance still has no verdict field. Closes #4442.
+
 ### Fixed
 
 ### Removed
