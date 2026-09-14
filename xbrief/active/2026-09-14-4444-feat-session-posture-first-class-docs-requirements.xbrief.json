@@ -60,9 +60,9 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
+      "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "successor lean 5649636275",
+      "derived_reason": "clauses are the AC; no executable acceptance.commands (#3284)",
       "clauses": [
         {
           "id": 1,
