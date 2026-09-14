@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Observable-scope HTML parse refuses truncated markup (#4495).** parse5 `onParseError` records incomplete-token errors into `anomalies`; extract refuses rather than comparing recovered partial facts.
-- **Consumer scope-provenance docs and the dispatch preamble use `deft <verb>` (#4447).** Include-only fallback is `task deft:<verb>`. Copied remediations no longer prescribe bare `task scope:record-approved-scope`. Closes #4447.
+- **Consumer scope-provenance docs and the dispatch preamble use `deft <verb>` (#4447).** Include-only fallback is `task deft:<verb>`. Frozen hop-1 stays `task -t <v0.59.0 Taskfile> migrate:vbrief`. GitHub-body examples use `deft github-body`, not `deft scm:body:*`. Copied remediations no longer prescribe bare `task scope:record-approved-scope`. Closes #4447.
 
 ### Removed
 
