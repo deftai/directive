@@ -41,12 +41,14 @@ export type RegistryVisibility =
   | "all-visible"
   | "still-propagating"
   | "publish-incomplete"
+  | "probe-failed"
   | "skipped";
 
 export interface WorkspacePackageProbe {
   readonly name: WorkspacePackageName;
   readonly visible: boolean;
   readonly version: string | null;
+  readonly probeFailed?: boolean;
 }
 
 export interface CliDriftReport {
@@ -121,10 +123,13 @@ export function defaultViewWorkspacePackage(
       windowsHide: true,
     });
     const raw = typeof result.stdout === "string" ? result.stdout : "";
-    const visible = result.status === 0 && versionsListContains(raw, version);
-    return { name, visible, version: visible ? version : null };
+    if (result.error !== undefined || result.status !== 0) {
+      return { name, visible: false, version: null, probeFailed: true };
+    }
+    const visible = versionsListContains(raw, version);
+    return { name, visible, version: visible ? version : null, probeFailed: false };
   } catch {
-    return { name, visible: false, version: null };
+    return { name, visible: false, version: null, probeFailed: true };
   } finally {
     if (dir !== undefined) {
       try {
@@ -142,6 +147,7 @@ export function classifyRegistryVisibility(opts: {
   readonly skipped: boolean;
 }): RegistryVisibility {
   if (opts.skipped) return "skipped";
+  if (opts.probes.some((p) => p.probeFailed === true)) return "probe-failed";
   const visibleCount = opts.probes.filter((p) => p.visible).length;
   if (opts.probes.length > 0 && visibleCount === opts.probes.length) return "all-visible";
   if (visibleCount === 0 && opts.waitExhausted) return "publish-incomplete";
@@ -172,6 +178,7 @@ export function pollWorkspacePackages(
   while (now() - start < opts.timeoutMs) {
     const remaining = opts.timeoutMs - (now() - start);
     if (remaining <= 0) break;
+    if (remaining < 1_000) break;
     sleep(Math.min(interval, remaining));
     probes = WORKSPACE_PACKAGES.map((name) => opts.viewPackage(name, version));
     if (probes.every((p) => p.visible)) {
@@ -206,6 +213,9 @@ function formatRegistryLine(
   const counts = `visible ${visible.length}/${packages.length}`;
   if (registry === "all-visible") {
     return `  registry: all-visible (${counts})`;
+  }
+  if (registry === "probe-failed") {
+    return `  registry: probe-failed (${counts}; npm view errors — not a missing-publish verdict; wait and retry)`;
   }
   if (registry === "publish-incomplete") {
     return `  registry: publish-incomplete (${counts}; none of the four packages resolved after the wait; wait before installing)`;

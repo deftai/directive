@@ -386,4 +386,64 @@ describe("cli drift report (#3753)", () => {
     expect(src).not.toContain("pollWorkspacePackages");
     expect(src).not.toContain("runPhase7NpmWait");
   });
+  it("does not treat npm view failures as unpublished", () => {
+    const failed = WORKSPACE_PACKAGES.map((name) => ({
+      name,
+      visible: false,
+      version: null,
+      probeFailed: true,
+    }));
+    expect(
+      classifyRegistryVisibility({ probes: failed, waitExhausted: true, skipped: false }),
+    ).toBe("probe-failed");
+    const mixed = [
+      probe("@deftai/directive-types", true),
+      { name: "@deftai/directive-core" as const, visible: false, version: null, probeFailed: true },
+      probe("@deftai/directive-content", true),
+      probe("@deftai/directive", true),
+    ];
+    expect(
+      classifyRegistryVisibility({ probes: mixed, waitExhausted: false, skipped: false }),
+    ).toBe("probe-failed");
+    const report = buildCliDriftReport("0.107.0", {
+      skipRegistryPoll: false,
+      pollTimeoutMs: 0,
+      checkActiveCli: () => ({
+        ok: true,
+        code: 0,
+        active: null,
+        candidates: [],
+        targetVersion: "0.107.0",
+        message: "no CLI",
+        lines: [],
+      }),
+      viewPackage: (name) => ({ name, visible: false, version: null, probeFailed: true }),
+    });
+    expect(report.registry).toBe("probe-failed");
+    expect(formatCliDriftReport(report)).toContain("probe-failed");
+    expect(formatCliDriftReport(report)).toContain("not a missing-publish verdict");
+    expect(formatCliDriftReport(report)).not.toContain("publish-incomplete");
+  });
+
+  it("does not start another probe pass after the poll deadline", () => {
+    let calls = 0;
+    pollWorkspacePackages("0.107.0", {
+      timeoutMs: 30_000,
+      intervalMs: 30_000,
+      nowMs: (() => {
+        let t = 0;
+        return () => {
+          const now = t;
+          t += 30_000;
+          return now;
+        };
+      })(),
+      sleepMs: () => undefined,
+      viewPackage: (name) => {
+        calls += 1;
+        return probe(name, false);
+      },
+    });
+    expect(calls).toBe(WORKSPACE_PACKAGES.length);
+  });
 });
