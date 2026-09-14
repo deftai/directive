@@ -1,0 +1,84 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #4531. Bound contract is successor lean 5669167400 + synthesis 5670095470.",
+    "updated": "2026-09-14T20:30:00Z"
+  },
+  "plan": {
+    "id": "4531-critique-handoff",
+    "title": "design(design-critique): unrelieved pain after recut defaults to Handoff not refutation",
+    "status": "running",
+    "narratives": {
+      "Description": "After unrelieved pain plus recut, default next is Handoff, not Retry-as-refutation. open-question is Spec-path-class wrapping. Dual-stop reserved slot is not P1 relief.",
+      "Origin": "https://github.com/deftai/directive/issues/4531 bound by 5669167400, 5670086263, 5670095470.",
+      "Overview": "Drop five-mechanism bundle. No reframe-needed in evaluateCompletedArcRecord.",
+      "Labels": "design,rfc,agent-experience,process,area:skills"
+    },
+    "items": [
+      {
+        "title": "Handoff print condition from closed pain-cite plus Recut/Spec-path",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "open-question reserved line-start on parent handoff comment",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "Post-handoff Stop 1 open critique omits refutation-target",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] #4531",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "design",
+      "rfc",
+      "agent-experience",
+      "process",
+      "area:skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4531",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4531"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "clauses",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "After unrelieved pain plus recut, default next is Handoff not Retry-as-refutation",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-14T20:30:00Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": []
+      }
+    }
+  }
+}

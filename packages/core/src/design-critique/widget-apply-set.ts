@@ -10,6 +10,7 @@ export const WIDGET_ACCEPT = "Accept";
 export const WIDGET_WALK = "Walk";
 export const WIDGET_WALK_ALL = "Walk all";
 export const WIDGET_RETRY = "Retry differences";
+export const WIDGET_HANDOFF = "Handoff";
 export const WIDGET_POST_TABLE = "Post verified-claims table";
 export const WIDGET_ACCEPT_SYNTHESIS = "Accept synthesis";
 export const WIDGET_HALT = "Halt";
@@ -21,6 +22,8 @@ export interface OperatorVerbApplyInput {
   readonly disagreeCount: number;
   readonly residualHeadingCount: number;
   readonly autoStamp: boolean;
+  /** Separate from residualHeadingCount. Do not clone Retry. */
+  readonly handoffApplies?: boolean;
 }
 
 export interface NumberedWidgetOption {
@@ -59,6 +62,9 @@ export function operatorVerbApplySet(input: OperatorVerbApplyInput): OperatorVer
   }
   if (input.residualHeadingCount > 0) {
     verbs.push(WIDGET_RETRY);
+  }
+  if (input.handoffApplies === true) {
+    verbs.push(WIDGET_HANDOFF);
   }
   if (input.disagreeCount > 0) {
     verbs.push(WIDGET_POST_TABLE, WIDGET_ACCEPT_SYNTHESIS);

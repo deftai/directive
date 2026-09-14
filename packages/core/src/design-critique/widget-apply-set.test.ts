@@ -6,6 +6,7 @@ import {
   WIDGET_BACK,
   WIDGET_DISCUSS,
   WIDGET_HALT,
+  WIDGET_HANDOFF,
   WIDGET_POST_TABLE,
   WIDGET_RETRY,
   WIDGET_WALK,
@@ -91,5 +92,26 @@ describe("operatorVerbApplySet (#4202)", () => {
     const labels = result.numbered.map((row) => row.label);
     expect(labels.slice(-2)).toEqual([WIDGET_DISCUSS, WIDGET_BACK]);
     expect(result.numbered.map((row) => row.n)).toEqual(labels.map((_, index) => index + 1));
+  });
+
+  it("prints Handoff from a separate input, not residualHeadingCount (#4531)", () => {
+    const measured = operatorVerbApplySet({
+      successorLeanPosted: true,
+      disagreeCount: 0,
+      residualHeadingCount: 0,
+      autoStamp: false,
+      handoffApplies: true,
+    });
+    expect(measured.verbs).toEqual([WIDGET_ACCEPT, WIDGET_HANDOFF, WIDGET_HALT]);
+    expect(measured.verbs).not.toContain(WIDGET_RETRY);
+
+    const noHandoff = operatorVerbApplySet({
+      successorLeanPosted: true,
+      disagreeCount: 0,
+      residualHeadingCount: 0,
+      autoStamp: false,
+    });
+    expect(noHandoff.verbs).toEqual([WIDGET_ACCEPT, WIDGET_HALT]);
+    expect(noHandoff.verbs).not.toContain(WIDGET_HANDOFF);
   });
 });

@@ -317,3 +317,61 @@ describe("family 4 -- Target-digest reserved line-start (#4243)", () => {
     });
   });
 });
+
+describe("family 5 -- open-question reserved line-start (#4531)", () => {
+  it("does not reclassify a synthesis, table, critic, or walk comment", () => {
+    const line = "open-question: where does the dwell live?";
+    const asSynthesis = summaryWithLine(synthesis, line);
+    expect(isSuccessorLeanBody(asSynthesis.body)).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments: [lean, table, asSynthesis] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+
+    const asTable = { id: TABLE_ID, body: `${table.body}\n${line}\n` };
+    expect(isSuccessorLeanBody(asTable.body)).toBe(false);
+    expect(isVerifiedClaimsTableBody(asTable.body)).toBe(true);
+
+    const critic = {
+      id: SYNTHESIS_ID + 70,
+      body: `model: grok-4.6\nrole: critic\n\n${line}\n`,
+    };
+    expect(isSuccessorLeanBody(critic.body)).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments: [...completeArc, critic] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+
+    const walk = {
+      id: SYNTHESIS_ID + 80,
+      body: `model: grok-4.6\nrole: parent\n\nWalk note.\n\n${line}\n`,
+    };
+    expect(isSuccessorLeanBody(walk.body)).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments: [...completeArc, walk] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("does not count open-question inside a fence or quote", () => {
+    const fenced = summaryWithLine(
+      synthesis,
+      "Example:\n\n```text\nopen-question: where does the dwell live?\n```",
+    );
+    expect(isSuccessorLeanBody(fenced.body)).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments: [lean, table, fenced] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+    const quoted = summaryWithLine(synthesis, "> open-question: where does the dwell live?");
+    expect(isSuccessorLeanBody(quoted.body)).toBe(false);
+  });
+});

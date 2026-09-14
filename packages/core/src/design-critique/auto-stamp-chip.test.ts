@@ -86,4 +86,11 @@ describe("resolveAutoStampCatalogChip (#4298)", () => {
     expect(remaining).not.toContain("design-critique:recut-needed");
     expect(remaining).not.toContain("design-critique:mechanism-shaped");
   });
+
+  it("does not union open-question into the Spec-path token (#4531)", () => {
+    const handoff = "model: grok-4.6\nrole: parent\n\nopen-question: where does the dwell live?\n";
+    expect(leanCarriesSpecPathToken(handoff)).toBe(false);
+    expect(leanCarriesRecutToken(handoff)).toBe(false);
+    expect(resolveAutoStampCatalogChip(handoff)).toBe("design-critique:ingest-ready");
+  });
 });

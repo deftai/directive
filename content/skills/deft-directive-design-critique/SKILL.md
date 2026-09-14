@@ -42,7 +42,7 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 5. Stop 5 — Verified synthesis
 
 Comment lead (model then role): Stop 3 — Critic envelope.
-Operator-gated loop. Successor lean. Parent-side substantiation. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
+Operator-gated loop. Successor lean. Parent-side substantiation. Operator verbs. Handoff. Dual stop. Halt line. Bind after accepted synthesis.
 After this round's siblings are posted: successor lean, then verbs.
 Auto-stamp after operator confirm; not while same-round siblings outstanding.
 Yolo standing confirm of a posted all-accept map: Operator verbs. Confirm conjunct only. Not ingest.

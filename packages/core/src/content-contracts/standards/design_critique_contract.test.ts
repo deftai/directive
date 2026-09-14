@@ -1576,7 +1576,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(pain).toContain("classifyPosition");
     expect(pain).toContain("scanPainList");
     expect(pain).toContain("evaluateParentAudit");
-    expect(pain).toContain("halt-for-human or later-arc");
+    expect(pain).toContain("halt-for-human or Handoff");
+    expect(pain).toContain("Later-arc is not the default recovery");
     expect(pain).toContain("Do not restore `design-critique:recut-needed`");
     expect(pain).toContain("Do not grow `resolveAutoStampCatalogChip`");
     expect(pain).not.toContain("recut-needed` as a catalog chip");
@@ -1589,6 +1590,43 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("unshaped-table-cite");
   });
 
+  it("locks Handoff print condition, open-question matrix cell, and post-handoff Stop 1 (#4531)", () => {
+    const text = readText(CONTRACT);
+    const handoff = markdownSection(text, "## Handoff");
+    expect(handoff).toContain("evaluateHandoffPrint");
+    expect(handoff).toContain("does-not-relieve");
+    expect(handoff).toContain("residualHeadingCount");
+    expect(handoff).toContain("open-question:");
+    expect(handoff).toContain("classifyPosition");
+    expect(handoff).toContain("SPEC_PATH_TOKEN_RE");
+    expect(handoff).toContain("postHandoffStop1Writeback");
+    expect(handoff).toContain("routing record");
+    expect(handoff).toContain("ADR-006");
+    expect(handoff).toContain("reframe-needed");
+    expect(handoff).toContain("invariant-set equality");
+    expect(handoff).toContain("design-critique:recut-needed");
+    expect(handoff).not.toContain("constraint-brief.md");
+    const pain = markdownSection(text, "### Pain coverage (#4496)");
+    expect(pain).toContain("halt-for-human or Handoff");
+    expect(pain).not.toContain("halt-for-human or later-arc");
+    const dual = markdownSection(text, "## Dual stop");
+    expect(dual).toContain("evaluateDualStopReservedSlot");
+    expect(dual).toContain("Not always-on +1");
+    const summary = markdownSection(text, "## Plain-language summary");
+    expect(summary).toContain("open-question:");
+    const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");
+    expect(stop1).toContain("After a posted Handoff");
+    expect(stop1).toContain("omits `refutation-target:`");
+    const stop2 = markdownSection(text, "## Stop 2 \u2014 Variant selection");
+    expect(stop2).toContain("does not re-select charter from the issue body");
+    expect(COMPLETED_ARC_BLOCK_REASONS).not.toContain("reframe-needed");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("Handoff.");
+    expect(skill).not.toContain("evaluateHandoffPrint");
+    const template = readText(TEMPLATE);
+    expect(template).toContain("| Handoff | Handoff |");
+    expect(template).not.toContain("constraint-brief");
+  });
   it("indexes the skill on-demand and does not always-pin it", () => {
     const references = readText("REFERENCES.md");
     expect(references).toContain("deft-directive-design-critique/SKILL.md");

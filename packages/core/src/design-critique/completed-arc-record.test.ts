@@ -1293,6 +1293,7 @@ describe("pain coverage (#4496)", () => {
       "complete",
     );
     expect(COMPLETED_ARC_BLOCK_REASONS).not.toContain("recut-needed");
+    expect(COMPLETED_ARC_BLOCK_REASONS).not.toContain("reframe-needed");
   });
 
   it("completes when every named pain is cited as relieves", () => {

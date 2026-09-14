@@ -51,6 +51,7 @@ Read, do not restate:
 | Successor lean | Successor lean |
 | Parent-side substantiation | Parent-side substantiation |
 | Operator verbs | Operator verbs |
+| Handoff | Handoff |
 | Dual stop | Dual stop |
 | Halt line | Halt line |
 | Synthesis format | Stop 5 — Verified synthesis |
