@@ -127,7 +127,8 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "id": "4444-docs-requirements-posture",
     "updated": "2026-09-14T13:34:40Z",
