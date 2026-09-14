@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4447 from successor lean 5650432935, verified-claims 5650437651, and synthesis 5650437867. Not Stop 1 write-back 5650304256.",
-    "updated": "2026-09-14T13:30:17Z"
+    "updated": "2026-09-14T15:54:25.177Z"
   },
   "plan": {
     "id": "4447-consumer-scope-provenance-tree-correct-task-spelling",
@@ -19,34 +19,58 @@
     "items": [
       {
         "title": "Primary spelling is deft <verb>; fallback is task deft:<verb>",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given a consumer-facing example for scope-provenance mint or verify, when the docs are read, the primary command is `deft <verb>` and any Task example is `task deft:<verb>`. Framework-source-only `task check` / `task check:merge` triad language is unchanged."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/tree-correct-consumer-task-spelling.test.ts",
+          "recorded_at": "2026-09-14T15:54:25.177Z",
+          "recorded_by": "leaf-4447-scope-provenance"
         }
       },
       {
         "title": "Cover consumer-audience deposited corpus including the preamble",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "Given the bound remedy, when this PR lands it does not close on only content/docs/scope-provenance.md and tasks/scope.yml. It also recuts content/templates/agent-prompt-preamble.md happy-path steps (scope:promote, xbrief:activate, xbrief:preflight) and other copied bare task <ns>:<verb> forms in that file that are not already tree-correct."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/agent_prompt_preamble_template.test.ts",
+          "recorded_at": "2026-09-14T15:54:25.177Z",
+          "recorded_by": "leaf-4447-scope-provenance"
         }
       },
       {
         "title": "Do not use a #4094 corpus-list add as the regression",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given packages/core/src/deposit/live-procedure-targets.ts COMMAND_SNIPPET_CORPUS, when this PR lands, scope-provenance.md is not added to that list. Any new test asserts the invalid bare `task scope:record-approved-scope` / preamble happy-path strings are gone without relying on prefix-stripping."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/tree-correct-consumer-task-spelling.test.ts",
+          "recorded_at": "2026-09-14T15:54:25.177Z",
+          "recorded_by": "leaf-4447-scope-provenance"
         }
       },
       {
         "title": "CHANGELOG [Unreleased]",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given the docs recut, when CHANGELOG [Unreleased] is read, it has a brief Fixed note that cites #4447."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md#Unreleased",
+          "recorded_at": "2026-09-14T15:54:25.177Z",
+          "recorded_by": "leaf-4447-scope-provenance"
         }
       }
     ],
@@ -115,7 +139,7 @@
         "title": "Synthesis accepted 5650437867"
       }
     ],
-    "updated": "2026-09-14T13:30:17Z",
+    "updated": "2026-09-14T15:54:25.177Z",
     "metadata": {
       "kind": "story",
       "swarm": {
