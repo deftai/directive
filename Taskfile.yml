@@ -800,6 +800,16 @@ tasks:
         vars:
           ENGINE_CMD: 'release-e2e {{.CLI_ARGS}}'
 
+  release:wait-npm:
+    desc: "Phase 7 wait until all four npm siblings list the cut version (#4267) -- task release:wait-npm -- <version>"
+    deps: [ts:build]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'release-wait-npm {{.CLI_ARGS}}'
+
+
   # ------------------------------------------------------------------
   # Triage v1 user-facing alias tasks (#845, #913).
   #

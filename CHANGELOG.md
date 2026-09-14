@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **One-PR-unit consent is an App-backed exact-set claim (#4494).** Multi-origin `Closes` needs an operator mint; `.deft/one-pr-unit` is not SoT. Dest tokens allow `contents: write` only. Merge-queue re-reads closers. Closes #4494.
 
+- **Phase 7 waits until all four npm siblings list the cut version (#4267).** `task release:wait-npm -- <version>` polls `npm view <pkg> versions` (prefer-online, doctor temp-cwd isolation) for 10 minutes with a real sleep. Partial visibility is still-propagating (wait before install); none after the wait is publish-incomplete. Report-only: does not fail the GitHub release and does not run `npm i -g`. `task release` Step 13 stays a single probe. Does not fold the CI two-pass fixture (#4398). Closes #4267.
+
 ### Changed
 
 ### Fixed

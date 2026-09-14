@@ -7,10 +7,16 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PUBLIC_NPM_REGISTRY } from "../doctor/constants.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { type ActiveCliCheckResult, checkActiveCliAgainstTarget } from "../session/active-cli.js";
+import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
 import { RELEASE_E2E_ENV } from "./skip-ci-incident.js";
 import type { ReleaseConfig } from "./types.js";
+import { validateVersion } from "./version.js";
 
 /** Same sentinel as release-e2e `REHEARSAL_VERSION` — do not poll npm for 0.0.1. */
 const REHEARSAL_VERSION = "0.0.1";
@@ -66,34 +72,67 @@ export function remediationCommand(version: string): string {
   return `npm i -g @deftai/directive@${version} --prefer-online`;
 }
 
-export function npmViewArgs(name: WorkspacePackageName, version: string): string[] {
-  return [
-    "view",
-    `${name}@${version}`,
-    "version",
-    "--prefer-online",
-    "--ignore-scripts",
-    `--registry=${PUBLIC_NPM_REGISTRY}`,
-  ];
+/** Membership in `npm view <pkg> versions` — the v0.113.0 / v0.116.0 miss. */
+export function npmViewArgs(name: WorkspacePackageName, _version: string): string[] {
+  return ["view", name, "versions", "--json", "--prefer-online", "--ignore-scripts"];
+}
+
+export function versionsListContains(stdout: string, version: string): boolean {
+  const trimmed = stdout.trim();
+  if (trimmed.length === 0) return false;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed === "string") return parsed === version;
+    if (Array.isArray(parsed)) return parsed.map(String).includes(version);
+    if (parsed !== null && typeof parsed === "object" && "versions" in parsed) {
+      const versions = (parsed as { versions?: unknown }).versions;
+      if (Array.isArray(versions)) return versions.map(String).includes(version);
+    }
+  } catch {
+    /* fall through */
+  }
+  return trimmed.split(/\r?\n/).some((line) => line.trim() === version);
+}
+
+/** Synchronous non-spinning sleep. Production default for the Phase 7 wait (#4267). */
+export function defaultCliDriftSleepMs(ms: number): void {
+  if (ms <= 0) return;
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 export function defaultViewWorkspacePackage(
   name: WorkspacePackageName,
   version: string,
 ): WorkspacePackageProbe {
+  let dir: string | undefined;
   try {
+    dir = mkdtempSync(join(tmpdir(), "deft-cli-drift-npm-view-"));
+    containedWrite({
+      root: dir,
+      target: ".npmrc",
+      data: `@deftai:registry=${PUBLIC_NPM_REGISTRY}\nregistry=${PUBLIC_NPM_REGISTRY}\n`,
+      mode: "create",
+    });
     const result = spawnSync("npm", npmViewArgs(name, version), {
+      cwd: dir,
       encoding: "utf8",
       timeout: 15_000,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
     const raw = typeof result.stdout === "string" ? result.stdout : "";
-    const seen = raw.trim().split(/\r?\n/)[0]?.trim() ?? "";
-    const visible = result.status === 0 && seen === version;
-    return { name, visible, version: seen.length > 0 ? seen : null };
+    const visible = result.status === 0 && versionsListContains(raw, version);
+    return { name, visible, version: visible ? version : null };
   } catch {
     return { name, visible: false, version: null };
+  } finally {
+    if (dir !== undefined) {
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* best-effort temp cleanup */
+      }
+    }
   }
 }
 
@@ -120,7 +159,7 @@ export function pollWorkspacePackages(
   },
 ): { readonly probes: readonly WorkspacePackageProbe[]; readonly waitExhausted: boolean } {
   const now = opts.nowMs ?? Date.now;
-  const sleep = opts.sleepMs ?? (() => undefined);
+  const sleep = opts.sleepMs ?? defaultCliDriftSleepMs;
   const interval = opts.intervalMs ?? CLI_DRIFT_POLL_INTERVAL_MS;
   const start = now();
   let probes = WORKSPACE_PACKAGES.map((name) => opts.viewPackage(name, version));
@@ -169,10 +208,10 @@ function formatRegistryLine(
     return `  registry: all-visible (${counts})`;
   }
   if (registry === "publish-incomplete") {
-    return `  registry: publish-incomplete (${counts}; none of the four packages resolved after the wait)`;
+    return `  registry: publish-incomplete (${counts}; none of the four packages resolved after the wait; wait before installing)`;
   }
   const missingText = missing.length > 0 ? `; missing: ${missing.join(", ")}` : "";
-  return `  registry: still-propagating (${counts}${missingText})`;
+  return `  registry: still-propagating (${counts}${missingText}; wait before installing)`;
 }
 
 export function buildCliDriftReport(
@@ -259,4 +298,85 @@ export function emitCliDriftReportBestEffort(
     const reason = err instanceof Error ? err.message : String(err);
     write(`CLI drift report (#3753): skipped (${reason.replace(/\r?\n/g, " ")})\n`);
   }
+}
+
+/** Phase 7 production caller (#4267). Uses the 10-minute ceiling and a real sleep. Report-only. */
+export function phase7CliDriftPollTimeoutMs(): number {
+  return CLI_DRIFT_POLL_TIMEOUT_MS;
+}
+
+export function runPhase7NpmWait(
+  releasedVersion: string,
+  opts: {
+    readonly skipRegistryPoll?: boolean;
+    readonly env?: NodeJS.ProcessEnv;
+  } & CliDriftReportSeams = {},
+  write: (text: string) => void = (text) => {
+    process.stderr.write(text);
+  },
+): number {
+  const skip =
+    opts.skipRegistryPoll ??
+    shouldSkipRegistryPoll(
+      { dryRun: false, skipTag: false, version: releasedVersion },
+      opts.env ?? process.env,
+    );
+  emitCliDriftReportBestEffort(
+    releasedVersion,
+    {
+      skipRegistryPoll: skip,
+      pollTimeoutMs: CLI_DRIFT_POLL_TIMEOUT_MS,
+      checkActiveCli: opts.checkActiveCli,
+      viewPackage: opts.viewPackage,
+      nowMs: opts.nowMs,
+      sleepMs: opts.sleepMs ?? defaultCliDriftSleepMs,
+    },
+    write,
+  );
+  return EXIT_OK;
+}
+
+const PHASE7_WAIT_HELP =
+  "usage: deft release-wait-npm <version>\n" +
+  "  Phase 7 registry wait (#4267). Polls all four @deftai/directive* packages\n" +
+  "  until each lists <version>, or 10 minutes. Report-only: never runs npm i -g,\n" +
+  "  never fails the GitHub release. Step 13 of task release stays a single probe.\n";
+
+export function cmdReleaseWaitNpm(args: readonly string[]): number {
+  const unknown: string[] = [];
+  let help = false;
+  let version: string | null = null;
+  for (const token of args) {
+    if (token === "-h" || token === "--help") {
+      help = true;
+    } else if (token.startsWith("-")) {
+      unknown.push(token);
+    } else if (version === null) {
+      version = token.startsWith("v") ? token.slice(1) : token;
+    } else {
+      unknown.push(token);
+    }
+  }
+  if (help) {
+    process.stdout.write(PHASE7_WAIT_HELP);
+    return EXIT_OK;
+  }
+  if (unknown.length > 0) {
+    process.stderr.write(`release-wait-npm: error: unrecognized arguments: ${unknown.join(" ")}\n`);
+    return EXIT_CONFIG_ERROR;
+  }
+  if (version === null) {
+    process.stderr.write(
+      "release-wait-npm: error: the following arguments are required: version\n",
+    );
+    return EXIT_CONFIG_ERROR;
+  }
+  try {
+    validateVersion(version);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`Error: ${msg}\n`);
+    return EXIT_CONFIG_ERROR;
+  }
+  return runPhase7NpmWait(version);
 }

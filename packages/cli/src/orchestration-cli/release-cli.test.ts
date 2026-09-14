@@ -12,6 +12,8 @@ describe("deft-ts release:* dispatcher (#1838 s4)", () => {
     expect(await dispatch(["release-publish", "--help"], silentIo())).toBe(0);
     expect(await dispatch(["release-rollback", "--help"], silentIo())).toBe(0);
     expect(await dispatch(["release-e2e", "--help"], silentIo())).toBe(0);
+    expect(await dispatch(["release-wait-npm", "--help"], silentIo())).toBe(0);
+    expect(await dispatch(["release:wait-npm", "--help"], silentIo())).toBe(0);
   });
 
   it("release rejects invalid version with exit 2", async () => {

@@ -1,14 +1,22 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ActiveCliCheckResult, CliCandidate } from "../session/active-cli.js";
 import {
   buildCliDriftReport,
+  CLI_DRIFT_POLL_TIMEOUT_MS,
   classifyRegistryVisibility,
+  cmdReleaseWaitNpm,
+  defaultCliDriftSleepMs,
   emitCliDriftReportBestEffort,
   formatCliDriftReport,
   npmViewArgs,
+  phase7CliDriftPollTimeoutMs,
   pollWorkspacePackages,
   remediationCommand,
+  runPhase7NpmWait,
   shouldSkipRegistryPoll,
+  versionsListContains,
   WORKSPACE_PACKAGES,
   type WorkspacePackageName,
   type WorkspacePackageProbe,
@@ -74,7 +82,10 @@ describe("cli drift report (#3753)", () => {
   it("bypasses the npm metadata cache on every view", () => {
     const args = npmViewArgs("@deftai/directive-core", "0.107.0");
     expect(args).toContain("--prefer-online");
-    expect(args).toContain("@deftai/directive-core@0.107.0");
+    expect(args).toContain("versions");
+    expect(args).toContain("--json");
+    expect(args).toContain("@deftai/directive-core");
+    expect(args.join(" ")).not.toContain("@deftai/directive-core@0.107.0");
     expect(remediationCommand("0.107.0")).toBe(
       "npm i -g @deftai/directive@0.107.0 --prefer-online",
     );
@@ -281,5 +292,98 @@ describe("cli drift report (#3753)", () => {
     );
     expect(chunks.join("")).toContain("CLI drift report (#3753): skipped");
     expect(chunks.join("")).toContain("probe boom");
+  });
+  it("parses versions-list membership without hitting the live registry", () => {
+    expect(versionsListContains(JSON.stringify(["0.112.0", "0.113.0"]), "0.113.0")).toBe(true);
+    expect(versionsListContains(JSON.stringify(["0.112.0"]), "0.113.0")).toBe(false);
+    expect(versionsListContains('"0.113.0"', "0.113.0")).toBe(true);
+    expect(versionsListContains("", "0.113.0")).toBe(false);
+  });
+
+  it("Phase 7 caller uses the 10-minute ceiling and a real sleep seam", () => {
+    expect(phase7CliDriftPollTimeoutMs()).toBe(10 * 60 * 1000);
+    expect(phase7CliDriftPollTimeoutMs()).toBe(CLI_DRIFT_POLL_TIMEOUT_MS);
+    const sleeps: number[] = [];
+    const chunks: string[] = [];
+    const code = runPhase7NpmWait(
+      "0.107.0",
+      {
+        skipRegistryPoll: false,
+        nowMs: (() => {
+          let t = 0;
+          return () => {
+            const now = t;
+            t += 30_000;
+            return now;
+          };
+        })(),
+        sleepMs: (ms) => {
+          sleeps.push(ms);
+        },
+        checkActiveCli: () => ({
+          ok: true,
+          code: 0,
+          active: null,
+          candidates: [],
+          targetVersion: "0.107.0",
+          message: "no CLI",
+          lines: [],
+        }),
+        viewPackage: (name) => probe(name, name !== "@deftai/directive-core"),
+      },
+      (text) => {
+        chunks.push(text);
+      },
+    );
+    expect(code).toBe(0);
+    expect(sleeps.length).toBeGreaterThan(0);
+    expect(chunks.join("")).toContain("still-propagating");
+    expect(chunks.join("")).toContain("@deftai/directive-core");
+    expect(chunks.join("")).toContain("wait before installing");
+    expect(chunks.join("")).toContain("npm i -g @deftai/directive@0.107.0 --prefer-online");
+    expect(chunks.join("")).toContain("does not run npm i -g");
+  });
+
+  it("keeps Step 13 at timeout 0 in the pipeline source", () => {
+    const src = readFileSync(join(process.cwd(), "packages/core/src/release/pipeline.ts"), "utf8");
+    expect(src).toContain("pollTimeoutMs: 0");
+    expect(src).not.toContain("pollTimeoutMs: CLI_DRIFT_POLL_TIMEOUT_MS");
+  });
+
+  it("default sleep is Atomics.wait, not a no-op", () => {
+    const src = readFileSync(
+      join(process.cwd(), "packages/core/src/release/cli-drift-report.ts"),
+      "utf8",
+    );
+    expect(src).toContain("Atomics.wait");
+    expect(src).toContain("sleepMs ?? defaultCliDriftSleepMs");
+    expect(src).not.toContain("() => undefined");
+    defaultCliDriftSleepMs(0);
+  });
+
+  it("isolates npm view in a temp cwd with a scoped registry npmrc", () => {
+    const src = readFileSync(
+      join(process.cwd(), "packages/core/src/release/cli-drift-report.ts"),
+      "utf8",
+    );
+    expect(src).toContain("deft-cli-drift-npm-view-");
+    expect(src).toContain("@deftai:registry=");
+    expect(src).toContain("cwd: dir");
+  });
+
+  it("cmdReleaseWaitNpm is report-only and rejects bad argv", () => {
+    expect(cmdReleaseWaitNpm(["--help"])).toBe(0);
+    expect(cmdReleaseWaitNpm([])).toBe(2);
+    expect(cmdReleaseWaitNpm(["not-a-version"])).toBe(2);
+    expect(cmdReleaseWaitNpm(["0.107.0", "--bogus"])).toBe(2);
+  });
+
+  it("does not fold pollWorkspacePackages into the CI two-pass fixture", () => {
+    const src = readFileSync(
+      join(process.cwd(), "packages/core/src/release-e2e/npm-ops.ts"),
+      "utf8",
+    );
+    expect(src).not.toContain("pollWorkspacePackages");
+    expect(src).not.toContain("runPhase7NpmWait");
   });
 });
