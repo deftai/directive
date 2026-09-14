@@ -2,10 +2,10 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ApplyOccupancyInput, OccupancyDecision } from "./occupancy.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import type { ApplyOccupancyInput, OccupancyDecision } from "./occupancy.js";
 import { persistTrustedSessionPosture, sessionPosturePath } from "./posture.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
 import {
@@ -220,7 +220,6 @@ describe("runSessionStart requirements posture (#4444)", () => {
   });
 });
 
-
 describe("runSessionStart mutation posture vs persisted requirements (#4444)", () => {
   function deniedOccupancy(sessionId: string): OccupancyDecision {
     return {
@@ -236,7 +235,7 @@ describe("runSessionStart mutation posture vs persisted requirements (#4444)", (
   function claimedOccupancy(input: ApplyOccupancyInput): OccupancyDecision {
     const resolved = input.sessionId ?? "host:test:v1:mutation";
     return {
-      action: input.write === false ? "claimed" : "claimed",
+      action: "claimed",
       sessionId: resolved,
       record: null,
       path: "/tmp/occupancy.json",
@@ -291,6 +290,29 @@ describe("runSessionStart mutation posture vs persisted requirements (#4444)", (
     });
     expect(result.code).toBe(0);
     expect(existsSync(sessionPosturePath(root))).toBe(false);
+  });
+
+  it("failed mutation ritual write keeps occupant posture", () => {
+    const root = tempRoot();
+    persistTrustedSessionPosture(root, "requirements", "host:test:v1:mutation");
+    expect(() =>
+      runSessionStart(root, {
+        writeHistory: false,
+        sessionId: "host:test:v1:mutation",
+        resolveUserMd: () => userMdResult(),
+        verifyTools: () => ({ exitCode: 0 }),
+        runTriageWelcome: () => ({ exitCode: 0 }),
+        probeEnvironment: () => environment,
+        ceremonyDial: STANDARD_DIAL,
+        applyOccupancy: (_projectRoot, input) => claimedOccupancy(input),
+        runGit: mutationGit(root),
+        runStalenessTickler: () => ({ lines: [], prompted: false }),
+        writeRitualState: () => {
+          throw new Error("ritual write failed");
+        },
+      }),
+    ).toThrow(/ritual-state persistence failed/);
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
   });
 });
 

@@ -1061,11 +1061,11 @@ function runRequirementsSessionStart(
           now: instant,
         });
         if (released.code !== 0) {
-          recovery = message + "; occupancy rollback failed: " + released.message;
+          recovery = `${message}; occupancy rollback failed: ${released.message}`;
         }
       } catch (releaseErr) {
         const detail = releaseErr instanceof Error ? releaseErr.message : String(releaseErr);
-        recovery = message + "; occupancy rollback failed: " + detail;
+        recovery = `${message}; occupancy rollback failed: ${detail}`;
       }
     }
     return {
@@ -1257,8 +1257,6 @@ function runSessionRearm(
   if ("payload" in persistedOccupancy) {
     return persistedOccupancy;
   }
-  // After admission only — a denied competing start must not revoke the occupant's posture.
-  clearPersistedSessionPosture(projectRoot);
   // #3433: keep DEFT_SESSION_ID / occupant id. Do not mint a new UUID on re-arm.
   const rearmSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
@@ -1300,6 +1298,9 @@ function runSessionRearm(
     );
     throw ritualPersistenceTransitionError(cause, rearmSessionId);
   }
+  // Clear only after mutation ritual is persisted. Occupancy admission alone
+  // must not revoke a live requirements overlay on a failed upgrade.
+  clearPersistedSessionPosture(projectRoot);
   const stepTimings: SessionStartStepTiming[] = [
     { name: "alignment", duration_ms: 0 },
     { name: "branch_policy", duration_ms: 0 },
@@ -2017,8 +2018,6 @@ export function runSessionStart(
   if ("payload" in persistedOccupancy) {
     return persistedOccupancy;
   }
-  // After admission only — a denied competing start must not revoke the occupant's posture.
-  clearPersistedSessionPosture(projectRoot);
   const coldSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
   pushWorkClaimScan(lines, projectRoot, options);
@@ -2078,6 +2077,11 @@ export function runSessionStart(
   // #3282: toolchain preflight degraded mode does NOT flip ready=false by itself —
   // agents still proceed with a named skip report at check time.
   const code = failed.length > 0 ? 1 : 0;
+  if (code === 0) {
+    // Clear only after mutation readiness. A failed upgrade must not revoke
+    // the occupant's live requirements overlay.
+    clearPersistedSessionPosture(projectRoot);
+  }
   const totalMs = elapsedMs(overallStarted);
 
   // #3282 / #3286: event-driven run-summary (dial + preflight + orientation call
