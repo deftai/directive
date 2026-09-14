@@ -927,9 +927,15 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const dual = markdownSection(text, "## Dual stop");
     expect(dual).toContain("compose with #3448");
     expect(dual).toContain("material-delta");
+    expect(dual).toContain("first heading-id");
+    expect(dual).toContain("map order");
+    expect(dual).toContain("accept-into-contract, disagree, or defer");
+    expect(dual).toContain("secondary unresolved finding");
     expect(dual).toContain("still-open finding headings/ids");
     expect(dual).toContain("no comparable fingerprint exists for a parallel round");
     expect(dual).toContain("no early-halt path");
+    expect(dual).toContain("That excludes only the same-fingerprint halt");
+    expect(dual).toContain("dispatch-fail and failure/budget halt still apply");
     expect(dual).toContain("Cap halt is the spend bound");
     expect(dual).toContain("Independent critic targeting of an audit marker still clears it");
     expect(dual).toContain("Envelope and ceiling purchases that isolation");
