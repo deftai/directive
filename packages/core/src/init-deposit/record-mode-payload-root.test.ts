@@ -122,6 +122,12 @@ describe("directive update record-mode payload-root (#4446)", () => {
       JSON.stringify({ private: true, devDependencies: { "@deftai/directive": contentVersion } }),
       "utf8",
     );
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({ plan: { status: "running" } }),
+      "utf8",
+    );
   }
 
   function hashFixtureTree(root: string): string {
@@ -212,6 +218,12 @@ describe("directive update record-mode payload-root (#4446)", () => {
     const mutations = payload.mutations as { wrote: string[]; deleted: string[] };
     expect(mutations.wrote).toContain("AGENTS.md");
     expect(
+      mutations.wrote.some((path) => path.replace(/\\/g, "/").includes("xbrief/schemas/")),
+    ).toBe(true);
+    expect(mutations.wrote.some((path) => path.replace(/\\/g, "/").includes(".githooks/"))).toBe(
+      true,
+    );
+    expect(
       mutations.deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md")),
     ).toBe(true);
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("STALE-DEST-TEMPLATE-4446");
@@ -237,6 +249,10 @@ describe("directive update record-mode payload-root (#4446)", () => {
     expect(liveCode).toBe(0);
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("INCOMING-TEMPLATE-4446");
     expect(existsSync(destOnly)).toBe(false);
+    expect(existsSync(join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"))).toBe(
+      true,
+    );
+    expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
   });
 
   it("dry-run and live agree when pre-swap dest template is missing (#4446)", async () => {
