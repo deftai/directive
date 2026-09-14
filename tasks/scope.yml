@@ -163,3 +163,13 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'scope:record-approved-scope {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
+
+  record-observable-scope:
+    desc: "Record human-minted observable UI contract under .deft/observable-scope/<plan-id>.json (#4495 / #3110). Requires --actor <human> --confirm. Refuses agent stamps and worker-declared baselineRef. Commit on merge base before the UI change PR."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope:record-observable-scope {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'

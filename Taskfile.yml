@@ -448,6 +448,7 @@ tasks:
       - task: verify:evaluator-surface
         vars:
           CLI_ARGS: "--base-ref origin/master"
+      - verify:observable-scope
       - verify:telemetry-coverage
       - verify:vbrief-conformance
       - verify:destructive-gh-verbs
@@ -510,6 +511,7 @@ tasks:
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
+      - verify:observable-scope
       - vbrief:validate
       - verify-strategy-output
       - verify:consumer-test-lane

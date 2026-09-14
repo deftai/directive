@@ -212,6 +212,9 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
     if (verb === "record-approved-scope") {
       return { kind: "dispatch", argv: ["scope-record-approved-scope", ...rest] };
     }
+    if (verb === "record-observable-scope") {
+      return { kind: "dispatch", argv: ["scope-record-observable-scope", ...rest] };
+    }
   }
 
   if (ns === "verify") {

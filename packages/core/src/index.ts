@@ -64,6 +64,7 @@ export * as legacyBridge from "./legacy-bridge/index.js";
 export * as lifecycle from "./lifecycle/index.js";
 export * as literalAcceptance from "./literal-acceptance/index.js";
 export * as metrics from "./metrics/index.js";
+export * as observableScope from "./observable-scope/index.js";
 export * as onePrUnit from "./one-pr-unit/index.js";
 export * as orchestration from "./orchestration/index.js";
 export * as packs from "./packs/index.js";

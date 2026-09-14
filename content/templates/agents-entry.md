@@ -133,7 +133,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Branch policy & branch verification
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
-! Test placement + scope provenance (#3145) — `deft verify:test-boundary` (warn-only until authored policy), `deft verify:scope-provenance` (`--enforce` empty-scope only; declared `file_scope` without base approval fails closed), `deft verify:consumer-check-contract` (composition fails closed; CI omissions warn), `deft verify:evaluator-surface`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`, `docs/consumer-check-contract.md`).
+! Test placement + scope provenance (#3145) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (`--enforce` empty-scope only; declared `file_scope` without base approval fails closed), `deft verify:consumer-check-contract` (composition fails closed; CI omissions warn), `deft verify:evaluator-surface`, `deft verify:observable-scope`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`, `docs/consumer-check-contract.md`).
 
 ## Branch Policy Disclosure (#746)
 

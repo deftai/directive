@@ -8,8 +8,8 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 24 groupings, 274 documents
-- **Tasks:** 62 namespaces, 250 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Rules:** 24 groupings, 275 documents
+- **Tasks:** 62 namespaces, 252 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 183 | 16 | 125 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 35 | 19 | 12 | 60 | 1 | 2 |
+| docs | Explanatory docs and the framework glossary. | 36 | 19 | 12 | 60 | 1 | 2 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -149,6 +149,7 @@ _Explanatory docs and the framework glossary._
 - `host-tool-surface-audit.md` — The PreToolUse write gate only runs on tool names the host's deposited matcher selects. A name nobody listed is not a permissive policy — it is a gate that never executes. #3987 was exactly that: Grok Build's shell tool…
 - `inter-run-learning.md` — **Load when:** designing or implementing cross-session agent memory, hot/cold budgets, frozen snapshots, or retargeting memory pattern issues under epic #2741.
 - `no-deft-directive.md` — Some projects should not use Deft Directive. Use a **root file flag** so tools and agents stop offering install, session ritual, and setup.
+- `observable-scope.md` — Refs: #4495 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [#4503](https://github.com/deftai/directive/issues/4503)
 - `openclaw-agent-host.md` — Consumer/operator guide for running **Deft Directive** under **OpenClaw** persistent-memory agents (`ape-deft`-class and peers).
 - `operator-log-hygiene-checklist.md` — Copy-paste block for **story acceptance criteria** and **probe locked decisions**. Full pattern: [`patterns/operator-log-hygiene.md`](../content/patterns/operator-log-hygiene.md).
 - `operator-log-hygiene-consumer-pack-stub.md` — Skeleton for **consumer projects** that want a ship-gate for operator-facing logs. Wire this into *your* check aggregate only if you opt in.
@@ -156,7 +157,7 @@ _Explanatory docs and the framework glossary._
 - `plan-acceptance.md` — Fields the product AC gate actually reads. Not a schema dump. Derivation (`#3323` / `#3360`) owns the stamp. Setup stays silent on this block.
 - `product-signal.md` — Phase 1 consented product-improvement signal under epic #2603 (#2693). Defaults **off**.
 - `project-invariants.md` — Refs: #3425 · Related: #3238 `coverage_map`, #3241 parent lineage, #516 / #3145 `file_scope`
-- `scope-provenance.md` — Refs: #3145 · #3205 · Related: #1310, #2944 human-origin grants, #516 file scope · generalizes under [gate-integrity.md](../content/docs/gate-integrity.md) (#3156)
+- `scope-provenance.md` — Refs: #3145 · #3205 · Related: #1310, #2944 human-origin grants, #516 file scope · generalizes under [gate-integrity.md](../content/docs/gate-integrity.md) (#3156) · UI structure: [observable-scope.md](../content/docs/observable-scope.md) (#4495)
 - `skill-discovery-hosts.md` — Directive deposits **thin skill discovery pointers** so agent hosts that do not scan `.agents/skills/` still auto-load the same consumer skill inventory.
 - `skill-pin-policy.md` — AGENTS.md always loads; on-demand skills load only when trigger matching succeeds. Empirical and practitioner guidance (antfu/skills FAQ; directive #2484 progressive disclosure) show **false negatives** — the agent never opens a…
 - `slash-multi-host.md` — Operator guide for **host-native** Directive slash and prompt files after epic [#55](https://github.com/deftai/directive/issues/55).
@@ -418,7 +419,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | review-monitor | Claim PR-anchored review-owner lease via sticky GitHub comment (#2814). Does not write local JSON. | 2 |
 | roadmap | Render and validate the ROADMAP from vBRIEF source. | 2 |
 | scm | Source-control / Git workflow tasks. | 15 |
-| scope | Scope lifecycle: promote / activate / complete / fail / cancel. | 11 |
+| scope | Scope lifecycle: promote / activate / complete / fail / cancel. | 12 |
 | scope-undo | Reverse a scope-lifecycle audit entry (#1134). Single: `task scope:undo -- <decision_id>` / `task scope:undo -- --decision-id=<uuid>`.… | 1 |
 | session | Claim occupancy and run the quick-tier ritual for one owner (#1348/#3611). Flags: --session-id <id> / --steal --confirm --occupant… | 3 |
 | setup | Wired into the parent Taskfile.yml `includes:` block under namespace key | 1 |
@@ -444,7 +445,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO \| --json \| --strict]. Does NOT… | 1 |
 | value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d\|30d] [--format=text\|json] | 1 |
 | vbrief | Validate and manage vBRIEF lifecycle state and structure. | 6 |
-| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 62 |
+| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 63 |
 | xbrief | Validate xBRIEF lifecycle folder structure and cross-file consistency. Alias of vbrief:validate with xbrief-first naming (#3483). | 3 |
 
 ## Lifecycle

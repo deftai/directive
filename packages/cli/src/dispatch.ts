@@ -117,6 +117,7 @@ export const CLI_MODULE_VERBS = [
   "release-wait-npm",
   "scope-lifecycle",
   "scope-record-approved-scope",
+  "scope-record-observable-scope",
   "scm-sync-default",
   "lifecycle-event",
   "lifecycle-stats",
@@ -210,6 +211,7 @@ export const CLI_MODULE_VERBS = [
   "verify-eval-health-relocation",
   "verify-eval-triggers-relocation",
   "verify-evaluator-surface",
+  "verify-observable-scope",
   "verify-consumer-test-lane",
   "eval-health",
   "eval-run",
@@ -372,6 +374,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:test-boundary": "verify-test-boundary",
   "verify:scope-provenance": "verify-scope-provenance",
   "scope:record-approved-scope": "scope-record-approved-scope",
+  "scope:record-observable-scope": "scope-record-observable-scope",
   "verify:consumer-check-contract": "verify-consumer-check-contract",
   "coverage:hotspots": "coverage-hotspots",
   "verify:branch": "verify-branch",
@@ -391,6 +394,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:eval-health-relocation": "verify-eval-health-relocation",
   "verify:eval-triggers-relocation": "verify-eval-triggers-relocation",
   "verify:evaluator-surface": "verify-evaluator-surface",
+  "verify:observable-scope": "verify-observable-scope",
   "verify:consumer-test-lane": "verify-consumer-test-lane",
   "verify:hooks-installed": "verify-hooks-installed",
   "verify:no-task-runtime": "verify-no-task-runtime",
@@ -3040,6 +3044,7 @@ const SCOPE_COMMAND_NAMES = [
   "scope:demote",
   "scope:undo",
   "scope:record-approved-scope",
+  "scope:record-observable-scope",
 ] as const;
 
 /**

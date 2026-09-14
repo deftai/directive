@@ -4,7 +4,18 @@
   "issue": 4267,
   "surfaces": [
     "Taskfile.yml",
-    "xbrief/evaluator-surface-disposition.json"
+    "tasks/verify.yml",
+    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/consumer-check-contract/evaluate.ts",
+    "packages/core/src/evaluator-surface/**",
+    "packages/core/src/consumer-test-lane/**",
+    "packages/cli/src/verify-evaluator-surface.ts",
+    "packages/cli/src/verify-consumer-test-lane.ts",
+    "xbrief/evaluator-surface-disposition.json",
+    "vitest.config.ts",
+    "packages/core/src/observable-scope/**",
+    "packages/cli/src/verify-observable-scope.ts",
+    "packages/cli/src/scope-record-observable-scope.ts"
   ],
-  "note": "Disclosure of Taskfile.yml Phase 7 task release:wait-npm (#4267). Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record. A leftover #4386 record does not cover later evaluator-surface changes."
+  "note": "Disclosure of Taskfile.yml Phase 7 task release:wait-npm (#4267). Surfaces include the #4495 observable-scope set so this renewal covers the merged evaluator-surface tree. Not reviewed authorization under #3164. A leftover #4495 record does not cover later evaluator-surface changes."
 }

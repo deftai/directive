@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Observable UI scope contract (#4495).** `verify:observable-scope` compares a human-minted `plan["x-directive/observableChange"]` record to a versioned parse5 (`.html`, scripting disabled) plus project-resolved TypeScript parse-only (`.jsx`/`.tsx`) oracle. Runtime deps add parse5 and entities only. Merge-base baseline; same-PR rewrite fails; opt-in surfaces; unset policy plus matching UI files is inferred-defaults-warn (exit 0 with findings). Runtime default-tab is #4503. Closes #4495.
 - **One-PR-unit consent is an App-backed exact-set claim (#4494).** Multi-origin `Closes` needs an operator mint; `.deft/one-pr-unit` is not SoT. Dest tokens allow `contents: write` only. Merge-queue re-reads closers. Closes #4494.
 
 - **Phase 7 waits until all four npm siblings list the cut version (#4267).** `task release:wait-npm -- <version>` polls `npm view <pkg> versions` (prefer-online, doctor temp-cwd isolation) for 10 minutes with a real sleep. Partial visibility is still-propagating (wait before install); none after the wait is publish-incomplete. Report-only: does not fail the GitHub release and does not run `npm i -g`. `task release` Step 13 stays a single probe. Does not fold the CI two-pass fixture (#4398). Closes #4267.
@@ -24,7 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Observable-scope HTML parse refuses truncated markup (#4495).** parse5 `onParseError` records incomplete-token errors into `anomalies`; extract refuses rather than comparing recovered partial facts.
+
 ### Removed
+
+- **jsdom from `@deftai/directive-core`, including DEV-ONLY (#4495).** Socket Warn alerts came from `jsdom@26.1.0` (`data-urls`, `rrweb-cssom`, `whatwg-encoding`). Parity HTML fixtures stay as committed goldens.
 
 ## [0.118.1] - 2026-09-14
 

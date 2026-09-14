@@ -39,6 +39,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
   "verify:evaluator-surface":
     "Add xbrief/evaluator-surface-disposition.json covering the changed evaluator paths (disclosure only; not #3164 authorization)",
+  "verify:observable-scope":
+    "Restore the baseline markup structure or amend the observable scope through explicit human-presence mint (scope:record-observable-scope)",
   "verify:consumer-test-lane":
     "Fix the project's declared test command, or set plan.policy.testCommand; do not invent a suite",
   "verify:forward-coverage":
