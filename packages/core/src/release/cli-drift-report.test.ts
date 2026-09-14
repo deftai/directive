@@ -31,6 +31,16 @@ function probe(
   return { name, visible, version };
 }
 
+function sleepClock(): { nowMs: () => number; sleepMs: (ms: number) => void } {
+  let t = 0;
+  return {
+    nowMs: () => t,
+    sleepMs: (ms: number) => {
+      t += ms;
+    },
+  };
+}
+
 function matchingCli(version: string): ActiveCliCheckResult {
   const active: CliCandidate = {
     command: "deft",
@@ -118,15 +128,7 @@ describe("cli drift report (#3753)", () => {
     const { probes, waitExhausted } = pollWorkspacePackages("0.107.0", {
       timeoutMs: 90_000,
       intervalMs: 30_000,
-      nowMs: (() => {
-        let t = 0;
-        return () => {
-          const now = t;
-          t += 30_000;
-          return now;
-        };
-      })(),
-      sleepMs: () => undefined,
+      ...sleepClock(),
       viewPackage: (name) => {
         calls += 1;
         // First pass: core missing. Second pass: all visible.
@@ -206,15 +208,7 @@ describe("cli drift report (#3753)", () => {
       skipRegistryPoll: false,
       pollTimeoutMs: 60_000,
       pollIntervalMs: 30_000,
-      nowMs: (() => {
-        let t = 0;
-        return () => {
-          const now = t;
-          t += 30_000;
-          return now;
-        };
-      })(),
-      sleepMs: () => undefined,
+      ...sleepClock(),
       checkActiveCli: () => ({
         ok: true,
         code: 0,
@@ -250,15 +244,7 @@ describe("cli drift report (#3753)", () => {
     const { waitExhausted, probes } = pollWorkspacePackages("0.107.0", {
       timeoutMs: 60_000,
       intervalMs: 30_000,
-      nowMs: (() => {
-        let t = 0;
-        return () => {
-          const now = t;
-          t += 30_000;
-          return now;
-        };
-      })(),
-      sleepMs: () => undefined,
+      ...sleepClock(),
       viewPackage: (name) => probe(name, false),
     });
     expect(waitExhausted).toBe(true);
@@ -305,20 +291,15 @@ describe("cli drift report (#3753)", () => {
     expect(phase7CliDriftPollTimeoutMs()).toBe(CLI_DRIFT_POLL_TIMEOUT_MS);
     const sleeps: number[] = [];
     const chunks: string[] = [];
+    const clock = sleepClock();
     const code = runPhase7NpmWait(
       "0.107.0",
       {
         skipRegistryPoll: false,
-        nowMs: (() => {
-          let t = 0;
-          return () => {
-            const now = t;
-            t += 30_000;
-            return now;
-          };
-        })(),
+        nowMs: clock.nowMs,
         sleepMs: (ms) => {
           sleeps.push(ms);
+          clock.sleepMs(ms);
         },
         checkActiveCli: () => ({
           ok: true,
@@ -430,15 +411,7 @@ describe("cli drift report (#3753)", () => {
     pollWorkspacePackages("0.107.0", {
       timeoutMs: 30_000,
       intervalMs: 30_000,
-      nowMs: (() => {
-        let t = 0;
-        return () => {
-          const now = t;
-          t += 30_000;
-          return now;
-        };
-      })(),
-      sleepMs: () => undefined,
+      ...sleepClock(),
       viewPackage: (name) => {
         calls += 1;
         return probe(name, false);

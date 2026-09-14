@@ -180,6 +180,7 @@ export function pollWorkspacePackages(
     if (remaining <= 0) break;
     if (remaining < 1_000) break;
     sleep(Math.min(interval, remaining));
+    if (now() - start >= opts.timeoutMs) break;
     probes = WORKSPACE_PACKAGES.map((name) => opts.viewPackage(name, version));
     if (probes.every((p) => p.visible)) {
       return { probes, waitExhausted: false };
