@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Scope xBRIEF for #4442 recut to successor lean 5649628399; synthesis accepted 5649632071.",
     "created": "2026-09-14T13:26:59Z",
-    "updated": "2026-09-14T13:29:25Z"
+    "updated": "2026-09-14T16:07:59Z"
   },
   "plan": {
     "title": "fix(design-critique): Parallel fingerprint working default is unsound",
@@ -25,6 +25,12 @@
           "When": "When Dual stop / Parallel fingerprint is read, it states that a parallel round has no early-halt path and runs to the operator-gated cap, and that independent critic targeting of an audit marker still clears it.",
           "Acceptance": "When Dual stop / Parallel fingerprint is read, it states that a parallel round has no early-halt path and runs to the operator-gated cap, and that independent critic targeting of an audit marker still clears it.",
           "Traces": "FR-4442-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
         }
       },
       {
@@ -36,6 +42,12 @@
           "When": "When the Parallel fingerprint residual is read, the working default is that no comparable fingerprint exists for a parallel round, not the merged map.",
           "Acceptance": "When the Parallel fingerprint residual is read, the working default is that no comparable fingerprint exists for a parallel round, not the merged map.",
           "Traces": "FR-4442-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
         }
       },
       {
@@ -47,6 +59,12 @@
           "When": "When Dual stop Fingerprint is read, it composes with #3448 (primary fingerprint plus a material-delta conjunct) and forbids a clustering predicate.",
           "Acceptance": "When Dual stop Fingerprint is read, it composes with #3448 (primary fingerprint plus a material-delta conjunct) and forbids a clustering predicate.",
           "Traces": "FR-4442-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
         }
       },
       {
@@ -58,6 +76,12 @@
           "When": "When Dual stop / Parallel fingerprint is read, cap halt is the spend bound and the contract does not claim unbounded N>=3 thrash.",
           "Acceptance": "When Dual stop / Parallel fingerprint is read, cap halt is the spend bound and the contract does not claim unbounded N>=3 thrash.",
           "Traces": "FR-4442-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
         }
       },
       {
@@ -69,6 +93,12 @@
           "When": "When Parallel fingerprint is read, it states that Envelope and ceiling purchases sibling token isolation and forbids canonicalizing sibling headings.",
           "Acceptance": "When Parallel fingerprint is read, it states that Envelope and ceiling purchases sibling token isolation and forbids canonicalizing sibling headings.",
           "Traces": "FR-4442-s5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
         }
       },
       {
@@ -80,6 +110,12 @@
           "When": "When the content-contract suite and parent-audit tests run, they pin the new Parallel fingerprint default, #3448 composition, and that AuditClearance has no verdict field.",
           "Acceptance": "When the content-contract suite and parent-audit tests run, they pin the new Parallel fingerprint default, #3448 composition, and that AuditClearance has no verdict field.",
           "Traces": "FR-4442-s6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
         }
       },
       {
@@ -91,6 +127,12 @@
           "When": "When the PR lands, CHANGELOG [Unreleased] records the recut.",
           "Acceptance": "When the PR lands, CHANGELOG [Unreleased] records the recut.",
           "Traces": "FR-4442-s7"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md##[Unreleased] #4442",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
         }
       }
     ],
