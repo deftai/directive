@@ -919,7 +919,31 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("the most recent parent artifact that supersedes the map");
     expect(text).toContain("that amendment becomes the ceiling");
     expect(text).toContain("both panel arcs declined it");
-    expect(text).toContain("the merged map");
+    expect(text).toContain("no comparable fingerprint exists for a parallel round");
+  });
+
+  it("locks Dual stop #3448 composition and Parallel fingerprint recut (#4442)", () => {
+    const text = readText(CONTRACT);
+    const dual = markdownSection(text, "## Dual stop");
+    expect(dual).toContain("compose with #3448");
+    expect(dual).toContain("material-delta");
+    expect(dual).toContain("first heading-id");
+    expect(dual).toContain("map order");
+    expect(dual).toContain("accept-into-contract, disagree, or defer");
+    expect(dual).toContain("secondary unresolved finding");
+    expect(dual).toContain("still-open finding headings/ids");
+    expect(dual).toContain("no comparable fingerprint exists for a parallel round");
+    expect(dual).toContain("no early-halt path");
+    expect(dual).toContain("That excludes only the same-fingerprint halt");
+    expect(dual).toContain("dispatch-fail and failure/budget halt still apply");
+    expect(dual).toContain("Cap halt is the spend bound");
+    expect(dual).toContain("Independent critic targeting of an audit marker still clears it");
+    expect(dual).toContain("Envelope and ceiling purchases that isolation");
+    expect(dual).toMatch(/\u2297 Invent a clustering predicate/);
+    expect(dual).toMatch(/\u2297 Canonicalize sibling headings before computing the fingerprint/);
+    expect(dual).not.toContain("the merged map");
+    expect(dual).not.toContain("cannot bind");
+    expect(text).toContain("(#4442)");
   });
 
   it("locks N>=3 seat families, same-family no-lean, Grok Build launcher, and miss-file-issue (#4067)", () => {

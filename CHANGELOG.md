@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Design-critique Dual stop no longer treats the merged parallel map as a comparable fingerprint (#4442).** A parallel round has no early-halt path and runs to the operator-gated cap. That excludes only the same-fingerprint halt; dispatch-fail and failure/budget halt still apply. Sequential same-fingerprint halt selects the first heading-id (else first still-open heading/id in map order) plus a material-delta on that primary take. Marker clearance still has no verdict field. Closes #4442.
+
 ### Fixed
 
 - **Observable-scope HTML parse refuses truncated markup (#4495).** parse5 `onParseError` records incomplete-token errors into `anomalies`; extract refuses rather than comparing recovered partial facts.
