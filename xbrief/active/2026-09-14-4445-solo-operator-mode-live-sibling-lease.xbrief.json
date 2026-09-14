@@ -141,7 +141,8 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.fallback.deftai.directive.4445",
     "metadata": {
