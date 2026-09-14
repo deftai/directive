@@ -1298,9 +1298,6 @@ function runSessionRearm(
     );
     throw ritualPersistenceTransitionError(cause, rearmSessionId);
   }
-  // Clear only after mutation ritual is persisted. Occupancy admission alone
-  // must not revoke a live requirements overlay on a failed upgrade.
-  clearPersistedSessionPosture(projectRoot);
   const stepTimings: SessionStartStepTiming[] = [
     { name: "alignment", duration_ms: 0 },
     { name: "branch_policy", duration_ms: 0 },
@@ -1314,6 +1311,11 @@ function runSessionRearm(
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
   const code = failed.length > 0 ? 1 : 0;
+  if (code === 0) {
+    // Clear only after mutation readiness. A failed upgrade must not revoke
+    // the occupant's live requirements overlay.
+    clearPersistedSessionPosture(projectRoot);
+  }
 
   // #3117: bind live deposit generation into session context on re-arm (host-agnostic).
   let freshnessBind: Record<string, unknown> | null = null;

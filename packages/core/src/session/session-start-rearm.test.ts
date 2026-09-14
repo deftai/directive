@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +11,7 @@ import {
   type OccupancyDecision,
   readOccupancy,
 } from "./occupancy.js";
+import { persistTrustedSessionPosture, sessionPosturePath } from "./posture.js";
 import {
   markRitualStaleAfterCompact,
   newRitualStatePayload,
@@ -85,6 +86,7 @@ function seedRitual(
     worktree?: string;
     startedAt: Date;
     triageOk?: boolean;
+    includeVerifyTools?: boolean;
   },
 ): void {
   const ts = input.startedAt;
@@ -99,12 +101,16 @@ function seedRitual(
         alignment: ritualStep({ ok: true, ts }),
         branch_policy: ritualStep({ ok: true, ts }),
         // #3214: seed tools outcome so re-arm preserves without re-run.
-        verify_tools: ritualStep({
-          ok: true,
-          ts,
-          message: "verify:tools seed",
-          exitCode: 0,
-        }),
+        ...(input.includeVerifyTools === false
+          ? {}
+          : {
+              verify_tools: ritualStep({
+                ok: true,
+                ts,
+                message: "verify:tools seed",
+                exitCode: 0,
+              }),
+            }),
         triage_welcome: ritualStep({
           ok: input.triageOk !== false,
           ts,
@@ -574,5 +580,71 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     });
     expect(result.code).toBe(0);
     expect(result.payload.ceremony_tier).toBe("cold");
+  });
+});
+
+describe("session re-arm vs persisted requirements posture (#4444)", () => {
+  const sessionId = "host:test:v1:mutation";
+
+  function rearmOptions(
+    root: string,
+    head: string,
+    extras: Parameters<typeof runSessionStart>[1] = {},
+  ) {
+    return {
+      ceremonyTier: REARM_CEREMONY_TIER,
+      now: new Date("2026-07-20T12:30:00Z"),
+      writeHistory: false,
+      sessionId,
+      runGit: fakeGit(root, { head }),
+      resolveUserMd: () => ({
+        path: join(root, "USER.md"),
+        rung: "workspace-local" as const,
+        found: true,
+        diagnostic: "ok",
+        searched: [],
+      }),
+      probeEnvironment: () => environment,
+      applyOccupancy: (_projectRoot: string, input: ApplyOccupancyInput): OccupancyDecision => ({
+        action: "heartbeat",
+        sessionId: input.sessionId ?? sessionId,
+        record: null,
+        path: join(root, ".deft", "occupancy.json"),
+        message: "occupancy heartbeat",
+        code: 0,
+      }),
+      ...extras,
+    };
+  }
+
+  it("clears persisted requirements posture after a successful re-arm", () => {
+    const root = tempRoot();
+    const head = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    seedRitual(root, { head, startedAt: new Date("2026-07-20T12:00:00Z") });
+    persistTrustedSessionPosture(root, "requirements", sessionId);
+
+    const result = runSessionStart(root, rearmOptions(root, head));
+    expect(result.code).toBe(0);
+    expect(existsSync(sessionPosturePath(root))).toBe(false);
+  });
+
+  it("keeps occupant posture when re-arm tools fail after ritual write", () => {
+    const root = tempRoot();
+    const head = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    seedRitual(root, {
+      head,
+      startedAt: new Date("2026-07-20T12:00:00Z"),
+      includeVerifyTools: false,
+    });
+    persistTrustedSessionPosture(root, "requirements", sessionId);
+
+    const result = runSessionStart(
+      root,
+      rearmOptions(root, head, {
+        verifyTools: () => ({ exitCode: 1 }),
+      }),
+    );
+    expect(result.code).toBe(1);
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
   });
 });
