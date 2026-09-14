@@ -305,6 +305,16 @@ function spawnReadOnlyRecoveryFor(host: HookHost, toolName: string): string {
     : SPAWN_READ_ONLY_RECOVERY;
 }
 
+function isLauncherFamilySpawnNotReady(input: HookDispatchInput, toolName: string): boolean {
+  if (!isShellTool(toolName)) return false;
+  const command = hookShellCommand(input.payload);
+  if (command === null) return false;
+  const launcher = classifyLauncherFamilyArgv(command, {
+    payloadCwd: hookExecutionCwd(input.payload),
+  });
+  return launcher.kind === "launcher" || launcher.kind === "compound";
+}
+
 function overlayGrokCriticSpawnNotReadyRecovery(
   input: HookDispatchInput,
   toolName: string,
@@ -322,6 +332,19 @@ function overlayGrokCriticSpawnNotReadyRecovery(
     return decision;
   }
   if (decision.message.includes(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)) return decision;
+  // Identity of the spawn selects the lead (#4542). Leftover-class dest-cwd
+  // unmarked general-purpose keeps dest unique-active / promote-then-activate
+  // or unique-basename pin. Dest-form occupancy concatenations
+  // (grokMissingDestMessage; isolation=worktree plus cwd) already include the
+  // critic string and are leftover for overlay-only first ship.
+  const criticClass = isProcessOnlyCriticSpawn(input.payload, {
+    host: input.host,
+    toolName,
+    environ: input.environ,
+  });
+  if (!criticClass && !isLauncherFamilySpawnNotReady(input, toolName)) {
+    return decision;
+  }
   return {
     ...decision,
     message: `${GROK_CRITIC_SPAWN_NOT_READY_RECOVERY} ${decision.message}`,

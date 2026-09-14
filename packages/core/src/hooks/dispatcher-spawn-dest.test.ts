@@ -169,11 +169,11 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toMatch(/process_only/);
     expect(decision.message).toMatch(/Dest-path is not that class/);
-    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
-    const criticIdx = decision.message.indexOf("grok --cwd --prompt-file");
-    const activateIdx = decision.message.indexOf("scope:activate");
-    expect(criticIdx).toBeGreaterThanOrEqual(0);
-    expect(activateIdx).toBeGreaterThan(criticIdx);
+    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(false);
+    expect(decision.message).toMatch(/No active xBRIEF artifact was found under xbrief\/active\//);
+    expect(decision.message).toContain("scope:promote");
+    expect(decision.message).toContain("scope:activate");
+    expect(decision.message).not.toContain("grok --cwd --prompt-file");
     expect(decision.message).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
     expect(inspectRitual).not.toHaveBeenCalled();
     expect(inspectScope).toHaveBeenCalled();
@@ -639,6 +639,7 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(decision.message).toContain("invalid-extra-destination");
     expect(decision.message).toContain("not dest-missing");
+    // Occupancy concatenation leftover for overlay-only first ship (#4542).
     expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
     expect(decision.message).not.toMatch(/no worktree destination on the spawn payload/);
     expect(inspectRitual).toHaveBeenCalled();
@@ -669,13 +670,10 @@ describe("dest-proven implement spawn (#4215)", () => {
       readySeams({ inspectRitual, inspectScope }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
-    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(true);
-    const criticIdx = decision.message.indexOf("grok --cwd --prompt-file");
-    const activateIdx = decision.message.indexOf("scope:activate");
-    const pinIdx = decision.message.indexOf("DEFT_ACTIVE_SCOPE");
-    expect(criticIdx).toBeGreaterThanOrEqual(0);
-    expect(activateIdx).toBeGreaterThan(criticIdx);
-    expect(pinIdx).toBeGreaterThan(criticIdx);
+    expect(decision.message.startsWith(GROK_CRITIC_SPAWN_NOT_READY_RECOVERY)).toBe(false);
+    expect(decision.message).toContain("DEFT_ACTIVE_SCOPE");
+    expect(decision.message).toMatch(/keep one running brief in xbrief\/active\//);
+    expect(decision.message).not.toContain("grok --cwd --prompt-file");
     expect(decision.message).not.toContain("DEFT_ACTIVE_SCOPE_PIN");
     expect(inspectRitual).not.toHaveBeenCalled();
   });
