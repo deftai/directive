@@ -128,13 +128,18 @@ import {
   toolchainPreflightToDict,
 } from "./toolchain-preflight.js";
 
-export const SESSION_POSTURES = ["read-only", "mutation"] as const;
+export const SESSION_POSTURES = ["read-only", "mutation", "requirements"] as const;
 export type SessionPosture = (typeof SESSION_POSTURES)[number];
 export const READ_ONLY_POSTURE: SessionPosture = "read-only";
 export const MUTATION_POSTURE: SessionPosture = "mutation";
+export const REQUIREMENTS_POSTURE: SessionPosture = "requirements";
 export const READ_ONLY_ALIGNMENT_MESSAGE = "Deft Directive active -- AGENTS.md loaded.";
 export const READ_ONLY_RESULT_MESSAGE =
   "read-only session posture (alignment only; no ritual-state write)";
+export const REQUIREMENTS_RESULT_MESSAGE =
+  "requirements session posture (occupancy claimed; gated ritual and story-start skipped)";
+export const REQUIREMENTS_POSTURE_EXPORT_LINE =
+  "Set DEFT_SESSION_POSTURE=requirements so PreToolUse reads the trusted session-start argv.";
 
 /** Cold (full) vs re-arm (clock/HEAD refresh) ceremony tiers (#2992). */
 export const SESSION_CEREMONY_TIERS = ["cold", "rearm"] as const;
@@ -999,6 +1004,55 @@ function runReadOnlySessionStart(
   return { code: 0, payload: resultPayload, lines };
 }
 
+function runRequirementsSessionStart(
+  projectRoot: string,
+  options: SessionStartOptions,
+  instant: Date,
+  environment: EnvironmentContext,
+): SessionStartResult {
+  const claim = resolveOccupancySessionClaim({
+    sessionId: options.sessionId,
+    env: options.env,
+    newSessionId: options.newSessionId,
+  });
+  if (claim.status === "refuse-mint") {
+    return {
+      code: 1,
+      payload: {
+        ready: false,
+        exit_code: 1,
+        posture: REQUIREMENTS_POSTURE,
+        environment: environmentContextToDict(environment),
+        message: claim.message,
+      },
+      lines: claim.message.split("\n"),
+    };
+  }
+  options = { ...options, identityProvenance: claim.provenance };
+  const persisted = persistOccupancyOrDeny(
+    projectRoot,
+    options,
+    claim.sessionId,
+    instant,
+    environment,
+  );
+  if ("payload" in persisted) {
+    return { ...persisted, payload: { ...persisted.payload, posture: REQUIREMENTS_POSTURE } };
+  }
+  const base = runReadOnlySessionStart(projectRoot, options, instant, environment);
+  const lines = [...base.lines, persisted.message, REQUIREMENTS_POSTURE_EXPORT_LINE];
+  return {
+    code: persisted.code === 0 ? 0 : persisted.code,
+    payload: {
+      ...base.payload,
+      posture: REQUIREMENTS_POSTURE,
+      occupancy: occupancyReport(persisted),
+      message: REQUIREMENTS_RESULT_MESSAGE,
+    },
+    lines,
+  };
+}
+
 function runSessionRearm(
   projectRoot: string,
   options: SessionStartOptions,
@@ -1402,6 +1456,9 @@ export function runSessionStart(
 
   if (posture === READ_ONLY_POSTURE) {
     return runReadOnlySessionStart(projectRoot, options, instant, environment);
+  }
+  if (posture === REQUIREMENTS_POSTURE) {
+    return runRequirementsSessionStart(projectRoot, options, instant, environment);
   }
 
   // #3611: resolve once per mutation invocation. Every occupancy evaluation,

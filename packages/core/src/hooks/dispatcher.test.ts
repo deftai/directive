@@ -5760,3 +5760,73 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
     }
   });
 });
+
+describe("requirements posture (#4444)", () => {
+  it("allows docs/REQUIREMENTS.md after occupancy without ritual or scope", () => {
+    const verifyRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => READY_SCOPE);
+    const decision = decideHook({
+      host: "grok",
+      event: "tool.before",
+      projectRoot: "/project",
+      payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
+      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+    }, readySeams({ verifyRitual, inspectScope }));
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-requirements-ready" });
+    expect(verifyRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+  it("denies packages writes and names the mutation upgrade path", () => {
+    const decision = decideHook({
+      host: "grok",
+      event: "tool.before",
+      projectRoot: "/project",
+      payload: { toolName: "Write", tool_input: { path: "/project/packages/core/src/hooks/dispatcher.ts" } },
+      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+    }, readySeams());
+    expect(decision).toMatchObject({ verdict: "deny", code: "write-requirements-out-of-class" });
+    expect(decision.message).toMatch(/session:start/);
+  });
+  it("does not treat payload posture=requirements as trusted producer", () => {
+    const decision = decideHook({
+      host: "grok",
+      event: "tool.before",
+      projectRoot: "/project",
+      payload: { toolName: "Write", posture: "requirements", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
+      environ: {},
+    }, readySeams({ inspectScope: () => ({ ready: false, path: null, message: "No active xBRIEF" }) }));
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).not.toBe("write-requirements-ready");
+  });
+  it("keeps DEFT_SESSION_POSTURE=docs as assist, not requirements", () => {
+    const decision = decideHook({
+      host: "grok",
+      event: "tool.before",
+      projectRoot: "/project",
+      payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
+      environ: { [ASSIST_SESSION_POSTURE_ENV]: "docs" },
+    }, readySeams({ inspectScope: () => ({ ready: false, path: null, message: "No active xBRIEF" }) }));
+    expect(decision.code).not.toBe("write-requirements-ready");
+  });
+  it("refuses unknown posture tokens and prints the closed set", () => {
+    const decision = decideHook({
+      host: "grok",
+      event: "tool.before",
+      projectRoot: "/project",
+      payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
+      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirement" },
+    }, readySeams());
+    expect(decision).toMatchObject({ verdict: "deny", code: "unknown-session-posture" });
+    expect(decision.message).toContain("closed set");
+  });
+  it("denies instruction-surface AGENTS.md under requirements posture", () => {
+    const decision = decideHook({
+      host: "grok",
+      event: "tool.before",
+      projectRoot: "/project",
+      payload: { toolName: "Write", tool_input: { path: "/project/AGENTS.md" } },
+      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+    }, readySeams());
+    expect(decision).toMatchObject({ verdict: "deny", code: "write-requirements-out-of-class" });
+  });
+});

@@ -337,3 +337,7 @@ With both set, a write to `packages/core/src/policy/write-fence.ts` is allowed;
 - Program: #2948 Wave 3
 
 Refs #516, #2443, #2948, #1394.
+
+## Requirements posture (#4444)
+
+Requirements-class writes reuse this evaluator (valuateRuntimeAuthorityPath) with a default allow/deny list. That is a gate-skip class (skip gated ritual and story-start after occupancy), not a second matcher schema. docs remains the assist token. Trusted producer: session:start --posture=requirements.

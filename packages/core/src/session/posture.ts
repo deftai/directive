@@ -9,13 +9,54 @@
  */
 
 /** Live agent posture — never persisted as repo authority. */
-export type DirectivePosture = "read-only" | "mutation";
+export type DirectivePosture = "read-only" | "mutation" | "assist" | "requirements";
 
 /** Default for fresh or manually cleared contexts (#2180). */
 export const DEFAULT_POSTURE: DirectivePosture = "read-only";
 
 /** Env override for deterministic gates / CLI (`read-only` | `mutation`). */
 export const ENV_SESSION_POSTURE = "DEFT_SESSION_POSTURE";
+
+/** Closed token set this module owns. Printed on unknown-token refusal (#4444). */
+export const CLOSED_SESSION_POSTURE_TOKENS = [
+  "read-only",
+  "mutation",
+  "assist",
+  "requirements",
+] as const;
+
+export const ASSIST_POSTURE_ALIASES = [
+  "assist",
+  "ephemeral",
+  "docs",
+  "research",
+  "research-notes",
+  "research_notes",
+  "scratch",
+] as const;
+export const REQUIREMENTS_DEFAULT_ALLOW_PATHS = [
+  "docs/**",
+  "specs/**",
+  "README.md",
+  "README",
+  "REQUIREMENTS.md",
+  "xbrief/proposed/**",
+  "vbrief/proposed/**",
+] as const;
+export const REQUIREMENTS_DEFAULT_DENY_PATHS = [
+  "AGENTS.md",
+  "main.md",
+  "SKILL.md",
+  "content/commands.md",
+  "content/contracts/**",
+  "content/templates/**",
+  "packages/**",
+  "cmd/**",
+  "src/**",
+] as const;
+export const REQUIREMENTS_UPGRADE_PATH =
+  "Run deft session:start (mutation posture) with an active xBRIEF for product-code writes.";
+export const UNKNOWN_POSTURE_TOKEN_PREFIX = "unknown session posture token";
 
 /**
  * Ritual-state contract (#2180 / #1348 narrowed):
@@ -59,16 +100,59 @@ export interface ResolvePostureInput {
   readonly tier?: "quick" | "gated";
 }
 
+export interface ParsedSessionPosture {
+  readonly token: DirectivePosture | null;
+  readonly raw: string;
+  readonly error: string | null;
+}
+
+function normalizePostureToken(value: string): string {
+  return value.trim().toLowerCase().replace(/[_\s]/g, "-");
+}
+
+function closedSetHelp(): string {
+  return (
+    "closed set: " +
+    CLOSED_SESSION_POSTURE_TOKENS.join("|") +
+    " (assist aliases: " +
+    ASSIST_POSTURE_ALIASES.join(", ") +
+    "). Owner: packages/core/src/session/posture.ts."
+  );
+}
+
+export function unknownPostureTokenMessage(raw: string): string {
+  return UNKNOWN_POSTURE_TOKEN_PREFIX + " " + JSON.stringify(raw) + ". " + closedSetHelp();
+}
+
+/** Parse a trusted-producer token (CLI argv or DEFT_SESSION_POSTURE env). Empty is unset. Unknown tokens refuse. */
+export function parseSessionPostureToken(raw: string | undefined | null): ParsedSessionPosture {
+  const value = (raw ?? "").trim();
+  if (value.length === 0) {
+    return { token: null, raw: value, error: null };
+  }
+  const normalized = normalizePostureToken(value);
+  if (normalized === "read-only" || normalized === "readonly") {
+    return { token: "read-only", raw: value, error: null };
+  }
+  if (normalized === "mutation" || normalized === "mutating") {
+    return { token: "mutation", raw: value, error: null };
+  }
+  if (ASSIST_POSTURE_ALIASES.some((alias) => normalizePostureToken(alias) === normalized)) {
+    return { token: "assist", raw: value, error: null };
+  }
+  if (normalized === "requirements") {
+    return { token: "requirements", raw: value, error: null };
+  }
+  return { token: null, raw: value, error: unknownPostureTokenMessage(value) };
+}
+
 function normalisePosture(raw: string | undefined | null): DirectivePosture | null {
-  const value = (raw ?? "").trim().toLowerCase();
-  if (value === "read-only" || value === "readonly") {
-    return "read-only";
-  }
-  // Accept legacy "mutating" alias from early #2180 drafts.
-  if (value === "mutation" || value === "mutating") {
-    return "mutation";
-  }
-  return null;
+  return parseSessionPostureToken(raw).token;
+}
+
+/** Env-only requirements classification -- never payload fields (#4444 trusted producer). */
+export function isRequirementsPosture(environ: NodeJS.ProcessEnv = process.env): boolean {
+  return parseSessionPostureToken(environ[ENV_SESSION_POSTURE]).token === "requirements";
 }
 
 /** Ritual-state must never be treated as posture authority (#2180). */
@@ -185,4 +269,9 @@ export function readOnlyPostureMessage(tier: string): string {
     `OK read-only posture — session ritual ${tier} tier not required ` +
     `(ritual-state is diagnostic-only; run \`deft session:start\` at mutation boundaries).`
   );
+}
+
+/** Requirements posture skips gated ritual and story-start; occupancy still required (#4444). */
+export function requirementsPostureMessage(): string {
+  return "OK requirements posture -- tracked docs/specs/proposed xBRIEF writes skip gated ritual and story-start; occupancy still required. Product-code paths need mutation session:start.";
 }

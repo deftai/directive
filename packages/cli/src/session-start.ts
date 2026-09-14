@@ -15,13 +15,16 @@ import {
   PRIMARY_CLAIM_EXCEPTIONS,
   type PrimaryClaimException,
   parseDeferrals,
+  parseSessionPostureToken,
   READ_ONLY_POSTURE,
   REARM_CEREMONY_TIER,
+  REQUIREMENTS_POSTURE,
   resolveProductionHostEffortDescriptor,
   ritualStatePath,
   runSessionStart,
   SESSION_CEREMONY_TIERS,
   type SessionCeremonyTier,
+  type SessionPosture,
 } from "@deftai/directive-core/session";
 
 export interface ParsedSessionStartArgs {
@@ -66,6 +69,8 @@ export interface ParsedSessionStartArgs {
   primaryClaimException: PrimaryClaimException | null;
   /** #3611: explicit lifecycle owner injected by a host hook bridge. */
   sessionId: string | null;
+  /** Trusted --posture argv (#4444). */
+  posture: SessionPosture | null;
   error?: string;
 }
 
@@ -114,6 +119,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     occupant: null,
     primaryClaimException: null,
     sessionId: null,
+    posture: null,
   };
   const dialInputs: {
     taskSize?: ReturnType<typeof normalizeCeremonyTaskSize>;
@@ -416,6 +422,53 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
         return { ...parsed, error: "argument --occupant: expected one argument" };
       }
       parsed.occupant = value;
+    } else if (arg === "--posture") {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith("--")) {
+        return {
+          ...parsed,
+          error: "argument --posture: expected one argument (read-only|mutation|requirements)",
+        };
+      }
+      const parsedPosture = parseSessionPostureToken(value);
+      if (parsedPosture.error !== null) {
+        return { ...parsed, error: parsedPosture.error };
+      }
+      if (parsedPosture.token === "assist") {
+        return {
+          ...parsed,
+          error:
+            "argument --posture=docs|assist is scratch-only; set DEFT_SESSION_POSTURE=assist. Tracked docs use --posture=requirements",
+        };
+      }
+      if (parsedPosture.token === null) {
+        return {
+          ...parsed,
+          error: "argument --posture: expected one argument (read-only|mutation|requirements)",
+        };
+      }
+      parsed.posture = parsedPosture.token;
+      i += 1;
+    } else if (arg?.startsWith("--posture=")) {
+      const value = arg.slice("--posture=".length);
+      const parsedPosture = parseSessionPostureToken(value);
+      if (parsedPosture.error !== null) {
+        return { ...parsed, error: parsedPosture.error };
+      }
+      if (parsedPosture.token === "assist") {
+        return {
+          ...parsed,
+          error:
+            "argument --posture=docs|assist is scratch-only; set DEFT_SESSION_POSTURE=assist. Tracked docs use --posture=requirements",
+        };
+      }
+      if (parsedPosture.token === null) {
+        return {
+          ...parsed,
+          error: "argument --posture: expected one argument (read-only|mutation|requirements)",
+        };
+      }
+      parsed.posture = parsedPosture.token;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -480,7 +533,7 @@ export function run(argv: readonly string[]): number {
     result = runSessionStart(projectRoot, {
       deferrals,
       writeHistory: !args.noHistory,
-      posture: args.readOnly ? READ_ONLY_POSTURE : undefined,
+      posture: args.readOnly ? READ_ONLY_POSTURE : (args.posture ?? undefined),
       allowOptionalNetwork: args.withNetwork ? true : undefined,
       ceremonyTier: args.ceremonyTier,
       ceremonyDialInputs: args.ceremonyDialInputs,
@@ -529,7 +582,7 @@ export function run(argv: readonly string[]): number {
   }
   if (result.code === 0) {
     const posture = result.payload.posture;
-    if (posture === READ_ONLY_POSTURE) {
+    if (posture === READ_ONLY_POSTURE || posture === REQUIREMENTS_POSTURE) {
       process.stdout.write(`[deft] ${String(result.payload.message)}\n`);
     } else {
       process.stdout.write(

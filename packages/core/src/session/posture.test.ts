@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_POSTURE,
   detectMutationIntent,
+  isRequirementsPosture,
+  parseSessionPostureToken,
   parseStructuredHandoff,
   readOnlyPostureMessage,
   resolveSessionPosture,
@@ -99,5 +101,17 @@ Next: commit the staged fix and open PR.
   it("readOnlyPostureMessage documents diagnostic-only contract", () => {
     expect(readOnlyPostureMessage("gated")).toContain("read-only posture");
     expect(readOnlyPostureMessage("gated")).toContain("diagnostic-only");
+  });
+
+  it("parses requirements and assist aliases and refuses unknown tokens (#4444)", () => {
+    expect(parseSessionPostureToken("requirements").token).toBe("requirements");
+    expect(parseSessionPostureToken("docs").token).toBe("assist");
+    expect(parseSessionPostureToken("requirement").error).toContain(
+      "unknown session posture token",
+    );
+    expect(parseSessionPostureToken("requirement").error).toContain("closed set");
+    expect(isRequirementsPosture({ DEFT_SESSION_POSTURE: "requirements" })).toBe(true);
+    expect(isRequirementsPosture({ DEFT_SESSION_POSTURE: "docs" })).toBe(false);
+    expect(resolveSessionPosture({ envPosture: "requirements" })).toBe("requirements");
   });
 });

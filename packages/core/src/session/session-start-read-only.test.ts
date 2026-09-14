@@ -6,7 +6,13 @@ import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
-import { READ_ONLY_POSTURE, READ_ONLY_RESULT_MESSAGE, runSessionStart } from "./session-start.js";
+import {
+  READ_ONLY_POSTURE,
+  READ_ONLY_RESULT_MESSAGE,
+  REQUIREMENTS_POSTURE,
+  REQUIREMENTS_RESULT_MESSAGE,
+  runSessionStart,
+} from "./session-start.js";
 
 /** Full ceremony — fat-path assertions must not use two-stage cold rapid default. */
 const STANDARD_DIAL = selectCeremonyDepth({
@@ -171,5 +177,30 @@ describe("runSessionStart read-only posture (#2176)", () => {
     ]);
     expect(steps.find((s) => s.name === "release_probe")?.skipped).toBe(true);
     expect(typeof result.payload.duration_ms).toBe("number");
+  });
+});
+
+describe("runSessionStart requirements posture (#4444)", () => {
+  it("claims occupancy, writes no ritual-state, and skips gated ceremony", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      posture: REQUIREMENTS_POSTURE,
+      sessionId: "host:test:v1:abc",
+      resolveUserMd: () => userMdResult(),
+      probeEnvironment: () => environment,
+      applyOccupancy: (_projectRoot, input) => ({
+        action: "claimed",
+        sessionId: input.sessionId ?? "host:test:v1:abc",
+        record: null,
+        path: "/tmp/occupancy.json",
+        message: "occupancy claimed",
+        code: 0,
+      }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.payload.posture).toBe(REQUIREMENTS_POSTURE);
+    expect(result.payload.message).toBe(REQUIREMENTS_RESULT_MESSAGE);
+    expect(existsSync(ritualStatePath(root))).toBe(false);
+    expect(result.lines.join("\n")).toContain("DEFT_SESSION_POSTURE=requirements");
   });
 });

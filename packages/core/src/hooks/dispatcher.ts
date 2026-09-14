@@ -34,6 +34,7 @@ import {
   classifyMcpTool,
   DEFAULT_RUNTIME_AUTHORITY_POLICY,
   evaluateRuntimeAuthorityDirectWrite,
+  evaluateRuntimeAuthorityPath,
   evaluateRuntimeAuthorityShellOp,
   listShellOps,
   loadRuntimeAuthorityFromProject,
@@ -58,6 +59,14 @@ import {
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
+import {
+  ENV_SESSION_POSTURE,
+  isRequirementsPosture,
+  parseSessionPostureToken,
+  REQUIREMENTS_DEFAULT_ALLOW_PATHS,
+  REQUIREMENTS_DEFAULT_DENY_PATHS,
+  REQUIREMENTS_UPGRADE_PATH,
+} from "../session/posture.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
@@ -227,6 +236,10 @@ export type HookDecisionCode =
   | "write-completed-ready"
   /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
   | "write-assist-scratch-ready"
+  /** Tracked docs/specs after occupancy under requirements posture (#4444). */
+  | "write-requirements-ready"
+  | "write-requirements-out-of-class"
+  | "unknown-session-posture"
   | "write-ready"
   | "read-only-deny"
   | "spawn-explore-ready"
@@ -562,6 +575,30 @@ function authzForMutationTargets(
     }
   }
   return null;
+}
+
+function requirementsFencePolicy(): RuntimeAuthorityPolicy {
+  return {
+    ...DEFAULT_RUNTIME_AUTHORITY_POLICY,
+    enabled: true,
+    allowPaths: [...REQUIREMENTS_DEFAULT_ALLOW_PATHS],
+    denyPaths: [...REQUIREMENTS_DEFAULT_DENY_PATHS],
+  };
+}
+
+function requirementsPathAllowed(projectRoot: string, target: string): boolean {
+  const rel = toProjectRelativePosix(projectRoot, target);
+  return evaluateRuntimeAuthorityPath(requirementsFencePolicy(), rel) === "allow";
+}
+
+function allMutationTargetsAreRequirementsClass(projectRoot: string, payload: unknown): boolean {
+  if (applyPatchBodyUnclassified(payload)) return false;
+  const targets = hookMutationTargetPaths(payload);
+  if (targets.length === 0) {
+    const one = hookWriteTargetPath(payload);
+    return one !== null && requirementsPathAllowed(projectRoot, one);
+  }
+  return targets.every((target) => requirementsPathAllowed(projectRoot, target));
 }
 
 function allMutationTargetsAreAssistScratch(
@@ -1527,6 +1564,53 @@ function inspectMutationGates(
       "occupancy-occupied",
       toolName,
       `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}${rootsNote}`,
+    );
+  }
+
+  const postureParse = parseSessionPostureToken(environ[ENV_SESSION_POSTURE]);
+  if (postureParse.error !== null) {
+    return deny(input, "unknown-session-posture", toolName, postureParse.error + rootsNote);
+  }
+  if (!isSpawnTool(toolName) && isRequirementsPosture(environ)) {
+    if (allMutationTargetsAreRequirementsClass(effectiveRoot, input.payload)) {
+      const authzDeny = authzForMutationTargets(input, toolName, seams, {
+        isDirectWrite: true,
+        scopePath: null,
+        runGit: dispatchGit,
+        projectRoot,
+      });
+      if (authzDeny !== null) return authzDeny;
+      const runtimeDeny = runtimeAuthorityForDirectWrite(
+        input,
+        toolName,
+        seams,
+        null,
+        effectiveRoot,
+      );
+      if (runtimeDeny !== null) return runtimeDeny;
+      return {
+        verdict: "allow",
+        code: "write-requirements-ready",
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message:
+          "Directive write gate allowed " +
+          toolName +
+          " under requirements posture after occupancy (no gated ritual or story xBRIEF). Product-code paths still require mutation session:start.",
+        scopePath: null,
+      };
+    }
+    return deny(
+      input,
+      "write-requirements-out-of-class",
+      toolName,
+      "Directive denied " +
+        toolName +
+        ": requirements posture does not authorize this path. " +
+        REQUIREMENTS_UPGRADE_PATH +
+        rootsNote,
     );
   }
 
