@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4446 from successor lean 5650414391 (ingest refused missing-pain on Stop 1 5650304081).",
-    "updated": "2026-09-14T14:01:59.166Z"
+    "updated": "2026-09-14T18:01:16Z"
   },
   "plan": {
     "title": "feat(update): record-mode payload-root substitution so dest plans match apply",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Dry-run plans from the deposited tree and live apply writes the incoming tree. Bound remedy is record-mode payload-root substitution on the swap path, not a VFS overlay or immutable plan.",
       "Origin": "GitHub issue https://github.com/deftai/directive/issues/4446. Next-build is Bound-remedy on successor lean 5650414391; synthesis accepted 5650420031; verified-claims 5650419818. Stop 1 write-back 5650304081 is superseded.",
@@ -16,33 +16,69 @@
     "items": [
       {
         "title": "On the file-swap path, record-mode payload reads use the incoming contentRoot for writeAgentsMd, syncConsumerXbriefSchemas, and writeConsumerGitHooks. Not a VFS overlay. already-current stays dest-rooted.",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#swap-path-payload-root",
+          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
       },
       {
         "title": "Do not treat immutable-plan and read-overlay as interchangeable. Occupancy/lease stays a non-goal.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#payload-root-helper",
+          "recorded_at": "2026-09-14T18:01:04.420Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
       },
       {
         "title": "Dry-run and live agree on exit code and error class. Named case: absent or malformed pre-swap dest template with a good incoming template.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#missing-malformed-template",
+          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
       },
       {
         "title": "No recorded plan, empty or not, changes the current Git refuse/proceed decision.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#dirty-tree-refuse",
+          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
       },
       {
         "title": "Deposit-integrity refusals stay apply-phase; keep the record-mode dest C3 skip. Do not reopen #4389.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts#record-mode-dest-C3-skip",
+          "recorded_at": "2026-09-14T18:01:04.420Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
       },
       {
         "title": "Tests cover changed agents template, dest-only payload member, missing/malformed pre-swap template exit-code equivalence, and dirty-tree refuse unchanged. CHANGELOG [Unreleased].",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
       }
     ],
     "tags": [
@@ -119,6 +155,33 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-09-14T13:34:04Z"
+    "updated": "2026-09-14T18:01:16Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4532,
+        "prBase": null,
+        "mergeCommit": "3a3b7f4a756b9ce40b98e9f2bdf53c2d443d38d8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3a3b7f4a756b9ce40b98e9f2bdf53c2d443d38d8",
+        "verifiedAt": "2026-09-14T18:01:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzQwN2I5NWI5Y2Vh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-14T18:01:16Z"
+      },
+      "completedAt": "2026-09-14T18:01:16Z",
+      "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzQwN2I5NWI5Y2Vh",
+      "capacityBucket": "new-capability"
+    }
   }
 }

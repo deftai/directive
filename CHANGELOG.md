@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Complete tracking for #4442.** After PR 4519. The #4442 xBRIEF stayed untracked after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Primary mutation claims look at live sibling occupancy, not leftover worktree admin dirs (#4445).** A solo operator whose repo still has GIT_COMMON_DIR/worktrees residue after rm -rf can claim the primary without a worktree. A live sibling lease still refuses. Refusal prints `deft session:start --primary-claim-exception=operator-default-branch`. No topology policy field. Closes #4445.
 - **Complete tracking for #4445.** After PR 4521. The #4445 xBRIEF stayed in xbrief/active/ after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+- **Complete tracking for #4446.** After PR 4532. The #4446 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 ### Fixed
 
