@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4445 Bound-remedy harvest (ingest refused missing-pain on Stop 1 5649572412). Spec is successor lean 5649622186, not the filed body.",
-    "updated": "2026-09-14T13:28:08Z"
+    "updated": "2026-09-14T16:34:12Z"
   },
   "plan": {
     "title": "feat(occupancy): live sibling-lease discriminator for primary checkout claims",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Recut of #4445: count live occupancy leases on sibling trees instead of leftover git worktree admin dirs; print the runnable --primary-claim-exception=operator-default-branch form on refusal. Do not add a topology policy producer.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4445 (REST body + comments; ingest refused missing-pain on 5649572412)",
@@ -18,44 +18,86 @@
       {
         "id": "ac1",
         "title": "isContendedPrimaryCheckout is main worktree plus a live occupancy lease on a sibling checkout, not leftover GIT_COMMON_DIR/worktrees admin dirs.",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
+          "recorded_at": "2026-09-14T16:31:00Z",
+          "recorded_by": "4445-leaf-implementation"
+        }
       },
       {
         "id": "ac2",
         "title": "A no-op fails: git worktree add with no sibling lease, and leftover admin dirs after rm -rf until prune, must let mutation session:start claim the primary.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
+          "recorded_at": "2026-09-14T16:31:00Z",
+          "recorded_by": "4445-leaf-implementation"
+        }
       },
       {
         "id": "ac3",
         "title": "A live sibling lease still refuses primary mutation claim and steal without a trusted argv exception. Same-tree second session still refuses.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
+          "recorded_at": "2026-09-14T16:31:00Z",
+          "recorded_by": "4445-leaf-implementation"
+        }
       },
       {
         "id": "ac4",
         "title": "primaryClaimRefusal prints the runnable deft session:start --primary-claim-exception=operator-default-branch form, not only the enum values.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
+          "recorded_at": "2026-09-14T16:31:00Z",
+          "recorded_by": "4445-leaf-implementation"
+        }
       },
       {
         "id": "ac5",
         "title": "Do not add plan.policy.topology or allowPrimaryCheckoutMutation. Keep session:start --primary-claim-exception as the trusted producer. Spawn payloads still cannot name the exception.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
+          "recorded_at": "2026-09-14T16:31:00Z",
+          "recorded_by": "4445-leaf-implementation"
+        }
       },
       {
         "id": "ac6",
         "title": "Do not add an adaptive lease-history default. Spawn already keeps implement workers on worktrees; no swarm-launch topology refusal. Do not edit #4444 docs-posture surfaces.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
+          "recorded_at": "2026-09-14T16:31:00Z",
+          "recorded_by": "4445-leaf-implementation"
+        }
       },
       {
         "id": "ac7",
         "title": "Tests cover live-lease vs leftover-admin-dir vs expired sibling lease. CHANGELOG [Unreleased].",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
+          "recorded_at": "2026-09-14T16:31:00Z",
+          "recorded_by": "4445-leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -152,9 +194,34 @@
         "github_issue_id": null,
         "origin": "deftai/directive#4445",
         "id": "github.issue.fallback.deftai.directive.4445"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4521,
+        "prBase": null,
+        "mergeCommit": "a9e06f7b35beaa8b54908f4879e69d3cc1aa64f6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a9e06f7b35beaa8b54908f4879e69d3cc1aa64f6",
+        "verifiedAt": "2026-09-14T16:34:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzQxOGNkN2RlOTYz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-14T16:34:12Z"
+      },
+      "completedAt": "2026-09-14T16:34:12Z",
+      "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzQxOGNkN2RlOTYz",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-09-14T13:28:08Z"
+    "updated": "2026-09-14T16:34:12Z"
   },
   "x-directive/swarm": {
     "readiness": "ready",
