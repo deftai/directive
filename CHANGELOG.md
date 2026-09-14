@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Grok leftover-class dest-cwd spawn-not-ready does not lead with critic CLI (#4542).** Overlay identity-gates on `isProcessOnlyCriticSpawn` or launcher-family argv before prepending `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY`. Unmarked dest-cwd general-purpose leads with dest unique-active plus promote-then-activate (0 leftover) or unique-basename / pin (2+ leftover). Critic-class dest-form and dest-absent grok argv keep the critic lead. Dest-form occupancy concatenations (`grokMissingDestMessage`; isolation=worktree plus cwd) remain leftover. Dest-path is not a critic seat. Does not disable host hooks. Closes #4542.
 - **Observable-scope HTML parse refuses truncated markup (#4495).** parse5 `onParseError` records incomplete-token errors into `anomalies`; extract refuses rather than comparing recovered partial facts.
 - **Consumer scope-provenance docs and the dispatch preamble use `deft <verb>` (#4447).** Include-only fallback is `task deft:<verb>`. Frozen hop-1 stays `task -t <v0.59.0 Taskfile> migrate:vbrief`. GitHub-body examples use `deft github-body`, not `deft scm:body:*`. Copied remediations no longer prescribe bare `task scope:record-approved-scope`. Closes #4447.
 - **Update dry-run reads the incoming payload on the swap path (#4446).** Record-mode writeAgentsMd, schema projection, and git-hook deposit use the incoming content root so dest plans match live apply. already-current stays dest-rooted. Dest C3 stays apply-phase. Closes #4446.
