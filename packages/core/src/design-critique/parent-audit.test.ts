@@ -53,6 +53,14 @@ describe("design-critique parent-side substantiation (#3651)", () => {
     expect(result.failures).toEqual([]);
   });
 
+  it("clears a marker from critic targeting with no verdict field (#4442)", () => {
+    const clearance = okDeposit().clearances[0];
+    expect(Object.keys(clearance).sort()).toEqual(["clearedByRole", "markerId", "targetsMarker"]);
+    expect(clearance).not.toHaveProperty("verdict");
+    const result = evaluateParentAudit(okDeposit());
+    expect(result.ok).toBe(true);
+  });
+
   it("fails closed on a missing token", () => {
     const result = evaluateParentAudit(
       okDeposit({

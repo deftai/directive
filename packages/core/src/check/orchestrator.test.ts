@@ -414,6 +414,8 @@ tasks:
     cmds: [echo ok]
   evaluator-surface:
     cmds: [echo ok]
+  observable-scope:
+    cmds: [echo ok]
   consumer-test-lane:
     cmds: [echo ok]
 `,
@@ -518,6 +520,8 @@ tasks:
   consumer-check-contract:
     cmds: [echo ok]
   evaluator-surface:
+    cmds: [echo ok]
+  observable-scope:
     cmds: [echo ok]
   consumer-test-lane:
     cmds: [echo ok]

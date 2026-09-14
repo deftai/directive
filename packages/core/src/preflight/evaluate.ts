@@ -1,5 +1,6 @@
 import { readFileSync, statSync } from "node:fs";
 import { basename, dirname } from "node:path";
+import { evaluateObservableMintPreflight } from "../observable-scope/mint.js";
 import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
 import {
   evaluateParentLineage,
@@ -294,6 +295,17 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     }
     if (placement.warning === true) {
       placementWarning = placement.message;
+    }
+    const mint = evaluateObservableMintPreflight(
+      payload,
+      resolveProjectRootFromBrief(path, options.projectRoot),
+    );
+    if (!mint.ok) {
+      return {
+        exitCode: 1,
+        parentLineage: lineage,
+        message: buildReject(path, mint.message),
+      };
     }
   }
 

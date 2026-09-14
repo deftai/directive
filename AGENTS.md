@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=a97d223c094d refreshed=2026-09-14T13:25:10Z session=8210e294a338 -->
+<!-- deft:managed-section v3 sha=bf4c41bac880 refreshed=2026-09-14T01:13:39Z session=90f572adcc34 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -295,7 +295,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Branch policy & branch verification
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
-! Test placement + scope provenance (#3145) — `deft verify:test-boundary` (warn-only until authored policy), `deft verify:scope-provenance` (`--enforce` empty-scope only; declared `file_scope` without base approval fails closed), `deft verify:consumer-check-contract` (composition fails closed; CI omissions warn), `deft verify:evaluator-surface`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`, `docs/consumer-check-contract.md`).
+! Test placement + scope provenance (#3145) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (`--enforce` empty-scope only; declared `file_scope` without base approval fails closed), `deft verify:consumer-check-contract` (composition fails closed; CI omissions warn), `deft verify:evaluator-surface`, `deft verify:observable-scope`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`, `docs/consumer-check-contract.md`).
 
 ## Branch Policy Disclosure (#746)
 

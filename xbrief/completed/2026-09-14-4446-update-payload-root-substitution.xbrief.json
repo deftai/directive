@@ -1,0 +1,187 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4446 from successor lean 5650414391 (ingest refused missing-pain on Stop 1 5650304081).",
+    "updated": "2026-09-14T18:11:24.628Z"
+  },
+  "plan": {
+    "title": "feat(update): record-mode payload-root substitution so dest plans match apply",
+    "status": "completed",
+    "narratives": {
+      "Description": "Dry-run plans from the deposited tree and live apply writes the incoming tree. Bound remedy is record-mode payload-root substitution on the swap path, not a VFS overlay or immutable plan.",
+      "Origin": "GitHub issue https://github.com/deftai/directive/issues/4446. Next-build is Bound-remedy on successor lean 5650414391; synthesis accepted 5650420031; verified-claims 5650419818. Stop 1 write-back 5650304081 is superseded.",
+      "Overview": "Port-record replaceTree inventories then returns without dest change. writeAgentsMd, syncConsumerXbriefSchemas, and writeConsumerGitHooks then read deftDir. Under record mode that is the pre-swap deposit, so dry-run can omit AGENTS.md (and fail on a missing dest template) while live swaps first and succeeds.\n\nBound remedy (5650414391):\n- Prefer record-mode payload-root substitution (contentRoot into writeAgentsMd and friends). Drop universal overlay wording, or enumerate the projection set plus a read-side ban.\n- Do not treat immutable-plan and read-overlay as interchangeable. Occupancy/lease stays a non-goal.\n- Equivalence includes exit code and error class, with absent/malformed pre-swap template as a named case.\n- No recorded plan changes the current refuse/proceed decision.\n\nSubstitution applies on the file-swap path only. already-current live does not swap, so those payload reads stay dest-rooted. Record-mode dest C3 skip stays apply-phase; do not reopen #4389.\n\nNon-goals: dirty/undeterminable preflight (#4158), teaching the mutation ledger HOME, occupancy/common-Git-dir lease (#4445/#4444), Go installer --force, immutable plan-then-apply, moving deposit-integrity refusals into the plan phase.",
+      "Constraint": "Do not reopen #4389. Occupancy and session posture are sibling scopes. CHANGELOG append-only. Do not touch sibling issues #4267 #4447 #4445 #4444 #4442."
+    },
+    "items": [
+      {
+        "title": "On the file-swap path, record-mode payload reads use the incoming contentRoot for writeAgentsMd, syncConsumerXbriefSchemas, and writeConsumerGitHooks. Not a VFS overlay. already-current stays dest-rooted.",
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
+      },
+      {
+        "title": "Do not treat immutable-plan and read-overlay as interchangeable. Occupancy/lease stays a non-goal.",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
+      },
+      {
+        "title": "Dry-run and live agree on exit code and error class. Named case: absent or malformed pre-swap dest template with a good incoming template.",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
+      },
+      {
+        "title": "No recorded plan, empty or not, changes the current Git refuse/proceed decision.",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
+      },
+      {
+        "title": "Deposit-integrity refusals stay apply-phase; keep the record-mode dest C3 skip. Do not reopen #4389.",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
+      },
+      {
+        "title": "Tests cover changed agents template, dest-only payload member, missing/malformed pre-swap template exit-code equivalence, and dirty-tree refuse unchanged. CHANGELOG [Unreleased].",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
+          "recorded_by": "leaf-implementation/4446"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4446",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4446: feat(update): dry-run/live incoming-tree overlay so dest plans match apply"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4446#issuecomment-5650414391",
+        "type": "x-xbrief/refs",
+        "title": "Successor lean 5650414391 Bound remedy"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4446#issuecomment-5650419818",
+        "type": "x-xbrief/refs",
+        "title": "Verified-claims table 5650419818"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4446#issuecomment-5650420031",
+        "type": "x-xbrief/refs",
+        "title": "Synthesis accepted 5650420031"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4158",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4158 dest-rooted dirty/undeterminable preflight (non-goal here)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4389",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4389 port-record dest C3 carve-out (stay apply-phase)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Issue body Expected was recut. Bound-remedy list on successor lean 5650414391 is the next-build contract; no literal shell commands were stated.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On the file-swap path, record-mode payload reads use incoming contentRoot for writeAgentsMd, syncConsumerXbriefSchemas, and writeConsumerGitHooks.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Dry-run and live agree on exit code and error class when the pre-swap dest template is absent or malformed and the incoming template is good.",
+          "artifact_path": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A changed agents-entry template plus a destination-only payload member appears in the dry-run dest plan the same way live apply mutates them; dry-run writes no dest bytes.",
+          "artifact_path": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recorded dest-plan membership does not change Git refuse/proceed. Deposit-integrity refusals stay apply-phase (#4389 skip remains).",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-14T18:01:16Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4532,
+        "prBase": null,
+        "mergeCommit": "3a3b7f4a756b9ce40b98e9f2bdf53c2d443d38d8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3a3b7f4a756b9ce40b98e9f2bdf53c2d443d38d8",
+        "verifiedAt": "2026-09-14T18:01:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzQwN2I5NWI5Y2Vh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-14T18:01:16Z"
+      },
+      "completedAt": "2026-09-14T18:01:16Z",
+      "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzQwN2I5NWI5Y2Vh",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

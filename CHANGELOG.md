@@ -16,13 +16,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Observable UI scope contract (#4495).** `verify:observable-scope` compares a human-minted `plan["x-directive/observableChange"]` record to a versioned parse5 (`.html`, scripting disabled) plus project-resolved TypeScript parse-only (`.jsx`/`.tsx`) oracle. Runtime deps add parse5 and entities only. Merge-base baseline; same-PR rewrite fails; opt-in surfaces; unset policy plus matching UI files is inferred-defaults-warn (exit 0 with findings). Runtime default-tab is #4503. Closes #4495.
 - **One-PR-unit consent is an App-backed exact-set claim (#4494).** Multi-origin `Closes` needs an operator mint; `.deft/one-pr-unit` is not SoT. Dest tokens allow `contents: write` only. Merge-queue re-reads closers. Closes #4494.
+
+- **Phase 7 waits until all four npm siblings list the cut version (#4267).** `task release:wait-npm -- <version>` polls `npm view <pkg> versions` (prefer-online, doctor temp-cwd isolation) for 10 minutes with a real sleep. Partial visibility is still-propagating (wait before install); none after the wait is publish-incomplete. Report-only: does not fail the GitHub release and does not run `npm i -g`. `task release` Step 13 stays a single probe. Does not fold the CI two-pass fixture (#4398). Closes #4267.
 
 ### Changed
 
+- **Complete tracking for #4495.** After PR 4505. Records post-merge lifecycle completion without reopening or recutting the issue. Refs #2321, #3476.
+- **Complete tracking for #4447.** After PR 4513. The #4447 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+- **Design-critique Dual stop no longer treats the merged parallel map as a comparable fingerprint (#4442).** A parallel round has no early-halt path and runs to the operator-gated cap. That excludes only the same-fingerprint halt; dispatch-fail and failure/budget halt still apply. Sequential same-fingerprint halt selects the first heading-id (else first still-open heading/id in map order) plus a material-delta on that primary take. Marker clearance still has no verdict field. Closes #4442.
+- **Complete tracking for #4442.** After PR 4519. The #4442 xBRIEF stayed untracked after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+- **Primary mutation claims look at live sibling occupancy, not leftover worktree admin dirs (#4445).** A solo operator whose repo still has GIT_COMMON_DIR/worktrees residue after rm -rf can claim the primary without a worktree. A live sibling lease still refuses. Refusal prints `deft session:start --primary-claim-exception=operator-default-branch`. No topology policy field. Closes #4445.
+- **Complete tracking for #4445.** After PR 4521. The #4445 xBRIEF stayed in xbrief/active/ after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+- **Complete tracking for #4446.** After PR 4532. The #4446 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 ### Fixed
 
+- **Observable-scope HTML parse refuses truncated markup (#4495).** parse5 `onParseError` records incomplete-token errors into `anomalies`; extract refuses rather than comparing recovered partial facts.
+- **Consumer scope-provenance docs and the dispatch preamble use `deft <verb>` (#4447).** Include-only fallback is `task deft:<verb>`. Frozen hop-1 stays `task -t <v0.59.0 Taskfile> migrate:vbrief`. GitHub-body examples use `deft github-body`, not `deft scm:body:*`. Copied remediations no longer prescribe bare `task scope:record-approved-scope`. Closes #4447.
+- **Update dry-run reads the incoming payload on the swap path (#4446).** Record-mode writeAgentsMd, schema projection, and git-hook deposit use the incoming content root so dest plans match live apply. already-current stays dest-rooted. Dest C3 stays apply-phase. Closes #4446.
+
 ### Removed
+
+- **jsdom from `@deftai/directive-core`, including DEV-ONLY (#4495).** Socket Warn alerts came from `jsdom@26.1.0` (`data-urls`, `rrweb-cssom`, `whatwg-encoding`). Parity HTML fixtures stay as committed goldens.
 
 ## [0.118.1] - 2026-09-14
 

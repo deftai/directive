@@ -45,13 +45,13 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("#954");
   });
   it("template_cross_references_810_gate", () => {
-    expect(templateText).toContain("task xbrief:preflight");
-    expect(templateText).toContain("task xbrief:activate");
-    expect(templateText).toContain("task scope:promote");
+    expect(templateText).toContain("deft xbrief:preflight");
+    expect(templateText).toContain("deft xbrief:activate");
+    expect(templateText).toContain("deft scope:promote");
   });
   it("template_documents_session_ritual_headless_bypass", () => {
     expect(templateText).toContain("DEFT_SESSION_RITUAL_SKIP=1");
-    expect(templateText).toContain("task verify:session-ritual");
+    expect(templateText).toContain("deft verify:session-ritual");
     expect(templateText).toContain("verify:session-ritual");
     expect(templateText).toContain("verify:cache-fresh");
   });
@@ -96,7 +96,7 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("verify:completed-tracked -- --issue");
     expect(templateText).toContain("origin/<deliveryBranch>");
     expect(templateText).toContain("#3476");
-    expect(templateText).toContain("task swarm:finalize-cohort");
+    expect(templateText).toContain("deft swarm:finalize-cohort");
     expect(templateText).toContain("not feature-worktree HEAD");
     expect(templateText).toContain("scope:complete` stays filesystem-only");
   });

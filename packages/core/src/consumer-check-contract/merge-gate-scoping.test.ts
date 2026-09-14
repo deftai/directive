@@ -32,6 +32,9 @@ tasks:
   evaluator-surface:
     cmds:
       - echo ok
+  observable-scope:
+    cmds:
+      - echo ok
   orphan-active:
     cmds:
       - echo ok
@@ -79,6 +82,7 @@ tasks:
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
+      - verify:observable-scope
 ${orphanEntry}    cmds:
       - echo ok
 `;
@@ -111,6 +115,7 @@ describe("extractCheckDepEntries (#3893)", () => {
       "verify:scope-provenance",
       "verify:consumer-check-contract",
       "verify:evaluator-surface",
+      "verify:observable-scope",
       "verify:orphan-active",
     ]);
   });

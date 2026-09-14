@@ -1,7 +1,7 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4386,
+  "issue": 4267,
   "surfaces": [
     "Taskfile.yml",
     "tasks/verify.yml",
@@ -12,7 +12,10 @@
     "packages/cli/src/verify-evaluator-surface.ts",
     "packages/cli/src/verify-consumer-test-lane.ts",
     "xbrief/evaluator-surface-disposition.json",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "packages/core/src/observable-scope/**",
+    "packages/cli/src/verify-observable-scope.ts",
+    "packages/cli/src/scope-record-observable-scope.ts"
   ],
-  "note": "Disclosure of evaluator-surface wiring for #4386, including bounded process-tree spawn for the declared consumer test lane. Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record."
+  "note": "Disclosure of Taskfile.yml Phase 7 task release:wait-npm (#4267). Surfaces include the #4495 observable-scope set so this renewal covers the merged evaluator-surface tree. Not reviewed authorization under #3164. A leftover #4495 record does not cover later evaluator-surface changes."
 }

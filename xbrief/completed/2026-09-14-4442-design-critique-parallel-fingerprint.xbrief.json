@@ -1,0 +1,295 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4442 recut to successor lean 5649628399; synthesis accepted 5649632071.",
+    "created": "2026-09-14T13:26:59Z",
+    "updated": "2026-09-14T16:29:09Z"
+  },
+  "plan": {
+    "title": "fix(design-critique): Parallel fingerprint working default is unsound",
+    "status": "completed",
+    "narratives": {
+      "Description": "Recut Dual stop so a parallel round records no comparable fingerprint and the sequential halt composes with #3448.",
+      "Origin": "Authored from successor lean https://github.com/deftai/directive/issues/4442#issuecomment-5649628399 after issue:ingest refused missing-pain on Stop 1 write-back 5649572167.",
+      "Overview": "> Recut 2026-09-14 to successor lean 5649628399, verified-claims 5649630157, synthesis accepted 5649632071. Bound next-build: (1) a parallel round has no early-halt path and runs to the operator-gated cap; independent critic targeting still clears the marker. (2) Parallel fingerprint working default: no comparable fingerprint exists for a parallel round, not the merged map. (3) Dual stop same-fingerprint halt composes with #3448 primary fingerprint plus material-delta; no clustering predicate. (4) Cap halt is the spend bound; drop indefinite-thrash language. (5) Sibling token isolation is purchased by Envelope and ceiling. Out of scope: clustering, parent canonicalizing sibling headings, cannot-bind chain, siblings 4267/4447/4446/4445/4444. Bound SoT: https://github.com/deftai/directive/issues/4442#issuecomment-5649628399",
+      "LockedDecisions": "Successor lean 5649628399 is bound SoT; synthesis accepted 5649632071; verified-claims 5649630157. Marker clearance has no verdict field. Compose any remaining sequential halt with #3448; do not invent a clustering predicate.",
+      "Labels": "agent-experience, process, critic, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Restate Dual stop consequence: a parallel round has no early-halt path and runs to the operator-gated cap; do not claim the marker is unclearable",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When Dual stop / Parallel fingerprint is read, it states that a parallel round has no early-halt path and runs to the operator-gated cap, and that independent critic targeting of an audit marker still clears it.",
+          "Acceptance": "When Dual stop / Parallel fingerprint is read, it states that a parallel round has no early-halt path and runs to the operator-gated cap, and that independent critic targeting of an audit marker still clears it.",
+          "Traces": "FR-4442-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Replace the Parallel fingerprint working default: no comparable fingerprint exists for a parallel round",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the Parallel fingerprint residual is read, the working default is that no comparable fingerprint exists for a parallel round, not the merged map.",
+          "Acceptance": "When the Parallel fingerprint residual is read, the working default is that no comparable fingerprint exists for a parallel round, not the merged map.",
+          "Traces": "FR-4442-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Compose any remaining Dual stop same-fingerprint halt with #3448 primary fingerprint plus material-delta; no clustering predicate",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When Dual stop Fingerprint is read, it composes with #3448 (primary fingerprint plus a material-delta conjunct) and forbids a clustering predicate.",
+          "Acceptance": "When Dual stop Fingerprint is read, it composes with #3448 (primary fingerprint plus a material-delta conjunct) and forbids a clustering predicate.",
+          "Traces": "FR-4442-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Drop indefinite-thrash language; cap halt is the spend bound",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When Dual stop / Parallel fingerprint is read, cap halt is the spend bound and the contract does not claim unbounded N>=3 thrash.",
+          "Acceptance": "When Dual stop / Parallel fingerprint is read, cap halt is the spend bound and the contract does not claim unbounded N>=3 thrash.",
+          "Traces": "FR-4442-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "State that sibling token isolation is purchased by Envelope and ceiling; do not make siblings agree on tokens",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When Parallel fingerprint is read, it states that Envelope and ceiling purchases sibling token isolation and forbids canonicalizing sibling headings.",
+          "Acceptance": "When Parallel fingerprint is read, it states that Envelope and ceiling purchases sibling token isolation and forbids canonicalizing sibling headings.",
+          "Traces": "FR-4442-s5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Content-contract tests lock the recut; parent-audit clearance stays verdict-free",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the content-contract suite and parent-audit tests run, they pin the new Parallel fingerprint default, #3448 composition, and that AuditClearance has no verdict field.",
+          "Acceptance": "When the content-contract suite and parent-audit tests run, they pin the new Parallel fingerprint default, #3448 composition, and that AuditClearance has no verdict field.",
+          "Traces": "FR-4442-s6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts + packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "CHANGELOG [Unreleased] entry",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the PR lands, CHANGELOG [Unreleased] records the recut.",
+          "Acceptance": "When the PR lands, CHANGELOG [Unreleased] records the recut.",
+          "Traces": "FR-4442-s7"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md##[Unreleased] #4442",
+          "recorded_at": "2026-09-14T16:07:59Z",
+          "recorded_by": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "correctness",
+      "literal_acceptance_commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts packages/core/src/design-critique/parent-audit.test.ts"
+      ],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts packages/core/src/design-critique/parent-audit.test.ts"
+        ],
+        "expected_outputs": [
+          "no comparable fingerprint exists for a parallel round",
+          "compose with #3448 primary fingerprint plus material-delta",
+          "cap halt is the spend bound"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-contract",
+        "size": "S",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-4442-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Seven clauses match the Bound-remedy list on successor lean 5649628399."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md and parent-audit tests sit outside the contract module boundary."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5430259894,
+        "origin": "deftai/directive#4442",
+        "id": "github.issue.5430259894"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "155213ae81ef3a1280866ae5b9779fa7afed4d60384292c90df5d6e232b34798"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4519,
+        "prBase": null,
+        "mergeCommit": "f29d7594f149300446478080d7d124ec042ca19e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1550cd19a7965698c6cb69987fda92b5a9b891a7",
+        "verifiedAt": "2026-09-14T16:29:09Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-14T16:29:09Z"
+      },
+      "completedAt": "2026-09-14T16:29:09Z",
+      "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOS03NDkzLWJjMGMtMjJkOGVjM2E0YWU0"
+    },
+    "id": "github.issue.5430259894",
+    "tags": [
+      "design-critique:ingest-ready",
+      "critic",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4442",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4442: design-critique: the Parallel fingerprint working default is unsound"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4442#issuecomment-5649628399",
+        "type": "x-xbrief/refs",
+        "title": "Successor lean 5649628399"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3448",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3448 Same-fingerprint stop"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts packages/core/src/design-critique/parent-audit.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Bound-remedy list on successor lean 5649628399; ingest refused missing-pain on Stop 1 write-back 5649572167.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A parallel round has no early-halt path and runs to the operator-gated cap; independent critic targeting still clears the marker",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Parallel fingerprint working default is that no comparable fingerprint exists for a parallel round, not the merged map",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Dual stop same-fingerprint halt composes with #3448 primary fingerprint plus material-delta; no clustering predicate",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Cap halt is the spend bound; drop indefinite-thrash language",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Sibling token isolation is purchased by Envelope and ceiling",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Content-contract tests lock the recut; AuditClearance has no verdict field",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG [Unreleased] entry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-14T16:29:09Z"
+  }
+}

@@ -89,6 +89,31 @@ describe("conformance scan", () => {
     });
     expect(pathRef.some((f) => f.key === "planRef")).toBe(false);
   });
+
+  it("allows namespaced observableChange and rejects the bare core key (#4495)", () => {
+    const bare = scanVbrief("xbrief/x.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "running",
+        items: [],
+        observableChange: { changeKind: "fields-only" },
+      },
+    });
+    expect(bare.some((f) => f.key === "observableChange")).toBe(true);
+
+    const namespaced = scanVbrief("xbrief/y.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "running",
+        items: [],
+        "x-directive/observableChange": { changeKind: "fields-only" },
+      },
+    });
+    expect(namespaced.some((f) => f.key === "x-directive/observableChange")).toBe(false);
+    expect(namespaced.some((f) => f.key === "observableChange")).toBe(false);
+  });
 });
 
 describe("CLI", () => {

@@ -448,6 +448,7 @@ tasks:
       - task: verify:evaluator-surface
         vars:
           CLI_ARGS: "--base-ref origin/master"
+      - verify:observable-scope
       - verify:telemetry-coverage
       - verify:vbrief-conformance
       - verify:destructive-gh-verbs
@@ -510,6 +511,7 @@ tasks:
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
+      - verify:observable-scope
       - vbrief:validate
       - verify-strategy-output
       - verify:consumer-test-lane
@@ -799,6 +801,16 @@ tasks:
       - task: engine:invoke
         vars:
           ENGINE_CMD: 'release-e2e {{.CLI_ARGS}}'
+
+  release:wait-npm:
+    desc: "Phase 7 wait until all four npm siblings list the cut version (#4267) -- task release:wait-npm -- <version>"
+    deps: [ts:build]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'release-wait-npm {{.CLI_ARGS}}'
+
 
   # ------------------------------------------------------------------
   # Triage v1 user-facing alias tasks (#845, #913).

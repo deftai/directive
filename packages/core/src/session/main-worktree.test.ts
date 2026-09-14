@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -8,6 +8,7 @@ import {
   isContendedPrimaryCheckout,
   isLinkedWorktreePath,
   isMainWorktreePath,
+  listLinkedWorktreeCheckouts,
   mainWorktreeRoot,
 } from "./main-worktree.js";
 
@@ -75,5 +76,56 @@ describe("main worktree discriminator (#4066)", () => {
     writeFileSync(join(root, "wt", ".git"), "gitdir: /no-such/.git/worktrees/x\n", "utf8");
     expect(isLinkedWorktreePath(join(root, "wt"))).toBe(true);
     expect(isMainWorktreePath(join(root, "wt"))).toBe(false);
+  });
+  it("lists existing linked checkouts and ignores leftover admin dirs after rm -rf (#4445)", () => {
+    const root = mkdtempSync(join(tmpdir(), "main-wt-leftover-"));
+    temps.push(root);
+    gitInit(root);
+    const linked = join(root, "linked");
+    execFileSync("git", ["worktree", "add", "-q", linked, "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    expect(hasLinkedWorktrees(root)).toBe(true);
+    expect(
+      listLinkedWorktreeCheckouts(root).some(
+        (p) => p.toLowerCase() === linked.toLowerCase() || p === linked,
+      ),
+    ).toBe(true);
+    rmSync(linked, { recursive: true, force: true });
+    expect(hasLinkedWorktrees(root)).toBe(true);
+    expect(listLinkedWorktreeCheckouts(root)).toEqual([]);
+  });
+
+  it("keeps listing other checkouts when one gitdir read fails (#4445)", () => {
+    const root = mkdtempSync(join(tmpdir(), "main-wt-gitdir-fail-"));
+    temps.push(root);
+    gitInit(root);
+    const keep = join(root, "keep");
+    const bad = join(root, "bad");
+    execFileSync("git", ["worktree", "add", "-q", keep, "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    execFileSync("git", ["worktree", "add", "-q", bad, "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    const worktrees = join(root, ".git", "worktrees");
+    const admin = readdirSync(worktrees).find((name) => {
+      const gitdirFile = join(worktrees, name, "gitdir");
+      try {
+        return readFileSync(gitdirFile, "utf8").toLowerCase().includes("bad");
+      } catch {
+        return false;
+      }
+    });
+    expect(admin).toBeDefined();
+    const gitdirFile = join(worktrees, admin ?? "", "gitdir");
+    rmSync(gitdirFile, { force: true });
+    mkdirSync(gitdirFile);
+    const listed = listLinkedWorktreeCheckouts(root).map((p) => p.toLowerCase());
+    expect(listed).toContain(keep.toLowerCase());
+    expect(listed).not.toContain(bad.toLowerCase());
   });
 });
