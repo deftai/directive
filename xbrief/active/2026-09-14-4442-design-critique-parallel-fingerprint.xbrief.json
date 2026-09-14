@@ -233,7 +233,8 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "updated": "2026-09-14T13:29:25Z"
   }
