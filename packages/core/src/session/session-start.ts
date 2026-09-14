@@ -108,7 +108,11 @@ import {
   resolveSessionCompact,
   runOrientationCompression,
 } from "./orientation-compression.js";
-import { clearPersistedSessionPosture, persistTrustedSessionPosture } from "./posture.js";
+import {
+  clearPersistedSessionPosture,
+  persistTrustedSessionPosture,
+  REQUIREMENTS_OVERLAY_CLEAR_FAILED_PREFIX,
+} from "./posture.js";
 import { emitSessionStartProcessCost, formatSessionStartCeremonyCostLine } from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
@@ -290,6 +294,7 @@ export interface SessionStartOptions {
   readonly identityProvenance?: OccupancyIdentityProvenance;
   readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
   readonly persistSessionPosture?: typeof persistTrustedSessionPosture;
+  readonly clearSessionPosture?: typeof clearPersistedSessionPosture;
   readonly releaseOccupancy?: typeof releaseOccupancy;
   readonly runTriageWelcome?: (
     projectRoot: string,
@@ -1008,6 +1013,19 @@ function runReadOnlySessionStart(
   return { code: 0, payload: resultPayload, lines };
 }
 
+function clearRequirementsOverlayAfterReady(
+  projectRoot: string,
+  options: SessionStartOptions,
+): string | null {
+  try {
+    (options.clearSessionPosture ?? clearPersistedSessionPosture)(projectRoot);
+    return null;
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return REQUIREMENTS_OVERLAY_CLEAR_FAILED_PREFIX + ": " + detail;
+  }
+}
+
 function runRequirementsSessionStart(
   projectRoot: string,
   options: SessionStartOptions,
@@ -1310,11 +1328,16 @@ function runSessionRearm(
   const failed = Object.entries(quickSteps)
     .filter(([, step]) => !step.ok && !step.deferred_reason)
     .map(([name]) => name);
-  const code = failed.length > 0 ? 1 : 0;
+  let code = failed.length > 0 ? 1 : 0;
   if (code === 0) {
     // Clear only after mutation readiness. A failed upgrade must not revoke
-    // the occupant's live requirements overlay.
-    clearPersistedSessionPosture(projectRoot);
+    // the occupant's live requirements overlay. A failed clear must not
+    // report ready while the overlay remains.
+    const overlayErr = clearRequirementsOverlayAfterReady(projectRoot, options);
+    if (overlayErr !== null) {
+      code = 2;
+      lines.push(overlayErr);
+    }
   }
 
   // #3117: bind live deposit generation into session context on re-arm (host-agnostic).
@@ -2078,11 +2101,16 @@ export function runSessionStart(
   // verify_tools is recorded on quick_steps; failure makes ready=false.
   // #3282: toolchain preflight degraded mode does NOT flip ready=false by itself —
   // agents still proceed with a named skip report at check time.
-  const code = failed.length > 0 ? 1 : 0;
+  let code = failed.length > 0 ? 1 : 0;
   if (code === 0) {
     // Clear only after mutation readiness. A failed upgrade must not revoke
-    // the occupant's live requirements overlay.
-    clearPersistedSessionPosture(projectRoot);
+    // the occupant's live requirements overlay. A failed clear must not
+    // report ready while the overlay remains.
+    const overlayErr = clearRequirementsOverlayAfterReady(projectRoot, options);
+    if (overlayErr !== null) {
+      code = 2;
+      lines.push(overlayErr);
+    }
   }
   const totalMs = elapsedMs(overallStarted);
 

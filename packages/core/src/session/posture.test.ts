@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -15,6 +15,7 @@ import {
   readPersistedSessionPosture,
   resolveSessionPosture,
   ritualStateIsPostureAuthority,
+  sessionPosturePath,
 } from "./posture.js";
 
 describe("session posture (#2180)", () => {
@@ -152,5 +153,19 @@ describe("trusted session posture file (#4444)", () => {
     persistTrustedSessionPosture(root, "requirements", "owner-a");
     clearPersistedSessionPosture(root);
     expect(readPersistedSessionPosture(root)).toBeNull();
+  });
+  it("treats a missing overlay as already clear", () => {
+    const root = mkdtempSync(join(tmpdir(), "posture-clear-missing-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    expect(() => clearPersistedSessionPosture(root)).not.toThrow();
+    expect(readPersistedSessionPosture(root)).toBeNull();
+  });
+  it("surfaces a real overlay remove failure", () => {
+    const root = mkdtempSync(join(tmpdir(), "posture-clear-fail-"));
+    temps.push(root);
+    mkdirSync(sessionPosturePath(root), { recursive: true });
+    expect(() => clearPersistedSessionPosture(root)).toThrow();
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
   });
 });

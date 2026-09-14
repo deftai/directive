@@ -292,6 +292,31 @@ describe("runSessionStart mutation posture vs persisted requirements (#4444)", (
     expect(existsSync(sessionPosturePath(root))).toBe(false);
   });
 
+  it("failed overlay clear after mutation ready keeps occupant posture", () => {
+    const root = tempRoot();
+    persistTrustedSessionPosture(root, "requirements", "host:test:v1:mutation");
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      sessionId: "host:test:v1:mutation",
+      resolveUserMd: () => userMdResult(),
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      probeEnvironment: () => environment,
+      ceremonyDial: STANDARD_DIAL,
+      applyOccupancy: (_projectRoot, input) => claimedOccupancy(input),
+      runGit: mutationGit(root),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      clearSessionPosture: () => {
+        throw new Error("overlay locked");
+      },
+    });
+    expect(result.code).toBe(2);
+    expect(result.payload.ready).toBe(false);
+    expect(String(result.payload.message)).toBe("session ritual failed");
+    expect(result.lines.join("\n")).toContain("overlay locked");
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
+  });
+
   it("failed mutation ritual write keeps occupant posture", () => {
     const root = tempRoot();
     persistTrustedSessionPosture(root, "requirements", "host:test:v1:mutation");

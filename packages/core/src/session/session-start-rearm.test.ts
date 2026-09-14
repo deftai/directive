@@ -628,6 +628,25 @@ describe("session re-arm vs persisted requirements posture (#4444)", () => {
     expect(existsSync(sessionPosturePath(root))).toBe(false);
   });
 
+  it("failed overlay clear after successful re-arm keeps occupant posture", () => {
+    const root = tempRoot();
+    const head = "cccccccccccccccccccccccccccccccccccccccc";
+    seedRitual(root, { head, startedAt: new Date("2026-07-20T12:00:00Z") });
+    persistTrustedSessionPosture(root, "requirements", sessionId);
+    const result = runSessionStart(
+      root,
+      rearmOptions(root, head, {
+        clearSessionPosture: () => {
+          throw new Error("overlay locked");
+        },
+      }),
+    );
+    expect(result.code).toBe(2);
+    expect(result.payload.ready).toBe(false);
+    expect(result.lines.join("\n")).toContain("overlay locked");
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
+  });
+
   it("keeps occupant posture when re-arm tools fail after ritual write", () => {
     const root = tempRoot();
     const head = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";

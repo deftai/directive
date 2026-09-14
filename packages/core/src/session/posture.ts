@@ -195,12 +195,16 @@ export function persistTrustedSessionPosture(
   return target;
 }
 
+export const REQUIREMENTS_OVERLAY_CLEAR_FAILED_PREFIX =
+  "requirements overlay clear failed; mutation start is not ready";
+
+/**
+ * Remove `.deft/session-posture.json`. Missing is already-clear (containedRemove
+ * no-ops ENOENT). Any other containedRemove failure must surface so mutation
+ * start cannot report ready with a live overlay.
+ */
 export function clearPersistedSessionPosture(projectRoot: string): void {
-  try {
-    containedRemove({ root: resolve(projectRoot), target: sessionPosturePath(projectRoot) });
-  } catch {
-    // already clear
-  }
+  containedRemove({ root: resolve(projectRoot), target: sessionPosturePath(projectRoot) });
 }
 
 export function readPersistedSessionPosture(projectRoot: string): string | null {
