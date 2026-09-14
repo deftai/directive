@@ -1,18 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4386,
+  "issue": 4267,
   "surfaces": [
     "Taskfile.yml",
-    "tasks/verify.yml",
-    "packages/core/src/check/gate-lists.ts",
-    "packages/core/src/consumer-check-contract/evaluate.ts",
-    "packages/core/src/evaluator-surface/**",
-    "packages/core/src/consumer-test-lane/**",
-    "packages/cli/src/verify-evaluator-surface.ts",
-    "packages/cli/src/verify-consumer-test-lane.ts",
-    "xbrief/evaluator-surface-disposition.json",
-    "vitest.config.ts"
+    "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure of evaluator-surface wiring for #4386, including bounded process-tree spawn for the declared consumer test lane. Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record."
+  "note": "Disclosure of Taskfile.yml Phase 7 task release:wait-npm (#4267). Not reviewed authorization under #3164. A commit-body issue/PR URL is not this record. A leftover #4386 record does not cover later evaluator-surface changes."
 }

@@ -90,6 +90,7 @@
           "packages/cli/src/dispatch.ts",
           "packages/cli/src/orchestration-cli/release-cli.test.ts",
           "Taskfile.yml",
+          "xbrief/evaluator-surface-disposition.json",
           "CHANGELOG.md",
           "content/skills/deft-directive-release/SKILL.md",
           "content/packs/skills/skills-pack-0.1.json",
