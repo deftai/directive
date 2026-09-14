@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3928. Bound contract is successor lean 5669603759 + synthesis 5669809576 + verified-claims 5669803327.",
-    "updated": "2026-09-14T20:20:00Z"
+    "updated": "2026-09-14T23:20:00Z"
   },
   "plan": {
     "id": "3928-tool-turn-denominator",
@@ -17,23 +17,47 @@
     "items": [
       {
         "title": "Singleton tool_turn_denominator at session start with denominator_source",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/run-summary/run-summary.test.ts#emits one sourced tool_turn_denominator per session_id",
+          "recorded_at": "2026-09-14T23:20:00Z",
+          "recorded_by": "leaf-implementation/3928"
+        }
       },
       {
         "title": "Remove emitKnown second event and check-time emit of this kind",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/run-summary/run-summary.test.ts#forwards emitKnownToolTurnDenominator to the session singleton",
+          "recorded_at": "2026-09-14T23:20:00Z",
+          "recorded_by": "leaf-implementation/3928"
+        }
       },
       {
         "title": "Extend #3362 fixture to cardinality and sourced share",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/telemetry-coverage/evaluate.test.ts#is clean against this checkout",
+          "recorded_at": "2026-09-14T23:20:00Z",
+          "recorded_by": "leaf-implementation/3928"
+        }
       },
       {
         "title": "CHANGELOG [Unreleased] #3928",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md#[Unreleased] One sourced tool_turn_denominator per session_id (#3928)",
+          "recorded_at": "2026-09-14T23:20:00Z",
+          "recorded_by": "leaf-implementation/3928"
+        }
       }
     ],
     "tags": [
@@ -80,7 +104,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-09-14T20:20:00Z",
+    "updated": "2026-09-14T23:20:00Z",
     "metadata": {
       "kind": "story",
       "swarm": {
