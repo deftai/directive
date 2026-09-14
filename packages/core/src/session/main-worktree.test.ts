@@ -8,6 +8,7 @@ import {
   isContendedPrimaryCheckout,
   isLinkedWorktreePath,
   isMainWorktreePath,
+  listLinkedWorktreeCheckouts,
   mainWorktreeRoot,
 } from "./main-worktree.js";
 
@@ -75,5 +76,24 @@ describe("main worktree discriminator (#4066)", () => {
     writeFileSync(join(root, "wt", ".git"), "gitdir: /no-such/.git/worktrees/x\n", "utf8");
     expect(isLinkedWorktreePath(join(root, "wt"))).toBe(true);
     expect(isMainWorktreePath(join(root, "wt"))).toBe(false);
+  });
+  it("lists existing linked checkouts and ignores leftover admin dirs after rm -rf (#4445)", () => {
+    const root = mkdtempSync(join(tmpdir(), "main-wt-leftover-"));
+    temps.push(root);
+    gitInit(root);
+    const linked = join(root, "linked");
+    execFileSync("git", ["worktree", "add", "-q", linked, "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+    expect(hasLinkedWorktrees(root)).toBe(true);
+    expect(
+      listLinkedWorktreeCheckouts(root).some(
+        (p) => p.toLowerCase() === linked.toLowerCase() || p === linked,
+      ),
+    ).toBe(true);
+    rmSync(linked, { recursive: true, force: true });
+    expect(hasLinkedWorktrees(root)).toBe(true);
+    expect(listLinkedWorktreeCheckouts(root)).toEqual([]);
   });
 });

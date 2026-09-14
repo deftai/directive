@@ -975,7 +975,11 @@ describe("worktree occupancy lease (#3433)", () => {
     const root = ownedRitualRepo("owner", new Date());
     const linked = join(root, "wt");
     git(root, ["worktree", "add", "-q", linked, "HEAD"]);
-    const denied = applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
+    const now = new Date("2026-09-14T12:00:00Z");
+    expect(
+      applyWorktreeOccupancy(linked, { sessionId: "peer", now, intent: "mutation" }).action,
+    ).toBe("claimed");
+    const denied = applyWorktreeOccupancy(root, { sessionId: "owner", now, intent: "mutation" });
     expect(denied.action).toBe("denied");
     expect(denied.message).toContain("primary checkout");
     expect(denied.message).toContain("Use another worktree");
@@ -2695,5 +2699,117 @@ describe("child occupancy terminal release (#3999)", () => {
     expect(childOccupancyIdentitySourceKind("codex")).toBe("payload");
     expect(childOccupancyIdentitySourceKind("cursor")).toBe("payload");
     expect(childOccupancyIdentitySourceKind("unknown")).toBeNull();
+  });
+});
+
+describe("live sibling-lease discriminator (#4445)", () => {
+  function gitRepo(): string {
+    const root = mkdtempSync(join(tmpdir(), "occ-4445-"));
+    temps.push(root);
+    git(root, ["init", "-q"]);
+    git(root, ["config", "user.email", "t@t.local"]);
+    git(root, ["config", "user.name", "T"]);
+    writeFileSync(join(root, "README"), "x\n", "utf8");
+    git(root, ["add", "README"]);
+    git(root, ["commit", "-q", "-m", "init"]);
+    return root;
+  }
+
+  function addLinked(root: string, name = "linked"): string {
+    const linked = join(root, name);
+    git(root, ["worktree", "add", "-q", linked, "HEAD"]);
+    return linked;
+  }
+
+  it("lets the primary claim when a linked worktree has no live lease", () => {
+    const root = gitRepo();
+    addLinked(root);
+    const now = new Date("2026-09-14T12:00:00Z");
+    const claimed = applyWorktreeOccupancy(root, { sessionId: "solo", now, intent: "mutation" });
+    expect(claimed.code).toBe(0);
+    expect(claimed.action).toBe("claimed");
+    expect(readOccupancy(root)?.sessionId).toBe("solo");
+  });
+
+  it("lets the primary claim when leftover worktree admin dirs remain after rm -rf", () => {
+    const root = gitRepo();
+    const linked = addLinked(root);
+    rmSync(linked, { recursive: true, force: true });
+    const now = new Date("2026-09-14T12:00:00Z");
+    const claimed = applyWorktreeOccupancy(root, { sessionId: "solo", now, intent: "mutation" });
+    expect(claimed.code).toBe(0);
+    expect(claimed.action).toBe("claimed");
+  });
+
+  it("refuses the primary when a sibling holds a live lease and prints the runnable exception", () => {
+    const root = gitRepo();
+    const linked = addLinked(root);
+    const now = new Date("2026-09-14T12:00:00Z");
+    expect(
+      applyWorktreeOccupancy(linked, { sessionId: "peer", now, intent: "mutation" }).code,
+    ).toBe(0);
+    const denied = applyWorktreeOccupancy(root, { sessionId: "solo", now, intent: "mutation" });
+    expect(denied.code).toBe(1);
+    expect(denied.action).toBe("denied");
+    expect(denied.message).toContain(
+      "deft session:start --primary-claim-exception=operator-default-branch",
+    );
+  });
+
+  it("still claims the primary with the trusted argv exception while a sibling is live", () => {
+    const root = gitRepo();
+    const linked = addLinked(root);
+    const now = new Date("2026-09-14T12:00:00Z");
+    applyWorktreeOccupancy(linked, { sessionId: "peer", now, intent: "mutation" });
+    const claimed = applyWorktreeOccupancy(root, {
+      sessionId: "solo",
+      now,
+      intent: "mutation",
+      primaryClaimException: "operator-default-branch",
+    });
+    expect(claimed.code).toBe(0);
+    expect(claimed.action).toBe("claimed");
+  });
+
+  it("lets the primary claim after the sibling lease expires", () => {
+    const root = gitRepo();
+    const linked = addLinked(root);
+    const claimedAt = new Date("2026-09-14T12:00:00Z");
+    applyWorktreeOccupancy(linked, { sessionId: "peer", now: claimedAt, intent: "mutation" });
+    const later = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1000);
+    const claimed = applyWorktreeOccupancy(root, {
+      sessionId: "solo",
+      now: later,
+      intent: "mutation",
+    });
+    expect(claimed.code).toBe(0);
+    expect(claimed.action).toBe("claimed");
+  });
+
+  it("still refuses a second live session on the same primary", () => {
+    const root = gitRepo();
+    const now = new Date("2026-09-14T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now, intent: "mutation" });
+    const denied = applyWorktreeOccupancy(root, { sessionId: "other", now, intent: "mutation" });
+    expect(denied.code).toBe(1);
+    expect(denied.action).toBe("denied");
+  });
+
+  it("refuses steal on a contended primary without the trusted exception", () => {
+    const root = gitRepo();
+    const linked = addLinked(root);
+    const now = new Date("2026-09-14T12:00:00Z");
+    applyWorktreeOccupancy(linked, { sessionId: "peer", now, intent: "mutation" });
+    const denied = stealOccupancy(root, {
+      sessionId: "solo",
+      now,
+      steal: true,
+      confirm: true,
+      occupant: "nobody",
+    });
+    expect(denied.code).toBe(1);
+    expect(denied.message).toContain(
+      "deft session:start --primary-claim-exception=operator-default-branch",
+    );
   });
 });

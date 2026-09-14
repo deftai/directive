@@ -7,7 +7,7 @@
  * `.git` directory.
  */
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
 
@@ -49,9 +49,11 @@ export function mainWorktreeRoot(
 }
 
 /**
- * True when this repo already has at least one linked worktree. A standalone
- * clone (consumer session:start, test fixture) is a main worktree but is not
- * the contended primary of a spawn family.
+ * True when this repo already has at least one linked worktree admin dir.
+ * A standalone clone (consumer session:start, test fixture) is a main worktree
+ * but is not the contended primary of a spawn family. Occupancy claim does not
+ * use this: leftover admin dirs after rm -rf until prune are history, not peers
+ * (#4445).
  */
 export function hasLinkedWorktrees(
   projectRoot: string,
@@ -68,7 +70,43 @@ export function hasLinkedWorktrees(
   }
 }
 
-/** Main clone of a repo that already has linked worktrees. */
+/**
+ * Checkout paths of linked worktrees whose trees still exist (#4445).
+ * Leftover GIT_COMMON_DIR/worktrees admin dirs after rm -rf (until prune)
+ * do not appear here.
+ */
+export function listLinkedWorktreeCheckouts(
+  projectRoot: string,
+  runGit: GitRunner = defaultGitRunner,
+): string[] {
+  const common = gitCommonDir(projectRoot, runGit);
+  if (common === null) return [];
+  const dir = join(common, "worktrees");
+  try {
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) return [];
+    const out: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const gitdirFile = join(dir, entry.name, "gitdir");
+      if (!existsSync(gitdirFile)) continue;
+      const raw = (
+        readFileSync(gitdirFile, { encoding: "utf8" }).trim().split("\n")[0] ?? ""
+      ).replace("\r", "");
+      if (raw.length === 0) continue;
+      const checkout = dirname(raw);
+      if (!existsSync(checkout)) continue;
+      out.push(resolve(checkout));
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Main clone of a repo that already has linked worktree admin dirs.
+ * Occupancy claim uses live sibling leases instead of this predicate (#4445).
+ */
 export function isContendedPrimaryCheckout(
   projectRoot: string,
   runGit: GitRunner = defaultGitRunner,
