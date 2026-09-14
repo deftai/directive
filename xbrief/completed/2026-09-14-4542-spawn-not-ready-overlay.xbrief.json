@@ -107,7 +107,8 @@
         "file_scope": [
           "packages/core/src/hooks/dispatcher.ts",
           "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/hooks/dispatcher.test.ts"
         ],
         "verify_commands": []
       },
