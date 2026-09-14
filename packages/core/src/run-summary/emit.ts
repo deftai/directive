@@ -174,15 +174,26 @@ function seedSeqFromDestination(destination: RunSummaryDestination): number {
   return countExistingJsonlLines(destination.path);
 }
 
-/** True when this session_id already has a tool_turn_denominator line (#3928). */
-function jsonlHasToolTurnDenominatorForSession(path: string, sessionId: string): boolean {
+function payloadHasDenominatorSource(payload: RunSummaryPayload): boolean {
+  return (
+    "denominator_source" in payload &&
+    (payload.denominator_source === "harness_actual" ||
+      payload.denominator_source === "host_planned")
+  );
+}
+
+/** True when this session_id already has a sourced tool_turn_denominator (#3928). */
+function jsonlHasSourcedToolTurnDenominatorForSession(path: string, sessionId: string): boolean {
   try {
     if (!existsSync(path)) {
       return false;
     }
     const lines = parseRunSummaryJsonl(readFileSync(path, "utf8"));
     return lines.some(
-      (line) => line.event === "tool_turn_denominator" && line.session_id === sessionId,
+      (line) =>
+        line.event === "tool_turn_denominator" &&
+        line.session_id === sessionId &&
+        payloadHasDenominatorSource(line.payload),
     );
   } catch {
     return false;
@@ -194,10 +205,11 @@ function isSourcedToolTurnDenominator(
 ): payload is ToolTurnDenominatorRunSummaryPayload & {
   readonly denominator_source: ToolTurnDenominatorSource;
 } {
-  return (
-    payload.denominator_source === "harness_actual" || payload.denominator_source === "host_planned"
-  );
+  return payloadHasDenominatorSource(payload);
 }
+
+/** Stdout has no JSONL to reread; key the singleton by session_id (#3928). */
+const stdoutToolTurnDenominatorSessions = new Set<string>();
 
 const SEQ_LOCK_WAIT_MS = 2_000;
 const SEQ_LOCK_SPIN_MS = 15;
@@ -287,14 +299,23 @@ export function releaseSeqLockIfOwner(lockPath: string, owner: SeqLockOwner): bo
 
 /**
  * Cross-process exclusive lock so count-then-append is one critical section
- * (#3350 / #3361). Fail-open: if the lock cannot be acquired within the wait
- * window, emit still proceeds with a best-effort recount. Reclaim is allowed
- * only when the owner process is dead or the token is unknown — never by
- * mtime of a live holder.
+ * (#3350 / #3361). Fail-open for ordinary events: if the lock cannot be
+ * acquired within the wait window, emit still proceeds with a best-effort
+ * recount. `tool_turn_denominator` skips the write when `held` is false
+ * (#3928). Reclaim is allowed only when the owner process is dead or the
+ * token is unknown — never by mtime of a live holder.
  */
-function acquireSeqLock(targetPath: string): () => void {
-  const noop = () => {
-    /* fail-open: no lock held */
+interface SeqLockAcquisition {
+  readonly release: () => void;
+  readonly held: boolean;
+}
+
+function acquireSeqLock(targetPath: string): SeqLockAcquisition {
+  const unheld: SeqLockAcquisition = {
+    release: () => {
+      /* fail-open: no lock held */
+    },
+    held: false,
   };
   try {
     const targetAbs = resolve(targetPath);
@@ -311,8 +332,11 @@ function acquireSeqLock(targetPath: string): () => void {
           data: serializeSeqLockOwner(owner),
           mode: "create",
         });
-        return () => {
-          releaseSeqLockIfOwner(lockPath, owner);
+        return {
+          release: () => {
+            releaseSeqLockIfOwner(lockPath, owner);
+          },
+          held: true,
         };
       } catch (err) {
         if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
@@ -327,11 +351,11 @@ function acquireSeqLock(targetPath: string): () => void {
             continue;
           }
         }
-        return noop;
+        return unheld;
       }
     }
   } catch {
-    return noop;
+    return unheld;
   }
 }
 
@@ -344,7 +368,6 @@ function acquireSeqLock(targetPath: string): () => void {
 export class RunSummaryEmitter {
   private seq = 0;
   private warned = false;
-  private emittedToolTurnDenominator = false;
   private readonly projectRoot: string;
   private readonly sessionId: string;
   private readonly component?: string;
@@ -403,15 +426,22 @@ export class RunSummaryEmitter {
         return { emitted: false, destination: this.destination, line: null, warning: false };
       }
 
+      if (event === "tool_turn_denominator" && !payloadHasDenominatorSource(payload)) {
+        return { emitted: false, destination: this.destination, line: null, warning: false };
+      }
+
       if (this.destination.kind === "stdout") {
-        if (event === "tool_turn_denominator" && this.emittedToolTurnDenominator) {
+        if (
+          event === "tool_turn_denominator" &&
+          stdoutToolTurnDenominatorSessions.has(this.sessionId)
+        ) {
           return { emitted: false, destination: this.destination, line: null, warning: false };
         }
         this.seq += 1;
         const line = this.buildLine(event, payload);
         this.writeStdout(`${RUN_SUMMARY_STDOUT_PREFIX}${lineToJson(line)}`);
         if (event === "tool_turn_denominator") {
-          this.emittedToolTurnDenominator = true;
+          stdoutToolTurnDenominatorSessions.add(this.sessionId);
         }
         return { emitted: true, destination: this.destination, line, warning: false };
       }
@@ -419,14 +449,16 @@ export class RunSummaryEmitter {
       // file destination — lock count-then-append so concurrent CLI processes
       // cannot share the same next seq (#3350 Greptile P1).
       const { path, truncateOnSessionStart, explicit } = this.destination;
-      const release = acquireSeqLock(path);
+      const { release, held } = acquireSeqLock(path);
       try {
         const replace = event === "session_start" && truncateOnSessionStart;
-        if (
-          event === "tool_turn_denominator" &&
-          jsonlHasToolTurnDenominatorForSession(path, this.sessionId)
-        ) {
-          return { emitted: false, destination: this.destination, line: null, warning: false };
+        if (event === "tool_turn_denominator") {
+          if (!held) {
+            return { emitted: false, destination: this.destination, line: null, warning: false };
+          }
+          if (jsonlHasSourcedToolTurnDenominatorForSession(path, this.sessionId)) {
+            return { emitted: false, destination: this.destination, line: null, warning: false };
+          }
         }
         this.seq = replace ? 1 : countExistingJsonlLines(path) + 1;
         const line = this.buildLine(event, payload);
@@ -436,9 +468,6 @@ export class RunSummaryEmitter {
           lineToJson(line),
           replace ? "replace" : "append",
         );
-        if (event === "tool_turn_denominator") {
-          this.emittedToolTurnDenominator = true;
-        }
         return { emitted: true, destination: this.destination, line, warning: false };
       } catch {
         // Symlink / containment refusal and I/O both fail-open.
@@ -509,6 +538,14 @@ export class RunSummaryEmitter {
       return { emitted: false, destination: this.destination, line: null, warning: false };
     }
     return this.emitToolTurnDenominator(resolved);
+  }
+
+  /**
+   * @deprecated Use emitSessionToolTurnDenominator. Forwards to the session
+   * singleton; a second call for the same session_id is a no-op (#3928).
+   */
+  emitKnownToolTurnDenominator(): EmitRunSummaryResult {
+    return this.emitSessionToolTurnDenominator();
   }
 }
 

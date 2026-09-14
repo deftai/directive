@@ -14,7 +14,11 @@ export const EVENT_KIND_TO_EMITTER_METHODS: Readonly<
   dial_transition: ["emitDialTransition"],
   dial_escalation_evaluation: ["emitDialEscalationEvaluation"],
   check_invocation: ["emitCheckInvocation"],
-  tool_turn_denominator: ["emitToolTurnDenominator", "emitSessionToolTurnDenominator"],
+  tool_turn_denominator: [
+    "emitToolTurnDenominator",
+    "emitSessionToolTurnDenominator",
+    "emitKnownToolTurnDenominator",
+  ],
   verification: ["emitVerification"],
   acceptance: ["emitAcceptance"],
   acceptance_stamp: ["emitAcceptanceStamp"],

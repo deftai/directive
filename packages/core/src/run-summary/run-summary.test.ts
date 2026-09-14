@@ -513,6 +513,141 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(denoms.every((line) => line.payload.denominator_source === "harness_actual")).toBe(true);
   });
 
+  it("refuses unsourced tool_turn_denominator via generic emit (#3928)", () => {
+    const root = freshRoot("run-summary-generic-unsourced-");
+    const out = join(root, "summary.jsonl");
+    const unsourced = { total_tool_turns: 12 } as {
+      total_tool_turns: number;
+      denominator_source: "harness_actual";
+    };
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-generic-unsourced",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    expect(emitter.emit("tool_turn_denominator", unsourced).emitted).toBe(false);
+    expect(
+      emitRunSummaryEvent({
+        projectRoot: root,
+        sessionId: "sess-generic-unsourced",
+        frameworkVersion: "0.0.0",
+        env: { [ENV_RUN_SUMMARY_PATH]: out },
+        event: "tool_turn_denominator",
+        payload: unsourced,
+      }).emitted,
+    ).toBe(false);
+    expect(existsSync(out)).toBe(false);
+  });
+
+  it("emits one stdout tool_turn_denominator per session_id across emitters (#3928)", () => {
+    const root = freshRoot("run-summary-stdout-singleton-");
+    const firstOut: string[] = [];
+    const first = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-stdout-dup",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: "-" },
+      writeStdout: (line) => firstOut.push(line),
+    });
+    expect(
+      first.emitToolTurnDenominator({
+        total_tool_turns: 8,
+        denominator_source: "harness_actual",
+      }).emitted,
+    ).toBe(true);
+    const secondOut: string[] = [];
+    const second = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-stdout-dup",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: "-" },
+      writeStdout: (line) => secondOut.push(line),
+    });
+    expect(
+      second.emitToolTurnDenominator({
+        total_tool_turns: 8,
+        denominator_source: "harness_actual",
+      }).emitted,
+    ).toBe(false);
+    expect(firstOut).toHaveLength(1);
+    expect(secondOut).toHaveLength(0);
+  });
+
+  it("forwards emitKnownToolTurnDenominator to the session singleton (#3928)", () => {
+    const root = freshRoot("run-summary-known-forward-");
+    const out = join(root, "summary.jsonl");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-known",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out, [ENV_TOTAL_TOOL_TURNS]: "9" },
+    });
+    expect(emitter.emitKnownToolTurnDenominator().emitted).toBe(true);
+    expect(emitter.emitKnownToolTurnDenominator().emitted).toBe(false);
+    expect(emitter.emitSessionToolTurnDenominator().emitted).toBe(false);
+    const denoms = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .filter((l) => l.length > 0);
+    expect(denoms).toHaveLength(1);
+  });
+
+  it("emits a sourced tool_turn_denominator after a leftover unsourced row (#3928)", () => {
+    const root = freshRoot("run-summary-unsourced-upgrade-");
+    const out = join(root, "summary.jsonl");
+    writeFileSync(
+      out,
+      `${JSON.stringify({
+        schema_version: 1,
+        session_id: "sess-upgrade",
+        framework_version: "0.0.0",
+        seq: 1,
+        ts: "2026-01-01T00:00:00.000Z",
+        event: "tool_turn_denominator",
+        payload: { total_tool_turns: 12 },
+        total_tool_turns: 12,
+      })}\n`,
+      "utf8",
+    );
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-upgrade",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out, [ENV_TOTAL_TOOL_TURNS]: "12" },
+    });
+    expect(emitter.emitSessionToolTurnDenominator().emitted).toBe(true);
+    const denoms = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { event: string; payload: { denominator_source?: string } })
+      .filter((line) => line.event === "tool_turn_denominator");
+    expect(denoms).toHaveLength(2);
+    expect(denoms[0]?.payload.denominator_source).toBeUndefined();
+    expect(denoms[1]?.payload.denominator_source).toBe("harness_actual");
+  });
+
+  it("skips tool_turn_denominator when the seq lock is not held (#3928)", () => {
+    const root = freshRoot("run-summary-denom-lock-skip-");
+    const out = join(root, "summary.jsonl");
+    const lock = `${out}.seq.lock`;
+    writeFileSync(
+      lock,
+      `${JSON.stringify({ pid: process.pid, nonce: "live-denom-holder" })}\n`,
+      "utf8",
+    );
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-lock-skip",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out, [ENV_TOTAL_TOOL_TURNS]: "12" },
+    });
+    const result = emitter.emitSessionToolTurnDenominator();
+    expect(result.emitted).toBe(false);
+    expect(existsSync(out)).toBe(false);
+    expect(existsSync(lock)).toBe(true);
+  });
+
   it("refuses an unsourced tool_turn_denominator payload (#3928)", () => {
     const root = freshRoot("run-summary-unsourced-");
     const out = join(root, "summary.jsonl");
