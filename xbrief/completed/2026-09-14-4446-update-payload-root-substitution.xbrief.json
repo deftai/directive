@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4446 from successor lean 5650414391 (ingest refused missing-pain on Stop 1 5650304081).",
-    "updated": "2026-09-14T18:01:16Z"
+    "updated": "2026-09-14T18:11:24.628Z"
   },
   "plan": {
     "title": "feat(update): record-mode payload-root substitution so dest plans match apply",
@@ -20,8 +20,8 @@
         "effort": "M",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#swap-path-payload-root",
-          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
           "recorded_by": "leaf-implementation/4446"
         }
       },
@@ -31,8 +31,8 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#payload-root-helper",
-          "recorded_at": "2026-09-14T18:01:04.420Z",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
           "recorded_by": "leaf-implementation/4446"
         }
       },
@@ -42,8 +42,8 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#missing-malformed-template",
-          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
           "recorded_by": "leaf-implementation/4446"
         }
       },
@@ -53,8 +53,8 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts#dirty-tree-refuse",
-          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
           "recorded_by": "leaf-implementation/4446"
         }
       },
@@ -64,8 +64,8 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/init-deposit/refresh.ts#record-mode-dest-C3-skip",
-          "recorded_at": "2026-09-14T18:01:04.420Z",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
           "recorded_by": "leaf-implementation/4446"
         }
       },
@@ -76,7 +76,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
-          "recorded_at": "2026-09-14T18:00:29.151Z",
+          "recorded_at": "2026-09-14T18:11:24.628Z",
           "recorded_by": "leaf-implementation/4446"
         }
       }
