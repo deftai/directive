@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4446 from successor lean 5650414391 (ingest refused missing-pain on Stop 1 5650304081).",
-    "updated": "2026-09-14T13:34:04Z"
+    "updated": "2026-09-14T14:01:59.166Z"
   },
   "plan": {
     "title": "feat(update): record-mode payload-root substitution so dest plans match apply",
@@ -98,14 +98,14 @@
         {
           "id": 2,
           "text": "Dry-run and live agree on exit code and error class when the pre-swap dest template is absent or malformed and the incoming template is good.",
-          "artifact_path": "packages/core/src/init-deposit/refresh.test.ts",
+          "artifact_path": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "A changed agents-entry template plus a destination-only payload member appears in the dry-run dest plan the same way live apply mutates them; dry-run writes no dest bytes.",
-          "artifact_path": "packages/core/src/init-deposit/refresh.test.ts",
+          "artifact_path": "packages/core/src/init-deposit/record-mode-payload-root.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -116,7 +116,8 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "updated": "2026-09-14T13:34:04Z"
   }
