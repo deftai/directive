@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Complete tracking for #4495.** After PR 4505. Records post-merge lifecycle completion without reopening or recutting the issue. Refs #2321, #3476.
 - **Design-critique Dual stop no longer treats the merged parallel map as a comparable fingerprint (#4442).** A parallel round has no early-halt path and runs to the operator-gated cap. That excludes only the same-fingerprint halt; dispatch-fail and failure/budget halt still apply. Sequential same-fingerprint halt selects the first heading-id (else first still-open heading/id in map order) plus a material-delta on that primary take. Marker clearance still has no verdict field. Closes #4442.
 - **Primary mutation claims look at live sibling occupancy, not leftover worktree admin dirs (#4445).** A solo operator whose repo still has GIT_COMMON_DIR/worktrees residue after rm -rf can claim the primary without a worktree. A live sibling lease still refuses. Refusal prints `deft session:start --primary-claim-exception=operator-default-branch`. No topology policy field. Closes #4445.
 
