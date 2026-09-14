@@ -383,6 +383,7 @@ export type PainListScan = {
   readonly present: boolean;
   readonly ids: readonly string[];
   readonly duplicates: readonly string[];
+  readonly malformed: boolean;
 };
 
 export type PainCiteScan = {
@@ -395,7 +396,6 @@ export type PainCiteScan = {
 
 const PAIN_ID_TOKEN = "P\\d{1,8}";
 const PAIN_FIELD_RE = /(?:^|\n)[ \t]*\*{0,2}pain:\*{0,2}/gi;
-const PAIN_ID_CAPTURE_RE = new RegExp(`\\b(${PAIN_ID_TOKEN})\\b`, "g");
 const LIST_ITEM_RE = /^[ \t]*(?:[-*]|\d+\.)[ \t]+/;
 const FIELD_LINE_RE = /^[ \t]*\*{0,2}[A-Za-z][A-Za-z0-9._-]*:\*{0,2}/;
 const PAIN_CITE_RE = new RegExp(
@@ -404,25 +404,31 @@ const PAIN_CITE_RE = new RegExp(
   "gi",
 );
 
-function collectPainIds(text: string): string[] {
-  const ids: string[] = [];
-  const re = new RegExp(PAIN_ID_CAPTURE_RE.source, "g");
-  for (const match of text.matchAll(re)) {
-    const id = match[1];
-    if (id !== undefined) ids.push(id);
-  }
-  return ids;
-}
-
 function fieldTokenOffset(match: RegExpMatchArray, token: string): number {
   const matchOffset = match.index ?? 0;
   const inner = match[0].search(token);
   return matchOffset + (inner >= 0 ? inner : 0);
 }
 
-function collectFollowingListIds(body: string, afterLineEnd: number): string[] {
+function parseClosedPainIds(text: string): { ids: string[]; malformed: boolean } {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return { ids: [], malformed: false };
+  const ids: string[] = [];
+  for (const part of trimmed.split(/\s*,\s*/)) {
+    const piece = part.trim();
+    if (!/^P\d{1,8}$/.test(piece)) return { ids: [], malformed: true };
+    ids.push(piece);
+  }
+  return { ids, malformed: false };
+}
+
+function collectFollowingListIds(
+  body: string,
+  afterLineEnd: number,
+): { ids: string[]; malformed: boolean } {
   const ids: string[] = [];
   let cursor = afterLineEnd + 1;
+  let malformed = false;
   while (cursor < body.length) {
     const { start, end } = lineBounds(body, cursor);
     const line = body.slice(start, end);
@@ -430,11 +436,14 @@ function collectFollowingListIds(body: string, afterLineEnd: number): string[] {
     if (FIELD_LINE_RE.test(line) && !LIST_ITEM_RE.test(line)) break;
     if (!LIST_ITEM_RE.test(line)) break;
     if (classifyPosition(body, start) === null) {
-      ids.push(...collectPainIds(line));
+      const item = line.trim().replace(/^(?:[-*]|\d+\.)\s+/, "");
+      const parsed = parseClosedPainIds(item);
+      if (parsed.malformed) malformed = true;
+      ids.push(...parsed.ids);
     }
     cursor = end + 1;
   }
-  return ids;
+  return { ids, malformed };
 }
 
 /**
@@ -446,6 +455,7 @@ export function scanPainList(body: string): PainListScan {
   const seen = new Set<string>();
   const duplicates: string[] = [];
   let present = false;
+  let malformed = false;
   const re = new RegExp(PAIN_FIELD_RE.source, "gi");
   for (const match of body.matchAll(re)) {
     const offset = fieldTokenOffset(match, "pain:");
@@ -453,11 +463,10 @@ export function scanPainList(body: string): PainListScan {
     present = true;
     const { end } = lineBounds(body, offset);
     const sameLine = body.slice(offset + "pain:".length, end);
-    const chunkIds =
-      collectPainIds(sameLine).length > 0
-        ? collectPainIds(sameLine)
-        : collectFollowingListIds(body, end);
-    for (const id of chunkIds) {
+    const parsedSame = parseClosedPainIds(sameLine);
+    const chunk = sameLine.trim().length > 0 ? parsedSame : collectFollowingListIds(body, end);
+    if (chunk.malformed) malformed = true;
+    for (const id of chunk.ids) {
       if (seen.has(id)) {
         if (!duplicates.includes(id)) duplicates.push(id);
         continue;
@@ -466,7 +475,7 @@ export function scanPainList(body: string): PainListScan {
       ordered.push(id);
     }
   }
-  return { present, ids: ordered, duplicates };
+  return { present, ids: ordered, duplicates, malformed };
 }
 
 /**

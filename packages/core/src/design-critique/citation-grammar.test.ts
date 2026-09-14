@@ -386,7 +386,13 @@ describe("scanPainList / scanPainCites (#4496)", () => {
       present: true,
       ids: ["P1"],
       duplicates: ["P1"],
+      malformed: false,
     });
+  });
+
+  it("rejects prose around a pain id as malformed", () => {
+    expect(scanPainList("pain: prose P1").malformed).toBe(true);
+    expect(scanPainList("pain: P1 extra").malformed).toBe(true);
   });
 
   it("ignores fence, quote, strike, and inline-code", () => {

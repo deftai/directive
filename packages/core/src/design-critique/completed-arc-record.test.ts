@@ -1308,6 +1308,16 @@ describe("pain coverage (#4496)", () => {
         issueNumber: 4496,
         comments: [warrant, covered, table, synthesis],
       }),
+    ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+    const critic: ThreadComment = {
+      id: LEAN_ID + 1,
+      body: "role: critic\n\naudit-targets: pain-P1 pain-P2\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        issueNumber: 4496,
+        comments: [warrant, covered, table, critic, synthesis],
+      }),
     ).toMatchObject({
       status: "complete",
       citedLeanId: LEAN_ID,
@@ -1361,8 +1371,18 @@ describe("pain coverage (#4496)", () => {
       }),
     ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
 
-    const critic: ThreadComment = {
+    const staleCritic: ThreadComment = {
       id: CRITIC_ID,
+      body: "role: critic\n\naudit-targets: pain-P1\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        issueNumber: 4496,
+        comments: [warrant, deferredOther, table, staleCritic, synthesis],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unresolved-pain-audit" });
+    const critic: ThreadComment = {
+      id: LEAN_ID + 1,
       body: "role: critic\n\naudit-targets: pain-P1\n",
     };
     expect(
@@ -1430,10 +1450,25 @@ describe("pain coverage (#4496)", () => {
       id: LEAN_ID,
       body: "**Lean:** relieves the new denominator.\n\nrelieves: P2\n",
     };
+    const critic: ThreadComment = {
+      id: LEAN_ID + 1,
+      body: "role: critic\n\naudit-targets: pain-P2\n",
+    };
     expect(
       evaluateCompletedArcRecord({
-        comments: [oldWarrant, newWarrant, covered, table, synthesis],
+        comments: [oldWarrant, newWarrant, covered, table, critic, synthesis],
       }),
     ).toMatchObject({ status: "complete" });
+  });
+
+  it("refuses a malformed pain: prose line", () => {
+    const warrant = stop1(
+      "role: parent\n\ndesign-critique: warranted, because x.\n\npain: prose P1\n",
+    );
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [warrant, leftoverLean, table4378, synthesis4378],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "malformed-pain" });
   });
 });

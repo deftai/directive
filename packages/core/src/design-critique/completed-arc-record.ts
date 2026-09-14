@@ -332,9 +332,13 @@ function latestStop1(comments: readonly ThreadComment[]): ThreadComment | undefi
   return latest;
 }
 
-function criticEnvelopes(comments: readonly ThreadComment[]): AuditEnvelope[] {
+function criticEnvelopes(
+  comments: readonly ThreadComment[],
+  afterCommentId: number,
+): AuditEnvelope[] {
   const envelopes: AuditEnvelope[] = [];
   for (const comment of comments) {
+    if (comment.id <= afterCommentId) continue;
     if (!CRITIC_ROLE_RE.test(comment.body)) continue;
     const envelope = extractOperativeAuditTargets(comment.body);
     if (envelope !== null) envelopes.push(envelope);
@@ -351,6 +355,17 @@ function applyPainCoverage(
   const stop1 = latestStop1(comments);
   if (stop1 === undefined) return verdict;
   const pain = scanPainList(stop1.body);
+  if (pain.malformed) {
+    return {
+      status: "blocked",
+      reason: "malformed-pain",
+      detail:
+        "Stop 1 write-back " +
+        String(stop1.id) +
+        " pain: list is not a published closed form; accepted forms: " +
+        ACCEPTED_PAIN_LIST_FORMS.join(" | "),
+    };
+  }
   if (!pain.present || pain.ids.length === 0) {
     return {
       status: "blocked",
@@ -403,6 +418,7 @@ function applyPainCoverage(
   const residual: string[] = [];
   const sameIssue: string[] = [];
   const deferred: string[] = [];
+  const relieved: string[] = [];
   const conflicting: string[] = [];
   for (const id of pain.ids) {
     const rows = byId.get(id) ?? [];
@@ -430,7 +446,9 @@ function applyPainCoverage(
         continue;
       }
       deferred.push(id);
+      continue;
     }
+    relieved.push(id);
   }
   if (conflicting.length > 0) {
     return {
@@ -461,12 +479,13 @@ function applyPainCoverage(
       detail: `${parts.join("; ")}; accepted cite forms: ${ACCEPTED_PAIN_CITE_FORMS.join(" | ")}`,
     };
   }
-  if (deferred.length === 0) return verdict;
+  const asserted = [...relieved, ...deferred];
+  if (asserted.length === 0) return verdict;
   const audit = evaluateParentAudit(
     buildPainCoverageDeposit({
       leanCommentId: citedLean.id,
-      deferredPainIds: deferred,
-      criticEnvelopes: criticEnvelopes(comments),
+      deferredPainIds: asserted,
+      criticEnvelopes: criticEnvelopes(comments, citedLean.id),
     }),
   );
   if (audit.ok) return verdict;
@@ -475,11 +494,13 @@ function applyPainCoverage(
     status: "blocked",
     reason: "unresolved-pain-audit",
     detail:
-      "operator-deferred pain id(s) " +
-      deferred.join(", ") +
+      "pain id(s) " +
+      asserted.join(", ") +
       " remain unresolved audit markers (" +
       codes +
-      ") until a critic targets them",
+      ") until a critic after successor lean " +
+      String(citedLean.id) +
+      " targets them",
   };
 }
 
