@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { ApplyOccupancyInput, OccupancyDecision } from "./occupancy.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
@@ -216,5 +217,154 @@ describe("runSessionStart requirements posture (#4444)", () => {
     expect(existsSync(ritualStatePath(root))).toBe(false);
     expect(existsSync(sessionPosturePath(root))).toBe(true);
     expect(result.lines.join("\n")).toContain("DEFT_SESSION_POSTURE=requirements");
+  });
+});
+
+
+describe("runSessionStart mutation posture vs persisted requirements (#4444)", () => {
+  function deniedOccupancy(sessionId: string): OccupancyDecision {
+    return {
+      action: "denied",
+      sessionId,
+      record: null,
+      path: "/tmp/occupancy.json",
+      message: "occupancy denied",
+      code: 1,
+    };
+  }
+
+  function claimedOccupancy(input: ApplyOccupancyInput): OccupancyDecision {
+    const resolved = input.sessionId ?? "host:test:v1:mutation";
+    return {
+      action: input.write === false ? "claimed" : "claimed",
+      sessionId: resolved,
+      record: null,
+      path: "/tmp/occupancy.json",
+      message: "occupancy claimed",
+      code: 0,
+    };
+  }
+
+  const mutationGit = (root: string) => (_r: string, args: readonly string[]) => {
+    if (args[0] === "rev-parse" && args.includes("HEAD")) {
+      return { code: 0, stdout: "abc123", stderr: "" };
+    }
+    if (args[0] === "rev-parse" && args.includes("--show-toplevel")) {
+      return { code: 0, stdout: root, stderr: "" };
+    }
+    return { code: 1, stdout: "", stderr: "" };
+  };
+
+  it("does not clear another occupant posture file when occupancy denies", () => {
+    const root = tempRoot();
+    persistTrustedSessionPosture(root, "requirements", "owner-a");
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      sessionId: "host:test:v1:challenger",
+      resolveUserMd: () => userMdResult(),
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      probeEnvironment: () => environment,
+      ceremonyDial: STANDARD_DIAL,
+      applyOccupancy: () => deniedOccupancy("host:test:v1:challenger"),
+      runGit: mutationGit(root),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(1);
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
+  });
+
+  it("clears persisted requirements posture after occupancy admission", () => {
+    const root = tempRoot();
+    persistTrustedSessionPosture(root, "requirements", "owner-a");
+    const result = runSessionStart(root, {
+      writeHistory: false,
+      sessionId: "host:test:v1:mutation",
+      resolveUserMd: () => userMdResult(),
+      verifyTools: () => ({ exitCode: 0 }),
+      runTriageWelcome: () => ({ exitCode: 0 }),
+      probeEnvironment: () => environment,
+      ceremonyDial: STANDARD_DIAL,
+      applyOccupancy: (_projectRoot, input) => claimedOccupancy(input),
+      runGit: mutationGit(root),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(existsSync(sessionPosturePath(root))).toBe(false);
+  });
+});
+
+describe("runSessionStart requirements persist-fail occupancy rollback (#4444)", () => {
+  it("releases a new occupancy claim when posture persist fails", () => {
+    const root = tempRoot();
+    const released: Array<{ sessionId?: string }> = [];
+    const result = runSessionStart(root, {
+      posture: REQUIREMENTS_POSTURE,
+      sessionId: "host:test:v1:abc",
+      resolveUserMd: () => userMdResult(),
+      probeEnvironment: () => environment,
+      applyOccupancy: (_projectRoot, input) => ({
+        action: "claimed",
+        sessionId: input.sessionId ?? "host:test:v1:abc",
+        record: null,
+        path: join(root, ".deft", "occupancy.json"),
+        message: "occupancy claimed",
+        code: 0,
+      }),
+      persistSessionPosture: () => {
+        throw new Error("disk full");
+      },
+      releaseOccupancy: (_projectRoot, input) => {
+        released.push(input);
+        return {
+          action: "released",
+          sessionId: String(input.sessionId),
+          record: null,
+          path: join(root, ".deft", "occupancy.json"),
+          message: "occupancy released",
+          code: 0,
+        };
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(String(result.payload.message)).toContain("disk full");
+    expect(released).toHaveLength(1);
+    expect(released[0]?.sessionId).toBe("host:test:v1:abc");
+  });
+
+  it("does not release an existing heartbeat when posture persist fails", () => {
+    const root = tempRoot();
+    const released: unknown[] = [];
+    const result = runSessionStart(root, {
+      posture: REQUIREMENTS_POSTURE,
+      sessionId: "host:test:v1:abc",
+      resolveUserMd: () => userMdResult(),
+      probeEnvironment: () => environment,
+      applyOccupancy: (_projectRoot, input) => ({
+        action: "heartbeat",
+        sessionId: input.sessionId ?? "host:test:v1:abc",
+        record: null,
+        path: join(root, ".deft", "occupancy.json"),
+        message: "occupancy heartbeat",
+        code: 0,
+      }),
+      persistSessionPosture: () => {
+        throw new Error("disk full");
+      },
+      releaseOccupancy: (_projectRoot, input) => {
+        released.push(input);
+        return {
+          action: "released",
+          sessionId: String(input.sessionId),
+          record: null,
+          path: join(root, ".deft", "occupancy.json"),
+          message: "occupancy released",
+          code: 0,
+        };
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(String(result.payload.message)).toBe("disk full");
+    expect(released).toHaveLength(0);
   });
 });

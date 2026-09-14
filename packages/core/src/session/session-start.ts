@@ -99,6 +99,7 @@ import {
   type OccupancyDecision,
   type OccupancyIdentityProvenance,
   type PrimaryClaimException,
+  releaseOccupancy,
   resolveOccupancySessionClaim,
 } from "./occupancy.js";
 import {
@@ -288,6 +289,8 @@ export interface SessionStartOptions {
   /** Claim-time occupancy identity provenance (#4431). */
   readonly identityProvenance?: OccupancyIdentityProvenance;
   readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
+  readonly persistSessionPosture?: typeof persistTrustedSessionPosture;
+  readonly releaseOccupancy?: typeof releaseOccupancy;
   readonly runTriageWelcome?: (
     projectRoot: string,
     options: { writeHistory: boolean; now: Date; output: (line: string) => void },
@@ -1042,9 +1045,29 @@ function runRequirementsSessionStart(
   }
   const base = runReadOnlySessionStart(projectRoot, options, instant, environment);
   try {
-    persistTrustedSessionPosture(projectRoot, REQUIREMENTS_POSTURE, persisted.sessionId);
+    (options.persistSessionPosture ?? persistTrustedSessionPosture)(
+      projectRoot,
+      REQUIREMENTS_POSTURE,
+      persisted.sessionId,
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    let recovery = message;
+    if (persisted.action === "claimed" || persisted.action === "stolen") {
+      try {
+        const released = (options.releaseOccupancy ?? releaseOccupancy)(projectRoot, {
+          sessionId: persisted.sessionId,
+          env: options.env,
+          now: instant,
+        });
+        if (released.code !== 0) {
+          recovery = message + "; occupancy rollback failed: " + released.message;
+        }
+      } catch (releaseErr) {
+        const detail = releaseErr instanceof Error ? releaseErr.message : String(releaseErr);
+        recovery = message + "; occupancy rollback failed: " + detail;
+      }
+    }
     return {
       code: 1,
       payload: {
@@ -1052,9 +1075,9 @@ function runRequirementsSessionStart(
         exit_code: 1,
         posture: REQUIREMENTS_POSTURE,
         environment: environmentContextToDict(environment),
-        message: message,
+        message: recovery,
       },
-      lines: [message],
+      lines: [recovery],
     };
   }
   const lines = [...base.lines, persisted.message, REQUIREMENTS_POSTURE_EXPORT_LINE];
@@ -1234,6 +1257,8 @@ function runSessionRearm(
   if ("payload" in persistedOccupancy) {
     return persistedOccupancy;
   }
+  // After admission only — a denied competing start must not revoke the occupant's posture.
+  clearPersistedSessionPosture(projectRoot);
   // #3433: keep DEFT_SESSION_ID / occupant id. Do not mint a new UUID on re-arm.
   const rearmSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
@@ -1477,7 +1502,6 @@ export function runSessionStart(
   if (posture === REQUIREMENTS_POSTURE) {
     return runRequirementsSessionStart(projectRoot, options, instant, environment);
   }
-  clearPersistedSessionPosture(projectRoot);
 
   // #3611: resolve once per mutation invocation. Every occupancy evaluation,
   // persistence write, and ritual-state payload below receives this exact ID.
@@ -1993,6 +2017,8 @@ export function runSessionStart(
   if ("payload" in persistedOccupancy) {
     return persistedOccupancy;
   }
+  // After admission only — a denied competing start must not revoke the occupant's posture.
+  clearPersistedSessionPosture(projectRoot);
   const coldSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
   pushWorkClaimScan(lines, projectRoot, options);
