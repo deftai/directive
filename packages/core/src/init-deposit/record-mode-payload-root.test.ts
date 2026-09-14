@@ -172,8 +172,14 @@ describe("directive update record-mode payload-root (#4446)", () => {
 
   it("dry-run plans AGENTS.md and dest-only delete from incoming tree (#4446)", async () => {
     const project = freshRoot("payload-root-agents-");
-    const stale = repoTemplate().replace("Deft is installed in .deft/core/.", "STALE-DEST-TEMPLATE-4446");
-    const incomingText = repoTemplate().replace("Deft is installed in .deft/core/.", "INCOMING-TEMPLATE-4446");
+    const stale = repoTemplate().replace(
+      "Deft is installed in .deft/core/.",
+      "STALE-DEST-TEMPLATE-4446",
+    );
+    const incomingText = repoTemplate().replace(
+      "Deft is installed in .deft/core/.",
+      "INCOMING-TEMPLATE-4446",
+    );
     const contentRoot = installIncomingAway("0.103.0", incomingText);
     writeInitializedProject(project, "0.78.0");
     const deftDir = join(project, ".deft", "core");
@@ -205,7 +211,9 @@ describe("directive update record-mode payload-root (#4446)", () => {
     expect(payload.success).toBe(true);
     const mutations = payload.mutations as { wrote: string[]; deleted: string[] };
     expect(mutations.wrote).toContain("AGENTS.md");
-    expect(mutations.deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md"))).toBe(true);
+    expect(
+      mutations.deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md")),
+    ).toBe(true);
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("STALE-DEST-TEMPLATE-4446");
     expect(readFileSync(destOnly, "utf8")).toBe("EVIL\n");
     const liveOut: string[] = [];
@@ -282,7 +290,11 @@ describe("directive update record-mode payload-root (#4446)", () => {
     const project = freshRoot("payload-root-malformed-");
     const contentRoot = installIncomingAway("0.103.0", repoTemplate());
     writeInitializedProject(project, "0.78.0");
-    writeFileSync(join(project, ".deft", "core", "templates", "agents-entry.md"), "not a managed template\n", "utf8");
+    writeFileSync(
+      join(project, ".deft", "core", "templates", "agents-entry.md"),
+      "not a managed template\n",
+      "utf8",
+    );
     const dryOut: string[] = [];
     const dryCode = await runRefreshDepositCli({
       projectDir: project,
@@ -324,7 +336,10 @@ describe("directive update record-mode payload-root (#4446)", () => {
 
   it("recorded dest plan does not waive dirty-tree refuse (#4446)", async () => {
     const project = freshRoot("payload-root-dirty-");
-    const incomingText = repoTemplate().replace("Deft is installed in .deft/core/.", "INCOMING-TEMPLATE-4446");
+    const incomingText = repoTemplate().replace(
+      "Deft is installed in .deft/core/.",
+      "INCOMING-TEMPLATE-4446",
+    );
     const contentRoot = installIncomingAway("0.103.0", incomingText);
     writeInitializedProject(project, "0.78.0");
     const out: string[] = [];
