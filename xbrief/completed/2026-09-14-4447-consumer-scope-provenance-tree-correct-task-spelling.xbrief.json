@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4447 from successor lean 5650432935, verified-claims 5650437651, and synthesis 5650437867. Not Stop 1 write-back 5650304256.",
-    "updated": "2026-09-14T16:18:43.899Z"
+    "updated": "2026-09-14T16:34:51Z"
   },
   "plan": {
     "id": "4447-consumer-scope-provenance-tree-correct-task-spelling",
     "title": "Consumer docs use tree-correct deft verb spelling (#4447)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Consumer-facing deposited docs prescribe bare task <ns>:<verb> (notably task scope:record-approved-scope). That spelling is invalid on include-only consumer trees. Bound contract recuts to deft <verb> primary and task deft:<verb> fallback across the consumer-audience deposited corpus, including the dispatch preamble.",
       "Origin": "Bound from https://github.com/deftai/directive/issues/4447 comments 5650432935 (successor lean), 5650437651 (verified-claims), 5650437867 (synthesis accepted). Stop 1 write-back 5650304256 is superseded and is not the next-build contract.",
@@ -139,7 +139,7 @@
         "title": "Synthesis accepted 5650437867"
       }
     ],
-    "updated": "2026-09-14T16:18:43.899Z",
+    "updated": "2026-09-14T16:34:51Z",
     "metadata": {
       "kind": "story",
       "swarm": {
@@ -161,7 +161,31 @@
         "model_tier": "standard",
         "missing_traces_justification": "file_scope omitted: no operator TTY mint for approved-scope (#3874). Worker MAY add a focused spelling regression under packages/core/src/deposit/ that is not COMMAND_SNIPPET_CORPUS membership. Do not edit sibling product code for #4267 #4446 #4445 #4444 #4442. Do not rewrite generated content/skills/ in this story."
       },
-      "capacityBucket": "docs"
+      "capacityBucket": "docs",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4513,
+        "prBase": null,
+        "mergeCommit": "1550cd19a7965698c6cb69987fda92b5a9b891a7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a9e06f7b35beaa8b54908f4879e69d3cc1aa64f6",
+        "verifiedAt": "2026-09-14T16:34:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzNmYWY3ZjJjNzQ3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-14T16:34:51Z"
+      },
+      "completedAt": "2026-09-14T16:34:51Z",
+      "completedSessionId": "host:claude:v1:MDFhMGEwMGYtODQxOC03YjkzLWFkMDMtMzNmYWY3ZjJjNzQ3"
     }
   }
 }
