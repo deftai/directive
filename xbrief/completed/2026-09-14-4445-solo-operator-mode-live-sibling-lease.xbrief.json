@@ -69,9 +69,9 @@
         "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
-          "recorded_at": "2026-09-14T16:31:00Z",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4521 — no plan.policy.topology / allowPrimaryCheckoutMutation; spawn-occupancy.ts unchanged",
+          "recorded_at": "2026-09-14T16:42:00Z",
           "recorded_by": "4445-leaf-implementation"
         }
       },
@@ -81,9 +81,9 @@
         "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
-          "recorded_at": "2026-09-14T16:31:00Z",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4521 file_scope occupancy engine only; #4444 docs-posture surfaces not edited",
+          "recorded_at": "2026-09-14T16:42:00Z",
           "recorded_by": "4445-leaf-implementation"
         }
       },
@@ -94,8 +94,8 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts + packages/core/src/session/main-worktree.test.ts",
-          "recorded_at": "2026-09-14T16:31:00Z",
+          "pointer": "packages/core/src/session/occupancy.test.ts (live-lease vs leftover-admin-dir vs expired sibling) + CHANGELOG.md [Unreleased] #4445",
+          "recorded_at": "2026-09-14T16:42:00Z",
           "recorded_by": "4445-leaf-implementation"
         }
       }
