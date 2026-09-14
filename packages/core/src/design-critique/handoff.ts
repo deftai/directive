@@ -8,7 +8,7 @@
 
 import { leanCarriesSpecPathToken } from "./auto-stamp-chip.js";
 import { classifyPosition, type PainCite, scanPainCites } from "./citation-grammar.js";
-import { isSuccessorLeanBody } from "./completed-arc-record.js";
+import { isSuccessorLeanBody, type ThreadComment } from "./completed-arc-record.js";
 
 const OPEN_QUESTION_RE = /(?:^|\n)\s*\*{0,2}open-question:\*{0,2}/g;
 const OPEN_QUESTION_VALUE_RE =
@@ -61,12 +61,19 @@ function hasUncitedPain(cites: readonly PainCite[], stop1PainIds: readonly strin
   return stop1PainIds.some((id) => !cited.has(id));
 }
 
-function hasOperativeSupersedesPriorLean(body: string): boolean {
+function hasOperativeSupersedesPriorLean(
+  body: string,
+  comments: readonly ThreadComment[] | undefined,
+): boolean {
+  if (comments === undefined || comments.length === 0) return false;
+  const byId = new Map(comments.map((comment) => [comment.id, comment]));
   const re = new RegExp(SUPERSEDES_RE.source, "gi");
   for (const match of body.matchAll(re)) {
-    if (classifyPosition(body, match.index ?? 0) === null) {
-      return true;
-    }
+    if (classifyPosition(body, match.index ?? 0) !== null) continue;
+    const id = Number(match[1]);
+    if (!Number.isSafeInteger(id) || id <= 0) continue;
+    const cited = byId.get(id);
+    if (cited !== undefined && isSuccessorLeanBody(cited.body)) return true;
   }
   return false;
 }
@@ -76,6 +83,8 @@ export type HandoffPrintInput = {
   readonly stop1PainIds: readonly string[];
   /** Cap spend does not suppress print; Handoff is parent-class. */
   readonly dualStopCapSpent?: boolean;
+  /** Thread comments used only to validate a Supersedes id as a prior successor lean. */
+  readonly comments?: readonly ThreadComment[];
 };
 
 export type HandoffPrintVerdict = {
@@ -94,7 +103,8 @@ export function evaluateHandoffPrint(input: HandoffPrintInput): HandoffPrintVerd
   const unrelievedPain =
     hasOperativeDoesNotRelieve(cites) || hasUncitedPain(cites, input.stop1PainIds);
   const recutConjunct =
-    leanCarriesSpecPathToken(input.mapBody) || hasOperativeSupersedesPriorLean(input.mapBody);
+    leanCarriesSpecPathToken(input.mapBody) ||
+    hasOperativeSupersedesPriorLean(input.mapBody, input.comments);
   return {
     print: unrelievedPain && recutConjunct,
     unrelievedPain,

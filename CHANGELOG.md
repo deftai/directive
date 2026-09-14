@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Design-critique unrelieved pain after recut prints Handoff, not Retry-as-refutation (#4531).** `open-question:` is Spec-path-class wrapping on the parent Handoff comment, not a successor-lean classifier. Post-handoff Stop 1 is open critique and omits refutation-target. Dual-stop reserved pain-audit slot is not P1 relief. No `reframe-needed` reason, no new catalog chip, no recut-needed restore. Closes #4531.
+- **Design-critique unrelieved pain after recut prints Handoff, not another refutation (#4531).** Closes #4531.
 
 
 - **Complete tracking for #4495.** After PR 4505. Records post-merge lifecycle completion without reopening or recutting the issue. Refs #2321, #3476.

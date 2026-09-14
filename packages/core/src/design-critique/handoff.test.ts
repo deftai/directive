@@ -94,12 +94,29 @@ describe("evaluateHandoffPrint (#4531)", () => {
     });
     expect(uncitedRecut.print).toBe(true);
 
+    const priorLean = { id: 5669015941, body: "**Lean:** prior take.\n" };
     const supersedes = evaluateHandoffPrint({
       mapBody: "**Lean:** recut.\n\nSupersedes 5669015941.\n\ndoes-not-relieve: P1\n",
       stop1PainIds: ["P1"],
+      comments: [priorLean],
     });
     expect(supersedes.print).toBe(true);
     expect(supersedes.recutConjunct).toBe(true);
+
+    const missing = evaluateHandoffPrint({
+      mapBody: "**Lean:** recut.\n\nSupersedes 5669015941.\n\ndoes-not-relieve: P1\n",
+      stop1PainIds: ["P1"],
+    });
+    expect(missing.print).toBe(false);
+    expect(missing.recutConjunct).toBe(false);
+
+    const notLean = evaluateHandoffPrint({
+      mapBody: "**Lean:** recut.\n\nSupersedes 5669015941.\n\ndoes-not-relieve: P1\n",
+      stop1PainIds: ["P1"],
+      comments: [{ id: 5669015941, body: "role: parent\n\nWalk note.\n" }],
+    });
+    expect(notLean.print).toBe(false);
+    expect(notLean.recutConjunct).toBe(false);
   });
 
   it("does not print without the pain conjunct or without the recut conjunct", () => {

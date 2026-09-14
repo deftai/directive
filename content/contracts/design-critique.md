@@ -666,7 +666,7 @@ Parent-class next after unrelieved pain plus recut. Not a Dual-stop critic slot.
 
 ### Print condition
 
-Print **Handoff** when the posted map has operative `does-not-relieve` or uncited pain, plus operative `Spec-path:` / `Recut:` on that map (or the map supersedes a prior successor-lean id). `evaluateHandoffPrint` is the fixture. Do not clone `residualHeadingCount` or the Retry widget. Handoff still prints when the numbered Dual-stop cap is spent. Halt stays. Later-arc is not the default recovery on that trigger.
+Print **Handoff** when the posted map has operative `does-not-relieve` or uncited pain, plus operative `Spec-path:` / `Recut:` on that map (or the map supersedes a prior successor-lean id that resolves to a successor-lean body on the thread). `evaluateHandoffPrint` is the fixture. Do not clone `residualHeadingCount` or the Retry widget. Handoff still prints when the numbered Dual-stop cap is spent. Halt stays. Later-arc is not the default recovery on that trigger.
 
 ### open-question field
 
