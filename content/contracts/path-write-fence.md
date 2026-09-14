@@ -340,4 +340,4 @@ Refs #516, #2443, #2948, #1394.
 
 ## Requirements posture (#4444)
 
-Requirements-class writes reuse this evaluator (valuateRuntimeAuthorityPath) with a default allow/deny list. That is a gate-skip class (skip gated ritual and story-start after occupancy), not a second matcher schema. docs remains the assist token. Trusted producer: session:start --posture=requirements.
+Requirements-class writes reuse evaluateRuntimeAuthorityPath with a default allow/deny list. That is a gate-skip class (skip gated ritual and story-start after occupancy), not a second matcher schema. Instruction-surface basenames (AGENTS.md, main.md, SKILL.md) deny at any depth. Symlink components on an otherwise-allowed path are refused via assertWriteTargetSafe. docs remains the assist token. Trusted producer: session:start --posture=requirements, which writes .deft/session-posture.json for PreToolUse when hook env is unset.

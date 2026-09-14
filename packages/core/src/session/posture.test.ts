@@ -1,11 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import {
+  clearPersistedSessionPosture,
   DEFAULT_POSTURE,
   detectMutationIntent,
   isRequirementsPosture,
+  overlayTrustedSessionPosture,
   parseSessionPostureToken,
   parseStructuredHandoff,
+  persistTrustedSessionPosture,
   readOnlyPostureMessage,
+  readPersistedSessionPosture,
   resolveSessionPosture,
   ritualStateIsPostureAuthority,
 } from "./posture.js";
@@ -113,5 +120,35 @@ Next: commit the staged fix and open PR.
     expect(isRequirementsPosture({ DEFT_SESSION_POSTURE: "requirements" })).toBe(true);
     expect(isRequirementsPosture({ DEFT_SESSION_POSTURE: "docs" })).toBe(false);
     expect(resolveSessionPosture({ envPosture: "requirements" })).toBe("requirements");
+  });
+});
+
+describe("trusted session posture file (#4444)", () => {
+  const temps: string[] = [];
+  afterEach(() => {
+    for (const t of temps) rmSync(t, { recursive: true, force: true });
+    temps.length = 0;
+  });
+  it("persists requirements and overlays when env is unset", () => {
+    const root = mkdtempSync(join(tmpdir(), "posture-file-"));
+    temps.push(root);
+    persistTrustedSessionPosture(root, "requirements");
+    expect(readPersistedSessionPosture(root)).toBe("requirements");
+    const over = overlayTrustedSessionPosture(root, {});
+    expect(over.DEFT_SESSION_POSTURE).toBe("requirements");
+  });
+  it("lets env win over the persisted file", () => {
+    const root = mkdtempSync(join(tmpdir(), "posture-env-"));
+    temps.push(root);
+    persistTrustedSessionPosture(root, "requirements");
+    const over = overlayTrustedSessionPosture(root, { DEFT_SESSION_POSTURE: "assist" });
+    expect(over.DEFT_SESSION_POSTURE).toBe("assist");
+  });
+  it("clears the persisted file", () => {
+    const root = mkdtempSync(join(tmpdir(), "posture-clear-"));
+    temps.push(root);
+    persistTrustedSessionPosture(root, "requirements");
+    clearPersistedSessionPosture(root);
+    expect(readPersistedSessionPosture(root)).toBeNull();
   });
 });

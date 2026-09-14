@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Requirements posture transport, nested instruction deny, and symlink class (#4444).** `session:start --posture=requirements` writes gitignored `.deft/session-posture.json` so PreToolUse sees the trusted producer when hook env cannot inherit DEFT_SESSION_POSTURE. Nested AGENTS.md/main.md/SKILL.md deny. In-tree symlink components on docs/specs paths refuse write-requirements-ready. Refs #4444.
 - **One sourced `tool_turn_denominator` per session_id (#3928).** session:start emits the only line, always with `denominator_source`. Check-time and ceremony-dial no longer emit this kind. A second write for the same session_id is a no-op. The #3362 fixture asserts cardinality and matching ritual share. Closes #3928. Refs #3362, #3399, #3356, #3320.
 - **Grok implement dest-cwd spawn-not-ready leads with dest unique-active recovery, not critic CLI (#4542).** Critic-class and dest-absent grok argv keep the critic lead. Closes #4542.
 - **Observable-scope HTML parse refuses truncated markup (#4495).** parse5 `onParseError` records incomplete-token errors into `anomalies`; extract refuses rather than comparing recovered partial facts.

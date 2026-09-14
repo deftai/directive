@@ -1,3 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
+
 /**
  * Ephemeral session posture (#2180).
  *
@@ -44,9 +48,9 @@ export const REQUIREMENTS_DEFAULT_ALLOW_PATHS = [
   "vbrief/proposed/**",
 ] as const;
 export const REQUIREMENTS_DEFAULT_DENY_PATHS = [
-  "AGENTS.md",
-  "main.md",
-  "SKILL.md",
+  "**/AGENTS.md",
+  "**/main.md",
+  "**/SKILL.md",
   "content/commands.md",
   "content/contracts/**",
   "content/templates/**",
@@ -153,6 +157,73 @@ function normalisePosture(raw: string | undefined | null): DirectivePosture | nu
 /** Env-only requirements classification -- never payload fields (#4444 trusted producer). */
 export function isRequirementsPosture(environ: NodeJS.ProcessEnv = process.env): boolean {
   return parseSessionPostureToken(environ[ENV_SESSION_POSTURE]).token === "requirements";
+}
+
+export const SESSION_POSTURE_RELPATH = [".deft", "session-posture.json"] as const;
+export const SESSION_POSTURE_PRODUCER = "session:start";
+
+export function sessionPosturePath(projectRoot: string): string {
+  return join(resolve(projectRoot), ...SESSION_POSTURE_RELPATH);
+}
+
+export function persistTrustedSessionPosture(projectRoot: string, token: DirectivePosture): string {
+  const parsed = parseSessionPostureToken(token);
+  if (parsed.token === null || parsed.error !== null) {
+    throw new Error(parsed.error ?? unknownPostureTokenMessage(token));
+  }
+  const payload = {
+    schemaVersion: 1,
+    posture: parsed.token,
+    producer: SESSION_POSTURE_PRODUCER,
+  };
+  const target = sessionPosturePath(projectRoot);
+  containedWrite({
+    root: resolve(projectRoot),
+    target,
+    data: JSON.stringify(payload) + "\n",
+    mode: "replace",
+  });
+  return target;
+}
+
+export function clearPersistedSessionPosture(projectRoot: string): void {
+  try {
+    containedRemove({ root: resolve(projectRoot), target: sessionPosturePath(projectRoot) });
+  } catch {
+    // already clear
+  }
+}
+
+export function readPersistedSessionPosture(projectRoot: string): string | null {
+  const path = sessionPosturePath(projectRoot);
+  if (!existsSync(path)) return null;
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as {
+      posture?: unknown;
+      producer?: unknown;
+    };
+    if (raw.producer !== SESSION_POSTURE_PRODUCER) return null;
+    if (typeof raw.posture !== "string") return null;
+    const parsed = parseSessionPostureToken(raw.posture);
+    if (parsed.token === null || parsed.error !== null) return null;
+    return parsed.token;
+  } catch {
+    return null;
+  }
+}
+
+/** Env wins; else ritual-adjacent session:start file. Payload fields stay untrusted. */
+export function overlayTrustedSessionPosture(
+  projectRoot: string,
+  environ: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  const existing = environ[ENV_SESSION_POSTURE];
+  if (typeof existing === "string" && existing.trim().length > 0) {
+    return environ;
+  }
+  const persisted = readPersistedSessionPosture(projectRoot);
+  if (persisted === null) return environ;
+  return { ...environ, [ENV_SESSION_POSTURE]: persisted };
 }
 
 /** Ritual-state must never be treated as posture authority (#2180). */

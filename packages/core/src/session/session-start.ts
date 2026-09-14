@@ -107,6 +107,7 @@ import {
   resolveSessionCompact,
   runOrientationCompression,
 } from "./orientation-compression.js";
+import { clearPersistedSessionPosture, persistTrustedSessionPosture } from "./posture.js";
 import { emitSessionStartProcessCost, formatSessionStartCeremonyCostLine } from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
@@ -139,7 +140,7 @@ export const READ_ONLY_RESULT_MESSAGE =
 export const REQUIREMENTS_RESULT_MESSAGE =
   "requirements session posture (occupancy claimed; gated ritual and story-start skipped)";
 export const REQUIREMENTS_POSTURE_EXPORT_LINE =
-  "Set DEFT_SESSION_POSTURE=requirements so PreToolUse reads the trusted session-start argv.";
+  "Wrote .deft/session-posture.json for PreToolUse (trusted session:start producer). Set DEFT_SESSION_POSTURE=requirements when the hook process can inherit env.";
 
 /** Cold (full) vs re-arm (clock/HEAD refresh) ceremony tiers (#2992). */
 export const SESSION_CEREMONY_TIERS = ["cold", "rearm"] as const;
@@ -952,6 +953,7 @@ function runReadOnlySessionStart(
   instant: Date,
   environment: EnvironmentContext,
 ): SessionStartResult {
+  clearPersistedSessionPosture(projectRoot);
   const lines: string[] = [];
   const resolveUserMd =
     options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
@@ -1040,6 +1042,22 @@ function runRequirementsSessionStart(
     return { ...persisted, payload: { ...persisted.payload, posture: REQUIREMENTS_POSTURE } };
   }
   const base = runReadOnlySessionStart(projectRoot, options, instant, environment);
+  try {
+    persistTrustedSessionPosture(projectRoot, REQUIREMENTS_POSTURE);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      code: 1,
+      payload: {
+        ready: false,
+        exit_code: 1,
+        posture: REQUIREMENTS_POSTURE,
+        environment: environmentContextToDict(environment),
+        message: message,
+      },
+      lines: [message],
+    };
+  }
   const lines = [...base.lines, persisted.message, REQUIREMENTS_POSTURE_EXPORT_LINE];
   return {
     code: persisted.code === 0 ? 0 : persisted.code,
@@ -1460,6 +1478,7 @@ export function runSessionStart(
   if (posture === REQUIREMENTS_POSTURE) {
     return runRequirementsSessionStart(projectRoot, options, instant, environment);
   }
+  clearPersistedSessionPosture(projectRoot);
 
   // #3611: resolve once per mutation invocation. Every occupancy evaluation,
   // persistence write, and ritual-state payload below receives this exact ID.

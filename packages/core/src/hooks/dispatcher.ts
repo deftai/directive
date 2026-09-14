@@ -62,6 +62,7 @@ import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
 import {
   ENV_SESSION_POSTURE,
   isRequirementsPosture,
+  overlayTrustedSessionPosture,
   parseSessionPostureToken,
   REQUIREMENTS_DEFAULT_ALLOW_PATHS,
   REQUIREMENTS_DEFAULT_DENY_PATHS,
@@ -588,7 +589,30 @@ function requirementsFencePolicy(): RuntimeAuthorityPolicy {
 
 function requirementsPathAllowed(projectRoot: string, target: string): boolean {
   const rel = toProjectRelativePosix(projectRoot, target);
-  return evaluateRuntimeAuthorityPath(requirementsFencePolicy(), rel) === "allow";
+  const policy = requirementsFencePolicy();
+  if (evaluateRuntimeAuthorityPath(policy, rel) !== "allow") {
+    return false;
+  }
+  const projectAbs = resolve(projectRoot);
+  try {
+    realpathSync(projectAbs);
+  } catch {
+    // Unit fixtures / missing project dir -- lexical classification wins.
+    return true;
+  }
+  const targetAbs = resolve(projectAbs, rel);
+  try {
+    assertWriteTargetSafe(projectAbs, targetAbs);
+  } catch {
+    return false;
+  }
+  let resolvedRel = rel;
+  try {
+    resolvedRel = toProjectRelativePosix(projectAbs, realpathSync(targetAbs));
+  } catch {
+    // New file: parent walk in assertWriteTargetSafe already refused symlinks.
+  }
+  return evaluateRuntimeAuthorityPath(policy, resolvedRel) === "allow";
 }
 
 function allMutationTargetsAreRequirementsClass(projectRoot: string, payload: unknown): boolean {
@@ -1567,11 +1591,12 @@ function inspectMutationGates(
     );
   }
 
-  const postureParse = parseSessionPostureToken(environ[ENV_SESSION_POSTURE]);
+  const postureEnv = overlayTrustedSessionPosture(effectiveRoot, environ);
+  const postureParse = parseSessionPostureToken(postureEnv[ENV_SESSION_POSTURE]);
   if (postureParse.error !== null) {
     return deny(input, "unknown-session-posture", toolName, postureParse.error + rootsNote);
   }
-  if (!isSpawnTool(toolName) && isRequirementsPosture(environ)) {
+  if (!isSpawnTool(toolName) && isRequirementsPosture(postureEnv)) {
     if (allMutationTargetsAreRequirementsClass(effectiveRoot, input.payload)) {
       const authzDeny = authzForMutationTargets(input, toolName, seams, {
         isDirectWrite: true,

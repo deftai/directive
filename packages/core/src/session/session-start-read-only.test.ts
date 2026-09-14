@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import { sessionPosturePath } from "./posture.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
 import {
   READ_ONLY_POSTURE,
@@ -64,6 +65,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
     expect(result.payload.state_path).toBeNull();
     expect(result.payload.message).toBe(READ_ONLY_RESULT_MESSAGE);
     expect(existsSync(ritualStatePath(root))).toBe(false);
+    expect(existsSync(sessionPosturePath(root))).toBe(false);
     expect(result.lines.join("\n")).toContain("Deft Directive active");
     expect(result.lines.join("\n")).toContain("USER.md resolved (env-override)");
     expect(result.lines.join("\n")).toContain("[deft environment] os=darwin; shell=zsh");
@@ -201,6 +203,7 @@ describe("runSessionStart requirements posture (#4444)", () => {
     expect(result.payload.posture).toBe(REQUIREMENTS_POSTURE);
     expect(result.payload.message).toBe(REQUIREMENTS_RESULT_MESSAGE);
     expect(existsSync(ritualStatePath(root))).toBe(false);
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
     expect(result.lines.join("\n")).toContain("DEFT_SESSION_POSTURE=requirements");
   });
 });

@@ -18,6 +18,7 @@ import {
   occupancyPath,
   readOccupancy,
 } from "../session/occupancy.js";
+import { persistTrustedSessionPosture } from "../session/posture.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { GROK_CRITIC_SPAWN_NOT_READY_RECOVERY } from "../session/spawn-occupancy.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
@@ -5765,68 +5766,169 @@ describe("requirements posture (#4444)", () => {
   it("allows docs/REQUIREMENTS.md after occupancy without ritual or scope", () => {
     const verifyRitual = vi.fn(() => READY_RITUAL);
     const inspectScope = vi.fn(() => READY_SCOPE);
-    const decision = decideHook({
-      host: "grok",
-      event: "tool.before",
-      projectRoot: "/project",
-      payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
-      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
-    }, readySeams({ verifyRitual, inspectScope }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+      },
+      readySeams({ verifyRitual, inspectScope }),
+    );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-requirements-ready" });
     expect(verifyRitual).not.toHaveBeenCalled();
     expect(inspectScope).not.toHaveBeenCalled();
   });
   it("denies packages writes and names the mutation upgrade path", () => {
-    const decision = decideHook({
-      host: "grok",
-      event: "tool.before",
-      projectRoot: "/project",
-      payload: { toolName: "Write", tool_input: { path: "/project/packages/core/src/hooks/dispatcher.ts" } },
-      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
-    }, readySeams());
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "Write",
+          tool_input: { path: "/project/packages/core/src/hooks/dispatcher.ts" },
+        },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+      },
+      readySeams(),
+    );
     expect(decision).toMatchObject({ verdict: "deny", code: "write-requirements-out-of-class" });
     expect(decision.message).toMatch(/session:start/);
   });
   it("does not treat payload posture=requirements as trusted producer", () => {
-    const decision = decideHook({
-      host: "grok",
-      event: "tool.before",
-      projectRoot: "/project",
-      payload: { toolName: "Write", posture: "requirements", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
-      environ: {},
-    }, readySeams({ inspectScope: () => ({ ready: false, path: null, message: "No active xBRIEF" }) }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "Write",
+          posture: "requirements",
+          tool_input: { path: "/project/docs/REQUIREMENTS.md" },
+        },
+        environ: {},
+      },
+      readySeams({
+        inspectScope: () => ({ ready: false, path: null, message: "No active xBRIEF" }),
+      }),
+    );
     expect(decision.verdict).toBe("deny");
     expect(decision.code).not.toBe("write-requirements-ready");
   });
   it("keeps DEFT_SESSION_POSTURE=docs as assist, not requirements", () => {
-    const decision = decideHook({
-      host: "grok",
-      event: "tool.before",
-      projectRoot: "/project",
-      payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
-      environ: { [ASSIST_SESSION_POSTURE_ENV]: "docs" },
-    }, readySeams({ inspectScope: () => ({ ready: false, path: null, message: "No active xBRIEF" }) }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "docs" },
+      },
+      readySeams({
+        inspectScope: () => ({ ready: false, path: null, message: "No active xBRIEF" }),
+      }),
+    );
     expect(decision.code).not.toBe("write-requirements-ready");
   });
   it("refuses unknown posture tokens and prints the closed set", () => {
-    const decision = decideHook({
-      host: "grok",
-      event: "tool.before",
-      projectRoot: "/project",
-      payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
-      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirement" },
-    }, readySeams());
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Write", tool_input: { path: "/project/docs/REQUIREMENTS.md" } },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirement" },
+      },
+      readySeams(),
+    );
     expect(decision).toMatchObject({ verdict: "deny", code: "unknown-session-posture" });
     expect(decision.message).toContain("closed set");
   });
   it("denies instruction-surface AGENTS.md under requirements posture", () => {
-    const decision = decideHook({
-      host: "grok",
-      event: "tool.before",
-      projectRoot: "/project",
-      payload: { toolName: "Write", tool_input: { path: "/project/AGENTS.md" } },
-      environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
-    }, readySeams());
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Write", tool_input: { path: "/project/AGENTS.md" } },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "write-requirements-out-of-class" });
+  });
+  it("denies nested SKILL.md under docs", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "Write", tool_input: { path: "/project/docs/reference/SKILL.md" } },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "write-requirements-out-of-class" });
+  });
+  it("allows requirements writes from persisted session-start file without env", () => {
+    const project = mkdtempSync(join(tmpdir(), "req-persist-"));
+    hookTemps.push(project);
+    mkdirSync(join(project, "docs"), { recursive: true });
+    persistTrustedSessionPosture(project, "requirements");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: project,
+        payload: {
+          toolName: "Write",
+          tool_input: { path: join(project, "docs", "REQUIREMENTS.md") },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-requirements-ready" });
+  });
+  it("env unknown token still wins over persisted requirements file", () => {
+    const project = mkdtempSync(join(tmpdir(), "req-envwin-"));
+    hookTemps.push(project);
+    mkdirSync(join(project, "docs"), { recursive: true });
+    persistTrustedSessionPosture(project, "requirements");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: project,
+        payload: {
+          toolName: "Write",
+          tool_input: { path: join(project, "docs", "REQUIREMENTS.md") },
+        },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirement" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "unknown-session-posture" });
+  });
+  itSymlink("refuses docs symlink onto packages before write-requirements-ready", () => {
+    const project = mkdtempSync(join(tmpdir(), "req-symlink-"));
+    hookTemps.push(project);
+    mkdirSync(join(project, "docs"), { recursive: true });
+    mkdirSync(join(project, "packages", "core"), { recursive: true });
+    writeFileSync(join(project, "packages", "core", "secret.ts"), "x", "utf8");
+    symlinkSync(join(project, "packages", "core", "secret.ts"), join(project, "docs", "notes.md"));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: project,
+        payload: { toolName: "Write", tool_input: { path: join(project, "docs", "notes.md") } },
+        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirements" },
+      },
+      readySeams(),
+    );
     expect(decision).toMatchObject({ verdict: "deny", code: "write-requirements-out-of-class" });
   });
 });
