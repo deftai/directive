@@ -33,7 +33,7 @@ Shape:
 }
 ```
 
-`task verify:scope-provenance` compares the live active xBRIEF `plan.metadata.swarm.file_scope` to the digest when that xBRIEF is modified in the current change set.
+`deft verify:scope-provenance` compares the live active xBRIEF `plan.metadata.swarm.file_scope` to the digest when that xBRIEF is modified in the current change set.
 
 | Outcome | Behavior |
 | --- | --- |
@@ -60,10 +60,13 @@ Authority comes from the approval record in the **merge base**, not from whether
 
 Deposit a human-origin digest (first adoption or renewal). Mint on a real TTY, then commit the approval artifacts to the merge base (or a prior PR) before implement.
 
+Primary (tree-invariant): `deft <verb>`. Include-only consumer fallback: `task deft:<verb>`. Match #2893 / #4379 / #3439 / #4447.
+
 ```bash
-task scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor scott --confirm
+deft scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor scott --confirm
+# include-only fallback: task deft:scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor scott --confirm
 # or after expansion review:
-task scope:record-approved-scope -- xbrief/active/story.xbrief.json --actor scott --kind renewed-approval --confirm
+deft scope:record-approved-scope -- xbrief/active/story.xbrief.json --actor scott --kind renewed-approval --confirm
 ```
 
 `--actor` is **display only**. It never authorizes mint. `--actor Flynn` from an agent or CI shell cannot mint.
@@ -130,10 +133,10 @@ Wave 1 mints write the path record with a human-looking stamp. They do **not** w
 When the first non-empty `file_scope` story and the 0.97+/0.98 gate land together:
 
 1. Author the pending xBRIEF with the intended `file_scope`
-2. Run `task scope:record-approved-scope -- <pending-xbrief> --actor <you> --confirm`
+2. Run `deft scope:record-approved-scope -- <pending-xbrief> --actor <you> --confirm`
 3. **Commit and merge** the approval record (and preferably the pending xBRIEF) first — multi-PR bootstrap
 4. In a follow-up PR, activate (`pending/` → `active/`) without rewriting the approval
-5. `task verify:scope-provenance -- --base-ref origin/master --enforce` exits 0
+5. `deft verify:scope-provenance -- --base-ref origin/master --enforce` exits 0
 
 Emptying `file_scope` to soft-warn past the gate is **not** the supported migration path; it removes the write fence the gate protects.
 
@@ -152,7 +155,7 @@ Emptying `file_scope` to soft-warn past the gate is **not** the supported migrat
 ## Remediation
 
 ```bash
-task scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm
+deft scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm
 git add .deft/approved-scope/<plan-id>.json .deft/approved-scope/<plan-id>.intent.json
 # merge that commit before (or without) co-changing the active xBRIEF expansion
 ```

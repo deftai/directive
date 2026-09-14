@@ -9,7 +9,7 @@ absent list is a no-op.
 ## Authored list
 
 SoT is PROJECT-DEFINITION `plan.policy.projectInvariants`. Inspect with
-`task policy:show --field=projectInvariants`.
+`deft policy:show --field=projectInvariants`.
 
 Each entry:
 
@@ -36,7 +36,7 @@ means no disposition is required for that ID.
 
 ## Gate
 
-`task xbrief:preflight` and `task verify:story-ready` fail closed when an
+`deft xbrief:preflight` and `deft verify:story-ready` fail closed when an
 applicable ID has no disposition. The message names the omitted ID. Slice-scoped
 and worktree-scoped stories use the same check.
 

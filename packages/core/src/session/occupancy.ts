@@ -71,7 +71,7 @@ import {
   printCompanionHostOwner,
 } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
-import { isContendedPrimaryCheckout } from "./main-worktree.js";
+import { isMainWorktreePath, listLinkedWorktreeCheckouts } from "./main-worktree.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
 export const OCCUPANCY_SCHEMA_VERSION = 1;
@@ -863,6 +863,14 @@ export function liveOccupant(
   return liveOccupancyOnTree(projectRoot, readOccupancy(projectRoot), now, ttlMs, maxLeaseMs);
 }
 
+function primaryCheckoutHasLiveSiblingLease(projectRoot: string, now: Date): boolean {
+  if (!isMainWorktreePath(projectRoot)) return false;
+  return listLinkedWorktreeCheckouts(projectRoot).some(
+    (checkout) =>
+      !occupancyWorktreeMatches(checkout, projectRoot) && liveOccupant(checkout, now) !== null,
+  );
+}
+
 function primaryClaimRefusal(
   projectRoot: string,
   incoming: string,
@@ -877,7 +885,7 @@ function primaryClaimRefusal(
       "occupancy refuses a mutation claim on the primary checkout. Spawned mutating work " +
       "takes a linked worktree. Primary occupancy is the exception " +
       `(${PRIMARY_CLAIM_EXCEPTIONS.join(", ")}) from a trusted producer. ` +
-      "Use another worktree. `--read-only` never claims.",
+      "Run `deft session:start --primary-claim-exception=operator-default-branch`. Use another worktree. `--read-only` never claims.",
     code: 1,
   };
 }
@@ -895,7 +903,7 @@ export function applyWorktreeOccupancy(
   const live = liveOccupancyOnTree(projectRoot, existing, now);
   const primaryBlocked =
     input.write !== false &&
-    isContendedPrimaryCheckout(projectRoot) &&
+    primaryCheckoutHasLiveSiblingLease(projectRoot, now) &&
     !isPrimaryClaimException(input.primaryClaimException);
 
   if (input.steal === true) {
@@ -1033,7 +1041,7 @@ export function stealOccupancy(
   const incoming = claim.sessionId;
   if (
     input.write !== false &&
-    isContendedPrimaryCheckout(projectRoot) &&
+    primaryCheckoutHasLiveSiblingLease(projectRoot, now) &&
     !isPrimaryClaimException(input.primaryClaimException)
   ) {
     return primaryClaimRefusal(projectRoot, incoming, path);

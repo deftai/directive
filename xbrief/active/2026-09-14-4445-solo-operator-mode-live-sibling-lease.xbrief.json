@@ -1,0 +1,178 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4445 Bound-remedy harvest (ingest refused missing-pain on Stop 1 5649572412). Spec is successor lean 5649622186, not the filed body.",
+    "updated": "2026-09-14T13:28:08Z"
+  },
+  "plan": {
+    "title": "feat(occupancy): live sibling-lease discriminator for primary checkout claims",
+    "status": "running",
+    "narratives": {
+      "Description": "Recut of #4445: count live occupancy leases on sibling trees instead of leftover git worktree admin dirs; print the runnable --primary-claim-exception=operator-default-branch form on refusal. Do not add a topology policy producer.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4445 (REST body + comments; ingest refused missing-pain on 5649572412)",
+      "Overview": "Spec is Bound remedy lean 5649622186 (supersedes Stop 1 5649572412), verified-claims 5649623054, synthesis accepted 5649624069. The filed topology:solo / allowPrimaryCheckoutMutation producer cannot bind. Occupancy already claims a standalone primary; leftover GIT_COMMON_DIR/worktrees admin dirs are the tax. Sibling #4444 owns docs/requirements session posture. This story owns occupancy engine files only.",
+      "Labels": "enhancement, rfc, agent-experience, process, design-critique:ingest-ready",
+      "Decisions": "Do not add plan.policy.topology. Keep session:start --primary-claim-exception as the trusted producer (#4266). Spawn payloads still cannot name the exception. Drop adaptive lease-history default. ceremonyDial already exists."
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "isContendedPrimaryCheckout is main worktree plus a live occupancy lease on a sibling checkout, not leftover GIT_COMMON_DIR/worktrees admin dirs.",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "id": "ac2",
+        "title": "A no-op fails: git worktree add with no sibling lease, and leftover admin dirs after rm -rf until prune, must let mutation session:start claim the primary.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac3",
+        "title": "A live sibling lease still refuses primary mutation claim and steal without a trusted argv exception. Same-tree second session still refuses.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac4",
+        "title": "primaryClaimRefusal prints the runnable deft session:start --primary-claim-exception=operator-default-branch form, not only the enum values.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac5",
+        "title": "Do not add plan.policy.topology or allowPrimaryCheckoutMutation. Keep session:start --primary-claim-exception as the trusted producer. Spawn payloads still cannot name the exception.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac6",
+        "title": "Do not add an adaptive lease-history default. Spawn already keeps implement workers on worktrees; no swarm-launch topology refusal. Do not edit #4444 docs-posture surfaces.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac7",
+        "title": "Tests cover live-lease vs leftover-admin-dir vs expired sibling lease. CHANGELOG [Unreleased].",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "occupancy",
+      "session",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4445",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4445: feat(policy,occupancy): solo-operator mode"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4445#issuecomment-5649622186",
+        "type": "x-xbrief/github-comment",
+        "title": "Successor lean 5649622186 Bound remedy"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4445#issuecomment-5649623054",
+        "type": "x-xbrief/github-comment",
+        "title": "Verified-claims table 5649623054"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4445#issuecomment-5649624069",
+        "type": "x-xbrief/github-comment",
+        "title": "Synthesis accepted 5649624069"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from Bound remedy lean 5649622186 before product edit; ingest refused missing-pain on Stop 1 5649572412",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "isContendedPrimaryCheckout is main worktree plus a live occupancy lease on a sibling checkout, not leftover GIT_COMMON_DIR/worktrees admin dirs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A no-op fails: git worktree add with no sibling lease, and leftover admin dirs after rm -rf until prune, must let mutation session:start claim the primary.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A live sibling lease still refuses primary mutation claim and steal without a trusted argv exception. Same-tree second session still refuses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "primaryClaimRefusal prints the runnable deft session:start --primary-claim-exception=operator-default-branch form, not only the enum values.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not add plan.policy.topology or allowPrimaryCheckoutMutation. Keep session:start --primary-claim-exception as the trusted producer. Spawn payloads still cannot name the exception.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Do not add an adaptive lease-history default. Spawn already keeps implement workers on worktrees; no swarm-launch topology refusal. Do not edit #4444 docs-posture surfaces.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests cover live-lease vs leftover-admin-dir vs expired sibling lease. CHANGELOG [Unreleased].",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.fallback.deftai.directive.4445",
+    "metadata": {
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-repo-fallback",
+        "github_issue_id": null,
+        "origin": "deftai/directive#4445",
+        "id": "github.issue.fallback.deftai.directive.4445"
+      }
+    },
+    "updated": "2026-09-14T13:28:08Z"
+  },
+  "x-directive/swarm": {
+    "readiness": "ready",
+    "parallel_safe": true,
+    "file_scope": [
+      "packages/core/src/session/main-worktree.ts",
+      "packages/core/src/session/main-worktree.test.ts",
+      "packages/core/src/session/occupancy.ts",
+      "packages/core/src/session/occupancy.test.ts",
+      "CHANGELOG.md"
+    ],
+    "file_scope_confidence": "high",
+    "verify_commands": [
+      "pnpm exec vitest run packages/core/src/session/main-worktree.test.ts packages/core/src/session/occupancy.test.ts",
+      "task check"
+    ],
+    "depends_on": [],
+    "conflict_group": "occupancy-lease",
+    "size": "small"
+  }
+}

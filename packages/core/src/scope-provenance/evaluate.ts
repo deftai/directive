@@ -278,7 +278,7 @@ function listActiveXbriefPaths(projectRoot: string): string[] {
 function remediationForExpansion(): string {
   return (
     "Renew human approval: re-record the approved-scope digest after operator review " +
-    "(`task scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm` writes " +
+    "(`deft scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm` writes " +
     "`.deft/approved-scope/<plan-id>.json` with a humanApproval stamp). Commit that " +
     "approval on the merge base (or a prior PR) before expanding or activating the " +
     "scoped xBRIEF in the implementation change set. Editing the active xBRIEF alone " +
@@ -293,7 +293,7 @@ function remediationForExpansion(): string {
     "files present in the working tree (git diff vs base, git diff vs HEAD, and " +
     "untracked via git ls-files --others --exclude-standard); committing or not " +
     "committing the brief does not hide it. After merge, land the completed artifact " +
-    "via `task scope:complete` and a leftover land PR if needed (#3476). Do not " +
+    "via `deft scope:complete` and a leftover land PR if needed (#3476). Do not " +
     "git-add a completed/ husk to skip that PR (#3679)."
   );
 }
@@ -446,7 +446,7 @@ export function evaluateOneScopeProvenance(input: {
           "active xBRIEF modified with a non-human (agent/missing) approved-scope stamp; " +
           "only humanApproval stamps authorize non-empty file_scope",
         remediation:
-          "Record a human-origin approval via `task scope:record-approved-scope -- " +
+          "Record a human-origin approval via `deft scope:record-approved-scope -- " +
           "<xbrief-path> --actor <you> --confirm` (#3145 / #3205).",
       };
     }
@@ -466,7 +466,7 @@ export function evaluateOneScopeProvenance(input: {
           "active xBRIEF modified with a non-human approved-scope stamp (scope shrink/noise path); " +
           "only humanApproval stamps authorize non-empty file_scope",
         remediation:
-          "Record a human-origin approval via `task scope:record-approved-scope -- " +
+          "Record a human-origin approval via `deft scope:record-approved-scope -- " +
           "<xbrief-path> --actor <you> --confirm` (#3145 / #3205).",
       };
     }
@@ -715,7 +715,7 @@ export function evaluateScopeProvenance(
           "approved-scope record or preimage rewritten in the same change set as the active xBRIEF; " +
           "cannot self-authorize via concurrent approval rewrite",
         remediation:
-          "Commit human approval via `task scope:record-approved-scope` on the merge base " +
+          "Commit human approval via `deft scope:record-approved-scope` on the merge base " +
           "(or a prior PR), then activate/expand without rewriting the approval in this " +
           "change set. Same-PR approval rewrites do not authorize expansion (#3145 / #3205 / #3385).",
       });
