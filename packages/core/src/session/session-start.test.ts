@@ -796,9 +796,9 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     });
     expect(result.code).toBe(0);
     const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
-    expect(denoms.length).toBeGreaterThanOrEqual(1);
-    expect(denoms.every((e) => e.total_tool_turns === 12)).toBe(true);
-    expect(denoms.some((e) => e.payload.denominator_source === "harness_actual")).toBe(true);
+    expect(denoms).toHaveLength(1);
+    expect(denoms[0]?.total_tool_turns).toBe(12);
+    expect(denoms[0]?.payload.denominator_source).toBe("harness_actual");
   });
 });
 

@@ -1,0 +1,93 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3928. Bound contract is successor lean 5669603759 + synthesis 5669809576 + verified-claims 5669803327.",
+    "updated": "2026-09-14T20:20:00Z"
+  },
+  "plan": {
+    "id": "3928-tool-turn-denominator",
+    "title": "bug(telemetry): one tool_turn_denominator per session_id",
+    "status": "running",
+    "narratives": {
+      "Description": "One tool_turn_denominator per session_id at session start, always with denominator_source. emitKnown as a second event is the defect. Check-time must not emit this kind.",
+      "Origin": "https://github.com/deftai/directive/issues/3928 bound by comments 5669603759, 5669803327, 5669809576.",
+      "Overview": "Singleton emit keyed by session_id. Extend #3362 fixture to cardinality. Do not last-write or filter unsourced rows as the close.",
+      "Labels": "bug,process,urgent,area:cli,eval-signal"
+    },
+    "items": [
+      {
+        "title": "Singleton tool_turn_denominator at session start with denominator_source",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "Remove emitKnown second event and check-time emit of this kind",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "Extend #3362 fixture to cardinality and sourced share",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] #3928",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "bug",
+      "process",
+      "urgent",
+      "area:cli",
+      "eval-signal"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3928",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3928"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "clauses are the AC",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One tool_turn_denominator per session_id at session start with denominator_source",
+          "artifact_path": "packages/core/src/run-summary/emit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "emitKnown is not a second tool_turn_denominator event",
+          "artifact_path": "packages/core/src/run-summary/emit.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Check-time does not emit tool_turn_denominator",
+          "artifact_path": "packages/core/src/check/cached-orchestrator.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-14T20:20:00Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "verify_commands": []
+      }
+    }
+  }
+}

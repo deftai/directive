@@ -18,6 +18,7 @@ import {
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
 import { resolveRunSummarySessionId } from "./session-id.js";
+import { parseRunSummaryJsonl } from "./share.js";
 import {
   type AcceptanceRunSummaryPayload,
   type AcceptanceStampRunSummaryPayload,
@@ -173,6 +174,31 @@ function seedSeqFromDestination(destination: RunSummaryDestination): number {
   return countExistingJsonlLines(destination.path);
 }
 
+/** True when this session_id already has a tool_turn_denominator line (#3928). */
+function jsonlHasToolTurnDenominatorForSession(path: string, sessionId: string): boolean {
+  try {
+    if (!existsSync(path)) {
+      return false;
+    }
+    const lines = parseRunSummaryJsonl(readFileSync(path, "utf8"));
+    return lines.some(
+      (line) => line.event === "tool_turn_denominator" && line.session_id === sessionId,
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isSourcedToolTurnDenominator(
+  payload: ToolTurnDenominatorRunSummaryPayload,
+): payload is ToolTurnDenominatorRunSummaryPayload & {
+  readonly denominator_source: ToolTurnDenominatorSource;
+} {
+  return (
+    payload.denominator_source === "harness_actual" || payload.denominator_source === "host_planned"
+  );
+}
+
 const SEQ_LOCK_WAIT_MS = 2_000;
 const SEQ_LOCK_SPIN_MS = 15;
 
@@ -318,6 +344,7 @@ function acquireSeqLock(targetPath: string): () => void {
 export class RunSummaryEmitter {
   private seq = 0;
   private warned = false;
+  private emittedToolTurnDenominator = false;
   private readonly projectRoot: string;
   private readonly sessionId: string;
   private readonly component?: string;
@@ -377,9 +404,15 @@ export class RunSummaryEmitter {
       }
 
       if (this.destination.kind === "stdout") {
+        if (event === "tool_turn_denominator" && this.emittedToolTurnDenominator) {
+          return { emitted: false, destination: this.destination, line: null, warning: false };
+        }
         this.seq += 1;
         const line = this.buildLine(event, payload);
         this.writeStdout(`${RUN_SUMMARY_STDOUT_PREFIX}${lineToJson(line)}`);
+        if (event === "tool_turn_denominator") {
+          this.emittedToolTurnDenominator = true;
+        }
         return { emitted: true, destination: this.destination, line, warning: false };
       }
 
@@ -389,6 +422,12 @@ export class RunSummaryEmitter {
       const release = acquireSeqLock(path);
       try {
         const replace = event === "session_start" && truncateOnSessionStart;
+        if (
+          event === "tool_turn_denominator" &&
+          jsonlHasToolTurnDenominatorForSession(path, this.sessionId)
+        ) {
+          return { emitted: false, destination: this.destination, line: null, warning: false };
+        }
         this.seq = replace ? 1 : countExistingJsonlLines(path) + 1;
         const line = this.buildLine(event, payload);
         writeRunSummaryLine(
@@ -397,6 +436,9 @@ export class RunSummaryEmitter {
           lineToJson(line),
           replace ? "replace" : "append",
         );
+        if (event === "tool_turn_denominator") {
+          this.emittedToolTurnDenominator = true;
+        }
         return { emitted: true, destination: this.destination, line, warning: false };
       } catch {
         // Symlink / containment refusal and I/O both fail-open.
@@ -434,6 +476,9 @@ export class RunSummaryEmitter {
   }
 
   emitToolTurnDenominator(payload: ToolTurnDenominatorRunSummaryPayload): EmitRunSummaryResult {
+    if (!isSourcedToolTurnDenominator(payload)) {
+      return { emitted: false, destination: this.destination, line: null, warning: false };
+    }
     return this.emit("tool_turn_denominator", payload);
   }
 
@@ -453,19 +498,10 @@ export class RunSummaryEmitter {
     return this.emit("ac_pass_bank", payload);
   }
 
-  /** Emit the harness-supplied denominator when DEFT_TOTAL_TOOL_TURNS is set. */
-  emitKnownToolTurnDenominator(): EmitRunSummaryResult {
-    const n = readEnvToolTurnDenominator(this.env);
-    if (n === undefined) {
-      return { emitted: false, destination: this.destination, line: null, warning: false };
-    }
-    return this.emitToolTurnDenominator({ total_tool_turns: n });
-  }
-
   /**
-   * Emit a session denominator only when a host/harness value is known (#3399).
-   * `emitKnownToolTurnDenominator` stays silent unless DEFT_TOTAL_TOOL_TURNS is
-   * set; this caller also records DEFT_MAX_TURNS / host maxTurns.
+   * Emit one sourced session denominator when a host/harness value is known
+   * (#3399 / #3928). Silent when unset. A second call for the same session_id
+   * is a no-op — emitKnown as a second event is the defect.
    */
   emitSessionToolTurnDenominator(hostMaxTurns?: number | null): EmitRunSummaryResult {
     const resolved = resolveSessionToolTurnDenominator(this.env, hostMaxTurns);

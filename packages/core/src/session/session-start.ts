@@ -2009,7 +2009,7 @@ export function runSessionStart(
             }
           : {}),
       });
-      // #3399: emit a denominator only when a host/harness value is known.
+      // #3399 / #3928: one sourced denominator per session_id at session start.
       // Prefer DEFT_TOTAL_TOOL_TURNS (harness_actual), then DEFT_MAX_TURNS /
       // host maxTurns (host_planned). Unset → no event; share is unevaluable.
       emitter.emitSessionToolTurnDenominator(effortBudget.budget.maxTurns);

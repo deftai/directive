@@ -4,6 +4,7 @@
 import { readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
+import { computeRitualGateShare } from "../run-summary/share.js";
 import { DEFAULT_TRIAL_STEPS, missingEnrolledKinds, runFakeTrial } from "./fake-trial.js";
 import { ENROLLED_FIELD_FIXTURE_KINDS, RUN_SUMMARY_EVENT_KINDS } from "./kinds.js";
 
@@ -38,6 +39,25 @@ describe("runFakeTrial (#3362)", () => {
   it("covers every schema kind from the single step table", () => {
     const stepKinds = DEFAULT_TRIAL_STEPS.map((step) => step.kind).sort();
     expect(stepKinds).toEqual([...RUN_SUMMARY_EVENT_KINDS].sort());
+  });
+
+  it("one session has exactly one sourced tool_turn_denominator and matching share (#3928)", () => {
+    const result = runFakeTrial();
+    roots.push(result.projectRoot);
+    const denoms = result.lines.filter((line) => line.event === "tool_turn_denominator");
+    expect(denoms).toHaveLength(1);
+    expect(denoms[0]?.session_id).toBe(result.sessionId);
+    expect(denoms[0]?.payload).toMatchObject({
+      total_tool_turns: 8,
+      denominator_source: "harness_actual",
+    });
+    const checks = result.lines.filter((line) => line.event === "check_invocation");
+    const share = computeRitualGateShare(result.lines);
+    const expectedShare = checks.length / 8;
+    expect(share.evaluable).toBe(true);
+    expect(share.ritualGateCount).toBe(checks.length);
+    expect(share.totalToolTurns).toBe(8);
+    expect(share.share).toBe(expectedShare);
   });
 
   it("reports a missing enrolled kind when the trial omits it", () => {

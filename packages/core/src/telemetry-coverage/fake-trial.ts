@@ -33,6 +33,12 @@ export const DEFAULT_TRIAL_STEPS: readonly FakeTrialStep[] = [
     },
   },
   {
+    kind: "tool_turn_denominator",
+    invoke: (emitter) => {
+      emitter.emitSessionToolTurnDenominator();
+    },
+  },
+  {
     kind: "dial_escalation_evaluation",
     invoke: (emitter) => {
       emitter.emitDialEscalationEvaluation({
@@ -90,12 +96,6 @@ export const DEFAULT_TRIAL_STEPS: readonly FakeTrialStep[] = [
         command_count: 1,
         clause_count: 0,
       });
-    },
-  },
-  {
-    kind: "tool_turn_denominator",
-    invoke: (emitter) => {
-      emitter.emitKnownToolTurnDenominator();
     },
   },
   {

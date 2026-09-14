@@ -141,6 +141,7 @@ describe("production emitters with ritual-state and no DEFT_SESSION_ID (#3399)",
     const lines = readLines(dest);
     const check = lines.find((line) => line.event === "check_invocation");
     expect(check?.session_id).toBe(RITUAL);
+    expect(lines.filter((line) => line.event === "tool_turn_denominator")).toHaveLength(0);
   });
 
   it("ceremony-dial uses ritual-state session_id instead of dial-timestamp", () => {
@@ -162,6 +163,7 @@ describe("production emitters with ritual-state and no DEFT_SESSION_ID (#3399)",
     const evalLine = lines.find((line) => line.event === "dial_escalation_evaluation");
     expect(evalLine?.session_id).toBe(RITUAL);
     expect(evalLine?.session_id.startsWith("dial-") ?? false).toBe(false);
+    expect(lines.filter((line) => line.event === "tool_turn_denominator")).toHaveLength(0);
   });
 
   it("bankAcPass writes through the emitter with envelope fields and continuing seq", () => {

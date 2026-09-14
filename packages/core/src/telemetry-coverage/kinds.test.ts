@@ -30,7 +30,7 @@ describe("telemetry-coverage kinds (#3362)", () => {
 
   it("round-trips method names to kinds and skips the generic emit", () => {
     expect(kindForMethod("emitSessionStart")).toBe("session_start");
-    expect(kindForMethod("emitKnownToolTurnDenominator")).toBe("tool_turn_denominator");
+    expect(kindForMethod("emitSessionToolTurnDenominator")).toBe("tool_turn_denominator");
     expect(kindForMethod("emitGhostKind")).toBeUndefined();
     expect(isKindEmitterMethod("emitSessionStart")).toBe(true);
     expect(isKindEmitterMethod("emit")).toBe(false);

@@ -124,10 +124,10 @@ export interface CheckInvocationRunSummaryPayload {
 /** How a tool_turn_denominator value was obtained (#3399). */
 export type ToolTurnDenominatorSource = "harness_actual" | "host_planned";
 
-/** Total tool/turn count for the session (#3320 / #3399). */
+/** Total tool/turn count for the session (#3320 / #3399 / #3928). */
 export interface ToolTurnDenominatorRunSummaryPayload {
   readonly total_tool_turns: number;
-  readonly denominator_source?: ToolTurnDenominatorSource;
+  readonly denominator_source: ToolTurnDenominatorSource;
 }
 
 /** Bank checkpoint JSONL payload. Disk ledger stays camelCase (#3387). */
