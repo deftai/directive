@@ -1,0 +1,143 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4447 from successor lean 5650432935, verified-claims 5650437651, and synthesis 5650437867. Not Stop 1 write-back 5650304256.",
+    "updated": "2026-09-14T13:30:17Z"
+  },
+  "plan": {
+    "id": "4447-consumer-scope-provenance-tree-correct-task-spelling",
+    "title": "Consumer docs use tree-correct deft verb spelling (#4447)",
+    "status": "running",
+    "narratives": {
+      "Description": "Consumer-facing deposited docs prescribe bare task <ns>:<verb> (notably task scope:record-approved-scope). That spelling is invalid on include-only consumer trees. Bound contract recuts to deft <verb> primary and task deft:<verb> fallback across the consumer-audience deposited corpus, including the dispatch preamble.",
+      "Origin": "Bound from https://github.com/deftai/directive/issues/4447 comments 5650432935 (successor lean), 5650437651 (verified-claims), 5650437867 (synthesis accepted). Stop 1 write-back 5650304256 is superseded and is not the next-build contract.",
+      "Overview": "## Bound contract (not the issue body)\n\nSuccessor lean 5650432935, all-accept map, yolo standing. Synthesis accepted 5650437867.\n\n### Bound remedy\n\n1. Primary spelling is `deft <verb>`. Fallback is `task deft:<verb>`. Match #2893 / #4379 / #3439. Do not invent a parallel convention.\n2. Scope the consumer-audience deposited corpus, including `content/templates/agent-prompt-preamble.md`. Do not close on two files (`scope-provenance.md` + `tasks/scope.yml` alone).\n3. `#4094` cannot host this class until prefix-stripping and the single framework-shaped registry change. A corpus-list add is not the test.\n\n### In this story\n\n- Recut operator-facing examples in deposited consumer docs and templates to the CLI form, with the namespaced Task fallback named where a Task example is still useful.\n- Recut preamble happy-path steps that every implementation dispatch copies (`scope:promote`, `xbrief:activate`, `xbrief:preflight`).\n- Recut deposited `tasks/scope.yml` comment examples.\n- Leave `content/commands.md` maintainer-audience bare `task` forms (Finding 5).\n- Leave CHANGELOG historical rows frozen.\n- Do not add `scope-provenance.md` to the #4094 corpus list.\n- Omit `file_scope` (no operator TTY mint; #3874).\n\n### Residual with named reason\n\nGenerated `content/skills/` (pack-rendered) and the rest of `tasks/*.yml` comment corpus stay residual. Recutting 651 generated skill lines and 38 Taskfiles in this PR would collide with sibling cohort work and is not required to stop the named recurrence multiplier (the preamble). Skills remain pack-sourced follow-on.\n\n### Out of scope\n\nSibling product code for #4267, #4446, #4445, #4444, #4442. #4094 prefix-strip / registry redesign.",
+      "UserStory": "As a Directive consumer agent, I want deposited docs and the dispatch preamble to prescribe `deft <verb>` (or `task deft:<verb>`) so copied remediations resolve on an include-only Taskfile named deft.",
+      "ImplementationPlan": "1. Recut content/docs/scope-provenance.md examples and `task verify:scope-provenance` invocations to deft primary / task deft: fallback.\n2. Recut tasks/scope.yml comment examples (promote, demote, record-approved-scope).\n3. Recut content/templates/agent-prompt-preamble.md happy-path and other copied bare task <ns>:<verb> forms that are not already the tree-correct triad.\n4. Recut other consumer-audience deposited docs in content/docs/ and content/templates/ that ship the same invalid scope/xbrief/verify examples.\n5. Add a focused spelling regression that is not a #4094 corpus-list add.\n6. CHANGELOG [Unreleased] #4447.",
+      "Labels": "documentation, agent-experience, area:guidance, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Primary spelling is deft <verb>; fallback is task deft:<verb>",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a consumer-facing example for scope-provenance mint or verify, when the docs are read, the primary command is `deft <verb>` and any Task example is `task deft:<verb>`. Framework-source-only `task check` / `task check:merge` triad language is unchanged."
+        }
+      },
+      {
+        "title": "Cover consumer-audience deposited corpus including the preamble",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given the bound remedy, when this PR lands it does not close on only content/docs/scope-provenance.md and tasks/scope.yml. It also recuts content/templates/agent-prompt-preamble.md happy-path steps (scope:promote, xbrief:activate, xbrief:preflight) and other copied bare task <ns>:<verb> forms in that file that are not already tree-correct."
+        }
+      },
+      {
+        "title": "Do not use a #4094 corpus-list add as the regression",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/deposit/live-procedure-targets.ts COMMAND_SNIPPET_CORPUS, when this PR lands, scope-provenance.md is not added to that list. Any new test asserts the invalid bare `task scope:record-approved-scope` / preamble happy-path strings are gone without relying on prefix-stripping."
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased]",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the docs recut, when CHANGELOG [Unreleased] is read, it has a brief Fixed note that cites #4447."
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a consumer-facing example for scope-provenance mint or verify, when the docs are read, the primary command is `deft <verb>` and any Task example is `task deft:<verb>`. Framework-source-only `task check` / `task check:merge` triad language is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given the bound remedy, when this PR lands it does not close on only content/docs/scope-provenance.md and tasks/scope.yml. It also recuts content/templates/agent-prompt-preamble.md happy-path steps (scope:promote, xbrief:activate, xbrief:preflight) and other copied bare task <ns>:<verb> forms in that file that are not already tree-correct.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given packages/core/src/deposit/live-procedure-targets.ts COMMAND_SNIPPET_CORPUS, when this PR lands, scope-provenance.md is not added to that list. Any new test asserts the invalid bare `task scope:record-approved-scope` / preamble happy-path strings are gone without relying on prefix-stripping.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given the docs recut, when CHANGELOG [Unreleased] is read, it has a brief Fixed note that cites #4447.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "tags": [
+      "documentation",
+      "agent-experience",
+      "area:guidance",
+      "design-critique"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4447",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4447: Consumer scope-provenance docs prescribe an invalid unnamespaced Task command"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4447#issuecomment-5650432935",
+        "type": "x-xbrief/github-issue",
+        "title": "Successor lean 5650432935 (bound remedy)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4447#issuecomment-5650437651",
+        "type": "x-xbrief/github-issue",
+        "title": "Verified-claims table 5650437651"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4447#issuecomment-5650437867",
+        "type": "x-xbrief/github-issue",
+        "title": "Synthesis accepted 5650437867"
+      }
+    ],
+    "updated": "2026-09-14T13:30:17Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/deposit"
+        ],
+        "expected_outputs": [
+          "deft <verb> primary in scope-provenance.md and preamble happy-path",
+          "task deft:<verb> fallback where a Task example remains",
+          "no #4094 corpus-list add",
+          "CHANGELOG [Unreleased] #4447"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-tree-correct-spelling-4447",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "file_scope omitted: no operator TTY mint for approved-scope (#3874). Worker MAY add a focused spelling regression under packages/core/src/deposit/ that is not COMMAND_SNIPPET_CORPUS membership. Do not edit sibling product code for #4267 #4446 #4445 #4444 #4442. Do not rewrite generated content/skills/ in this story."
+      },
+      "capacityBucket": "docs"
+    }
+  }
+}

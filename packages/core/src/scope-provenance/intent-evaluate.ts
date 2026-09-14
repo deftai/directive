@@ -72,7 +72,7 @@ export function parseIntentPreimageRaw(raw: string): IntentPreimage | null {
 
 function remint(): string {
   return (
-    "Remint via `task scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm` " +
+    "Remint via `deft scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm` " +
     "and commit `.deft/approved-scope/<plan-id>.json` plus `.intent.json` on the merge base. " +
     "Read the preimage before committing (#3385)."
   );

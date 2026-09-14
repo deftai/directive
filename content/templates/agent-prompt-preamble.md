@@ -15,9 +15,9 @@ Anti-pattern: skimming AGENTS.md via `head` or `wc -l` and proceeding. Read the 
 Before any code-writing tool call (or before dispatching a sub-agent that will write code), satisfy the gate:
 
 1. Locate (or create) a scope xBRIEF for the work. If none exists in `xbrief/proposed/`, `xbrief/pending/`, or `xbrief/active/`, create one in `xbrief/proposed/` first.
-2. Promote the xBRIEF to `xbrief/pending/` via `task scope:promote -- <path>` (idempotent; lifecycle requires proposed -> pending -> active).
-3. Activate it: `task xbrief:activate -- <path>`. This moves the file to `xbrief/active/` and flips `plan.status` to `running`.
-4. Run the gate: `task xbrief:preflight -- xbrief/active/<file>.xbrief.json`. Exit 0 means you are clear to write code.
+2. Promote the xBRIEF to `xbrief/pending/` via `deft scope:promote -- <path>` (idempotent; lifecycle requires proposed -> pending -> active).
+3. Activate it: `deft xbrief:activate -- <path>`. This moves the file to `xbrief/active/` and flips `plan.status` to `running`.
+4. Run the gate: `deft xbrief:preflight -- xbrief/active/<file>.xbrief.json`. Exit 0 means you are clear to write code.
 
 Anti-pattern: editing files before activating the xBRIEF, then activating "to make the gate pass" retroactively. The gate is the contract; satisfy it first.
 
@@ -25,7 +25,7 @@ The gate also requires an explicit action-verb directive from the user (`build`,
 
 ## 2.5 Allocation context -- swarm-cohort consent token (#1378)
 
-Every dispatch envelope MUST carry a `## Allocation context` section so any downstream skill (the build SKILL Story Start Gate, the `task xbrief:preflight` gate) or deterministic gate can decide whether batched work was operator-approved by reading structured fields instead of pattern-matching free-form prose. The section has exactly five fields, in this order:
+Every dispatch envelope MUST carry a `## Allocation context` section so any downstream skill (the build SKILL Story Start Gate, the `deft xbrief:preflight` gate) or deterministic gate can decide whether batched work was operator-approved by reading structured fields instead of pattern-matching free-form prose. The section has exactly five fields, in this order:
 
 - `dispatch_kind`: `solo` | `swarm-cohort` -- whether this worker is a lone dispatch or one member of an operator-approved swarm cohort.
 - `allocation_plan_id`: <swarm-monitor session id, or path to the Phase 5 allocation-plan snapshot> | null -- the stable handle for the allocation plan that authorized this dispatch.
@@ -83,9 +83,9 @@ When present, the section documents these fields in order:
 
 - `dispatch_provider`: the runtime primitive that launched this worker -- e.g. `spawn_subagent`, `start_agent`, `sessions_spawn` (OpenClaw host; platform descriptor `openclaw` per #2874 / #2875), `cursor-composer`, `cursor-cloud-agent`, `claude-code` (Claude Code host; register primitive `claude-agent` per #3134), `grok-bot` (Grok Bot host; register primitive `grok-bot-executor` per #4201; not Grok Build), or a future adapter id. Names the harness surface, not the model.
 - `worker_role`: the role boundary for this dispatch -- one of `leaf-implementation`, `orchestrator`, `review-monitor`, or `merge-release` (stable ids from `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`). Tells the worker which preamble rules and skill surfaces apply.
-- `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (accepted set today: `composer`, `grok-build`, `cursor-cloud` only — see `KNOWN_SUBAGENT_BACKEND_IDS`) | null -- which catalogued **coding** backend the operator selected for this role. OpenClaw is a **host / dispatch_provider** (`sessions_spawn` / descriptor `openclaw`), not a `swarmSubagentBackend` enum value; do not write `selected_backend: openclaw` into policy (#2879 Greptile P1).
+- `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `deft policy:subagent-backends` (accepted set today: `composer`, `grok-build`, `cursor-cloud` only — see `KNOWN_SUBAGENT_BACKEND_IDS`) | null -- which catalogued **coding** backend the operator selected for this role. OpenClaw is a **host / dispatch_provider** (`sessions_spawn` / descriptor `openclaw`), not a `swarmSubagentBackend` enum value; do not write `selected_backend: openclaw` into policy (#2879 Greptile P1).
 - `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route. The canonical handle is the gitignored, per-machine `.deft/routing.local.json` (#1739), keyed by `(dispatch_provider, worker_role)`; set decisions with `deft swarm:routing-set --role <role> (--model <slug> | --harness-default)`.
-- `resolved_model` (#1739): the concrete model slug the operator pinned for this `(provider, role)` | null for an explicit harness default. Resolved from `.deft/routing.local.json` and stamped into the `task swarm:launch` manifest. **This is the field the dispatch primitive must actually honor** -- see the threading rule below.
+- `resolved_model` (#1739): the concrete model slug the operator pinned for this `(provider, role)` | null for an explicit harness default. Resolved from `.deft/routing.local.json` and stamped into the `deft swarm:launch` manifest. **This is the field the dispatch primitive must actually honor** -- see the threading rule below.
 - `model_source` (#1739): provenance of `resolved_model` -- e.g. `cursor-route`, `harness-default explicit`. Lets a postmortem tell a pinned model from a harness default.
 
 ! THREADING RULE (#1739): when `resolved_model` is non-null, the orchestrator MUST pass it as the model argument of the actual dispatch primitive (e.g. the Task tool's `model` parameter for a Cursor sub-agent). Stamping the manifest is PREP; the dispatch is agent-driven, so a recorded model that is never passed into the spawn call is the exact bug #1739 closes. For harness-bound providers (e.g. `grok`) the model is chosen by the harness; only `mode: harness-default` is recordable and `resolved_model` stays null.
@@ -105,7 +105,7 @@ Populate `selected_backend` OR `routing_policy` (or both when the operator sets 
 
 **Audit visibility:** review cycles and postmortems MUST be able to reconstruct which backend and role produced a change without inferring it from harness-specific prose.
 
-- ! Dispatchers MUST populate `## Worker metadata` in the dispatch envelope whenever backend routing is intentional (headless `task swarm:launch`, monitor dispatch, or manual orchestrator spawn).
+- ! Dispatchers MUST populate `## Worker metadata` in the dispatch envelope whenever backend routing is intentional (headless `deft swarm:launch`, monitor dispatch, or manual orchestrator spawn).
 - ! Workers MUST echo `dispatch_provider`, `worker_role`, and `selected_backend` or `routing_policy` (plus `resolved_model` when set, #1739) in the final status message per §11 (e.g. `DONE: ... (commit <sha>, PR #N, role leaf-implementation, model composer-2.5-fast via cursor-route)`). Omitting backend/role/model from the terminal message when metadata was present in the envelope is a hard `⊗`.
 
 Worked example (a tiered leaf worker on Composer):
@@ -121,9 +121,9 @@ Worked example (a tiered leaf worker on Composer):
 - model_source: cursor-route
 ```
 
-! Pre-dispatch gate (#1739 / #1877): run `task verify:routing` before spawning ANY sub-agent (cohort OR solo) — it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. `task verify:story-ready` chains the same routing gate for single Cursor/Grok Task dispatches (#1877). Session start runs `task verify:routing -- --advise` (non-blocking disclosure).
+! Pre-dispatch gate (#1739 / #1877): run `deft verify:routing` before spawning ANY sub-agent (cohort OR solo) — it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. `deft verify:story-ready` chains the same routing gate for single Cursor/Grok Task dispatches (#1877). Session start runs `deft verify:routing -- --advise` (non-blocking disclosure).
 
-Reference: `.deft/routing.local.json` + `task swarm:routing-set` + `task verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
+Reference: `.deft/routing.local.json` + `deft swarm:routing-set` + `deft verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
 
 ## 2.7 Runtime and GitHub auth mode (#1557)
 
@@ -179,7 +179,7 @@ If your shell is `pwsh 5.x` on Windows AND you are editing a file containing any
 python -c "import pathlib; p = pathlib.Path('path/to/file.md'); s = p.read_text(encoding='utf-8'); s = s.replace('old', 'new'); p.write_text(s, encoding='utf-8')"
 ```
 
-The corruption happens on the READ side (`Get-Content -Raw` decodes via cp1252 / cp437 BEFORE any safe write can preserve the bytes), so a UTF-8 write of already-corrupted text just persists the mojibake. PS 7+ (`pwsh`), bash, and zsh handle UTF-8 correctly and are exempt. The deterministic gate `task verify:encoding` will catch violations in `task check`, but a tooling failure here costs a full review-cycle iteration.
+The corruption happens on the READ side (`Get-Content -Raw` decodes via cp1252 / cp437 BEFORE any safe write can preserve the bytes), so a UTF-8 write of already-corrupted text just persists the mojibake. PS 7+ (`pwsh`), bash, and zsh handle UTF-8 correctly and are exempt. The deterministic gate `deft verify:encoding` will catch violations in `task check`, but a tooling failure here costs a full review-cycle iteration.
 
 This is the recurrence with four prior occurrences (#236 / #240 / #283 / PR #795); do not be the fifth.
 
@@ -251,7 +251,7 @@ Reference: issue #2563; swarm skill Platform Requirements; env scrub + stdio inh
 
 ! Multi-line git commit / gh issue|pr|comment bodies: write UTF-8 (no BOM) to OS temp, then `git commit -F` / `gh --body-file` / `deft scm:body:* --body-file`. ⊗ bash heredocs, `<<<`, inline multi-line `--body`, or multi-line PS here-strings in the agent command box on Windows PowerShell — those patterns fail at parse time, split arguments, or get rewritten by host shell wrappers before git/gh runs. This applies to your own commit and PR tooling on win32; do not use bash heredocs even when user rules show POSIX patterns. `ghx` is read-only — mutations stay on live `gh`. Detail: `content/scm/github.md` § #2646 (#1417, #240, #798).
 
-! Issue-body read-modify-write on win32: `task scm:body:issue:fetch --out-file` then edit the body file then `task scm:body:issue:edit --body-file` (fail-closed postcondition verify, #2607). ⊗ Capture-concat of `gh api repos/.../issues/<N> --jq .body` into PowerShell variables — PS string[]/$OFS collapses newlines to spaces and silently destroys live bodies (#2744, #2087, #2741, #1492). Detail: `content/scm/github.md` § #2744.
+! Issue-body read-modify-write on win32: `deft scm:body:issue:fetch --out-file` then edit the body file then `deft scm:body:issue:edit --body-file` (fail-closed postcondition verify, #2607). ⊗ Capture-concat of `gh api repos/.../issues/<N> --jq .body` into PowerShell variables — PS string[]/$OFS collapses newlines to spaces and silently destroys live bodies (#2744, #2087, #2741, #1492). Detail: `content/scm/github.md` § #2744.
 
 ## 4. pre-pr and review-cycle skills
 
@@ -309,7 +309,7 @@ drive-to: merge-ready on PR #1037 (repo: deftai/deftvisage, branch: fix/visage-r
 1. First tool call: read AGENTS.md; confirm Deft alignment.
 2. Read `templates/agent-prompt-preamble.md` (binding) and `skills/deft-directive-review-cycle/SKILL.md` end-to-end -- NOT `~/.cursor/skills-cursor/babysit/SKILL.md`.
 3. Run review-cycle Phase 1 process audit before the fix loop; batch Phase 1 + Phase 2 fixes per review-cycle discipline.
-4. Poll terminal verdict via `task pr:watch -- <N>` when waiting on Greptile/SLizard (#1056).
+4. Poll terminal verdict via `deft pr:watch -- <N>` when waiting on Greptile/SLizard (#1056).
 5. Exit only on review-cycle Step 6 fail-closed all-of (#1259) -- ad hoc SLizard P2 fixes without the exit predicate are insufficient.
 
 DONE: include PR URL, role review-monitor, and whether Step 6 CLEAN was reached.
@@ -343,12 +343,12 @@ Markdown-rich GitHub bodies MUST NOT be embedded inside double-quoted shell comm
 Use the canonical safe wrapper for issue bodies, PR bodies, and issue/PR comments:
 
 ```bash path=null start=null
-task scm:body:comment:create -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
-task scm:body:comment:edit -- --repo OWNER/REPO --comment 123456789 --body-file "$bodyFile"
-task scm:body:issue:create -- --repo OWNER/REPO --title "Title" --body-file "$bodyFile"
-task scm:body:issue:fetch -- --repo OWNER/REPO --issue 1555 --out-file "$bodyFile"
-task scm:body:issue:edit -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
-task scm:body:pr:edit -- --repo OWNER/REPO --pr 42 --body-file "$bodyFile"
+deft scm:body:comment:create -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
+deft scm:body:comment:edit -- --repo OWNER/REPO --comment 123456789 --body-file "$bodyFile"
+deft scm:body:issue:create -- --repo OWNER/REPO --title "Title" --body-file "$bodyFile"
+deft scm:body:issue:fetch -- --repo OWNER/REPO --issue 1555 --out-file "$bodyFile"
+deft scm:body:issue:edit -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
+deft scm:body:pr:edit -- --repo OWNER/REPO --pr 42 --body-file "$bodyFile"
 ```
 
 The wrapper reads UTF-8 body text from a file and invokes the `github-body` TS CLI (which routes through `gh api --input -` with explicit UTF-8 encoding), then prints the live post-mutation read-back object. Use live `gh` for immediate verification after mutations; do not use `ghx` for the first read-back because it may serve a cached stale GET.
@@ -362,7 +362,7 @@ Before ingesting a GitHub issue, building a worker dispatch envelope, or conclud
 3. ! Read body first, then the comment thread in chronological order. Later maintainer comments may supersede the original body — the #2126 recurrence shipped the wrong fix because dispatch used a body-only fetch.
 4. ! Any scope, fix, or status conclusion about the issue MUST reflect the full thread, not the body alone.
 
-**Umbrellas and epics (#1152):** when the issue is an umbrella or epic, the reading order extends to body → `## Current shape (as of pass-N)` comment → amendment comments. Prefer `task umbrella:current-shape <N>` for the deterministic current-shape read path.
+**Umbrellas and epics (#1152):** when the issue is an umbrella or epic, the reading order extends to body → `## Current shape (as of pass-N)` comment → amendment comments. Prefer `deft umbrella:current-shape <N>` for the deterministic current-shape read path.
 
 Anti-pattern: reading only the issue body and building a dispatch envelope from it — e.g. `gh issue view <N> --json body` or REST `repos/.../issues/<N>` body field alone when `comments` count is greater than zero.
 
@@ -389,8 +389,8 @@ Value attribution, budgeted session readbacks, and upstream gap escalation are g
 - ! Trusted-org local auto-enable (#2376): a repo whose GitHub origin belongs to a company-owned org (default `deftai`; extend via `DEFT_VALUE_AUTOENABLE_ORGS`) auto-resolves LOCAL emit + session readback ON with `source=org-auto` and network/upstream OFF -- no per-repo confirmation. An explicit typed `valueFeedback` block (including `enabled: false`) always wins; any other repo or no origin remote stays OFF.
 - ! While `valueFeedback.enabled` is false AND no trusted-org auto-enable applies, treat every value-feedback path as a no-op -- no ledger writes, no session lines, no upstream prompts, no token spend.
 - ! Value claims MUST cite concrete attributed ledger events; silence when nothing is attributable.
-- ! Session readback repeats suppress for 4 hours per attribution event id (same debounce class as #1279 triage welcome). Pull-based detail uses `task value:show` / `deft value:show`, not ambient pushes.
-- ! Upstream gap filing is confirmation-gated -- route through `deft-directive-feedback`; draft + dedup with `task feedback:file` / `deft feedback:file`, then re-run with `--confirm` only after explicit operator approval. Consumer projects only; maintainer repo no-ops unless `DEFT_VALUE_SELF_DOGFOOD=1`.
+- ! Session readback repeats suppress for 4 hours per attribution event id (same debounce class as #1279 triage welcome). Pull-based detail uses `deft value:show` / `deft value:show`, not ambient pushes.
+- ! Upstream gap filing is confirmation-gated -- route through `deft-directive-feedback`; draft + dedup with `deft feedback:file` / `deft feedback:file`, then re-run with `--confirm` only after explicit operator approval. Consumer projects only; maintainer repo no-ops unless `DEFT_VALUE_SELF_DOGFOOD=1`.
 - ⊗ File upstream issues without operator confirmation or past duplicate detection.
 - ⊗ Use `Closes`/`Fixes`/`Resolves` on upstream gap bodies -- use `Refs #1709` only.
 
@@ -440,7 +440,7 @@ The probe itself is a `core`-bucket call, so polling it cheaply does not consume
 
 #3167 caps CI-holdout babysit loops. #3180 attributes weather holds. Neither replaces this drop-back.
 
-! On attributed platform outage (`attribution: platform`) or repeated REST 429/502/503: **drop back** GitHub I/O (empty-commit, close/reopen, tight polls, new poller children), **report once** to the human in chat (what is down, attribution/incident, parked work, next probe time), and **re-probe once per** `plan.policy.forgeOutageRetryMinutes` (default **30**; USER.md Personal wins; min 5; `task policy:show --field=forgeOutageRetryMinutes`). Local work that does not need the forge MAY continue. Depth: `content/scm/github.md` § #3180 / #3422.
+! On attributed platform outage (`attribution: platform`) or repeated REST 429/502/503: **drop back** GitHub I/O (empty-commit, close/reopen, tight polls, new poller children), **report once** to the human in chat (what is down, attribution/incident, parked work, next probe time), and **re-probe once per** `plan.policy.forgeOutageRetryMinutes` (default **30**; USER.md Personal wins; min 5; `deft policy:show --field=forgeOutageRetryMinutes`). Local work that does not need the forge MAY continue. Depth: `content/scm/github.md` § #3180 / #3422.
 
 ⊗ Tight retry, empty-commit thrash, or sending the human to github.com as the only remediation.
 ⊗ Auto-merge / `--skip-ci` because a status page is red (#3180).
@@ -491,15 +491,15 @@ These rules bind **orchestrators** dispatching implementation, fix, or review-cy
 
 - ! When dispatching an implementation worker, the dispatch envelope MUST declare the unit-of-work boundary explicitly: `stop-at: pr-open` (worker opens PR and exits) OR `drive-to: merge-ready` (worker owns PR + Greptile review cycle + fix batches through merge-ready as ONE unit of work, following `skills/deft-directive-review-cycle/SKILL.md` monitoring tiers). On hosts whose leaves cannot nest a review-monitor (Cursor #2797, Claude Code #3134, Grok Build #4130), merge-ready means blocking `pr:watch` in **this** process -- not spawning a child poller. Default for story implementation dispatches is `drive-to: merge-ready`.
 - ! **Envelope selection SLA (#3153):** Choose the boundary before spawn using the swarm decision tree (`skills/deft-directive-swarm/references/core-phase-0.md` — capacity stall, conf-only residual, wall-clock budget, large multi-gate, host nest limits). Happy-path default remains `drive-to: merge-ready`. A **deliberate** `stop-at: pr-open` is valid only with an immediate partner merge-path owner per `skills/deft-directive-review-cycle/SKILL.md` § Partner merge-path (babysit / Approach 1 lease / parent-retained — not freestyle global babysit). Under human-merge policy, that owner (or an explicit handoff recipient) remains responsible through merge + `scope:complete` — do not stand down at CLEAN alone. Consumer pin: `templates/agents-entry.md` § Envelope selection SLA. Silent PR-open handback for a worker already scoped merge-ready remains **forbidden**.
-- ! **Cursor Task ownership split (#2797 / #2814):** A Cursor `Task` implementation leaf MUST NOT spawn another Cursor `Task` review-monitor: nested Task (leaf spawning leaf) is unsupported/unreliable. A Cursor `drive-to: merge-ready` leaf instead owns a blocking `task pr:watch -- <N>` in its own process. To use an Approach 1 monitor, scope the leaf `stop-at: pr-open`; the orchestrator that owns the Task primitive then launches the sibling monitor and runs `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive cursor-task` (GitHub sticky `<!-- deft:review-owner -->` lease — not local JSON).
-- ⊗ Let a Cursor leaf background `task pr:watch` and claim review monitoring is active. The process dies with the leaf and has no GitHub review-owner lease; treat that claim as a regression/eval failure and let `task verify:review-monitor -- --pr <N>` fail closed.
+- ! **Cursor Task ownership split (#2797 / #2814):** A Cursor `Task` implementation leaf MUST NOT spawn another Cursor `Task` review-monitor: nested Task (leaf spawning leaf) is unsupported/unreliable. A Cursor `drive-to: merge-ready` leaf instead owns a blocking `deft pr:watch -- <N>` in its own process. To use an Approach 1 monitor, scope the leaf `stop-at: pr-open`; the orchestrator that owns the Task primitive then launches the sibling monitor and runs `deft review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive cursor-task` (GitHub sticky `<!-- deft:review-owner -->` lease — not local JSON).
+- ⊗ Let a Cursor leaf background `deft pr:watch` and claim review monitoring is active. The process dies with the leaf and has no GitHub review-owner lease; treat that claim as a regression/eval failure and let `deft verify:review-monitor -- --pr <N>` fail closed.
 - ! **Grok Build ownership split (#4130 / #2797 analogue):** A `spawn_subagent` implementation leaf MUST NOT nested-spawn a review-monitor or any other `spawn_subagent`. Nested spawn does not report to the parent, and the parent cannot re-prompt a live child (`resume_from` requires terminal). A Grok Build `drive-to: merge-ready` leaf instead owns a blocking `deft pr:watch <N>` (or `task deft:pr:watch -- <N>`) in its own process, then `pr:merge-ready` / merge in the same loop. To use an Approach 1 monitor, scope the leaf `stop-at: pr-open`; the orchestrator that owns `spawn_subagent` then launches the sibling monitor and registers `--platform-primitive spawn_subagent`. If the leaf needs another agent, it stops and reports `BLOCKED`.
 - ⊗ Tell a grok-build leaf to spawn its own review poller, or let it nested-spawn `spawn_subagent` and claim monitoring is active.
-- ! **Post-merge scope lifecycle (#2321 / Gap C / #3429 / #3476):** Workers scoped `stop-at: pr-open` MUST NOT run `task scope:complete` before exit — their activation checkpoint rides into master on merge. The **orchestrator** (or Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort` on the headless path) MUST run `task scope:complete` or `task scope:cancel` for each shipped story xBRIEF after its PR merges. Workers scoped `drive-to: merge-ready` (or `drive-to: merge`) MUST include `task scope:complete` on their active xBRIEF as part of the same unit of work (after merge when appropriate). After merge (or observing merge) of issue `#N`, run `task verify:orphan-active -- --issue N`. Exit `0` is required before `DONE`. Exit `1` shipped → run the printed `task scope:complete -- <path>`. Exit `1` unresolved lookup → retry / emit `BLOCKED`; ⊗ complete unfinished scope. After `scope:complete`, `task verify:completed-tracked -- --issue N` MUST be exit `0` against `origin/<deliveryBranch>` (not feature-worktree HEAD) before `DONE` (#3476). Exit `1` missing tracked artifact → not DONE; remediate with `task swarm:finalize-cohort` or a lifecycle PR. `scope:complete` stays filesystem-only — ⊗ teach every leaf to commit on master.
+- ! **Post-merge scope lifecycle (#2321 / Gap C / #3429 / #3476):** Workers scoped `stop-at: pr-open` MUST NOT run `deft scope:complete` before exit — their activation checkpoint rides into master on merge. The **orchestrator** (or Phase 6 `deft swarm:finalize-cohort` / `deft swarm:complete-cohort` on the headless path) MUST run `deft scope:complete` or `deft scope:cancel` for each shipped story xBRIEF after its PR merges. Workers scoped `drive-to: merge-ready` (or `drive-to: merge`) MUST include `deft scope:complete` on their active xBRIEF as part of the same unit of work (after merge when appropriate). After merge (or observing merge) of issue `#N`, run `deft verify:orphan-active -- --issue N`. Exit `0` is required before `DONE`. Exit `1` shipped → run the printed `deft scope:complete -- <path>`. Exit `1` unresolved lookup → retry / emit `BLOCKED`; ⊗ complete unfinished scope. After `scope:complete`, `deft verify:completed-tracked -- --issue N` MUST be exit `0` against `origin/<deliveryBranch>` (not feature-worktree HEAD) before `DONE` (#3476). Exit `1` missing tracked artifact → not DONE; remediate with `deft swarm:finalize-cohort` or a lifecycle PR. `scope:complete` stays filesystem-only — ⊗ teach every leaf to commit on master.
 - ! Workers scoped `drive-to: merge-ready` MUST drive to merge-ready in their own tool loop — pre-PR, push, PR open, review-cycle poll/fix loop, and the #1259 Step 6 fail-closed exit — without handing back at PR-open for the orchestrator to re-dispatch separate leaf agents for review or fixes.
 - ⊗ Re-dispatch a separate review-monitor or fix agent after an implementation worker exits at PR-open when the original envelope scoped `drive-to: merge-ready` — that split recreates cross-agent state-handoff hazards and terminal lifecycle gaps (#1878 / Gap C).
 - ⊗ Dispatch `stop-at: pr-open` without a named review-cycle partner merge-path owner plan (#3153).
-- ⊗ Leave an `xbrief/active/` brief with `plan.status == running` on master after the story's issue is closed or its PR merged, or emit `DONE` with `ISSUE: closed` while that brief remains in `active/` — `task verify:orphan-active -- --issue N` must be exit `0` after merge (#2321 / #3429).
+- ⊗ Leave an `xbrief/active/` brief with `plan.status == running` on master after the story's issue is closed or its PR merged, or emit `DONE` with `ISSUE: closed` while that brief remains in `active/` — `deft verify:orphan-active -- --issue N` must be exit `0` after merge (#2321 / #3429).
 
 **Background / independent dispatch (Gap D):**
 
@@ -511,7 +511,7 @@ These rules bind **orchestrators** dispatching implementation, fix, or review-cy
 
 **Deliberate model routing before ANY dispatch (doctrine; enforcement #1877):**
 
-- ! Before dispatching ANY sub-agent (cohort OR single), the orchestrator MUST make a deliberate per-`worker_role` model-routing decision — consult `task verify:routing` / `task swarm:routing-set`, populate `## Worker metadata` per §2.6, and pass `resolved_model` into the actual dispatch primitive when non-null. Never silently inherit the parent orchestrator's model.
+- ! Before dispatching ANY sub-agent (cohort OR single), the orchestrator MUST make a deliberate per-`worker_role` model-routing decision — consult `deft verify:routing` / `deft swarm:routing-set`, populate `## Worker metadata` per §2.6, and pass `resolved_model` into the actual dispatch primitive when non-null. Never silently inherit the parent orchestrator's model.
 - ⊗ Dispatch a worker without a recorded routing decision for its `(dispatch_provider, worker_role)` pair when backend routing applies — silent inheritance of the parent model is forbidden.
 - ~ Deterministic gate enforcement for undecided routes is tracked in #1877; this subsection is the behavioral rule only.
 
@@ -552,27 +552,27 @@ The contract in one paragraph:
 
 The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Skipping the heartbeat is a hard `⊗` for any long-running sub-agent: a stalled agent with no heartbeat surface is the exact #1166 failure mode this contract closes.
 
-! **Cursor false-alive / REDISPATCH_OK (#2824):** On the Cursor `Task` path, the host may report a leaf as "still running" after it has gone silent (empty transcript, no heartbeats, no DONE/FAILED). When `task verify:subagent-alive` exits `1` for a registered in-flight `drive-to: merge*` worker — missing heartbeat, STALE heartbeat, or no recent git/PR activity — the monitor MUST treat the worker as dead and print `REDISPATCH_OK` to authorize takeover re-dispatch. Do NOT block on host resume when the liveness gate has failed closed.
+! **Cursor false-alive / REDISPATCH_OK (#2824):** On the Cursor `Task` path, the host may report a leaf as "still running" after it has gone silent (empty transcript, no heartbeats, no DONE/FAILED). When `deft verify:subagent-alive` exits `1` for a registered in-flight `drive-to: merge*` worker — missing heartbeat, STALE heartbeat, or no recent git/PR activity — the monitor MUST treat the worker as dead and print `REDISPATCH_OK` to authorize takeover re-dispatch. Do NOT block on host resume when the liveness gate has failed closed.
 
-! **OpenClaw `sessions_spawn` / heartbeat mapping (#2879):** Same file-heartbeat contract applies to OpenClaw review-monitors and long-running leaves. OpenClaw host session liveness, Control UI presence, or gateway channel reachability does NOT replace periodic heartbeats — those signals only prove the session exists, not that the tool loop is progressing. OpenClaw pollers write `.deft-scratch/subagent-status/<agent-id>.json` so `task agent:monitor` / `task verify:subagent-alive` can detect stalled monitors; OpenClaw-native session status MAY be a *supplementary* signal only. Host "still running" + missing/STALE heartbeat authorizes the same `REDISPATCH_OK` posture as Cursor #2824.
+! **OpenClaw `sessions_spawn` / heartbeat mapping (#2879):** Same file-heartbeat contract applies to OpenClaw review-monitors and long-running leaves. OpenClaw host session liveness, Control UI presence, or gateway channel reachability does NOT replace periodic heartbeats — those signals only prove the session exists, not that the tool loop is progressing. OpenClaw pollers write `.deft-scratch/subagent-status/<agent-id>.json` so `deft agent:monitor` / `deft verify:subagent-alive` can detect stalled monitors; OpenClaw-native session status MAY be a *supplementary* signal only. Host "still running" + missing/STALE heartbeat authorizes the same `REDISPATCH_OK` posture as Cursor #2824.
 
-! **Parent ensures scratch dir + startup grace before REDISPATCH_OK (#2879 / #3730):** `task verify:subagent-alive` exits `2` (config error, no `REDISPATCH_OK`) when the scratch directory is **missing** and has no records. Parents MUST `mkdir` the worker worktree's `.deft-scratch/subagent-status/` at dispatch time so a later missing record is exit `1` + `REDISPATCH_OK`. `task swarm:launch` (worktree map) and `task swarm:pre-dispatch --action begin` on a filesystem target mkdir this directory mechanically. Interactive Cursor/OpenClaw/Grok spawn without those verbs still MUST mkdir before the spawn primitive. Parents MUST ALSO wait a **startup grace** (default 3 minutes from dispatch, or until the first `phase: "starting"` heartbeat is observed) before treating a missing required-agent as takeover-eligible — probing an empty parent-created dir immediately races a healthy worker still writing its first heartbeat and can spawn a duplicate. Exit `2` remains reserved for true config errors (bad args / wrong path). ⊗ Put runtime liveness on the C2 launch manifest (written `mode: "replace"`) or in `occupancy.json`.
+! **Parent ensures scratch dir + startup grace before REDISPATCH_OK (#2879 / #3730):** `deft verify:subagent-alive` exits `2` (config error, no `REDISPATCH_OK`) when the scratch directory is **missing** and has no records. Parents MUST `mkdir` the worker worktree's `.deft-scratch/subagent-status/` at dispatch time so a later missing record is exit `1` + `REDISPATCH_OK`. `deft swarm:launch` (worktree map) and `deft swarm:pre-dispatch --action begin` on a filesystem target mkdir this directory mechanically. Interactive Cursor/OpenClaw/Grok spawn without those verbs still MUST mkdir before the spawn primitive. Parents MUST ALSO wait a **startup grace** (default 3 minutes from dispatch, or until the first `phase: "starting"` heartbeat is observed) before treating a missing required-agent as takeover-eligible — probing an empty parent-created dir immediately races a healthy worker still writing its first heartbeat and can spawn a duplicate. Exit `2` remains reserved for true config errors (bad args / wrong path). ⊗ Put runtime liveness on the C2 launch manifest (written `mode: "replace"`) or in `occupancy.json`.
 
-- Monitors run `task verify:subagent-alive -- --require-agent <agent-id> [--scratch-dir <worktree>/.deft-scratch/subagent-status]` each poll iteration.
-- Workers run `task agent:monitor` (raw sweep) or the gate verb above; both wrap `subagent-monitor` (#1365).
+- Monitors run `deft verify:subagent-alive -- --require-agent <agent-id> [--scratch-dir <worktree>/.deft-scratch/subagent-status]` each poll iteration.
+- Workers run `deft agent:monitor` (raw sweep) or the gate verb above; both wrap `subagent-monitor` (#1365).
 - Workers MUST write the first heartbeat immediately (`phase: "starting"`) and keep the cadence in this section. A dispatch that never instructs the worker to heartbeat leaves the armed directory empty and a host-kill indistinguishable from "never started" until grace elapses.
 
 ! **Commit early (#3730):** Long-running implementation workers MUST commit as soon as a coherent unit exists (source + tests that compile), then commit again at natural checkpoints. A host-kill leaves uncommitted work invisible to every gate. ⊗ Hold a complete correct diff uncommitted until PR time.
 
-! **Killed-worker takeover (#3730 / #3228):** `REDISPATCH_OK` does not lift `DENY_DUPLICATE_ACTIVE`. A killed worker's delivery attempt stays `running` until cancelled. Takeover is `task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel` then the same command without `--action` (begin). Do not add a third liveness classifier.
+! **Killed-worker takeover (#3730 / #3228):** `REDISPATCH_OK` does not lift `DENY_DUPLICATE_ACTIVE`. A killed worker's delivery attempt stays `running` until cancelled. Takeover is `deft swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel` then the same command without `--action` (begin). Do not add a third liveness classifier.
 
-! **Recovery dispatch vs stale ritual (#3730 / #2992):** Before a replacement spawn, run `task verify:session-ritual -- --tier=gated`. If it fails, run `task session:start --rearm --session-id=<same>` (or the `deft` form) rather than a full cold ceremony, unless re-arm is ineligible. A ritual deny MUST name `session:start --rearm`. Do not treat a bare deny as a dead end, and do not re-arm under a new session id (that reclaims occupancy and blocks the parent's own writes).
+! **Recovery dispatch vs stale ritual (#3730 / #2992):** Before a replacement spawn, run `deft verify:session-ritual -- --tier=gated`. If it fails, run `deft session:start --rearm --session-id=<same>` (or the `deft` form) rather than a full cold ceremony, unless re-arm is ineligible. A ritual deny MUST name `session:start --rearm`. Do not treat a bare deny as a dead end, and do not re-arm under a new session id (that reclaims occupancy and blocks the parent's own writes).
 
 ! **Parent-steer inbox (#4286):** Grok Build `spawn_subagent` has no child prompt and no live `resume_from`. That host gap does not invent retain, OpenClaw `sessions_yield`, or a replacement for split-dispatch mid-scope approval gates. Grok-build implementation leaves whose tool loop exceeds ~3 min MUST still have a parent-writable steer path because the host has no other channel.
 
 - Inbox path: `<worktree>/.deft-scratch/subagent-steer/<agent-id>.json` (sibling of heartbeat, not inside `subagent-status/`). Closed schema `deft.subagent.steer.v1`: bound to `agent_id`, `steer_id` apply-once ack, `expires_at`, `writer_kind` `occupancy-owner` | `dispatching-parent`. Ack file: `<agent-id>.ack.json` in the same steer dir. Distinct from the child-owned heartbeat JSON.
 - Tool-loop duty: no blocking wait longer than the heartbeat/steer poll interval (2-3 min) when the leaf must remain steerable. Between slices, read the inbox, apply unread once, rewrite heartbeat. A scratch path does not interrupt a blocked tool. Long `task check` recovery stays REDISPATCH_OK / split-dispatch — not "poll while blocked".
-- Parent-visible unread flag: `task verify:subagent-steer` exit `1` prints `STEER_PENDING`. ⊗ Treat unread steer as missing heartbeat. ⊗ Print `REDISPATCH_OK` from the steer gate. ⊗ Put a second JSON schema in `.deft-scratch/subagent-status/` — `sweepScratchDirs` only reads top-level heartbeat `<agent-id>.json` and skips `deft.subagent.steer*` schema.
+- Parent-visible unread flag: `deft verify:subagent-steer` exit `1` prints `STEER_PENDING`. ⊗ Treat unread steer as missing heartbeat. ⊗ Print `REDISPATCH_OK` from the steer gate. ⊗ Put a second JSON schema in `.deft-scratch/subagent-status/` — `sweepScratchDirs` only reads top-level heartbeat `<agent-id>.json` and skips `deft.subagent.steer*` schema.
 - ⊗ Invent message-later / live `resume_from` on grok-build. ⊗ Treat steer `text` as a new dispatch envelope or constitution edit. Depth: `docs/subagent-heartbeat.md`.
 
 ## 10.55 Rule Authority and Thin Fail-Closed (#3313)
@@ -586,7 +586,7 @@ Principle: `main.md` `## Thin Fail-Closed Design (#3265)`.
 
 ## 10.57 Telemetry deliverable fixture (#3362)
 
-! A telemetry deliverable is not done until a field-shaped fixture reads its events from the shared fake trial (`task verify:telemetry-coverage`). Silence is the failure mode this gate exists for.
+! A telemetry deliverable is not done until a field-shaped fixture reads its events from the shared fake trial (`deft verify:telemetry-coverage`). Silence is the failure mode this gate exists for.
 
 ⊗ Ship a new `RUN_SUMMARY_EVENT_KINDS` member or exported emitter method without a production caller and a fixture that asserts the kind in `DEFT_RUN_SUMMARY_PATH` JSONL.
 
@@ -596,7 +596,7 @@ Multi-iteration implement, pre-PR, repair, and monitor loops require **two** sto
 
 ! On failure stop: halt; emit an operator-visible report (what was tried, what is missing, what human decision is needed). Prefer `BLOCKED:` over silent retry. ⊗ Thrash past the envelope. Durable delivery/acceptance mechanical enforcement is **#3143** (`packages/core/src/delivery-attempt/`; not prompt-only).
 
-! **Implement-leaf pre-dispatch (#3228 / #3730):** Before spawning a peer implement leaf on a unit (story/worktree), monitors/orchestrators MUST run `task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree-or-branch>` (exit **0** allow / **1** active deny / **2** config). Non-zero → do not spawn. Gate is #3143 `DENY_DUPLICATE_ACTIVE`. Takeover after `REDISPATCH_OK` = `--action cancel` then pre-dispatch begin again. A killed worker stays `running` until that cancel. Pointer only — skill depth: swarm `core-phase-4.md`.
+! **Implement-leaf pre-dispatch (#3228 / #3730):** Before spawning a peer implement leaf on a unit (story/worktree), monitors/orchestrators MUST run `deft swarm:pre-dispatch -- --scope-id <id> --target-id <worktree-or-branch>` (exit **0** allow / **1** active deny / **2** config). Non-zero → do not spawn. Gate is #3143 `DENY_DUPLICATE_ACTIVE`. Takeover after `REDISPATCH_OK` = `--action cancel` then pre-dispatch begin again. A killed worker stays `running` until that cancel. Pointer only — skill depth: swarm `core-phase-4.md`.
 
 ## 11. Mandatory DONE message even on early exit
 
@@ -607,7 +607,7 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 - Failure: `FAILED: <reason> + recovery hint`
 - Stand-down: `STOOD-DOWN: <reason>` (e.g. user said "wait" with no follow-up dispatch)
 
-! **`drive-to: merge-ready` DONE reservation (#2843):** When the dispatch envelope scoped `drive-to: merge-ready` (or `drive-to: merge`), `DONE` is reserved for merge-ready completion — `task pr:merge-ready -- <N>` exit 0 on current HEAD, or merge + `task scope:complete` when the envelope included merge authority. After merge, `task verify:orphan-active -- --issue <N>` MUST be exit 0 before `DONE` (#3429). Exit 1 shipped → run the printed `task scope:complete -- <path>`. Exit 1 unresolved lookup → retry / emit `BLOCKED`; ⊗ complete unfinished scope. After `scope:complete`, `task verify:completed-tracked -- --issue <N>` MUST be exit 0 against `origin/<deliveryBranch>` (not feature-worktree HEAD) before `DONE` (#3476). Exit 1 missing tracked artifact → not DONE; remediate with `task swarm:finalize-cohort` or a lifecycle PR. Untracked laptop `xbrief/completed/` is not land. Greptile P0/P1 outstanding, CI failure, branch behind, review-cycle cap, or any other merge blocker MUST NOT exit as `DONE`.
+! **`drive-to: merge-ready` DONE reservation (#2843):** When the dispatch envelope scoped `drive-to: merge-ready` (or `drive-to: merge`), `DONE` is reserved for merge-ready completion — `deft pr:merge-ready -- <N>` exit 0 on current HEAD, or merge + `deft scope:complete` when the envelope included merge authority. After merge, `deft verify:orphan-active -- --issue <N>` MUST be exit 0 before `DONE` (#3429). Exit 1 shipped → run the printed `deft scope:complete -- <path>`. Exit 1 unresolved lookup → retry / emit `BLOCKED`; ⊗ complete unfinished scope. After `scope:complete`, `deft verify:completed-tracked -- --issue <N>` MUST be exit 0 against `origin/<deliveryBranch>` (not feature-worktree HEAD) before `DONE` (#3476). Exit 1 missing tracked artifact → not DONE; remediate with `deft swarm:finalize-cohort` or a lifecycle PR. Untracked laptop `xbrief/completed/` is not land. Greptile P0/P1 outstanding, CI failure, branch behind, review-cycle cap, or any other merge blocker MUST NOT exit as `DONE`.
 
 ! **Mid-cycle BLOCKED contract (#2843):** A `drive-to: merge-ready` worker that must exit before merge-ready (blocker, cap, context limit, host turn budget) MUST emit `BLOCKED:` (never `DONE`) with: PR number (or `no-pr`), HEAD SHA, blocker class (`greptile_p0_p1` / `ci_failures` / `behind_base` / `review_cycle_cap` / `context_limit` / other), worktree path, and `REDISPATCH_OK` when a continuation leaf should take over. Example: `BLOCKED: Greptile P1 on HEAD abc1234 (PR #2842, blocker greptile_p0_p1, worktree .deft-scratch/worktrees/2839-appsec, REDISPATCH_OK)`.
 
@@ -617,7 +617,7 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 
 ! **Empty announce ≠ done / single review-monitor lease (#3044 / FC04 residual):** An empty settle, missing `STATUS:` line, or `status: unknown` from a review-monitor (`subagent_announce` with `(no output)` included) is **not** DONE/CLEAN/merge-ready. Parent MUST same-turn ground truth (`gh pr view` + checks + HEAD) and MUST NOT spawn a second monitor while the prior owner is running or only falsely settled. Prefer one sticky `<!-- deft:review-owner -->` lease and a non-empty `STATUS`/`HEAD`/`CHECKS`/`MERGE` handback. Full MUST language: `skills/deft-directive-review-cycle/SKILL.md` + OpenClaw host adapter residual.
 
-! **`review_cycle` evidence enum (#3090):** Handoffs, swarm finish messages, and L4 process claims MUST use only `done` | `in_progress:<pr>#<monitor_or_lease_ref>` | `skipped:<reason>` | `n/a`. Freeform `started` / `pending` / `initiated` is forbidden. L4 `status: pass` is illegal unless `review_cycle: done` (Step 6 fail-closed on HEAD) or `review_cycle: in_progress:…` with a verifiable sticky lease / parent-retained ownership. After a drive-to:merge-ready / babysit / shepherd claim, the same turn MUST end in Owner Continuity Gate A/B/C (monitor+lease, parent-retained next dual-source action, or explicit BLOCKED/FAILED finish) — never silent hold. Optional machine gate: `deft verify:l4-owner --pr <N>` / `task verify:l4-owner -- --pr <N>`. Full MUST language: `skills/deft-directive-review-cycle/SKILL.md` Owner Continuity Gate.
+! **`review_cycle` evidence enum (#3090):** Handoffs, swarm finish messages, and L4 process claims MUST use only `done` | `in_progress:<pr>#<monitor_or_lease_ref>` | `skipped:<reason>` | `n/a`. Freeform `started` / `pending` / `initiated` is forbidden. L4 `status: pass` is illegal unless `review_cycle: done` (Step 6 fail-closed on HEAD) or `review_cycle: in_progress:…` with a verifiable sticky lease / parent-retained ownership. After a drive-to:merge-ready / babysit / shepherd claim, the same turn MUST end in Owner Continuity Gate A/B/C (monitor+lease, parent-retained next dual-source action, or explicit BLOCKED/FAILED finish) — never silent hold. Optional machine gate: `deft verify:l4-owner --pr <N>` / `deft verify:l4-owner -- --pr <N>`. Full MUST language: `skills/deft-directive-review-cycle/SKILL.md` Owner Continuity Gate.
 
 ! **Bound proof for remote artifact claims / invented-done (#3120):** Handoff evidence MUST distinguish at least three axes and a binding state:
 
@@ -630,7 +630,7 @@ Every worker MUST send a final status message before exiting its tool loop, rega
 
 - ! **`proof_status` enum:** `bound` (same-turn probes bind every remote claim) \| `unbound` (remote claims present without probes — illegal under `status: pass`) \| `n/a-no-remote-claim` (no PR URL / PR number / SHA / CI-green / review-score fields filled).
 - ! **`status: pass` is forbidden** when any remote artifact is claimed (PR URL/number, commit/HEAD SHA, CI green/success, review score) unless `proof_status` is `bound` **and** each claim has a same-turn probe (`command` + short raw `snippet` from that command's stdout). Unbound remote claims → **invalid evidence (fail)**, not pass-with-notes.
-- ! **Binding = probe-then-fill (MUST):** run `git` / forge probe first (`git rev-parse HEAD`, `gh api repos/<o>/<r>/pulls/<N>`, `task pr:watch -- <N> --one-shot`, checks API), then **copy** IDs/URLs/SHAs/scores from the probe JSON/text into the evidence block. ⊗ Fill PR/SHA/CI/review fields from recollection, narration, or prior-turn memory.
+- ! **Binding = probe-then-fill (MUST):** run `git` / forge probe first (`git rev-parse HEAD`, `gh api repos/<o>/<r>/pulls/<N>`, `deft pr:watch -- <N> --one-shot`, checks API), then **copy** IDs/URLs/SHAs/scores from the probe JSON/text into the evidence block. ⊗ Fill PR/SHA/CI/review fields from recollection, narration, or prior-turn memory.
 - ! **Fail ranking:** **invented-done** (false or unbound remote artifacts under pass) is **stricter** than **empty-done** (pass with no work/ship/gate substance and no remote claims). Empty returns are incomplete; invented complete returns are worse and MUST fail closed.
 - ! **Legal partial:** local work `done` + ship `not_started` / `blocked` **without** PR/SHA/CI/review fields and `proof_status: n/a-no-remote-claim` (or non-pass `status: partial`) is valid — do not invent ship state.
 - Machine check (library): `validateHandoffEvidence` in `@deftai/directive-core` `handoff-evidence` (`packages/core/src/handoff-evidence/`). Skills: build / pre-pr / review-cycle final checklist.
@@ -679,23 +679,23 @@ Second settle event for `R` arrives with the same claims / equivalent rollup.
 
 Cross-links: swarm Phase 5 completion-notification / parent handback (`skills/deft-directive-swarm/references/core-phase-5-6.md`); review-monitor empty-settle DoD remains #3044 (empty ≠ done) and is orthogonal — empty is not a latch hit; identical non-empty replay after a prior consolidate **is** a latch hit.
 
-## 12. Session ritual + `task verify:cache-fresh` gates before `start_agent` (#1348 / #1127)
+## 12. Session ritual + `deft verify:cache-fresh` gates before `start_agent` (#1348 / #1127)
 
-Dispatchers (this orchestrator, swarm Phase 4 dispatch, monitor agents, scheduled / cloud runs) run in a headless worker context and MUST set `DEFT_SESSION_RITUAL_SKIP=1` for dispatched implementation workers. The interactive parent session remains responsible for `task session:start`; worker processes bypass the local `.deft/ritual-state.json` gate explicitly so they do not need per-clone interactive ritual state. When the bypass would hide a stale/missing ritual state, `task verify:session-ritual` prints a warning to stderr; preserve that warning in the dispatch log.
+Dispatchers (this orchestrator, swarm Phase 4 dispatch, monitor agents, scheduled / cloud runs) run in a headless worker context and MUST set `DEFT_SESSION_RITUAL_SKIP=1` for dispatched implementation workers. The interactive parent session remains responsible for `deft session:start`; worker processes bypass the local `.deft/ritual-state.json` gate explicitly so they do not need per-clone interactive ritual state. When the bypass would hide a stale/missing ritual state, `deft verify:session-ritual` prints a warning to stderr; preserve that warning in the dispatch log.
 
-Dispatchers MUST run `task verify:cache-fresh --for-issue <N>` immediately before any `start_agent` invocation that will dispatch an implementation sub-agent for upstream issue N, and MUST refuse dispatch on any non-zero exit. The cache gate follows the session ritual gate in the canonical pre-`start_agent` gate stack documented in `AGENTS.md` (`verify:session-ritual` -> Story Start Gate -> Implementation Intent Gate -> `verify:cache-fresh` -> branch-policy gate -> `start_agent`).
+Dispatchers MUST run `deft verify:cache-fresh --for-issue <N>` immediately before any `start_agent` invocation that will dispatch an implementation sub-agent for upstream issue N, and MUST refuse dispatch on any non-zero exit. The cache gate follows the session ritual gate in the canonical pre-`start_agent` gate stack documented in `AGENTS.md` (`verify:session-ritual` -> Story Start Gate -> Implementation Intent Gate -> `verify:cache-fresh` -> branch-policy gate -> `start_agent`).
 
 The gate is detection-bound and has three exit states (mirrors the #747 branch gate):
 
 - `0` -- cache fresh, target issue's latest decision is `accept`, and the issue is inside the active `plan.policy.triageScope[]` subscription (D12 / #1131). Proceed to `start_agent`.
-- `1` -- cache is stale OR a blocking condition was found (issue's latest decision is `defer` / `reject` / `needs-ac` / `mark-duplicate` / absent, OR the issue is outside the active subscription, OR no cached entry exists for the issue under the resolved subscription). The dispatcher MUST refuse `start_agent` and surface the printed remediation (cite `task triage:bootstrap` / `task cache:fetch-all` for staleness, `task triage:accept` / `task triage:scope --list` for the gating decision).
-- `2` -- config error: `.deft-cache/` is absent or `xbrief/.eval/candidates.jsonl` is missing. The dispatcher MUST refuse `start_agent` and surface the bootstrap recovery line (`task triage:bootstrap`). This is the never-bootstrapped case and is distinct from the stale-cache case so the operator sees the right action.
+- `1` -- cache is stale OR a blocking condition was found (issue's latest decision is `defer` / `reject` / `needs-ac` / `mark-duplicate` / absent, OR the issue is outside the active subscription, OR no cached entry exists for the issue under the resolved subscription). The dispatcher MUST refuse `start_agent` and surface the printed remediation (cite `deft triage:bootstrap` / `deft cache:fetch-all` for staleness, `deft triage:accept` / `deft triage:scope --list` for the gating decision).
+- `2` -- config error: `.deft-cache/` is absent or `xbrief/.eval/candidates.jsonl` is missing. The dispatcher MUST refuse `start_agent` and surface the bootstrap recovery line (`deft triage:bootstrap`). This is the never-bootstrapped case and is distinct from the stale-cache case so the operator sees the right action.
 
 The `--allow-stale` override is per-shell and audited: the dispatcher MAY pass it after operator approval when the upstream issue body is known to be stable across the freshness window, but the override is logged to stderr and SHOULD be cited in the dispatch envelope so a downstream reviewer can audit the decision. Never silently strip the `--for-issue` arg to clear a failing gate; that defeats the contract.
 
 The `--allow-missing-bootstrap` flag exists for the framework's own `task check` wiring (so a fresh framework checkout doesn't fail its own `verify:cache-fresh` aggregate run) and MUST NOT be passed by dispatchers. Consumer dispatchers leave it OFF; a missing cache is a real failure for them.
 
-Reference: the gate is exposed via `task verify:cache-fresh`; the subscription scope is read via the D12 surface (`task triage:scope`) so a consumer that has tightened `plan.policy.triageScope[]` is not gated by stale entries outside their subscription.
+Reference: the gate is exposed via `deft verify:cache-fresh`; the subscription scope is read via the D12 surface (`deft triage:scope`) so a consumer that has tightened `plan.policy.triageScope[]` is not gated by stale entries outside their subscription.
 
 ## 13. Cancellation Attribution (#1300)
 
