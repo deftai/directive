@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4447 from successor lean 5650432935, verified-claims 5650437651, and synthesis 5650437867. Not Stop 1 write-back 5650304256.",
-    "updated": "2026-09-14T15:54:25.177Z"
+    "updated": "2026-09-14T16:18:43.899Z"
   },
   "plan": {
     "id": "4447-consumer-scope-provenance-tree-correct-task-spelling",
@@ -40,8 +40,8 @@
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/content-contracts/skills/agent_prompt_preamble_template.test.ts",
-          "recorded_at": "2026-09-14T15:54:25.177Z",
+          "pointer": "packages/core/src/deposit/tree-correct-consumer-task-spelling.test.ts",
+          "recorded_at": "2026-09-14T16:18:43.898Z",
           "recorded_by": "leaf-4447-scope-provenance"
         }
       },
@@ -139,7 +139,7 @@
         "title": "Synthesis accepted 5650437867"
       }
     ],
-    "updated": "2026-09-14T15:54:25.177Z",
+    "updated": "2026-09-14T16:18:43.899Z",
     "metadata": {
       "kind": "story",
       "swarm": {
