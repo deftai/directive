@@ -1591,7 +1591,8 @@ function inspectMutationGates(
     );
   }
 
-  const postureEnv = overlayTrustedSessionPosture(effectiveRoot, environ);
+  const occupantId = occupancyGate.occupant?.sessionId ?? null;
+  const postureEnv = overlayTrustedSessionPosture(effectiveRoot, environ, occupantId);
   const postureParse = parseSessionPostureToken(postureEnv[ENV_SESSION_POSTURE]);
   if (postureParse.error !== null) {
     return deny(input, "unknown-session-posture", toolName, postureParse.error + rootsNote);

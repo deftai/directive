@@ -166,7 +166,15 @@ export function sessionPosturePath(projectRoot: string): string {
   return join(resolve(projectRoot), ...SESSION_POSTURE_RELPATH);
 }
 
-export function persistTrustedSessionPosture(projectRoot: string, token: DirectivePosture): string {
+export function persistTrustedSessionPosture(
+  projectRoot: string,
+  token: DirectivePosture,
+  sessionId: string,
+): string {
+  const owner = sessionId.trim();
+  if (owner.length === 0) {
+    throw new Error("requirements posture persist requires occupancy session id");
+  }
   const parsed = parseSessionPostureToken(token);
   if (parsed.token === null || parsed.error !== null) {
     throw new Error(parsed.error ?? unknownPostureTokenMessage(token));
@@ -175,6 +183,7 @@ export function persistTrustedSessionPosture(projectRoot: string, token: Directi
     schemaVersion: 1,
     posture: parsed.token,
     producer: SESSION_POSTURE_PRODUCER,
+    sessionId: owner,
   };
   const target = sessionPosturePath(projectRoot);
   containedWrite({
@@ -195,35 +204,47 @@ export function clearPersistedSessionPosture(projectRoot: string): void {
 }
 
 export function readPersistedSessionPosture(projectRoot: string): string | null {
+  return readPersistedSessionPostureRecord(projectRoot)?.token ?? null;
+}
+
+export function readPersistedSessionPostureRecord(
+  projectRoot: string,
+): { token: DirectivePosture; sessionId: string } | null {
   const path = sessionPosturePath(projectRoot);
   if (!existsSync(path)) return null;
   try {
     const raw = JSON.parse(readFileSync(path, "utf8")) as {
       posture?: unknown;
       producer?: unknown;
+      sessionId?: unknown;
     };
     if (raw.producer !== SESSION_POSTURE_PRODUCER) return null;
     if (typeof raw.posture !== "string") return null;
+    if (typeof raw.sessionId !== "string" || raw.sessionId.trim().length === 0) return null;
     const parsed = parseSessionPostureToken(raw.posture);
     if (parsed.token === null || parsed.error !== null) return null;
-    return parsed.token;
+    return { token: parsed.token, sessionId: raw.sessionId.trim() };
   } catch {
     return null;
   }
 }
 
-/** Env wins; else ritual-adjacent session:start file. Payload fields stay untrusted. */
+/** Env wins; else ritual-adjacent session:start file bound to the live occupant. Payload fields stay untrusted. */
 export function overlayTrustedSessionPosture(
   projectRoot: string,
   environ: NodeJS.ProcessEnv,
+  occupantSessionId?: string | null,
 ): NodeJS.ProcessEnv {
   const existing = environ[ENV_SESSION_POSTURE];
   if (typeof existing === "string" && existing.trim().length > 0) {
     return environ;
   }
-  const persisted = readPersistedSessionPosture(projectRoot);
+  const occupant = occupantSessionId?.trim() ?? "";
+  if (occupant.length === 0) return environ;
+  const persisted = readPersistedSessionPostureRecord(projectRoot);
   if (persisted === null) return environ;
-  return { ...environ, [ENV_SESSION_POSTURE]: persisted };
+  if (persisted.sessionId !== occupant) return environ;
+  return { ...environ, [ENV_SESSION_POSTURE]: persisted.token };
 }
 
 /** Ritual-state must never be treated as posture authority (#2180). */

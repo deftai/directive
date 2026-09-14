@@ -1043,7 +1043,7 @@ function runRequirementsSessionStart(
   }
   const base = runReadOnlySessionStart(projectRoot, options, instant, environment);
   try {
-    persistTrustedSessionPosture(projectRoot, REQUIREMENTS_POSTURE);
+    persistTrustedSessionPosture(projectRoot, REQUIREMENTS_POSTURE, persisted.sessionId);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {

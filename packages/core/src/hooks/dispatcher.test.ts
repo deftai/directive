@@ -5876,7 +5876,8 @@ describe("requirements posture (#4444)", () => {
     const project = mkdtempSync(join(tmpdir(), "req-persist-"));
     hookTemps.push(project);
     mkdirSync(join(project, "docs"), { recursive: true });
-    persistTrustedSessionPosture(project, "requirements");
+    applyWorktreeOccupancy(project, { sessionId: "owner-a" });
+    persistTrustedSessionPosture(project, "requirements", "owner-a");
     const decision = decideHook(
       {
         host: "grok",
@@ -5886,7 +5887,7 @@ describe("requirements posture (#4444)", () => {
           toolName: "Write",
           tool_input: { path: join(project, "docs", "REQUIREMENTS.md") },
         },
-        environ: {},
+        environ: { DEFT_SESSION_ID: "owner-a" },
       },
       readySeams(),
     );
@@ -5896,7 +5897,8 @@ describe("requirements posture (#4444)", () => {
     const project = mkdtempSync(join(tmpdir(), "req-envwin-"));
     hookTemps.push(project);
     mkdirSync(join(project, "docs"), { recursive: true });
-    persistTrustedSessionPosture(project, "requirements");
+    applyWorktreeOccupancy(project, { sessionId: "owner-a" });
+    persistTrustedSessionPosture(project, "requirements", "owner-a");
     const decision = decideHook(
       {
         host: "grok",
@@ -5906,11 +5908,34 @@ describe("requirements posture (#4444)", () => {
           toolName: "Write",
           tool_input: { path: join(project, "docs", "REQUIREMENTS.md") },
         },
-        environ: { [ASSIST_SESSION_POSTURE_ENV]: "requirement" },
+        environ: { DEFT_SESSION_ID: "owner-a", [ASSIST_SESSION_POSTURE_ENV]: "requirement" },
       },
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "unknown-session-posture" });
+  });
+  it("ignores persisted requirements bound to a previous occupant", () => {
+    const project = mkdtempSync(join(tmpdir(), "req-stale-"));
+    hookTemps.push(project);
+    mkdirSync(join(project, "docs"), { recursive: true });
+    persistTrustedSessionPosture(project, "requirements", "owner-a");
+    applyWorktreeOccupancy(project, { sessionId: "owner-b" });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: project,
+        payload: {
+          toolName: "Write",
+          tool_input: { path: join(project, "docs", "REQUIREMENTS.md") },
+        },
+        environ: { DEFT_SESSION_ID: "owner-b" },
+      },
+      readySeams({
+        inspectScope: () => ({ ready: false, path: null, message: "No active xBRIEF" }),
+      }),
+    );
+    expect(decision.code).not.toBe("write-requirements-ready");
   });
   itSymlink("refuses docs symlink onto packages before write-requirements-ready", () => {
     const project = mkdtempSync(join(tmpdir(), "req-symlink-"));

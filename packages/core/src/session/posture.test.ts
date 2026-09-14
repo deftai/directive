@@ -132,22 +132,24 @@ describe("trusted session posture file (#4444)", () => {
   it("persists requirements and overlays when env is unset", () => {
     const root = mkdtempSync(join(tmpdir(), "posture-file-"));
     temps.push(root);
-    persistTrustedSessionPosture(root, "requirements");
+    persistTrustedSessionPosture(root, "requirements", "owner-a");
     expect(readPersistedSessionPosture(root)).toBe("requirements");
-    const over = overlayTrustedSessionPosture(root, {});
+    const over = overlayTrustedSessionPosture(root, {}, "owner-a");
     expect(over.DEFT_SESSION_POSTURE).toBe("requirements");
+    expect(overlayTrustedSessionPosture(root, {}, "owner-b").DEFT_SESSION_POSTURE).toBeUndefined();
+    expect(overlayTrustedSessionPosture(root, {}).DEFT_SESSION_POSTURE).toBeUndefined();
   });
   it("lets env win over the persisted file", () => {
     const root = mkdtempSync(join(tmpdir(), "posture-env-"));
     temps.push(root);
-    persistTrustedSessionPosture(root, "requirements");
-    const over = overlayTrustedSessionPosture(root, { DEFT_SESSION_POSTURE: "assist" });
+    persistTrustedSessionPosture(root, "requirements", "owner-a");
+    const over = overlayTrustedSessionPosture(root, { DEFT_SESSION_POSTURE: "assist" }, "owner-a");
     expect(over.DEFT_SESSION_POSTURE).toBe("assist");
   });
   it("clears the persisted file", () => {
     const root = mkdtempSync(join(tmpdir(), "posture-clear-"));
     temps.push(root);
-    persistTrustedSessionPosture(root, "requirements");
+    persistTrustedSessionPosture(root, "requirements", "owner-a");
     clearPersistedSessionPosture(root);
     expect(readPersistedSessionPosture(root)).toBeNull();
   });
