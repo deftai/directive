@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Complete tracking for #4542.** After PR 4550. The #4542 xBRIEF stayed untracked after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Complete tracking for #4495.** After PR 4505. Records post-merge lifecycle completion without reopening or recutting the issue. Refs #2321, #3476.
 - **Complete tracking for #4447.** After PR 4513. The #4447 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Design-critique Dual stop no longer treats the merged parallel map as a comparable fingerprint (#4442).** A parallel round has no early-halt path and runs to the operator-gated cap. That excludes only the same-fingerprint halt; dispatch-fail and failure/budget halt still apply. Sequential same-fingerprint halt selects the first heading-id (else first still-open heading/id in map order) plus a material-delta on that primary take. Marker clearance still has no verdict field. Closes #4442.
