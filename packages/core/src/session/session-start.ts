@@ -953,7 +953,6 @@ function runReadOnlySessionStart(
   instant: Date,
   environment: EnvironmentContext,
 ): SessionStartResult {
-  clearPersistedSessionPosture(projectRoot);
   const lines: string[] = [];
   const resolveUserMd =
     options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));

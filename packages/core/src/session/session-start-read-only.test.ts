@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
-import { sessionPosturePath } from "./posture.js";
+import { persistTrustedSessionPosture, sessionPosturePath } from "./posture.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
 import {
   READ_ONLY_POSTURE,
@@ -179,6 +179,17 @@ describe("runSessionStart read-only posture (#2176)", () => {
     ]);
     expect(steps.find((s) => s.name === "release_probe")?.skipped).toBe(true);
     expect(typeof result.payload.duration_ms).toBe("number");
+  });
+  it("does not clear another occupant requirements posture file", () => {
+    const root = tempRoot();
+    persistTrustedSessionPosture(root, "requirements", "owner-a");
+    const result = runSessionStart(root, {
+      posture: READ_ONLY_POSTURE,
+      resolveUserMd: () => userMdResult(),
+      probeEnvironment: () => environment,
+    });
+    expect(result.code).toBe(0);
+    expect(existsSync(sessionPosturePath(root))).toBe(true);
   });
 });
 
