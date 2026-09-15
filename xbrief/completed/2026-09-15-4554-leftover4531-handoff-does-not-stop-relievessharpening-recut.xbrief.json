@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4554",
-    "updated": "2026-09-15T00:59:40Z"
+    "updated": "2026-09-15T02:41:24Z"
   },
   "plan": {
     "title": "leftover(#4531): Handoff does not stop relieves+sharpening recut loop; constraint-brief and routing seat still dropped",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "leftover(#4531): Handoff does not stop relieves+sharpening recut loop; constraint-brief and routing seat still dropped",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4554",
@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "Named target cannot bind. Do not treat PR 4548 Handoff as the harvest-loop off-ramp. Do not reopen #4531.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/handoff.test.ts#evaluateHandoffPrint",
+          "recorded_at": "2026-09-15T02:41:04Z",
+          "recorded_by": "leaf-worker/4554"
+        }
       },
       {
         "title": "First-ship a parent-class off-ramp: print when the posted successor map has operative relieves of the same P* as a prior successor map it Recut-supersedes. Print-false on relieves plus Spec-path that supersedes a write-back or a does-not-relieve map. Parent-authored map fields only. Do not scrape class tokens from critic comments.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/handoff.test.ts#harvest-relieves-overlap",
+          "recorded_at": "2026-09-15T02:41:04Z",
+          "recorded_by": "leaf-worker/4554"
+        }
       },
       {
         "title": "Reuse Handoff machinery or a sibling parent-class print. Not a Dual-stop critic slot, not auto-dispatch, not ingest clearance, not a catalog chip.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/handoff.test.ts#evaluateHandoffPrint",
+          "recorded_at": "2026-09-15T02:41:04Z",
+          "recorded_by": "leaf-worker/4554"
+        }
       },
       {
         "title": "Keep numbered cap and Halt. Do not count reserved-slot or Halt as P1 relief.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/handoff.test.ts#evaluateDualStopReservedSlot",
+          "recorded_at": "2026-09-15T02:41:04Z",
+          "recorded_by": "leaf-worker/4554"
+        }
       },
       {
         "title": "Constraint-brief, routing seat, reframe-needed, invariant-set halt, and heading-id stay dropped unless a later issue names them.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/handoff.test.ts#reframe-needed",
+          "recorded_at": "2026-09-15T02:41:04Z",
+          "recorded_by": "leaf-worker/4554"
+        }
       }
     ],
     "tags": [
@@ -111,9 +141,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "f0a2c51ed3dd667706ef3fc1da3af02f1a64533ab2db73523c0191be4a4d6bf3"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4556,
+        "prBase": null,
+        "mergeCommit": "81d0b441b1e58276bac79a198c1030791e0b5299",
+        "deliveryBranch": "master",
+        "deliveryCommit": "81d0b441b1e58276bac79a198c1030791e0b5299",
+        "verifiedAt": "2026-09-15T02:41:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGEyOGUtOGI4Mi03NTgxLWEwNjUtY2FkZWQ1YjVhNmYw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-15T02:41:24Z"
+      },
+      "completedAt": "2026-09-15T02:41:24Z",
+      "completedSessionId": "host:claude:v1:MDFhMGEyOGUtOGI4Mi03NTgxLWEwNjUtY2FkZWQ1YjVhNmYw",
+      "capacityBucket": "agentic-debt"
     },
     "id": "github.issue.5455705517",
-    "updated": "2026-09-15T00:59:40Z"
+    "updated": "2026-09-15T02:41:24Z"
   }
 }
