@@ -13,7 +13,9 @@ const FIVE: OriginRef[] = [4204, 4218, 4161, 3918, 3849].map((issueId) => ({
   issueId,
 }));
 
-function mintArgs(origins: readonly OriginRef[], id?: string) {
+const FIXTURE_NOW = new Date("2026-09-14T00:00:00Z");
+
+function mintArgs(origins: readonly OriginRef[], id?: string, now: Date = new Date()) {
   return {
     actor: "dbcall2",
     approvalRef: "operator 2026-09-14",
@@ -21,7 +23,7 @@ function mintArgs(origins: readonly OriginRef[], id?: string) {
     origins,
     repo: REPO,
     id,
-    now: new Date("2026-09-14T00:00:00Z"),
+    now,
   };
 }
 
@@ -76,7 +78,7 @@ describe("InProcessAppStore unique membership", () => {
 
   it("expires after 24 hours and releases membership", () => {
     const store = new InProcessAppStore();
-    store.mint(mintArgs(TWO, "ttl"));
+    store.mint(mintArgs(TWO, "ttl", FIXTURE_NOW));
     const expired = store.expireDue(new Date("2026-09-15T00:00:01Z"));
     expect(expired[0]?.state).toBe("expired");
     expect(store.membershipOf(TWO[0] as OriginRef)).toBeNull();

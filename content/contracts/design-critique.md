@@ -404,7 +404,7 @@ Contract stops stay internal. Parent prints these phrases when they apply. They 
 - **walk all**
 - **post the verified-claims table**
 - **accept synthesis**
-- **handoff** (parent-class; print from `evaluateHandoffPrint`, not residualHeadingCount)
+- **handoff** (parent-class; print from `evaluateHandoffPrint`, not residualHeadingCount; unrelieved recut or same-P* relieves Recut-supersedes)
 
 **walk** iterates recorded parent-disagree headings (successor-lean take is `disagree`). **walk all** is the census of every classified finding in existing order (blocking then sharpening then footnotes — or the critic's numbering). For one release, `walk findings one at a time` is an alias of **walk all**. Short forms of accept synthesis are valid: `accept synt`, `synt accepted`, `synt approved`, `accept synthesis`, `synthesis accepted`, `synthesis approved`. Same idea for other printed verbs when the short form is unambiguous (`retry` for `retry differences`). If the operator types a bare word that could be either **walk** or **walk all** and only one was offered, map it to the offered one. If ambiguous, parent re-prints the offered phrases and waits.
 
@@ -662,11 +662,16 @@ Path-1 `design-critique: synthesis accepted, because agents agreed (empty disagr
 
 ## Handoff
 
-Parent-class next after unrelieved pain plus recut. Not a Dual-stop critic slot. Not auto-dispatch. Not a swarm worker_role. Not an ingest reason. Not P1 relief. The checking critic after Handoff is a later dispatch.
+Parent-class next after unrelieved pain plus recut, or same-P* relieves Recut-supersedes. Not a Dual-stop critic slot. Not auto-dispatch. Not a swarm worker_role. Not an ingest reason. Not P1 relief. The checking critic after Handoff is a later dispatch.
 
 ### Print condition
 
-Print **Handoff** when the posted map has operative `does-not-relieve` or uncited pain, plus operative `Spec-path:` / `Recut:` on that map (or the map supersedes a prior successor-lean id that resolves to a successor-lean body on the thread). `evaluateHandoffPrint` is the fixture. Do not clone `residualHeadingCount` or the Retry widget. Handoff still prints when the numbered Dual-stop cap is spent. Halt stays. Later-arc is not the default recovery on that trigger.
+Print **Handoff** when either:
+
+1. The posted map has operative `does-not-relieve` or uncited pain, plus operative `Spec-path:` / `Recut:` on that map (or the map supersedes a prior successor-lean id that resolves to a successor-lean body on the thread).
+2. The posted successor map has operative `relieves` of the same P* as a prior successor map it Recut-supersedes.
+
+`evaluateHandoffPrint` is the fixture. Keep dest unrelieved print and OR the harvest overlap. Print-false on first relieves and on relieves plus Spec-path that supersedes a write-back or a does-not-relieve map. Parent-authored map fields only. Do not scrape class tokens from critic comments. Do not clone `residualHeadingCount` or the Retry widget. Handoff still prints when the numbered Dual-stop cap is spent. Halt stays. Do not count reserved-slot or Halt as P1 relief. Later-arc is not the default recovery on that trigger. Do not reopen #4531.
 
 ### open-question field
 

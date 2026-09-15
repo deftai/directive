@@ -28,7 +28,7 @@ describe("app-store contract", () => {
       origins: [origin, { repo: "deftai/directive", issueId: 4218 }],
       repo: "deftai/directive",
       id: "unit-a",
-      now: new Date("2026-09-14T00:00:00Z"),
+      now: new Date(),
     });
     store.bind(claim.id, "PR_NODE_1");
     expect(resolveClaimFromStore(store, { id: "unit-a" })?.id).toBe("unit-a");

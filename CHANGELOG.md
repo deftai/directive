@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Design-critique Handoff prints on same-P* relieves Recut-supersedes (#4554).** Unrelieved print stays. First relieves and relieves-after-does-not-relieve stay print-false. Class tokens are not a print input. Does not reopen #4531. Closes #4554.
 - **Complete tracking for #3928.** After PR 4552. The #3928 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Design-critique unrelieved pain after recut prints Handoff, not another refutation (#4531).** Closes #4531.
 - **Complete tracking for #4531.** After PR 4548. The #4531 xBRIEF stayed in xbrief/pending/ after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.

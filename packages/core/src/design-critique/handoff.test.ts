@@ -84,6 +84,7 @@ describe("evaluateHandoffPrint (#4531)", () => {
       print: true,
       unrelievedPain: true,
       recutConjunct: true,
+      harvestRelievesOverlap: false,
     });
   });
 
@@ -152,6 +153,91 @@ describe("evaluateHandoffPrint (#4531)", () => {
     });
     expect(fenced.print).toBe(false);
     expect(fenced.recutConjunct).toBe(false);
+  });
+});
+
+describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
+  const priorRelieves = {
+    id: 5672497879,
+    body: "**Lean:** first relieves.\n\nrelieves: P1\n",
+  };
+  const writeBack = {
+    id: 5672420866,
+    body: "role: parent\n\ndesign-critique: warranted, because leftover.\n",
+  };
+  const priorDoesNotRelieve = {
+    id: 5669885896,
+    body: "**Lean:** unrelieved.\n\nSpec-path:\n\ndoes-not-relieve: P1\n",
+  };
+
+  it("prints when current relieves Recut-supersedes a prior successor map that relieves the same P*", () => {
+    const harvest = evaluateHandoffPrint({
+      mapBody: "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\n\nSupersedes 5672497879.\n",
+      stop1PainIds: ["P1"],
+      comments: [priorRelieves],
+    });
+    expect(harvest).toEqual({
+      print: true,
+      unrelievedPain: false,
+      recutConjunct: true,
+      harvestRelievesOverlap: true,
+    });
+  });
+
+  it("does not print on first relieves that supersedes a write-back", () => {
+    const first = evaluateHandoffPrint({
+      mapBody:
+        "**Lean:** first relieves.\n\nSpec-path:\n\nrelieves: P1\n\nSupersedes 5672420866.\n",
+      stop1PainIds: ["P1"],
+      comments: [writeBack],
+    });
+    expect(first.print).toBe(false);
+    expect(first.unrelievedPain).toBe(false);
+    expect(first.recutConjunct).toBe(true);
+    expect(first.harvestRelievesOverlap).toBe(false);
+  });
+
+  it("does not print on relieves after a does-not-relieve map", () => {
+    const after = evaluateHandoffPrint({
+      mapBody:
+        "**Lean:** relieves after unrelieved.\n\nSpec-path:\n\nrelieves: P1\n\nSupersedes 5669885896.\n",
+      stop1PainIds: ["P1"],
+      comments: [priorDoesNotRelieve],
+    });
+    expect(after.print).toBe(false);
+    expect(after.harvestRelievesOverlap).toBe(false);
+  });
+
+  it("does not print when current relieves a different P* than the superseded map", () => {
+    const different = evaluateHandoffPrint({
+      mapBody: "**Lean:** harvest P2.\n\nSpec-path:\n\nrelieves: P2\n\nSupersedes 5672497879.\n",
+      stop1PainIds: ["P2"],
+      comments: [priorRelieves],
+    });
+    expect(different.print).toBe(false);
+    expect(different.unrelievedPain).toBe(false);
+    expect(different.harvestRelievesOverlap).toBe(false);
+  });
+
+  it("does not scrape class tokens as a print input", () => {
+    const scrape = evaluateHandoffPrint({
+      mapBody:
+        "**Lean:** first relieves.\n\nSpec-path:\n\nrelieves: P1\n\nsharpens-framing\nblocks-the-design\n\nSupersedes 5672420866.\n",
+      stop1PainIds: ["P1"],
+      comments: [writeBack],
+    });
+    expect(scrape.print).toBe(false);
+    expect(scrape.harvestRelievesOverlap).toBe(false);
+  });
+
+  it("keeps dest unrelieved print and ORs harvest overlap", () => {
+    const unrelieved = evaluateHandoffPrint({
+      mapBody: UNRELIEVED_RECUT_MAP,
+      stop1PainIds: ["P1"],
+    });
+    expect(unrelieved.print).toBe(true);
+    expect(unrelieved.unrelievedPain).toBe(true);
+    expect(unrelieved.harvestRelievesOverlap).toBe(false);
   });
 });
 

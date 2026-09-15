@@ -1595,6 +1595,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const handoff = markdownSection(text, "## Handoff");
     expect(handoff).toContain("evaluateHandoffPrint");
     expect(handoff).toContain("does-not-relieve");
+    expect(handoff).toContain("same P*");
+    expect(handoff).toContain("Recut-supersedes");
+    expect(handoff).toContain("write-back");
+    expect(handoff).toContain("class tokens");
+    expect(handoff).toContain("harvest overlap");
     expect(handoff).toContain("residualHeadingCount");
     expect(handoff).toContain("open-question:");
     expect(handoff).toContain("classifyPosition");
