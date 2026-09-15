@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Session pin no longer poisons ts:check-lane vitest (#4506).** Strip `DEFT_ACTIVE_SCOPE` from the lane spawn env and hook-bin child env. Isolate omitted-env inspect tests with `{ env: {} }`. Named-cause prefers `Tests N failed` over extra-coverage `FAIL:` path prints and strips ANSI before matching. Closes #4506.
 - **ts:check-lane coverage wall is git-worktree fixture cost (#4567).** Share linked/nested dest fixtures instead of `git worktree add` per `it` in the two measured dispatcher files. Last-completed-file progress tick so a 20-minute kill names a file. Does not raise the hang-detector wall clock. Closes #4567.
 - **Reconcile apply-lifecycle-fixes refuses unstamped active-to-completed moves (#4508).** The sweep leaves the active/ blob unmutated and does not mint lifecycleWrite. The gate requires a complete stamp or legacy completedAt, not fail/failed compatibility, and records the refuse as a failure (non-zero exit) rather than already-terminal. leftover-land (#3476) is the land step after leftover-complete, not this refuse. Closes #4508.
+- **Live UAT dest-of-write transcript and kind:uat pointers (#4561 leftover of #3764).** Bound the committed probe transcript as kind: uat pointers on #3764 items 2, 3, 4, 7 and the leftover brief; completionProvenance.uatVerified is non-null from operator Scott lease. Product tests stay kind: test.
 
 ### Removed
 
