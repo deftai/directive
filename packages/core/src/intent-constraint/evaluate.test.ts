@@ -207,6 +207,8 @@ export function publish(input: { size: number }[]): void {
   it("config-fails multiple merge-base mints without a plan id", () => {
     const prev = process.env.DEFT_ACTIVE_SCOPE;
     delete process.env.DEFT_ACTIVE_SCOPE;
+    const root = withTypescript(mkdtempSync(join(tmpdir(), "intent-multi-mint-")));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     try {
       const other = buildIntentConstraintRecord({
         planId: "other-story",
@@ -217,6 +219,7 @@ export function publish(input: { size: number }[]): void {
       if ("error" in other) throw new Error(other.error);
       const result = evaluateIntentConstraint({
         ...files(POSTED),
+        projectRoot: root,
         planId: undefined,
         recordTextsAtBase: new Map([
           [".deft/intent-constraint/other-story.json", `${JSON.stringify(other, null, 2)}\n`],
