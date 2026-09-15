@@ -14,6 +14,7 @@ import {
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
   stampNamespacedDisposition,
   stampNamespacedEvidence,
+  UAT_POINTER_SHAPE_REMEDIATION,
 } from "./acceptance-evidence.js";
 import { runTransition } from "./transition.js";
 
@@ -808,5 +809,173 @@ describe("evidence extra properties (#4059)", () => {
     });
     expect(gate.ok).toBe(false);
     expect(gate.reports[0]?.detail).toMatch(/pointer/);
+  });
+});
+
+describe("kind:uat pointer shape at write (#4563)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  const recorded = {
+    recorded_at: "2026-09-14T12:00:00Z",
+    recorded_by: "host:claude:v1:test",
+  };
+
+  function uatAt(pointer: string): {
+    kind: "uat";
+    pointer: string;
+    recorded_at: string;
+    recorded_by: string;
+  } {
+    return { kind: "uat", pointer, ...recorded };
+  }
+
+  it("refuses a test-path kind:uat stamp and writes nothing", () => {
+    root = makeRepo();
+    const file = writeActive(root, "uat-test-pointer.xbrief.json", [
+      withEvidence(
+        { title: "UAT sign-off", status: "pending" },
+        uatAt("packages/core/src/authz/classify.test.ts"),
+      ),
+    ]);
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain(UAT_POINTER_SHAPE_REMEDIATION);
+    expect(readFileSync(file, "utf8")).toContain("pending");
+    expect(existsSync(join(root, "xbrief", "completed", "uat-test-pointer.xbrief.json"))).toBe(
+      false,
+    );
+  });
+
+  it("deny-list refuses spec path, source symbol, PR number, and CHANGELOG", () => {
+    const pointers = [
+      "packages/core/src/authz/classify.spec.ts",
+      "packages/core/src/authz/classify.ts#harvestUnknownDestFlagValues",
+      "harvestUnknownDestFlagValues",
+      "isRelativePayloadProtectedDest",
+      "PR 4490",
+      "CHANGELOG.md",
+    ];
+    for (const pointer of pointers) {
+      const gate = evaluateAcceptanceEvidenceGate({
+        items: [withEvidence({ title: "UAT sign-off", status: "pending" }, uatAt(pointer))],
+      });
+      expect({ pointer, ok: gate.ok, detail: gate.reports[0]?.detail }).toEqual({
+        pointer,
+        ok: false,
+        detail: UAT_POINTER_SHAPE_REMEDIATION,
+      });
+    }
+  });
+
+  it("does not treat evidence/** or a source file as a probe artifact", () => {
+    for (const pointer of [
+      "evidence/3764-probe.md",
+      "packages/core/src/authz/evaluate.ts authz-uat-deny recovery prints deft authz:uat-suspend",
+    ]) {
+      const gate = evaluateAcceptanceEvidenceGate({
+        items: [withEvidence({ title: "UAT sign-off", status: "pending" }, uatAt(pointer))],
+      });
+      expect(gate.ok).toBe(false);
+      expect(gate.reports[0]?.detail).toBe(UAT_POINTER_SHAPE_REMEDIATION);
+    }
+  });
+
+  it("refuses the #4516 whole-brief replay at scope:complete", () => {
+    root = makeRepo();
+    const file = writeActive(root, "4516-replay.xbrief.json", [
+      withEvidence(
+        { title: "item 2 dest-of-write leftover", status: "pending" },
+        uatAt("packages/core/src/authz/classify.test.ts dest-of-write leftover fixtures; PR 4490"),
+      ),
+      withEvidence(
+        { title: "item 3 harvestUnknownDestFlagValues", status: "pending" },
+        uatAt(
+          "packages/core/src/authz/classify.ts harvestUnknownDestFlagValues; classify.test.ts; PR 4490",
+        ),
+      ),
+      withEvidence(
+        { title: "item 4 isRelativePayloadProtectedDest", status: "pending" },
+        uatAt(
+          "packages/core/src/authz/classify.ts isRelativePayloadProtectedDest; classify.test.ts; PR 4490",
+        ),
+      ),
+      withDisposition(
+        { title: "item 5 not_applicable", status: "pending" },
+        {
+          disposition: "not_applicable",
+          reason: "operator waived this residual",
+          provenance: humanProv,
+          recorded_at: "2026-09-14T12:00:00Z",
+        },
+      ),
+      withEvidence(
+        { title: "item 7 evaluate recovery", status: "pending" },
+        uatAt(
+          "packages/core/src/authz/evaluate.ts authz-uat-deny recovery prints deft authz:uat-suspend",
+        ),
+      ),
+    ]);
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain(UAT_POINTER_SHAPE_REMEDIATION);
+    expect(readFileSync(file, "utf8")).toContain("pending");
+    expect(existsSync(join(root, "xbrief", "completed", "4516-replay.xbrief.json"))).toBe(false);
+  });
+
+  it("accepts a uat-evidence probe pointer without uatVerified and with agent recorded_by", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "UAT sign-off", status: "pending" },
+          uatAt("uat-evidence/3764-probe.md"),
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.reports[0]?.outcome).toBe("evidence");
+    expect(gate.reports[0]?.evidence?.recorded_by).toBe("host:claude:v1:test");
+  });
+
+  it("still denies a test filename under uat-evidence/", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "UAT sign-off", status: "pending" },
+          uatAt("uat-evidence/foo.test.ts"),
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.detail).toBe(UAT_POINTER_SHAPE_REMEDIATION);
+  });
+
+  it("does not treat uatVerified non-null as independent evidence for a test pointer", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence({ title: "UAT sign-off", status: "pending" }, uatAt("classify.test.ts")),
+      ],
+      completionProvenance: { uatVerified: true },
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.detail).toBe(UAT_POINTER_SHAPE_REMEDIATION);
+  });
+
+  it("already-terminal kind:uat test pointers stay skipped (no historical recut)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "historical uat stamp", status: "completed" },
+          uatAt("packages/core/src/authz/classify.test.ts"),
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.reports[0]?.outcome).toBe("already_terminal");
   });
 });

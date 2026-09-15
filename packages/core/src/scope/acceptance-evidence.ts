@@ -62,6 +62,18 @@ const EVIDENCE_KIND_SET = new Set<string>(ACCEPTANCE_EVIDENCE_KINDS);
 const DISPOSITION_SET = new Set<string>(ACCEPTANCE_DISPOSITIONS);
 const STRICT_AXIS_SET = new Set<string>(STRICT_ACCEPTANCE_AXES);
 
+/** kind:uat write-time pointer shape (#4563). Path/symbol tokens only; no NLP. */
+const UAT_TEST_SPEC_POINTER = /\.test\.|\.spec\./i;
+const UAT_PR_NUMBER_POINTER = /\bPR\s*#?\d+\b/i;
+const UAT_CHANGELOG_POINTER = /\bCHANGELOG(?:\.md)?\b/i;
+const UAT_PATH_HASH_SYMBOL_POINTER = /#[A-Za-z_][A-Za-z0-9_]*/;
+const UAT_CAMEL_SYMBOL_POINTER = /\b[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*\b/;
+const UAT_PROBE_POINTER = /^uat-evidence\/.+/;
+
+export const UAT_POINTER_SHAPE_REMEDIATION =
+  "evidence kind mismatch: kind 'uat' with a test/source pointer — point at a UAT probe " +
+  "artifact (uat-evidence/**), or relabel 'test' (#4563)";
+
 /** Item statuses that still represent unfinished acceptance work (#2862 / #3240). */
 const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
 
@@ -109,6 +121,28 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function posixPointer(pointer: string): string {
+  return pointer.trim().replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/**
+ * Fail-closed kind:uat pointer shape at write (#4563).
+ * Deny-list: test/spec path, source symbol, PR number, CHANGELOG.
+ * Probe artifacts are uat-evidence/**, not any committed path.
+ * Does not read uatVerified. Does not require human-origin on recorded_by.
+ */
+function uatPointerShapeError(pointer: string): string | null {
+  const p = posixPointer(pointer);
+  const denied =
+    UAT_TEST_SPEC_POINTER.test(p) ||
+    UAT_PR_NUMBER_POINTER.test(p) ||
+    UAT_CHANGELOG_POINTER.test(p) ||
+    UAT_PATH_HASH_SYMBOL_POINTER.test(p) ||
+    UAT_CAMEL_SYMBOL_POINTER.test(p) ||
+    !UAT_PROBE_POINTER.test(p);
+  return denied ? UAT_POINTER_SHAPE_REMEDIATION : null;
 }
 
 export function isAcceptanceEvidenceKind(value: unknown): value is AcceptanceEvidenceKind {
@@ -238,6 +272,12 @@ function parseEvidence(raw: unknown):
   }
   if (!isNonEmptyString(obj.recorded_by)) {
     return { ok: false, message: "evidence.recorded_by is required" };
+  }
+  if (kindRaw === "uat") {
+    const shape = uatPointerShapeError(obj.pointer.trim());
+    if (shape !== null) {
+      return { ok: false, message: shape };
+    }
   }
   return {
     ok: true,
