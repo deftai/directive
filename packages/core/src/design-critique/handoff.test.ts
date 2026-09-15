@@ -230,6 +230,26 @@ describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
     expect(scrape.harvestRelievesOverlap).toBe(false);
   });
 
+  it("does not print when the current map is not a successor lean", () => {
+    const writeBack = evaluateHandoffPrint({
+      mapBody: "role: parent\n\nrelieves: P1\n\nSupersedes 5672497879.\n",
+      stop1PainIds: ["P1"],
+      comments: [priorRelieves],
+    });
+    expect(writeBack.print).toBe(false);
+    expect(writeBack.harvestRelievesOverlap).toBe(false);
+  });
+
+  it("does not print when overlap is only an undeclared pain id", () => {
+    const undeclared = evaluateHandoffPrint({
+      mapBody: "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\nrelieves: P9\n\nSupersedes 5672497879.\n",
+      stop1PainIds: ["P1"],
+      comments: [{ id: 5672497879, body: "**Lean:** prior.\n\nrelieves: P9\n" }],
+    });
+    expect(undeclared.print).toBe(false);
+    expect(undeclared.harvestRelievesOverlap).toBe(false);
+  });
+
   it("keeps dest unrelieved print and ORs harvest overlap", () => {
     const unrelieved = evaluateHandoffPrint({
       mapBody: UNRELIEVED_RECUT_MAP,

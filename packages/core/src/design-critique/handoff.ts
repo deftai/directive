@@ -96,13 +96,17 @@ function hasOperativeSupersedesPriorLean(
 function hasHarvestRelievesOverlap(
   mapBody: string,
   comments: readonly ThreadComment[] | undefined,
+  stop1PainIds: readonly string[],
 ): boolean {
+  if (!isSuccessorLeanBody(mapBody)) return false;
+  const admitted = new Set(stop1PainIds);
+  if (admitted.size === 0) return false;
   const current = operativeRelievesIds(scanPainCites(mapBody).cites);
   if (current.size === 0) return false;
   for (const prior of collectSupersededSuccessorLeans(mapBody, comments)) {
     const priorRelieves = operativeRelievesIds(scanPainCites(prior.body).cites);
     for (const painId of current) {
-      if (priorRelieves.has(painId)) return true;
+      if (admitted.has(painId) && priorRelieves.has(painId)) return true;
     }
   }
   return false;
@@ -138,7 +142,11 @@ export function evaluateHandoffPrint(input: HandoffPrintInput): HandoffPrintVerd
   const recutConjunct =
     leanCarriesSpecPathToken(input.mapBody) ||
     hasOperativeSupersedesPriorLean(input.mapBody, input.comments);
-  const harvestRelievesOverlap = hasHarvestRelievesOverlap(input.mapBody, input.comments);
+  const harvestRelievesOverlap = hasHarvestRelievesOverlap(
+    input.mapBody,
+    input.comments,
+    input.stop1PainIds,
+  );
   return {
     print: (unrelievedPain && recutConjunct) || harvestRelievesOverlap,
     unrelievedPain,
