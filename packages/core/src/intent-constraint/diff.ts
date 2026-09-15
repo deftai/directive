@@ -43,6 +43,8 @@ export function uncoveredDeltas(
     rejectionScope: c.rejectionScope,
     numericUsed: false,
     rejectionUsed: false,
+    numericPath: undefined as string | undefined,
+    rejectionPath: undefined as string | undefined,
   }));
   const leftover: FactDelta[] = [];
   for (const delta of deltas) {
@@ -52,14 +54,31 @@ export function uncoveredDeltas(
         leftover.push(delta);
         continue;
       }
-      const slot = slots.find((c) => !c.numericUsed && c.value === value && c.unit.length > 0);
+      const slot = slots.find(
+        (c) =>
+          !c.numericUsed &&
+          c.value === value &&
+          c.unit.length > 0 &&
+          (c.rejectionPath === undefined || c.rejectionPath === delta.path),
+      );
       if (slot === undefined) leftover.push(delta);
-      else slot.numericUsed = true;
+      else {
+        slot.numericUsed = true;
+        slot.numericPath = delta.path;
+      }
       continue;
     }
-    const slot = slots.find((c) => !c.rejectionUsed && c.rejectionScope.length > 0);
+    const slot = slots.find(
+      (c) =>
+        !c.rejectionUsed &&
+        c.rejectionScope.length > 0 &&
+        (c.numericPath === undefined || c.numericPath === delta.path),
+    );
     if (slot === undefined) leftover.push(delta);
-    else slot.rejectionUsed = true;
+    else {
+      slot.rejectionUsed = true;
+      slot.rejectionPath = delta.path;
+    }
   }
   return leftover;
 }

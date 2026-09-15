@@ -41,6 +41,17 @@ describe("intent-constraint diff (#4541)", () => {
     expect(leftover[0]?.fact.id).toBe("numeric-const:OTHER=1024");
   });
 
+  it("does not let one mint row cover numeric and throw in different files", () => {
+    const head: SurfaceSnapshot[] = [
+      { path: "src/a.ts", facts: [constFact] },
+      { path: "src/b.ts", facts: [throwFact] },
+    ];
+    const leftover = uncoveredDeltas(newFacts(base, head), [
+      { value: "1024", unit: "bytes", rejectionScope: "invocation" },
+    ]);
+    expect(leftover).toHaveLength(1);
+  });
+
   it("does not let one rejectionScope cover a second throw-site", () => {
     const second = { kind: "throw-site" as const, id: "throw-site:other" };
     const head: SurfaceSnapshot[] = [{ path: "src/ingest.ts", facts: [throwFact, second] }];
