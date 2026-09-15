@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -50,6 +58,10 @@ describe("post-publish Pass 2 host-root porcelain (#4507)", () => {
     expect(src).not.toContain("--untracked-files=all");
     expect(src).not.toMatch(/status", "--porcelain", "-uall/);
     expect(src).not.toContain("pollWorkspacePackages");
+    expect(src).not.toContain("/->\\s+");
+    expect(src).not.toContain(".replace(/\\/+$/");
+    expect(src).toContain("pass2UpdateEnv");
+    expect(src).toContain('node_modules", ".bin"');
     const fixtureFn = src.slice(src.indexOf("export function runPostPublishTwoPassFixture"));
     expect(fixtureFn.includes("npm view")).toBe(false);
     expect(yml).not.toMatch(/continue-on-error/);
@@ -160,6 +172,36 @@ describe("post-publish Pass 2 host-root porcelain (#4507)", () => {
     expect(expanded.some((path) => !isPass2CommitPath(path))).toBe(true);
   });
 
+  it("parses rename dests and quoted paths without regex", () => {
+    expect(parsePorcelainPaths("R  old.ts -> new.ts\n")).toEqual(["new.ts"]);
+    expect(parsePorcelainPaths('R  "old a.ts" -> "new b.ts"\n')).toEqual(['"new b.ts"']);
+    expect(parsePorcelainPaths(" M .deft/core/main.md\n")).toEqual([".deft/core/main.md"]);
+    const padded = `R  old.ts ->${" ".repeat(20000)}new.ts\n`;
+    expect(parsePorcelainPaths(padded)).toEqual(["new.ts"]);
+  });
+
+  it("keeps Pass 2 fail-closed when a collapsed dir cannot be fully inspected", () => {
+    const consumer = fresh("deft-4507-unread-");
+    writeFileSync(join(consumer, ".claude"), "not-a-dir\n");
+    const expanded = expandPass2PorcelainPaths(consumer, [".claude/"]);
+    expect(expanded).toContain(".claude/");
+    expect(expanded.some((path) => !isPass2CommitPath(path))).toBe(true);
+  });
+
+  it("keeps Pass 2 fail-closed when expansion hits a non-regular entry", () => {
+    const consumer = fresh("deft-4507-symlink-");
+    mkdirSync(join(consumer, ".claude", "commands"), { recursive: true });
+    writeFileSync(join(consumer, ".claude", "settings.json"), "{}\n");
+    try {
+      symlinkSync(join(consumer, ".claude", "settings.json"), join(consumer, ".claude", "alias"));
+    } catch {
+      return;
+    }
+    const expanded = expandPass2PorcelainPaths(consumer, [".claude/"]);
+    expect(expanded).toContain(".claude/alias");
+    expect(isPass2CommitPath(".claude/alias")).toBe(false);
+  });
+
   it("locks live dest CLI update plus unstubbed git status --porcelain", () => {
     const clean = fresh("deft-4507-live-");
     const consumer = join(clean, "consumer");
@@ -192,7 +234,19 @@ describe("post-publish Pass 2 host-root porcelain (#4507)", () => {
         "  ...args,",
         "  writeOut: (text) => process.stdout.write(text),",
         "  writeErr: (text) => process.stderr.write(text),",
-        "  seams: { resolveContentRoot: async () => contentRoot },",
+        "  seams: {",
+        "    resolveContentRoot: async () => contentRoot,",
+        "    evaluateAgentHookReadiness: () => ({",
+        "      code: 0,",
+        '      message: "fixture: hook readiness skipped",',
+        '      stream: "stdout",',
+        "      skipped: true,",
+        '      liveStatus: "skipped",',
+        "      hosts: [],",
+        "      registrations: [],",
+        "      liveProbe: null,",
+        "    }),",
+        "  },",
         "});",
         "process.exit(code);",
         "",

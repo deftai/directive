@@ -1,4 +1,5 @@
 import {
+  type Dirent,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -8,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { delimiter, isAbsolute, join, relative, resolve } from "node:path";
 import { isPass2CommitPath } from "../init-deposit/hygiene.js";
 import { defaultWhich } from "../release/spawn.js";
 import type { SpawnResult } from "../release/types.js";
@@ -524,13 +525,22 @@ function fixtureGit(consumerDir: string, args: readonly string[], seams: E2ESeam
   });
 }
 
+const PORCELAIN_RENAME_MARK = " -> ";
+
+function porcelainRenameDest(line: string): string | null {
+  const at = line.indexOf(PORCELAIN_RENAME_MARK);
+  if (at === -1) return null;
+  const dest = line.slice(at + PORCELAIN_RENAME_MARK.length).trim();
+  return dest.length > 0 ? dest : null;
+}
+
 export function parsePorcelainPaths(stdout: string): string[] {
   const paths: string[] = [];
   for (const line of stdout.split(/\r?\n/)) {
     if (line.trim().length === 0) continue;
-    const renamed = line.match(/->\s+(.+)$/);
-    if (renamed?.[1] !== undefined) {
-      paths.push(renamed[1].trim());
+    const renamed = porcelainRenameDest(line);
+    if (renamed !== null) {
+      paths.push(renamed);
       continue;
     }
     paths.push(line.slice(3).trim());
@@ -546,21 +556,46 @@ function isFsDirectory(abs: string): boolean {
   }
 }
 
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+  return value.slice(0, end);
+}
+
+function stripPorcelainQuotes(value: string): string {
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+/**
+ * Pass 2 porcelain expansion (#4507).
+ * Assumptions: default `git status --porcelain` may collapse untracked trees
+ * to directory lines; those lines must expand to inspectable entries.
+ * Guarantees: every porcelain directory is fully inspected, or the prefix /
+ * non-regular entry is preserved so isPass2CommitPath can fail closed.
+ * Non-goals: git -uall; prefixing whole host dirs; treating skipped entries as files.
+ */
 function listFilesUnderPrefix(consumerDir: string, posixPrefix: string): string[] {
   const out: string[] = [];
   const walk = (dir: string, prefix: string): void => {
+    let entries: Dirent[];
     try {
-      for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const rel = prefix.length > 0 ? `${prefix}/${entry.name}` : entry.name;
-        const abs = join(dir, entry.name);
-        if (entry.isDirectory()) {
-          walk(abs, rel);
-        } else if (entry.isFile()) {
-          out.push(rel);
-        }
-      }
+      entries = readdirSync(dir, { withFileTypes: true });
     } catch {
+      out.push(prefix.endsWith("/") ? prefix : `${prefix}/`);
       return;
+    }
+    for (const entry of entries) {
+      const rel = prefix.length > 0 ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walk(join(dir, entry.name), rel);
+      } else {
+        out.push(rel);
+      }
     }
   };
   walk(join(consumerDir, posixPrefix), posixPrefix);
@@ -571,14 +606,14 @@ function listFilesUnderPrefix(consumerDir: string, posixPrefix: string): string[
 export function expandPass2PorcelainPaths(consumerDir: string, paths: readonly string[]): string[] {
   const out: string[] = [];
   for (const raw of paths) {
-    const normalized = raw.replace(/\\/g, "/").replace(/^"(.*)"$/, "$1");
+    const normalized = stripPorcelainQuotes(raw.replace(/\\/g, "/"));
     const abs = join(consumerDir, normalized);
     const looksLikeDir = normalized.endsWith("/") || isFsDirectory(abs);
     if (!looksLikeDir) {
       out.push(normalized);
       continue;
     }
-    const prefix = normalized.replace(/\/+$/, "");
+    const prefix = stripTrailingSlashes(normalized);
     const files = prefix.length > 0 ? listFilesUnderPrefix(consumerDir, prefix) : [];
     if (files.length === 0) {
       out.push(normalized.endsWith("/") ? normalized : `${normalized}/`);
@@ -587,6 +622,15 @@ export function expandPass2PorcelainPaths(consumerDir: string, paths: readonly s
     out.push(...files);
   }
   return out;
+}
+
+function pass2UpdateEnv(cleanDir: string, consumerDir: string): NodeJS.ProcessEnv {
+  const bin = join(cleanDir, "node_modules", ".bin");
+  return {
+    ...process.env,
+    DEFT_PROJECT_ROOT: consumerDir,
+    PATH: `${bin}${delimiter}${process.env.PATH ?? ""}`,
+  };
 }
 
 function seedInitializedPass1Consumer(consumerDir: string, version: string): void {
@@ -649,7 +693,7 @@ function runPass2UpdateFromInstalledCli(
   const spawn = seams.spawnText ?? spawnCommandText;
   const update = spawn(process.execPath, [cliBin, ...PASS2_UPDATE_ARGV], {
     cwd: consumerDir,
-    env: { ...process.env, DEFT_PROJECT_ROOT: consumerDir },
+    env: pass2UpdateEnv(cleanDir, consumerDir),
     timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
   });
   if (update.status !== 0) {
