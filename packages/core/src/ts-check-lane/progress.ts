@@ -15,11 +15,10 @@ export const PROGRESS_REPORTER_RELATIVE_PATH =
 /** One line every 20% of known files -- coarse enough for a log snapshot. */
 export const PROGRESS_BAND_PERCENT = 20;
 
-/** Last-completed-file heartbeat count (#4567). Complements 20% bands. */
-export const PROGRESS_FILE_HEARTBEAT_EVERY = 10;
-
-/** Last-completed-file heartbeat wall clock, milliseconds (#4567). */
-export const PROGRESS_FILE_HEARTBEAT_MS = 30_000;
+/** Last-completed-file heartbeat cadence (#4567). Complements 20% bands. */
+const LAST_FILE_HEARTBEAT = { everyFiles: 10, everyMs: 30_000 };
+export const PROGRESS_FILE_HEARTBEAT_EVERY = LAST_FILE_HEARTBEAT.everyFiles;
+export const PROGRESS_FILE_HEARTBEAT_MS = LAST_FILE_HEARTBEAT.everyMs;
 
 export const PROGRESS_UNIT = "files";
 
