@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4563",
-    "updated": "2026-09-15T20:08:54Z"
+    "updated": "2026-09-15T21:07:35Z"
   },
   "plan": {
     "title": "gate(scope,verify): evidence kind is self-attested — closeout accepted kind: uat stamps pointing at unit tests and source symbols with uatVerified null (#4516); add one fail-closed pointer-shape check at scope:complete / verify:completed-tracked",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "gate(scope,verify): evidence kind is self-attested — closeout accepted kind: uat stamps pointing at unit tests and source symbols with uatVerified null (#4516); add one fail-closed pointer-shape check at scope:complete / verify:completed-tracked",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4563",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "First-ship a fail-closed pointer-shape check at scope:complete (the write). Do not bind verify:completed-tracked as the same check on already-terminal records.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/scope/acceptance-evidence.test.ts",
@@ -26,33 +26,42 @@
       },
       {
         "title": "Deny-list must refuse the #4516 replay as written (test/spec path, source symbol, PR number, CHANGELOG). A \"committed probe artifact\" pointer is uat-evidence/** or equivalent, not any committed path.",
-        "status": "proposed",
-"x-directive/disposition": {
-    "disposition": "not_applicable",
-    "reason": "Gate-design proven by tests; live UAT is #4561.",
-    "provenance": { "kind": "operator-cli", "actor": "Scott" },
-    "recorded_at": "2026-09-15T21:00:00Z"
-  }
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Gate-design proven by tests; live UAT is #4561.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-15T21:00:00Z"
+        }
       },
       {
         "title": "Do not treat uatVerified non-null as independent evidence of a probe. Human-origin disposition stays the attest/waiver door. kind: uat plus a test/source pointer is the extra door this check closes.",
-        "status": "proposed",
-"x-directive/disposition": {
-    "disposition": "not_applicable",
-    "reason": "Gate-design proven by tests; live UAT is #4561.",
-    "provenance": { "kind": "operator-cli", "actor": "Scott" },
-    "recorded_at": "2026-09-15T21:00:00Z"
-  }
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Gate-design proven by tests; live UAT is #4561.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-15T21:00:00Z"
+        }
       },
       {
         "title": "Do not NLP pointer text. Do not add evidence kinds. Do not change who may hold a UAT lease.",
-        "status": "proposed",
-"x-directive/disposition": {
-    "disposition": "not_applicable",
-    "reason": "Gate-design proven by tests; live UAT is #4561.",
-    "provenance": { "kind": "operator-cli", "actor": "Scott" },
-    "recorded_at": "2026-09-15T21:00:00Z"
-  }
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Gate-design proven by tests; live UAT is #4561.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-15T21:00:00Z"
+        }
       }
     ],
     "tags": [
@@ -124,9 +133,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "3d151976febe204392883e56c8ce160a2557a845734f24c58df0890c90f9b3d4"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4571,
+        "prBase": null,
+        "mergeCommit": "c7f97074adf7a3c211427d3f68684428025fa673",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c7f97074adf7a3c211427d3f68684428025fa673",
+        "verifiedAt": "2026-09-15T21:07:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE2ZTItMzc4YS03ZTExLWI0YTgtNzI5YmRhNTFmZGJm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-15T21:07:35Z"
+      },
+      "completedAt": "2026-09-15T21:07:35Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE2ZTItMzc4YS03ZTExLWI0YTgtNzI5YmRhNTFmZGJm",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5461506350",
-    "updated": "2026-09-15T20:08:54Z"
+    "updated": "2026-09-15T21:07:35Z"
   }
 }
