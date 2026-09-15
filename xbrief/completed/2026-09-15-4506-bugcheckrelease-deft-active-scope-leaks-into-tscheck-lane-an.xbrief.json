@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4506",
-    "updated": "2026-09-15T19:28:24Z"
+    "updated": "2026-09-15T20:04:38Z"
   },
   "plan": {
     "title": "bug(check,release): DEFT_ACTIVE_SCOPE leaks into ts:check-lane and misnames Step 5 cause",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(check,release): DEFT_ACTIVE_SCOPE leaks into ts:check-lane and misnames Step 5 cause",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4506",
@@ -163,9 +163,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "1957d2fbd6d4aa03b7792900f54e5ed89ea3d45863c1cddc1fb1eab43d8b6c6d"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4569,
+        "prBase": null,
+        "mergeCommit": "2ea5035a836d2f2af0e7e322db0786ff56469cfe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3011b9594a14f91997521fb2f862a404160af225",
+        "verifiedAt": "2026-09-15T20:04:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE2YTgtZTAyNC03MzgwLTk2YWMtMzcwMmRmZGY2ZDIy"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-15T20:04:38Z"
+      },
+      "completedAt": "2026-09-15T20:04:38Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE2YTgtZTAyNC03MzgwLTk2YWMtMzcwMmRmZGY2ZDIy",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5449055851",
-    "updated": "2026-09-15T19:28:24Z"
+    "updated": "2026-09-15T20:04:38Z"
   }
 }
