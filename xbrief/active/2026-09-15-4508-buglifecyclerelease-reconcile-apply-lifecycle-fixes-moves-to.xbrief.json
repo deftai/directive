@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4508",
-    "updated": "2026-09-15T18:08:16Z"
+    "updated": "2026-09-15T19:43:00Z"
   },
   "plan": {
     "title": "bug(lifecycle,release): reconcile apply-lifecycle-fixes moves to completed/ without a runTransition stamp",
@@ -16,19 +16,43 @@
     "items": [
       {
         "title": "Drop fingerprint-only mint. apply-lifecycle-fixes must not write lifecycleWrite.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts#leaves the active blob unmutated and does not write lifecycleWrite",
+          "recorded_at": "2026-09-15T19:43:00Z",
+          "recorded_by": "agent:4508-review-monitor-4570"
+        }
       },
       {
         "title": "Refuse the unstamped active-to-completed move. Leave the active/ blob unmutated. That is P1.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.ts#unstamped active/ to completed/ refuse (hasCompleteTransitionWrite)",
+          "recorded_at": "2026-09-15T19:43:00Z",
+          "recorded_by": "agent:4508-review-monitor-4570"
+        }
       },
       {
         "title": "Drop leftover-complete success on this class. leftover-land (#3476) is the land step after leftover-complete, not the refuse.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/lifecycle-write.test.ts#names the leftover land PR in worker-facing remediation",
+          "recorded_at": "2026-09-15T19:43:00Z",
+          "recorded_by": "agent:4508-review-monitor-4570"
+        }
       },
       {
         "title": "Do not call runTransition(complete) from apply. Do not skip #3240. Do not mint item evidence from leftover-complete.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.test.ts#fails closed when pending criteria lack evidence and disposition",
+          "recorded_at": "2026-09-15T19:43:00Z",
+          "recorded_by": "agent:4508-review-monitor-4570"
+        }
       }
     ],
     "tags": [
@@ -108,6 +132,6 @@
       }
     },
     "id": "github.issue.5449060178",
-    "updated": "2026-09-15T18:08:16Z"
+    "updated": "2026-09-15T19:43:00Z"
   }
 }
