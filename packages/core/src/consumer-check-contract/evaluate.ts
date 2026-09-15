@@ -20,6 +20,7 @@ export const REQUIRED_CONSUMER_ENFORCEMENT_GATES: readonly string[] = [
   "verify:consumer-check-contract",
   "verify:evaluator-surface",
   "verify:observable-scope",
+  "verify:intent-constraint",
 ];
 
 /**

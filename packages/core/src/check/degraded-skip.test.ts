@@ -65,6 +65,8 @@ tasks:
     cmds: [echo ok]
   observable-scope:
     cmds: [echo ok]
+  intent-constraint:
+    cmds: [echo ok]
   consumer-test-lane:
     cmds: [echo ok]
 `,

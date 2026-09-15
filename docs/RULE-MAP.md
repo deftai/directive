@@ -8,8 +8,8 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 24 groupings, 275 documents
-- **Tasks:** 62 namespaces, 252 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Rules:** 24 groupings, 276 documents
+- **Tasks:** 62 namespaces, 254 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 187 | 16 | 134 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 36 | 19 | 12 | 60 | 1 | 2 |
+| docs | Explanatory docs and the framework glossary. | 37 | 19 | 12 | 60 | 1 | 2 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -147,6 +147,7 @@ _Explanatory docs and the framework glossary._
 - `hook-runtime-unavailable.md` — On a host that cannot execute `deft-hook`, the Cursor `preToolUse` registration is `failClosed: true`, so **every mutation is denied** — and because the binary never runs, no Directive code is left to say why. The visible symptom is an…
 - `host-surface-assumptions.md` — Directive control surfaces assume two host behaviors that **some** modern agent hosts break by design.
 - `host-tool-surface-audit.md` — The PreToolUse write gate only runs on tool names the host's deposited matcher selects. A name nobody listed is not a permissive policy — it is a gate that never executes. #3987 was exactly that: Grok Build's shell tool…
+- `intent-constraint.md` — Refs: #4541 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [observable-scope.md](../content/docs/observable-scope.md) (#4495)
 - `inter-run-learning.md` — **Load when:** designing or implementing cross-session agent memory, hot/cold budgets, frozen snapshots, or retargeting memory pattern issues under epic #2741.
 - `no-deft-directive.md` — Some projects should not use Deft Directive. Use a **root file flag** so tools and agents stop offering install, session ritual, and setup.
 - `observable-scope.md` — Refs: #4495 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [#4503](https://github.com/deftai/directive/issues/4503)
@@ -419,7 +420,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | review-monitor | Claim PR-anchored review-owner lease via sticky GitHub comment (#2814). Does not write local JSON. | 2 |
 | roadmap | Render and validate the ROADMAP from vBRIEF source. | 2 |
 | scm | Source-control / Git workflow tasks. | 15 |
-| scope | Scope lifecycle: promote / activate / complete / fail / cancel. | 12 |
+| scope | Scope lifecycle: promote / activate / complete / fail / cancel. | 13 |
 | scope-undo | Reverse a scope-lifecycle audit entry (#1134). Single: `task scope:undo -- <decision_id>` / `task scope:undo -- --decision-id=<uuid>`.… | 1 |
 | session | Claim occupancy and run the quick-tier ritual for one owner (#1348/#3611). Flags: --session-id <id> / --steal --confirm --occupant… | 3 |
 | setup | Wired into the parent Taskfile.yml `includes:` block under namespace key | 1 |
@@ -445,7 +446,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO \| --json \| --strict]. Does NOT… | 1 |
 | value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d\|30d] [--format=text\|json] | 1 |
 | vbrief | Validate and manage vBRIEF lifecycle state and structure. | 6 |
-| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 63 |
+| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 64 |
 | xbrief | Validate xBRIEF lifecycle folder structure and cross-file consistency. Alias of vbrief:validate with xbrief-first naming (#3483). | 3 |
 
 ## Lifecycle

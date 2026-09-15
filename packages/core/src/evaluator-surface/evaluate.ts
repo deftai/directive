@@ -35,9 +35,12 @@ export const EVALUATOR_SURFACE_PATH_PATTERNS = [
   "packages/core/src/evaluator-surface/**",
   "packages/core/src/consumer-test-lane/**",
   "packages/core/src/observable-scope/**",
+  "packages/core/src/intent-constraint/**",
   "packages/cli/src/verify-evaluator-surface.ts",
   "packages/cli/src/verify-consumer-test-lane.ts",
   "packages/cli/src/verify-observable-scope.ts",
+  "packages/cli/src/verify-intent-constraint.ts",
+  "packages/cli/src/scope-record-intent-constraint.ts",
   DISPOSITION_REL,
 ] as const;
 

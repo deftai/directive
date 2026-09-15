@@ -1,21 +1,18 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4267,
+  "issue": 4541,
   "surfaces": [
     "Taskfile.yml",
     "tasks/verify.yml",
     "packages/core/src/check/gate-lists.ts",
     "packages/core/src/consumer-check-contract/evaluate.ts",
     "packages/core/src/evaluator-surface/**",
-    "packages/core/src/consumer-test-lane/**",
-    "packages/cli/src/verify-evaluator-surface.ts",
-    "packages/cli/src/verify-consumer-test-lane.ts",
+    "packages/core/src/intent-constraint/**",
+    "packages/cli/src/verify-intent-constraint.ts",
+    "packages/cli/src/scope-record-intent-constraint.ts",
     "xbrief/evaluator-surface-disposition.json",
-    "vitest.config.ts",
-    "packages/core/src/observable-scope/**",
-    "packages/cli/src/verify-observable-scope.ts",
-    "packages/cli/src/scope-record-observable-scope.ts"
+    "vitest.config.ts"
   ],
-  "note": "Disclosure of Taskfile.yml Phase 7 task release:wait-npm (#4267). Surfaces include the #4495 observable-scope set so this renewal covers the merged evaluator-surface tree. Not reviewed authorization under #3164. A leftover #4495 record does not cover later evaluator-surface changes."
+  "note": "Disclosure of verify:intent-constraint (#4541). Not reviewed authorization under #3164."
 }

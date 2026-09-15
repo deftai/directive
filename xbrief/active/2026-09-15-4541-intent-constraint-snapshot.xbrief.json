@@ -1,0 +1,75 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #4541. Bound contract is successor lean 5671856127 + synthesis 5672680804 + verified-claims 5672677971.",
+    "updated": "2026-09-15T00:30:00Z"
+  },
+  "plan": {
+    "id": "4541-intent-constraint-snapshot",
+    "title": "Fail closed when implementation introduces semantic constraints absent from approved intent",
+    "status": "running",
+    "narratives": {
+      "Description": "Merge-base snapshot of throw/reject/abort sites and new numeric consts in changed production files. While-unwrap until NumericLiteral. Do not forEachChild-harvest NumericLiteral.",
+      "Origin": "https://github.com/deftai/directive/issues/4541 bound by 5671856127, 5672677971, 5672680804.",
+      "Overview": "File-scope plus tests is not authority. Do not name the verb semantic-*. Drop P2 from first ship.",
+      "Labels": "bug,rfc,agent-experience,process,area:cli"
+    },
+    "items": [
+      {
+        "title": "Merge-base snapshot throw/reject/abort and numeric-const peel",
+        "status": "proposed",
+        "effort": "L"
+      },
+      {
+        "title": "While-unwrap until NumericLiteral; no forEachChild harvest",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] #4541",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "bug",
+      "rfc",
+      "agent-experience",
+      "process",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4541",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4541"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "clauses",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "First-ship snapshot compares throw/reject/abort sites and new numeric consts in changed production .ts/.js to a merge-base pin",
+          "artifact_path": "packages/core/src",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-15T00:30:00Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [],
+        "verify_commands": []
+      }
+    }
+  }
+}

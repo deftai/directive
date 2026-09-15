@@ -63,6 +63,10 @@
       "types": "./dist/observable-scope/index.d.ts",
       "default": "./dist/observable-scope/index.js"
     },
+    "./intent-constraint": {
+      "types": "./dist/intent-constraint/index.d.ts",
+      "default": "./dist/intent-constraint/index.js"
+    },
     "./consumer-test-lane": {
       "types": "./dist/consumer-test-lane/index.d.ts",
       "default": "./dist/consumer-test-lane/index.js"

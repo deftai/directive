@@ -35,6 +35,9 @@ tasks:
   observable-scope:
     cmds:
       - echo ok
+  intent-constraint:
+    cmds:
+      - echo ok
   orphan-active:
     cmds:
       - echo ok
@@ -83,6 +86,7 @@ tasks:
       - verify:consumer-check-contract
       - verify:evaluator-surface
       - verify:observable-scope
+      - verify:intent-constraint
 ${orphanEntry}    cmds:
       - echo ok
 `;
@@ -116,6 +120,7 @@ describe("extractCheckDepEntries (#3893)", () => {
       "verify:consumer-check-contract",
       "verify:evaluator-surface",
       "verify:observable-scope",
+      "verify:intent-constraint",
       "verify:orphan-active",
     ]);
   });

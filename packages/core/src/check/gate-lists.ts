@@ -132,6 +132,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   { task: "verify:consumer-check-contract", args: ["--framework-source"] },
   { task: "verify:evaluator-surface", args: ["--base-ref", "origin/master"] },
   "verify:observable-scope",
+  "verify:intent-constraint",
   // #3362: dead-surface detector (warn-only this release; no --enforce)
   "verify:telemetry-coverage",
   "verify:vbrief-conformance",
@@ -176,6 +177,7 @@ export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:consumer-check-contract",
   "verify:evaluator-surface",
   "verify:observable-scope",
+  "verify:intent-constraint",
   "vbrief:validate",
   "verify-strategy-output",
   // Declared project test command last (#4386). Skip when undeclared.

@@ -45,6 +45,8 @@ describe("declared evaluator surfaces (#4386)", () => {
     expect(isEvaluatorSurfacePath("packages/core/src/evaluator-surface/evaluate.ts")).toBe(true);
     expect(isEvaluatorSurfacePath("packages/core/src/consumer-test-lane/evaluate.ts")).toBe(true);
     expect(isEvaluatorSurfacePath("packages/cli/src/verify-consumer-test-lane.ts")).toBe(true);
+    expect(isEvaluatorSurfacePath("packages/core/src/intent-constraint/evaluate.ts")).toBe(true);
+    expect(isEvaluatorSurfacePath("packages/cli/src/verify-intent-constraint.ts")).toBe(true);
     expect(isEvaluatorSurfacePath(DISPOSITION_REL)).toBe(true);
     expect(isEvaluatorSurfacePath("packages/core/src/foo.ts")).toBe(false);
     expect(EVALUATOR_SURFACE_PATH_PATTERNS.length).toBeGreaterThan(0);

@@ -15,6 +15,7 @@ A consumer could omit Directive enforcement gates from its `check` task and CI w
 - `verify:consumer-check-contract`
 - `verify:evaluator-surface` (#4386)
 - `verify:observable-scope` (#4495) — HTML via parse5 (scripting disabled); JSX/TSX via project-resolved TypeScript. Not TypeScript or jsdom as dependencies.
+- `verify:intent-constraint` (#4541) — throw/reject/abort sites and new numeric consts in changed production .ts/.js versus a merge-base pin. Tests and in-scope paths are not authority.
 
 `verify:consumer-test-lane` is composed on `check:consumer` / `CONSUMER_CHECK_GATES` only. It is not a required framework-source enforcement gate -- the framework suite remains `ts:check-lane`.
 

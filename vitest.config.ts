@@ -107,6 +107,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/eval-triggers-relocation": sub("core", "eval-triggers-relocation"),
   "@deftai/directive-core/evaluator-surface": sub("core", "evaluator-surface"),
   "@deftai/directive-core/observable-scope": sub("core", "observable-scope"),
+  "@deftai/directive-core/intent-constraint": sub("core", "intent-constraint"),
   "@deftai/directive-core/consumer-test-lane": sub("core", "consumer-test-lane"),
   "@deftai/directive-core/scm": sub("core", "scm"),
   "@deftai/directive-core/scope": sub("core", "scope"),

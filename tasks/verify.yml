@@ -319,6 +319,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:observable-scope --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  intent-constraint:
+    desc: "Fail-closed intent-constraint snapshot (#4541): throw/reject/abort sites and new numeric consts in changed production .ts/.js versus merge-base pin. Human mint for value/unit/rejectionScope. Tests and in-scope paths are not authority. Flags: --origin-ref / --staged / --quiet. Three-state exit (0 skip/pass / 1 unapproved fact or missing mint / 2 config). Does not accept --base-ref."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:intent-constraint --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   evaluator-surface:
     desc: "Declared evaluator-surface diff gate (#4386 / #3156): fail when Taskfile.yml, tasks/verify.yml, gate-lists, coverage config, or the detector itself changes without xbrief/evaluator-surface-disposition.json covering those paths. Disclosure only -- a commit-body issue/PR URL is not #3164 authorization. Prior color is unobserved. Flags: --base-ref / --staged / --path / --quiet. Three-state exit (0 skip or disclosed / 1 missing disposition / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
@@ -340,7 +350,7 @@ tasks:
           ENGINE_CMD: 'verify:consumer-test-lane --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   consumer-check-contract:
-    desc: "Consumer check-composition contract (#3145): fail when tasks/verify.yml or check aggregate omit required enforcement gates (verify:test-boundary, verify:scope-provenance, verify:consumer-check-contract, verify:evaluator-surface, verify:observable-scope). CI omissions warn by default. Flags: --framework-source / --enforce / --warn / --quiet. Three-state exit (0 clean or warn / 1 missing / 2 config)."
+    desc: "Consumer check-composition contract (#3145): fail when tasks/verify.yml or check aggregate omit required enforcement gates (verify:test-boundary, verify:scope-provenance, verify:consumer-check-contract, verify:evaluator-surface, verify:observable-scope, verify:intent-constraint). CI omissions warn by default. Flags: --framework-source / --enforce / --warn / --quiet. Three-state exit (0 clean or warn / 1 missing / 2 config)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
