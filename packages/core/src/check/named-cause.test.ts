@@ -136,6 +136,36 @@ describe("named-cause gate failures (#3282)", () => {
     expect(cause).toContain("deliberately-bad");
   });
 
+  it("prefers ANSI-colored Tests N failed over a colon FAIL: path print (#4506)", () => {
+    const red = "\u001b[31m";
+    const reset = "\u001b[0m";
+    const cause = extractGateCause(
+      `${red}FAIL  packages/core/src/hooks/scope.test.ts > inspect${reset}\n${red}Tests  3 failed | 8 passed (11)${reset}\n`,
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      1,
+      undefined,
+      "ts:check-lane",
+    );
+    expect(cause).toMatch(/Tests\s+3\s+failed/);
+    expect(cause).not.toContain("deliberately-bad");
+    expect(cause).not.toContain("\u001b");
+  });
+
+  it("prefers ANSI-colored FAIL plus whitespace test file over a colon FAIL: path print (#4506)", () => {
+    const red = "\u001b[31m";
+    const reset = "\u001b[0m";
+    const cause = extractGateCause(
+      `${red}FAIL  packages/core/src/hooks/scope.test.ts > inspect${reset}\n`,
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      1,
+      undefined,
+      "ts:check-lane",
+    );
+    expect(cause).toMatch(/FAIL\s+packages\/core\/src\/hooks\/scope\.test\.ts/);
+    expect(cause).not.toContain("deliberately-bad");
+    expect(cause).not.toContain("\u001b");
+  });
+
   it("formats degraded skip report with causes", () => {
     const lines = formatDegradedSkipReport({
       reason: "task missing",

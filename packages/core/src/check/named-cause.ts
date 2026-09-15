@@ -81,7 +81,7 @@ export function extractGateCause(
   }
   const combined = `${stderr}\n${stdout}`
     .split(/\r?\n/)
-    .map((l) => l.trim())
+    .map((l) => stripAnsi(l).trim())
     .filter((l) => l.length > 0);
   const useful: string[] = [];
   for (const line of combined) {
@@ -139,6 +139,24 @@ function isGoTaskWrapperNoise(line: string): boolean {
   }
   if (/^(if |elif |else$|fi$|then$)/.test(line)) return true;
   return false;
+}
+
+/** Strip CSI/SGR so vitest color still matches preferred summaries (#4506). */
+function stripAnsi(line: string): string {
+  let out = "";
+  for (let i = 0; i < line.length; i += 1) {
+    if (line.charCodeAt(i) !== 27 || line[i + 1] !== "[") {
+      out += line[i];
+      continue;
+    }
+    i += 2;
+    while (i < line.length) {
+      const code = line.charCodeAt(i);
+      if (code >= 64 && code <= 126) break;
+      i += 1;
+    }
+  }
+  return out;
 }
 
 function looksLikeEnvLeak(line: string): boolean {
