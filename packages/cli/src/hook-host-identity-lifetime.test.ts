@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { rewriteExactLifecycleCommand } from "@deftai/directive-core/hooks";
+import { ACTIVE_SCOPE_PIN_ENV, rewriteExactLifecycleCommand } from "@deftai/directive-core/hooks";
 import { parseLaunchArgv } from "@deftai/directive-core/swarm";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { parseArgs as parseOccupancyReleaseArgs } from "./occupancy-release.js";
@@ -111,6 +111,7 @@ function directiveFreeChildEnv(): NodeJS.ProcessEnv {
     "DEFT_SESSION_RITUAL_SKIP",
     "DEFT_HOOK_READ_ONLY",
     "DEFT_SESSION_POSTURE",
+    ACTIVE_SCOPE_PIN_ENV,
   ]) {
     delete env[name];
   }
@@ -201,6 +202,24 @@ function runHook(root: string, conversationId?: string): Record<string, unknown>
   if (conversationId !== undefined) payload.conversation_id = conversationId;
   return runHookPayload(root, payload);
 }
+
+it("directiveFreeChildEnv deletes ACTIVE_SCOPE_PIN_ENV without mutating process.env (#4506)", () => {
+  const previousPin = process.env[ACTIVE_SCOPE_PIN_ENV];
+  const previousSession = process.env.DEFT_SESSION_ID;
+  process.env[ACTIVE_SCOPE_PIN_ENV] = "xbrief/active/ineligible.xbrief.json";
+  process.env.DEFT_SESSION_ID = "host:cursor:v1:keep-on-parent";
+  try {
+    const env = directiveFreeChildEnv();
+    expect(env[ACTIVE_SCOPE_PIN_ENV]).toBeUndefined();
+    expect(process.env[ACTIVE_SCOPE_PIN_ENV]).toBe("xbrief/active/ineligible.xbrief.json");
+    expect(process.env.DEFT_SESSION_ID).toBe("host:cursor:v1:keep-on-parent");
+  } finally {
+    if (previousPin === undefined) delete process.env[ACTIVE_SCOPE_PIN_ENV];
+    else process.env[ACTIVE_SCOPE_PIN_ENV] = previousPin;
+    if (previousSession === undefined) delete process.env.DEFT_SESSION_ID;
+    else process.env.DEFT_SESSION_ID = previousSession;
+  }
+});
 
 describe.sequential("host identity across claim and hook process lifetimes (#3611)", () => {
   beforeAll(() => {

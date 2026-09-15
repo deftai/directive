@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ACTIVE_SCOPE_PIN_ENV } from "../hooks/scope.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
@@ -82,6 +83,24 @@ describe("sanitizeTsLaneEnv", () => {
 
     expect(base[BRANCH_GATE_BYPASS_ENV]).toBe("1");
     expect(base[RELEASE_PREFLIGHT_ENV]).toBe("1");
+  });
+
+  it("poisons DEFT_ACTIVE_SCOPE so nested hook/scope tests cannot inherit the session pin (#4506)", () => {
+    const sanitized = sanitizeTsLaneEnv({
+      [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/ineligible.xbrief.json",
+      PATH: "/usr/bin",
+    });
+    expect(sanitized[ACTIVE_SCOPE_PIN_ENV]).toBeUndefined();
+    expect(sanitized.PATH).toBe("/usr/bin");
+  });
+
+  it("does not strip occupancy or DEFT_SESSION_ID (#4506)", () => {
+    const sanitized = sanitizeTsLaneEnv({
+      DEFT_SESSION_ID: "host:cursor:v1:abc",
+      PATH: "/usr/bin",
+    });
+    expect(sanitized.DEFT_SESSION_ID).toBe("host:cursor:v1:abc");
+    expect(sanitized.PATH).toBe("/usr/bin");
   });
 });
 

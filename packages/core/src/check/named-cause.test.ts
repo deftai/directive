@@ -89,7 +89,7 @@ describe("named-cause gate failures (#3282)", () => {
     expect(cause).not.toContain("DEFT_FOO");
   });
 
-  it("selects a FAIL or Tests line instead of a banner (#4230)", () => {
+  it("prefers Tests N failed over a vitest FAIL file line (#4230 / #4506)", () => {
     const cause = extractGateCause(
       "vitest banner\nFAIL packages/core/src/foo.test.ts\nTests  1 failed\n",
       "check: starting suite gate ts:check-lane\n",
@@ -97,7 +97,43 @@ describe("named-cause gate failures (#3282)", () => {
       undefined,
       "ts:check-lane",
     );
-    expect(cause).toMatch(/FAIL packages\/core\/src\/foo\.test\.ts/);
+    expect(cause).toMatch(/Tests\s+1\s+failed/);
+  });
+
+  it("prefers Tests N failed over an extra-coverage FAIL: path print (#4506)", () => {
+    const cause = extractGateCause(
+      "FAIL  packages/core/src/hooks/scope.test.ts > inspect\nTests  3 failed | 8 passed (11)\n",
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      1,
+      undefined,
+      "ts:check-lane",
+    );
+    expect(cause).toMatch(/Tests\s+3\s+failed/);
+    expect(cause).not.toContain("deliberately-bad");
+  });
+
+  it("prefers FAIL plus whitespace test file over a colon FAIL: path print (#4506)", () => {
+    const cause = extractGateCause(
+      "FAIL  packages/core/src/hooks/scope.test.ts > inspect\n",
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      1,
+      undefined,
+      "ts:check-lane",
+    );
+    expect(cause).toMatch(/FAIL\s+packages\/core\/src\/hooks\/scope\.test\.ts/);
+    expect(cause).not.toContain("deliberately-bad");
+  });
+
+  it("does not treat a colon FAIL: path print as vitest-shaped (#4506)", () => {
+    const cause = extractGateCause(
+      "vitest banner\n",
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      1,
+      undefined,
+      "ts:check-lane",
+    );
+    expect(cause).toContain("FAIL:");
+    expect(cause).toContain("deliberately-bad");
   });
 
   it("formats degraded skip report with causes", () => {

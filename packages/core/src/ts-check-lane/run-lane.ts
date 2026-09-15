@@ -20,6 +20,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { posix, win32 } from "node:path";
+import { ACTIVE_SCOPE_PIN_ENV } from "../hooks/scope.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
@@ -29,13 +30,14 @@ import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "../release/consta
 import { resolveCoverageDebtIssue } from "../vitest-runner/coverage-debt.js";
 import { buildTestLaneCommand, resolveTestLaneCommand } from "./progress.js";
 
-/** Release Step-5 vars that must not leak into vitest via inherited pnpm env (#2434 / #4230). */
+/** Release Step-5 / session-pin vars that must not leak into vitest (#2434 / #4230 / #4506). */
 const TS_LANE_POISON_ENV_KEYS = [
   BRANCH_GATE_BYPASS_ENV,
   RELEASE_PREFLIGHT_ENV,
   ENV_CHECK_MODE,
   ENV_CHECK_AC_ONLY,
   ENV_HYGIENE_ADVISORY,
+  ACTIVE_SCOPE_PIN_ENV,
 ] as const;
 
 /**
@@ -63,8 +65,10 @@ export interface RunnerResult {
 export type LaneRunner = (argv: readonly string[], cwd: string) => RunnerResult;
 
 /**
- * Strip release preflight bypass vars before spawning pnpm/vitest so nested unit
- * tests observe fail-closed branch and cache gates (#2434 / #1553 recurrence).
+ * Strip release preflight bypass vars and DEFT_ACTIVE_SCOPE before spawning
+ * pnpm/vitest so nested unit tests observe fail-closed branch/cache gates and
+ * their own temp project (#2434 / #1553 / #4506). Occupancy / DEFT_SESSION_ID
+ * stay on the parent session:start env.
  */
 export function sanitizeTsLaneEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const env = { ...base };

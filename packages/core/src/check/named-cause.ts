@@ -101,6 +101,17 @@ export function extractGateCause(
       return sanitizeCauseLine(toolFailure);
     }
   }
+  // Prefer vitest summaries over earlier `FAIL:` CLI path prints (#4506).
+  // `Tests N failed` wins when present; else `FAIL` + whitespace + test file.
+  // Colon `FAIL:` path prints are not vitest-shaped.
+  const testsFailed = useful.find((line) => /^Tests\s+\d+\s+failed/.test(line));
+  if (testsFailed !== undefined) {
+    return sanitizeCauseLine(testsFailed);
+  }
+  const vitestFailFile = useful.find((line) => /^FAIL\s+\S+\.(test|spec)\./.test(line));
+  if (vitestFailFile !== undefined) {
+    return sanitizeCauseLine(vitestFailFile);
+  }
   const failureSignal = useful.find((line) => /\bFAIL\b/.test(line) || /\bTests?\b/.test(line));
   if (failureSignal !== undefined) {
     return sanitizeCauseLine(failureSignal);

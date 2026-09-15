@@ -21,6 +21,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const root of temps.splice(0)) rmSync(root, { recursive: true, force: true });
   // #3736: the authorization path is local-only. Any candidate evaluated
   // without `skip` would reach live `gh api` and put a forge round trip
@@ -54,7 +55,7 @@ it("reuses canonical preflight for active/running scope", () => {
   const path = join(active, "story.xbrief.json");
   writeFileSync(path, JSON.stringify({ plan: runningPlacement }), "utf8");
 
-  expect(inspectActiveScope(project)).toMatchObject({ ready: true, path });
+  expect(inspectActiveScope(project, { env: {} })).toMatchObject({ ready: true, path });
   expect(originFreshness.evaluate).toHaveBeenCalledWith(
     expect.anything(),
     expect.objectContaining({ skip: true }),
@@ -63,7 +64,7 @@ it("reuses canonical preflight for active/running scope", () => {
 
 describe("scope denial", () => {
   it("reports no active artifact", () => {
-    expect(inspectActiveScope(root())).toMatchObject({ ready: false, path: null });
+    expect(inspectActiveScope(root(), { env: {} })).toMatchObject({ ready: false, path: null });
   });
 
   it("reports an active artifact whose canonical preflight rejects it", () => {
@@ -76,7 +77,7 @@ describe("scope denial", () => {
       "utf8",
     );
 
-    const result = inspectActiveScope(project);
+    const result = inspectActiveScope(project, { env: {} });
     expect(result.ready).toBe(false);
     expect(result.message).toContain("only 'running'");
   });
@@ -93,7 +94,7 @@ describe("scope denial", () => {
     const passing = join(active, "z-passing.xbrief.json");
     writeFileSync(passing, JSON.stringify({ plan: runningPlacement }), "utf8");
 
-    expect(inspectActiveScope(project)).toMatchObject({ ready: true, path: passing });
+    expect(inspectActiveScope(project, { env: {} })).toMatchObject({ ready: true, path: passing });
   });
 });
 
@@ -217,5 +218,23 @@ describe("shared-active write-fence bind (#4007)", () => {
     ]);
     expect(inspectActiveScope(project, { env: {} })).toMatchObject({ ready: true, path: story });
     expect(matchPinnedActiveScope(project, "ui-story.xbrief.json", [story])).toBe(story);
+  });
+});
+
+describe("omitted-env production pin fail-closed (#4506)", () => {
+  it("still fail-closes when an ineligible ambient pin is set", () => {
+    const project = root();
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "story.xbrief.json"),
+      JSON.stringify({ plan: runningPlacement }),
+      "utf8",
+    );
+    vi.stubEnv(ACTIVE_SCOPE_PIN_ENV, "xbrief/active/ineligible.xbrief.json");
+    const result = inspectActiveScope(project);
+    expect(result.ready).toBe(false);
+    expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+    expect(result.message).toContain("ineligible.xbrief.json");
   });
 });
