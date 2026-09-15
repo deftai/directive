@@ -59,8 +59,8 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/design-critique/handoff.test.ts#reframe-needed",
-          "recorded_at": "2026-09-15T02:41:04Z",
+          "pointer": "constraint-brief: packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks Handoff print condition (not.toContain constraint-brief.md / template); routing-seat: packages/core/src/swarm/routing.test.ts#SWARM_WORKER_ROLES (fixed four-role vocabulary, no critic); reframe-needed: packages/core/src/design-critique/handoff.test.ts#evaluateCompletedArcRecord stays free of reframe-needed; invariant-set-halt: packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks Handoff print condition (invariant-set equality); heading-id: packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks Dual stop first heading-id (sequential fingerprint, critic-side stable-id dropped)",
+          "recorded_at": "2026-09-15T03:00:00Z",
           "recorded_by": "leaf-worker/4554"
         }
       }
