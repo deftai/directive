@@ -152,6 +152,11 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! Composes with minimal-subgraph repair guidance (#2439): keep repairs minimal **and** bounded by dual-stop -- minimal repair is not a license to thrash. Durable delivery/acceptance circuit-breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`, unit ledger). Docs: `docs/delivery-attempt.md`. Skill defaults remain behavioral; mechanical gate lives in core.
 
+### Envelope selection SLA (#3153 / #4529)
+
+! Default story / through-merge envelope is `drive-to: merge-ready`. Depth: [`references/core-phase-0.md`](references/core-phase-0.md).
+! **Grok through-merge:** implement leaf MUST be `stop-at: pr-open`. Named partner is Approach 1 sibling or parent-retained. Phase 6 / `swarm:finalize-cohort` is the sole squash-merge and leftover owner. ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner. ⊗ Use `merge-release` as this closer. Related: #4421.
+
 ### Operator follow-up after dual-stop / hard stop (#3273)
 
 Operator-initiated resume after dual-stop / hard stop / conf-hold — not automatic re-thrash. Depth (A/B/C leftover classes, standing vs one-shot, steps): [`references/core-phase-4.md`](references/core-phase-4.md) same section title. Portable consumer + maintainer (`task` / `deft` dual-invoke). Continue-until target is the **resolved `#3095` floor** (`task policy:show --field=minGreptileConfidence` / `deft policy:show --field=minGreptileConfidence`: typed project policy > framework dogfood **5** > consumer default **4**). ⊗ Hard-code 5/5. ⊗ Lower project policy to clear one PR.
@@ -240,5 +245,6 @@ Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../.
 - ⊗ Force a second full dispatch on a retain-capable host solely for a mid-scope gate, or invent retain on one-shot hosts (#3158)
 - ⊗ Use retained-child messaging for mid-run constitution self-edit (#3158 / #3164)
 - ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
+- ⊗ Harvest a Grok `drive-to: merge-ready` continuation as the Grok through-merge partner, or use `merge-release` as that closer (#4529)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).

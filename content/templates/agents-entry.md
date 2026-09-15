@@ -88,17 +88,18 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Through-merge worker dispatch (#3032)
 
-! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a `drive-to: merge-ready` worker (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`) via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C). Spawn dest (#4066 / #4295): dest-place implement workers before occupancy. Cursor local is dest-placing (nursery inherit or dest-rooted `@cursor/sdk` `Agent.create`); ⊗ Task dest keys.
-⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032).
+! On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent: parent MUST dispatch a worker via the **swarm/solo-worker launch path** even if **cohort size is 1** — parent MUST NOT implement as the leaf. Default envelope is `drive-to: merge-ready` (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`). **Grok through-merge (#4529):** implement is `stop-at: pr-open` — not Gap C silent handback; Envelope SLA names the partner. Depth: swarm Phase 0 + skill-pin-policy (#3032 / #1880 Gap C). Spawn dest (#4066 / #4295): dest-place implement workers before occupancy. Cursor local is dest-placing (nursery inherit or dest-rooted `@cursor/sdk` `Agent.create`); ⊗ Task dest keys.
+⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner (#4529).
 ! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 
 ## Envelope selection SLA (#3153)
 
 ! Default story / through-merge unit of work is `drive-to: merge-ready`. Deliberate `stop-at: pr-open` is allowed only when a **partner merge-path owner** is planned (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — triggers: capacity stall, wall-clock budget, large multi-gate, host nest limits (Cursor / Claude Code / Grok Build #4130; swarm Phase 0 decision tree). Depth: `deft-directive-swarm` + `deft-directive-review-cycle` partner merge-path.
+! **Grok through-merge (#4529):** implement MUST be `stop-at: pr-open`. Partner: Approach 1 or parent-retained. Phase 6 / `swarm:finalize-cohort` owns squash-merge and leftover. Not a global SLA recut. ⊗ Harvest option 2 or `merge-release` as closer. Related: #4421.
 ! Under human-merge policy, a **durable** owner (parent/monitor sticky lease or Phase 6 closer) MUST remain for post-merge `scope:complete` — CLEAN alone is not lifecycle complete; ⊗ stand down at CLEAN with no reachable owner.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
-! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). After `scope:complete`, `deft verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` before `DONE` (#3476). Exit 1 shipped → printed `scope:complete`; missing tracked land → `swarm:finalize-cohort` or a lifecycle PR; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope).
+! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). After `scope:complete`, `deft verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` before `DONE` (#3476). Exit 1 shipped → printed `scope:complete`; missing tracked land → `swarm:finalize-cohort` or a lifecycle PR; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope). **Grok leftover (#4529):** Phase 6 `swarm:finalize-cohort`, not the implement dest.
 ⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
 ## Nuclear-family A2A topology (#3155)
