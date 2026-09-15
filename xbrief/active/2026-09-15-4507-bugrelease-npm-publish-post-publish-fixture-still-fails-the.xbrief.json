@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4507",
-    "updated": "2026-09-15T18:08:16Z"
+    "updated": "2026-09-15T20:00:20Z"
   },
   "plan": {
     "title": "bug(release): npm-publish post-publish fixture still fails the job after all four packages publish",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "Do not bind #4507 as a recurrence of #4398 warn-only job-exit.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#does not bind #4398 warn-only, npm view, or continue-on-error",
+          "recorded_at": "2026-09-15T20:00:00Z",
+          "recorded_by": "leaf-worker/4507-closeout-attestable"
+        }
       },
       {
         "title": "Seed still needs lifecycle folders so classifyUpdateState is not migration-required. That is not enough for P1.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#seeds lifecycle folders so classifyUpdateState is not migration-required",
+          "recorded_at": "2026-09-15T20:00:00Z",
+          "recorded_by": "leaf-worker/4507-closeout-attestable"
+        }
       },
       {
         "title": "The lock is live installed CLI update plus unstubbed fixture git status --porcelain (no -uall) fed through isPass2CommitPath. Do not treat a stubbed live-path test as that lock.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#locks live dest CLI update plus unstubbed git status --porcelain",
+          "recorded_at": "2026-09-15T20:00:00Z",
+          "recorded_by": "leaf-worker/4507-closeout-attestable"
+        }
       },
       {
         "title": "Remaining red at dest SHA: host-root directory entries from installer-written hooks plus slash commands plus skill discovery collapsing under .claude/ / .cursor/ / .codex/ / .grok/, and .github/ from skill discovery. .agents/ and .githooks/ already pass prefixes.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#expands dest host-root porcelain dirs to files that pass isPass2CommitPath",
+          "recorded_at": "2026-09-15T20:00:00Z",
+          "recorded_by": "leaf-worker/4507-closeout-attestable"
+        }
       },
       {
         "title": "Keep Pass 2 fail-closed. Keep publish-step failure fail-closed. Keep the #4398 bound.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#keeps Pass 2 fail-closed when a host-root dir contains an app file",
+          "recorded_at": "2026-09-15T20:00:00Z",
+          "recorded_by": "leaf-worker/4507-closeout-attestable"
+        }
       },
       {
         "title": "Do not fold Phase 7. Do not make npm view the pass. Do not add workflow continue-on-error after any fixture failure.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#does not bind #4398 warn-only, npm view, or continue-on-error",
+          "recorded_at": "2026-09-15T20:00:00Z",
+          "recorded_by": "leaf-worker/4507-closeout-attestable"
+        }
       }
     ],
     "tags": [
@@ -128,6 +164,6 @@
       }
     },
     "id": "github.issue.5449060127",
-    "updated": "2026-09-15T18:08:16Z"
+    "updated": "2026-09-15T20:00:20Z"
   }
 }
