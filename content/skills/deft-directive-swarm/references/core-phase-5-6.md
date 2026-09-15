@@ -24,7 +24,7 @@ For each agent's PR:
 3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
 4. ! **Blocked-leaf continuation (#1880 / #2843):** Prefer workers scoped `drive-to: merge-ready` so this step is rare. When a leaf exits `BLOCKED` (or a false-terminal DONE-with-blockers — see `templates/agent-prompt-preamble.md` §11) before merge-ready:
    - **Tier 1 available** (`start_agent`, `spawn_subagent`, Cursor `Task`, OpenClaw `sessions_spawn`): the monitor MUST background-dispatch ONE continuation leaf (`drive-to: merge-ready`, same worktree) owning fix batches + blocking `task pr:watch` + merge readiness. The monitor MUST NOT run inline code edits or review-cycle fix batches in its own turn (#2843 monitor-as-implementer recurrence).
-   - **Grok through-merge (#4529):** do **not** re-enter as a Grok `drive-to: merge-ready` continuation. Named partner stays Approach 1 sibling or parent-retained. Phase 6 / `swarm:finalize-cohort` remains the sole squash-merge and leftover owner. ⊗ Harvest partner merge-path option 2 as this closer.
+   - **Grok through-merge (#4529):** do **not** re-enter as a Grok `drive-to: merge-ready` continuation. Named partner stays Approach 1 sibling or parent-retained. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained). `swarm:finalize-cohort` is leftover after merge. ⊗ Harvest partner merge-path option 2 as this closer.
    - **Tier 3 only** (no sub-agent primitive): the monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself after explicit operator consent — or offer serial self-execution downgrade from Phase 3.
    - ⊗ Split review polling and fix batches across separate leaf agents for the same PR (#727 + #1880 Gap C).
 
@@ -165,7 +165,7 @@ If any protected (umbrella / staying-OPEN) issue number appears in the output, t
 
 ! **Merge authority:** Monitor proposes merge order and executes merges; user approves before the first merge. Do not merge without explicit user approval.
 
-! **Grok through-merge squash-merge owner (#4529):** Phase 6 (this monitor) is the **sole** product squash-merge owner for Grok through-merge. The implement leaf is already terminal at PR-open. ⊗ Hand squash-merge to a Grok coding one-shot (implement or drive-to continuation). ⊗ Use `merge-release` as this closer — reuse partner merge-path + `swarm:finalize-cohort`.
+! **Grok through-merge squash-merge owner (#4529):** Phase 6 (this monitor) is the **sole** product squash-merge owner for Grok through-merge, via `pr:wait-mergeable-and-merge` (or parent-retained). The implement leaf is already terminal at PR-open. `swarm:finalize-cohort` is leftover after merge, not the merger. ⊗ Hand squash-merge to a Grok coding one-shot (implement or drive-to continuation). ⊗ Use `merge-release` as this closer. ⊗ Claim `swarm:finalize-cohort` is the product squash-merge.
 
 ! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches the updated configured base branch, rebases each remaining branch, resolves conflicts, and force-pushes.
 
@@ -270,7 +270,7 @@ The finalize surface runs the same `completeCohort(...)` engine as `task swarm:c
 
 ! **Drive-to last-leaf close (#3476):** After the last `drive-to: merge-ready` leaf of a cohort announces, parent `done` without same-turn `task swarm:finalize-cohort` (or a land PR already proving `task verify:completed-tracked` green on `origin/<deliveryBranch>`) is a **failed close**. Narrative-only `done` under #2934 is not enough when completed xBRIEFs exist only as untracked worktree residue. `scope:complete` stays filesystem-only -- do not teach every leaf to commit on master. Keep `verify:completed-tracked` off `task check`.
 
-! **Grok leftover owner (#4529 / #3476):** For every Grok through-merge unit (and any remaining Grok drive-to identity), leftover-complete / `completed-tracked` is Phase 6 `swarm:finalize-cohort` on the merger dest — not the implement dest. A Grok implement leaf scoped `stop-at: pr-open` MUST NOT run leftover-complete. Related: #4421 is not a third leftover primitive. ⊗ Use `merge-release` as this closer.
+! **Grok leftover owner (#4529 / #3476):** For every Grok through-merge unit, leftover-complete / `completed-tracked` is Phase 6 `swarm:finalize-cohort` on the merger dest — not the implement dest. A Grok implement leaf scoped `stop-at: pr-open` MUST NOT run leftover-complete. Related: #4421 is not a third leftover primitive. ⊗ Use `merge-release` as this closer.
 
 ! **Manual fallback (#1487):** `task swarm:complete-cohort` remains the idempotent manual primitive when finalize automation is unavailable or you need a dry-run preview of transitions only. The headless path above replaces the historical requirement to hand-author a separate `chore(xbrief)` sweep PR every cycle.
 

@@ -155,7 +155,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ### Envelope selection SLA (#3153 / #4529)
 
 ! Default story / through-merge envelope is `drive-to: merge-ready`. Depth: [`references/core-phase-0.md`](references/core-phase-0.md).
-! **Grok through-merge:** implement leaf MUST be `stop-at: pr-open`. Named partner is Approach 1 sibling or parent-retained. Phase 6 / `swarm:finalize-cohort` is the sole squash-merge and leftover owner. ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner. ⊗ Use `merge-release` as this closer. Related: #4421.
+! **Grok through-merge:** implement leaf MUST be `stop-at: pr-open`. Named partner is Approach 1 sibling or parent-retained. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained). `swarm:finalize-cohort` is leftover after merge. ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner. ⊗ Use `merge-release` as this closer. ⊗ Claim `swarm:finalize-cohort` is the product squash-merge. Related: #4421.
 
 ### Operator follow-up after dual-stop / hard stop (#3273)
 
@@ -246,5 +246,6 @@ Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../.
 - ⊗ Use retained-child messaging for mid-run constitution self-edit (#3158 / #3164)
 - ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
 - ⊗ Harvest a Grok `drive-to: merge-ready` continuation as the Grok through-merge partner, or use `merge-release` as that closer (#4529)
+- ⊗ Claim `swarm:finalize-cohort` is the product squash-merge (#4529)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).

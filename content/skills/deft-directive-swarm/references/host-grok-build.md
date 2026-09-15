@@ -43,6 +43,8 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 - (a) a `drive-to: merge-ready` leaf that owns a blocking dual-invoke `pr:watch` (`deft pr:watch` then `task deft:pr:watch`) in its own process, then `pr:merge-ready` / merge in the same loop, or
 - (b) `stop-at: pr-open` with the dispatcher (parent that owns `spawn_subagent`) launching a sibling monitor and registering it via dual-invoke `review-monitor:register -- --platform-primitive spawn_subagent`.
 
+! **Grok through-merge (#4529):** implement MUST use (b). Path (a) is for non-through-merge Grok leaves only. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained); `swarm:finalize-cohort` is leftover after merge. ⊗ Dispatch a Grok through-merge implement as (a).
+
 ! Top-level parents/orchestrators that own `spawn_subagent` MAY Approach-1 background a review-monitor.
 
 ⊗ An implementation leaf backgrounds a nested `spawn_subagent` poller and exits claiming monitoring is active.

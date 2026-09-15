@@ -95,7 +95,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Envelope selection SLA (#3153)
 
 ! Default story / through-merge unit of work is `drive-to: merge-ready`. Deliberate `stop-at: pr-open` is allowed only when a **partner merge-path owner** is planned (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — triggers: capacity stall, wall-clock budget, large multi-gate, host nest limits (Cursor / Claude Code / Grok Build #4130; swarm Phase 0 decision tree). Depth: `deft-directive-swarm` + `deft-directive-review-cycle` partner merge-path.
-! **Grok through-merge (#4529):** implement MUST be `stop-at: pr-open`. Partner: Approach 1 or parent-retained. Phase 6 / `swarm:finalize-cohort` owns squash-merge and leftover. Not a global SLA recut. ⊗ Harvest option 2 or `merge-release` as closer. Related: #4421.
+! **Grok through-merge (#4529):** implement MUST be `stop-at: pr-open`. Partner: Approach 1 or parent-retained. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained). `swarm:finalize-cohort` is leftover after merge. Not a global SLA recut. ⊗ Harvest option 2 or `merge-release` as closer. Related: #4421.
 ! Under human-merge policy, a **durable** owner (parent/monitor sticky lease or Phase 6 closer) MUST remain for post-merge `scope:complete` — CLEAN alone is not lifecycle complete; ⊗ stand down at CLEAN with no reachable owner.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
