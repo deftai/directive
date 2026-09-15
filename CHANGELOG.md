@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Complete tracking for #4541.** After PR 4557. The #4541 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Design-critique Handoff prints on same-P* relieves Recut-supersedes (#4554).** Unrelieved print stays. First relieves and relieves-after-does-not-relieve stay print-false. Class tokens are not a print input. Does not reopen #4531. Closes #4554.
 - **Complete tracking for #4554.** After PR 4556. The #4554 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Grok through-merge implement is stop-at: pr-open (#4529).** Named partner is Approach 1 sibling or parent-retained. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained). `swarm:finalize-cohort` is leftover after merge. Carry the Grok exception into Phase 3 dispatch and host-grok-build. Through-merge leftover only — standalone Grok drive-to still runs `scope:complete` / `completed-tracked`. Do not harvest Grok drive-to continuation as that partner. Consumer pin via agents-entry. plan.policy.agentsMdBudget managedMaxLines 173->175, unmanagedMaxLines 162->164, absoluteMaxBytes 18000->19200. Refs #3032, #3153, #4130, #4421.

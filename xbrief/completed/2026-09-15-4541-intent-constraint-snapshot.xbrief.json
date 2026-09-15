@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #4541. Bound contract is successor lean 5671856127 + synthesis 5672680804 + verified-claims 5672677971.",
-    "updated": "2026-09-15T11:28:22.725Z"
+    "updated": "2026-09-15T11:40:07Z"
   },
   "plan": {
     "id": "4541-intent-constraint-snapshot",
     "title": "Fail closed when implementation introduces semantic constraints absent from approved intent",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Merge-base snapshot of throw/reject/abort sites and new numeric consts in changed production files. While-unwrap until NumericLiteral. Do not forEachChild-harvest NumericLiteral.",
       "Origin": "https://github.com/deftai/directive/issues/4541 bound by 5671856127, 5672677971, 5672680804.",
@@ -79,7 +79,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-09-15T11:28:22.725Z",
+    "updated": "2026-09-15T11:40:07Z",
     "metadata": {
       "kind": "story",
       "swarm": {
@@ -87,7 +87,32 @@
         "parallel_safe": true,
         "file_scope": [],
         "verify_commands": []
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4557,
+        "prBase": null,
+        "mergeCommit": "32b5c8d28ff7b048d580e874948e261d34be3ce1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "32b5c8d28ff7b048d580e874948e261d34be3ce1",
+        "verifiedAt": "2026-09-15T11:40:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE0YWQtYTZkYS03YmIyLWE5YjMtNzc0ODRjODdjYjE2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-15T11:40:07Z"
+      },
+      "completedAt": "2026-09-15T11:40:07Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE0YWQtYTZkYS03YmIyLWE5YjMtNzc0ODRjODdjYjE2",
+      "capacityBucket": "technical-debt"
     }
   }
 }
