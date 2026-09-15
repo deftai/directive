@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #4541. Bound contract is successor lean 5671856127 + synthesis 5672680804 + verified-claims 5672677971.",
-    "updated": "2026-09-15T00:30:00Z"
+    "updated": "2026-09-15T11:28:22.725Z"
   },
   "plan": {
     "id": "4541-intent-constraint-snapshot",
@@ -17,18 +17,36 @@
     "items": [
       {
         "title": "Merge-base snapshot throw/reject/abort and numeric-const peel",
-        "status": "proposed",
-        "effort": "L"
+        "status": "completed",
+        "effort": "L",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intent-constraint/evaluate.test.ts",
+          "recorded_at": "2026-09-15T11:28:22.725Z",
+          "recorded_by": "leaf-implementation/4541"
+        }
       },
       {
         "title": "While-unwrap until NumericLiteral; no forEachChild harvest",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intent-constraint/extract.test.ts",
+          "recorded_at": "2026-09-15T11:28:22.725Z",
+          "recorded_by": "leaf-implementation/4541"
+        }
       },
       {
         "title": "CHANGELOG [Unreleased] #4541",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-15T11:28:22.725Z",
+          "recorded_by": "leaf-implementation/4541"
+        }
       }
     ],
     "tags": [
@@ -61,7 +79,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-09-15T00:30:00Z",
+    "updated": "2026-09-15T11:28:22.725Z",
     "metadata": {
       "kind": "story",
       "swarm": {
