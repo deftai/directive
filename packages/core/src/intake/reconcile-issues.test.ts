@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CompletedProcess } from "../scm/call.js";
+import { stampLifecycleWrite } from "../scope/lifecycle-write.js";
 import { validateEpicStoryLinks } from "../vbrief-validate/epic-links.js";
 import {
   applyLifecycleFixes,
@@ -229,11 +230,11 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
   it("stamps updated into xBRIEFInfo (v0.8) without appending a stray vBRIEFInfo (#2346)", () => {
     root = mkdtempSync(join(tmpdir(), "reconcile-2346-"));
     const xbrief = join(root, "xbrief");
-    mkdirSync(join(xbrief, "active"), { recursive: true });
+    mkdirSync(join(xbrief, "proposed"), { recursive: true });
 
     const name = "2026-07-05-2337-task-aliases.xbrief.json";
     writeFileSync(
-      join(xbrief, "active", name),
+      join(xbrief, "proposed", name),
       `${JSON.stringify(
         {
           xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF for #99" },
@@ -582,9 +583,9 @@ describe("reconcile envelope policy (#3933)", () => {
   it("applyLifecycleFixes refuses an envelope-less brief by name and leaves it in place", () => {
     root = mkdtempSync(join(tmpdir(), "reconcile-3933-move-"));
     const xbrief = join(root, "xbrief");
-    mkdirSync(join(xbrief, "active"), { recursive: true });
+    mkdirSync(join(xbrief, "proposed"), { recursive: true });
     const name = "2026-08-29-no-envelope.xbrief.json";
-    const src = join(xbrief, "active", name);
+    const src = join(xbrief, "proposed", name);
     writeFileSync(
       src,
       `${JSON.stringify(
@@ -817,5 +818,116 @@ describe("fetchIssueStatesForApply (#4269)", () => {
     expect(destinationFolder("COMPLETED")).toBe("completed");
     expect(destinationFolder(null)).toBe("completed");
     expect(destinationFolder(undefined)).toBe("completed");
+  });
+});
+
+describe("applyLifecycleFixes unstamped active-to-completed refuse (#4508)", () => {
+  let root = "";
+
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  it("leaves the active blob unmutated and does not write lifecycleWrite", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-4508-refuse-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    const name = "2026-09-14-leftover.xbrief.json";
+    const src = join(xbrief, "active", name);
+    const original = `${JSON.stringify(
+      {
+        xBRIEFInfo: { version: "0.8", description: "leftover active brief" },
+        plan: {
+          title: "Leftover",
+          status: "running",
+          items: [
+            { title: "slice", status: "proposed" },
+            { title: "other", status: "proposed" },
+          ],
+          acceptance: { commands: [], none_stated: true },
+          references: [
+            { type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/3849" },
+          ],
+        },
+      },
+      null,
+      2,
+    )}\n`;
+    writeFileSync(src, original, "utf8");
+
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const [moved, skipped, failures] = applyLifecycleFixes(
+      xbrief,
+      buildLifecycleReport(
+        scanLifecycleAnchors(xbrief),
+        new Map([[3849, new IssueState("CLOSED", "COMPLETED")]]),
+        false,
+      ),
+      root,
+    );
+    const stderrText = stderr.mock.calls.map((call) => String(call[0])).join("");
+    stderr.mockRestore();
+
+    expect(moved).toBe(0);
+    expect(skipped).toBe(1);
+    expect(failures).toEqual([]);
+    expect(readFileSync(src, "utf8")).toBe(original);
+    expect(existsSync(join(xbrief, "completed", name))).toBe(false);
+    const parsed = JSON.parse(original) as {
+      plan: {
+        status: string;
+        items: { status: string }[];
+        metadata?: { lifecycleWrite?: unknown };
+      };
+    };
+    expect(parsed.plan.status).toBe("running");
+    expect(parsed.plan.items.every((item) => item.status === "proposed")).toBe(true);
+    expect(parsed.plan.metadata?.lifecycleWrite).toBeUndefined();
+    expect(stderrText).toContain("unstamped active/ to completed/ (#4508)");
+    expect(stderrText).toContain("left source unmutated");
+  });
+
+  it("still moves a stamped active brief to completed/", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-4508-stamped-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    const name = "2026-09-14-stamped.xbrief.json";
+    const plan = {
+      title: "Stamped leftover",
+      status: "running",
+      items: [{ title: "slice", status: "completed" }],
+      references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/99" }],
+      metadata: {},
+    };
+    stampLifecycleWrite(plan, "complete", "2026-09-14T00:00:00Z");
+    writeFileSync(
+      join(xbrief, "active", name),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const [moved, skipped, failures] = applyLifecycleFixes(
+      xbrief,
+      buildLifecycleReport(
+        scanLifecycleAnchors(xbrief),
+        new Map([[99, new IssueState("CLOSED", "COMPLETED")]]),
+        false,
+      ),
+      root,
+    );
+    expect(moved).toBe(1);
+    expect(skipped).toBe(0);
+    expect(failures).toEqual([]);
+    expect(existsSync(join(xbrief, "active", name))).toBe(false);
+    const movedPath = join(xbrief, "completed", name);
+    expect(existsSync(movedPath)).toBe(true);
+    const movedData = JSON.parse(readFileSync(movedPath, "utf8")) as {
+      plan: { status: string; metadata: { lifecycleWrite: { action: string } } };
+    };
+    expect(movedData.plan.status).toBe("completed");
+    expect(movedData.plan.metadata.lifecycleWrite.action).toBe("complete");
   });
 });
