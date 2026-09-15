@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Complete tracking for #4508.** After PR 4570. The #4508 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 ### Fixed
 
 - **Session pin no longer poisons ts:check-lane vitest (#4506).** Strip `DEFT_ACTIVE_SCOPE` from the lane spawn env and hook-bin child env. Isolate omitted-env inspect tests with `{ env: {} }`. Named-cause prefers `Tests N failed` over extra-coverage `FAIL:` path prints and strips ANSI before matching. Closes #4506.

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4508",
-    "updated": "2026-09-15T19:43:00Z"
+    "updated": "2026-09-15T20:04:04Z"
   },
   "plan": {
     "title": "bug(lifecycle,release): reconcile apply-lifecycle-fixes moves to completed/ without a runTransition stamp",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(lifecycle,release): reconcile apply-lifecycle-fixes moves to completed/ without a runTransition stamp",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4508",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Drop fingerprint-only mint. apply-lifecycle-fixes must not write lifecycleWrite.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/intake/reconcile-issues.test.ts#leaves the active blob unmutated and does not write lifecycleWrite",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Refuse the unstamped active-to-completed move. Leave the active/ blob unmutated. That is P1.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/intake/reconcile-issues.ts#unstamped active/ to completed/ refuse (hasCompleteTransitionWrite)",
@@ -36,7 +36,7 @@
       },
       {
         "title": "Drop leftover-complete success on this class. leftover-land (#3476) is the land step after leftover-complete, not the refuse.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/scope/lifecycle-write.test.ts#names the leftover land PR in worker-facing remediation",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Do not call runTransition(complete) from apply. Do not skip #3240. Do not mint item evidence from leftover-complete.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/scope/acceptance-evidence.test.ts#fails closed when pending criteria lack evidence and disposition",
@@ -129,9 +129,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "c91c77be5f6b79e7020127c3ae1044786a6628619f8a72392e92cafee47f5b74"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4570,
+        "prBase": null,
+        "mergeCommit": "3011b9594a14f91997521fb2f862a404160af225",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3011b9594a14f91997521fb2f862a404160af225",
+        "verifiedAt": "2026-09-15T20:04:04Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE2YTktMWNhMi03NTQxLWE1YWMtYmY3NGNjMTJjNDAy"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-15T20:04:04Z"
+      },
+      "completedAt": "2026-09-15T20:04:04Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE2YTktMWNhMi03NTQxLWE1YWMtYmY3NGNjMTJjNDAy",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5449060178",
-    "updated": "2026-09-15T19:43:00Z"
+    "updated": "2026-09-15T20:04:04Z"
   }
 }
