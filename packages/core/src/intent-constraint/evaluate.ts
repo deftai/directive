@@ -6,7 +6,8 @@
  * Tests and in-scope paths are not authority. P2 is not first-ship.
  */
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { resolveDefaultBaseRef } from "../evaluator-surface/evaluate.js";
 import { normalizePath } from "../orchestration/pathspec.js";
 import { newFacts, uncoveredDeltas } from "./diff.js";
@@ -114,6 +115,58 @@ function gitShowIndex(projectRoot: string, relPath: string): string | null {
 
 function readCandidateBytes(projectRoot: string, relPath: string, staged: boolean): string | null {
   return staged ? gitShowIndex(projectRoot, relPath) : gitShow(projectRoot, "HEAD", relPath);
+}
+
+function planIdFromXbriefText(text: string): string | undefined {
+  try {
+    const raw: unknown = JSON.parse(text);
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+    const plan = (raw as Record<string, unknown>).plan;
+    if (plan === null || typeof plan !== "object" || Array.isArray(plan)) return undefined;
+    const rec = plan as Record<string, unknown>;
+    if (rec.status !== "running") return undefined;
+    return typeof rec.id === "string" && rec.id.trim().length > 0 ? rec.id.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function listRunningPlanIds(projectRoot: string): string[] {
+  const activeDir = join(resolve(projectRoot), "xbrief", "active");
+  if (!existsSync(activeDir)) return [];
+  const ids: string[] = [];
+  for (const name of readdirSync(activeDir)) {
+    if (!name.endsWith(".xbrief.json")) continue;
+    try {
+      const text = readFileSync(join(activeDir, name), "utf8");
+      const id = planIdFromXbriefText(text);
+      if (id !== undefined) ids.push(id);
+    } catch {
+      // skip unreadable active xBRIEF
+    }
+  }
+  return ids;
+}
+
+function resolveCurrentPlanId(
+  projectRoot: string,
+  explicit: string | undefined,
+): string | undefined {
+  if (explicit !== undefined && explicit.length > 0) return explicit;
+  const pin = process.env.DEFT_ACTIVE_SCOPE;
+  if (pin !== undefined && pin.length > 0) {
+    const rel = pin.replace(/\\/g, "/");
+    try {
+      const text = readFileSync(join(resolve(projectRoot), ...rel.split("/")), "utf8");
+      const id = planIdFromXbriefText(text);
+      if (id !== undefined) return id;
+    } catch {
+      // fall through
+    }
+  }
+  const running = listRunningPlanIds(projectRoot);
+  if (running.length === 1) return running[0];
+  return undefined;
 }
 
 function fail(message: string): EvaluateResult {
@@ -248,14 +301,22 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     parsedRecords.push(parsed);
   }
 
+  const planId = resolveCurrentPlanId(projectRoot, options.planId);
   let selected = parsedRecords;
-  if (options.planId !== undefined && options.planId.length > 0) {
-    selected = parsedRecords.filter((r) => r.planId === options.planId);
+  if (planId !== undefined && planId.length > 0) {
+    selected = parsedRecords.filter((r) => r.planId === planId);
     if (selected.length === 0) {
-      return fail(
-        `verify:intent-constraint: no merge-base mint record for planId ${options.planId}.`,
-      );
+      return fail(`verify:intent-constraint: no merge-base mint record for planId ${planId}.`);
     }
+  } else if (parsedRecords.length > 1) {
+    return config(
+      "multiple merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
+    );
+  }
+  if (selected.length > 1) {
+    return config(
+      "multiple merge-base mint records share a planId; constraints cannot be pooled across mints",
+    );
   }
   const mint = selected[0];
   if (mint === undefined) {

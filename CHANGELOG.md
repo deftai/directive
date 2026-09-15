@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **One-PR-unit consent is an App-backed exact-set claim (#4494).** Multi-origin `Closes` needs an operator mint; `.deft/one-pr-unit` is not SoT. Dest tokens allow `contents: write` only. Merge-queue re-reads closers. Closes #4494.
 - **Phase 7 waits until all four npm siblings list the cut version (#4267).** `task release:wait-npm -- <version>` polls `npm view <pkg> versions` (prefer-online, doctor temp-cwd isolation) for 10 minutes with a real sleep. Partial visibility is still-propagating (wait before install); none after the wait is publish-incomplete. Report-only: does not fail the GitHub release and does not run `npm i -g`. `task release` Step 13 stays a single probe. Does not fold the CI two-pass fixture (#4398). Closes #4267.
 
+
 ### Changed
 
 - **Design-critique Handoff prints on same-P* relieves Recut-supersedes (#4554).** Unrelieved print stays. First relieves and relieves-after-does-not-relieve stay print-false. Class tokens are not a print input. Does not reopen #4531. Closes #4554.
@@ -41,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Intent-constraint mint selection and site identity (#4541).** Multiple merge-base mints no longer take record `[0]`. Each mint row covers at most one new numeric-const of that value and at most one new rejection site. Throw/reject/abort ids use compact statement text, not source offsets. Closes #4541.
 - **Requirements posture transport, nested instruction deny, and symlink class (#4444).** `session:start --posture=requirements` writes gitignored `.deft/session-posture.json` so PreToolUse sees the trusted producer when hook env cannot inherit DEFT_SESSION_POSTURE. Nested AGENTS.md/main.md/SKILL.md deny. In-tree symlink components on docs/specs paths refuse write-requirements-ready. Persisted posture is bound to the occupancy owner. Read-only start does not delete another occupant file. Mutation start (cold and re-arm) clears that file only after mutation ritual is ready (exit 0). A failed overlay clear refuses ready. Persist-fail on a new requirements claim releases the lease. Occupancy engine stays on #4445. Refs #4444.
 - **One sourced `tool_turn_denominator` per session_id (#3928).** session:start emits the only line, always with `denominator_source`. Check-time and ceremony-dial no longer emit this kind. A second write for the same session_id is a no-op. The #3362 fixture asserts cardinality and matching ritual share. Closes #3928. Refs #3362, #3399, #3356, #3320.
 - **Grok implement dest-cwd spawn-not-ready leads with dest unique-active recovery, not critic CLI (#4542).** Critic-class and dest-absent grok argv keep the critic lead. Closes #4542.

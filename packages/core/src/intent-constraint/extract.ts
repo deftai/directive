@@ -135,6 +135,10 @@ function calleeName(node: TS.CallExpression, ts: TSModule): string {
   return "";
 }
 
+function compactSource(node: TS.Node): string {
+  return node.getText().replace(/\s+/g, " ").trim();
+}
+
 function visit(node: TS.Node, ts: TSModule, facts: ConstraintFact[]): void {
   if (
     ts.isVariableDeclaration(node) &&
@@ -148,14 +152,14 @@ function visit(node: TS.Node, ts: TSModule, facts: ConstraintFact[]): void {
     }
   }
   if (ts.isThrowStatement(node)) {
-    pushFact(facts, fact("throw-site", `throw-site:${String(node.getStart())}`));
+    pushFact(facts, fact("throw-site", `throw-site:${compactSource(node)}`));
   }
   if (ts.isCallExpression(node)) {
     const name = calleeName(node, ts);
     if (name === "reject") {
-      pushFact(facts, fact("reject-site", `reject-site:${String(node.getStart())}`));
+      pushFact(facts, fact("reject-site", `reject-site:${compactSource(node)}`));
     } else if (name === "abort") {
-      pushFact(facts, fact("abort-site", `abort-site:${String(node.getStart())}`));
+      pushFact(facts, fact("abort-site", `abort-site:${compactSource(node)}`));
     }
   }
   ts.forEachChild(node, (child) => visit(child, ts, facts));

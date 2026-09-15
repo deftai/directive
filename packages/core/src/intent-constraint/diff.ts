@@ -1,5 +1,10 @@
 /**
  * Diff HEAD facts against merge-base facts (#4541).
+ *
+ * Matching policy (#3452): a mint row is one (value, unit, rejectionScope)
+ * approval. Numeric-const matches value 1:1. Throw/reject/abort matches a
+ * nonempty rejectionScope 1:1. Unit is human-authored on the mint; source
+ * literals have no unit. Path is not a mint field this ship.
  */
 import type { ConstraintFact, MintConstraint, SurfaceSnapshot } from "./types.js";
 
@@ -32,12 +37,29 @@ export function uncoveredDeltas(
   deltas: readonly FactDelta[],
   constraints: readonly MintConstraint[],
 ): FactDelta[] {
-  return deltas.filter((delta) => {
+  const slots = constraints.map((c) => ({
+    value: c.value,
+    unit: c.unit,
+    rejectionScope: c.rejectionScope,
+    numericUsed: false,
+    rejectionUsed: false,
+  }));
+  const leftover: FactDelta[] = [];
+  for (const delta of deltas) {
     if (delta.fact.kind === "numeric-const") {
       const value = delta.fact.value;
-      if (value === undefined || value.length === 0) return true;
-      return !constraints.some((c) => c.value === value);
+      if (value === undefined || value.length === 0) {
+        leftover.push(delta);
+        continue;
+      }
+      const slot = slots.find((c) => !c.numericUsed && c.value === value && c.unit.length > 0);
+      if (slot === undefined) leftover.push(delta);
+      else slot.numericUsed = true;
+      continue;
     }
-    return !constraints.some((c) => c.rejectionScope.length > 0);
-  });
+    const slot = slots.find((c) => !c.rejectionUsed && c.rejectionScope.length > 0);
+    if (slot === undefined) leftover.push(delta);
+    else slot.rejectionUsed = true;
+  }
+  return leftover;
 }

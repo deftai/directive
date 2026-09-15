@@ -20,6 +20,12 @@ function values(source: string, path = "src/ingest.ts"): string[] {
   return result.facts.filter((f) => f.kind === "numeric-const").map((f) => f.value ?? "");
 }
 
+function ids(source: string, path = "src/ingest.ts"): string[] {
+  const result = extractConstraintFacts(source, path, { projectRoot: root });
+  if (!result.ok) return [];
+  return result.facts.map((f) => f.id);
+}
+
 describe("intent-constraint extract (#4541)", () => {
   it("recognizes production .ts/.js and excludes tests", () => {
     expect(isProductionSourcePath("src/ingest.ts")).toBe(true);
@@ -186,6 +192,25 @@ export function go(x: number, abort: () => void): void {
     const surface = extractSurface("src/ingest.ts", src, { projectRoot: root });
     expect(surface.ok).toBe(true);
   });
+  it("keeps throw/reject/abort ids stable when unrelated text is inserted", () => {
+    const src = `
+const MAX_ITEM_BYTES = 1024;
+export function publish(input: { size: number }[]): void {
+  for (const item of input) {
+    if (item.size > MAX_ITEM_BYTES) {
+      throw new Error("item exceeds limit");
+    }
+  }
+}
+`;
+    const prefixed = `const BANNER = "unrelated";\n${src}`;
+    const before = ids(src).filter((id) => id.startsWith("throw-site:"));
+    const after = ids(prefixed).filter((id) => id.startsWith("throw-site:"));
+    expect(before).toEqual(after);
+    expect(before[0]).toMatch(/throw-site:throw /);
+    expect(before[0]).not.toMatch(/^throw-site:\d+$/);
+  });
+
   it("extracts numeric-const plus throw from production .js", () => {
     const src = `
 const MAX = 1024;

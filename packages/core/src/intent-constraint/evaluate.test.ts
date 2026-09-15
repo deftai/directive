@@ -45,6 +45,7 @@ function files(head: string, extras?: { changedFiles?: string[] }) {
   return {
     projectRoot: process.cwd(),
     mergeBase: "base",
+    planId: "story-1",
     changedFiles: extras?.changedFiles ?? ["src/ingest.ts"],
     recordTextsAtBase: new Map([
       [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
@@ -152,6 +153,52 @@ export function publish(input: { size: number }[]): void {
     });
     expect(result.code).toBe(1);
     expect(result.message).toMatch(/no merge-base mint record/);
+  });
+
+  it("uses the matching plan mint, not record order", () => {
+    const other = buildIntentConstraintRecord({
+      planId: "other-story",
+      xbriefRelPath: "xbrief/active/other.xbrief.json",
+      constraints: [{ value: "1", unit: "bytes", rejectionScope: "item" }],
+      humanApproval: human,
+    });
+    if ("error" in other) throw new Error(other.error);
+    const result = evaluateIntentConstraint({
+      ...files(POSTED),
+      planId: "story-1",
+      recordTextsAtBase: new Map([
+        [".deft/intent-constraint/other-story.json", `${JSON.stringify(other, null, 2)}\n`],
+        [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
+      ]),
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("config-fails multiple merge-base mints without a plan id", () => {
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    try {
+      const other = buildIntentConstraintRecord({
+        planId: "other-story",
+        xbriefRelPath: "xbrief/active/other.xbrief.json",
+        constraints: [{ value: "1024", unit: "bytes", rejectionScope: "invocation" }],
+        humanApproval: human,
+      });
+      if ("error" in other) throw new Error(other.error);
+      const result = evaluateIntentConstraint({
+        ...files(POSTED),
+        planId: undefined,
+        recordTextsAtBase: new Map([
+          [".deft/intent-constraint/other-story.json", `${JSON.stringify(other, null, 2)}\n`],
+          [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
+        ]),
+      });
+      expect(result.code).toBe(2);
+      expect(result.message).toMatch(/multiple merge-base mint records/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
   });
 
   it("passes quiet with no new facts", () => {
