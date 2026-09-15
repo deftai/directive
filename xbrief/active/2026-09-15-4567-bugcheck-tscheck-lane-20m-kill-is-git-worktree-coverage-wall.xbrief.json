@@ -1,0 +1,141 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4567",
+    "updated": "2026-09-15T18:12:12Z"
+  },
+  "plan": {
+    "title": "bug(check): ts:check-lane 20m kill is git-worktree coverage wall clock, not a stuck test",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(check): ts:check-lane 20m kill is git-worktree coverage wall clock, not a stuck test",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4567",
+      "Overview": "## Parent\n\n`task check` / `ts:check-lane` / `task release` Step 5. `docs/RELEASING.md` § Vitest coverage hang.\n\n## What to build\n\n`vitest run --coverage` on the full `packages/*/src/**/*.test.ts` include (~1200 files, 8 workers) does not finish inside the **20-minute** `ts:check-lane` hard timeout. The process is **slow**, not stuck: git-worktree fixtures take 5–11s per `it` under coverage. Two files alone:\n\n- `packages/core/src/hooks/dispatcher-effective-root.test.ts` — 34 passed, **249s**\n- `packages/core/src/hooks/dispatcher-spawn-dest.test.ts` — passed, **182s**\n\nTogether they already exceed a 5-minute cap. The 20% file-progress reporter never ticks, so release logs look like a hang with **no failing test name**.\n\nFirst ship (pick one or compose):\n\n1. Raise the `ts:check-lane` / Step 5 wall clock so the full `--coverage` suite can finish on Windows.\n2. Shard or serialize git-worktree-heavy files (`dispatcher-effective-root`, `dispatcher-spawn-dest`, `session-start`, `init-deposit/refresh`, `hygiene`, occupancy) so 8 workers do not all `git worktree add` at once.\n3. Cheapen fixtures (reuse one worktree; stop `Preparing worktree` per `it`).\n4. Print progress more often than every 20% of **files** so a timeout names the last file.\n\nDo not `--skip-ci` as the product fix. Do not recut product assertions in those files to go green.\n\n## Pain\n\npain:\n- `task release` Step 5 kills `ts:check-lane` at 20 minutes (exit 124) with no test name. v0.119.0 dry-run and e2e passed; production cut failed twice here (2026-09-15).\n- Batch hunt: files 1–400 finish in ~2 minutes per 100. Files 401–500 miss a 5-minute cap. Isolated, `dispatcher-effective-root.test.ts` is 249s and `dispatcher-spawn-dest.test.ts` is 182s under `--coverage`.\n- 8 workers contend on `git worktree add` (`Preparing worktree (detached HEAD …)` between `✓` lines) instead of dividing wall clock by 8.\n- Progress reporter ticks every 20% of files; the suite never reaches 20% of ~1218 files in 20 minutes, so operators cannot see where it died.\n\n## Evidence\n\n- Production `task release -- 0.119.0` 2026-09-15: Step 5 `ts:check-lane` exit 124 after 20 minutes. Fast preflight (`verify:ac`) passed. Tag not pushed.\n- Isolated runs: `vitest run --coverage --reporter=verbose --maxWorkers=8` on those two files, EXIT 0, 249s and 182s.\n- 5-file slice of dispatcher occupancy tests: TIMEOUT 300s while still printing `✓`. Same files one-at-a-time: PASS.\n- Logs under `%TEMP%\\vitest-batch-5*.log`, `vitest-file-effective-root.log`, `vitest-file-spawn-dest.log`.\n\n## Out\n\n- [#4564](https://github.com/deftai/directive/issues/4564) install-upgrade 20s coverage timeout (#2064). Different: named fail, 20s, not 20 minutes.\n- `greenfield-pin-clone.harness.test.ts` 20s coverage timeout (#4429). Same class as #4564, not this hang.\n- `hooks/scope.test.ts` / `hook-host-identity-lifetime` `scope-not-ready` (ambient `DEFT_ACTIVE_SCOPE` / spawn-pin). Reproduce with `env: {}` first.\n- `--skip-ci` as the long-term close. Incident bypass only, with `--allow-skip-ci` on this issue.\n\n## Related\n\n`docs/RELEASING.md` vitest coverage hang. #2546 vitest RPC. #4564.\n\n## Documentation impact\n\nchange_class: none\nsurfaces: none\nrationale: \"Issue filing only; no command, skill, or docs-site change until a later PR.\"\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-15T18:06:57Z)\n\n## Operator constraint (pre-arc)\n\nDo not raise the `ts:check-lane` / release Step 5 20-minute wall clock except as the last possibility, after cheaper options are tried and a measured remaining gap still exists.\n\nThat timeout is hang detection (#2652 / #4230), not a success SLA. Stretching it so a slow `--coverage` suite fits is a #3156 gate-integrity miss (editing the hang detector to go green). `--skip-ci` is already out as a product close. Do not recut product assertions in the named files to go green.\n\nThis is operator direction for a later design-critique arc. Not ingest. Not a synthesis bind.\n\n\n### Comment by @MScottAdams (2026-09-15T18:07:05Z)\n\n## Options discussion (pre-arc)\n\nRelease Step 5 kills `ts:check-lane` at 20 minutes (exit 124) with no test name. The process is slow, not stuck. Isolated under `--coverage --maxWorkers=8`:\n\n- `packages/core/src/hooks/dispatcher-effective-root.test.ts` -- 34 passed, 249s\n- `packages/core/src/hooks/dispatcher-spawn-dest.test.ts` -- passed, 182s\n\nThose two files already exceed a 5-minute cap. The #3470 reporter ticks every 20% of files, so the suite never prints a tick before the kill. A 5-file dispatcher slice times out at 300s while still printing pass lines; the same files pass one-at-a-time. That is git-worktree lock contention, not a hung test.\n\n`--skip-ci` is not the product fix. Recutting assertions in those files is not the product fix.\n\n### Body option 1 -- raise the 20-minute wall clock\n\nLast possibility only. Operator lock is in the preceding comment. The 20-minute budget is hang detection, not a success SLA (`docs/RELEASING.md` section Vitest coverage hang; #2652 / #4230). Do not lead with this. Consider it only after cheaper options are in and a measured Windows `--coverage` wall clock still misses 20 minutes.\n\n### Body option 2 -- shard or serialize git-worktree-heavy files\n\nHalf-right about contention, wrong as a global serialize. `vitest.config.ts` already forbids lowering `maxWorkers` or re-serializing the whole suite (#3480 / #3616): Windows spawn throughput is roughly flat with concurrency, so capping cores just makes the rest of the suite slower.\n\nThe valid form of this option is surgical: put the worktree-heavy files in their own vitest project and limit concurrency there only. The config comment already names that next step (partition spawn-heavy suites; 71 of 1028 files held 79% of earlier failures). Candidate families from the issue: `dispatcher-effective-root`, `dispatcher-spawn-dest`, `session-start`, init-deposit/refresh, hygiene, occupancy.\n\nDo not globally serialize. Partition only if cheapening fixtures is not enough in one PR.\n\n### Body option 3 -- cheapen fixtures (reuse worktrees; stop `Preparing worktree` per `it`)\n\nThis is the product fix and should go first. It also matches #975 (do not leave 5-11s git-shell tests in the default lane).\n\nThose two files rebuild a git repo and `git worktree add` on almost every `it`:\n\n- Effective-root: `linkedFixture()` about 22 times (init + two worktrees + a foreign repo) and `nestedWorktreeFixture()` about 11 times\n- Spawn-dest: `destFixture()` about 27 times (init + one worktree)\n\nUnder coverage that is 5-11s of `Preparing worktree` per case. Most of those tests only need topology (primary vs linked vs nested vs foreign). Occupancy writes can be reset without tearing the worktree down. Several admission cases already inject a fake git runner and never need a real tree.\n\nOne shared `beforeAll` fixture per describe (or two: linked + nested) should take those files from minutes to seconds without touching `maxWorkers`. Tests that mutate git state keep a private tree; the rest share.\n\nApply the same pattern to the other named families if they are the same shape.\n\n### Body option 4 -- print progress more often than every 20% of files\n\nCompanion, not the fix. It does not buy wall clock. It does make the next exit 124 diagnosable.\n\nToday the reporter emits `ts:check-lane 20% (N/M files)` and nothing before the first band, so a 20-minute kill names no file. A last-completed-file heartbeat (time-based, or every N files) would have made this a one-line log instead of a batch hunt. Ship with the fixture cheapening if cheap.\n\n### Recommended first ship\n\nCheapen fixtures in the two measured files, then the other named families if they match. Add a last-file progress tick so a timeout names something. Partition worktree-heavy files into their own vitest project only if that still misses 20 minutes on Windows coverage. Raise the hang-detector wall clock only after that measurement exists.\n\nThis is discussion for a later design-critique arc. Not ingest. Not a synthesis bind.",
+      "Labels": "bug, urgent"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4567",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4567: bug(check): ts:check-lane 20m kill is git-worktree coverage wall clock, not a stuck test"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "vitest run --coverage",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "task release",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L28"
+        },
+        {
+          "command": "task release -- 0.119.0",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L35"
+        },
+        {
+          "command": "vitest run --coverage --reporter=verbose --maxWorkers=8",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L36"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5465346387,
+        "origin": "deftai/directive#4567",
+        "id": "github.issue.5465346387"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`packages/core/src/hooks/dispatcher-effective-root.test.ts` — 34 passed, 249s",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`packages/core/src/hooks/dispatcher-spawn-dest.test.ts` — passed, 182s",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Shard or serialize git-worktree-heavy files (`dispatcher-effective-root`, `dispatcher-spawn-dest`, `session-start`, `init-deposit/refresh`, `hygiene`, occupancy) so 8 workers do not all `git worktree add` at once.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Batch hunt: files 1–400 finish in ~2 minutes per 100. Files 401–500 miss a 5-minute cap. Isolated, `dispatcher-effective-root.test.ts` is 249s and `dispatcher-spawn-dest.test.ts` is 182s under `--coverage`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Logs under `%TEMP%\\vitest-batch-5*.log`, `vitest-file-effective-root.log`, `vitest-file-spawn-dest.log`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`greenfield-pin-clone.harness.test.ts` 20s coverage timeout (#4429). Same class as #4564, not this hang.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`hooks/scope.test.ts` / `hook-host-identity-lifetime` `scope-not-ready` (ambient `DEFT_ACTIVE_SCOPE` / spawn-pin). Reproduce with `env: {}` first.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`packages/core/src/hooks/dispatcher-effective-root.test.ts` -- 34 passed, 249s",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "`packages/core/src/hooks/dispatcher-spawn-dest.test.ts` -- passed, 182s",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5465346387",
+    "updated": "2026-09-15T18:12:12Z"
+  }
+}

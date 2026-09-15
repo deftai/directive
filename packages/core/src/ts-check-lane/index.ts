@@ -1,13 +1,18 @@
 export type {
+  LastFileTick,
   ProgressLineSink,
   ProgressTick,
   WriteFlushedLineOptions,
 } from "./progress.js";
 export {
   buildTestLaneCommand,
+  formatLastFileLine,
   formatProgressLine,
+  nextLastFileTick,
   nextProgressTick,
   PROGRESS_BAND_PERCENT,
+  PROGRESS_FILE_HEARTBEAT_EVERY,
+  PROGRESS_FILE_HEARTBEAT_MS,
   PROGRESS_REPORTER_RELATIVE_PATH,
   PROGRESS_UNIT,
   resolveTestLaneCommand,

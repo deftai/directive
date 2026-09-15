@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { defaultGitRunner } from "../session/git.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
@@ -13,9 +13,41 @@ import {
 } from "./index.js";
 import { isInRepoShellWritePath } from "./shell-write-targets.js";
 
-const temps: string[] = [];
+const ephemeralTemps: string[] = [];
+const sharedTemps: string[] = [];
+
+type LinkedFixture = { primary: string; wtA: string; wtB: string; foreign: string };
+type NestedFixture = { primary: string; nested: string };
+
+let sharedLinked: LinkedFixture | null = null;
+let sharedNested: NestedFixture | null = null;
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+  rmSync(join(root, ".deft-directive-disable"), { force: true });
+}
+
+function resetSharedFixtures(): void {
+  if (sharedLinked !== null) {
+    resetLeaseFiles(sharedLinked.primary);
+    resetLeaseFiles(sharedLinked.wtA);
+    resetLeaseFiles(sharedLinked.wtB);
+    resetLeaseFiles(sharedLinked.foreign);
+  }
+  if (sharedNested !== null) {
+    resetLeaseFiles(sharedNested.primary);
+    resetLeaseFiles(sharedNested.nested);
+  }
+}
+
 afterEach(() => {
-  for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+  resetSharedFixtures();
+  for (const t of ephemeralTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
 
 const READY_RITUAL = {
@@ -47,9 +79,9 @@ function initRepo(dir: string): void {
   git(dir, ["commit", "--allow-empty", "-q", "-m", "base"]);
 }
 
-function linkedFixture(): { primary: string; wtA: string; wtB: string; foreign: string } {
+function buildLinkedFixture(): LinkedFixture {
   const base = mkdtempSync(join(tmpdir(), "hook-3794-"));
-  temps.push(base);
+  sharedTemps.push(base);
   const primary = join(base, "primary");
   const wtA = join(base, "wt-a");
   const wtB = join(base, "wt-b");
@@ -61,14 +93,19 @@ function linkedFixture(): { primary: string; wtA: string; wtB: string; foreign: 
   return { primary, wtA, wtB, foreign };
 }
 
+function linkedFixture(): LinkedFixture {
+  if (sharedLinked === null) sharedLinked = buildLinkedFixture();
+  return sharedLinked;
+}
+
 /**
  * The swarm layout: a linked worktree under `<primary>/.deft-scratch/worktrees/`.
  * Relative to the primary every file in it reads as an assist-scratch path, and
  * it is inside the payload root so the #2885 outside-root skip does not apply.
  */
-function nestedWorktreeFixture(): { primary: string; nested: string } {
+function buildNestedFixture(): NestedFixture {
   const base = mkdtempSync(join(tmpdir(), "hook-3794-nested-"));
-  temps.push(base);
+  sharedTemps.push(base);
   const primary = join(base, "primary");
   initRepo(primary);
   const nested = join(primary, ".deft-scratch", "worktrees", "story");
@@ -76,6 +113,16 @@ function nestedWorktreeFixture(): { primary: string; nested: string } {
   git(primary, ["worktree", "add", "--detach", "-q", nested]);
   return { primary, nested };
 }
+
+function nestedWorktreeFixture(): NestedFixture {
+  if (sharedNested === null) sharedNested = buildNestedFixture();
+  return sharedNested;
+}
+
+beforeAll(() => {
+  linkedFixture();
+  nestedWorktreeFixture();
+});
 
 /** Ready only for `readyRoot`; every other tree reports no active scope. */
 function scopeSeams(readyRoot: string | null): {
@@ -154,7 +201,7 @@ describe("effectiveRoot admission (#3794)", () => {
   it("falls back when payloadRoot is not a Git repository, so containment never applied", () => {
     const payload = resolve("/tmp/payload-root");
     const root = mkdtempSync(join(tmpdir(), "hook-3794-common-fail-"));
-    temps.push(root);
+    ephemeralTemps.push(root);
     const admission = admitEffectiveHookRoot(payload, join(root, "src", "a.ts"), (_cwd, args) => {
       if (args.includes("--show-toplevel")) {
         return { code: 0, stdout: "/tmp/other-repo", stderr: "" };
@@ -171,7 +218,7 @@ describe("effectiveRoot admission (#3794)", () => {
   it("fails closed when payloadRoot is a repository but target identity is unreadable", () => {
     const { primary } = linkedFixture();
     const other = mkdtempSync(join(tmpdir(), "hook-3794-unproven-"));
-    temps.push(other);
+    ephemeralTemps.push(other);
     const admission = admitEffectiveHookRoot(primary, join(other, "src", "a.ts"), (cwd, args) => {
       if (args.includes("--show-toplevel")) {
         return { code: 0, stdout: other, stderr: "" };
@@ -691,7 +738,7 @@ describe("story file_scope relativises against the write target worktree (#3794 
 /** A directory inside no Git working tree, for the no-toplevel fallback (#4013). */
 function outsideDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "hook-4013-outside-"));
-  temps.push(dir);
+  ephemeralTemps.push(dir);
   return dir;
 }
 

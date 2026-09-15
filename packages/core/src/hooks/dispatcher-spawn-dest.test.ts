@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
   GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
@@ -21,9 +21,27 @@ import {
 } from "./index.js";
 import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
-const temps: string[] = [];
+const ephemeralTemps: string[] = [];
+const sharedTemps: string[] = [];
+
+let sharedDest: { root: string; dest: string } | null = null;
+
+function resetDestState(root: string, dest: string): void {
+  for (const tree of [root, dest]) {
+    rmSync(join(tree, ".deft", "occupancy.json"), { force: true });
+    rmSync(join(tree, ".deft", "child-occupancy"), { recursive: true, force: true });
+    rmSync(join(tree, ".deft", "spawn-reservations"), { recursive: true, force: true });
+    rmSync(join(tree, "xbrief"), { recursive: true, force: true });
+  }
+}
+
 afterEach(() => {
-  for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+  if (sharedDest !== null) resetDestState(sharedDest.root, sharedDest.dest);
+  for (const t of ephemeralTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
 
 const READY_RITUAL = {
@@ -67,13 +85,20 @@ function addLinkedWorktree(root: string, dest: string): void {
 }
 
 function destFixture(): { root: string; dest: string } {
-  const root = mkdtempSync(join(tmpdir(), "spawn-dest-"));
-  temps.push(root);
-  gitInit(root);
-  const dest = join(root, "wt");
-  addLinkedWorktree(root, dest);
-  return { root, dest };
+  if (sharedDest === null) {
+    const root = mkdtempSync(join(tmpdir(), "spawn-dest-"));
+    sharedTemps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    sharedDest = { root, dest };
+  }
+  return sharedDest;
 }
+
+beforeAll(() => {
+  destFixture();
+});
 
 function countOccurrences(haystack: string, needle: string): number {
   if (needle.length === 0) return 0;
@@ -183,6 +208,7 @@ describe("dest-proven implement spawn (#4215)", () => {
     const counts = [0, 1, 2] as const;
     for (const leftover of counts) {
       const { root, dest } = destFixture();
+      resetDestState(root, dest);
       for (let i = 0; i < leftover; i += 1) {
         writeRunning(root, `story-${i}.xbrief.json`, [`packages/${i}/**`]);
       }

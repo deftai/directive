@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ts:check-lane coverage wall is git-worktree fixture cost (#4567).** Share linked/nested dest fixtures instead of `git worktree add` per `it` in the two measured dispatcher files. Last-completed-file progress tick so a 20-minute kill names a file. Does not raise the hang-detector wall clock. Closes #4567.
+
 ### Removed
 
 ## [0.119.0] - 2026-09-15

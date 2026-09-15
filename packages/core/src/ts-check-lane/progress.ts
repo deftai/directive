@@ -15,6 +15,12 @@ export const PROGRESS_REPORTER_RELATIVE_PATH =
 /** One line every 20% of known files -- coarse enough for a log snapshot. */
 export const PROGRESS_BAND_PERCENT = 20;
 
+/** Last-completed-file heartbeat count (#4567). Complements 20% bands. */
+export const PROGRESS_FILE_HEARTBEAT_EVERY = 10;
+
+/** Last-completed-file heartbeat wall clock, milliseconds (#4567). */
+export const PROGRESS_FILE_HEARTBEAT_MS = 30_000;
+
 export const PROGRESS_UNIT = "files";
 
 export interface ProgressTick {
@@ -54,6 +60,45 @@ export function nextProgressTick(
 
 export function formatProgressLine(tick: ProgressTick, unit: string = PROGRESS_UNIT): string {
   return `ts:check-lane ${tick.percent}% (${tick.completed}/${tick.total} ${unit})`;
+}
+
+export interface LastFileTick {
+  readonly completed: number;
+  readonly total: number;
+  readonly lastFile: string;
+}
+
+export function formatLastFileLine(tick: LastFileTick, unit: string = PROGRESS_UNIT): string {
+  return `ts:check-lane last-file ${tick.lastFile} (${tick.completed}/${tick.total} ${unit})`;
+}
+
+export function nextLastFileTick(
+  completed: number,
+  total: number,
+  lastFile: string,
+  lastHeartbeatCompleted: number,
+  lastHeartbeatAtMs: number,
+  nowMs: number,
+  everyN: number = PROGRESS_FILE_HEARTBEAT_EVERY,
+  heartbeatMs: number = PROGRESS_FILE_HEARTBEAT_MS,
+): LastFileTick | null {
+  if (
+    !Number.isFinite(completed) ||
+    !Number.isFinite(total) ||
+    !Number.isFinite(lastHeartbeatCompleted) ||
+    !Number.isFinite(lastHeartbeatAtMs) ||
+    !Number.isFinite(nowMs)
+  ) {
+    return null;
+  }
+  if (completed <= 0 || lastFile.length === 0 || everyN <= 0 || heartbeatMs <= 0) {
+    return null;
+  }
+  const dueByCount =
+    lastHeartbeatCompleted === 0 ? completed >= 1 : completed - lastHeartbeatCompleted >= everyN;
+  const dueByTime = nowMs - lastHeartbeatAtMs >= heartbeatMs;
+  if (!dueByCount && !dueByTime) return null;
+  return { completed, total, lastFile };
 }
 
 export interface WriteFlushedLineOptions {

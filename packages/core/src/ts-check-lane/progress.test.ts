@@ -4,9 +4,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PROGRESS_BAND_PERCENT as EXPORTED_BAND } from "./index.js";
 import {
+  formatLastFileLine,
   formatProgressLine,
+  nextLastFileTick,
   nextProgressTick,
   PROGRESS_BAND_PERCENT,
+  PROGRESS_FILE_HEARTBEAT_EVERY,
+  PROGRESS_FILE_HEARTBEAT_MS,
   PROGRESS_REPORTER_RELATIVE_PATH,
   resolveTestLaneCommand,
   writeFlushedLine,
@@ -119,5 +123,49 @@ describe("formatProgressLine / writeFlushedLine", () => {
     }
     expect(readFileSync(path, "utf8")).toBe("already-terminated\n");
     unlinkSync(path);
+  });
+});
+
+describe("nextLastFileTick", () => {
+  it("emits the first completed file immediately", () => {
+    expect(nextLastFileTick(1, 1218, "a.test.ts", 0, 0, 1_000)).toEqual({
+      completed: 1,
+      total: 1218,
+      lastFile: "a.test.ts",
+    });
+    expect(formatLastFileLine({ completed: 1, total: 1218, lastFile: "a.test.ts" })).toBe(
+      "ts:check-lane last-file a.test.ts (1/1218 files)",
+    );
+  });
+
+  it("stays silent inside the count and time windows", () => {
+    expect(nextLastFileTick(5, 1218, "b.test.ts", 1, 1_000, 10_000, 10, 30_000)).toBeNull();
+  });
+
+  it("emits every N files after the first tick", () => {
+    expect(nextLastFileTick(11, 1218, "c.test.ts", 1, 1_000, 2_000, 10, 30_000)).toEqual({
+      completed: 11,
+      total: 1218,
+      lastFile: "c.test.ts",
+    });
+  });
+
+  it("emits when the heartbeat clock elapses", () => {
+    expect(nextLastFileTick(2, 1218, "d.test.ts", 1, 1_000, 31_000, 10, 30_000)).toEqual({
+      completed: 2,
+      total: 1218,
+      lastFile: "d.test.ts",
+    });
+  });
+
+  it("skips empty paths and non-finite counters", () => {
+    expect(nextLastFileTick(1, 10, "", 0, 0, 1)).toBeNull();
+    expect(nextLastFileTick(Number.NaN, 10, "a.ts", 0, 0, 1)).toBeNull();
+    expect(nextLastFileTick(1, 10, "a.ts", 0, 0, 1, 0, 30_000)).toBeNull();
+  });
+
+  it("keeps exported heartbeat defaults", () => {
+    expect(PROGRESS_FILE_HEARTBEAT_EVERY).toBe(10);
+    expect(PROGRESS_FILE_HEARTBEAT_MS).toBe(30_000);
   });
 });

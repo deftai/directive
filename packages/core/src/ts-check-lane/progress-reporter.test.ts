@@ -46,4 +46,39 @@ describe("TsCheckLaneProgressReporter", () => {
     reporter.onTestModuleEnd();
     expect(writes).toEqual([]);
   });
+
+  it("emits a last-completed-file heartbeat before the 20% band (#4567)", () => {
+    const writes: string[] = [];
+    const reporter = new TsCheckLaneProgressReporter({
+      write: (chunk: string) => {
+        writes.push(chunk);
+      },
+    });
+    reporter.onTestRunStart(Array.from({ length: 1218 }, () => ({})));
+    reporter.onTestModuleEnd({ moduleId: "packages/core/src/hooks/a.test.ts" });
+    expect(writes).toEqual([
+      "ts:check-lane last-file packages/core/src/hooks/a.test.ts (1/1218 files)\n",
+    ]);
+  });
+
+  it("emits a time-based last-file tick before 20% of files (#4567)", () => {
+    const writes: string[] = [];
+    let now = 1_000;
+    const reporter = new TsCheckLaneProgressReporter(
+      {
+        write: (chunk: string) => {
+          writes.push(chunk);
+        },
+      },
+      { now: () => now, everyN: 10, heartbeatMs: 30_000 },
+    );
+    reporter.onTestRunStart(Array.from({ length: 1218 }, () => ({})));
+    reporter.onTestModuleEnd({ moduleId: "one.test.ts" });
+    now = 32_000;
+    reporter.onTestModuleEnd({ moduleId: "two.test.ts" });
+    expect(writes).toEqual([
+      "ts:check-lane last-file one.test.ts (1/1218 files)\n",
+      "ts:check-lane last-file two.test.ts (2/1218 files)\n",
+    ]);
+  });
 });
