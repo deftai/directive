@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4506",
-    "updated": "2026-09-15T18:08:16Z"
+    "updated": "2026-09-15T19:28:24Z"
   },
   "plan": {
     "title": "bug(check,release): DEFT_ACTIVE_SCOPE leaks into ts:check-lane and misnames Step 5 cause",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "Add ACTIVE_SCOPE_PIN_ENV to TS_LANE_POISON_ENV_KEYS.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/run-lane.test.ts",
+          "recorded_at": "2026-09-15T19:28:24Z",
+          "recorded_by": "01a0a685-5449-7fa0-a504-1d126295f390"
+        }
       },
       {
         "title": "omitted-env inspectActiveScope test calls pass { env: {} } or their own bag.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-09-15T19:28:24Z",
+          "recorded_by": "01a0a685-5449-7fa0-a504-1d126295f390"
+        }
       },
       {
         "title": "directiveFreeChildEnv deletes ACTIVE_SCOPE_PIN_ENV.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/hook-host-identity-lifetime.test.ts",
+          "recorded_at": "2026-09-15T19:28:24Z",
+          "recorded_by": "01a0a685-5449-7fa0-a504-1d126295f390"
+        }
       },
       {
         "title": "Do not make omitted-env production inspect fall through on an ineligible pin.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-09-15T19:28:24Z",
+          "recorded_by": "01a0a685-5449-7fa0-a504-1d126295f390"
+        }
       },
       {
         "title": "extractGateCause prefers, when present, ^Tests\\s+\\d+\\s+failed; else ^FAIL\\s+\\S+\\.(test|spec)\\. (FAIL plus whitespace, not FAIL:). Do not treat a colon FAIL: path print as vitest-shaped. Extra-coverage --quiet stays optional. Do not recut D7 filenames.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.test.ts",
+          "recorded_at": "2026-09-15T19:28:24Z",
+          "recorded_by": "01a0a685-5449-7fa0-a504-1d126295f390"
+        }
       },
       {
         "title": "Do not sweep DEFT_* or strip occupancy / DEFT_SESSION_ID from session:start. Do not add dest-spawn to this close.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/run-lane.test.ts",
+          "recorded_at": "2026-09-15T19:28:24Z",
+          "recorded_by": "01a0a685-5449-7fa0-a504-1d126295f390"
+        }
       }
     ],
     "tags": [
@@ -130,6 +166,6 @@
       }
     },
     "id": "github.issue.5449055851",
-    "updated": "2026-09-15T18:08:16Z"
+    "updated": "2026-09-15T19:28:24Z"
   }
 }
