@@ -4,6 +4,10 @@
  * Merge-base snapshot of throw/reject/abort sites and new numeric consts in
  * changed production .ts/.js. Authority is git show merge-base only.
  * Tests and in-scope paths are not authority. P2 is not first-ship.
+ *
+ * Mint selection: --plan-id, DEFT_ACTIVE_SCOPE, or dest unique running xBRIEF.
+ * Multiple merge-base mints without that pin fail closed. Do not take
+ * records[0] by ls-tree/Map order.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -153,6 +157,15 @@ type PlanIdResolution =
   | { readonly kind: "invalid-pin" }
   | { readonly kind: "none" };
 
+function soleRecord<T>(records: readonly T[]): T | undefined {
+  let found: T | undefined;
+  for (const rec of records) {
+    if (found !== undefined) return undefined;
+    found = rec;
+  }
+  return found;
+}
+
 function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined): PlanIdResolution {
   if (explicit !== undefined && explicit.length > 0) return { kind: "id", id: explicit };
   const pin = process.env.DEFT_ACTIVE_SCOPE;
@@ -167,11 +180,8 @@ function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined)
     }
     return { kind: "invalid-pin" };
   }
-  const running = listRunningPlanIds(projectRoot);
-  if (running.length === 1) {
-    const only = running[0];
-    if (only !== undefined) return { kind: "id", id: only };
-  }
+  const only = soleRecord(listRunningPlanIds(projectRoot));
+  if (only !== undefined) return { kind: "id", id: only };
   return { kind: "none" };
 }
 
@@ -307,6 +317,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     parsedRecords.push(parsed);
   }
 
+  const running = listRunningPlanIds(projectRoot);
   const resolved = resolveCurrentPlanId(projectRoot, options.planId);
   if (resolved.kind === "invalid-pin") {
     return config(
@@ -314,24 +325,24 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     );
   }
   const planId = resolved.kind === "id" ? resolved.id : undefined;
-  let selected = parsedRecords;
+  let candidates = parsedRecords;
   if (planId !== undefined && planId.length > 0) {
-    selected = parsedRecords.filter((r) => r.planId === planId);
-    if (selected.length === 0) {
+    candidates = parsedRecords.filter((r) => r.planId === planId);
+    if (candidates.length === 0) {
       return fail(`verify:intent-constraint: no merge-base mint record for planId ${planId}.`);
     }
-  } else if (parsedRecords.length > 1) {
+  } else if (parsedRecords.length > 1 || running.length > 1) {
     return config(
-      "multiple merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
+      "multiple running stories or merge-base mint records; pass --plan-id or pin DEFT_ACTIVE_SCOPE to the current story (old mints must not authorize new work)",
     );
   }
-  if (selected.length > 1) {
-    return config(
-      "multiple merge-base mint records share a planId; constraints cannot be pooled across mints",
-    );
-  }
-  const mint = selected[0];
+  const mint = soleRecord(candidates);
   if (mint === undefined) {
+    if (candidates.length > 1) {
+      return config(
+        "multiple merge-base mint records share a planId; constraints cannot be pooled across mints",
+      );
+    }
     return fail(
       "verify:intent-constraint: unapproved constraint or rejection scope without a merge-base mint.",
     );

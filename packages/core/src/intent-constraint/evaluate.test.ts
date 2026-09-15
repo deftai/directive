@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { evaluateIntentConstraint } from "./evaluate.js";
 import { buildIntentConstraintRecord } from "./mint.js";
@@ -39,6 +42,17 @@ function record() {
     return { schema: "err" };
   }
   return rec;
+}
+
+function withTypescript(root: string): string {
+  writeFileSync(join(root, "package.json"), "{}" + "\n");
+  mkdirSync(join(root, "node_modules"), { recursive: true });
+  symlinkSync(
+    join(process.cwd(), "node_modules", "typescript"),
+    join(root, "node_modules", "typescript"),
+    "junction",
+  );
+  return root;
 }
 
 function files(head: string, extras?: { changedFiles?: string[] }) {
@@ -210,7 +224,67 @@ export function publish(input: { size: number }[]): void {
         ]),
       });
       expect(result.code).toBe(2);
-      expect(result.message).toMatch(/multiple merge-base mint records/);
+      expect(result.message).toMatch(/multiple running stories or merge-base mint records/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("uses dest unique running pin, not mint record order, when --plan-id is omitted", () => {
+    const root = withTypescript(mkdtempSync(join(tmpdir(), "intent-dest-unique-")));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-1", status: "running" } }),
+    );
+    const other = buildIntentConstraintRecord({
+      planId: "other-story",
+      xbriefRelPath: "xbrief/active/other.xbrief.json",
+      constraints: [{ value: "1", unit: "bytes", rejectionScope: "item" }],
+      humanApproval: human,
+    });
+    if ("error" in other) throw new Error(other.error);
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    try {
+      const result = evaluateIntentConstraint({
+        ...files(POSTED),
+        projectRoot: root,
+        planId: undefined,
+        recordTextsAtBase: new Map([
+          [".deft/intent-constraint/other-story.json", `${JSON.stringify(other, null, 2)}\n`],
+          [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
+        ]),
+      });
+      expect(result.code).toBe(0);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("config-fails multiple dest running stories even with one mint", () => {
+    const root = withTypescript(mkdtempSync(join(tmpdir(), "intent-multi-running-")));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "a.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-1", status: "running" } }),
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "b.xbrief.json"),
+      JSON.stringify({ plan: { id: "story-2", status: "running" } }),
+    );
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    try {
+      const result = evaluateIntentConstraint({
+        ...files(POSTED),
+        projectRoot: root,
+        planId: undefined,
+      });
+      expect(result.code).toBe(2);
+      expect(result.message).toMatch(/multiple running stories/);
     } finally {
       if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
       else process.env.DEFT_ACTIVE_SCOPE = prev;
