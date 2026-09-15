@@ -148,25 +148,31 @@ function listRunningPlanIds(projectRoot: string): string[] {
   return ids;
 }
 
-function resolveCurrentPlanId(
-  projectRoot: string,
-  explicit: string | undefined,
-): string | undefined {
-  if (explicit !== undefined && explicit.length > 0) return explicit;
+type PlanIdResolution =
+  | { readonly kind: "id"; readonly id: string }
+  | { readonly kind: "invalid-pin" }
+  | { readonly kind: "none" };
+
+function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined): PlanIdResolution {
+  if (explicit !== undefined && explicit.length > 0) return { kind: "id", id: explicit };
   const pin = process.env.DEFT_ACTIVE_SCOPE;
   if (pin !== undefined && pin.length > 0) {
     const rel = pin.replace(/\\/g, "/");
     try {
       const text = readFileSync(join(resolve(projectRoot), ...rel.split("/")), "utf8");
       const id = planIdFromXbriefText(text);
-      if (id !== undefined) return id;
+      if (id !== undefined) return { kind: "id", id };
     } catch {
-      // fall through
+      return { kind: "invalid-pin" };
     }
+    return { kind: "invalid-pin" };
   }
   const running = listRunningPlanIds(projectRoot);
-  if (running.length === 1) return running[0];
-  return undefined;
+  if (running.length === 1) {
+    const only = running[0];
+    if (only !== undefined) return { kind: "id", id: only };
+  }
+  return { kind: "none" };
 }
 
 function fail(message: string): EvaluateResult {
@@ -301,7 +307,13 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     parsedRecords.push(parsed);
   }
 
-  const planId = resolveCurrentPlanId(projectRoot, options.planId);
+  const resolved = resolveCurrentPlanId(projectRoot, options.planId);
+  if (resolved.kind === "invalid-pin") {
+    return config(
+      "DEFT_ACTIVE_SCOPE is set but is not a running xBRIEF; pass --plan-id (do not fall back to another plan's mint)",
+    );
+  }
+  const planId = resolved.kind === "id" ? resolved.id : undefined;
   let selected = parsedRecords;
   if (planId !== undefined && planId.length > 0) {
     selected = parsedRecords.filter((r) => r.planId === planId);

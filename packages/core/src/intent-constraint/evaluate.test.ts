@@ -174,6 +174,22 @@ export function publish(input: { size: number }[]): void {
     expect(result.code).toBe(0);
   });
 
+  it("config-fails when DEFT_ACTIVE_SCOPE pin is not a running xBRIEF", () => {
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    process.env.DEFT_ACTIVE_SCOPE = "xbrief/active/missing-pin.xbrief.json";
+    try {
+      const result = evaluateIntentConstraint({
+        ...files(POSTED),
+        planId: undefined,
+      });
+      expect(result.code).toBe(2);
+      expect(result.message).toMatch(/DEFT_ACTIVE_SCOPE/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
   it("config-fails multiple merge-base mints without a plan id", () => {
     const prev = process.env.DEFT_ACTIVE_SCOPE;
     delete process.env.DEFT_ACTIVE_SCOPE;

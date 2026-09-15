@@ -192,6 +192,19 @@ export function go(x: number, abort: () => void): void {
     const surface = extractSurface("src/ingest.ts", src, { projectRoot: root });
     expect(surface.ok).toBe(true);
   });
+  it("gives each duplicate throw a unique id", () => {
+    const src = `
+export function go(x: number): void {
+  if (x > 1) throw new Error("no");
+  if (x > 2) throw new Error("no");
+  if (x > 3) throw new Error("no");
+}
+`;
+    const throwIds = ids(src).filter((id) => id.startsWith("throw-site:"));
+    expect(throwIds).toHaveLength(3);
+    expect(new Set(throwIds).size).toBe(3);
+  });
+
   it("keeps throw/reject/abort ids stable when unrelated text is inserted", () => {
     const src = `
 const MAX_ITEM_BYTES = 1024;

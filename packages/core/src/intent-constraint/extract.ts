@@ -32,7 +32,9 @@ function fact(kind: FactKind, id: string, value?: string): ConstraintFact {
 }
 
 function pushFact(out: ConstraintFact[], next: ConstraintFact): void {
-  const same = out.filter((f) => f.kind === next.kind && f.id === next.id).length;
+  const same = out.filter(
+    (f) => f.kind === next.kind && (f.id === next.id || f.id.startsWith(`${next.id}#`)),
+  ).length;
   if (same === 0) {
     out.push(next);
     return;
