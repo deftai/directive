@@ -26,15 +26,33 @@
       },
       {
         "title": "Deny-list must refuse the #4516 replay as written (test/spec path, source symbol, PR number, CHANGELOG). A \"committed probe artifact\" pointer is uat-evidence/** or equivalent, not any committed path.",
-        "status": "proposed"
+        "status": "proposed",
+"x-directive/disposition": {
+    "disposition": "not_applicable",
+    "reason": "Gate-design proven by tests; live UAT is #4561.",
+    "provenance": { "kind": "operator-cli", "actor": "Scott" },
+    "recorded_at": "2026-09-15T21:00:00Z"
+  }
       },
       {
         "title": "Do not treat uatVerified non-null as independent evidence of a probe. Human-origin disposition stays the attest/waiver door. kind: uat plus a test/source pointer is the extra door this check closes.",
-        "status": "proposed"
+        "status": "proposed",
+"x-directive/disposition": {
+    "disposition": "not_applicable",
+    "reason": "Gate-design proven by tests; live UAT is #4561.",
+    "provenance": { "kind": "operator-cli", "actor": "Scott" },
+    "recorded_at": "2026-09-15T21:00:00Z"
+  }
       },
       {
         "title": "Do not NLP pointer text. Do not add evidence kinds. Do not change who may hold a UAT lease.",
-        "status": "proposed"
+        "status": "proposed",
+"x-directive/disposition": {
+    "disposition": "not_applicable",
+    "reason": "Gate-design proven by tests; live UAT is #4561.",
+    "provenance": { "kind": "operator-cli", "actor": "Scott" },
+    "recorded_at": "2026-09-15T21:00:00Z"
+  }
       }
     ],
     "tags": [
