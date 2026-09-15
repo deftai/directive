@@ -955,6 +955,41 @@ describe("kind:uat pointer shape at write (#4563)", () => {
     expect(gate.reports[0]?.detail).toBe(UAT_POINTER_SHAPE_REMEDIATION);
   });
 
+  it("rejects traversal that escapes uat-evidence/", () => {
+    for (const pointer of [
+      "uat-evidence/../evidence/unit-test.md",
+      "uat-evidence/foo/../../secret.md",
+      "/uat-evidence/probe.md",
+    ]) {
+      const gate = evaluateAcceptanceEvidenceGate({
+        items: [withEvidence({ title: "UAT sign-off", status: "pending" }, uatAt(pointer))],
+      });
+      expect({ pointer, ok: gate.ok, detail: gate.reports[0]?.detail }).toEqual({
+        pointer,
+        ok: false,
+        detail: UAT_POINTER_SHAPE_REMEDIATION,
+      });
+    }
+  });
+
+  it("accepts camelCase and PR/CHANGELOG names under uat-evidence/", () => {
+    for (const pointer of [
+      "uat-evidence/browserProbe.md",
+      "uat-evidence/loginFlow.md",
+      "uat-evidence/PR123-verification.md",
+      "uat-evidence/CHANGELOG-notes.md",
+    ]) {
+      const gate = evaluateAcceptanceEvidenceGate({
+        items: [withEvidence({ title: "UAT sign-off", status: "pending" }, uatAt(pointer))],
+      });
+      expect({ pointer, ok: gate.ok, outcome: gate.reports[0]?.outcome }).toEqual({
+        pointer,
+        ok: true,
+        outcome: "evidence",
+      });
+    }
+  });
+
   it("does not treat uatVerified non-null as independent evidence for a test pointer", () => {
     const gate = evaluateAcceptanceEvidenceGate({
       items: [
