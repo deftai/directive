@@ -872,8 +872,9 @@ describe("applyLifecycleFixes unstamped active-to-completed refuse (#4508)", () 
     stderr.mockRestore();
 
     expect(moved).toBe(0);
-    expect(skipped).toBe(1);
-    expect(failures).toEqual([]);
+    expect(skipped).toBe(0);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain("unstamped active/ to completed/ (#4508)");
     expect(readFileSync(src, "utf8")).toBe(original);
     expect(existsSync(join(xbrief, "completed", name))).toBe(false);
     const parsed = JSON.parse(original) as {
@@ -929,5 +930,110 @@ describe("applyLifecycleFixes unstamped active-to-completed refuse (#4508)", () 
     };
     expect(movedData.plan.status).toBe("completed");
     expect(movedData.plan.metadata.lifecycleWrite.action).toBe("complete");
+  });
+
+  it("refuses failed status and fail stamps instead of rewriting them completed", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-4508-failed-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    const failedName = "2026-09-15-failed.xbrief.json";
+    const failStampName = "2026-09-15-fail-stamp.xbrief.json";
+    writeFileSync(
+      join(xbrief, "active", failedName),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "Failed leftover",
+            status: "failed",
+            items: [{ title: "slice", status: "failed" }],
+            references: [
+              { type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/11" },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const failPlan: Record<string, unknown> = {
+      title: "Fail-stamped leftover",
+      status: "failed",
+      items: [{ title: "slice", status: "failed" }],
+      references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/12" }],
+      metadata: {},
+    };
+    stampLifecycleWrite(failPlan, "fail", "2026-09-15T00:00:00Z");
+    writeFileSync(
+      join(xbrief, "active", failStampName),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: failPlan }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const [moved, skipped, failures] = applyLifecycleFixes(
+      xbrief,
+      buildLifecycleReport(
+        scanLifecycleAnchors(xbrief),
+        new Map([
+          [11, new IssueState("CLOSED", "COMPLETED")],
+          [12, new IssueState("CLOSED", "COMPLETED")],
+        ]),
+        false,
+      ),
+      root,
+    );
+    expect(moved).toBe(0);
+    expect(skipped).toBe(0);
+    expect(failures).toHaveLength(2);
+    expect(existsSync(join(xbrief, "active", failedName))).toBe(true);
+    expect(existsSync(join(xbrief, "active", failStampName))).toBe(true);
+    expect(existsSync(join(xbrief, "completed", failedName))).toBe(false);
+    expect(existsSync(join(xbrief, "completed", failStampName))).toBe(false);
+    const failedBlob = JSON.parse(readFileSync(join(xbrief, "active", failedName), "utf8")) as {
+      plan: { status: string };
+    };
+    expect(failedBlob.plan.status).toBe("failed");
+  });
+
+  it("still moves a legacy completedAt active brief to completed/", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-4508-legacy-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    const name = "2026-09-15-legacy-completedAt.xbrief.json";
+    writeFileSync(
+      join(xbrief, "active", name),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "Legacy complete",
+            status: "running",
+            items: [{ title: "slice", status: "completed" }],
+            references: [
+              { type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/13" },
+            ],
+            metadata: { completedAt: "2026-08-20T00:00:00Z" },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const [moved, skipped, failures] = applyLifecycleFixes(
+      xbrief,
+      buildLifecycleReport(
+        scanLifecycleAnchors(xbrief),
+        new Map([[13, new IssueState("CLOSED", "COMPLETED")]]),
+        false,
+      ),
+      root,
+    );
+    expect(moved).toBe(1);
+    expect(skipped).toBe(0);
+    expect(failures).toEqual([]);
+    expect(existsSync(join(xbrief, "active", name))).toBe(false);
+    expect(existsSync(join(xbrief, "completed", name))).toBe(true);
   });
 });

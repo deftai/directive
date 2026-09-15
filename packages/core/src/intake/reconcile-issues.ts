@@ -16,7 +16,7 @@ import {
   restIssueListOpenInventory,
 } from "../scm/gh-rest.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
-import { transitionWriteFitsFolder } from "../scope/lifecycle-write.js";
+import { hasCompleteTransitionWrite } from "../scope/lifecycle-write.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
 import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
@@ -1068,16 +1068,16 @@ export function applyLifecycleFixes(
     const plan = (data.plan ?? {}) as Record<string, unknown>;
     data.plan = plan;
     // #4508: GitHub-closed is not authority to mint lifecycleWrite or pre-mark items.
-    if (
-      folder === "active" &&
-      destFolder === "completed" &&
-      !transitionWriteFitsFolder(plan, "completed")
-    ) {
+    // Fail stamps / failed status / cancel stamps are not complete authorization.
+    if (folder === "active" && destFolder === "completed" && !hasCompleteTransitionWrite(plan)) {
       process.stderr.write(
         `reconcile: refused ${relPath} — unstamped active/ to completed/ (#4508); ` +
           "left source unmutated. leftover-land (#3476) is the land step after leftover-complete, not this refuse.\n",
       );
-      skipped += 1;
+      failures.push(
+        relPath +
+          ": unstamped active/ to completed/ (#4508); left source unmutated. leftover-land (#3476) is the land step after leftover-complete, not this refuse.",
+      );
       continue;
     }
 

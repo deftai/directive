@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasCompleteTransitionWrite,
   hasTransitionWrite,
   LEFTOVER_LAND_PR_REMEDIATION,
   stampLifecycleWrite,
@@ -27,6 +28,29 @@ describe("lifecycle-write (#3679)", () => {
 
   it("treats failed status as verb evidence so scope:fail stays green", () => {
     expect(hasTransitionWrite({ status: "failed" })).toBe(true);
+  });
+
+  it("does not treat fail/failed/cancel as complete-move authorization (#4508)", () => {
+    expect(hasCompleteTransitionWrite({ status: "failed" })).toBe(false);
+    expect(hasCompleteTransitionWrite({ status: "running" })).toBe(false);
+    const failed: Record<string, unknown> = { status: "failed" };
+    stampLifecycleWrite(failed, "fail", "2026-09-15T00:00:00Z");
+    expect(hasCompleteTransitionWrite(failed)).toBe(false);
+    const cancelled: Record<string, unknown> = { status: "cancelled" };
+    stampLifecycleWrite(cancelled, "cancel", "2026-09-15T00:00:00Z");
+    expect(hasCompleteTransitionWrite(cancelled)).toBe(false);
+  });
+
+  it("accepts complete stamp or legacy completedAt for complete-move authorization (#4508)", () => {
+    const completed: Record<string, unknown> = { status: "running" };
+    stampLifecycleWrite(completed, "complete", "2026-09-15T00:00:00Z");
+    expect(hasCompleteTransitionWrite(completed)).toBe(true);
+    expect(
+      hasCompleteTransitionWrite({
+        status: "running",
+        metadata: { completedAt: "2026-08-20T00:00:00Z" },
+      }),
+    ).toBe(true);
   });
 
   it("stamps a cancel write that hasTransitionWrite accepts", () => {

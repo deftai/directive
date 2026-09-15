@@ -83,6 +83,27 @@ export function hasTransitionWrite(plan: Record<string, unknown>): boolean {
   return String(plan.status ?? "") === "failed";
 }
 
+/**
+ * Completion-specific stamp for an active/ -> completed/ move (#4508).
+ *
+ * Policy: GitHub-closed is not authority to mint lifecycleWrite or rewrite
+ * failed/legacy work as completed. Fail stamps, failed status, and cancel
+ * stamps do not authorize that rewrite. Only a complete action stamp or
+ * pre-#3679 metadata.completedAt does.
+ */
+export function hasCompleteTransitionWrite(plan: Record<string, unknown>): boolean {
+  if (stampAction(plan) === "cancel" || stampAction(plan) === "fail") {
+    return false;
+  }
+  if (hasLifecycleWriteStamp(plan) && stampAction(plan) === "complete") {
+    return true;
+  }
+  const meta = asRecord(plan.metadata);
+  return (
+    meta !== null && typeof meta.completedAt === "string" && meta.completedAt.trim().length > 0
+  );
+}
+
 function stampAction(plan: Record<string, unknown>): string | null {
   const meta = asRecord(plan.metadata);
   if (meta === null) {
