@@ -242,7 +242,8 @@ describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
 
   it("does not print when overlap is only an undeclared pain id", () => {
     const undeclared = evaluateHandoffPrint({
-      mapBody: "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\nrelieves: P9\n\nSupersedes 5672497879.\n",
+      mapBody:
+        "**Lean:** harvest recut.\n\nSpec-path:\n\nrelieves: P1\nrelieves: P9\n\nSupersedes 5672497879.\n",
       stop1PainIds: ["P1"],
       comments: [{ id: 5672497879, body: "**Lean:** prior.\n\nrelieves: P9\n" }],
     });
