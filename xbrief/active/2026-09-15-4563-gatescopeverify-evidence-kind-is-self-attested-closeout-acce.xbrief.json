@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4563",
-    "updated": "2026-09-15T18:01:52Z"
+    "updated": "2026-09-15T20:08:54Z"
   },
   "plan": {
     "title": "gate(scope,verify): evidence kind is self-attested — closeout accepted kind: uat stamps pointing at unit tests and source symbols with uatVerified null (#4516); add one fail-closed pointer-shape check at scope:complete / verify:completed-tracked",
@@ -16,7 +16,13 @@
     "items": [
       {
         "title": "First-ship a fail-closed pointer-shape check at scope:complete (the write). Do not bind verify:completed-tracked as the same check on already-terminal records.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "recorded_at": "2026-09-15T20:08:54Z",
+          "recorded_by": "host:claude:v1:MDFhMGE2YTUtMmNmOC03MDcxLTllODAtOGMyMzU4YTcxZTFh"
+        }
       },
       {
         "title": "Deny-list must refuse the #4516 replay as written (test/spec path, source symbol, PR number, CHANGELOG). A \"committed probe artifact\" pointer is uat-evidence/** or equivalent, not any committed path.",
@@ -103,6 +109,6 @@
       }
     },
     "id": "github.issue.5461506350",
-    "updated": "2026-09-15T18:01:52Z"
+    "updated": "2026-09-15T20:08:54Z"
   }
 }
