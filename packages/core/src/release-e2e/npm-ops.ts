@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -395,6 +396,20 @@ export const PASS1_ABSENCE_LOCK_PATHS = [
   "xbrief/plan.xbrief.json",
 ] as const;
 
+export const PASS2_XBRIEF_LIFECYCLE_FOLDERS = [
+  "proposed",
+  "pending",
+  "active",
+  "completed",
+  "cancelled",
+] as const;
+
+function seedXbriefLifecycleFolders(consumerDir: string): void {
+  for (const folder of PASS2_XBRIEF_LIFECYCLE_FOLDERS) {
+    mkdirSync(join(consumerDir, "xbrief", folder), { recursive: true });
+  }
+}
+
 const DIRECTIVE_SCOPE_PREFIX = "@deftai/directive";
 
 function isInsideWorkspace(cleanDir: string, workspaceRoot: string): boolean {
@@ -509,7 +524,7 @@ function fixtureGit(consumerDir: string, args: readonly string[], seams: E2ESeam
   });
 }
 
-function parsePorcelainPaths(stdout: string): string[] {
+export function parsePorcelainPaths(stdout: string): string[] {
   const paths: string[] = [];
   for (const line of stdout.split(/\r?\n/)) {
     if (line.trim().length === 0) continue;
@@ -523,8 +538,60 @@ function parsePorcelainPaths(stdout: string): string[] {
   return paths.filter((path) => path.length > 0);
 }
 
+function isFsDirectory(abs: string): boolean {
+  try {
+    return statSync(abs).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function listFilesUnderPrefix(consumerDir: string, posixPrefix: string): string[] {
+  const out: string[] = [];
+  const walk = (dir: string, prefix: string): void => {
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const rel = prefix.length > 0 ? `${prefix}/${entry.name}` : entry.name;
+        const abs = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(abs, rel);
+        } else if (entry.isFile()) {
+          out.push(rel);
+        }
+      }
+    } catch {
+      return;
+    }
+  };
+  walk(join(consumerDir, posixPrefix), posixPrefix);
+  return out;
+}
+
+/** Expand default porcelain directory collapse into files (no git -uall). */
+export function expandPass2PorcelainPaths(consumerDir: string, paths: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const raw of paths) {
+    const normalized = raw.replace(/\\/g, "/").replace(/^"(.*)"$/, "$1");
+    const abs = join(consumerDir, normalized);
+    const looksLikeDir = normalized.endsWith("/") || isFsDirectory(abs);
+    if (!looksLikeDir) {
+      out.push(normalized);
+      continue;
+    }
+    const prefix = normalized.replace(/\/+$/, "");
+    const files = prefix.length > 0 ? listFilesUnderPrefix(consumerDir, prefix) : [];
+    if (files.length === 0) {
+      out.push(normalized.endsWith("/") ? normalized : `${normalized}/`);
+      continue;
+    }
+    out.push(...files);
+  }
+  return out;
+}
+
 function seedInitializedPass1Consumer(consumerDir: string, version: string): void {
   mkdirSync(join(consumerDir, "xbrief"), { recursive: true });
+  seedXbriefLifecycleFolders(consumerDir);
   mkdirSync(join(consumerDir, ".deft", "core"), { recursive: true });
   const xbriefBody = `${JSON.stringify({ plan: { narratives: { Overview: "ok" } } })}\n`;
   for (const rel of PASS1_ABSENCE_LOCK_PATHS) {
@@ -597,7 +664,11 @@ function runPass2UpdateFromInstalledCli(
       [],
     ];
   }
-  return [true, "Pass 2 directive update OK", parsePorcelainPaths(porcelain.stdout ?? "")];
+  return [
+    true,
+    "Pass 2 directive update OK",
+    expandPass2PorcelainPaths(consumerDir, parsePorcelainPaths(porcelain.stdout ?? "")),
+  ];
 }
 
 const REGISTRY_PROPAGATION_MARKERS = [
@@ -780,7 +851,9 @@ export function runPostPublishTwoPassFixture(
       return [false, String(exc)];
     }
   }
-  const illegal = changed.filter((path) => !isPass2CommitPath(path));
+  const illegal = expandPass2PorcelainPaths(consumerDir, changed).filter(
+    (path) => !isPass2CommitPath(path),
+  );
   if (illegal.length > 0) {
     return [false, `Pass 2 commit-set includes non-installer-managed paths: ${illegal.join(", ")}`];
   }
@@ -799,6 +872,7 @@ export function invokePostPublishTwoPassFromReleaseWorkflow(
   const cleanDir = mkdtempSync(join(tmpdir(), "deft-4271-two-pass-"));
   const consumerDir = join(cleanDir, "consumer");
   mkdirSync(join(consumerDir, "xbrief"), { recursive: true });
+  seedXbriefLifecycleFolders(consumerDir);
   const body = `${JSON.stringify({ plan: { narratives: { Overview: "ok" } } })}\n`;
   for (const rel of PASS1_ABSENCE_LOCK_PATHS) {
     writeFileSync(join(consumerDir, rel), body, "utf8");

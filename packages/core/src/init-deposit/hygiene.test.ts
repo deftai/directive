@@ -1634,6 +1634,13 @@ describe("Pass 2 commit-set and #1430 peers (#4271)", () => {
     expect(isPass2CommitPath("xbrief/PROJECT-DEFINITION.xbrief.json")).toBe(false);
     expect(isPass2CommitPath("xbrief/specification.xbrief.json")).toBe(false);
     expect(isPass2CommitPath("xbrief/plan.xbrief.json")).toBe(false);
+    expect(isPass2CommitPath(".claude/")).toBe(false);
+    expect(isPass2CommitPath(".cursor/")).toBe(false);
+    expect(isPass2CommitPath(".codex/")).toBe(false);
+    expect(isPass2CommitPath(".grok/")).toBe(false);
+    expect(isPass2CommitPath(".github/")).toBe(false);
+    expect(isPass2CommitPath(".agents/")).toBe(true);
+    expect(isPass2CommitPath(".githooks/")).toBe(true);
   });
 
   it("treats the Go denylist as frozen source-only", () => {
