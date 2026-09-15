@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4507",
-    "updated": "2026-09-15T20:00:20Z"
+    "updated": "2026-09-15T20:22:25Z"
   },
   "plan": {
     "title": "bug(release): npm-publish post-publish fixture still fails the job after all four packages publish",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(release): npm-publish post-publish fixture still fails the job after all four packages publish",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4507",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Do not bind #4507 as a recurrence of #4398 warn-only job-exit.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#does not bind #4398 warn-only, npm view, or continue-on-error",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Seed still needs lifecycle folders so classifyUpdateState is not migration-required. That is not enough for P1.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#seeds lifecycle folders so classifyUpdateState is not migration-required",
@@ -36,7 +36,7 @@
       },
       {
         "title": "The lock is live installed CLI update plus unstubbed fixture git status --porcelain (no -uall) fed through isPass2CommitPath. Do not treat a stubbed live-path test as that lock.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#locks live dest CLI update plus unstubbed git status --porcelain",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Remaining red at dest SHA: host-root directory entries from installer-written hooks plus slash commands plus skill discovery collapsing under .claude/ / .cursor/ / .codex/ / .grok/, and .github/ from skill discovery. .agents/ and .githooks/ already pass prefixes.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#expands dest host-root porcelain dirs to files that pass isPass2CommitPath",
@@ -56,7 +56,7 @@
       },
       {
         "title": "Keep Pass 2 fail-closed. Keep publish-step failure fail-closed. Keep the #4398 bound.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#keeps Pass 2 fail-closed when a host-root dir contains an app file",
@@ -66,7 +66,7 @@
       },
       {
         "title": "Do not fold Phase 7. Do not make npm view the pass. Do not add workflow continue-on-error after any fixture failure.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/release-e2e/npm-ops-4507.test.ts#does not bind #4398 warn-only, npm view, or continue-on-error",
@@ -161,9 +161,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "bfe2122bffba96d9761c6a3538e0e7ff1993adf5709c61ccf01d8d3888a3a3c8"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4573,
+        "prBase": null,
+        "mergeCommit": "a93d30371ff53765f9bc11f5ea91df699eb9d6ae",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7c93c3d64721d2dd09973fb1726d71818fc9801a",
+        "verifiedAt": "2026-09-15T20:22:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE2YjktYWFlMi03MTgxLTllMDItMDgzMWQ0MGM1MjE3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-15T20:22:25Z"
+      },
+      "completedAt": "2026-09-15T20:22:25Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE2YjktYWFlMi03MTgxLTllMDItMDgzMWQ0MGM1MjE3",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5449060127",
-    "updated": "2026-09-15T20:00:20Z"
+    "updated": "2026-09-15T20:22:25Z"
   }
 }
