@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Complete tracking for #4567.** After PR 4572. The #4567 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Complete tracking for #4506.** Records post-merge lifecycle completion after PR 4569 without reopening or recutting the issue. Refs #2321, #3476.
 - **Complete tracking for #4508.** After PR 4570. The #4508 xBRIEF stayed in xbrief/active/ on origin/master after squash. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4567",
-    "updated": "2026-09-15T18:12:12Z"
+    "updated": "2026-09-15T19:45:07Z"
   },
   "plan": {
     "title": "bug(check): ts:check-lane 20m kill is git-worktree coverage wall clock, not a stuck test",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(check): ts:check-lane 20m kill is git-worktree coverage wall clock, not a stuck test",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4567",
@@ -61,7 +61,32 @@
         "github_issue_id": 5465346387,
         "origin": "deftai/directive#4567",
         "id": "github.issue.5465346387"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4572,
+        "prBase": null,
+        "mergeCommit": "9efe1e454e4a2c31d0f71c6653b46bffa758daa6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9efe1e454e4a2c31d0f71c6653b46bffa758daa6",
+        "verifiedAt": "2026-09-15T19:45:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE2OTctYjk0Ny03ZjAyLWFiODctOTNkYjBlYjRlNzRj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-15T19:45:07Z"
+      },
+      "completedAt": "2026-09-15T19:45:07Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE2OTctYjk0Ny03ZjAyLWFiODctOTNkYjBlYjRlNzRj",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -136,6 +161,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5465346387",
-    "updated": "2026-09-15T18:12:12Z"
+    "updated": "2026-09-15T19:45:07Z"
   }
 }
