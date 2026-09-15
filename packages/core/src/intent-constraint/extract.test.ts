@@ -96,6 +96,19 @@ export function publish(input: { size: number }[]): void {
     expect(kinds(src)).toEqual(["numeric-const"]);
   });
 
+  it("does not harvest let/for-loop numeric indexes as numeric-const", () => {
+    const src = `
+export function publish(input: { size: number }[]): void {
+  for (let i = 0; i < input.length; i += 1) {
+    void input[i];
+  }
+  let n = 1024;
+  void n;
+}
+`;
+    expect(kinds(src)).toEqual([]);
+  });
+
   it("peels as const / as number / as any / satisfies / unary / paren / type assertion", () => {
     const src = `
 const a = 1024 as const;

@@ -3,7 +3,8 @@
  *
  * Numeric-const peel is a while-unwrap of AsExpression (any asserted type),
  * SatisfiesExpression, unary +/-, ParenthesizedExpression, and angle-bracket
- * TypeAssertion until NumericLiteral. Do not forEachChild-harvest NumericLiteral.
+ * TypeAssertion until NumericLiteral. Only const declarations; let/var loop
+ * indexes are not numeric-const. Do not forEachChild-harvest NumericLiteral.
  */
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -141,11 +142,17 @@ function compactSource(node: TS.Node): string {
   return node.getText().replace(/\s+/g, " ").trim();
 }
 
+function isConstVariableDeclaration(node: TS.VariableDeclaration, ts: TSModule): boolean {
+  const parent = node.parent;
+  return ts.isVariableDeclarationList(parent) && (parent.flags & ts.NodeFlags.Const) !== 0;
+}
+
 function visit(node: TS.Node, ts: TSModule, facts: ConstraintFact[]): void {
   if (
     ts.isVariableDeclaration(node) &&
     ts.isIdentifier(node.name) &&
-    node.initializer !== undefined
+    node.initializer !== undefined &&
+    isConstVariableDeclaration(node, ts)
   ) {
     const peeled = peelNumeric(node.initializer, ts);
     if (peeled !== undefined) {
