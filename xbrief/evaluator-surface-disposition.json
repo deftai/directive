@@ -14,5 +14,5 @@
     "xbrief/evaluator-surface-disposition.json",
     "vitest.config.ts"
   ],
-  "note": "Disclosure of verify:intent-constraint (#4541). Not reviewed authorization under #3164."
+  "note": "Disclosure of verify:intent-constraint (#4541). Renewed for leftover #4567 intent-constraint empty-active fixture. Not reviewed authorization under #3164."
 }
