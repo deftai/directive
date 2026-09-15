@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4561",
-    "updated": "2026-09-15T20:27:06Z"
+    "updated": "2026-09-15T20:35:00Z"
   },
   "plan": {
     "title": "uat(hooks,security): #3764 dest-of-write leftover — run the five UAT-mode probes (dest-flag values, trailing operand, TEST_BINS skip, interpreter payload literals, payload-root scope) and record kind: uat evidence so the brief completes without a waiver",
@@ -159,7 +159,7 @@
         "disposition": "delivered",
         "handoffState": "delivered",
         "deployed": null,
-        "uatVerified": null
+        "uatVerified": true
       },
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
@@ -171,6 +171,6 @@
       "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5461477141",
-    "updated": "2026-09-15T20:27:06Z"
+    "updated": "2026-09-15T20:35:00Z"
   }
 }
