@@ -197,4 +197,41 @@ describe("evaluateObservableScope real git (#4495)", () => {
     const resolved = resolveMergeBase(root);
     expect(resolved).toMatchObject({ error: expect.stringMatching(/merge-base|origin default/) });
   });
+
+  it("does not treat a working-tree mint as merge-base authority (#4588)", () => {
+    root = initRepo();
+    writeTracked(root, ".deft/observable-ui.policy.json", POLICY);
+    writeTracked(root, "ui.html", BASE_HTML);
+    commit(root, "base policy");
+    git(root, ["checkout", "-q", "-b", "feat"]);
+    writeTracked(root, "ui.html", `${BASE_HTML}<input name=email />`);
+    commit(root, "fields");
+    const rec = buildObservableScopeRecord({
+      planId: "story-1",
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      allowedChanges: [{ kind: "control", op: "add", name: "email" }],
+      humanApproval: human,
+    });
+    if ("error" in rec) throw new Error(rec.error);
+    writeObservableScopeRecord(root, rec);
+    const result = evaluateObservableScope({ projectRoot: root, originRef: "main" });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/without a merge-base/);
+    expect(result.message).toMatch(/#4588/);
+  });
+
+  it("does not treat approved-scope digest as observable mint (#4588)", () => {
+    root = initRepo();
+    writeTracked(root, ".deft/observable-ui.policy.json", POLICY);
+    writeTracked(root, "ui.html", BASE_HTML);
+    writeTracked(root, ".deft/approved-scope/story-1.json", '{ "planId": "story-1" }');
+    commit(root, "base policy plus approved-scope");
+    git(root, ["checkout", "-q", "-b", "feat"]);
+    writeTracked(root, "ui.html", `${BASE_HTML}<input name=email />`);
+    commit(root, "fields");
+    const result = evaluateObservableScope({ projectRoot: root, originRef: "main" });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/without a merge-base/);
+    expect(result.message).not.toMatch(/approved-scope/);
+  });
 });

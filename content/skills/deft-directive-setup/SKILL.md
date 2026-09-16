@@ -832,7 +832,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ! Derivation (`#3323` / `#3360`) owns `plan.acceptance`. Setup stays silent on that block.
 ⊗ Emit `plan.acceptance`, `ambiguity_attestation`, or a schema-complete acceptance stamp from this skill.
-? Collect `plan.metadata.swarm.file_scope` only as operator-named declared members for later derived-stamp bind (`#4008`). ⊗ Invent paths. ⊗ Mint an approved-scope digest (`#3145` / `#3110`).
+? Collect `plan.metadata.swarm.file_scope` only as operator-named declared members for later derived-stamp bind (`#4008`). ⊗ Invent paths. ⊗ Mint an approved-scope digest (`#3145` / `#3110`). ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. Predecessor #4383.
 ! Fields the gate requires: [`../../docs/plan-acceptance.md`](../../docs/plan-acceptance.md).
 
 ### Issue-emit hints at emission (#4426)

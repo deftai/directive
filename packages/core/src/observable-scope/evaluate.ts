@@ -10,6 +10,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { resolveDefaultBaseRef } from "../evaluator-surface/evaluate.js";
 import { matchAny, normalizePath } from "../orchestration/pathspec.js";
+import { classifyVerifyObservableMintDemand, OBSERVABLE_MINT_WHEN_HINT } from "./demand.js";
 import { changeMatches, diffArtifacts, unlistedDeltas } from "./diff.js";
 import {
   buildArtifact,
@@ -320,7 +321,13 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
   }
   if (policy === null) {
     const uiChanged = changed.filter((p) => isMarkupPath(p));
-    if (uiChanged.length === 0) {
+    const unsetDemand = classifyVerifyObservableMintDemand({
+      policyPresent: false,
+      uiChanged: uiChanged.length > 0,
+      matchedCount: 0,
+      matchedMarkupCount: 0,
+    });
+    if (!unsetDemand.demand && unsetDemand.reason === "na-no-policy") {
       return ok(
         "verify:observable-scope: N/A — no base-pinned observable-ui surfaces policy " +
           `(${OBSERVABLE_UI_POLICY_REL}). This is not yet universal UI coverage.`,
@@ -359,7 +366,13 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
     );
   }
   const uiPaths = matched.filter((p) => isMarkupPath(p));
-  if (uiPaths.length === 0) {
+  const demand = classifyVerifyObservableMintDemand({
+    policyPresent: true,
+    uiChanged: uiPaths.length > 0,
+    matchedCount: matched.length,
+    matchedMarkupCount: uiPaths.length,
+  });
+  if (!demand.demand) {
     return ok(
       "verify:observable-scope: N/A — matched surfaces have no first-ship UI file types.",
       true,
@@ -379,7 +392,8 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
   const baseRecords = listBaseRecords(options, projectRoot, mergeBase);
   if (baseRecords.size === 0) {
     return fail(
-      "verify:observable-scope: matched UI surfaces changed without a merge-base observable-scope mint record.",
+      "verify:observable-scope: matched UI surfaces changed without a merge-base observable-scope mint record. " +
+        OBSERVABLE_MINT_WHEN_HINT,
     );
   }
 
@@ -463,7 +477,8 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
   const mint = selected[0];
   if (mint === undefined) {
     return fail(
-      "verify:observable-scope: matched UI surfaces changed without a merge-base observable-scope mint record.",
+      "verify:observable-scope: matched UI surfaces changed without a merge-base observable-scope mint record. " +
+        OBSERVABLE_MINT_WHEN_HINT,
     );
   }
 

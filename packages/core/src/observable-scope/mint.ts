@@ -10,7 +10,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { isHumanApprovalStamp } from "../scope-provenance/digest.js";
-import { isMarkupPath } from "./extract.js";
+import { classifyPreflightObservableMintDemand } from "./demand.js";
 import {
   type AllowedChange,
   CHANGE_KINDS,
@@ -277,7 +277,7 @@ export function evaluateObservableMintPreflight(
   const files = Array.isArray(placement?.files)
     ? placement.files.filter((f): f is string => typeof f === "string")
     : [];
-  if (!files.some((f) => isMarkupPath(f))) return { ok: true };
+  if (!classifyPreflightObservableMintDemand(files).demand) return { ok: true };
   const parsed = parseObservableChangeContract(extractObservableChangeFromPlan(payload));
   if ("error" in parsed) {
     return {

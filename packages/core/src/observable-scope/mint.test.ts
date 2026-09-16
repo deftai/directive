@@ -89,7 +89,7 @@ describe("observable-scope mint record (#4495)", () => {
     });
   });
 
-  it("preflight refuses UI intended_placement without a mint record", () => {
+  it("preflight refuses UI intended_placement without a mint record (#4588)", () => {
     const root = mkdtempSync(join(tmpdir(), "obs-preflight-"));
     try {
       const payload = {

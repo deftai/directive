@@ -1,3 +1,12 @@
+export {
+  classifyPreflightObservableMintDemand,
+  classifyVerifyObservableMintDemand,
+  OBSERVABLE_MINT_FAIL_CLOSED_SITE,
+  OBSERVABLE_MINT_OPEN_PREDECESSOR,
+  OBSERVABLE_MINT_PARKING_IS_WHEN,
+  OBSERVABLE_MINT_WHEN_HINT,
+} from "./demand.js";
+
 export { diffArtifacts, unlistedDeltas } from "./diff.js";
 export {
   type EvaluateOptions,

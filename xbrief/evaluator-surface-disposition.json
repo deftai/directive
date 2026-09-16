@@ -1,18 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4541,
+  "issue": 4588,
   "surfaces": [
-    "Taskfile.yml",
-    "tasks/verify.yml",
-    "packages/core/src/check/gate-lists.ts",
-    "packages/core/src/consumer-check-contract/evaluate.ts",
-    "packages/core/src/evaluator-surface/**",
-    "packages/core/src/intent-constraint/**",
-    "packages/cli/src/verify-intent-constraint.ts",
-    "packages/cli/src/scope-record-intent-constraint.ts",
-    "xbrief/evaluator-surface-disposition.json",
-    "vitest.config.ts"
+    "packages/core/src/observable-scope/**",
+    "packages/cli/src/scope-record-observable-scope.ts",
+    "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure of verify:intent-constraint (#4541). Renewed for leftover #4567 intent-constraint empty-active fixture. Not reviewed authorization under #3164."
+  "note": "Disclosure of verify:observable-scope mint-when (#4588). Names the existing demand predicate; fail-closed site is verify merge-base. Not reviewed authorization under #3164."
 }

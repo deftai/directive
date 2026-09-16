@@ -181,7 +181,7 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
   const path = writeObservableScopeRecord(projectRoot, rec);
   if (!args.quiet) {
     process.stdout.write(
-      `Wrote ${path}\nCommit this record on the merge base before the UI change PR.\n`,
+      `Wrote ${path}\nCommit this record on the merge base before the UI change PR. Demand this mint after the observableChange contract is authored, not at parking (#4588; predecessor #4383).\n`,
     );
   }
   return 0;

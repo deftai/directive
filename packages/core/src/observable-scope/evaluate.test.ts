@@ -113,6 +113,8 @@ describe("evaluateObservableScope (#4495)", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain(OBSERVABLE_SCOPE_REMEDIATION);
+    expect(result.message).toMatch(/#4588/);
+    expect(result.message).toMatch(/Parking is not this when/);
   });
 
   it("fails unlisted tab/heading/control/column/landmark/container deltas", () => {

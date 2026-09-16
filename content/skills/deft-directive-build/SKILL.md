@@ -547,4 +547,5 @@ Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 - ⊗ Chase post-bank out-of-scope findings when surplus budget is insufficient — report, do not thrash the banked pass (#3285)
 - ⊗ Skip finalize-on-green after first stated AC pass under a hard budget (#3285)
 - ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
+- ⊗ Demand scope:record-observable-scope at parking (#4588) -- that when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. Predecessor #4383. Fail-closed site is verify merge-base.
 - ⊗ Clear a red product oracle by editing the comparison method then treating the new pass as a pass — record independent re-derivation or fix the product (#3322 / #3156)
