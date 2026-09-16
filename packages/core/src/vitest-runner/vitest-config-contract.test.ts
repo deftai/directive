@@ -182,6 +182,11 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
   });
 
+  it("projects inherit root aliases so unbuilt packages resolve without tsc", () => {
+    expect(source).toMatch(/extends:\s*true[\s\S]*name:\s*"unit"/);
+    expect(source).toMatch(/extends:\s*true[\s\S]*name:\s*"spawn-heavy"/);
+  });
+
   it("runs CLI parity through in-process routeAndDispatch", () => {
     expect(helpers).toContain("routeAndDispatch");
     expect(helpers).toMatch(/export async function runDeftTs/);

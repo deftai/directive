@@ -46,6 +46,7 @@ import {
   type ProjectDefinitionMutation,
   withProjectDefinitionMutation,
 } from "@deftai/directive-core/vbrief-build";
+import { isHandlerProcessExit } from "./cli-router/handler-process-exit.js";
 
 export type CommandHandler = (argv: string[]) => number | Promise<number>;
 
@@ -3349,6 +3350,9 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     const handler = await loadHandler(canonical, io);
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
+    if (isHandlerProcessExit(err)) {
+      return err.code;
+    }
     const message = err instanceof Error ? err.message : String(err);
     io.writeErr(`directive: ${message}\n`);
     return 2;

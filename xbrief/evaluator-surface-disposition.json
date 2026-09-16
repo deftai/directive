@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4588,
+  "issue": 4591,
   "surfaces": [
-    "packages/core/src/observable-scope/**",
-    "packages/cli/src/scope-record-observable-scope.ts",
+    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure of verify:observable-scope mint-when (#4588). Names the existing demand predicate; fail-closed site is verify merge-base. Not reviewed authorization under #3164."
+  "note": "Disclosure of vitest project extends:true so Windows single-file vitest inherits root aliases (#4591). Occupancy stays per-it. Hang-detector last. Not reviewed authorization under #3164."
 }

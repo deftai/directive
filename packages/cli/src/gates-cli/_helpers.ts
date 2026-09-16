@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { HandlerProcessExit } from "../cli-router/handler-process-exit.js";
 import { routeAndDispatch } from "../cli-router/index.js";
 import { resetHandlerCacheForTests } from "../dispatch.js";
 
@@ -52,8 +53,12 @@ export async function runDeftTsArgv(
   const prevOut = process.stdout.write.bind(process.stdout);
   const prevErr = process.stderr.write.bind(process.stderr);
   const prevCwd = process.cwd();
+  const prevExit = process.exit;
   resetHandlerCacheForTests();
   const envSnapshot = { ...process.env };
+  process.exit = ((code?: number): never => {
+    throw new HandlerProcessExit(code ?? 0);
+  }) as typeof process.exit;
   process.stdout.write = ((chunk: string | Uint8Array): boolean => {
     out.push(String(chunk));
     return true;
@@ -85,7 +90,17 @@ export async function runDeftTsArgv(
       stdout: out.join(""),
       stderr: err.join(""),
     };
+  } catch (errCaught: unknown) {
+    if (errCaught instanceof HandlerProcessExit) {
+      return {
+        exitCode: errCaught.code,
+        stdout: out.join(""),
+        stderr: err.join(""),
+      };
+    }
+    throw errCaught;
   } finally {
+    process.exit = prevExit;
     process.stdout.write = prevOut;
     process.stderr.write = prevErr;
     if (opts.cwd !== undefined) {

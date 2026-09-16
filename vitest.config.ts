@@ -215,8 +215,11 @@ export default defineConfig({
   },
   test: {
     env: testEnvironment,
+    // Windows CI runs single files without tsc. Projects must inherit root
+    // resolve.alias or @deftai/directive-types fails to resolve. Refs #4591.
     projects: [
       {
+        extends: true,
         test: {
           name: "unit",
           include: ["packages/*/src/**/*.test.ts"],
@@ -225,6 +228,7 @@ export default defineConfig({
         },
       },
       {
+        extends: true,
         test: {
           name: "spawn-heavy",
           include: [...spawnHeavyGlobs],
