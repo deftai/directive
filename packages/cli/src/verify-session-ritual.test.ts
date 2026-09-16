@@ -1,5 +1,5 @@
 import type { VerifyResult } from "@deftai/directive-core/session";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./verify-session-ritual.js";
 
 function failedCacheFreshResult(overrides: Partial<VerifyResult> = {}): VerifyResult {
@@ -65,7 +65,7 @@ describe("parseArgs", () => {
 });
 
 describe("parseArgs unrecognized --session-id (#4576)", () => {
-  const dropSuffix = "Drop the flag and retry verify:session-ritual -- --tier=gated.";
+  const dropSuffix = "Drop the flag and retry deft verify:session-ritual -- --tier=gated.";
 
   it("rejects equals-form with drop-flag suffix", () => {
     const parsed = parseArgs(["--tier=gated", "--session-id=host:claude:v1:dGVzdA"]);
@@ -107,7 +107,11 @@ describe("run (#2666)", () => {
 });
 
 describe("run unrecognized --session-id (#4576)", () => {
-  const dropSuffix = "Drop the flag and retry verify:session-ritual -- --tier=gated.";
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const dropSuffix = "Drop the flag and retry deft verify:session-ritual -- --tier=gated.";
 
   it("exits 2 with drop-flag suffix on equals-form", () => {
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);

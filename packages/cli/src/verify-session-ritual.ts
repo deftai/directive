@@ -101,7 +101,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (arg === "--session-id" || arg?.startsWith("--session-id=")) {
         return {
           ...parsed,
-          error: `${error} Drop the flag and retry verify:session-ritual -- --tier=gated.`,
+          error: `${error} Drop the flag and retry deft verify:session-ritual -- --tier=gated.`,
         };
       }
       return { ...parsed, error };
