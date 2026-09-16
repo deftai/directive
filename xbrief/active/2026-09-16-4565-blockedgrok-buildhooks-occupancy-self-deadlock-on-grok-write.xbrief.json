@@ -36,7 +36,20 @@
       },
       {
         "title": "Native Write deadlock on a Grok-shaped owner stays operator-deferred to existing blocked #4125.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Operator-deferred leftover: native Write deadlock on a Grok-shaped owner stays on existing blocked #4125 (host spawn-environment miss; deft-hook sibling omits GROK_SESSION_ID). Not this #4565 bind. Lean 5690922119 / synthesis 5691057694 / operator envelope 2026-09-16.",
+          "recorded_at": "2026-09-16T02:52:00Z",
+          "resume_when": "Grok Build injects GROK_SESSION_ID into deft-hook sibling processes (same id as the agent shell) and a native Write is re-measured (#4125).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-16T02:52:00Z",
+            "mintedVia": "operator-envelope-4565-through-merge",
+            "eventRef": "https://github.com/deftai/directive/issues/4125"
+          }
+        }
       }
     ],
     "tags": [
