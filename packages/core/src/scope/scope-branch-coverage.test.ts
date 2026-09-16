@@ -170,8 +170,10 @@ describe("scope branch coverage", () => {
     writeVbrief(proposed, "wrong-folder.xbrief.json", "proposed");
     expect(runTransition("activate", join(proposed, "wrong-folder.xbrief.json")).ok).toBe(false);
 
-    writeVbrief(proposed, "already.xbrief.json", "pending");
-    expect(runTransition("promote", join(proposed, "already.xbrief.json")).ok).toBe(true);
+    writeVbrief(proposed, "2026-01-01-already.xbrief.json", "pending");
+    expect(runTransition("promote", join(proposed, "2026-01-01-already.xbrief.json")).ok).toBe(
+      true,
+    );
 
     writeVbrief(join(root, "xbrief", "active"), "block.xbrief.json", "running");
     const activeFile = join(root, "xbrief", "active", "block.xbrief.json");
@@ -212,8 +214,8 @@ describe("scope branch coverage", () => {
         plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
       }),
     );
-    writeVbrief(join(root, "xbrief", "proposed"), "new.xbrief.json", "proposed");
-    const file = join(root, "xbrief", "proposed", "new.xbrief.json");
+    writeVbrief(join(root, "xbrief", "proposed"), "2026-01-01-new.xbrief.json", "proposed");
+    const file = join(root, "xbrief", "proposed", "2026-01-01-new.xbrief.json");
     expect(lifecycleMain(["promote", file, "--project-root", root])).toBe(1);
     expect(lifecycleMain(["promote", file, "--project-root", root, "--force"])).toBe(0);
     expect(lifecycleMain(["notreal", file, "--project-root", root])).toBe(2);
@@ -462,13 +464,13 @@ describe("scope branch coverage", () => {
   it("scope cli entry executes lifecycleMain", () => {
     root = mkdtempSync(join(tmpdir(), "cli-"));
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
-    writeVbrief(join(root, "xbrief", "proposed"), "cli.xbrief.json", "proposed");
+    writeVbrief(join(root, "xbrief", "proposed"), "2026-01-01-cli.xbrief.json", "proposed");
     const cliPath = join(process.cwd(), "packages", "core", "dist", "scope", "cli.js");
-    const file = join(root, "xbrief", "proposed", "cli.xbrief.json");
+    const file = join(root, "xbrief", "proposed", "2026-01-01-cli.xbrief.json");
     const r = spawnSync("node", [cliPath, "promote", file, "--project-root", root], {
       encoding: "utf8",
     });
     expect(r.status).toBe(0);
-    expect(existsSync(join(root, "xbrief", "pending", "cli.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-cli.xbrief.json"))).toBe(true);
   });
 });

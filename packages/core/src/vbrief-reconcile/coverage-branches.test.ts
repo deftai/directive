@@ -311,7 +311,7 @@ describe("coverage branches round 2", () => {
       }),
     );
     writeFileSync(
-      join(root, "xbrief", "proposed", "child.xbrief.json"),
+      join(root, "xbrief", "proposed", "2026-01-01-child.xbrief.json"),
       formatBriefJson({
         xBRIEFInfo: { version: "0.8" },
         plan: {
@@ -326,7 +326,7 @@ describe("coverage branches round 2", () => {
     const [code, outcome] = reconcileGraph(root, { dryRun: false });
     expect(code).toBe(0);
     expect(outcome.promoted).toContain("child");
-    expect(existsSync(join(root, "xbrief", "pending", "child.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-child.xbrief.json"))).toBe(true);
   });
 
   it("graph records transition failures", async () => {

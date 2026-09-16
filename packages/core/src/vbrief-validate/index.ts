@@ -13,7 +13,15 @@ export {
   scanVbrief,
 } from "./conformance.js";
 export { LIFECYCLE_FOLDERS, USAGE, VALID_STATUSES } from "./constants.js";
-export { matchesFilenameConvention, validateFilename } from "./filename.js";
+export {
+  artifactSuffixOf,
+  d7Basename,
+  filenameConventionExample,
+  filenameConventionExamples,
+  isScopeLifecyclePath,
+  matchesFilenameConvention,
+  validateFilename,
+} from "./filename.js";
 export { validateFolderStatus } from "./folder-status.js";
 export type { ConformanceCliOptions, ValidateCliOptions } from "./main.js";
 export { cmdVbriefValidate, runConformance, runValidate } from "./main.js";

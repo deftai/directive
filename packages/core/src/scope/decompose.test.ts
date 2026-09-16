@@ -1189,6 +1189,27 @@ describe("alternate field extraction", () => {
     expect(narratives.UserStory).toBe(GOOD_US);
     expect(narratives.Traces).toBe("FR-1");
   });
+
+  it("refuses a draft-supplied uppercase lifecycle filename (#4578)", () => {
+    const proj = tmpProject();
+    const parentPath = join(proj, "xbrief", "pending", "parent.xbrief.json");
+    writeJson(parentPath, goodParent());
+    const draftPath = join(proj, "xbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "xbrief", ".triage-cache"), { recursive: true });
+    writeJson(draftPath, {
+      stories: [{ ...altStory(), filename: "2026-09-15-M1-pm-decomposition.xbrief.json" }],
+    });
+    approveApply(proj, parentPath, draftPath);
+    expect(() =>
+      applyDecomposition({
+        projectRoot: proj,
+        parentPath,
+        draftPath,
+        checkOnly: false,
+        date: "2026-09-15",
+      }),
+    ).toThrow(/\(D7\)/);
+  });
 });
 
 // ---------------------------------------------------------------------------

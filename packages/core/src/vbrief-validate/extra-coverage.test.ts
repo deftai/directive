@@ -2,11 +2,16 @@ import { execSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { evaluateConformance, renderFinding, scanVbrief } from "./conformance.js";
 import { validateNoRootDecompositionDrafts } from "./decomposition.js";
 import { validateEpicStoryLinks } from "./epic-links.js";
-import { matchesFilenameConvention, validateFilename } from "./filename.js";
+import {
+  filenameConventionExamples,
+  matchesFilenameConvention,
+  validateFilename,
+} from "./filename.js";
 import { validateFolderStatus } from "./folder-status.js";
 import { cmdVbriefValidate, runConformance, runValidate } from "./main.js";
 import { validateOriginProvenance } from "./origin.js";
@@ -133,7 +138,12 @@ describe("vbrief-validate extra coverage", () => {
     expect(matchesFilenameConvention("2026-01-01-abc-.xbrief.json")).toBe(false);
     expect(matchesFilenameConvention("2026-01-01-abc--def.xbrief.json")).toBe(false);
     expect(matchesFilenameConvention("2026-01-01-abc-def.xbrief.json")).toBe(true);
-    expect(validateFilename("xbrief/active/not-a-date.xbrief.json")[0]).toContain("(D7)");
+    const err = validateFilename("xbrief/active/not-a-date.xbrief.json")[0];
+    expect(err).toContain("(D7)");
+    expect(err).toContain("YYYY-MM-DD-descriptive-slug.xbrief.json (D7)");
+    expect(err).not.toContain(".vbrief.json (D7)");
+    const vErr = validateFilename("vbrief/active/not-a-date.vbrief.json")[0];
+    expect(vErr).toContain("YYYY-MM-DD-descriptive-slug.vbrief.json (D7)");
   });
 
   it("covers schema nested items and project def narratives", () => {
@@ -1329,5 +1339,45 @@ describe("evaluateConformance D7 filename (#4245)", () => {
     expect(evaluateConformance(root, { mode: "staged" }).exitCode).toBe(0);
     expect(evaluateConformance(root, { mode: "all" }).exitCode).toBe(0);
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it("aggregate D7 header lists both accepted suffixes (#4578)", () => {
+    expect(filenameConventionExamples()).toBe(
+      "YYYY-MM-DD-descriptive-slug.xbrief.json or YYYY-MM-DD-descriptive-slug.vbrief.json",
+    );
+    const name = "2026-09-15-M1-pm-decomposition.xbrief.json";
+    const root = stagedLifecycleRoot(name, validBody);
+    const all = evaluateConformance(root, { mode: "all" });
+    expect(all.exitCode).toBe(1);
+    expect(all.message).toContain(
+      "YYYY-MM-DD-descriptive-slug.xbrief.json or YYYY-MM-DD-descriptive-slug.vbrief.json",
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("published FILENAME_PATTERN observer (#4578)", () => {
+  it("derives the published pattern from matchesFilenameConvention", () => {
+    const here = fileURLToPath(new URL(".", import.meta.url));
+    const doc = readFileSync(
+      resolve(here, "../../../../content/conventions/vbrief-filenames.md"),
+      "utf8",
+    );
+    const match = /FILENAME_PATTERN`: `([^`]+)`/.exec(doc);
+    expect(match).not.toBeNull();
+    const published = new RegExp(match?.[1] ?? "");
+    const names = [
+      "2026-09-15-m1-pm-decomposition.xbrief.json",
+      "2026-09-15-M1-pm-decomposition.xbrief.json",
+      "2026-09-12-M0.5-01-discovery-blocking.xbrief.json",
+      "2026-01-01-abc-def.xbrief.json",
+      "2026-01-01-abc-def.vbrief.json",
+      "2026-04-12-ip001-add-oauth.xbrief.json",
+      "2026-01-01-UPPER.xbrief.json",
+      "oauth-flow.vbrief.json",
+    ];
+    for (const name of names) {
+      expect(published.test(name), name).toBe(matchesFilenameConvention(name));
+    }
   });
 });

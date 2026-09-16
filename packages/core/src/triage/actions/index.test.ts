@@ -346,7 +346,7 @@ describe("accept", () => {
     const root = makeRepo();
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
-    const proposedPath = join(root, "xbrief", "proposed", "auto.xbrief.json");
+    const proposedPath = join(root, "xbrief", "proposed", "2026-01-01-auto.xbrief.json");
     writeFileSync(
       proposedPath,
       JSON.stringify({
@@ -380,7 +380,7 @@ describe("accept", () => {
       autoPromote: true,
     });
     expect(decisionId).toBe("11111111-1111-1111-1111-111111111111");
-    expect(existsSync(join(root, "xbrief", "pending", "auto.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-auto.xbrief.json"))).toBe(true);
     expect(existsSync(proposedPath)).toBe(false);
   });
 

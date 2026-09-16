@@ -165,7 +165,7 @@ describe("trial-shaped hand-authored acceptance stream (#3355)", () => {
       mkdirSync(join(root, "xbrief", folder), { recursive: true });
     }
     const summary = join(root, "summary.jsonl");
-    const path = join(root, "xbrief", "pending", "trial.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-trial.xbrief.json");
     writeBrief(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {

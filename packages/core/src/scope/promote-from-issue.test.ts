@@ -82,15 +82,15 @@ function seedDecision(
 describe("findProposedArtifactsForIssue", () => {
   it("finds provenance-linked proposed artifacts", () => {
     const root = makeRoot();
-    writeProposed(root, "a.xbrief.json", 42);
+    writeProposed(root, "2026-01-01-a.xbrief.json", 42);
     const hits = findProposedArtifactsForIssue(root, 42);
     expect(hits).toHaveLength(1);
-    expect(hits[0]).toContain("a.xbrief.json");
+    expect(hits[0]).toContain("2026-01-01-a.xbrief.json");
   });
 
   it("returns empty when only other issues exist", () => {
     const root = makeRoot();
-    writeProposed(root, "a.xbrief.json", 1);
+    writeProposed(root, "2026-01-01-a.xbrief.json", 1);
     expect(findProposedArtifactsForIssue(root, 99)).toEqual([]);
   });
 });
@@ -98,7 +98,7 @@ describe("findProposedArtifactsForIssue", () => {
 describe("promoteFromIssue decision matrix (#1136)", () => {
   it("promotes when latest decision is accept and records audit linkage", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 10);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 10);
     const accept = seedDecision(root, 10, "accept");
 
     const result = promoteFromIssue({
@@ -122,13 +122,13 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
     // File moved
     expect(() =>
-      readFileSync(join(root, "xbrief", "pending", "story.xbrief.json"), "utf8"),
+      readFileSync(join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json"), "utf8"),
     ).not.toThrow();
   });
 
   it("refuses non-accept latest decisions", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 11);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 11);
     seedDecision(root, 11, "defer", "o/r", { reason: "later", resume_on: "date:2026-09-01" });
 
     const result = promoteFromIssue({
@@ -147,7 +147,7 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
   it("refuses reject / needs-ac / mark-duplicate", () => {
     for (const decision of ["reject", "needs-ac", "mark-duplicate"] as const) {
       const root = makeRoot();
-      writeProposed(root, `${decision}.xbrief.json`, 20);
+      writeProposed(root, `2026-01-01-${decision}.xbrief.json`, 20);
       const extras =
         decision === "mark-duplicate"
           ? { linked_to: 1 }
@@ -167,7 +167,7 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("--force-no-cache overrides non-accept refusal and audits force", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 12);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 12);
     seedDecision(root, 12, "reject", "o/r", { reason: "wont" });
 
     const result = promoteFromIssue({
@@ -187,7 +187,7 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("missing decision soft-warns and proceeds by default", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 13);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 13);
 
     const result = promoteFromIssue({
       issueNumber: 13,
@@ -205,7 +205,7 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("--strict fails when no decision exists", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 14);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 14);
 
     const result = promoteFromIssue({
       issueNumber: 14,
@@ -237,8 +237,8 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("refuses when multiple proposed artifacts match", () => {
     const root = makeRoot();
-    writeProposed(root, "a.xbrief.json", 16);
-    writeProposed(root, "b.xbrief.json", 16);
+    writeProposed(root, "2026-01-01-a.xbrief.json", 16);
+    writeProposed(root, "2026-01-01-b.xbrief.json", 16);
     seedDecision(root, 16, "accept");
 
     const result = promoteFromIssue({
@@ -256,15 +256,15 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("--path disambiguates multiple matches", () => {
     const root = makeRoot();
-    writeProposed(root, "a.xbrief.json", 17);
-    writeProposed(root, "b.xbrief.json", 17);
+    writeProposed(root, "2026-01-01-a.xbrief.json", 17);
+    writeProposed(root, "2026-01-01-b.xbrief.json", 17);
     seedDecision(root, 17, "accept");
 
     const result = promoteFromIssue({
       issueNumber: 17,
       repo: "o/r",
       projectRoot: root,
-      explicitPath: join(root, "xbrief", "proposed", "b.xbrief.json"),
+      explicitPath: join(root, "xbrief", "proposed", "2026-01-01-b.xbrief.json"),
     });
 
     expect(result.ok).toBe(true);
@@ -273,14 +273,14 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("refuses --path that does not match issue provenance", () => {
     const root = makeRoot();
-    writeProposed(root, "other.xbrief.json", 999);
+    writeProposed(root, "2026-01-01-other.xbrief.json", 999);
     seedDecision(root, 18, "accept");
 
     const result = promoteFromIssue({
       issueNumber: 18,
       repo: "o/r",
       projectRoot: root,
-      explicitPath: join(root, "xbrief", "proposed", "other.xbrief.json"),
+      explicitPath: join(root, "xbrief", "proposed", "2026-01-01-other.xbrief.json"),
     });
 
     expect(result.ok).toBe(false);
@@ -289,7 +289,7 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("is a no-op when issue is already pending", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 21);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 21);
     seedDecision(root, 21, "accept");
     expect(promoteFromIssue({ issueNumber: 21, repo: "o/r", projectRoot: root }).ok).toBe(true);
     const again = promoteFromIssue({ issueNumber: 21, repo: "o/r", projectRoot: root });
@@ -299,7 +299,7 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
   it("path promote without from-issue does not require cache decision", () => {
     const root = makeRoot();
-    const path = writeProposed(root, "manual.xbrief.json", 18);
+    const path = writeProposed(root, "2026-01-01-manual.xbrief.json", 18);
     // no decision seeded
     const result = promotePath(path, { projectRoot: root });
     expect(result.ok).toBe(true);
@@ -323,7 +323,7 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
         },
       }),
     );
-    writeProposed(root, "story.xbrief.json", 19);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 19);
     seedDecision(root, 19, "accept");
 
     const result = promoteFromIssue({
@@ -411,20 +411,20 @@ describe("promoteFromIssue edge branches (coverage #1136)", () => {
 
   it("accepts relative explicit path under project root", () => {
     const root = makeRoot();
-    writeProposed(root, "rel.xbrief.json", 32);
+    writeProposed(root, "2026-01-01-rel.xbrief.json", 32);
     seedDecision(root, 32, "accept");
     const result = promoteFromIssue({
       issueNumber: 32,
       repo: "o/r",
       projectRoot: root,
-      explicitPath: "xbrief/proposed/rel.xbrief.json",
+      explicitPath: "xbrief/proposed/2026-01-01-rel.xbrief.json",
     });
     expect(result.ok).toBe(true);
   });
 
   it("matches plan.references without Origin narrative", () => {
     const root = makeRoot();
-    const path = join(root, "xbrief", "proposed", "refs-only.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-refs-only.xbrief.json");
     writeFileSync(
       path,
       JSON.stringify({
@@ -459,7 +459,7 @@ describe("promoteFromIssue edge branches (coverage #1136)", () => {
 
   it("--force-no-cache with absent decision still promotes", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 34);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 34);
     const result = promoteFromIssue({
       issueNumber: 34,
       repo: "o/r",
@@ -473,7 +473,7 @@ describe("promoteFromIssue edge branches (coverage #1136)", () => {
 
   it("uses injected latestDecision without reading candidates log", () => {
     const root = makeRoot();
-    writeProposed(root, "story.xbrief.json", 35);
+    writeProposed(root, "2026-01-01-story.xbrief.json", 35);
     const result = promoteFromIssue({
       issueNumber: 35,
       repo: "o/r",
@@ -493,7 +493,7 @@ describe("promoteFromIssue edge branches (coverage #1136)", () => {
 
   it("repo-scoped match refuses wrong-repo URI", () => {
     const root = makeRoot();
-    writeProposed(root, "other-repo.xbrief.json", 36, "other/repo");
+    writeProposed(root, "2026-01-01-other-repo.xbrief.json", 36, "other/repo");
     seedDecision(root, 36, "accept", "o/r");
     const result = promoteFromIssue({
       issueNumber: 36,
@@ -508,7 +508,7 @@ describe("promoteFromIssue edge branches (coverage #1136)", () => {
 describe("promotePath audit edges (#1136)", () => {
   it("alwaysAudit records promote without from-issue", () => {
     const root = makeRoot();
-    const path = writeProposed(root, "plain.xbrief.json", 40);
+    const path = writeProposed(root, "2026-01-01-plain.xbrief.json", 40);
     const result = promotePath(path, { projectRoot: root, alwaysAudit: true, actor: "agent:cov" });
     expect(result.ok).toBe(true);
     expect(result.auditEntry).toBeTruthy();
@@ -525,7 +525,7 @@ describe("promotePath audit edges (#1136)", () => {
 
   it("forceNoCache flag is written on audit entry", () => {
     const root = makeRoot();
-    const path = writeProposed(root, "fn.xbrief.json", 41);
+    const path = writeProposed(root, "2026-01-01-fn.xbrief.json", 41);
     const result = promotePath(path, {
       projectRoot: root,
       fromIssue: 41,

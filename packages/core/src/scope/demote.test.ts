@@ -160,14 +160,14 @@ describe("demote", () => {
 describe("promote then demote undo path", () => {
   it("round trip via filesystem", () => {
     const root = makeRepo();
-    const proposed = join(root, "xbrief", "proposed", "y.xbrief.json");
+    const proposed = join(root, "xbrief", "proposed", "2026-01-01-y.xbrief.json");
     writeFileSync(
       proposed,
       formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
       "utf8",
     );
     expect(runTransition("promote", proposed).ok).toBe(true);
-    const pending = join(root, "xbrief", "pending", "y.xbrief.json");
+    const pending = join(root, "xbrief", "pending", "2026-01-01-y.xbrief.json");
     expect(demoteOne(pending, root, "test").ok).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });

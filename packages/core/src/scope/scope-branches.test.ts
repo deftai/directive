@@ -47,7 +47,7 @@ describe("scope branch coverage", () => {
         plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
       }),
     );
-    const file = join(root, "xbrief", "proposed", "new.xbrief.json");
+    const file = join(root, "xbrief", "proposed", "2026-01-01-new.xbrief.json");
     writeFileSync(
       file,
       formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
