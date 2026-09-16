@@ -15,11 +15,25 @@ export interface LifecycleWriteStamp {
   readonly writtenAt: string;
 }
 
-/** Worker-facing leftover-land path after a scope-provenance strip (#3476 / #3679). */
+/** Solo leftover-land recovery after empty-active / scope-not-ready (#4421 / #3476 / #3679). */
 export const LEFTOVER_LAND_PR_REMEDIATION =
+  "Sanctioned close-out is unreachable from the solo consumer path, not unsatisfiable. " +
+  "Strike option 2 as written: do not complete the scope in the product PR. " +
   "After a provenance-gated product PR strips active/ from the change set, " +
-  "the designed remainder is a leftover land PR (#3476): run `task scope:complete` " +
-  "after merge (it can stamp a brief already in completed/), then land that artifact. " +
+  "the designed remainder is a leftover land PR (#3476). " +
+  "Solo sequence after the product PR merges: run `task scope:complete` " +
+  "(it can stamp a brief already in completed/), git add of that verb's already-written diff, " +
+  "then open the leftover-land lifecycle PR. " +
+  "That git add is leftover-land of the verb's diff, not a Shell reach-around of product files. " +
+  "Empty-active / scope-not-ready recovery names leftover land. " +
+  "Do not Edit/Write completed/. Do not mint a completed/ Write class. " +
+  "A leftover-land PR is a lifecycle-only diff (completed/cancelled xBRIEFs + optional CHANGELOG) " +
+  "after the origin issue is merged or closed. After merge means after the product PR, not after the land PR. " +
+  "Greptile partition: xbrief/active/ on a product PR is correct; " +
+  "completed/ on a product PR before merge stays a defect; " +
+  "completed/ on a leftover-land PR after merge is the sanctioned close-out. " +
+  "Org-enforced dashboard rules cannot be overridden by rules.md. " +
+  "Do not mint a completing status or a default-branch auto-finalizer without a runTransition stamp and lease. " +
   "Do not git-add a completed/ husk to skip the verb.";
 
 function asRecord(value: unknown): Record<string, unknown> | null {

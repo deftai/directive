@@ -98,4 +98,41 @@ describe("lifecycle-write (#3679)", () => {
     expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/leftover land PR \(#3476\)/);
     expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/scope:complete/);
   });
+
+  it("records solo close-out as unreachable, not unsatisfiable (#4421)", () => {
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(
+      /Sanctioned close-out is unreachable from the solo consumer path, not unsatisfiable/,
+    );
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/Strike option 2 as written/);
+  });
+
+  it("partitions Greptile leftover-land from complete-in-PR (#4421)", () => {
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/xbrief\/active\/ on a product PR is correct/);
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(
+      /completed\/ on a product PR before merge stays a defect/,
+    );
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(
+      /completed\/ on a leftover-land PR after merge is the sanctioned close-out/,
+    );
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(
+      /Org-enforced dashboard rules cannot be overridden by rules\.md/,
+    );
+  });
+
+  it("names leftover land on empty-active recovery with the solo sequence (#4421)", () => {
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(
+      /Empty-active \/ scope-not-ready recovery names leftover land/,
+    );
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/scope:complete/);
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/git add of that verb's already-written diff/);
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/leftover land PR \(#3476\)/);
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/Do not Edit\/Write completed\//);
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/Do not mint a completed\/ Write class/);
+  });
+
+  it("does not mint a completing status or default-branch auto-finalizer (#4421)", () => {
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/Do not mint a completing status/);
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/default-branch auto-finalizer/);
+    expect(LEFTOVER_LAND_PR_REMEDIATION).toMatch(/runTransition stamp and lease/);
+  });
 });
