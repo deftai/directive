@@ -14,7 +14,11 @@ function wireScaleFixture(): void {
 }
 
 describe("integration-e2e triage bootstrap at scale (mirrors test_triage_bootstrap_at_scale.py)", () => {
-  it("runBootstrap completes at backlog scale without wall-clock sleep", async () => {
+  // Linux full-suite load exceeds the 5s default on 60-write cachePut cases (#4638).
+  // win32 keeps the suite cap (#3616). A bare 15s here would LOWER win32 (#4194).
+  it("runBootstrap completes at backlog scale without wall-clock sleep", {
+    timeout: process.platform === "win32" ? 240_000 : 15_000,
+  }, async () => {
     const root = makeTempRoot("deft-bootstrap-scale-");
     wireScaleFixture();
 
@@ -54,7 +58,9 @@ describe("integration-e2e triage bootstrap at scale (mirrors test_triage_bootstr
     expect(activeLines).not.toContain("xbrief/.triage-cache/");
   });
 
-  it("runBootstrap emits per-step progress lines", async () => {
+  it("runBootstrap emits per-step progress lines", {
+    timeout: process.platform === "win32" ? 240_000 : 15_000,
+  }, async () => {
     const root = makeTempRoot("deft-bootstrap-progress-");
     wireScaleFixture();
     const lines: string[] = [];
@@ -151,7 +157,9 @@ describe("integration-e2e triage bootstrap at scale (mirrors test_triage_bootstr
     expect(outcome.details.timed_out).toBeUndefined();
   });
 
-  it("fetch_timeout_s=0 disables watchdog and completes against hermetic fixture", async () => {
+  it("fetch_timeout_s=0 disables watchdog and completes against hermetic fixture", {
+    timeout: process.platform === "win32" ? 240_000 : 15_000,
+  }, async () => {
     const root = makeTempRoot("deft-bootstrap-no-watchdog-");
     wireScaleFixture();
     const outcome = await stepPopulateCache(root, REPO, {

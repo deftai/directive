@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clean-tree deft update names the index (#4562).** printUpdateComplete prints a Staged row from post-add cached names. Ignored deposit paths are filtered from git add so a born-ignored .deft/core/ does not invert commit guidance. Partial git add no longer prints as a complete index; remaining tracked paths stay in the guidance. Does not reverse #4158. Pre-staged-commit cross-session index write stays leftover. Closes #4562.
 - **install-upgrade #2064 parity test uses the win32 240s coverage floor (#4564).** The per-test override was 20s, which undercuts vitest.config.ts win32 testTimeout 240_000 under vitest --coverage. Win32 arm is 240_000; non-win32 stays 20_000. Do not skip under coverage. Does not recut #2064 product parity. Closes #4564.
 - **README and docs-site name that agents Lie, Cheat, and Steal (#4623).** After the cold-start block, the early What it is explanation expands LCS on first use and says Directive helps prevent that. Occupancy steal is not that slogan. Closes #4623.
+- **At-scale triage bootstrap 60-write cases use the per-it timeout ternary (#4638).** Backlog scale, progress lines, and fetch_timeout_s=0 are 15s on Linux and keep the 240s win32 cap. Does not raise unit or root testTimeout or add spawnHeavyGlobs. Closes #4638.
 
 ### Removed
 
