@@ -150,7 +150,7 @@ _Explanatory docs and the framework glossary._
 - `intent-constraint.md` — Refs: #4541 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [observable-scope.md](../content/docs/observable-scope.md) (#4495)
 - `inter-run-learning.md` — **Load when:** designing or implementing cross-session agent memory, hot/cold budgets, frozen snapshots, or retargeting memory pattern issues under epic #2741.
 - `no-deft-directive.md` — Some projects should not use Deft Directive. Use a **root file flag** so tools and agents stop offering install, session ritual, and setup.
-- `observable-scope.md` — Refs: #4495 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [#4503](https://github.com/deftai/directive/issues/4503)
+- `observable-scope.md` — Refs: #4495 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [#4503](https://github.com/deftai/directive/issues/4503),…
 - `openclaw-agent-host.md` — Consumer/operator guide for running **Deft Directive** under **OpenClaw** persistent-memory agents (`ape-deft`-class and peers).
 - `operator-log-hygiene-checklist.md` — Copy-paste block for **story acceptance criteria** and **probe locked decisions**. Full pattern: [`patterns/operator-log-hygiene.md`](../content/patterns/operator-log-hygiene.md).
 - `operator-log-hygiene-consumer-pack-stub.md` — Skeleton for **consumer projects** that want a ship-gate for operator-facing logs. Wire this into *your* check aggregate only if you opt in.
