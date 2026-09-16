@@ -235,7 +235,11 @@ export interface ApplyOccupancyInput {
   readonly joinProtocol?: OccupancyJoinProtocol;
   /** Record this touch as a product write, not only a heartbeat (#3599). */
   readonly markWrite?: boolean;
-  /** When false, evaluate only (including confirmed steal) without writing. */
+  /**
+   * When false, evaluate only (including confirmed steal) without writing.
+   * #4624: a process that will not present the later hook owner skip-claims
+   * this way (`session:start --read-only`) instead of persisting a minted lease.
+   */
   readonly write?: boolean;
   /** Test seam for lock wait / timeout. */
   readonly lockDeps?: LockDeps;
@@ -284,7 +288,8 @@ function occupancyCanonicalPath(p: string): string {
 /**
  * Live occupant of *this* tree, or null (#3926). Expired, age-capped, and
  * other-tree records are all residue: claim-over-expired already frees those
- * without a steal.
+ * without a steal. A live minted lease with `lastWriteAt === null` is not
+ * residue (#4624): auto-releasing it is steal.
  */
 export function liveOccupancyOnTree(
   projectRoot: string,
@@ -525,6 +530,7 @@ export function formatOccupancyRemediation(
         : commandSessionId(suggested, "<host-published-id>");
     return (
       `${header}This lease was claimed under a minted owner. No later hook process can present that id.\n` +
+      `${formatOccupancySkipMutationClaimWhenMinted()}\n` +
       `${worktreeFirst} Do not steal this lease. Stay read-only (\`session:start --read-only\`), or ` +
       `release it (\`occupancy:release --session-id=${occupantArg}\` / \`session:end\`) and re-claim ` +
       `with the host-published owner (\`session:start --session-id=${named}\`).${tail}`
@@ -668,6 +674,28 @@ export function formatOccupancyMintRefusal(input: {
   );
 }
 
+/**
+ * #4624: minted provenance cannot be presented by a later hook process.
+ * Mutation-claim under that id deadlocks the later session:start. Last-resort
+ * mint remains identity resolution when no declared host is visible; this is
+ * the skip-claim predicate, not a new refuse-mint terminal.
+ */
+export function occupancyMintedMutationClaimDeadlocksLaterHook(
+  claim: OccupancySessionClaim,
+): boolean {
+  return claim.status === "ok" && claim.provenance === "minted";
+}
+
+/** Skip-claim guidance for a process that would mint (#4624). */
+export function formatOccupancySkipMutationClaimWhenMinted(): string {
+  return (
+    "The process that will not present the later hook owner must not mutation-claim this tree. " +
+    "Stay read-only (`session:start --read-only`), or skip mutation `session:start`. " +
+    "`--session-id` stays the bind when this process is the later presenter. " +
+    "Do not auto-release a live minted no-write lease. Heartbeat on long verbs is not a remedy."
+  );
+}
+
 export interface PresentedIdentity {
   /** The id this surface acts under; empty when nothing was presented. */
   readonly sessionId: string;
@@ -754,6 +782,14 @@ export function formatPresentedIdentityDisagreement(identity: PresentedIdentity)
  *
  * #4431: a host with a declared identity contract must not mint. That control
  * holds whether or not the lifecycle rewrite could inspect the invocation.
+ *
+ * #4624: a minted owner cannot be presented by a later hook process.
+ * Mutation-claim under that id deadlocks the later session:start. Last-resort
+ * mint stays identity resolution when no declared host is visible; the process
+ * that will not present the later owner must not mutation-claim this tree
+ * (session:start --read-only, or skip mutation session:start). --session-id
+ * stays the bind when that process is the later presenter. Heartbeat on long
+ * verbs is not a remedy. Auto-release of a live minted no-write lease is steal.
  */
 export function resolveOccupancySessionClaim(
   input: ApplyOccupancyInput = {},
@@ -904,6 +940,9 @@ export function applyWorktreeOccupancy(
   const path = occupancyPath(projectRoot);
   const claim = resolveOccupancySessionClaim(input);
   if (claim.status === "refuse-mint") return occupancyMintRefusalDecision(projectRoot, claim);
+  // #4624: last-resort mint may still persist when no declared host is visible.
+  // A process that will not present the later hook owner must not take this
+  // mutation-claim path (session:start --read-only, or skip mutation session:start).
   const incoming = claim.sessionId;
   const existing = readOccupancy(projectRoot);
   const live = liveOccupancyOnTree(projectRoot, existing, now);
@@ -1916,6 +1955,8 @@ function restampOccupancyHeartbeat(
  * reading, building, or waiting produces no gated write to ride on.
  *
  * Never claims and never mints an owner — an unheld or foreign lease is denied.
+ * #4624: not a remedy for a minted owner a later hook cannot present. Wiring
+ * heartbeat into long verbs cannot close that deadlock: this verb is owner-only.
  */
 export function heartbeatOccupancy(
   projectRoot: string,

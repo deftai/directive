@@ -32,6 +32,7 @@ import {
   evaluateOccupancyWriteGate,
   formatOccupancyClaimProvenance,
   formatOccupancyRemediation,
+  formatOccupancySkipMutationClaimWhenMinted,
   grantOccupancyMembership,
   heartbeatAgeSeconds,
   heartbeatOccupancy,
@@ -49,6 +50,7 @@ import {
   occupancyAdmission,
   occupancyGrantFor,
   occupancyLiveness,
+  occupancyMintedMutationClaimDeadlocksLaterHook,
   occupancyPath,
   occupancyWorktreeMatches,
   readOccupancy,
@@ -1215,6 +1217,141 @@ describe("worktree occupancy lease (#3433)", () => {
     });
     expect(result.code).toBe(0);
     expect(readOccupancy(root)?.sessionId).toBe("owner");
+  });
+
+  describe("setup-minted owner skip-claim (#4624)", () => {
+    it("names skip-claim when a minted owner would deadlock a later hook", () => {
+      const minted = resolveOccupancySessionClaim({
+        env: {},
+        newSessionId: () => "minted-uuid",
+      });
+      expect(occupancyMintedMutationClaimDeadlocksLaterHook(minted)).toBe(true);
+      const explicit = resolveOccupancySessionClaim({ sessionId: "host-owner", env: {} });
+      expect(occupancyMintedMutationClaimDeadlocksLaterHook(explicit)).toBe(false);
+      const host = resolveOccupancySessionClaim({
+        env: { GROK_SESSION_ID: "grok-session-a" },
+      });
+      expect(occupancyMintedMutationClaimDeadlocksLaterHook(host)).toBe(false);
+      const guidance = formatOccupancySkipMutationClaimWhenMinted();
+      expect(guidance).toContain("must not mutation-claim");
+      expect(guidance).toContain("session:start --read-only");
+      expect(guidance).toContain("skip mutation");
+      expect(guidance).toContain("--session-id");
+      expect(guidance).toContain("Do not auto-release");
+      expect(guidance).toContain("Heartbeat on long verbs is not a remedy");
+    });
+
+    it("read-only session:start does not mutation-claim a minted owner on an empty tree", () => {
+      const root = tempRoot();
+      const result = runSessionStart(root, {
+        posture: READ_ONLY_POSTURE,
+        writeHistory: false,
+        env: {},
+        newSessionId: () => "must-not-claim",
+      });
+      expect(result.code).toBe(0);
+      expect(readOccupancy(root)).toBeNull();
+      expect(existsSync(occupancyPath(root))).toBe(false);
+    });
+
+    it("write:false apply does not persist a minted mutation claim", () => {
+      const root = tempRoot();
+      const decision = applyWorktreeOccupancy(root, {
+        env: {},
+        newSessionId: () => "minted-uuid",
+        write: false,
+        now: new Date("2026-08-17T12:00:00Z"),
+      });
+      expect(decision.code).toBe(0);
+      expect(readOccupancy(root)).toBeNull();
+    });
+
+    it("--session-id still binds when this process is the later presenter", () => {
+      const root = tempRoot();
+      const decision = applyWorktreeOccupancy(root, {
+        sessionId: "host:grok:v1:later-presenter",
+        env: {},
+        now: new Date("2026-08-17T12:00:00Z"),
+      });
+      expect(decision.action).toBe("claimed");
+      expect(readOccupancy(root)?.sessionId).toBe("host:grok:v1:later-presenter");
+      expect(readOccupancy(root)?.identityProvenance).toBe("explicit");
+    });
+
+    it("does not auto-release a live minted no-write lease", () => {
+      const root = tempRoot();
+      const claimedAt = new Date("2026-08-17T12:00:00Z");
+      applyWorktreeOccupancy(root, {
+        env: {},
+        newSessionId: () => "minted-uuid",
+        now: claimedAt,
+      });
+      const record = readOccupancy(root);
+      expect(record?.identityProvenance).toBe("minted");
+      expect(record?.lastWriteAt).toBeNull();
+      expect(liveOccupancyOnTree(root, record, new Date("2026-08-17T12:12:20Z"))).not.toBeNull();
+
+      const stranger = applyWorktreeOccupancy(root, {
+        sessionId: "later-hook",
+        now: new Date("2026-08-17T12:12:20Z"),
+        env: {},
+      });
+      expect(stranger.action).toBe("denied");
+      expect(stranger.message).toContain("Do not steal this lease");
+      expect(stranger.message).toContain("must not mutation-claim");
+      expect(readOccupancy(root)?.sessionId).toBe("minted-uuid");
+      expect(readOccupancy(root)?.lastWriteAt).toBeNull();
+    });
+
+    it("heartbeatOccupancy is not a minted-owner remedy and never mints", () => {
+      const root = tempRoot();
+      const claimedAt = new Date("2026-08-17T12:00:00Z");
+      applyWorktreeOccupancy(root, {
+        env: {},
+        newSessionId: () => "minted-uuid",
+        now: claimedAt,
+      });
+      const later = new Date(claimedAt.getTime() + 10 * 60 * 1000);
+      const strangerBeat = heartbeatOccupancy(root, {
+        sessionId: "later-hook",
+        now: later,
+        env: {},
+      });
+      expect(strangerBeat.code).toBe(1);
+      expect(strangerBeat.message).toContain("minted owner");
+      expect(strangerBeat.message).toContain("must not mutation-claim");
+      const anonymous = heartbeatOccupancy(root, { now: later, env: {} });
+      expect(anonymous.code).toBe(2);
+      expect(anonymous.message).toContain("never mints an owner");
+      expect(readOccupancy(root)?.sessionId).toBe("minted-uuid");
+      expect(readOccupancy(root)?.lastWriteAt).toBeNull();
+    });
+
+    it("still mints as identity resolution when no declared host is visible", () => {
+      expect(
+        resolveOccupancySessionClaim({
+          env: {},
+          newSessionId: () => "minted-uuid",
+        }),
+      ).toEqual({
+        status: "ok",
+        sessionId: "minted-uuid",
+        provenance: "minted",
+        source: "mint",
+      });
+    });
+
+    it("treats expired minted leases as residue, not live no-write", () => {
+      const root = tempRoot();
+      const claimedAt = new Date("2026-08-17T12:00:00Z");
+      applyWorktreeOccupancy(root, {
+        env: {},
+        newSessionId: () => "minted-uuid",
+        now: claimedAt,
+      });
+      const expiredAt = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1);
+      expect(liveOccupancyOnTree(root, readOccupancy(root), expiredAt)).toBeNull();
+    });
   });
 
   it("re-arm with DEFT_SESSION_ID keeps the occupant id and does not mint", () => {
