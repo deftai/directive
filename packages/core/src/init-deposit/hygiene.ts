@@ -1421,6 +1421,24 @@ export function printUnstagedLedgerRemainder(
   }
 }
 
+function sanitizeGuidancePath(path: string): string {
+  return path.replace(/\r?\n/g, " ");
+}
+
+function gitAddGuidanceCmd(paths: readonly string[]): string {
+  return `git add -- ${paths.map(sanitizeGuidancePath).join(" ")}`;
+}
+
+/**
+ * Commit-guidance policy (#4562):
+ * - Assumptions: `cachedNames` is post-add index state; `paths` may include
+ *   gitignored `.deft/core/**` that `stageFrameworkPaths` filtered out of argv.
+ * - Guarantees: "already staged ONLY these" prints only when every non-core
+ *   candidate is in the index. A nonempty index subset plus remaining tracked
+ *   paths is partial staging — remaining `git add` is printed; the complete
+ *   claim is not.
+ * - Non-goals: controlling cross-session pre-staged commits (leftover).
+ */
 export function printCommitGuidance(
   io: InitDepositIo,
   paths: readonly string[],
@@ -1431,9 +1449,12 @@ export function printCommitGuidance(
   if (paths.length === 0 && unstagedRemainder.length === 0) return;
   if (paths.length > 0) {
     const inIndex = actuallyStagedPaths(paths, cachedNames);
-    const alreadyStaged = staged || inIndex.length > 0;
-    const commandPaths = inIndex.length > 0 ? inIndex : paths;
-    const addCmd = `git add -- ${commandPaths.join(" ")}`;
+    const remaining = paths.filter((path) => !inIndex.includes(path));
+    const remainingTracked = remaining.filter((path) => !isCoreStagePath(path));
+    const completeStaged =
+      remainingTracked.length === 0 &&
+      inIndex.length > 0 &&
+      (staged || remaining.length === 0 || remaining.some((path) => isCoreStagePath(path)));
     io.printf(
       "\nCommit hygiene (#1453, #1671, #3127, #3193, #3394): keep the framework upgrade in its OWN branch/PR.\n",
     );
@@ -1446,12 +1467,22 @@ export function printCommitGuidance(
       "pin/lock (Directive pin-only + lock follow-through, #3193) + .deft/GENERATION.json.\n",
     );
     io.printf("True app/product paths still require a separate PR.\n");
-    if (alreadyStaged) {
+    if (completeStaged) {
       io.printf("The installer already staged ONLY these framework + installer-managed paths:\n");
-      io.printf(`  ${addCmd}\n`);
+      io.printf(`  ${gitAddGuidanceCmd(inIndex)}\n`);
+    } else if (inIndex.length > 0 && remainingTracked.length > 0) {
+      io.printf(
+        "The installer staged only a subset of framework paths; the index is incomplete.\n",
+      );
+      io.printf("Already in the index:\n");
+      for (const path of inIndex) {
+        io.printf(`  ${sanitizeGuidancePath(path)}\n`);
+      }
+      io.printf("Stage remaining installer-managed paths:\n");
+      io.printf(`  ${gitAddGuidanceCmd(remainingTracked)}\n`);
     } else {
       io.printf("Stage ONLY these framework + installer-managed paths:\n");
-      io.printf(`  ${addCmd}\n`);
+      io.printf(`  ${gitAddGuidanceCmd(inIndex.length > 0 ? inIndex : paths)}\n`);
     }
     io.printf("Then take the framework deposit through the full PR lifecycle so deft-core-guard\n");
     io.printf("evaluates a clean, standalone upgrade PR:\n");

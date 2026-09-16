@@ -1227,6 +1227,38 @@ describe("printCommitGuidance (#4562)", () => {
     expect(printed).not.toContain(".deft/core/main.md");
   });
 
+  it("does not claim complete staging when remaining tracked paths are unstaged", () => {
+    const lines: string[] = [];
+    printCommitGuidance(
+      { printf: (text) => lines.push(text) },
+      ["AGENTS.md", "package.json"],
+      false,
+      [],
+      ["AGENTS.md"],
+    );
+    const printed = lines.join("");
+    expect(printed).toContain("the index is incomplete");
+    expect(printed).not.toContain("The installer already staged ONLY these");
+    expect(printed).toContain("Already in the index:");
+    expect(printed).toContain("AGENTS.md");
+    expect(printed).toContain("Stage remaining installer-managed paths:");
+    expect(printed).toContain("git add -- package.json");
+  });
+
+  it("sanitizes newlines in guidance pathspecs", () => {
+    const lines: string[] = [];
+    printCommitGuidance(
+      { printf: (text) => lines.push(text) },
+      ["AGENTS.md\nmalicious"],
+      false,
+      [],
+      [],
+    );
+    const printed = lines.join("");
+    expect(printed).toContain("git add -- AGENTS.md malicious");
+    expect(printed).not.toContain("git add -- AGENTS.md\nmalicious");
+  });
+
   it("asks to stage only when nothing landed in the index", () => {
     const lines: string[] = [];
     printCommitGuidance({ printf: (text) => lines.push(text) }, ["AGENTS.md"], false, [], []);
