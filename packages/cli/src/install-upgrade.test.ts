@@ -174,45 +174,51 @@ describe("install-upgrade <-> directive update parity (#2064)", () => {
     return summary;
   }
 
-  it("produces identical deposit state + stdout; only install-upgrade emits the notice", async () => {
-    const contentRoot = "node_modules/@deftai/directive-content";
+  it(
+    "produces identical deposit state + stdout; only install-upgrade emits the notice",
+    async () => {
+      const contentRoot = "node_modules/@deftai/directive-content";
 
-    // directive update against fixture U.
-    const projU = makeVendoredFixture("parity-update-");
-    const outU: string[] = [];
-    const errU: string[] = [];
-    const ioU: DispatchIo = { writeOut: (t) => outU.push(t), writeErr: (t) => errU.push(t) };
-    const codeU = await updateWithSeams(join(projU, contentRoot))(["--repo-root", projU], ioU);
+      // directive update against fixture U.
+      const projU = makeVendoredFixture("parity-update-");
+      const outU: string[] = [];
+      const errU: string[] = [];
+      const ioU: DispatchIo = { writeOut: (t) => outU.push(t), writeErr: (t) => errU.push(t) };
+      const codeU = await updateWithSeams(join(projU, contentRoot))(["--repo-root", projU], ioU);
 
-    // install-upgrade against an identical fixture I (delegating to the same path).
-    const projI = makeVendoredFixture("parity-installupgrade-");
-    const outI: string[] = [];
-    const errI: string[] = [];
-    const ioI: DispatchIo = { writeOut: (t) => outI.push(t), writeErr: (t) => errI.push(t) };
-    const codeI = await run(["--project-root", projI], ioI, {
-      runUpdate: updateWithSeams(join(projI, contentRoot)),
-    });
+      // install-upgrade against an identical fixture I (delegating to the same path).
+      const projI = makeVendoredFixture("parity-installupgrade-");
+      const outI: string[] = [];
+      const errI: string[] = [];
+      const ioI: DispatchIo = { writeOut: (t) => outI.push(t), writeErr: (t) => errI.push(t) };
+      const codeI = await run(["--project-root", projI], ioI, {
+        runUpdate: updateWithSeams(join(projI, contentRoot)),
+      });
 
-    expect(codeU).toBe(0);
-    expect(codeI).toBe(0);
+      expect(codeU).toBe(0);
+      expect(codeI).toBe(0);
 
-    // stdout (the JSON upgrade summary) is identical modulo the fixture paths.
-    expect(normalizeSummary(outI.join(""))).toEqual(normalizeSummary(outU.join("")));
+      // stdout (the JSON upgrade summary) is identical modulo the fixture paths.
+      expect(normalizeSummary(outI.join(""))).toEqual(normalizeSummary(outU.join("")));
 
-    // Deposited .deft/core tree is byte-identical.
-    expect(readTree(join(projI, ".deft", "core"))).toEqual(readTree(join(projU, ".deft", "core")));
+      // Deposited .deft/core tree is byte-identical.
+      expect(readTree(join(projI, ".deft", "core"))).toEqual(
+        readTree(join(projU, ".deft", "core")),
+      );
 
-    // AGENTS.md refresh is identical modulo the intrinsic per-run managed-section
-    // stamp (`refreshed=` timestamp + random `session=`), which differs between
-    // any two independent refreshes regardless of the verb that drove them.
-    const normalizeAgents = (text: string): string =>
-      text.replace(/refreshed=\S+/g, "refreshed=<t>").replace(/session=\S+/g, "session=<s>");
-    expect(normalizeAgents(readFileSync(join(projI, "AGENTS.md"), "utf8"))).toBe(
-      normalizeAgents(readFileSync(join(projU, "AGENTS.md"), "utf8")),
-    );
+      // AGENTS.md refresh is identical modulo the intrinsic per-run managed-section
+      // stamp (`refreshed=` timestamp + random `session=`), which differs between
+      // any two independent refreshes regardless of the verb that drove them.
+      const normalizeAgents = (text: string): string =>
+        text.replace(/refreshed=\S+/g, "refreshed=<t>").replace(/session=\S+/g, "session=<s>");
+      expect(normalizeAgents(readFileSync(join(projI, "AGENTS.md"), "utf8"))).toBe(
+        normalizeAgents(readFileSync(join(projU, "AGENTS.md"), "utf8")),
+      );
 
-    // Only install-upgrade emits the one-line redirect notice.
-    expect(errI.join("")).toContain(REDIRECT_NOTICE.trim());
-    expect(errU.join("")).not.toContain(REDIRECT_NOTICE.trim());
-  }, 20_000);
+      // Only install-upgrade emits the one-line redirect notice.
+      expect(errI.join("")).toContain(REDIRECT_NOTICE.trim());
+      expect(errU.join("")).not.toContain(REDIRECT_NOTICE.trim());
+    },
+    process.platform === "win32" ? 240_000 : 20_000,
+  );
 });
