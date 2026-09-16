@@ -9,45 +9,49 @@ afterAll(() => {
   for (const t of temps) rmSync(t, { recursive: true, force: true });
 });
 
-describe("deft-ts codebase-projection-registry", () => {
-  it("lists registered kinds as JSON on stdout", () => {
-    const result = runDeftTs("codebase-projection-registry", ["--list"]);
+describe("deft-ts codebase-projection-registry", async () => {
+  it("lists registered kinds as JSON on stdout", async () => {
+    const result = await runDeftTs("codebase-projection-registry", ["--list"]);
     expect(result.exitCode).toBe(0);
     const payload = JSON.parse(result.stdout) as { kind: string }[];
     expect(payload[0]?.kind).toBe("codebase-map");
   });
 
-  it("prefers --list over --kind", () => {
-    const result = runDeftTs("codebase-projection-registry", ["--list", "--kind", "codebase-map"]);
+  it("prefers --list over --kind", async () => {
+    const result = await runDeftTs("codebase-projection-registry", [
+      "--list",
+      "--kind",
+      "codebase-map",
+    ]);
     expect(result.exitCode).toBe(0);
     const payload = JSON.parse(result.stdout) as unknown[];
     expect(Array.isArray(payload)).toBe(true);
   });
 
-  it("exits 1 for unknown projection kind", () => {
-    const result = runDeftTs("codebase-projection-registry", ["--kind", "unknown-map"]);
+  it("exits 1 for unknown projection kind", async () => {
+    const result = await runDeftTs("codebase-projection-registry", ["--kind", "unknown-map"]);
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("unknown projection kind");
   });
 });
 
-describe("deft-ts codebase-default-extractor", () => {
-  it("emits a codebase-map artifact for a minimal tree", () => {
+describe("deft-ts codebase-default-extractor", async () => {
+  it("emits a codebase-map artifact for a minimal tree", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-extract-"));
     temps.push(root);
     mkdirSync(join(root, "src"));
     writeFileSync(join(root, "src", "main.py"), "print('hello')\n", "utf8");
-    const result = runDeftTs("codebase-default-extractor", ["--project-root", root]);
+    const result = await runDeftTs("codebase-default-extractor", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
     const payload = JSON.parse(result.stdout) as { kind: string; modules: unknown[] };
     expect(payload.kind).toBe("codebase-map");
     expect(payload.modules.length).toBeGreaterThan(0);
   });
 
-  it("emits degraded artifact when project root has no sources", () => {
+  it("emits degraded artifact when project root has no sources", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-extract-empty-"));
     temps.push(root);
-    const result = runDeftTs("codebase-default-extractor", ["--project-root", root]);
+    const result = await runDeftTs("codebase-default-extractor", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
     const payload = JSON.parse(result.stdout) as { degraded: unknown[]; modules: unknown[] };
     expect(payload.modules).toEqual([]);
@@ -55,15 +59,15 @@ describe("deft-ts codebase-default-extractor", () => {
   });
 });
 
-describe("deft-ts codebase-provider", () => {
-  it("exits 2 when PROJECT-DEFINITION is invalid JSON", () => {
+describe("deft-ts codebase-provider", async () => {
+  it("exits 2 when PROJECT-DEFINITION is invalid JSON", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-provider-"));
     temps.push(root);
     const vbriefPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     writeFileSync(vbriefPath, "{not-json", "utf8");
-    const result = runDeftTs("codebase-provider", ["--project-root", root]);
+    const result = await runDeftTs("codebase-provider", ["--project-root", root]);
     expect(result.exitCode).toBe(2);
     const payload = JSON.parse(result.stderr) as { ok: boolean; errors: { code: string }[] };
     expect(payload.ok).toBe(false);

@@ -9,11 +9,11 @@ afterAll(() => {
   for (const t of temps) rmSync(t, { recursive: true, force: true });
 });
 
-describe("deft-ts verify-branch (maps tests/cli/test_preflight_branch.py overlap)", () => {
-  it("exits 0 on default branch when project definition missing and flag set", () => {
+describe("deft-ts verify-branch (maps tests/cli/test_preflight_branch.py overlap)", async () => {
+  it("exits 0 on default branch when project definition missing and flag set", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-branch-"));
     temps.push(root);
-    const { exitCode } = runDeftTs("verify-branch", [
+    const { exitCode } = await runDeftTs("verify-branch", [
       "--allow-missing-project-definition",
       "--project-root",
       root,
@@ -21,17 +21,17 @@ describe("deft-ts verify-branch (maps tests/cli/test_preflight_branch.py overlap
     expect([0, 1, 2]).toContain(exitCode);
   });
 
-  it("verify:branch alias routes identically", () => {
+  it("verify:branch alias routes identically", async () => {
     const args = ["--allow-missing-project-definition", "--project-root", repoRoot()];
-    const direct = runDeftTs("verify-branch", args);
-    const alias = runDeftTs("verify:branch", args);
+    const direct = await runDeftTs("verify-branch", args);
+    const alias = await runDeftTs("verify:branch", args);
     expect(alias.exitCode).toBe(direct.exitCode);
   });
 });
 
-describe("deft-ts verify-wip-cap", () => {
-  it("accepts --allow-over-cap against framework repo", () => {
-    const { exitCode } = runDeftTs("verify-wip-cap", [
+describe("deft-ts verify-wip-cap", async () => {
+  it("accepts --allow-over-cap against framework repo", async () => {
+    const { exitCode } = await runDeftTs("verify-wip-cap", [
       "--allow-over-cap",
       "--project-root",
       repoRoot(),
@@ -39,31 +39,31 @@ describe("deft-ts verify-wip-cap", () => {
     expect([0, 1]).toContain(exitCode);
   });
 
-  it("verify:wip-cap alias routes identically", () => {
+  it("verify:wip-cap alias routes identically", async () => {
     const args = ["--allow-over-cap", "--project-root", repoRoot()];
-    expect(runDeftTs("verify:wip-cap", args).exitCode).toBe(
-      runDeftTs("verify-wip-cap", args).exitCode,
+    expect((await runDeftTs("verify:wip-cap", args)).exitCode).toBe(
+      (await runDeftTs("verify-wip-cap", args)).exitCode,
     );
   });
 });
 
-describe("deft-ts verify-agents-md-budget (#645)", () => {
-  it("passes against the framework repo (ratchet seeded at current size)", () => {
-    const { exitCode } = runDeftTs("verify-agents-md-budget", ["--project-root", repoRoot()]);
+describe("deft-ts verify-agents-md-budget (#645)", async () => {
+  it("passes against the framework repo (ratchet seeded at current size)", async () => {
+    const { exitCode } = await runDeftTs("verify-agents-md-budget", ["--project-root", repoRoot()]);
     expect(exitCode).toBe(0);
   });
 
-  it("verify:agents-md-budget alias routes identically", () => {
+  it("verify:agents-md-budget alias routes identically", async () => {
     const args = ["--project-root", repoRoot()];
-    expect(runDeftTs("verify:agents-md-budget", args).exitCode).toBe(
-      runDeftTs("verify-agents-md-budget", args).exitCode,
+    expect((await runDeftTs("verify:agents-md-budget", args)).exitCode).toBe(
+      (await runDeftTs("verify-agents-md-budget", args)).exitCode,
     );
   });
 });
 
-describe("deft-ts verify-evaluator-surface (#4386)", () => {
-  it("skips when no evaluator-surface paths are in the diff", () => {
-    const { exitCode } = runDeftTs("verify-evaluator-surface", [
+describe("deft-ts verify-evaluator-surface (#4386)", async () => {
+  it("skips when no evaluator-surface paths are in the diff", async () => {
+    const { exitCode } = await runDeftTs("verify-evaluator-surface", [
       "--project-root",
       repoRoot(),
       "--path",
@@ -72,17 +72,17 @@ describe("deft-ts verify-evaluator-surface (#4386)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("verify:evaluator-surface alias routes identically", () => {
+  it("verify:evaluator-surface alias routes identically", async () => {
     const args = ["--project-root", repoRoot(), "--path", "README.md"];
-    expect(runDeftTs("verify:evaluator-surface", args).exitCode).toBe(
-      runDeftTs("verify-evaluator-surface", args).exitCode,
+    expect((await runDeftTs("verify:evaluator-surface", args)).exitCode).toBe(
+      (await runDeftTs("verify-evaluator-surface", args)).exitCode,
     );
   });
 });
 
-describe("deft-ts verify-eval-health-relocation (#2373)", () => {
-  it("skips when no relocation paths are in the diff", () => {
-    const { exitCode } = runDeftTs("verify-eval-health-relocation", [
+describe("deft-ts verify-eval-health-relocation (#2373)", async () => {
+  it("skips when no relocation paths are in the diff", async () => {
+    const { exitCode } = await runDeftTs("verify-eval-health-relocation", [
       "--project-root",
       repoRoot(),
       "--path",
@@ -91,19 +91,19 @@ describe("deft-ts verify-eval-health-relocation (#2373)", () => {
     expect(exitCode).toBe(0);
   });
 
-  it("verify:eval-health-relocation alias routes identically", () => {
+  it("verify:eval-health-relocation alias routes identically", async () => {
     const args = ["--project-root", repoRoot(), "--path", "README.md"];
-    expect(runDeftTs("verify:eval-health-relocation", args).exitCode).toBe(
-      runDeftTs("verify-eval-health-relocation", args).exitCode,
+    expect((await runDeftTs("verify:eval-health-relocation", args)).exitCode).toBe(
+      (await runDeftTs("verify-eval-health-relocation", args)).exitCode,
     );
   });
 });
 
-describe("deft-ts verify-judgment-gates (maps tests/cli/test_verify_judgment_gates.py)", () => {
-  it("returns 2 when claim ledger path is missing", () => {
+describe("deft-ts verify-judgment-gates (maps tests/cli/test_verify_judgment_gates.py)", async () => {
+  it("returns 2 when claim ledger path is missing", async () => {
     const root = seedProject();
     temps.push(root);
-    const { exitCode, stderr } = runDeftTs("verify-judgment-gates", [
+    const { exitCode, stderr } = await runDeftTs("verify-judgment-gates", [
       "--project-root",
       root,
       "--claim-ledger",
@@ -111,37 +111,37 @@ describe("deft-ts verify-judgment-gates (maps tests/cli/test_verify_judgment_gat
     ]);
     expect([1, 2]).toContain(exitCode);
     expect(
-      stderr.length + runDeftTs("verify-judgment-gates", ["--bogus"]).stderr.length,
+      stderr.length + (await runDeftTs("verify-judgment-gates", ["--bogus"])).stderr.length,
     ).toBeGreaterThan(0);
   });
 
-  it("verify:judgment-gates alias routes identically", () => {
+  it("verify:judgment-gates alias routes identically", async () => {
     const args = ["--project-root", repoRoot(), "--claim-ledger", "/nonexistent"];
-    expect(runDeftTs("verify:judgment-gates", args).exitCode).toBe(
-      runDeftTs("verify-judgment-gates", args).exitCode,
+    expect((await runDeftTs("verify:judgment-gates", args)).exitCode).toBe(
+      (await runDeftTs("verify-judgment-gates", args)).exitCode,
     );
   });
 });
 
-describe("deft-ts verify-investigation (maps tests/cli/test_verify_investigation.py)", () => {
-  it("returns non-zero when investigation artifacts are absent", () => {
+describe("deft-ts verify-investigation (maps tests/cli/test_verify_investigation.py)", async () => {
+  it("returns non-zero when investigation artifacts are absent", async () => {
     const root = seedProject();
     temps.push(root);
-    const { exitCode } = runDeftTs("verify-investigation", ["--project-root", root]);
+    const { exitCode } = await runDeftTs("verify-investigation", ["--project-root", root]);
     expect([1, 2]).toContain(exitCode);
   });
 
-  it("verify:investigation alias routes identically", () => {
+  it("verify:investigation alias routes identically", async () => {
     const args = ["--project-root", repoRoot()];
-    expect(runDeftTs("verify:investigation", args).exitCode).toBe(
-      runDeftTs("verify-investigation", args).exitCode,
+    expect((await runDeftTs("verify:investigation", args)).exitCode).toBe(
+      (await runDeftTs("verify-investigation", args)).exitCode,
     );
   });
 });
 
-describe("deft-ts verify-scm-boundary (maps tests/cli/test_verify_scm_boundary.py)", () => {
-  it("runs against framework repo without config error", () => {
-    const { exitCode } = runDeftTs("framework-commands", [
+describe("deft-ts verify-scm-boundary (maps tests/cli/test_verify_scm_boundary.py)", async () => {
+  it("runs against framework repo without config error", async () => {
+    const { exitCode } = await runDeftTs("framework-commands", [
       "verify:scm-boundary",
       "--project-root",
       repoRoot(),
@@ -150,14 +150,17 @@ describe("deft-ts verify-scm-boundary (maps tests/cli/test_verify_scm_boundary.p
   });
 });
 
-describe("deft-ts vbrief-validate / verify:vbrief-conformance", () => {
-  it("vbrief-validate exits 0 on framework vbrief tree", () => {
-    const { exitCode } = runDeftTs("vbrief-validate", ["--vbrief-dir", join(repoRoot(), "xbrief")]);
+describe("deft-ts vbrief-validate / verify:vbrief-conformance", async () => {
+  it("vbrief-validate exits 0 on framework vbrief tree", async () => {
+    const { exitCode } = await runDeftTs("vbrief-validate", [
+      "--vbrief-dir",
+      join(repoRoot(), "xbrief"),
+    ]);
     expect([0, 1]).toContain(exitCode);
   });
 
-  it("verify:vbrief-conformance via framework-commands", () => {
-    const { exitCode } = runDeftTs("framework-commands", [
+  it("verify:vbrief-conformance via framework-commands", async () => {
+    const { exitCode } = await runDeftTs("framework-commands", [
       "verify:vbrief-conformance",
       "--project-root",
       repoRoot(),
@@ -166,9 +169,9 @@ describe("deft-ts vbrief-validate / verify:vbrief-conformance", () => {
   });
 });
 
-describe("deft-ts verify_capacity / validate-content (maps test_verify_capacity.py)", () => {
-  it("framework verify-strategy-output returns config or validation exit", () => {
-    const { exitCode } = runDeftTs("framework-commands", [
+describe("deft-ts verify_capacity / validate-content (maps test_verify_capacity.py)", async () => {
+  it("framework verify-strategy-output returns config or validation exit", async () => {
+    const { exitCode } = await runDeftTs("framework-commands", [
       "verify-strategy-output",
       "--project-root",
       repoRoot(),
@@ -177,25 +180,25 @@ describe("deft-ts verify_capacity / validate-content (maps test_verify_capacity.
   });
 });
 
-describe("deft-ts verify-story-ready", () => {
-  it("returns 1 when vbrief path missing", () => {
-    const { exitCode } = runDeftTs("verify-story-ready", [
+describe("deft-ts verify-story-ready", async () => {
+  it("returns 1 when vbrief path missing", async () => {
+    const { exitCode } = await runDeftTs("verify-story-ready", [
       "--vbrief-path",
       "/no/such/story.xbrief.json",
     ]);
     expect([1, 2]).toContain(exitCode);
   });
 
-  it("verify:story-ready alias routes identically", () => {
+  it("verify:story-ready alias routes identically", async () => {
     const args = ["--vbrief-path", "/no/such/story.xbrief.json"];
-    expect(runDeftTs("verify:story-ready", args).exitCode).toBe(
-      runDeftTs("verify-story-ready", args).exitCode,
+    expect((await runDeftTs("verify:story-ready", args)).exitCode).toBe(
+      (await runDeftTs("verify-story-ready", args)).exitCode,
     );
   });
 });
 
-describe("deft-ts active vBRIEF preflight path", () => {
-  it("returns 0 for an active running vBRIEF", () => {
+describe("deft-ts active vBRIEF preflight path", async () => {
+  it("returns 0 for an active running vBRIEF", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-preflight-"));
     temps.push(root);
     const activeDir = join(root, "xbrief", "active");
@@ -217,7 +220,7 @@ describe("deft-ts active vBRIEF preflight path", () => {
       }),
       "utf8",
     );
-    const { exitCode } = runDeftTs("vbrief-preflight", ["--vbrief-path", vbriefPath]);
+    const { exitCode } = await runDeftTs("vbrief-preflight", ["--vbrief-path", vbriefPath]);
     expect(exitCode).toBe(0);
   });
 });

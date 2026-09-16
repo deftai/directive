@@ -153,3 +153,45 @@ describe("vitest.config.ts Windows vs CI branch parity (#2630)", () => {
     expect(source).toMatch(/coverageThresholds/);
   });
 });
+
+describe("vitest.config.ts coverage wall classes (#4591)", () => {
+  const source = readFileSync(configPath, "utf8");
+  const helpers = readFileSync(join(repoRoot, "packages/cli/src/gates-cli/_helpers.ts"), "utf8");
+  const constants = readFileSync(join(repoRoot, "packages/core/src/release/constants.ts"), "utf8");
+  const worktree = readFileSync(
+    join(repoRoot, "packages/cli/src/hook-dispatch-worktree.test.ts"),
+    "utf8",
+  );
+
+  it("names remaining cost classes and keeps hang-detector last", () => {
+    expect(source).toContain("#4591");
+    expect(source).toMatch(/CLI process boots/);
+    expect(source).toMatch(/occupancy/);
+    expect(source).toMatch(/git-worktree/);
+    expect(source).toMatch(/Hang-detector timeout stays last/);
+    expect(source).toMatch(/RELEASE_CHECK_TIMEOUT_MS/);
+    expect(constants).toMatch(/RELEASE_CHECK_TIMEOUT_MS = 20 \* 60 \* 1000/);
+  });
+
+  it("splits spawn-heavy leftovers into their own vitest project", () => {
+    expect(source).toMatch(/name:\s*"spawn-heavy"/);
+    expect(source).toMatch(/name:\s*"unit"/);
+    expect(source).toContain("cli-bin-symlink-entrypoint.test.ts");
+    expect(source).toContain("hook-host-identity-lifetime.test.ts");
+    expect(source).not.toMatch(/fileParallelism:\s*false/);
+    expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
+  });
+
+  it("runs CLI parity through in-process routeAndDispatch", () => {
+    expect(helpers).toContain("routeAndDispatch");
+    expect(helpers).toMatch(/export async function runDeftTs/);
+    expect(helpers).not.toMatch(/spawnSync\(process\.execPath/);
+  });
+
+  it("reuses share-plus-reset for leftover git-worktree clones", () => {
+    expect(worktree).toMatch(/function fixture\(\)/);
+    expect(worktree).toMatch(/sharedLinked/);
+    expect(worktree).toMatch(/resetLeaseFiles/);
+    expect(worktree).toMatch(/beforeAll/);
+  });
+});

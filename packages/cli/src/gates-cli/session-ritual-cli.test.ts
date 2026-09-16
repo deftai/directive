@@ -48,8 +48,8 @@ function fakeGit(head: string, worktree: string) {
   };
 }
 
-describe("session:start TS module (maps tests/cli/test_session_start.py)", () => {
-  it("records quick-tier ritual state", () => {
+describe("session:start TS module (maps tests/cli/test_session_start.py)", async () => {
+  it("records quick-tier ritual state", async () => {
     const root = seedProject({ sessionRitualStalenessHours: 4 });
     roots.push(root);
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
@@ -74,7 +74,7 @@ describe("session:start TS module (maps tests/cli/test_session_start.py)", () =>
     );
   });
 
-  it("records explicit deferrals", () => {
+  it("records explicit deferrals", async () => {
     const root = seedProject();
     roots.push(root);
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
@@ -94,12 +94,12 @@ describe("session:start TS module (maps tests/cli/test_session_start.py)", () =>
   });
 });
 
-describe("deft-ts session:start dispatcher smoke", () => {
-  it("native session:start records ritual state without framework-commands bridge (#2032)", () => {
+describe("deft-ts session:start dispatcher smoke", async () => {
+  it("native session:start records ritual state without framework-commands bridge (#2032)", async () => {
     const root = seedProject();
     roots.push(root);
     const env = toolsPathEnv();
-    const { exitCode, stdout, stderr } = runDeftTs(
+    const { exitCode, stdout, stderr } = await runDeftTs(
       "session:start",
       ["--project-root", root, "--no-history"],
       { env },
@@ -120,32 +120,42 @@ describe("deft-ts session:start dispatcher smoke", () => {
     expect(state.quick_steps.verify_tools?.ok).toBe(true);
   });
 
-  it("session:start alias resolves to session-start handler", () => {
+  it("session:start alias resolves to session-start handler", async () => {
     const root = seedProject();
     roots.push(root);
-    const { exitCode } = runDeftTs("session:start", ["--project-root", root, "--no-history"], {
-      env: toolsPathEnv(),
-    });
+    const { exitCode } = await runDeftTs(
+      "session:start",
+      ["--project-root", root, "--no-history"],
+      {
+        env: toolsPathEnv(),
+      },
+    );
     expect(exitCode).toBe(0);
     expect(existsSync(join(root, ".deft", "ritual-state.json"))).toBe(true);
   });
 
-  it("verify:session-ritual quick tier passes after native session:start", () => {
+  it("verify:session-ritual quick tier passes after native session:start", async () => {
     const root = seedProject({ sessionRitualStalenessHours: 4 });
     roots.push(root);
     const env = toolsPathEnv();
-    const start = runDeftTs("session:start", ["--project-root", root, "--no-history"], { env });
-    expect(start.exitCode).toBe(0);
-    const verify = runDeftTs("verify:session-ritual", ["--project-root", root, "--tier=quick"], {
+    const start = await runDeftTs("session:start", ["--project-root", root, "--no-history"], {
       env,
     });
+    expect(start.exitCode).toBe(0);
+    const verify = await runDeftTs(
+      "verify:session-ritual",
+      ["--project-root", root, "--tier=quick"],
+      {
+        env,
+      },
+    );
     expect(verify.exitCode).toBe(0);
     expect(verify.stdout + verify.stderr).toMatch(/session ritual/i);
   });
 });
 
-describe("verify session ritual TS module (maps tests/cli/test_verify_session_ritual.py)", () => {
-  it("fails closed when ritual state is missing at gated mutation boundary", () => {
+describe("verify session ritual TS module (maps tests/cli/test_verify_session_ritual.py)", async () => {
+  it("fails closed when ritual state is missing at gated mutation boundary", async () => {
     const root = seedProject();
     roots.push(root);
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
@@ -158,7 +168,7 @@ describe("verify session ritual TS module (maps tests/cli/test_verify_session_ri
     expect(result.message).toContain("deft session:start");
   });
 
-  it("passes without ritual state in read-only quick posture (#2180)", () => {
+  it("passes without ritual state in read-only quick posture (#2180)", async () => {
     const root = seedProject();
     roots.push(root);
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
@@ -173,9 +183,9 @@ describe("verify session ritual TS module (maps tests/cli/test_verify_session_ri
   });
 });
 
-describe("deft-ts resume sentinel (maps tests/cli/test_resume.py — core unit coverage)", () => {
-  it("framework resume commands are registered", () => {
-    const { exitCode, stdout } = runDeftTs("", ["commands"]);
+describe("deft-ts resume sentinel (maps tests/cli/test_resume.py — core unit coverage)", async () => {
+  it("framework resume commands are registered", async () => {
+    const { exitCode, stdout } = await runDeftTs("", ["commands"]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("build");
   });

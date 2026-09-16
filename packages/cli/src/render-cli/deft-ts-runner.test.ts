@@ -3,31 +3,31 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveBinPath, resolveRepoRoot, runDeftTs, runDeftTsArgv } from "./deft-ts-runner.js";
 
-describe("deft-ts runner", () => {
-  it("resolves repo root and built bin", () => {
+describe("deft-ts runner", async () => {
+  it("resolves repo root and built bin", async () => {
     const root = resolveRepoRoot();
     expect(existsSync(resolve(root, "package.json"))).toBe(true);
     expect(existsSync(resolve(root, "packages/cli"))).toBe(true);
     expect(existsSync(resolveBinPath())).toBe(true);
   });
 
-  it("runs --help with exit 0", () => {
-    const result = runDeftTsArgv(["--help"]);
+  it("runs --help with exit 0", async () => {
+    const result = await runDeftTsArgv(["--help"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("directive <command> [options]");
     expect(result.stdout).toContain("directive commands");
     expect(result.stdout).not.toContain("Registered verbs:");
   });
 
-  it("lists exhaustive commands via directive commands", () => {
-    const result = runDeftTsArgv(["commands"]);
+  it("lists exhaustive commands via directive commands", async () => {
+    const result = await runDeftTsArgv(["commands"]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Registered commands:");
     expect(result.stdout).toContain("pack-render");
   });
 
-  it("reports unknown verb on stderr", () => {
-    const result = runDeftTs("not-a-real-render-verb-xyz");
+  it("reports unknown verb on stderr", async () => {
+    const result = await runDeftTs("not-a-real-render-verb-xyz");
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("unknown verb");
   });

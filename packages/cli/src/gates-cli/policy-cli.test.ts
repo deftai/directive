@@ -14,17 +14,17 @@ function project(policy: Record<string, unknown> = {}): string {
   return root;
 }
 
-describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
-  it("show text lists configured policy fields", () => {
+describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", async () => {
+  it("show text lists configured policy fields", async () => {
     const root = project({ wipCap: 7 });
-    const { exitCode, stdout } = runDeftTs("policy", ["show", "--project-root", root]);
+    const { exitCode, stdout } = await runDeftTs("policy", ["show", "--project-root", root]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("plan.policy.wipCap");
   });
 
-  it("show --field returns the configured value", () => {
+  it("show --field returns the configured value", async () => {
     const root = project({ wipCap: 9 });
-    const { exitCode, stdout } = runDeftTs("policy", [
+    const { exitCode, stdout } = await runDeftTs("policy", [
       "show",
       "--project-root",
       root,
@@ -35,16 +35,16 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
     expect(stdout).toContain("9");
   });
 
-  it("resolve emits disclosure for default fail-closed branch policy", () => {
+  it("resolve emits disclosure for default fail-closed branch policy", async () => {
     const root = project({ allowDirectCommitsToMaster: false });
-    const { exitCode, stdout } = runDeftTs("policy", ["resolve", "--project-root", root]);
+    const { exitCode, stdout } = await runDeftTs("policy", ["resolve", "--project-root", root]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("Branch-protection policy is ON");
   });
 
-  it("enforce-branches writes allowDirectCommitsToMaster=false", () => {
+  it("enforce-branches writes allowDirectCommitsToMaster=false", async () => {
     const root = project({ allowDirectCommitsToMaster: true });
-    const { exitCode, stdout } = runDeftTs("policy", [
+    const { exitCode, stdout } = await runDeftTs("policy", [
       "enforce-branches",
       "--project-root",
       root,
@@ -59,9 +59,9 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
     expect(data.plan["x-directive/policy"].allowDirectCommitsToMaster).toBe(false);
   });
 
-  it("disable-host-hooks refuses without --confirm and persists with it", () => {
+  it("disable-host-hooks refuses without --confirm and persists with it", async () => {
     const root = project();
-    const refused = runDeftTs("policy", [
+    const refused = await runDeftTs("policy", [
       "disable-host-hooks",
       "--host",
       "cursor",
@@ -70,7 +70,7 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
     ]);
     expect(refused.exitCode).toBe(1);
     expect(refused.stdout + refused.stderr).toContain("Capability-cost disclosure");
-    const applied = runDeftTs("policy", [
+    const applied = await runDeftTs("policy", [
       "disable-host-hooks",
       "--host",
       "cursor",
@@ -86,9 +86,9 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
     expect(policy?.hostHooks?.cursor).toBe(false);
   });
 
-  it("allow-direct-commits refuses without --confirm", () => {
+  it("allow-direct-commits refuses without --confirm", async () => {
     const root = project();
-    const { exitCode, stdout, stderr } = runDeftTs("policy", [
+    const { exitCode, stdout, stderr } = await runDeftTs("policy", [
       "allow-direct-commits",
       "--project-root",
       root,
@@ -98,16 +98,16 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
     expect(stdout + stderr).toContain("--confirm");
   });
 
-  it("returns exit 2 for unknown subcommand", () => {
-    const { exitCode } = runDeftTs("policy", ["nope"]);
+  it("returns exit 2 for unknown subcommand", async () => {
+    const { exitCode } = await runDeftTs("policy", ["nope"]);
     expect(exitCode).toBe(2);
   });
 });
 
-describe("deft-ts policy-set Python oracle (maps tests/cli/test_policy_set.py)", () => {
-  it("policy-set routes through dispatcher when Python toolchain is available", () => {
+describe("deft-ts policy-set Python oracle (maps tests/cli/test_policy_set.py)", async () => {
+  it("policy-set routes through dispatcher when Python toolchain is available", async () => {
     const root = project();
-    const { exitCode } = runDeftTs("policy-set", [
+    const { exitCode } = await runDeftTs("policy-set", [
       "enforce-branches",
       "--project-root",
       root,

@@ -3,12 +3,44 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { applyWorktreeOccupancy } from "@deftai/directive-core/session";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { run } from "./hook-dispatch.js";
 
-const temps: string[] = [];
+const ephemeralTemps: string[] = [];
+const sharedTemps: string[] = [];
+
+type LinkedFixture = { primary: string; wtA: string; wtB: string; foreign: string };
+type NestedFixture = { primary: string; nested: string };
+
+let sharedLinked: LinkedFixture | null = null;
+let sharedNested: NestedFixture | null = null;
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+  rmSync(join(root, ".deft-directive-disable"), { force: true });
+}
+
+function resetSharedFixtures(): void {
+  if (sharedLinked !== null) {
+    resetLeaseFiles(sharedLinked.primary);
+    resetLeaseFiles(sharedLinked.wtA);
+    resetLeaseFiles(sharedLinked.wtB);
+    resetLeaseFiles(sharedLinked.foreign);
+  }
+  if (sharedNested !== null) {
+    resetLeaseFiles(sharedNested.primary);
+    resetLeaseFiles(sharedNested.nested);
+  }
+}
+
 afterEach(() => {
-  for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+  resetSharedFixtures();
+  for (const t of ephemeralTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
 
 function git(cwd: string, args: readonly string[]): void {
@@ -23,9 +55,9 @@ function initRepo(dir: string): void {
   git(dir, ["commit", "--allow-empty", "-q", "-m", "base"]);
 }
 
-function fixture(): { primary: string; wtA: string; wtB: string; foreign: string } {
+function buildLinkedFixture(): LinkedFixture {
   const base = mkdtempSync(join(tmpdir(), "cli-3794-"));
-  temps.push(base);
+  sharedTemps.push(base);
   const primary = join(base, "primary");
   const wtA = join(base, "wt-a");
   const wtB = join(base, "wt-b");
@@ -37,10 +69,14 @@ function fixture(): { primary: string; wtA: string; wtB: string; foreign: string
   return { primary, wtA, wtB, foreign };
 }
 
-/** The swarm layout: a linked worktree under `<primary>/.deft-scratch/worktrees/`. */
-function nestedFixture(): { primary: string; nested: string } {
+function fixture(): LinkedFixture {
+  if (sharedLinked === null) sharedLinked = buildLinkedFixture();
+  return sharedLinked;
+}
+
+function buildNestedFixture(): NestedFixture {
   const base = mkdtempSync(join(tmpdir(), "cli-3794-nested-"));
-  temps.push(base);
+  sharedTemps.push(base);
   const primary = join(base, "primary");
   initRepo(primary);
   const nested = join(primary, ".deft-scratch", "worktrees", "story");
@@ -48,6 +84,16 @@ function nestedFixture(): { primary: string; nested: string } {
   git(primary, ["worktree", "add", "--detach", "-q", nested]);
   return { primary, nested };
 }
+
+function nestedFixture(): NestedFixture {
+  if (sharedNested === null) sharedNested = buildNestedFixture();
+  return sharedNested;
+}
+
+beforeAll(() => {
+  fixture();
+  nestedFixture();
+});
 
 function dispatchWrite(opts: { primary: string; target: string }): {
   code: number;
@@ -68,7 +114,6 @@ function dispatchWrite(opts: { primary: string; target: string }): {
     stdinEmptyRetryMs: 0,
   });
   const raw = out.join("").trim();
-  // An allowed write leaves the host output empty; only a deny emits a body.
   const body = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
   return { code: exit, body, raw };
 }

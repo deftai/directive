@@ -38,16 +38,16 @@ function writeCompleted(root: string, name: string, metadata: Record<string, unk
   );
 }
 
-describe("deft-ts capacity-show", () => {
-  it("exits 0 and reports advisory when unconfigured", () => {
+describe("deft-ts capacity-show", async () => {
+  it("exits 0 and reports advisory when unconfigured", async () => {
     const root = makeProjectRoot();
-    const result = runDeftTs("capacity-show", ["--project-root", root]);
+    const result = await runDeftTs("capacity-show", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("ADVISORY");
     expect(result.stdout).toContain("not configured");
   });
 
-  it("exits 0 with advisory mode below minSampleSize", () => {
+  it("exits 0 with advisory mode below minSampleSize", async () => {
     const root = makeProjectRoot({
       unit: "vbrief-count",
       window: 30,
@@ -63,19 +63,19 @@ describe("deft-ts capacity-show", () => {
       capacityBucket: "feature",
       completedAt: "2026-06-03T12:00:00Z",
     });
-    const result = runDeftTs("capacity-show", ["--project-root", root]);
+    const result = await runDeftTs("capacity-show", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("ADVISORY");
   });
 
-  it("exits 2 for missing --project-root value", () => {
-    const result = runDeftTs("capacity-show", ["--project-root"]);
+  it("exits 2 for missing --project-root value", async () => {
+    const result = await runDeftTs("capacity-show", ["--project-root"]);
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("--project-root");
   });
 
-  it("exits 2 for invalid project root path", () => {
-    const result = runDeftTs("capacity-show", [
+  it("exits 2 for invalid project root path", async () => {
+    const result = await runDeftTs("capacity-show", [
       "--project-root",
       join(tmpdir(), "missing-capacity-root-xyz"),
     ]);
@@ -84,15 +84,15 @@ describe("deft-ts capacity-show", () => {
   });
 });
 
-describe("deft-ts capacity-backfill", () => {
-  it("exits 2 when capacityAllocation is not configured", () => {
+describe("deft-ts capacity-backfill", async () => {
+  it("exits 2 when capacityAllocation is not configured", async () => {
     const root = makeProjectRoot();
-    const result = runDeftTs("capacity-backfill", ["--project-root", root]);
+    const result = await runDeftTs("capacity-backfill", ["--project-root", root]);
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("not configured");
   });
 
-  it("honours --dry-run without mutating completed vBRIEF metadata", () => {
+  it("honours --dry-run without mutating completed vBRIEF metadata", async () => {
     const root = makeProjectRoot({
       unit: "vbrief-count",
       window: 30,
@@ -105,7 +105,7 @@ describe("deft-ts capacity-backfill", () => {
     const path = join(root, "xbrief", "completed", "story-a.xbrief.json");
     writeCompleted(root, "story-a", { completedAt: "2026-06-03T12:00:00Z" });
     const before = readFileSync(path, "utf8");
-    const result = runDeftTs("capacity-backfill", ["--dry-run", "--project-root", root]);
+    const result = await runDeftTs("capacity-backfill", ["--dry-run", "--project-root", root]);
     expect(result.exitCode).toBe(0);
     expect(readFileSync(path, "utf8")).toBe(before);
   });

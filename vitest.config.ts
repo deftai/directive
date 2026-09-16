@@ -191,6 +191,14 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core": src("core"),
 };
 
+// #4591: spawn leftovers that must stay out of process (bin symlink, host-identity
+// lifetime). CLI parity tests now use in-process routeAndDispatch. Occupancy
+// suites stay per-it. Hang-detector timeout stays last (operator lock 5685476402).
+const spawnHeavyGlobs = [
+  "packages/cli/src/cli-bin-symlink-entrypoint.test.ts",
+  "packages/cli/src/hook-host-identity-lifetime.test.ts",
+] as const;
+
 export default defineConfig({
   resolve: {
     alias: [
@@ -207,7 +215,23 @@ export default defineConfig({
   },
   test: {
     env: testEnvironment,
-    include: ["packages/*/src/**/*.test.ts"],
+    projects: [
+      {
+        test: {
+          name: "unit",
+          include: ["packages/*/src/**/*.test.ts"],
+          exclude: [...spawnHeavyGlobs],
+          testTimeout: isWin32 ? 240_000 : 5_000,
+        },
+      },
+      {
+        test: {
+          name: "spawn-heavy",
+          include: [...spawnHeavyGlobs],
+          testTimeout: isWin32 ? 240_000 : 5_000,
+        },
+      },
+    ],
     // Windows git fixture suites (session:start) exceed the 5s default under
     // full-suite parallelism; Linux CI stays on the default. Refs #2467.
     //
@@ -224,9 +248,11 @@ export default defineConfig({
     //
     // ⊗ Do not "fix" this by lowering maxWorkers or re-serialising files.
     // Spawn throughput is concurrency-independent, so capping parallelism buys
-    // nothing but wall-clock and regresses #3480. If timeouts return, the next
-    // step is partitioning spawn-heavy suites into their own vitest project
-    // (71 of 1028 files hold 79% of the failures) -- not trading cores away.
+    // nothing but wall-clock and regresses #3480. Spawn-heavy leftovers that
+    // must stay out of process live in the spawn-heavy vitest project (#4591).
+    // Cost classes after #4567: CLI process boots (in-process run), occupancy
+    // filesystem (per-it), leftover git-worktree clones (share-plus-reset).
+    // Do not raise RELEASE_CHECK_TIMEOUT_MS; hang-detector stays last.
     testTimeout: isWin32 ? 240_000 : 5_000,
     ...(coverageEnabled
       ? {
