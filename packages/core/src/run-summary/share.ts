@@ -151,8 +151,7 @@ export function computeRitualGateShare(
       }
     }
   }
-  const plannedEnv =
-    env !== undefined ? readPositiveIntegerEnv(env, "DEFT_MAX_TURNS") : undefined;
+  const plannedEnv = env !== undefined ? readPositiveIntegerEnv(env, "DEFT_MAX_TURNS") : undefined;
   const totalEnv =
     env !== undefined ? readPositiveIntegerEnv(env, ENV_TOTAL_TOOL_TURNS) : undefined;
   if (plannedEnv !== undefined) {
