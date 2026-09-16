@@ -24,7 +24,7 @@ function makeRoot(): string {
 
 function writeProposed(root: string, issueNumber: number): void {
   writeFileSync(
-    join(root, "xbrief", "proposed", `i${issueNumber}.xbrief.json`),
+    join(root, "xbrief", "proposed", `2026-01-01-i${issueNumber}.xbrief.json`),
     JSON.stringify({
       xBRIEFInfo: {
         version: "0.8",

@@ -8,12 +8,13 @@
  */
 
 import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, relative } from "node:path";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
   containedWrite,
 } from "../fs/contained-write.js";
+import { d7Basename, isScopeLifecyclePath, validateFilename } from "../vbrief-validate/filename.js";
 import { type JsonObject, validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { resolveXbriefOutPaths, XbriefPathError } from "./paths.js";
 import { buildStyleDocument, renderMarkdown } from "./styles.js";
@@ -229,6 +230,16 @@ export function createXbrief(options: CreateOptions): XbriefCliResult {
       return fail(`${err.message}\n`, 1);
     }
     throw err;
+  }
+
+  if (paths.jsonAbs !== null) {
+    const rel = relative(paths.projectRoot, paths.jsonAbs).split("\\").join("/");
+    if (isScopeLifecyclePath(rel)) {
+      const errors = validateFilename(d7Basename(paths.jsonAbs));
+      if (errors.length > 0) {
+        return fail(`xbrief:create refused: ${errors.join("\n")}\n`, 1);
+      }
+    }
   }
 
   let doc: XbriefDocument;

@@ -26,8 +26,8 @@ import {
 } from "./vbrief-ref.js";
 import { checkWipCap, formatWipCapRefusal } from "./wip-cap-check.js";
 
-const PARENT = "parent-epic.xbrief.json";
-const CHILD = "child-story.xbrief.json";
+const PARENT = "2026-01-01-parent-epic.xbrief.json";
+const CHILD = "2026-01-01-child-story.xbrief.json";
 
 function makeRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "scope-ext-"));
@@ -237,11 +237,11 @@ describe("scope extended coverage", () => {
 
   it("covers lifecycle and demote CLI paths", () => {
     root = makeRepo();
-    const file = join(root, "xbrief", "proposed", "cli.xbrief.json");
+    const file = join(root, "xbrief", "proposed", "2026-01-01-cli.xbrief.json");
     writeVbrief(file, { plan: { title: "T", status: "proposed", items: [] } });
     expect(lifecycleMain(["promote", file, "--project-root", root])).toBe(0);
     expect(lifecycleMain(["not-an-action", file, "--project-root", root])).toBe(2);
-    const pending = join(root, "xbrief", "pending", "cli.xbrief.json");
+    const pending = join(root, "xbrief", "pending", "2026-01-01-cli.xbrief.json");
     expect(demoteMain([pending, "--project-root", root])).toBe(0);
     expect(demoteMain(["--batch", "--project-root", root, "--older-than-days", "0"])).toBe(0);
   });

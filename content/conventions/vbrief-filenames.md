@@ -13,13 +13,13 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Scope vBRIEFs in `vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, and `vbrief/cancelled/` follow the pattern:
 
 ```
-YYYY-MM-DD-<slug>.vbrief.json
+YYYY-MM-DD-<slug>.xbrief.json (or .vbrief.json)
 ```
 
 - ! The leading date is the **creation date** in `YYYY-MM-DD` form. It is immutable — it MUST NOT change as the scope moves through the lifecycle.
 - ! The `<slug>` is a lowercase hyphen-separated descriptor derived from the scope title (or origin issue title for ingested vBRIEFs).
-- ! The filename MUST end in `.vbrief.json`.
-- ! The filename MUST match `task xbrief:validate`'s `FILENAME_PATTERN`: `^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$`.
+- ! The filename MUST end in `.xbrief.json` or `.vbrief.json`.
+- ! The filename MUST match `task xbrief:validate`'s `FILENAME_PATTERN`: `^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.(?:xbrief|vbrief)\.json$`.
 
 speckit Phase 4 scope vBRIEFs use the extended pattern `YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` where `<NNN>` is the implementation-phase index zero-padded to exactly three digits (e.g. `ip001`, `ip042`, `ip128`). See [`../vbrief/vbrief.md`](../vbrief/vbrief.md#speckit-phase-4-scope-vbriefs) for detail.
 

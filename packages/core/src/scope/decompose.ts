@@ -23,6 +23,7 @@ import {
 import { resolveRepo } from "../triage/queue/repo.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import { d7Basename, validateFilename } from "../vbrief-validate/filename.js";
 import { READY_REQUIRES_PARALLEL_SAFE } from "../vbrief-validation/story-quality.js";
 import { formatCoverageReportLine, validateCoverageMap } from "./coverage-map.js";
 import { buildParentLineageArtifact } from "./parent-lineage.js";
@@ -787,6 +788,10 @@ export function validateDraft(stories: JsonObj[]): string[] {
     issues.push(...missingRequiredSwarmFields(sw));
     if (!storyHasTraces(story, items, sw)) {
       issues.push("Traces or missing_traces_justification");
+    }
+    const draftFilename = story.filename;
+    if (typeof draftFilename === "string" && hasArtifactSuffix(draftFilename)) {
+      issues.push(...validateFilename(d7Basename(draftFilename)));
     }
     issues.push(
       ...storyQualityIssues({

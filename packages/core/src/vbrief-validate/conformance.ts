@@ -9,8 +9,7 @@ import {
 import { fnmatchCase } from "../encoding/text.js";
 import { isLifecycleArtifactPath, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
 import { validateCreatedUpdatedChronology } from "./chronology.js";
-import { LIFECYCLE_FOLDERS } from "./constants.js";
-import { validateFilename } from "./filename.js";
+import { filenameConventionExamples, isScopeLifecyclePath, validateFilename } from "./filename.js";
 import { evaluateExtensionRoundtrip } from "./roundtrip.js";
 import type { JsonObject } from "./schema.js";
 
@@ -253,17 +252,6 @@ function withChronologyMessage(message: string, warnings: readonly string[]): st
   return `${message}\n${extra}`;
 }
 
-/** D7 applies to lifecycle-folder scope files, matching validateAll discoverVbriefs (#4245). */
-function isScopeLifecyclePath(posix: string): boolean {
-  const parts = posix.split("/");
-  if (parts.length !== 3) {
-    return false;
-  }
-  const root = parts[0] ?? "";
-  const folder = parts[1] ?? "";
-  return (root === "xbrief" || root === "vbrief") && LIFECYCLE_FOLDERS.includes(folder);
-}
-
 export type ConformanceMode = "all" | "staged";
 
 export interface ConformanceEvaluateResult {
@@ -449,7 +437,7 @@ export function evaluateConformance(
       const d7Header =
         `\u274c verify_vbrief_conformance: ${filenameErrors.length} D7 filename ` +
         `error(s) (#4245).\n` +
-        "  Scope filenames MUST match YYYY-MM-DD-descriptive-slug.vbrief.json; " +
+        `  Scope filenames MUST match ${filenameConventionExamples()}; ` +
         "dots in the slug are not exempt.";
       let d7Body = filenameErrors
         .slice(0, 50)

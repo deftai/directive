@@ -1,7 +1,7 @@
 /**
  * Golden create/verify round-trips + failure cases for #3057.
  */
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -278,6 +278,32 @@ describe("CLI entry points (#3057)", () => {
     });
     expect(capped.exitCode).toBe(1);
     expect(capped.stderr).toContain("size cap");
+  });
+
+  it("refuses uppercase slug when --out is a lifecycle scope path (#4578)", () => {
+    const root = freshRoot("xbrief-d7-create-");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const created = createXbrief({
+      format: "json",
+      out: "xbrief/proposed/2026-09-15-M1-pm-decomposition",
+      style: "scope",
+      title: "M1",
+      projectRoot: root,
+    });
+    expect(created.exitCode).toBe(1);
+    expect(created.stderr).toContain("(D7)");
+    expect(created.stderr).toContain(".xbrief.json (D7)");
+    expect(
+      existsSync(join(root, "xbrief", "proposed", "2026-09-15-M1-pm-decomposition.xbrief.json")),
+    ).toBe(false);
+    const notes = createXbrief({
+      format: "json",
+      out: "notes/2026-09-15-M1-pm-decomposition",
+      style: "scope",
+      title: "M1",
+      projectRoot: root,
+    });
+    expect(notes.exitCode).toBe(0);
   });
 
   it("rejects empty path and project-root stem", () => {
