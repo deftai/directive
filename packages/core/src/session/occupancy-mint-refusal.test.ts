@@ -98,6 +98,79 @@ describe("payload-host mint refusal (#4431)", () => {
     expect(detectDeclaredIdentityHosts({})).toEqual([]);
   });
 
+  it("does not suggest the Claude print companion when grok is co-declared (#4565)", () => {
+    const claudeRaw = "01a0a66a-9b86-7423-82f9-98d97cf5b099";
+    const claudeOwner = canonicalHostSessionId("claude", claudeRaw);
+    const env = {
+      GROK_AGENT: "1",
+      GROK_HOOK_EVENT: "PreToolUse",
+      CLAUDECODE: "1",
+      CLAUDE_CODE_SESSION_ID: claudeRaw,
+    };
+    expect(detectDeclaredIdentityHosts(env)).toEqual(["claude", "grok"]);
+    expect(printCompanionHostOwner("claude", env)).toBe(claudeOwner);
+    expect(printCompanionHostOwner("grok", env)).toBeNull();
+    const claim = resolveOccupancySessionClaim({
+      env,
+      newSessionId: () => "must-not-mint",
+    });
+    expect(claim.status).toBe("refuse-mint");
+    if (claim.status !== "refuse-mint") return;
+    expect(claim.hosts).toEqual(["claude", "grok"]);
+    expect(claim.suggestedSessionId).toBeNull();
+    expect(claim.message).not.toContain(`--session-id=${claudeOwner}`);
+    expect(claim.message).toContain("refuses to mint");
+    expect(claim.message).toContain("Directive hook registered");
+  });
+
+  it("still binds grok when GROK_SESSION_ID is present on a dual-host tree (#4565)", () => {
+    const grokRaw = "grok-session-4565";
+    const grokOwner = canonicalHostSessionId("grok", grokRaw);
+    const env = {
+      GROK_AGENT: "1",
+      GROK_HOOK_EVENT: "PreToolUse",
+      GROK_SESSION_ID: grokRaw,
+      CLAUDECODE: "1",
+      CLAUDE_CODE_SESSION_ID: "01a0a66a-9b86-7423-82f9-98d97cf5b099",
+    };
+    const claim = resolveOccupancySessionClaim({
+      env,
+      newSessionId: () => "must-not-mint",
+    });
+    expect(claim).toEqual({
+      status: "ok",
+      sessionId: grokOwner,
+      provenance: "host",
+      source: "host",
+    });
+  });
+
+  it("minted-lease remediation does not name Claude when grok is co-declared (#4565)", () => {
+    const root = tempRoot();
+    applyWorktreeOccupancy(root, {
+      env: {},
+      newSessionId: () => "minted-uuid",
+      now: new Date("2026-08-17T12:00:00Z"),
+    });
+    const record = readOccupancy(root);
+    expect(record?.identityProvenance).toBe("minted");
+    const claudeRaw = "01a0a66a-9b86-7423-82f9-98d97cf5b099";
+    const claudeOwner = canonicalHostSessionId("claude", claudeRaw);
+    const message = formatOccupancyRemediation(
+      record as NonNullable<typeof record>,
+      new Date("2026-08-17T12:00:09Z"),
+      "stranger",
+      {
+        GROK_AGENT: "1",
+        CLAUDECODE: "1",
+        CLAUDE_CODE_SESSION_ID: claudeRaw,
+      },
+    );
+    expect(message).toContain("minted owner");
+    expect(message).not.toContain(`--session-id=${claudeOwner}`);
+    expect(message).toContain("--session-id=<host-published-id>");
+  });
+
   it("applyWorktreeOccupancy denies instead of minting on a payload host", () => {
     const root = tempRoot();
     const denied = applyWorktreeOccupancy(root, {

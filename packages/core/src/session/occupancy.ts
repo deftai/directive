@@ -636,6 +636,12 @@ function uniquePrintCompanion(
   hosts: readonly HookHostIdentityProvider[],
   env: NodeJS.ProcessEnv,
 ): string | null {
+  // #4565: grok is a declared identity host with no print companion. The
+  // unique-one rule treated Claude as unopposed on [claude, grok] and steered
+  // refuse-mint to host:claude:v1. Keep Claude declared; do not suggest it.
+  if (hosts.includes("grok")) {
+    return printCompanionHostOwner("grok", env);
+  }
   const printed = hosts
     .map((host) => printCompanionHostOwner(host, env))
     .filter((value): value is string => value !== null);

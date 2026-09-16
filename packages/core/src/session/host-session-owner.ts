@@ -222,6 +222,10 @@ const DECLARED_IDENTITY_HOST_PRESENCE: Readonly<
  */
 const PAYLOAD_HOST_PRINT_COMPANIONS: Readonly<Partial<Record<HookHostIdentityProvider, string>>> = {
   claude: "CLAUDE_CODE_SESSION_ID",
+  // grok is intentionally absent: GROK_SESSION_ID is the occupancy identity
+  // source, not a print companion. uniquePrintCompanion must not treat Claude
+  // as unopposed when grok is co-declared (#4565). Do not add grok here as
+  // the dual-host refuse-mint lever.
 };
 
 function envMarkerPresent(environ: NodeJS.ProcessEnv, name: string): boolean {

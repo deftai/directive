@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dual-host refuse-mint no longer suggests the Claude print companion when grok is co-declared (#4565).** uniquePrintCompanion keeps Claude declared and does not name host:claude:v1. Native Write deadlock on a Grok-shaped owner stays on #4125. Closes #4565.
 - **Yolo auto-stamp no longer posts path-1 or ingest-ready when pain coverage would refuse (#4592).** `evaluateAutoStampPath1Write` constructs Stop 1 plus successor lean plus unpublished path-1 that cites only the lean, refuses the write on any published pain-coverage reason, and skips remaining-set when refused. `autoStamp: true` still prints Handoff. Does not grow `resolveAutoStampCatalogChip`. Closes #4592.
 - **Intent-constraint multi-mint config-fail ignores leftover dest running briefs.** Empty active fixture so a unique dest pin cannot turn two merge-base mints into a missing-mint fail. Leftover of #4567 complete-tracking. Does not recut that issue.
 - **Fail-closed kind:uat pointer shape at scope:complete (#4563).** Write-time check in parseEvidence: kind uat must point at contained uat-evidence/** (.. does not count). Test/spec paths, source symbols, PR numbers, and CHANGELOG as the pointer are refused; camelCase and PR/CHANGELOG substrings in probe filenames are allowed. Does not bind completed-tracked. Closes #4563.
