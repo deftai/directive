@@ -286,6 +286,7 @@ function tryReuseVerifyAc(
     allowCache: mode === "auto",
     allowBank: true,
     resolvedAcceptanceContract: currentLedger,
+    oracleScopeKey: options.oracleScopeKey,
   });
   if (reuse.kind === "miss") return null;
 
@@ -369,7 +370,9 @@ function persistVerifyAcSessionCache(
 ): void {
   if (!result.ok || result.resolution !== "verified-pass") return;
   const sessionId = resolveVerifyAcSessionId(options.env, options.sessionId);
-  const resolvedScope = resolveScopeIdForAcReuse(plan, options.bankScopeId);
+  const resolvedScope = resolveScopeIdForAcReuse(plan, options.bankScopeId, {
+    oracleScopeKey: options.oracleScopeKey,
+  });
   if (sessionId === null || resolvedScope === null) return;
   const hashed = hashProductState({
     projectRoot,
@@ -983,6 +986,7 @@ function applyOracle(
       allowCache: (options.reuseMode ?? "auto") === "auto",
       allowBank: true,
       resolvedAcceptanceContract: resolvedContractForHash(plan, options),
+      oracleScopeKey: options.oracleScopeKey,
     });
     if (reuse.kind === "miss") missReason = reuse.reason;
   }
@@ -1134,13 +1138,14 @@ function maybeAttachAcPassBank(
     return result;
   }
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
-  const scopeId =
-    options.bankScopeId?.trim() ||
-    planId ||
-    basename(xbriefPath)
-      .replace(/\.xbrief\.json$/i, "")
-      .replace(/\.vbrief\.json$/i, "");
+  const scopeId = resolveScopeIdForAcReuse(plan, options.bankScopeId, {
+    oracleScopeKey: options.oracleScopeKey,
+    xbriefPath,
+    projectRoot,
+  });
+  if (scopeId === null) {
+    return result;
+  }
   try {
     const hashed = hashProductState({
       projectRoot,

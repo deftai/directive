@@ -6,7 +6,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { acPassBankPath, maybeBankOnAcPass } from "./ac-pass-banking.js";
-import { resolveAcReuse } from "./ac-pass-reuse.js";
+import {
+  resolveAcReuse,
+  resolveScopeIdForAcReuse,
+  resolveScopeIdForAcReuseDetailed,
+} from "./ac-pass-reuse.js";
 import { hashProductState } from "./product-state-hash.js";
 import { writeVerifyAcSessionCache } from "./verify-ac-session-cache.js";
 
@@ -41,6 +45,7 @@ describe("resolveAcReuse (#3387)", () => {
       productPaths: ["p.txt"],
     });
     expect(noId.kind).toBe("miss");
+    expect(noId.reason).toBe("no scope id");
 
     const missing = resolveAcReuse({
       projectRoot: root,
@@ -201,5 +206,87 @@ describe("resolveAcReuse (#3387)", () => {
     });
     expect(miss.kind).toBe("miss");
     expect(miss.reason).toMatch(/v1 bank missing runs/);
+  });
+});
+
+describe("resolveScopeIdForAcReuse (#4631)", () => {
+  it("keeps explicit and plan.id ahead of oracle synthesis", () => {
+    const plan = { id: "plan-scope" };
+    const ctx = {
+      oracleScopeKey: "xbrief/active/foo.xbrief.json",
+      xbriefPath: "xbrief/active/foo.xbrief.json",
+      projectRoot: "/repo",
+    };
+    expect(resolveScopeIdForAcReuse(plan, " injected ", ctx)).toBe("injected");
+    expect(resolveScopeIdForAcReuseDetailed(plan, "injected", ctx).source).toBe("explicit");
+    expect(resolveScopeIdForAcReuse(plan, null, ctx)).toBe("plan-scope");
+    expect(resolveScopeIdForAcReuseDetailed(plan, null, ctx).source).toBe("plan.id");
+  });
+
+  it("synthesizes a collision-aware rel path, not basename stem or verify:ac", () => {
+    const root = tempRoot();
+    const xPath = join(root, "xbrief", "active", "foo.xbrief.json");
+    const vPath = join(root, "vbrief", "active", "foo.xbrief.json");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const xId = resolveScopeIdForAcReuse(plan, null, { xbriefPath: xPath, projectRoot: root });
+    const vId = resolveScopeIdForAcReuse(plan, null, { xbriefPath: vPath, projectRoot: root });
+    expect(xId).toBe("xbrief/active/foo.xbrief.json");
+    expect(vId).toBe("vbrief/active/foo.xbrief.json");
+    expect(xId).not.toBe("foo");
+    expect(xId).not.toBe("verify:ac");
+    expect(
+      resolveScopeIdForAcReuseDetailed(plan, null, { xbriefPath: xPath, projectRoot: root }).source,
+    ).toBe("oracle");
+    expect(
+      resolveScopeIdForAcReuse(plan, null, { oracleScopeKey: "xbrief/active/foo.xbrief.json" }),
+    ).toBe("xbrief/active/foo.xbrief.json");
+  });
+
+  it("uses the same resolver at write and lookup so FromPath never misses no-scope-id", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "p.txt"), "x\n", "utf8");
+    const xbriefPath = join(root, "xbrief", "active", "foo.xbrief.json");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const ctx = { xbriefPath, projectRoot: root };
+    const writeKey = resolveScopeIdForAcReuse(plan, null, ctx);
+    const lookupKey = resolveScopeIdForAcReuse(plan, null, ctx);
+    expect(writeKey).toBe(lookupKey);
+    expect(writeKey).toBe("xbrief/active/foo.xbrief.json");
+
+    const hashed = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["p.txt"],
+    });
+    maybeBankOnAcPass({
+      projectRoot: root,
+      scopeId: writeKey ?? "",
+      executableRuns: 1,
+      productStateHash: hashed.digest,
+    });
+    const hit = resolveAcReuse({
+      projectRoot: root,
+      plan,
+      productPaths: ["p.txt"],
+      xbriefPath,
+    });
+    expect(hit.kind).toBe("bank");
+
+    const emptyPass = resolveAcReuse({
+      projectRoot: root,
+      plan: { acceptance: { commands: [] } },
+      productPaths: ["p.txt"],
+      xbriefPath,
+    });
+    expect(emptyPass.kind).toBe("miss");
+    expect(emptyPass.reason).not.toBe("no scope id");
+    expect(emptyPass.reason).toMatch(/no reusable|mismatch/);
+  });
+
+  it("still misses no scope id when FromPlan has no path", () => {
+    const detailed = resolveScopeIdForAcReuseDetailed({ title: "id-less" });
+    expect(detailed.scopeId).toBeNull();
+    expect(detailed.source).toBe("none");
   });
 });

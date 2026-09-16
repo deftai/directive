@@ -1,10 +1,11 @@
 /**
  * Bank / same-session cache reuse for verify:ac and scope:complete (#3387).
  *
- * Green bank + matching product-state hash → accept without re-execution.
- * Missing, stale, or mismatched hash → full walk. Empty/failing still refuse.
+ * Green bank + matching product-state hash -> accept without re-execution.
+ * Missing, stale, or mismatched hash -> full walk. Empty/failing still refuse.
  */
 
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import { type AcPassBankRecord, bankHasRunsSnapshot, readAcPassBank } from "./ac-pass-banking.js";
 import { type HashProductStateInput, hashProductState } from "./product-state-hash.js";
 import {
@@ -43,6 +44,24 @@ export interface ResolveAcReuseInput extends HashProductStateInput {
   /** Default true. Complete walk uses bank; check uses cache then bank. */
   readonly allowCache?: boolean;
   readonly allowBank?: boolean;
+  /** Collision-aware oracle key already computed by FromPath (#3337 / #4631). */
+  readonly oracleScopeKey?: string | null;
+  /** xBRIEF path for FromPath synthesis when oracleScopeKey is absent. */
+  readonly xbriefPath?: string | null;
+}
+
+/** How resolveScopeIdForAcReuse chose the bank key (#4631 sidecar). */
+export type AcScopeIdSource = "explicit" | "plan.id" | "oracle" | "none";
+
+export interface AcScopeIdContext {
+  readonly oracleScopeKey?: string | null;
+  readonly xbriefPath?: string | null;
+  readonly projectRoot?: string | null;
+}
+
+export interface AcScopeIdResolution {
+  readonly scopeId: string | null;
+  readonly source: AcScopeIdSource;
 }
 
 function isUsableBank(bank: AcPassBankRecord): boolean {
@@ -51,16 +70,67 @@ function isUsableBank(bank: AcPassBankRecord): boolean {
   return typeof hash === "string" && hash.length > 0;
 }
 
+/**
+ * Rel-path half of resolveOracleScopeKey (#3337). plan.id is handled first so
+ * existing banks keyed by plan.id stay hittable; synthesis is path-only.
+ */
+function collisionAwareRelPath(xbriefPath: string, projectRoot: string): string {
+  const abs = resolve(xbriefPath);
+  const root = resolve(projectRoot);
+  let rel = relative(root, abs).replace(/\\/g, "/");
+  if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) {
+    rel = basename(abs);
+  }
+  return rel;
+}
+
+function synthesizeOracleScopeId(context?: AcScopeIdContext | null): string | null {
+  const oracle = context?.oracleScopeKey?.trim() ?? "";
+  if (oracle.length > 0) return oracle;
+  const xbriefPath = context?.xbriefPath?.trim() ?? "";
+  if (xbriefPath.length === 0) return null;
+  const projectRoot = context?.projectRoot?.trim() ?? "";
+  if (projectRoot.length > 0) {
+    const rel = collisionAwareRelPath(xbriefPath, projectRoot);
+    return rel.length > 0 ? rel : null;
+  }
+  const normalized = xbriefPath.replace(/\\/g, "/");
+  if (isAbsolute(xbriefPath) || isAbsolute(normalized)) return null;
+  return normalized;
+}
+
+/**
+ * Sidecar for which key path ran (#4631). Key choice stays resolveScopeIdForAcReuse.
+ */
+export function resolveScopeIdForAcReuseDetailed(
+  plan: Record<string, unknown>,
+  explicit?: string | null,
+  context?: AcScopeIdContext | null,
+): AcScopeIdResolution {
+  const injected = explicit?.trim() ?? "";
+  if (injected.length > 0) {
+    return { scopeId: injected, source: "explicit" };
+  }
+  if (typeof plan.id === "string" && plan.id.trim().length > 0) {
+    return { scopeId: plan.id.trim(), source: "plan.id" };
+  }
+  const synthesized = synthesizeOracleScopeId(context);
+  if (synthesized !== null) {
+    return { scopeId: synthesized, source: "oracle" };
+  }
+  return { scopeId: null, source: "none" };
+}
+
+/**
+ * One bank keyer for write and lookup (#4631). Explicit, then plan.id, else
+ * collision-aware oracle path. Does not mint a fourth keyer or extend basename stem.
+ */
 export function resolveScopeIdForAcReuse(
   plan: Record<string, unknown>,
   explicit?: string | null,
+  context?: AcScopeIdContext | null,
 ): string | null {
-  const injected = explicit?.trim() ?? "";
-  if (injected.length > 0) return injected;
-  if (typeof plan.id === "string" && plan.id.trim().length > 0) {
-    return plan.id.trim();
-  }
-  return null;
+  return resolveScopeIdForAcReuseDetailed(plan, explicit, context).scopeId;
 }
 
 /**
@@ -69,7 +139,11 @@ export function resolveScopeIdForAcReuse(
 export function resolveAcReuse(input: ResolveAcReuseInput): AcReuseDecision {
   const allowCache = input.allowCache !== false;
   const allowBank = input.allowBank !== false;
-  const scopeId = resolveScopeIdForAcReuse(input.plan, input.scopeId);
+  const scopeId = resolveScopeIdForAcReuse(input.plan, input.scopeId, {
+    oracleScopeKey: input.oracleScopeKey,
+    xbriefPath: input.xbriefPath,
+    projectRoot: input.projectRoot,
+  });
   if (scopeId === null) {
     return { kind: "miss", servedFrom: "executed", hash: null, reason: "no scope id" };
   }
