@@ -23,6 +23,12 @@ Anti-pattern: editing files before activating the xBRIEF, then activating "to ma
 
 The gate also requires an explicit action-verb directive from the user (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`). Affirmative continuation phrases ("yes", "go", "proceed") are NOT authorisation unless the prior turn explicitly proposed implementation.
 
+### Intent-constraint authorship (#4587 / #4541)
+
+! Author `plan["x-directive/intentConstraint"]` when the operator already names value/unit/rejectionScope, before the implementation PR that introduces throw/reject/abort or numeric-const facts. File-scope can be named at allocation. Throw values usually cannot.
+! `task check` fail path names `scope:record-intent-constraint`. C1/headless that adds a throw fails closed with no operator on the TTY.
+⊗ Recut `evaluateIntentConstraint`. ⊗ Let an approved-scope digest authorize throw sites. ⊗ Paste a mint argv into the agent shell. ⊗ Sibling mint at `record-approved-scope` or park.
+
 ## 2.5 Allocation context -- swarm-cohort consent token (#1378)
 
 Every dispatch envelope MUST carry a `## Allocation context` section so any downstream skill (the build SKILL Story Start Gate, the `deft xbrief:preflight` gate) or deterministic gate can decide whether batched work was operator-approved by reading structured fields instead of pattern-matching free-form prose. The section has exactly five fields, in this order:
