@@ -22,7 +22,9 @@ describe("intent-constraint authorship placement (#4587)", () => {
   it("names scope:record-intent-constraint on the task-check fail string", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toContain("scope:record-intent-constraint");
     expect(INTENT_CONSTRAINT_REMEDIATION).toContain("INTENT_CONSTRAINT_MISSING");
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/Tests and in-scope file paths are not authority/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
+      /Tests and in-scope file paths are not authority/,
+    );
     expect(remedyForGate("verify:intent-constraint", "no merge-base mint")).toContain(
       "scope:record-intent-constraint",
     );
