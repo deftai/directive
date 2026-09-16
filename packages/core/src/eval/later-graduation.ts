@@ -46,10 +46,13 @@ export function laterGraduationFromShare(
   threshold: number = LATER_GRADUATION_SHARE_THRESHOLD,
 ): LaterGraduationTrigger {
   if (!share.evaluable || share.share === null || share.totalToolTurns === null) {
+    const capDenom = !share.evaluable && share.totalToolTurns !== null;
     return {
       evaluable: false,
       verdict: "unevaluable",
-      summary: "trigger unevaluable (no tool/turn denominator on run summary)",
+      summary: capDenom
+        ? "trigger unevaluable (host_planned / cap denominator is not a used-turns reading)"
+        : "trigger unevaluable (no tool/turn denominator on run summary)",
       ritualGateCount: share.ritualGateCount,
       totalToolTurns: share.totalToolTurns,
       share: null,
@@ -126,7 +129,10 @@ export function evaluateLaterGraduationTrigger(
       threshold,
     );
   }
-  return laterGraduationFromShare(computeRitualGateShare(parseRunSummaryJsonl(text)), threshold);
+  return laterGraduationFromShare(
+    computeRitualGateShare(parseRunSummaryJsonl(text), options.env ?? process.env),
+    threshold,
+  );
 }
 
 export function formatLaterGraduationLine(trigger: LaterGraduationTrigger): string {

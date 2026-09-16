@@ -159,4 +159,48 @@ describe("computeRitualGateShare (#3320)", () => {
       }),
     ).toBeUndefined();
   });
+
+  it("treats host_planned and TOTAL-equals-planned as unevaluable for the #3352 trigger (#4626)", () => {
+    const planned = computeRitualGateShare(
+      parseRunSummaryJsonl(
+        JSON.stringify({
+          event: "tool_turn_denominator",
+          session_id: "s1",
+          total_tool_turns: 120,
+          payload: { total_tool_turns: 120, denominator_source: "host_planned" },
+        }),
+      ),
+    );
+    expect(planned.evaluable).toBe(false);
+    expect(planned.totalToolTurns).toBe(120);
+    expect(planned.share).toBe(0);
+
+    const equalEnv = computeRitualGateShare(
+      parseRunSummaryJsonl(
+        JSON.stringify({
+          event: "check_invocation",
+          session_id: "s1",
+          total_tool_turns: 50,
+          payload: {},
+        }),
+      ),
+      { DEFT_TOTAL_TOOL_TURNS: "50", DEFT_MAX_TURNS: "50" },
+    );
+    expect(equalEnv.evaluable).toBe(false);
+    expect(equalEnv.ritualGateCount).toBe(1);
+    expect(equalEnv.share).not.toBeNull();
+
+    const used = computeRitualGateShare(
+      parseRunSummaryJsonl(
+        JSON.stringify({
+          event: "tool_turn_denominator",
+          session_id: "s1",
+          total_tool_turns: 40,
+          payload: { total_tool_turns: 40, denominator_source: "harness_actual" },
+        }),
+      ),
+    );
+    expect(used.evaluable).toBe(true);
+    expect(used.share).toBe(0);
+  });
 });

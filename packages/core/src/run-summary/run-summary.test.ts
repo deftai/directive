@@ -691,6 +691,29 @@ describe("RunSummaryEmitter (#3282)", () => {
     });
   });
 
+  it("refuses harness_actual when TOTAL equals planned or hostMaxTurns (#4626)", () => {
+    expect(
+      resolveSessionToolTurnDenominator({ [ENV_TOTAL_TOOL_TURNS]: "40", DEFT_MAX_TURNS: "40" }, 24),
+    ).toEqual({
+      total_tool_turns: 40,
+      denominator_source: "host_planned",
+    });
+    expect(resolveSessionToolTurnDenominator({ [ENV_TOTAL_TOOL_TURNS]: "24" }, 24)).toEqual({
+      total_tool_turns: 24,
+      denominator_source: "host_planned",
+    });
+    expect(resolveSessionToolTurnDenominator({ [ENV_TOTAL_TOOL_TURNS]: "120" }, 120)).toEqual({
+      total_tool_turns: 120,
+      denominator_source: "host_planned",
+    });
+    expect(
+      resolveSessionToolTurnDenominator({ [ENV_TOTAL_TOOL_TURNS]: "12", DEFT_MAX_TURNS: "40" }, 24),
+    ).toEqual({
+      total_tool_turns: 12,
+      denominator_source: "harness_actual",
+    });
+  });
+
   it("stays silent when no host or harness denominator is known (#3399)", () => {
     const root = freshRoot("run-summary-session-denom-");
     const out = join(root, "summary.jsonl");

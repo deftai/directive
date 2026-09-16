@@ -5,7 +5,12 @@
  * Absence of the denominator is unevaluable — never invent a share from counts.
  */
 
-import { RUN_SUMMARY_STDOUT_PREFIX, type RunSummaryLine } from "./types.js";
+import {
+  ENV_TOTAL_TOOL_TURNS,
+  RUN_SUMMARY_STDOUT_PREFIX,
+  type RunSummaryLine,
+  type ToolTurnDenominatorSource,
+} from "./types.js";
 
 export interface RitualGateShare {
   readonly evaluable: boolean;
@@ -89,32 +94,89 @@ function lastSessionId(lines: readonly RunSummaryLine[]): string | null {
   return lastStart ?? lastAny;
 }
 
+function readPositiveIntegerEnv(env: NodeJS.ProcessEnv, key: string): number | undefined {
+  const raw = env[key];
+  if (raw === undefined || raw.trim().length === 0) {
+    return undefined;
+  }
+  const n = Number(raw.trim());
+  if (!Number.isInteger(n) || !Number.isFinite(n) || n <= 0) {
+    return undefined;
+  }
+  return n;
+}
+
+function readDenominatorSource(line: unknown): ToolTurnDenominatorSource | undefined {
+  const rec = asRecord(line);
+  if (rec === null) {
+    return undefined;
+  }
+  const payload = asRecord(rec.payload);
+  const src = (payload !== null ? payload.denominator_source : undefined) ?? rec.denominator_source;
+  if (src === "harness_actual" || src === "host_planned") {
+    return src;
+  }
+  return undefined;
+}
+
 /**
  * Compute ritual+gate share from summary lines alone.
  * Uses the latest session in the stream. Missing/invalid denominator → unevaluable.
+ * host_planned and TOTAL-equals-planned caps are unevaluable for the #3352 trigger (#4626).
  */
-export function computeRitualGateShare(lines: readonly RunSummaryLine[]): RitualGateShare {
+export function computeRitualGateShare(
+  lines: readonly RunSummaryLine[],
+  env?: NodeJS.ProcessEnv,
+): RitualGateShare {
   const sessionId = lastSessionId(lines);
   const sessionLines =
     sessionId === null ? [] : lines.filter((line) => line.session_id === sessionId);
   let ritualGateCount = 0;
   let totalToolTurns: number | null = null;
+  let lastSource: ToolTurnDenominatorSource | undefined;
+  let plannedCap: number | undefined;
   for (const line of sessionLines) {
     if (line.event === "check_invocation") {
       ritualGateCount += 1;
     }
     const denom = readToolTurnDenominator(line);
+    const source = readDenominatorSource(line);
+    if (source === "host_planned" && denom !== undefined) {
+      plannedCap = denom;
+    }
     if (denom !== undefined) {
       totalToolTurns = denom;
+      if (source !== undefined) {
+        lastSource = source;
+      }
     }
   }
+  const plannedEnv =
+    env !== undefined ? readPositiveIntegerEnv(env, "DEFT_MAX_TURNS") : undefined;
+  const totalEnv =
+    env !== undefined ? readPositiveIntegerEnv(env, ENV_TOTAL_TOOL_TURNS) : undefined;
+  if (plannedEnv !== undefined) {
+    plannedCap = plannedCap ?? plannedEnv;
+  }
+  const isCap =
+    lastSource === "host_planned" ||
+    (totalToolTurns !== null && plannedCap !== undefined && totalToolTurns === plannedCap) ||
+    (totalEnv !== undefined &&
+      plannedEnv !== undefined &&
+      totalEnv === plannedEnv &&
+      totalToolTurns !== null &&
+      totalToolTurns === totalEnv);
   if (totalToolTurns === null) {
     return { evaluable: false, ritualGateCount, totalToolTurns: null, share: null };
+  }
+  const share = ritualGateCount / totalToolTurns;
+  if (isCap) {
+    return { evaluable: false, ritualGateCount, totalToolTurns, share };
   }
   return {
     evaluable: true,
     ritualGateCount,
     totalToolTurns,
-    share: ritualGateCount / totalToolTurns,
+    share,
   };
 }

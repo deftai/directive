@@ -596,26 +596,38 @@ export interface ResolvedSessionToolTurnDenominator {
   readonly denominator_source: ToolTurnDenominatorSource;
 }
 
+function equalsPlannedCap(
+  total: number,
+  planned: number | undefined,
+  host: number | undefined,
+): boolean {
+  return (planned !== undefined && total === planned) || (host !== undefined && total === host);
+}
+
 /**
- * Resolve the session tool/turn denominator (#3399).
+ * Resolve the session tool/turn denominator (#3399 / #4626).
  *
  * Prefer harness actuals (`DEFT_TOTAL_TOOL_TURNS`), then a host planned-turn
  * budget (`DEFT_MAX_TURNS` or `hostMaxTurns`). Unset → undefined (no event).
- * Share is unevaluable without a host/harness value.
+ * When TOTAL equals planned / hostMaxTurns already on this call, the value is
+ * a cap — label `host_planned`, never `harness_actual`.
  */
 export function resolveSessionToolTurnDenominator(
   env: NodeJS.ProcessEnv,
   hostMaxTurns?: number | null,
 ): ResolvedSessionToolTurnDenominator | undefined {
+  const planned = readPositiveIntegerEnv(env, ENV_MAX_TURNS_DENOMINATOR);
+  const host = coercePositiveHostDenominator(hostMaxTurns);
   const known = readEnvToolTurnDenominator(env);
   if (known !== undefined) {
+    if (equalsPlannedCap(known, planned, host)) {
+      return { total_tool_turns: known, denominator_source: "host_planned" };
+    }
     return { total_tool_turns: known, denominator_source: "harness_actual" };
   }
-  const planned = readPositiveIntegerEnv(env, ENV_MAX_TURNS_DENOMINATOR);
   if (planned !== undefined) {
     return { total_tool_turns: planned, denominator_source: "host_planned" };
   }
-  const host = coercePositiveHostDenominator(hostMaxTurns);
   if (host !== undefined) {
     return { total_tool_turns: host, denominator_source: "host_planned" };
   }
