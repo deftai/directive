@@ -329,7 +329,15 @@ function jsxControlName(open: TS.JsxOpeningLikeElement, inner: string): string {
   );
 }
 
-/** Same-file const useState StringLiteral unwrap (#4586). Not the #4503 TabsTrigger recognizer. */
+/**
+ * Same-file const useState StringLiteral unwrap (#4586). Not the #4503 TabsTrigger recognizer.
+ * Assumptions: parse-only, same file, closed callees useState / React.useState.
+ * Guarantees: Tabs value={ident} emits tab-selected from a unique matching TabsTrigger
+ * value= literal. Colliding ident initializers or colliding trigger labels stay unresolvable
+ * (last-wins is not a lexical scope walk). Non-Tabs value= does not mint a selection.
+ * Non-goals: #4503 recognizer, defaultValue, import-follow, same-both-sides, always-fail
+ * on a controlled value= expression, executing useState, walking setTab.
+ */
 function isUseStateCallee(expr: TS.Expression): boolean {
   if (ts.isIdentifier(expr)) return expr.text === "useState";
   if (
@@ -344,7 +352,11 @@ function isUseStateCallee(expr: TS.Expression): boolean {
   return false;
 }
 
-function collectUseStateBinding(decl: TS.VariableDeclaration, bindings: Map<string, string>): void {
+function collectUseStateBinding(
+  decl: TS.VariableDeclaration,
+  bindings: Map<string, string>,
+  ambiguous: Set<string>,
+): void {
   if (!ts.isVariableDeclarationList(decl.parent)) return;
   if ((decl.parent.flags & ts.NodeFlags.Const) === 0) return;
   if (decl.initializer === undefined || !ts.isCallExpression(decl.initializer)) return;
@@ -356,13 +368,22 @@ function collectUseStateBinding(decl: TS.VariableDeclaration, bindings: Map<stri
   if (first === undefined || ts.isOmittedExpression(first)) return;
   if (first.dotDotDotToken !== undefined) return;
   if (!ts.isIdentifier(first.name)) return;
-  bindings.set(first.name.text, arg0.text);
+  const name = first.name.text;
+  if (ambiguous.has(name)) return;
+  const existing = bindings.get(name);
+  if (existing !== undefined && existing !== arg0.text) {
+    bindings.delete(name);
+    ambiguous.add(name);
+    return;
+  }
+  bindings.set(name, arg0.text);
 }
 
 function collectUseStateBindings(root: TS.Node): Map<string, string> {
   const bindings = new Map<string, string>();
+  const ambiguous = new Set<string>();
   const walk = (node: TS.Node): void => {
-    if (ts.isVariableDeclaration(node)) collectUseStateBinding(node, bindings);
+    if (ts.isVariableDeclaration(node)) collectUseStateBinding(node, bindings, ambiguous);
     ts.forEachChild(node, walk);
   };
   walk(root);
@@ -372,6 +393,7 @@ function collectUseStateBindings(root: TS.Node): Map<string, string> {
 interface ControlledTabUnwrap {
   readonly bindings: ReadonlyMap<string, string>;
   readonly triggerLabels: Map<string, string>;
+  readonly ambiguousTriggerValues: Set<string>;
   readonly valueIdents: string[];
 }
 
@@ -451,12 +473,24 @@ function collectJsxFacts(
       triggerValue.value !== undefined &&
       triggerValue.value.length > 0
     ) {
-      unwrap.triggerLabels.set(triggerValue.value, inner.length > 0 ? inner : triggerValue.value);
+      const value = triggerValue.value;
+      const label = inner.length > 0 ? inner : value;
+      if (!unwrap.ambiguousTriggerValues.has(value)) {
+        const existing = unwrap.triggerLabels.get(value);
+        if (existing !== undefined && existing !== label) {
+          unwrap.triggerLabels.delete(value);
+          unwrap.ambiguousTriggerValues.add(value);
+        } else {
+          unwrap.triggerLabels.set(value, label);
+        }
+      }
     }
   }
-  const controlledValue = jsxAttr(open, "value");
-  if (controlledValue?.kind === "expr" && controlledValue.ident !== undefined) {
-    unwrap.valueIdents.push(controlledValue.ident);
+  if (tag === "Tabs") {
+    const controlledValue = jsxAttr(open, "value");
+    if (controlledValue?.kind === "expr" && controlledValue.ident !== undefined) {
+      unwrap.valueIdents.push(controlledValue.ident);
+    }
   }
 
   if (lower === "button" || tag === "Button") {
@@ -556,6 +590,7 @@ function extractJsxFacts(source: string, path: string, projectRoot: string): Str
   const unwrap: ControlledTabUnwrap = {
     bindings: collectUseStateBindings(sf),
     triggerLabels: new Map(),
+    ambiguousTriggerValues: new Set(),
     valueIdents: [],
   };
   visitJsx(sf, facts, unwrap);

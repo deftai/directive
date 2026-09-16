@@ -280,4 +280,64 @@ function Page() {
 `),
     ).not.toContain("tab-selected:Overview");
   });
+  it("does not mint tab-selected from a non-Tabs value ident", () => {
+    expect(
+      tsxIds(`
+function Page() {
+  const [tab, setTab] = useState("overview");
+  return (
+    <>
+      <input value={tab} />
+      <TabsTrigger value="overview">Overview</TabsTrigger>
+    </>
+  );
+}
+`),
+    ).not.toContain("tab-selected:Overview");
+  });
+
+  it("leaves colliding same-file useState idents unresolvable", () => {
+    const ids = tsxIds(`
+function A() {
+  const [tab, setTab] = useState("overview");
+  return (
+    <Tabs value={tab}>
+      <TabsTrigger value="overview">Overview</TabsTrigger>
+    </Tabs>
+  );
+}
+function B() {
+  const [tab, setTab] = useState("billing");
+  return (
+    <Tabs value={tab}>
+      <TabsTrigger value="billing">Billing</TabsTrigger>
+    </Tabs>
+  );
+}
+`);
+    expect(ids).not.toContain("tab-selected:Overview");
+    expect(ids).not.toContain("tab-selected:Billing");
+  });
+  it("leaves colliding TabsTrigger labels unresolvable", () => {
+    expect(
+      tsxIds(`
+function Page() {
+  const [tab, setTab] = useState("overview");
+  return (
+    <>
+      <Tabs value={tab}>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="billing">Billing</TabsTrigger>
+      </Tabs>
+      <Tabs value={other}>
+        <TabsTrigger value="overview">Settings</TabsTrigger>
+        <TabsTrigger value="billing">Settings</TabsTrigger>
+      </Tabs>
+    </>
+  );
+}
+`),
+    ).not.toContain("tab-selected:Overview");
+  });
+
 });
