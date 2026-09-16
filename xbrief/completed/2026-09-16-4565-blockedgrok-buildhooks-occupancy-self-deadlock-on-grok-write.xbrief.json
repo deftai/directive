@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4565",
-    "updated": "2026-09-16T03:20:00Z"
+    "updated": "2026-09-16T03:28:06Z"
   },
   "plan": {
     "title": "blocked(grok-build,hooks): occupancy self-deadlock on Grok Write (FairMark 2026-09-15, residue of #4125)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "blocked(grok-build,hooks): occupancy self-deadlock on Grok Write (FairMark 2026-09-15, residue of #4125)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4565",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Dual-host refuse-mint must not suggest the Claude print companion when grok is co-declared. Change uniquePrintCompanion / PAYLOAD_HOST_PRINT_COMPANIONS selection. Do not invent a third dest-occupancy copy. Do not reopen shipped #4431 as a first-ship.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/session/occupancy-mint-refusal.test.ts:does not suggest the Claude print companion when grok is co-declared (#4565)",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Keep Claude hooks installed as a ship constraint on that remainder. Do not opt the other host out as the fix. Disable-hooks leftover is dropped; do not file it.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/session/occupancy-mint-refusal.test.ts:does not suggest the Claude print companion when grok is co-declared (#4565)",
@@ -36,7 +36,7 @@
       },
       {
         "title": "Native Write deadlock on a Grok-shaped owner stays operator-deferred to existing blocked #4125.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/disposition": {
           "disposition": "deferred",
           "reason": "Operator-deferred leftover: native Write deadlock on a Grok-shaped owner stays on existing blocked #4125 (host spawn-environment miss; deft-hook sibling omits GROK_SESSION_ID). Not this #4565 bind. Lean 5690922119 / synthesis 5691057694 / operator envelope 2026-09-16.",
@@ -119,9 +119,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "6e024428476169b927243c66c6d46eecacb44a3c607044d9d7e2dd70ac2667e9"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4604,
+        "prBase": null,
+        "mergeCommit": "806afe4f44af8d73eef5523b006b88bc8ca64bce",
+        "deliveryBranch": "master",
+        "deliveryCommit": "806afe4f44af8d73eef5523b006b88bc8ca64bce",
+        "verifiedAt": "2026-09-16T03:28:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE4MzktZjk4Zi03OTkwLTk1NTgtNDdlNzJlN2NhM2Q1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-16T03:28:06Z"
+      },
+      "completedAt": "2026-09-16T03:28:06Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE4MzktZjk4Zi03OTkwLTk1NTgtNDdlNzJlN2NhM2Q1",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5464308079",
-    "updated": "2026-09-16T03:20:00Z"
+    "updated": "2026-09-16T03:28:06Z"
   }
 }
