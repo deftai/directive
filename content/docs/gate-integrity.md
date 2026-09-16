@@ -32,7 +32,7 @@ Any deterministic pass/fail surface that adjudicates work quality, including but
 | Verify scripts | `verify:*` tasks, content contracts, schema validators |
 | Policy flags | `plan.policy.*` that weaken or skip enforcement |
 | Eval / fixtures | golden eval cells, reward definitions, required fixture assertions |
-| Scope / process | active xBRIEF `file_scope` self-expansion that self-authorizes (#3145) |
+| Scope / process | active xBRIEF `file_scope` self-expansion that self-authorizes (#3145 / #4589) |
 
 The **evaluator lives outside the editable surface under test** (#782 agent-loop / fixed evaluator). Moving the goalposts is not a valid fix.
 

@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Declared file_scope expansion remint is merge-time `verify:scope-provenance` plus `--kind renewed-approval` (#4589).** After a first human mint, a later declared expansion in the implementation change set hard-fails and re-demands `scope:record-approved-scope`. Carrier is operator return for the documented multi-PR remint (already-holding). #4383 first-mint activate digest stays open. Unattended remint, same-PR approval rewrite, and editing the verifier stay declined. Closes #4589.
 - **Dual-host refuse-mint no longer suggests the Claude print companion when grok is co-declared (#4565).** uniquePrintCompanion keeps Claude declared and does not name host:claude:v1. Native Write deadlock on a Grok-shaped owner stays on #4125. Closes #4565.
 - **Yolo auto-stamp no longer posts path-1 or ingest-ready when pain coverage would refuse (#4592).** `evaluateAutoStampPath1Write` constructs Stop 1 plus successor lean plus unpublished path-1 that cites only the lean, refuses the write on any published pain-coverage reason, and skips remaining-set when refused. `autoStamp: true` still prints Handoff. Does not grow `resolveAutoStampCatalogChip`. Closes #4592.
 - **Intent-constraint multi-mint config-fail ignores leftover dest running briefs.** Empty active fixture so a unique dest pin cannot turn two merge-base mints into a missing-mint fail. Leftover of #4567 complete-tracking. Does not recut that issue.
