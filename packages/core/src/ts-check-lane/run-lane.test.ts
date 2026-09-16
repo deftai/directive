@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ACTIVE_SCOPE_PIN_ENV } from "../hooks/scope.js";
+import { assertNoDeftAllowEscape } from "../one-pr-unit/close-via-app.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
@@ -8,6 +9,7 @@ import {
 import {
   BRANCH_GATE_BYPASS_ENV,
   COVERAGE_DEBT_ENV,
+  DESTRUCTIVE_GH_GATE_BYPASS_ENV,
   RELEASE_PREFLIGHT_ENV,
 } from "../release/constants.js";
 import {
@@ -101,6 +103,18 @@ describe("sanitizeTsLaneEnv", () => {
     });
     expect(sanitized.DEFT_SESSION_ID).toBe("host:cursor:v1:abc");
     expect(sanitized.PATH).toBe("/usr/bin");
+  });
+
+  it("poisons DEFT_ALLOW_DESTRUCTIVE_GH_VERBS so nested App-close tests cannot inherit the release bypass (#4630)", () => {
+    const sanitized = sanitizeTsLaneEnv({
+      [DESTRUCTIVE_GH_GATE_BYPASS_ENV]: "1",
+      [BRANCH_GATE_BYPASS_ENV]: "1",
+      PATH: "/usr/bin",
+    });
+    expect(sanitized[DESTRUCTIVE_GH_GATE_BYPASS_ENV]).toBeUndefined();
+    expect(sanitized[BRANCH_GATE_BYPASS_ENV]).toBeUndefined();
+    expect(sanitized.PATH).toBe("/usr/bin");
+    expect(() => assertNoDeftAllowEscape(sanitized)).not.toThrow();
   });
 });
 

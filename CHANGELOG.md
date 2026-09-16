@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ts:check-lane strips DEFT_ALLOW_DESTRUCTIVE_GH_VERBS before vitest (#4630).** Release Step 5 injects that bypass via releaseSubprocessEnv; nested close-via-app tests treated it as a measured App-close violation. Same poison list as #4506. Does not weaken assertNoDeftAllowEscape. Refs #4630.
 - **RULE-MAP generated view matches the renderer (#4621).** Regenerated committed docs/RULE-MAP.md so docs:rule-map:check is not STALE (skills MUST 644->645; observable-scope related-link wrap). Refs #4621.
 - **D7 filename recovery matches the runtime matcher (#4578).** Create, promote, activate, and decompose refuse uppercase lifecycle slugs. Closes #4578.
 - **Controlled Tabs useState StringLiteral flip is a tab-selected delta (#4586).** Same-file `const [ident, ...] = useState(<StringLiteral>)` with `value={ident}` emits `tab-selected` from the matching `TabsTrigger value=` literal. Closed callees `useState` and `React.useState`. Lazy initializers, non-literal args, and `setTab` stay unresolvable. Tabs-only value={ident}. Colliding same-file idents or TabsTrigger labels stay unresolvable. Does not implement the #4503 recognizer. Closes #4586.

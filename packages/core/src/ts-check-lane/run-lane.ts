@@ -26,13 +26,18 @@ import {
   ENV_CHECK_MODE,
   ENV_HYGIENE_ADVISORY,
 } from "../product-first-done-gate/index.js";
-import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "../release/constants.js";
+import {
+  BRANCH_GATE_BYPASS_ENV,
+  DESTRUCTIVE_GH_GATE_BYPASS_ENV,
+  RELEASE_PREFLIGHT_ENV,
+} from "../release/constants.js";
 import { resolveCoverageDebtIssue } from "../vitest-runner/coverage-debt.js";
 import { buildTestLaneCommand, resolveTestLaneCommand } from "./progress.js";
 
-/** Release Step-5 / session-pin vars that must not leak into vitest (#2434 / #4230 / #4506). */
+/** Release Step-5 / session-pin vars that must not leak into vitest (#2434 / #4230 / #4506 / #4630). */
 const TS_LANE_POISON_ENV_KEYS = [
   BRANCH_GATE_BYPASS_ENV,
+  DESTRUCTIVE_GH_GATE_BYPASS_ENV,
   RELEASE_PREFLIGHT_ENV,
   ENV_CHECK_MODE,
   ENV_CHECK_AC_ONLY,

@@ -1,0 +1,98 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4630",
+    "updated": "2026-09-16T15:29:54Z"
+  },
+  "plan": {
+    "title": "bug(ts-check-lane): release Step 5 poisons vitest with DEFT_ALLOW_DESTRUCTIVE_GH_VERBS",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(ts-check-lane): release Step 5 poisons vitest with DEFT_ALLOW_DESTRUCTIVE_GH_VERBS",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4630",
+      "Overview": "## In plain English\n\n`task release` Step 5 injects `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` into `task check` via `releaseSubprocessEnv`. `sanitizeTsLaneEnv` strips the default-branch bypass and `DEFT_ACTIVE_SCOPE` (#4506) but not this key. Nested `close-via-app` tests then fail because `assertNoDeftAllowEscape` treats any `DEFT_ALLOW_*=1` as a measured violation.\n\nThis is why v0.119.1 production Step 5 printed `Tests 2 failed | 17771 passed` three times, then went green when the same file was run outside the release env.\n\n## Slice (this issue)\n\nAdd `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS` (`DESTRUCTIVE_GH_GATE_BYPASS_ENV`) to `TS_LANE_POISON_ENV_KEYS` in `packages/core/src/ts-check-lane/run-lane.ts`, same family as #4506. Nested vitest must not inherit the release subprocess bypass.\n\nDo not weaken `assertNoDeftAllowEscape`. Do not stop `releaseSubprocessEnv` from setting the bypass for git/gh. Do not lower coverage. Do not implement #4628 here.\n\n## Repro\n\n- `pnpm exec vitest run --coverage=false packages/core/src/one-pr-unit/close-via-app.test.ts` → 4 passed\n- same with `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` → 2 failed:\n  - App consume-then-close > refuses missing claimed set\n  - App consume-then-close > consumes remaining members after bind\n- Tee: `.deft/check-tees/no-session/45876-43f20aee.log` (and `38360-2c94cdda.log`)\n\nReceived: `DEFT_ALLOW_* is a measured violation, not an escape from one-PR-unit App close (DEFT_ALLOW_DESTRUCTIVE_GH_VERBS)`\n\n## Acceptance\n\n- `sanitizeTsLaneEnv` deletes `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS`\n- `close-via-app.test.ts` passes when the parent env has that key set to `1`\n- `task release` Step 5 / `ts:check-lane` no longer fails those two tests solely because the release env leaked\n- Existing #4506 strips (scope pin, default-branch bypass, check-mode) stay\n\nNot this issue: leftover-closeout Closes/P1 waiter (#4628); Phase 1 red-tip; FAIL-title hatch; mint TTL.\n\nRefs #4506, #4494, #4628\r\n\n",
+      "Labels": "bug, test-debt, area:cli, area:release"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "test-debt",
+      "area:cli",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4630",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4630: bug(ts-check-lane): release Step 5 poisons vitest with DEFT_ALLOW_DESTRUCTIVE_GH_VERBS"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4506",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4506"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "pnpm exec vitest run --coverage=false packages/core/src/one-pr-unit/close-via-app.test.ts",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5476484070,
+        "origin": "deftai/directive#4630",
+        "id": "github.issue.5476484070"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`sanitizeTsLaneEnv` deletes `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`close-via-app.test.ts` passes when the parent env has that key set to `1`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`task release` Step 5 / `ts:check-lane` no longer fails those two tests solely because the release env leaked",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Existing #4506 strips (scope pin, default-branch bypass, check-mode) stay",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5476484070",
+    "updated": "2026-09-16T15:29:54Z"
+  }
+}
