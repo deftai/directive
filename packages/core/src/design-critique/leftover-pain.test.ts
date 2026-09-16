@@ -5,7 +5,6 @@ import { evaluateCompletedArcRecord, type ThreadComment } from "./completed-arc-
 import {
   assertedPainIdsFromCites,
   bindLeanPredecessorValid,
-  DEFAULT_N1_DUAL_STOP_POSTS,
   dualStopCapNotation,
   evaluateBoundRemedyCites,
   evaluateContinueRemainder,
@@ -208,7 +207,6 @@ describe("yolo leftover-pain handling (#4593)", () => {
   });
 
   it("defaults Dual-stop to 6 posts for spend N=1 and does not refill at Handoff", () => {
-    expect(DEFAULT_N1_DUAL_STOP_POSTS).toBe(6);
     expect(dualStopCapNotation(6)).toBe("Dual-stop cap: 6 posts");
     expect(dualStopCapNotation(6)).not.toBe("Dual-stop cap: N=6");
     const after = evaluateDualStopPostBudget({

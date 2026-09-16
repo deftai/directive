@@ -9,8 +9,6 @@
 import { type PainCite, scanPainCites } from "./citation-grammar.js";
 import { isSuccessorLeanBody } from "./completed-arc-record.js";
 
-export const DEFAULT_N1_DUAL_STOP_POSTS = 6;
-
 export type PainAuditFindingClass = "blocking" | "sharpening" | "footnote";
 
 export type PainCiteLeanKind = "bind" | "retraction" | "intermediate";
@@ -233,7 +231,7 @@ export function evaluateDualStopPostBudget(input: {
   readonly refilled: false;
   readonly notation: "posts";
 } {
-  const base = input.spendSeats === 1 ? DEFAULT_N1_DUAL_STOP_POSTS : input.spendSeats === 3 ? 3 : 0;
+  const base = input.spendSeats === 1 ? 6 : input.spendSeats === 3 ? 3 : 0;
   const numberedCap = input.operatorRaisedCap ?? base;
   const postsUsed = input.afterHandoff ? input.criticPostsUsed : input.criticPostsUsed;
   return {
