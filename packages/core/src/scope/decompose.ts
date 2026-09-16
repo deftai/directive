@@ -8,7 +8,7 @@
  */
 
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { evaluateDecomposeStructuralApply, sha256Hex } from "../authz/decompose-apply.js";
 import { claimSingleUseGrantForApply } from "../authz/store.js";
@@ -23,7 +23,7 @@ import {
 import { resolveRepo } from "../triage/queue/repo.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
-import { d7Basename, isScopeLifecyclePath, validateFilename } from "../vbrief-validate/filename.js";
+import { d7Basename, validateFilename } from "../vbrief-validate/filename.js";
 import { READY_REQUIRES_PARALLEL_SAFE } from "../vbrief-validation/story-quality.js";
 import { formatCoverageReportLine, validateCoverageMap } from "./coverage-map.js";
 import { buildParentLineageArtifact } from "./parent-lineage.js";
@@ -789,6 +789,10 @@ export function validateDraft(stories: JsonObj[]): string[] {
     if (!storyHasTraces(story, items, sw)) {
       issues.push("Traces or missing_traces_justification");
     }
+    const draftFilename = story.filename;
+    if (typeof draftFilename === "string" && hasArtifactSuffix(draftFilename)) {
+      issues.push(...validateFilename(d7Basename(draftFilename)));
+    }
     issues.push(
       ...storyQualityIssues({
         title: String(story.title ?? id),
@@ -1054,13 +1058,6 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
     }
     const filename = childFilename(story, stId, title, date);
     const target = join(outputDir, filename);
-    const rel = relative(projectRoot, target).split("\\").join("/");
-    if (isScopeLifecyclePath(rel)) {
-      const d7 = validateFilename(d7Basename(filename));
-      if (d7.length > 0) {
-        throw new DecompositionError(d7.join("\n"));
-      }
-    }
     if (!checkOnly && existsSync(target)) {
       throw new DecompositionError(
         `${target}: child story path already exists; overwriting is not supported`,
