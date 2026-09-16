@@ -68,8 +68,12 @@ failures or other operations (e.g. edit grant ≠ push).
 2. **Authz Wave 1** — UAT lease + human-origin grant (`#2944`)
 3. Runtime authority path + `scopes.edits` / `scopes.push` / `scopes.merge` (#1394 / #2711)
 
-Denials name the missing permission and the human action required (typically
-`deft authz:grant -- --cohort <id> --operations … --surfaces …`).
+While UAT is active, missing-operation and expired-grant denials name human-presence
+`deft authz:uat-suspend` from a real operator console (listed agent/CI markers empty,
+stdin+stdout TTY, controlling terminal, `--confirm`, typed phrase `mint` — suspend
+reuses the mint phrase). `authz:grant`, `authz:uat-start`, and `authz:revoke` stay
+hard-refused while the lease is active. After suspend, grant is available again
+through the same human-presence gate.
 
 Audit appends to `.deft/authz/audit.jsonl` with:
 

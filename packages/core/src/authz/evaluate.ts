@@ -98,6 +98,11 @@ function grantCoversOp(grant: HumanOriginGrant, op: AuthzOperation): boolean {
   return grant.scope.operations.includes(op);
 }
 
+/** Reachable recovery while UAT is active (#4632): campaign-wide human-presence suspend, not remint. */
+const HUMAN_PRESENCE_UAT_SUSPEND_ACTION =
+  "Human action required: from a real operator console (listed agent/CI markers empty, " +
+  "stdin+stdout TTY, controlling terminal, --confirm, typed phrase) run `deft authz:uat-suspend`.";
+
 function grantCoversSurface(grant: HumanOriginGrant, path: string | null): boolean {
   if (path === null) {
     // Unclassifiable path: require empty surfaces (unrestricted) to allow.
@@ -190,7 +195,7 @@ function grantValidity(
         code: "authz-grant-expired",
         reason:
           `Directive denied this mutation: grant ${grant.id} expired at ${grant.semantics.expiresAt}. ` +
-          "Human action required: mint a fresh grant via `deft authz:grant`.",
+          HUMAN_PRESENCE_UAT_SUSPEND_ACTION,
       };
     }
   }
@@ -246,12 +251,11 @@ function findCoveringGrant(
         code: "authz-grant-scope-deny",
         reason:
           `Directive denied this mutation: grant ${grant.id} does not include operation ` +
-          `'${String(op).replace(/[\r\n]/g, " ")}'. Human action required: mint/extend a grant ` +
-          `with operations including ${String(op).replace(/[\r\n]/g, " ")} ` +
-          `(\`deft authz:grant -- --operations ${String(op).replace(/[\r\n]/g, " ")},...\`).`,
+          `'${String(op).replace(/[\r\n]/g, " ")}'. ${HUMAN_PRESENCE_UAT_SUSPEND_ACTION}`,
       };
       continue;
     }
+
     if (op === "edit" && !grantCoversSurface(grant, input.path)) {
       lastReject = {
         code: "authz-grant-scope-deny",

@@ -1,6 +1,11 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  type AuthzState,
+  evaluateAuthzMutation,
+  type HumanOriginGrant,
+} from "@deftai/directive-core/authz";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type AuthzMainSeams, main } from "./authz.js";
 
@@ -74,8 +79,8 @@ describe("authz CLI (#2944)", () => {
     expect(err.join("")).toMatch(/campaign/);
   });
 
-  it("grant outside UAT / uat-start / show; grant+suspend hard-refuse under active UAT (#3110)", () => {
-    // Mint fix-cohort grants BEFORE uat-start — under active UAT all mutating verbs refuse.
+  it("grant outside UAT / uat-start / show; grant hard-refuse under active UAT; suspend succeeds on complete seam (#4632)", () => {
+    // Mint fix-cohort grants BEFORE uat-start — grant remint stays hard-refused under UAT.
     const root = tempRoot();
     const out: string[] = [];
     const err: string[] = [];
@@ -107,14 +112,15 @@ describe("authz CLI (#2944)", () => {
     ).toBe(0);
     expect(runAuthz(["show", "--project-root", root, "--format", "json"])).toBe(0);
     expect(out.join("")).toMatch(/ACTIVE|uat-1/);
-    // Under active UAT: grant and uat-suspend hard-refuse (no multi-factor escape).
+    // Under active UAT: grant hard-refuses; uat-suspend succeeds on the complete seam.
     expect(
       runAuthz(["grant", "--project-root", root, "--operations", "edit", "--cohort", "late"]),
     ).toBe(2);
-    expect(runAuthz(["uat-suspend", "--project-root", root])).toBe(2);
     expect(err.join("")).toMatch(
       /UAT lease is ACTIVE|hard-refused|Self-approval|refusing mutating/i,
     );
+    expect(runAuthz(["uat-suspend", "--project-root", root])).toBe(0);
+    expect(out.join("")).toMatch(/suspended/);
     expect(runAuthz(["show", "--project-root", root])).toBe(0);
   });
 
@@ -556,10 +562,10 @@ describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
   });
 });
 
-describe("authz CLI UAT-active hard refuse (#3110)", () => {
+describe("authz CLI UAT-active mint refuse (#3110 / #4632)", () => {
   /**
    * Self-approval under UAT is impossible by construction: while any UAT lease
-   * is active, grant / uat-start / uat-suspend / revoke exit non-zero even with
+   * is active, grant / uat-start / revoke exit non-zero even with
    * full multi-factor seams (fake TTY + controlling terminal + --confirm + mint).
    */
   function startActiveUat(root: string): void {
@@ -596,7 +602,7 @@ describe("authz CLI UAT-active hard refuse (#3110)", () => {
     expect(err.join("")).toMatch(/UAT lease is ACTIVE|refusing mutating/i);
   });
 
-  it("refuses uat-start / uat-suspend / revoke under active UAT even with TTY + --confirm", () => {
+  it("refuses uat-start / revoke under active UAT even with TTY + --confirm; suspend succeeds", () => {
     const root = tempRoot();
     startActiveUat(root);
     const err: string[] = [];
@@ -610,13 +616,13 @@ describe("authz CLI UAT-active hard refuse (#3110)", () => {
         cleanOperatorSeams(),
       ),
     ).toBe(2);
-    expect(main(["uat-suspend", "--project-root", root, "--confirm"], cleanOperatorSeams())).toBe(
-      2,
-    );
     expect(
       main(["revoke", "--project-root", root, "grant-anything", "--confirm"], cleanOperatorSeams()),
     ).toBe(2);
     expect(err.join("")).toMatch(/UAT lease is ACTIVE|refusing mutating/i);
+    expect(main(["uat-suspend", "--project-root", root, "--confirm"], cleanOperatorSeams())).toBe(
+      0,
+    );
   });
 
   it("allows grant mint outside UAT with multi-factor seams, then refuses after uat-start", () => {
@@ -655,6 +661,64 @@ describe("authz CLI UAT-active hard refuse (#3110)", () => {
     const root = tempRoot();
     startActiveUat(root);
     expect(main(["show", "--project-root", root], { isTty: () => false, environ: {} })).toBe(0);
+  });
+
+  it("refuses uat-suspend under active UAT when TTY, confirm, phrase, terminal, or agent-marker is missing", () => {
+    const root = tempRoot();
+    startActiveUat(root);
+    expect(
+      main(["uat-suspend", "--project-root", root, "--confirm"], {
+        isTty: () => false,
+        environ: {},
+      }),
+    ).toBe(2);
+    expect(main(["uat-suspend", "--project-root", root], cleanOperatorSeams())).toBe(2);
+    expect(
+      main(
+        ["uat-suspend", "--project-root", root, "--confirm"],
+        cleanOperatorSeams({ environ: { CI: "1" } }),
+      ),
+    ).toBe(2);
+    expect(
+      main(
+        ["uat-suspend", "--project-root", root, "--confirm"],
+        cleanOperatorSeams({ readInteractiveConfirm: () => "yes" }),
+      ),
+    ).toBe(2);
+    expect(
+      main(
+        ["uat-suspend", "--project-root", root, "--confirm"],
+        cleanOperatorSeams({ hasControllingTerminal: () => false }),
+      ),
+    ).toBe(2);
+  });
+
+  it("after complete-seam suspend, grant is reachable again through human presence", () => {
+    const root = tempRoot();
+    startActiveUat(root);
+    expect(main(["uat-suspend", "--project-root", root, "--confirm"], cleanOperatorSeams())).toBe(
+      0,
+    );
+    expect(
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "after", "--confirm"],
+        cleanOperatorSeams(),
+      ),
+    ).toBe(0);
+  });
+
+  it("help names operator-console uat-suspend and does not say the lease ends only out-of-band", () => {
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    expect(main(["--help"])).toBe(0);
+    const text = out.join("");
+    expect(text).toMatch(/uat-suspend is reachable from a real operator console/);
+    expect(text).toMatch(/suspend reuses the mint phrase/);
+    expect(text).not.toMatch(/End UAT only/);
+    expect(text).not.toMatch(/cleared out-of-band/);
   });
 });
 
@@ -1056,5 +1120,81 @@ describe("authz CLI structural decompose mint (#3291)", () => {
       ]),
     ).toBe(2);
     expect(err.join("")).toMatch(/both --parent|requires both|operations|template/i);
+  });
+});
+
+describe("evaluate denials under active UAT name human-presence uat-suspend (#4632)", () => {
+  function uatState(): AuthzState {
+    return {
+      schemaVersion: 1,
+      uat: {
+        active: true,
+        campaignId: "c",
+        startedAt: "2026-07-30T00:00:00Z",
+        startedBy: {
+          kind: "operator-cli",
+          actor: "op",
+          mintedAt: "2026-07-30T00:00:00Z",
+          mintedVia: "cli",
+          eventRef: null,
+        },
+        suspendedAt: null,
+        note: null,
+      },
+      activeGrantIds: [],
+    };
+  }
+  function grant(
+    operations: HumanOriginGrant["scope"]["operations"],
+    expiresAt: string | null = null,
+  ): HumanOriginGrant {
+    return {
+      schemaVersion: 1,
+      id: "g1",
+      origin: {
+        kind: "operator-cli",
+        actor: "operator",
+        mintedAt: "2026-07-30T00:00:00Z",
+        mintedVia: "cli",
+        eventRef: null,
+      },
+      scope: {
+        planRef: null,
+        repo: null,
+        branch: null,
+        worktree: null,
+        surfaces: [],
+        operations,
+        storyIds: [],
+        issueIds: [],
+        cohortId: "cohort-1",
+      },
+      semantics: { expiresAt, singleUse: false, usedAt: null, revokedAt: null },
+    };
+  }
+  it("missing-op denial names uat-suspend, not authz:grant", () => {
+    const d = evaluateAuthzMutation({
+      state: uatState(),
+      grants: [grant(["settings"])],
+      op: "push",
+      path: null,
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.reason).toMatch(/does not include operation .push./);
+    expect(d.reason).toMatch(/authz:uat-suspend/);
+    expect(d.reason).not.toMatch(/authz:grant/);
+  });
+  it("expired-grant denial names uat-suspend, not authz:grant", () => {
+    const d = evaluateAuthzMutation({
+      state: uatState(),
+      grants: [grant(["push"], "2020-01-01T00:00:00Z")],
+      op: "push",
+      path: null,
+      now: new Date("2026-07-30T00:00:00Z"),
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.code).toBe("authz-grant-expired");
+    expect(d.reason).toMatch(/authz:uat-suspend/);
+    expect(d.reason).not.toMatch(/authz:grant/);
   });
 });

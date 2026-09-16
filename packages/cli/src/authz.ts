@@ -13,10 +13,11 @@
  *   deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> [--repo owner/name] [--confirm]
  *   deft authz:revoke -- <grant-id> [--confirm]
  *
- * **UAT-active hard refuse (#3110):** while any UAT lease is active, ALL mutating
- * verbs (`uat-start`, `uat-suspend`, `grant`, `revoke`) refuse unconditionally —
- * no TTY, no `--confirm`, no typed phrase path. Self-approval under UAT is
- * impossible by construction (agent PTY cannot mint operator-cli authority).
+ * **UAT-active mint refuse (#3110 / #4632):** while any UAT lease is active,
+ * `uat-start`, `grant`, and `revoke` refuse unconditionally — no TTY, `--confirm`,
+ * or typed phrase path. `uat-suspend` skips that mint-refuse and still requires
+ * multi-factor human presence (real operator console). Suspend reuses the typed
+ * phrase `mint`; it is not a remint.
  *
  * **Outside UAT:** mutating verbs require multi-factor human presence: interactive
  * TTY + controlling terminal + `--confirm` + typed phrase `mint`; agent/CI env
@@ -281,16 +282,19 @@ function helpText(): string {
     "",
     "Human-origin grants are minted only via this CLI (origin.kind=operator-cli).",
     "Self-authored xBRIEF/lifecycle/dispatch tokens never satisfy implement gates (#2944).",
-    "While any UAT lease is ACTIVE (#3110): ALL mutating verbs refuse unconditionally",
-    "  (grant / uat-start / uat-suspend / revoke) — no TTY, --confirm, or phrase path.",
-    "  Self-approval under UAT is impossible by construction. Mint grants BEFORE uat-start.",
+    "While any UAT lease is ACTIVE (#3110 / #4632): grant / uat-start / revoke refuse",
+    "  unconditionally — no TTY, --confirm, or phrase path. Self-approval remint under",
+    "  UAT is impossible by construction. Mint grants BEFORE uat-start.",
+    "  uat-suspend is reachable from a real operator console: listed agent/CI markers",
+    "  empty, stdin+stdout TTY, controlling terminal, --confirm, typed phrase 'mint'",
+    "  (suspend reuses the mint phrase; it is not a remint). Agent/CI and missing-factor",
+    "  seams still refuse (exit 2). After suspend, grant is available again through",
+    "  the same human-presence gate.",
     "Outside UAT, mutating verbs require multi-factor human presence (#3110):",
     "  - Interactive TTY (stdin+stdout) + controlling terminal (/dev/tty|\\\\.\\CONIN$)",
     "  - Explicit --confirm (argv flag alone never enough)",
     "  - Typed phrase 'mint' on the controlling TTY (PTY+--confirm alone never enough)",
     "  - Known agent/CI env markers always refuse (fail-closed).",
-    "  End UAT only after the lease is cleared out-of-band (state edit / suspend path",
-    "  that does not run while the lease is active) — or suspend before re-minting.",
     "",
     "Structural scope:decompose apply (#3239 / #3291):",
     "  Pass --parent + --draft (paths under project root). Digest is SHA-256 of exact",
@@ -327,15 +331,19 @@ export function main(
 
   const resolved = resolveHumanPresenceMintSeams(seams);
   /**
-   * Mutating-verb gate stack (#3110):
-   * 1. Active UAT → hard refuse (no multi-factor escape; self-approval impossible)
-   * 2. Else multi-factor: TTY + controlling tty + --confirm + typed phrase; agent/CI markers refuse
+   * Mutating-verb gate stack (#3110 / #4632):
+   * 1. Active UAT mint-refuse for grant / uat-start / revoke (no multi-factor escape)
+   * 2. uat-suspend skips that mint-refuse so campaign-end stays reachable
+   * 3. Multi-factor human presence: TTY + controlling tty + --confirm + typed phrase;
+   *    agent/CI markers refuse. Suspend reuses phrase `mint`.
    * Required-arg validation runs before this so missing --campaign / --ops still report clearly.
    */
   const gateConfirm = (): number | null => {
     if (args.cmd === "show") return null;
-    const uatBlocked = refuseMintWhileUatActive(`authz:${args.cmd}`, args.projectRoot);
-    if (uatBlocked !== null) return uatBlocked;
+    if (args.cmd !== "uat-suspend") {
+      const uatBlocked = refuseMintWhileUatActive(`authz:${args.cmd}`, args.projectRoot);
+      if (uatBlocked !== null) return uatBlocked;
+    }
     return refuseNonInteractiveMint({
       verb: `authz:${args.cmd}`,
       confirm: args.confirm,

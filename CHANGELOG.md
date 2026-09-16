@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **At-scale triage bootstrap 60-write cases use the per-it timeout ternary (#4638).** Backlog scale, progress lines, and fetch_timeout_s=0 are 15s on Linux and keep the 240s win32 cap. Does not raise unit or root testTimeout or add spawnHeavyGlobs. Closes #4638.
 - **Quoted-literal and Emacs-concat harvest no longer fail open past 512 bytes (#4637).** Closing-delimiter and closing-paren match-length caps are gone on those accepted sinks. Ordinary /tmp stays unclassifiable. Does not recut #3728/#3804. Closes #4637.
 - **Issue ingest no longer copies comment bodies into Overview (#4434).** Thread comments persist under plan.metadata.issueCommentThread. The composer banner that treated comments as superseding dispatch input is retracted. Live REST #2143 stays. Class 2 SoT remains content/meta/security.md. Closes #4434.
+- **Active-UAT `uat-suspend` is reachable from a real operator console (#4632).** `gateConfirm()` skips `refuseMintWhileUatActive` only for `uat-suspend` and still runs `refuseNonInteractiveMint`. Grant, uat-start, and revoke stay mint-refused while UAT is active. Missing-op and expired-grant denials name human-presence `authz:uat-suspend`, not remint. Suspend reuses the typed phrase `mint`. Direct `suspendUatLease` stays ungated (#4233). Closes #4632.
 
 ### Removed
 
