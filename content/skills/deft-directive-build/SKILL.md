@@ -515,6 +515,13 @@ feat(phase-2): add REST API endpoints with integration tests
 
 Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 
+### Intent-constraint fail path (#4587)
+
+! When `task check` / `verify:intent-constraint` fails on a new throw/reject/abort or numeric-const without a merge-base mint, the named verb is `scope:record-intent-constraint`. That mint is human-presence.
+! C1/headless that adds a throw fails closed with no operator on the TTY.
+⊗ Paste a mint argv into the agent shell.
+⊗ Recut `evaluateIntentConstraint` or let an approved-scope digest authorize throw sites.
+
 ## Anti-Patterns
 
 - ⊗ Skip tests or write them after implementation

@@ -8,7 +8,7 @@ export const INTENT_CONSTRAINT_PLAN_KEY = "x-directive/intentConstraint";
 export const INTENT_CONSTRAINT_DIR = ".deft/intent-constraint";
 export const INTENT_CONSTRAINT_RECORD_SCHEMA = "deft.intent-constraint.v1";
 export const INTENT_CONSTRAINT_REMEDIATION =
-  "INTENT_CONSTRAINT_MISSING: Link the hard constraint and rejection scope to a base-approved requirement or decision, or remove the behavior. Tests and in-scope file paths are not authority.";
+  "INTENT_CONSTRAINT_MISSING: Link the hard constraint and rejection scope to a base-approved requirement or decision via scope:record-intent-constraint, or remove the behavior. Tests and in-scope file paths are not authority. Headless/C1 that adds a throw fails closed with no operator on the TTY.";
 
 export const FACT_KINDS = ["throw-site", "reject-site", "abort-site", "numeric-const"] as const;
 export type FactKind = (typeof FACT_KINDS)[number];

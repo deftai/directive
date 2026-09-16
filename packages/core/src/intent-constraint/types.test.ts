@@ -14,6 +14,7 @@ describe("intent-constraint constants (#4541)", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /Tests and in-scope file paths are not authority/,
     );
+    expect(INTENT_CONSTRAINT_REMEDIATION).toContain("scope:record-intent-constraint");
     expect(FACT_KINDS).toEqual(["throw-site", "reject-site", "abort-site", "numeric-const"]);
     expect(REJECTION_SCOPES).toEqual(["item", "invocation", "operation"]);
   });

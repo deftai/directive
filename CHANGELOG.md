@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Intent-constraint mint is named at authorship and task check (#4587).** Fail strings name `scope:record-intent-constraint`. Does not recut #4541. Leftover mint-mid-build stays on #4597. Closes #4587.
 - **Yolo leftover-pain handling recommends split-or-halt, files leftover on operator confirm, and continues the remainder (#4593).** Dual-stop default is 6 posts for spend N=1, posts not seats. Reserved pain-audit slot triggers on relieved plus deferred. Blocking audit retracts then Handoffs. Keep the #4592 refuse. Closes #4593.
 - **Leftover-pain finish-possible uses whole audit history, and operator-deferred needs a different issue (#4593).** `[3, 4, 2]` is not still-possible. Missing or same-issue deferred cites fail `evaluateBoundRemedyCites`. Keep the #4592 refuse.
 - **Later-arc ingest no longer treats a complete record as clearance (#4590).** `evaluateCompletedArcRecord` consults `isInFlightCritiqueThread` on comments after the earliest matching complete record synthesisCommentId only when `finalizeComplete` returned complete. A later critic, panel-deposit, or `mechanism-shaped: true` while the latest successor-lean heading is still the bound one returns published `later-arc-in-flight`. Recovery is a new successor-lean heading plus a record that cites it, not cite-the-latest-lean. Does not consult the whole bound thread. Closes #4590.

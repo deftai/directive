@@ -141,6 +141,8 @@ Loop body, per candidate (top-of-queue first):
 
 ⊗ Treat #1187 machine-tool success as proof that a greenfield project is swarm-ready -- repo, remote, Taskfile wiring, install layout, gitignore, and scratch/worktree readiness are separate checks (#1053).
 
+⊗ Ask for `scope:record-intent-constraint` at this park or beside `scope:record-approved-scope`. Intent-constraint mint is at plan-key authorship (`plan["x-directive/intentConstraint"]`) before the implementation PR. Throw values usually cannot be named at allocation. C1/headless that adds a throw fails closed with no operator on the TTY. Do not invent a second snapshot or fill speculative value/unit/rejectionScope so the verb succeeds at park (#4587 / #4541).
+
 #### Manual / GitHub-issue escape hatch
 
 ? When the operator explicitly opts out of the queue (e.g. a one-off ad-hoc cohort that has not been ingested into the triage cache yet, or a swarm batch driven from a hand-supplied list of issue numbers), the monitor MAY fall back to the legacy GitHub-issue path:

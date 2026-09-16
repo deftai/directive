@@ -833,6 +833,15 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 ! Derivation (`#3323` / `#3360`) owns `plan.acceptance`. Setup stays silent on that block.
 ⊗ Emit `plan.acceptance`, `ambiguity_attestation`, or a schema-complete acceptance stamp from this skill.
 ? Collect `plan.metadata.swarm.file_scope` only as operator-named declared members for later derived-stamp bind (`#4008`). ⊗ Invent paths. ⊗ Mint an approved-scope digest (`#3145` / `#3110`). ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. Predecessor #4383.
+
+### Intent-constraint plan key (#4587 / #4541)
+
+! When the operator already names `value` / `unit` / `rejectionScope`, write them on `plan["x-directive/intentConstraint"]` at authorship, before the implementation PR that introduces a throw/reject/abort or numeric-const. File-scope can be named at allocation. Throw values usually cannot.
+! After that key exists, the operator-present mint is `scope:record-intent-constraint` on a TTY, committed on the merge base. The verb copies the plan key; it cannot invent values.
+⊗ Fill speculative `value`/`unit`/`rejectionScope` so a mint succeeds at park.
+⊗ Print `scope:record-intent-constraint` next to `scope:record-approved-scope` at park or Phase 0f. The approved-scope digest does not authorize throw sites.
+⊗ Invent a second snapshot. Keep merge-base authority and same-PR rewrite (#4541).
+
 ! Fields the gate requires: [`../../docs/plan-acceptance.md`](../../docs/plan-acceptance.md).
 
 ### Issue-emit hints at emission (#4426)
@@ -930,3 +939,4 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Synthesize the first proposed scope from Overview, directory name, or init seed (#4390)
 - ⊗ Skip emit-hints after Phase 3 writes to `xbrief/proposed/` (#4426)
 - ⊗ Agent-asserted `parent_issue` / `plan.references` at setup emission (#4426)
+- ⊗ Fill speculative intent-constraint values at park, or mint `scope:record-intent-constraint` beside `scope:record-approved-scope` (#4587)

@@ -42,7 +42,7 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "verify:observable-scope":
     "Restore the baseline markup structure or amend the observable scope through explicit human-presence mint (scope:record-observable-scope)",
   "verify:intent-constraint":
-    "Link the hard constraint and rejection scope to a base-approved requirement or decision, or remove the behavior. Tests and in-scope file paths are not authority.",
+    "Link the hard constraint and rejection scope to a base-approved requirement or decision via scope:record-intent-constraint, or remove the behavior. Tests and in-scope file paths are not authority. Headless/C1 that adds a throw fails closed with no operator on the TTY.",
   "verify:consumer-test-lane":
     "Fix the project's declared test command, or set plan.policy.testCommand; do not invent a suite",
   "verify:forward-coverage":
