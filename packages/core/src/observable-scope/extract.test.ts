@@ -339,5 +339,4 @@ function Page() {
 `),
     ).not.toContain("tab-selected:Overview");
   });
-
 });
