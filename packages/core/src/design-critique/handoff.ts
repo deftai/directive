@@ -158,7 +158,8 @@ export function evaluateHandoffPrint(input: HandoffPrintInput): HandoffPrintVerd
 export type DualStopReservedSlotInput = {
   readonly numberedCap: number;
   readonly criticPostsUsed: number;
-  readonly mapCarriesOperativeRelieves: boolean;
+  /** Relieves plus different-issue deferred, as applyPainCoverage computes asserted. */
+  readonly mapCarriesAssertedPainCoverage: boolean;
   readonly reservedPainAuditPostsUsed: number;
   readonly operatorRaisedCap: boolean;
 };
@@ -169,15 +170,16 @@ export type DualStopReservedSlotVerdict = {
 };
 
 /**
- * One in-cap pain-audit when the map carries operative relieves: P* and the
- * numbered cap is already spent. Not always-on +1 on the N=1 default of two
- * posts. A second extra post still needs a raise. Not an ingest reason.
+ * One in-cap pain-audit when the map carries asserted pain coverage (relieves
+ * plus deferred) and the numbered cap is already spent. Not always-on +1 on
+ * the N=1 default of six posts. A second extra post still needs a raise. Not
+ * an ingest reason.
  */
 export function evaluateDualStopReservedSlot(
   input: DualStopReservedSlotInput,
 ): DualStopReservedSlotVerdict {
   const capSpent = input.criticPostsUsed >= input.numberedCap;
-  if (!capSpent || !input.mapCarriesOperativeRelieves) {
+  if (!capSpent || !input.mapCarriesAssertedPainCoverage) {
     return {
       inCapWithoutRaise: false,
       needsRaise: capSpent && !input.operatorRaisedCap,

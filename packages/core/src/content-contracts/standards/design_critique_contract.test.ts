@@ -207,6 +207,7 @@ const REQUIRED_SKILL_POINTERS = [
   "After this round's siblings are posted: successor lean, then verbs",
   "Auto-stamp after operator confirm; not while same-round siblings outstanding",
   "Yolo standing confirm of a posted all-accept map",
+  "Yolo leftover-pain",
   "completed-arc record",
   "Chip apply miss is non-blocking",
   "## Plain-language summary",
@@ -592,7 +593,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("```text\ndesign-critique: synthesis accepted, because …\n```");
     expect(text).toContain("design-critique:ingest-ready");
     expect(text).toContain("design-critique:in-progress");
-    expect(text).toContain("Default critic posts without extra record: 2");
+    expect(text).toContain("Default Close is 6 posts for spend `N=1` only");
     expect(text).toContain("An N=3 panel is permitted three round-1 posts and no default retry.");
     expect(text).toContain("still-open finding headings/ids");
     expect(text).toContain("Dispatch failure");
@@ -628,6 +629,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("#3607");
     expect(skill).not.toContain("```text\ndesign-critique: halted, because");
     expect(skill).not.toContain("Default critic posts without extra record: 2");
+    expect(skill).not.toContain("Default Close is 6 posts");
     expect(skill).not.toContain("walk findings one at a time");
     expect(skill).not.toContain("accept-into-contract");
     expect(skill).not.toContain("empty disagreement set");
@@ -1302,6 +1304,43 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
   });
 
+  it("locks yolo leftover-pain handling and Dual-stop default 6 posts (#4593)", () => {
+    const text = readText(CONTRACT);
+    const leftover = markdownSection(text, "#### Yolo leftover-pain (#4593)");
+    expect(leftover).toContain("evaluateYoloLeftoverRecommendation");
+    expect(leftover).toContain("recordLeftoverIssueNumber");
+    expect(leftover).toContain("evaluateContinueRemainder");
+    expect(leftover).toContain("evaluateFinishStillPossible");
+    expect(leftover).toContain("evaluateBoundRemedyCites");
+    expect(leftover).toContain("evaluatePainCitePlacement");
+    expect(leftover).toContain("evaluatePainAuditFollowThrough");
+    expect(leftover).toContain("evaluateYoloStandingLeftoverScope");
+    expect(leftover).toContain("bindLeanPredecessorValid");
+    expect(leftover).toContain("evaluateDualStopPostBudget");
+    expect(leftover).toContain("mapCarriesAssertedPainCoverage");
+    expect(leftover).toContain(
+      "does not confirm the split, waive pain coverage, or confirm Handoff",
+    );
+    expect(leftover).toContain("blocking findings is not relief");
+    expect(leftover).toContain("Chip ingest-ready only after evaluateCompletedArcRecord");
+    expect(leftover).toContain("Keep #4592 refuse");
+    const dual = markdownSection(text, "## Dual stop");
+    expect(dual).toContain("applyPainCoverage computes asserted");
+    expect(dual).toContain("Default Close is 6 posts for spend `N=1` only");
+    expect(dual).toContain("does not refill at Handoff");
+    expect(dual).not.toContain("Default critic posts without extra record: 2");
+    expect(dual).toContain("Do not write Dual-stop cap: N=6");
+    const stop4 = markdownSection(text, "## Stop 4 \u2014 Residual reiteration");
+    expect(stop4).toContain("Run a third seat as the default");
+    expect(stop4).not.toContain("Run a third critic pass as the default");
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(testSurface).toContain("leftover-pain.ts");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("Yolo leftover-pain");
+    expect(skill).not.toContain("evaluateYoloLeftoverRecommendation");
+    expect(skill).not.toContain("Default Close is 6 posts");
+  });
+
   it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {
     const text = readText(CONTRACT);
     expect(text).toContain("## Parent-side substantiation");
@@ -1676,6 +1715,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const dual = markdownSection(text, "## Dual stop");
     expect(dual).toContain("evaluateDualStopReservedSlot");
     expect(dual).toContain("Not always-on +1");
+    expect(dual).toContain("applyPainCoverage computes asserted");
+    expect(dual).toContain("Default Close is 6 posts");
+    expect(dual).toContain("does not refill at Handoff");
+    expect(dual).not.toContain("Default critic posts without extra record: 2");
+    expect(dual).toContain("Do not write Dual-stop cap: N=6");
     const summary = markdownSection(text, "## Plain-language summary");
     expect(summary).toContain("open-question:");
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");

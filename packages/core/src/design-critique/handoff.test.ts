@@ -262,23 +262,42 @@ describe("evaluateHandoffPrint harvest relieves overlap (#4554)", () => {
   });
 });
 
-describe("evaluateDualStopReservedSlot (#4531)", () => {
-  it("is not always-on +1 on the N=1 default of two posts", () => {
+describe("evaluateDualStopReservedSlot (#4531 / #4593)", () => {
+  it("is not always-on +1 on the N=1 default of six posts", () => {
     const beforeCap = evaluateDualStopReservedSlot({
-      numberedCap: 2,
-      criticPostsUsed: 1,
-      mapCarriesOperativeRelieves: true,
+      numberedCap: 6,
+      criticPostsUsed: 5,
+      mapCarriesAssertedPainCoverage: true,
       reservedPainAuditPostsUsed: 0,
       operatorRaisedCap: false,
     });
     expect(beforeCap).toEqual({ inCapWithoutRaise: false, needsRaise: false });
   });
 
-  it("admits one in-cap pain-audit when cap is spent and the map carries relieves", () => {
+  it("admits the reserved slot for deferred asserted coverage (#4593)", () => {
+    const deferred = evaluateDualStopReservedSlot({
+      numberedCap: 6,
+      criticPostsUsed: 6,
+      mapCarriesAssertedPainCoverage: true,
+      reservedPainAuditPostsUsed: 0,
+      operatorRaisedCap: false,
+    });
+    expect(deferred).toEqual({ inCapWithoutRaise: true, needsRaise: false });
+    const none = evaluateDualStopReservedSlot({
+      numberedCap: 6,
+      criticPostsUsed: 6,
+      mapCarriesAssertedPainCoverage: false,
+      reservedPainAuditPostsUsed: 0,
+      operatorRaisedCap: false,
+    });
+    expect(none).toEqual({ inCapWithoutRaise: false, needsRaise: true });
+  });
+
+  it("admits one in-cap pain-audit when cap is spent and the map carries asserted coverage", () => {
     const first = evaluateDualStopReservedSlot({
       numberedCap: 3,
       criticPostsUsed: 3,
-      mapCarriesOperativeRelieves: true,
+      mapCarriesAssertedPainCoverage: true,
       reservedPainAuditPostsUsed: 0,
       operatorRaisedCap: false,
     });
@@ -287,18 +306,18 @@ describe("evaluateDualStopReservedSlot (#4531)", () => {
     const second = evaluateDualStopReservedSlot({
       numberedCap: 3,
       criticPostsUsed: 3,
-      mapCarriesOperativeRelieves: true,
+      mapCarriesAssertedPainCoverage: true,
       reservedPainAuditPostsUsed: 1,
       operatorRaisedCap: false,
     });
     expect(second).toEqual({ inCapWithoutRaise: false, needsRaise: true });
   });
 
-  it("needs a raise when the numbered cap is spent without relieves", () => {
+  it("needs a raise when the numbered cap is spent without asserted coverage", () => {
     const spent = evaluateDualStopReservedSlot({
       numberedCap: 2,
       criticPostsUsed: 2,
-      mapCarriesOperativeRelieves: false,
+      mapCarriesAssertedPainCoverage: false,
       reservedPainAuditPostsUsed: 0,
       operatorRaisedCap: false,
     });
@@ -306,7 +325,7 @@ describe("evaluateDualStopReservedSlot (#4531)", () => {
     const raised = evaluateDualStopReservedSlot({
       numberedCap: 2,
       criticPostsUsed: 2,
-      mapCarriesOperativeRelieves: true,
+      mapCarriesAssertedPainCoverage: true,
       reservedPainAuditPostsUsed: 1,
       operatorRaisedCap: true,
     });
