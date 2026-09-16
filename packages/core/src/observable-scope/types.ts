@@ -2,7 +2,8 @@
  * Observable UI scope contract types (#4495).
  *
  * First ship: closed `.html` (parse5) + `.jsx`/`.tsx` (project-resolved TypeScript parse-only).
- * Runtime/state-derived default-tab is #4503. Markup-visible selected /
+ * Runtime/state-derived default-tab is #4503. Same-file const useState
+ * StringLiteral unwrap is #4586. Markup-visible selected /
  * aria-selected / source-order is in scope.
  */
 
