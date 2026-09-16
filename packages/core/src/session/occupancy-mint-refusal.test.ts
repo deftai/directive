@@ -76,6 +76,22 @@ describe("payload-host mint refusal (#4431)", () => {
     ).toThrow(OccupancyMintRefusedError);
   });
 
+  it("CODEX_CI without a presented session id still refuses the mint (#4636)", () => {
+    const claim = resolveOccupancySessionClaim({
+      env: { CODEX_CI: "1" },
+      newSessionId: () => "minted-uuid",
+    });
+    expect(claim.status).toBe("refuse-mint");
+    if (claim.status !== "refuse-mint") return;
+    expect(claim.hosts).toEqual(["codex"]);
+    expect(claim.suggestedSessionId).toBeNull();
+    expect(claim.message).toContain("occupancy refuses to mint an owner on host codex");
+    expect(claim.message).toContain("Directive hook registered");
+    expect(() =>
+      resolveOccupancySessionId({ env: { CODEX_CI: "1" }, newSessionId: () => "minted-uuid" }),
+    ).toThrow(OccupancyMintRefusedError);
+  });
+
   it("still mints when no declared identity host is visible", () => {
     expect(resolveOccupancySessionId({ env: {}, newSessionId: () => "minted-uuid" })).toBe(
       "minted-uuid",
@@ -95,6 +111,7 @@ describe("payload-host mint refusal (#4431)", () => {
   it("detects declared hosts from presence markers", () => {
     expect(detectDeclaredIdentityHosts({ CLAUDECODE: "1" })).toEqual(["claude"]);
     expect(detectDeclaredIdentityHosts({ GROK_AGENT: "1" })).toEqual(["grok"]);
+    expect(detectDeclaredIdentityHosts({ CODEX_CI: "1" })).toEqual(["codex"]);
     expect(detectDeclaredIdentityHosts({})).toEqual([]);
   });
 

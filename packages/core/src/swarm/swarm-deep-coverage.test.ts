@@ -148,6 +148,8 @@ function stubLaunchGates() {
     preflightGate: () => ({ exitCode: 0, message: "ok" }),
     readinessGate: () => ({ exitCode: 0, report: "ok" }),
     runtimeAuthProbe: () => ["local", "none"] as [string, string],
+    // #4636 / #3877: replacement bag so ambient declared-host markers cannot refuse-mint.
+    environ: {},
   };
 }
 
@@ -250,6 +252,7 @@ describe("swarm launch deep coverage", () => {
         preflightGate: () => ({ exitCode: 1, message: "preflight blocked" }),
         readinessGate: () => ({ exitCode: 0, report: "ok" }),
         runtimeAuthProbe: () => ["local", "none"],
+        environ: {},
       }).stderr,
     ).toContain("preflight");
     expect(
@@ -259,6 +262,7 @@ describe("swarm launch deep coverage", () => {
         preflightGate: () => ({ exitCode: 0, message: "ok" }),
         readinessGate: () => ({ exitCode: 1, report: "not ready" }),
         runtimeAuthProbe: () => ["local", "none"],
+        environ: {},
       }).stderr,
     ).toContain("readiness");
     expect(

@@ -94,6 +94,8 @@ function baseOptions(
       login: null,
       failureKind: null,
     }),
+    // #4636 / #3877: replacement bag so ambient declared-host markers cannot refuse-mint.
+    env: {},
   };
 }
 
@@ -185,6 +187,7 @@ describe("runSessionStart — USER.md auto-resolution (#2271)", () => {
       runGit: fakeGit(root),
       verifyTools: () => ({ exitCode: 0 }),
       runTriageWelcome: () => ({ exitCode: 0 }),
+      env: {},
     });
     expect(result.code).toBe(0);
     const payload = result.payload as { user_md: ResolveUserMdResult };
@@ -415,6 +418,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       probeReleaseAvailability: () => {
         throw new Error("release probe must not run on hot path");
       },
+      env: {},
     });
     expect(result.code).toBe(0);
     expect(result.payload.optional_network).toBe(false);

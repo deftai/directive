@@ -36,7 +36,9 @@ describe("occupancy-steal CLI (#3433)", () => {
     const root = mkdtempSync(join(tmpdir(), "occ-steal-cli-"));
     temps.push(root);
     applyWorktreeOccupancy(root, { sessionId: "old" });
-    expect(run(["--project-root", root, "--occupant", "old"])).toBe(2);
+    // Subject is --confirm, not host detection: explicit --session-id keeps
+    // ambient declared-host markers from refuse-minting (#4636).
+    expect(run(["--project-root", root, "--occupant", "old", "--session-id=new-owner"])).toBe(2);
   });
 
   it("steals when confirm and occupant match", () => {
