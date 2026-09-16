@@ -2044,7 +2044,7 @@ describe("interpreter payload and jar dest-grammar (#3593)", () => {
     }
   });
 
-  it("scans complete protected literals longer than 512 bytes", () => {
+  it("scans complete protected literals longer than 512 bytes (#4637)", () => {
     const protectedDest = `.deft/authz/${"a".repeat(600)}`;
     expect(classifyShellAuthzOps(`qjs -e 'cat "${protectedDest}"'`)).toEqual(["unknown"]);
   });
@@ -2310,7 +2310,7 @@ describe("unique destination grammar (#3804)", () => {
     expect(classifyShellAuthzOps("qjs -e 'ar'")).toEqual([]);
   });
 
-  it("scans the complete concat body instead of failing open after 512 bytes", () => {
+  it("scans the complete concat body instead of failing open after 512 bytes (#4637)", () => {
     const padding = " ".repeat(600);
     expect(
       classifyShellAuthzOps(
