@@ -3,6 +3,10 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveAutoStampCatalogChip } from "../../design-critique/auto-stamp-chip.js";
+import {
+  evaluateAutoStampPath1Write,
+  PAIN_COVERAGE_BLOCK_REASONS,
+} from "../../design-critique/auto-stamp-path1.js";
 import { COMPLETED_ARC_BLOCK_REASONS } from "../../design-critique/completed-arc-record.js";
 import {
   DESIGN_CRITIQUE_CATALOG_CHIPS,
@@ -14,7 +18,12 @@ import {
   evaluateDirectDispatch,
   parseOperatorRunPosture,
 } from "../../design-critique/run-posture.js";
-import { operatorVerbApplySet, WIDGET_ACCEPT } from "../../design-critique/widget-apply-set.js";
+import {
+  operatorVerbApplySet,
+  WIDGET_ACCEPT,
+  WIDGET_HALT,
+  WIDGET_HANDOFF,
+} from "../../design-critique/widget-apply-set.js";
 import { resolveDesignCritiqueChipArg } from "../../scm/design-critique-chip.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
@@ -1243,6 +1252,54 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).toContain("Confirm conjunct only");
     expect(skill).toContain("Not ingest");
     expect(skill).not.toContain("accept-into-contract");
+  });
+
+  it("locks lean-cite-only auto-stamp path-1 refuse and Handoff print (#4592)", () => {
+    const text = readText(CONTRACT);
+    const verbs = markdownSection(text, "## Operator verbs");
+    const bind = markdownSection(text, "## Bind after accepted synthesis");
+    const pain = markdownSection(text, "### Pain coverage (#4496)");
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(verbs).toContain("evaluateAutoStampPath1Write");
+    expect(verbs).toContain("cites only the lean");
+    expect(verbs).toContain("`missing-pain`");
+    expect(verbs).toContain("`malformed-pain`");
+    expect(verbs).toContain("`unrelieved-pain`");
+    expect(verbs).toContain("`unresolved-pain-audit`");
+    expect(verbs).toContain("Skip the ingest-ready remaining-set write");
+    expect(verbs).toContain("`missing-record`");
+    expect(verbs).toContain("`missing-table-cite`");
+    expect(verbs).toContain("export applyPainCoverage as-is");
+    expect(verbs).toContain("Uncited P1 is not an ADR-006 marker miss");
+    expect(verbs).toContain("A round-1 critic of original P1 is not a pain audit");
+    expect(verbs).toContain("#4589 / #4590");
+    expect(verbs).toContain("Do not let `autoStamp: true` return empty verbs when Handoff applies");
+    expect(verbs).toContain("evaluateHandoffPrint");
+    expect(verbs).toContain("Grow `resolveAutoStampCatalogChip` as this gate");
+    expect(verbs).toContain("Use Dual-stop reserved-slot as this close");
+    expect(verbs).toContain("Waive pain coverage because yolo is standing");
+    expect(bind).toContain("evaluateAutoStampPath1Write");
+    expect(pain).toContain("lean-cite-only unpublished candidate");
+    expect(pain).toContain("full pain-coverage reason set");
+    expect(testSurface).toContain("evaluateAutoStampPath1Write");
+    expect(PAIN_COVERAGE_BLOCK_REASONS).toEqual([
+      "missing-pain",
+      "malformed-pain",
+      "unrelieved-pain",
+      "unresolved-pain-audit",
+    ]);
+    const handoffWidgets = operatorVerbApplySet({
+      successorLeanPosted: true,
+      disagreeCount: 0,
+      residualHeadingCount: 0,
+      autoStamp: true,
+      handoffApplies: true,
+    });
+    expect(handoffWidgets.verbs).toEqual([WIDGET_HANDOFF, WIDGET_HALT]);
+    expect(evaluateAutoStampPath1Write).toEqual(expect.any(Function));
+    expect(resolveAutoStampCatalogChip("Spec-path: next-build is not this body.\n")).toBe(
+      "design-critique:ingest-ready",
+    );
   });
 
   it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {

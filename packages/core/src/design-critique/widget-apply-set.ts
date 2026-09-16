@@ -46,14 +46,18 @@ function numberWithDiscussBack(verbs: readonly string[]): NumberedWidgetOption[]
  * Widget apply-set after a successor lean.
  *
  * Retry only when residual headings are named. Walk only when a take is
- * disagree. Auto-stamp prints no operator verbs. A menu with no posted lean
- * is a contract miss.
+ * disagree. Auto-stamp prints no operator verbs unless Handoff applies.
+ * A menu with no posted lean is a contract miss.
  */
 export function operatorVerbApplySet(input: OperatorVerbApplyInput): OperatorVerbApplySet {
   if (!input.successorLeanPosted) {
     return { miss: true, verbs: [], numbered: numberWithDiscussBack([]) };
   }
   if (input.autoStamp) {
+    if (input.handoffApplies === true) {
+      const verbs = [WIDGET_HANDOFF, WIDGET_HALT];
+      return { miss: false, verbs, numbered: numberWithDiscussBack(verbs) };
+    }
     return { miss: false, verbs: [], numbered: numberWithDiscussBack([]) };
   }
   const verbs: string[] = [WIDGET_ACCEPT];

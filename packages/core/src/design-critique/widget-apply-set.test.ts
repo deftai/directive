@@ -114,4 +114,21 @@ describe("operatorVerbApplySet (#4202)", () => {
     expect(noHandoff.verbs).toEqual([WIDGET_ACCEPT, WIDGET_HALT]);
     expect(noHandoff.verbs).not.toContain(WIDGET_HANDOFF);
   });
+
+  it("does not let autoStamp true return empty verbs when Handoff applies (#4592)", () => {
+    const result = operatorVerbApplySet({
+      successorLeanPosted: true,
+      disagreeCount: 0,
+      residualHeadingCount: 0,
+      autoStamp: true,
+      handoffApplies: true,
+    });
+    expect(result.miss).toBe(false);
+    expect(result.verbs).toEqual([WIDGET_HANDOFF, WIDGET_HALT]);
+    expect(result.verbs).not.toEqual([]);
+    expect(result.numbered.map((row) => row.label).slice(-2)).toEqual([
+      WIDGET_DISCUSS,
+      WIDGET_BACK,
+    ]);
+  });
 });
