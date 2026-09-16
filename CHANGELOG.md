@@ -23,7 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **verify:session-ritual parse error on `--session-id` names the drop-flag retry (#4576).** Unrecognized `--session-id` / `--session-id=` still exits 2. Stderr appends a suffix to drop the flag and retry `deft verify:session-ritual -- --tier=gated`. Other unknown flags stay generic. Occupancy bind stays on session:start / session:ready. Closes #4576.
+- **verify:session-ritual parse error on --session-id names the drop-flag retry (#4576).** Unrecognized --session-id / --session-id= still exits 2. Stderr appends a suffix to drop the flag and retry deft verify:session-ritual -- --tier=gated. Other unknown flags stay generic. Occupancy bind stays on session:start / session:ready. Closes #4576.
+- **Clean-tree deft update names the index (#4562).** printUpdateComplete prints a Staged row from post-add cached names. Ignored deposit paths are filtered from git add so a born-ignored .deft/core/ does not invert commit guidance. Does not reverse #4158. Pre-staged-commit cross-session index write stays leftover. Closes #4562.
 
 ### Removed
 

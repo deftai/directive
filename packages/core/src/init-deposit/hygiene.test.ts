@@ -24,6 +24,7 @@ import {
   classifyMixedCoreAndAppContentAware,
   classifyMixedCoreAndAppForPr,
   depositStagePaths,
+  filterUntrackedIgnoredStagePaths,
   findPackageAbsentDepositPaths,
   findPackageAbsentDepositPathsSync,
   frameworkStagePaths,
@@ -44,6 +45,7 @@ import {
   isYarnLockDirectivePinFollowThrough,
   pass2CommitSetMatchers,
   pnpmLockRootDirectDeps,
+  printCommitGuidance,
   printDirtyEscapeCommitGuidance,
   prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
@@ -1123,6 +1125,121 @@ describe("scoped staging", () => {
     const result = stageFrameworkPaths(project, paths, { gitPorcelain: () => null });
     expect(result.staged).toBe(false);
     expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
+  });
+
+  it("filters untracked ignored deposit paths out of git add argv (#4562)", () => {
+    const project = freshRoot("hygiene-born-ignored-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    writeFileSync(join(project, ".gitignore"), ".deft/core/\n", "utf8");
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    execFileSync("git", ["init"], { cwd: project });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: project });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: project });
+    execFileSync("git", ["add", "--", "AGENTS.md", ".gitignore"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n\nupdated\n", "utf8");
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\nupdated\n", "utf8");
+
+    const added: string[] = [];
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      activeMutationLedger()?.record("wrote", join(project, ".deft", "core", "main.md"));
+      return depositStagePaths(project, {
+        runGitAdd: (root, paths) => {
+          added.push(...paths);
+          execFileSync("git", ["add", "--", ...paths], { cwd: root });
+        },
+      });
+    });
+
+    expect(added).toEqual(["AGENTS.md"]);
+    expect(result.staged).toBe(true);
+    expect(result.cachedNames).toContain("AGENTS.md");
+    expect(result.cachedNames).not.toContain(".deft/core/main.md");
+    expect(result.stagedPaths).toContain("AGENTS.md");
+    expect(result.stagedPaths).not.toContain(".deft/core/main.md");
+  });
+
+  it("ungates cached-name read and stagedPaths when git add fails (#4562)", () => {
+    const project = freshRoot("hygiene-ungate-cached-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n\nupdated\n", "utf8");
+
+    const warnings: string[] = [];
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      return depositStagePaths(project, {
+        runGitAdd: () => {
+          throw new Error("git add failed");
+        },
+        readCachedNames: () => ["AGENTS.md", "leftover.txt"],
+        printf: (text) => warnings.push(text),
+      });
+    });
+
+    expect(result.staged).toBe(false);
+    expect(result.cachedNames).toEqual(["AGENTS.md", "leftover.txt"]);
+    expect(result.stagedPaths).toEqual(["AGENTS.md"]);
+    expect(warnings.join("")).toContain("git add failed");
+  });
+
+  it("keeps tracked gitignored paths in the git add argv (#4562)", () => {
+    const project = freshRoot("hygiene-tracked-ignored-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    initGitRepo(project);
+    writeFileSync(join(project, ".gitignore"), ".deft/core/\n", "utf8");
+    execFileSync("git", ["add", "--", ".gitignore"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "ignore core"], { cwd: project });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\nupdated\n", "utf8");
+
+    const added: string[] = [];
+    runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, ".deft", "core", "main.md"));
+      return depositStagePaths(project, {
+        runGitAdd: (_root, paths) => {
+          added.push(...paths);
+        },
+      });
+    });
+    expect(added).toContain(".deft/core/main.md");
+  });
+});
+
+describe("printCommitGuidance (#4562)", () => {
+  it("does not tell the operator to git add paths already in the index", () => {
+    const lines: string[] = [];
+    printCommitGuidance(
+      { printf: (text) => lines.push(text) },
+      ["AGENTS.md", ".deft/core/main.md"],
+      false,
+      [],
+      ["AGENTS.md"],
+    );
+    const printed = lines.join("");
+    expect(printed).toContain("The installer already staged ONLY these");
+    expect(printed).not.toContain("Stage ONLY these framework + installer-managed paths:");
+    expect(printed).toContain("git add -- AGENTS.md");
+    expect(printed).not.toContain(".deft/core/main.md");
+  });
+
+  it("asks to stage only when nothing landed in the index", () => {
+    const lines: string[] = [];
+    printCommitGuidance({ printf: (text) => lines.push(text) }, ["AGENTS.md"], false, [], []);
+    expect(lines.join("")).toContain("Stage ONLY these framework + installer-managed paths:");
+  });
+
+  it("drops untracked ignored paths from the filter helper", () => {
+    expect(
+      filterUntrackedIgnoredStagePaths("/unused", ["AGENTS.md", ".deft/core/main.md"], {
+        listIgnored: () => [".deft/core/main.md"],
+        listTracked: () => [],
+      }),
+    ).toEqual(["AGENTS.md"]);
   });
 });
 

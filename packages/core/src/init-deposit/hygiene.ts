@@ -1045,6 +1045,82 @@ export function frameworkStagePaths(
 export interface StageFrameworkPathsSeams {
   gitPorcelain?: (projectRoot: string) => string | null;
   runGitAdd?: (projectDir: string, paths: readonly string[]) => void;
+  /** Override ignored-path filter. Default drops untracked ignored pathspecs (#4562). */
+  filterIgnoredPaths?: (projectDir: string, paths: readonly string[]) => string[];
+}
+
+function splitNulPaths(out: string): string[] {
+  return out
+    .split("\0")
+    .map((entry) => entry.trim().replace(/\\/g, "/"))
+    .filter(Boolean);
+}
+
+function execStatus(cause: unknown): number | undefined {
+  if (typeof cause !== "object" || cause === null || !("status" in cause)) return undefined;
+  const status = (cause as { status?: unknown }).status;
+  return typeof status === "number" ? status : undefined;
+}
+
+/**
+ * Paths `git check-ignore` reports as ignored, or `null` when the probe fails.
+ * Exit 1 means none ignored.
+ */
+export function listCheckIgnoredPaths(
+  projectDir: string,
+  paths: readonly string[],
+): string[] | null {
+  if (paths.length === 0) return [];
+  try {
+    const out = execFileSync("git", ["check-ignore", "-z", "--stdin"], {
+      cwd: projectDir,
+      encoding: "utf8",
+      input: `${paths.join("\0")}\0`,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return splitNulPaths(out);
+  } catch (cause) {
+    if (execStatus(cause) === 1) return [];
+    return null;
+  }
+}
+
+function stagePathIsIgnored(candidate: string, ignored: ReadonlySet<string>): boolean {
+  if (ignored.has(candidate)) return true;
+  for (const entry of ignored) {
+    if (candidate.startsWith(`${entry}/`) || entry.startsWith(`${candidate}/`)) return true;
+  }
+  return false;
+}
+
+function stagePathIsTracked(candidate: string, tracked: readonly string[]): boolean {
+  return tracked.some((name) => name === candidate || name.startsWith(`${candidate}/`));
+}
+
+/**
+ * Drop untracked ignored pathspecs from a `git add` argv (#4562). Tracked files
+ * that later match gitignore stay — `git add` accepts those.
+ */
+export function filterUntrackedIgnoredStagePaths(
+  projectDir: string,
+  paths: readonly string[],
+  seams: {
+    listIgnored?: (projectDir: string, paths: readonly string[]) => string[] | null;
+    listTracked?: (projectDir: string, paths: readonly string[]) => string[];
+  } = {},
+): string[] {
+  if (paths.length === 0) return [];
+  const listIgnored = seams.listIgnored ?? listCheckIgnoredPaths;
+  const ignored = listIgnored(projectDir, paths);
+  if (ignored === null || ignored.length === 0) return [...paths];
+  const listTracked = seams.listTracked ?? defaultTrackedNames;
+  const tracked = listTracked(projectDir, ignored);
+  const ignoredSet = new Set(ignored.map((entry) => normalizeRelativePath(entry)));
+  return paths.filter((candidate) => {
+    const normalized = normalizeRelativePath(candidate);
+    if (!stagePathIsIgnored(normalized, ignoredSet)) return true;
+    return stagePathIsTracked(normalized, tracked);
+  });
 }
 
 /** Best-effort scoped `git add` — never fails the install/update (#1453 Layer 2b). */
@@ -1056,6 +1132,9 @@ export function stageFrameworkPaths(
   if (paths.length === 0) return { staged: false, error: null };
   const readPorcelain = seams.gitPorcelain ?? gitPorcelain;
   if (readPorcelain(projectDir) === null) return { staged: false, error: null };
+  const filterIgnored = seams.filterIgnoredPaths ?? filterUntrackedIgnoredStagePaths;
+  const addPaths = filterIgnored(projectDir, paths);
+  if (addPaths.length === 0) return { staged: false, error: null };
   const runGitAdd =
     seams.runGitAdd ??
     ((root: string, stagePaths: readonly string[]) => {
@@ -1070,7 +1149,7 @@ export function stageFrameworkPaths(
       }
     });
   try {
-    runGitAdd(projectDir, paths);
+    runGitAdd(projectDir, addPaths);
     return { staged: true, error: null };
   } catch (cause) {
     const error = cause instanceof Error ? cause : new Error(String(cause));
@@ -1347,10 +1426,14 @@ export function printCommitGuidance(
   paths: readonly string[],
   staged: boolean,
   unstagedRemainder: readonly string[] = [],
+  cachedNames: readonly string[] = [],
 ): void {
   if (paths.length === 0 && unstagedRemainder.length === 0) return;
   if (paths.length > 0) {
-    const addCmd = `git add -- ${paths.join(" ")}`;
+    const inIndex = actuallyStagedPaths(paths, cachedNames);
+    const alreadyStaged = staged || inIndex.length > 0;
+    const commandPaths = inIndex.length > 0 ? inIndex : paths;
+    const addCmd = `git add -- ${commandPaths.join(" ")}`;
     io.printf(
       "\nCommit hygiene (#1453, #1671, #3127, #3193, #3394): keep the framework upgrade in its OWN branch/PR.\n",
     );
@@ -1363,7 +1446,7 @@ export function printCommitGuidance(
       "pin/lock (Directive pin-only + lock follow-through, #3193) + .deft/GENERATION.json.\n",
     );
     io.printf("True app/product paths still require a separate PR.\n");
-    if (staged) {
+    if (alreadyStaged) {
       io.printf("The installer already staged ONLY these framework + installer-managed paths:\n");
       io.printf(`  ${addCmd}\n`);
     } else {
@@ -1464,6 +1547,7 @@ export function depositStagePaths(
   stagePaths: string[];
   staged: boolean;
   stagedPaths: string[];
+  cachedNames: string[];
   unstagedRemainder: string[];
   skippedUntrackedDeletes: string[];
 } {
@@ -1493,13 +1577,17 @@ export function depositStagePaths(
     printUnstagedLedgerRemainder({ printf: options.printf }, leftover);
   }
 
-  const { staged } = stageFrameworkPaths(projectDir, stagePaths, options);
+  const { staged, error } = stageFrameworkPaths(projectDir, stagePaths, options);
+  if (error !== null && options.printf) {
+    options.printf(`Warning: git add failed: ${error.message}\n`);
+  }
   const readCachedNames = options.readCachedNames ?? defaultCachedNames;
-  const cachedNames = staged ? readCachedNames(projectDir) : [];
+  const cachedNames = readCachedNames(projectDir);
   return {
     stagePaths,
     staged,
-    stagedPaths: staged ? actuallyStagedPaths(stagePaths, cachedNames) : [],
+    stagedPaths: actuallyStagedPaths(stagePaths, cachedNames),
+    cachedNames,
     unstagedRemainder,
     skippedUntrackedDeletes,
   };

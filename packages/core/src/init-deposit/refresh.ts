@@ -681,6 +681,15 @@ export function formatPrettierSensitiveAnnounce(paths: readonly string[]): strin
   );
 }
 
+/** Human summary row for post-add index state (#4562). Sourced from cached names. */
+export function formatStagedIndexRow(cachedNames: readonly string[]): string {
+  const label = "  Staged       : ";
+  if (cachedNames.length === 0) return `${label}none\n`;
+  const n = cachedNames.length;
+  const noun = n === 1 ? "file" : "files";
+  return `${label}${n} ${noun} in the index (git diff --cached)\n`;
+}
+
 export function printUpdateComplete(
   result: RefreshDepositResult,
   io: InitDepositIo,
@@ -698,6 +707,7 @@ export function printUpdateComplete(
     io.printf(`  State        : ${updateState}\n`);
   }
   io.printf(`  AGENTS.md    : ${result.agentsMdUpdated ? "updated" : "already current"}\n`);
+  io.printf(formatStagedIndexRow(result.stagedPaths));
   if (result.versionSkewNotice) {
     io.printf(`\n${result.versionSkewNotice}\n`);
   }
@@ -931,12 +941,22 @@ export async function runRefreshDeposit(
       includeCore: !alreadyCurrent,
       printf: (text) => io.printf(text),
     });
-    stagedPaths = stagedResult.stagedPaths;
+    stagedPaths = stagedResult.cachedNames;
     if (!alreadyCurrent) {
-      printCommitGuidance(io, stagedResult.stagePaths, stagedResult.staged);
+      printCommitGuidance(
+        io,
+        stagedResult.stagePaths,
+        stagedResult.staged,
+        [],
+        stagedResult.cachedNames,
+      );
     } else if (stagedResult.stagedPaths.length > 0) {
-      io.printf("\nUpdated installer-managed projections for the current framework deposit:\n");
-      io.printf(`  git add -- ${stagedResult.stagedPaths.join(" ")}\n`);
+      io.printf(
+        "\nUpdated installer-managed projections for the current framework deposit (already in the index):\n",
+      );
+      for (const file of stagedResult.stagedPaths) {
+        io.printf(`  ${file}\n`);
+      }
     }
   }
 

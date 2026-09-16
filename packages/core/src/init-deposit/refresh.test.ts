@@ -29,9 +29,11 @@ import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildDepositVersionSkewHeadline,
+  buildUpdateSummaryJson,
   buildVersionSkewNotice,
   depositRefreshPending,
   formatPrettierSensitiveAnnounce,
+  formatStagedIndexRow,
   frameworkRefreshSideEffects,
   NOT_INITIALIZED_MESSAGE,
   parseUpdateArgv,
@@ -1057,6 +1059,90 @@ describe("runRefreshDeposit", () => {
     );
     expect(lines.join("")).not.toContain("Rewritten consumer-owned paths");
     expect(lines.join("")).not.toContain("task fmt");
+  });
+
+  it("printUpdateComplete names staged index state from cached names (#4562)", () => {
+    const project = freshRoot("refresh-staged-row-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    const lines: string[] = [];
+    printUpdateComplete(
+      {
+        projectDir: project,
+        deftDir,
+        contentVersion: "0.61.0",
+        engineVersion: "0.61.0",
+        previousDepositVersion: "0.60.0",
+        alreadyCurrent: false,
+        strategy: "file-swap",
+        agentsMdUpdated: true,
+        versionSkewNotice: null,
+        legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: ["AGENTS.md", ".cursor/hooks.json"],
+        mutations: emptyMutationSummary(),
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    const printed = lines.join("");
+    expect(formatStagedIndexRow(["AGENTS.md", ".cursor/hooks.json"])).toContain(
+      "2 files in the index (git diff --cached)",
+    );
+    expect(printed).toContain("Staged       : 2 files in the index (git diff --cached)");
+    expect(printed).not.toMatch(/Staged\s+:\s+none/);
+  });
+
+  it("printUpdateComplete prints Staged none only when the index is empty (#4562)", () => {
+    const project = freshRoot("refresh-staged-none-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    const lines: string[] = [];
+    printUpdateComplete(
+      {
+        projectDir: project,
+        deftDir,
+        contentVersion: "0.61.0",
+        engineVersion: "0.61.0",
+        previousDepositVersion: "0.60.0",
+        alreadyCurrent: false,
+        strategy: "file-swap",
+        agentsMdUpdated: true,
+        versionSkewNotice: null,
+        legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: [],
+        mutations: emptyMutationSummary(),
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    expect(lines.join("")).toContain("Staged       : none");
+  });
+
+  it("update JSON staged_paths matches the cached name set (#4562)", () => {
+    const project = freshRoot("refresh-staged-json-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    const payload = buildUpdateSummaryJson({
+      result: {
+        projectDir: project,
+        deftDir,
+        contentVersion: "0.61.0",
+        engineVersion: "0.61.0",
+        previousDepositVersion: "0.60.0",
+        alreadyCurrent: false,
+        strategy: "file-swap",
+        agentsMdUpdated: true,
+        versionSkewNotice: null,
+        legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: ["AGENTS.md", "leftover.txt"],
+        mutations: emptyMutationSummary(),
+      },
+      options: { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      updateState: undefined,
+      readiness: undefined,
+    });
+    expect(payload.staged_paths).toEqual(["AGENTS.md", "leftover.txt"]);
   });
 
   it("wires Taskfile.yml and stages it on upgrade (#1576)", async () => {
