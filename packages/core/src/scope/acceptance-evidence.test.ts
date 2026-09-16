@@ -737,10 +737,14 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
     expect(existsSync(join(root, "xbrief", "completed", "green-ac.xbrief.json"))).toBe(false);
     expect(existsSync(file)).toBe(true);
     const persisted = JSON.parse(readFileSync(file, "utf8")) as {
-      plan: { items: Array<{ id?: string; status?: string }> };
+      plan: {
+        items: Array<{ id?: string; status?: string }>;
+        metadata?: { lifecycleWrite?: { action: string } };
+      };
     };
     expect(persisted.plan.items.some((i) => i.id === "clause:1")).toBe(true);
     expect(persisted.plan.items.some((i) => i.id === "clause:4")).toBe(true);
+    expect(persisted.plan.metadata?.lifecycleWrite).toBeUndefined();
   });
 
   it("still refuses genuinely empty acceptance and names the predicate (#3497)", () => {
@@ -1071,6 +1075,48 @@ describe("#4385 clause-keyed complete persist and scope:status", () => {
     expect((plan.items as Array<{ id?: string }>).some((i) => i.id === clauseKeyedItemId(1))).toBe(
       true,
     );
+  });
+
+  it("refuses a terminal clause-keyed row without evidence or disposition", () => {
+    const plan: Record<string, unknown> = {
+      items: [
+        {
+          id: clauseKeyedItemId(1),
+          title: clauseKeyedItemId(1),
+          status: "completed",
+        },
+      ],
+      acceptance: { clauses: [injectClause] },
+    };
+    expect(persistClauseKeyedPendingItems(plan).addedIds).toEqual([]);
+    const gate = evaluateAcceptanceEvidenceGate(plan);
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("missing");
+  });
+
+  it("accepts a terminal clause-keyed row with typed evidence", () => {
+    const plan: Record<string, unknown> = {
+      items: [
+        withEvidence({
+          id: clauseKeyedItemId(1),
+          title: clauseKeyedItemId(1),
+          status: "completed",
+        }),
+      ],
+      acceptance: { clauses: [injectClause] },
+    };
+    const gate = evaluateAcceptanceEvidenceGate(plan);
+    expect(gate.ok).toBe(true);
+    expect(gate.reports[0]?.outcome).toBe("evidence");
+  });
+
+  it("refuses a numeric clause-id binding that is terminal without evidence", () => {
+    const plan: Record<string, unknown> = {
+      items: [{ id: 1, title: "numeric key", status: "completed" }],
+      acceptance: { clauses: [injectClause] },
+    };
+    expect(persistClauseKeyedPendingItems(plan).addedIds).toEqual([]);
+    expect(evaluateAcceptanceEvidenceGate(plan).ok).toBe(false);
   });
 
   it("persist is idempotent and does not replace a stamped clause-keyed item", () => {

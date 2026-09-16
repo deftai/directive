@@ -444,6 +444,23 @@ function clauseHasKeyedItem(clauseId: number, keys: ReadonlySet<string>): boolea
   return keys.has(clauseKeyedItemId(clauseId)) || keys.has(String(clauseId));
 }
 
+function clauseBindingKeysFromPlan(plan: Record<string, unknown>): ReadonlySet<string> {
+  const keys = new Set<string>();
+  for (const clause of readAcceptanceClauses(plan.acceptance)) {
+    keys.add(clauseKeyedItemId(clause.id));
+    keys.add(String(clause.id));
+  }
+  return keys;
+}
+
+function isClauseBindingItem(
+  item: Record<string, unknown>,
+  clauseKeys: ReadonlySet<string>,
+): boolean {
+  const key = itemIdKey(item);
+  return key !== null && clauseKeys.has(key);
+}
+
 export interface PersistClauseKeyedPendingItemsResult {
   readonly addedIds: readonly string[];
 }
@@ -693,10 +710,16 @@ export function stampNamespacedDisposition(
   item[ACCEPTANCE_DISPOSITION_KEY] = body;
 }
 
-function evaluateOneItem(item: Record<string, unknown>, path: string): CriterionAcceptanceReport {
+function evaluateOneItem(
+  item: Record<string, unknown>,
+  path: string,
+  clauseKeys: ReadonlySet<string>,
+): CriterionAcceptanceReport {
   const title = itemLabel(item, path);
   const status = String(item.status ?? "");
-  if (!NON_TERMINAL_ITEM_STATUSES.has(status)) {
+  // Clause-keyed bindings still need typed evidence or a human-origin disposition
+  // even when already terminal; persist skips creating a second pending row (#4385).
+  if (!NON_TERMINAL_ITEM_STATUSES.has(status) && !isClauseBindingItem(item, clauseKeys)) {
     // Already-terminal: complete does not re-validate typed evidence (#3240 / #3305).
     // Suitability/provenance apply only when advancing non-terminal items. Pre-marking
     // items completed with narrative-only fields still skips the typed gate — that is
@@ -776,7 +799,12 @@ function evaluateOneItem(item: Record<string, unknown>, path: string): Criterion
   };
 }
 
-function walkItems(items: unknown, pathPrefix: string, reports: CriterionAcceptanceReport[]): void {
+function walkItems(
+  items: unknown,
+  pathPrefix: string,
+  reports: CriterionAcceptanceReport[],
+  clauseKeys: ReadonlySet<string>,
+): void {
   if (!Array.isArray(items)) {
     return;
   }
@@ -786,9 +814,9 @@ function walkItems(items: unknown, pathPrefix: string, reports: CriterionAccepta
     }
     const obj = item as Record<string, unknown>;
     const path = `${pathPrefix}[${index}]`;
-    reports.push(evaluateOneItem(obj, path));
-    walkItems(obj.subItems, `${path}.subItems`, reports);
-    walkItems(obj.items, `${path}.items`, reports);
+    reports.push(evaluateOneItem(obj, path, clauseKeys));
+    walkItems(obj.subItems, `${path}.subItems`, reports, clauseKeys);
+    walkItems(obj.items, `${path}.items`, reports, clauseKeys);
   });
 }
 
@@ -870,7 +898,7 @@ export function evaluateAcceptanceEvidenceGate(
   plan: Record<string, unknown>,
 ): AcceptanceEvidenceGateResult {
   const reports: CriterionAcceptanceReport[] = [];
-  walkItems(plan.items, "items", reports);
+  walkItems(plan.items, "items", reports, clauseBindingKeysFromPlan(plan));
 
   const blockers = reports.filter((r) => r.outcome === "missing" || r.outcome === "invalid");
 

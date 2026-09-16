@@ -330,7 +330,6 @@ export function runTransition(
           : gate.provenance,
       );
     }
-    stampLifecycleWrite(planObj, "complete", nowIso);
   }
 
   // #3240: per-criterion typed evidence or human-origin disposition before auto-advance.
@@ -407,6 +406,7 @@ export function runTransition(
           acceptanceReports,
         };
       }
+      stampLifecycleWrite(planObj, "complete", nowIso);
     }
 
     if (act === "fail") {
