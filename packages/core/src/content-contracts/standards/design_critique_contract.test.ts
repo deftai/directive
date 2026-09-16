@@ -13,7 +13,7 @@ import {
   remainingSetAfterDesignCritiqueChip,
 } from "../../design-critique/exclusive-chip.js";
 import { evaluatePanelSeatComposition } from "../../design-critique/panel-seat-families.js";
-import { evaluateParentAudit } from "../../design-critique/parent-audit.js";
+import { evaluateParentAudit, parseAuditToken } from "../../design-critique/parent-audit.js";
 import {
   evaluateDirectDispatch,
   parseOperatorRunPosture,
@@ -907,7 +907,10 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       'The "thread head at dispatch" fallback applies only to a single-critic round with no triage write-back.',
     );
     expect(text).toContain(
-      "When two or more critics share the round, take one round-start snapshot before the first sibling dispatch",
+      "That write-back-is-ceiling sentence does not apply when two or more critics share the round.",
+    );
+    expect(text).not.toContain(
+      "use that snapshot (or the triage write-back) as the shared ceiling",
     );
     expect(text).not.toContain(
       "Round-1 ceiling is the triage write-back (or the thread head at dispatch).",
@@ -931,6 +934,98 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("that amendment becomes the ceiling");
     expect(text).toContain("both panel arcs declined it");
     expect(text).toContain("no comparable fingerprint exists for a parallel round");
+  });
+
+  it("locks N>=2 post-deposit round-1 ceiling and decomposition MUST (#4435)", () => {
+    const text = readText(CONTRACT);
+    const ceiling = markdownSection(text, "### Envelope and ceiling");
+    expect(ceiling).toContain(
+      "For spend N≥2, take the round-start snapshot after that panel-deposit and use that snapshot as the round-1 ceiling so the deposit is in envelope.",
+    );
+    expect(ceiling).toContain("Envelope Id ceiling is that snapshot and stays authoritative.");
+    expect(ceiling).toContain(
+      "The deposit records the snapshot id after POST returns (it MAY name its own id).",
+    );
+    expect(ceiling).toContain("A deposit/envelope mismatch is a finding, never a re-ceiling.");
+    expect(ceiling).toMatch(/\u2297 Put ceiling authority on the deposit field/);
+    expect(ceiling).toContain(
+      "Treat a pre-POST write-back id in `input-ceiling:` as the matching default.",
+    );
+    expect(ceiling).toContain(
+      "Round-1 critics cannot observe panel completeness even when the deposit is in envelope",
+    );
+    expect(ceiling).toContain("not a round-1 critic check");
+    expect(ceiling).toMatch(/\u2297 Cite round-1 critic corroboration for panel completeness/);
+    expect(ceiling).not.toContain("Round-1 critics can observe panel completeness");
+    const substantiation = markdownSection(text, "## Parent-side substantiation");
+    expect(substantiation).toContain("Decompose compound English into one token per premise.");
+    expect(substantiation).toContain(
+      "Marker-collision already refuses two deposited premises under one id.",
+    );
+    expect(substantiation).toContain(
+      "The remaining hole is one compound English premise under one well-formed token.",
+    );
+    expect(substantiation).toContain("`pointer=p1,p2`");
+    expect(substantiation).toMatch(/\u2297 A multi-pointer single-marker token/);
+    expect(substantiation).toMatch(/\u2297 Add a conjunct-naming grammar or a new evaluator/);
+    expect(substantiation).toContain("The token grammar above is unchanged.");
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(testSurface).toContain("#4435");
+    expect(testSurface).toContain("no new grammar and no new evaluator");
+    expect(parseAuditToken("audit:c1 sha=d0fab87 pointer=p1,p2 reading=measured")).toEqual({
+      markerId: "c1",
+      sha: "d0fab87",
+      pointer: "p1,p2",
+      reading: "measured",
+    });
+    expect(
+      parseAuditToken("audit:c1 sha=d0fab87 pointer=p1 reading=ceiling:measured,deposit:asserted"),
+    ).toBeNull();
+    const compound = evaluateParentAudit({
+      premises: [
+        {
+          markerId: "c1",
+          sha: "d0fab87",
+          pointer: "p1,p2",
+          reading: "measured",
+          introducedByRole: "parent",
+          loadBearing: true,
+        },
+      ],
+      clearances: [{ markerId: "c1", clearedByRole: "critic", targetsMarker: true }],
+      envelopes: [{ auditTargets: ["c1"], declaredNone: false }],
+      namedAuditTargets: ["c1"],
+      bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: [] },
+    });
+    expect(compound).toEqual({ ok: true, failures: [] });
+    const collision = evaluateParentAudit({
+      premises: [
+        {
+          markerId: "c1",
+          sha: "d0fab87",
+          pointer: "p1",
+          reading: "measured",
+          introducedByRole: "parent",
+          loadBearing: true,
+        },
+        {
+          markerId: "c1",
+          sha: "d0fab87",
+          pointer: "p2",
+          reading: "asserted",
+          introducedByRole: "parent",
+          loadBearing: true,
+        },
+      ],
+      clearances: [{ markerId: "c1", clearedByRole: "critic", targetsMarker: true }],
+      envelopes: [{ auditTargets: ["c1"], declaredNone: false }],
+      namedAuditTargets: ["c1"],
+      bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: [] },
+    });
+    expect(collision.ok).toBe(false);
+    expect(collision.failures.map((f) => f.code)).toEqual(
+      expect.arrayContaining(["marker-collision", "silent-clear", "bind-unresolved"]),
+    );
   });
 
   it("locks Dual stop #3448 composition and Parallel fingerprint recut (#4442)", () => {
