@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Controlled Tabs useState StringLiteral flip is a tab-selected delta (#4586).** Same-file `const [ident, ...] = useState(<StringLiteral>)` with `value={ident}` emits `tab-selected` from the matching `TabsTrigger value=` literal. Closed callees `useState` and `React.useState`. Lazy initializers, non-literal args, and `setTab` stay unresolvable. Does not implement the #4503 recognizer. Closes #4586.
 - **Yolo auto-stamp no longer posts path-1 or ingest-ready when pain coverage would refuse (#4592).** `evaluateAutoStampPath1Write` constructs Stop 1 plus successor lean plus unpublished path-1 that cites only the lean, refuses the write on any published pain-coverage reason, and skips remaining-set when refused. `autoStamp: true` still prints Handoff. Does not grow `resolveAutoStampCatalogChip`. Closes #4592.
 - **Intent-constraint multi-mint config-fail ignores leftover dest running briefs.** Empty active fixture so a unique dest pin cannot turn two merge-base mints into a missing-mint fail. Leftover of #4567 complete-tracking. Does not recut that issue.
 - **Fail-closed kind:uat pointer shape at scope:complete (#4563).** Write-time check in parseEvidence: kind uat must point at contained uat-evidence/** (.. does not count). Test/spec paths, source symbols, PR numbers, and CHANGELOG as the pointer are refused; camelCase and PR/CHANGELOG substrings in probe filenames are allowed. Does not bind completed-tracked. Closes #4563.
