@@ -45,6 +45,21 @@ export interface OnePrUnitAppStore {
   expireDue(now?: Date): OnePrUnitClaim[];
 }
 
+/** Required-check copy when remaining-deploy item 1 is not configured. Not mint remediation. */
+export const ONE_PR_UNIT_APP_NOT_CONFIGURED =
+  "one-PR-unit required check: Directive GitHub App private transactional store is not configured (DEFT_ONE_PR_UNIT_APP). This is a deployment/configuration failure, not mint remediation.";
+
+export const IN_PROCESS_NOT_PRODUCTION =
+  "DEFT_ONE_PR_UNIT_APP must not select InProcessAppStore as production";
+
+export type ResolveProductionAppStoreResult =
+  | { readonly ok: true; readonly store: OnePrUnitAppStore }
+  | {
+      readonly ok: false;
+      readonly code: "not-configured" | "in-process-not-production" | "disk-not-sot";
+      readonly message: string;
+    };
+
 /**
  * Envelope id is a lookup key into the App store, not a bearer.
  * After bind, only the bound PR node id authorizes.

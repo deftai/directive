@@ -2,7 +2,11 @@ import { execFileSync } from "node:child_process";
 import { relative, resolve } from "node:path";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
-import { loadOnePrUnitGrant } from "../one-pr-unit/store.js";
+import {
+  enforceLiveOnePrUnitCheck,
+  loadOnePrUnitGrant,
+  resolveProductionAppStore,
+} from "../one-pr-unit/store.js";
 import { MISSING_ONE_PR_UNIT_CONSENT } from "../one-pr-unit/types.js";
 import { collectGithubRefs } from "../orphan-active/refs.js";
 import { listActiveRunningBriefs } from "../orphan-active/running-briefs.js";
@@ -193,6 +197,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
 export interface RunOptions {
   readonly runGh?: RunGhFn;
   readonly runGit?: RunGhFn;
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 function defaultRunGit(cmd: readonly string[]): {
@@ -347,6 +352,42 @@ function refuseAllowCloseWhileRunning(
   return EXIT_HITS_FOUND;
 }
 
+const LIVE_PR_REQUIRES_REPO =
+  "live PR one-PR-unit check requires repository identity (--repo or GITHUB_REPOSITORY)";
+
+function resolveLiveRepo(args: ParsedArgs, env: NodeJS.ProcessEnv): string | null {
+  const fromArgs = args.repo?.trim() ?? "";
+  if (fromArgs.length > 0) return fromArgs;
+  const fromEnv = env.GITHUB_REPOSITORY?.trim() ?? "";
+  if (fromEnv.length > 0) return fromEnv;
+  return null;
+}
+
+function fetchPrNodeId(pr: number, repo: string, runGh: RunGhFn): string | null {
+  const result = runGh(["gh", "api", `repos/${repo}/pulls/${pr}`]);
+  if (result.returncode !== 0) {
+    process.stderr.write(
+      `Error: gh REST failed fetching PR #${pr} node id: ${result.stderr.trim()}\n`,
+    );
+    return null;
+  }
+  try {
+    const payload: unknown = JSON.parse(result.stdout);
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      process.stderr.write(`Error: PR #${pr} REST payload missing node_id\n`);
+      return null;
+    }
+    const node = (payload as { node_id?: unknown }).node_id;
+    if (typeof node === "string" && node.trim().length > 0) return node.trim();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`Error: failed to parse PR #${pr} REST node id: ${message}\n`);
+    return null;
+  }
+  process.stderr.write(`Error: PR #${pr} REST payload missing node_id\n`);
+  return null;
+}
+
 export function run(argv: readonly string[], options: RunOptions = {}): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
@@ -375,15 +416,21 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   }
 
   const runGh = options.runGh ?? defaultRunGh;
+  const envBag = options.env ?? process.env;
   let bodyText: string | null = null;
   let commitMessages: string[] = [];
 
   if (args.pr !== null) {
-    bodyText = fetchPrBody(args.pr, args.repo, runGh);
+    const liveRepo = resolveLiveRepo(args, envBag);
+    if (liveRepo === null) {
+      process.stderr.write(`FAIL: ${LIVE_PR_REQUIRES_REPO}\n`);
+      return EXIT_CONFIG_ERROR;
+    }
+    bodyText = fetchPrBody(args.pr, liveRepo, runGh);
     if (bodyText === null) {
       return EXIT_CONFIG_ERROR;
     }
-    const msgs = fetchPrCommitMessages(args.pr, args.repo, runGh);
+    const msgs = fetchPrCommitMessages(args.pr, liveRepo, runGh);
     if (msgs === null) {
       return EXIT_CONFIG_ERROR;
     }
@@ -467,23 +514,71 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
       texts.push(bodyText);
     }
     texts.push(...commitMessages);
-    const grant =
-      args.onePrUnit === null ? null : loadOnePrUnitGrant(args.projectRoot ?? ".", args.onePrUnit);
-    const repo = args.repo ?? grant?.repo ?? "unknown/unknown";
-    const closerSet = extractIntentCloserSet(texts, repo);
-    const unit = evaluateOnePrUnit({
-      closerSet,
-      grant,
-      binding: { repo: args.repo ?? grant?.repo },
-      presentedIdWithoutStore: args.onePrUnit !== null && grant === null,
-      phase: args.pr !== null ? "enforce" : "declare",
-    });
-    if (!unit.ok) {
-      process.stderr.write(`FAIL: ${unit.message}\n`);
-      if (!unit.message.includes("missing one-PR-unit consent") && closerSet.length > 1) {
-        process.stderr.write(`${MISSING_ONE_PR_UNIT_CONSENT}\n`);
+    const env = envBag;
+    if (args.pr !== null) {
+      const repo = resolveLiveRepo(args, env);
+      if (repo === null) {
+        process.stderr.write(`FAIL: ${LIVE_PR_REQUIRES_REPO}\n`);
+        return EXIT_CONFIG_ERROR;
       }
-      return EXIT_HITS_FOUND;
+      const closerSet = extractIntentCloserSet(texts, repo);
+      if (closerSet.length <= 1) {
+        const unit = evaluateOnePrUnit({
+          closerSet,
+          grant: null,
+          binding: { repo },
+          phase: "enforce",
+        });
+        if (!unit.ok) {
+          process.stderr.write(`FAIL: ${unit.message}\n`);
+          return EXIT_HITS_FOUND;
+        }
+      } else {
+        const resolved = resolveProductionAppStore(env);
+        if (!resolved.ok) {
+          process.stderr.write(`FAIL: ${resolved.message}\n`);
+          return EXIT_CONFIG_ERROR;
+        }
+        const prNodeId = fetchPrNodeId(args.pr, repo, runGh);
+        if (prNodeId === null) {
+          return EXIT_CONFIG_ERROR;
+        }
+        // Find via membershipOf/listActive; exact-set match; phase declare only when code === "allow-granted" (not declare.ok); then bind, resolveClaimFromStore({ prNodeId }), enforce with { repo, prNodeId }.
+        const unit = enforceLiveOnePrUnitCheck({
+          store: resolved.store,
+          closerSet,
+          repo,
+          prNodeId,
+        });
+        if (!unit.ok) {
+          process.stderr.write(`FAIL: ${unit.message}\n`);
+          if (!unit.message.includes("missing one-PR-unit consent") && closerSet.length > 1) {
+            process.stderr.write(`${MISSING_ONE_PR_UNIT_CONSENT}\n`);
+          }
+          return EXIT_HITS_FOUND;
+        }
+      }
+    } else {
+      const grant =
+        args.onePrUnit === null
+          ? null
+          : loadOnePrUnitGrant(args.projectRoot ?? ".", args.onePrUnit);
+      const repo = args.repo ?? grant?.repo ?? "unknown/unknown";
+      const closerSet = extractIntentCloserSet(texts, repo);
+      const unit = evaluateOnePrUnit({
+        closerSet,
+        grant,
+        binding: { repo: args.repo ?? grant?.repo },
+        presentedIdWithoutStore: args.onePrUnit !== null && grant === null,
+        phase: "declare",
+      });
+      if (!unit.ok) {
+        process.stderr.write(`FAIL: ${unit.message}\n`);
+        if (!unit.message.includes("missing one-PR-unit consent") && closerSet.length > 1) {
+          process.stderr.write(`${MISSING_ONE_PR_UNIT_CONSENT}\n`);
+        }
+        return EXIT_HITS_FOUND;
+      }
     }
   }
   return emitResult(

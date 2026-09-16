@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
 import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
+import { DirectiveGitHubAppStore } from "../one-pr-unit/store.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { cmdPrCheckClosingKeywords, parseAllowList, parseArgs, run } from "./main.js";
 import type { RunGhFn } from "./types.js";
@@ -265,7 +266,7 @@ describe("run CLI --pr mode", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
-    expect(run(["--pr", "735"], { runGh })).toBe(EXIT_OK);
+    expect(run(["--pr", "735", "--repo", "deftai/directive"], { runGh })).toBe(EXIT_OK);
     expect(calls.some((c) => c.includes("body"))).toBe(true);
     expect(calls.some((c) => c.includes("commits"))).toBe(true);
   });
@@ -284,14 +285,14 @@ describe("run CLI --pr mode", () => {
       return { returncode: 0, stdout: JSON.stringify({ commits: [] }), stderr: "" };
     };
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    expect(run(["--pr", "735"], { runGh })).toBe(EXIT_HITS_FOUND);
+    expect(run(["--pr", "735", "--repo", "deftai/directive"], { runGh })).toBe(EXIT_HITS_FOUND);
     expect(stderr.mock.calls.join("")).toContain("642");
     stderr.mockRestore();
   });
 
   it("exits two when gh fails", () => {
     const runGh: RunGhFn = () => ({ returncode: 1, stdout: "", stderr: "permission denied" });
-    expect(run(["--pr", "735"], { runGh })).toBe(EXIT_CONFIG_ERROR);
+    expect(run(["--pr", "735", "--repo", "deftai/directive"], { runGh })).toBe(EXIT_CONFIG_ERROR);
   });
 
   it("exits two when gh missing", () => {
@@ -300,7 +301,7 @@ describe("run CLI --pr mode", () => {
       stdout: "",
       stderr: "gh CLI not found. Install GitHub CLI.",
     });
-    expect(run(["--pr", "735"], { runGh })).toBe(EXIT_CONFIG_ERROR);
+    expect(run(["--pr", "735", "--repo", "deftai/directive"], { runGh })).toBe(EXIT_CONFIG_ERROR);
   });
 });
 
@@ -384,8 +385,9 @@ describe("one-PR-unit closer-set (#4494)", () => {
     };
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = run(["--mode", "both", "--pr", "1", "--repo", "deftai/directive"], { runGh });
-    expect(code).toBe(EXIT_HITS_FOUND);
-    expect(stderr.mock.calls.join("")).toMatch(/missing one-PR-unit consent/);
+    expect(code).toBe(EXIT_CONFIG_ERROR);
+    expect(stderr.mock.calls.join("")).toMatch(/deployment\/configuration failure/);
+    expect(stderr.mock.calls.join("")).not.toMatch(/mint an operator-origin/);
     stderr.mockRestore();
   });
 
@@ -421,6 +423,58 @@ describe("one-PR-unit closer-set (#4494)", () => {
     ]);
     expect(code).toBe(EXIT_OK);
     stderr.mockRestore();
+  });
+
+  it("live --pr without repo does not report unknown/unknown", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(["--mode", "both", "--pr", "12"], {
+      runGh: () => ({ returncode: 0, stdout: "{}", stderr: "" }),
+      env: {},
+    });
+    expect(code).toBe(EXIT_CONFIG_ERROR);
+    const out = stderr.mock.calls.join("");
+    expect(out).toMatch(/repository identity/);
+    expect(out).not.toMatch(/unknown\/unknown/);
+    stderr.mockRestore();
+  });
+
+  it("live --pr exact-set mint binds PR node id and allows", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ck-4635-"));
+    const store = new DirectiveGitHubAppStore(dir);
+    mintOnePrUnitGrant({
+      store,
+      id: "unit-live",
+      actor: "dbcall2",
+      approvalRef: "op",
+      rationale: "pair",
+      origins: [
+        { repo: "deftai/directive", issueId: 3728 },
+        { repo: "deftai/directive", issueId: 3804 },
+      ],
+      repo: "deftai/directive",
+    });
+    const runGh: RunGhFn = (cmd) => {
+      if (cmd.includes("api")) {
+        return { returncode: 0, stdout: JSON.stringify({ node_id: "PR_LEGIT" }), stderr: "" };
+      }
+      if (cmd.includes("body")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ body: "Closes #3728\nCloses #3804\n" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 0, stdout: JSON.stringify({ commits: [] }), stderr: "" };
+    };
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(["--mode", "both", "--pr", "9", "--repo", "deftai/directive"], {
+      runGh,
+      env: { DEFT_ONE_PR_UNIT_APP: dir },
+    });
+    expect(code, stderr.mock.calls.join("")).toBe(EXIT_OK);
+    expect(new DirectiveGitHubAppStore(dir).getByPrNodeId("PR_LEGIT")?.id).toBe("unit-live");
+    stderr.mockRestore();
+    rmSync(dir, { recursive: true, force: true });
   });
 });
 

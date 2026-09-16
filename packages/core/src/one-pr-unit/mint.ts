@@ -8,6 +8,7 @@ import { evidenceSatisfiesImplementationApproval, isHumanOrigin } from "../authz
 import type { HumanOriginGrant } from "../authz/types.js";
 import type { MintClaimInput, OnePrUnitAppStore } from "./app-store.js";
 import { getDefaultAppStore } from "./simulator.js";
+import { resolveProductionAppStore } from "./store.js";
 import type { OnePrUnitClaim } from "./types.js";
 
 export interface MintOnePrUnitInput extends MintClaimInput {
@@ -52,6 +53,12 @@ export function mintOnePrUnitGrant(input: MintOnePrUnitInput): OnePrUnitClaim {
       "one-pr-unit mint requires operator-cli origin; evidenceSatisfiesImplementationApproval rejected #1378/allocation/implement-list evidence",
     );
   }
-  const store = input.store ?? getDefaultAppStore();
+  const store = input.store ?? mintStoreFromEnv();
   return store.mint(input);
+}
+
+function mintStoreFromEnv(): OnePrUnitAppStore {
+  const resolved = resolveProductionAppStore(process.env);
+  if (resolved.ok) return resolved.store;
+  return getDefaultAppStore();
 }

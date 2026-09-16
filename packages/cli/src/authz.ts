@@ -534,12 +534,18 @@ export function main(
             );
             return 2;
           }
+          const resolved = onePrUnit.resolveProductionAppStore(process.env);
+          if (!resolved.ok) {
+            process.stderr.write(`${resolved.message}\n`);
+            return 2;
+          }
           const claim = onePrUnit.mintOnePrUnitGrant({
             actor: args.actor,
             approvalRef: args.note ?? "authz:grant --template one-pr-unit",
             rationale: args.note ?? "one-PR-unit",
             origins: args.issueIds.map((issueId) => ({ repo: args.repo as string, issueId })),
             repo: args.repo,
+            store: resolved.store,
           });
           process.stdout.write(
             `✓ one-PR-unit claim minted id=${claim.id} state=${claim.state} (reserved unbound)\n`,

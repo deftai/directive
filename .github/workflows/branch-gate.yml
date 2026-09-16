@@ -66,4 +66,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: task pr:check-closing-keywords -- --pr "$PR_NUMBER" --mode both
+          DEFT_ONE_PR_UNIT_APP: ${{ secrets.DEFT_ONE_PR_UNIT_APP }}
+        run: task pr:check-closing-keywords -- --pr "$PR_NUMBER" --mode both --repo "${{ github.repository }}"
