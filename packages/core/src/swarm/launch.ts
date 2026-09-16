@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import {
   ENV_EXPECTED_GITHUB_LOGIN,
   type ExpectedGithubWorkerPrincipal,
@@ -20,8 +20,10 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { evaluateWorkerInstallationPermissions } from "../one-pr-unit/dest-token.js";
+import { readPlanSequence, verifyPlanTarget } from "../plan-sequence/index.js";
+import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
-import { applyWorktreeOccupancy, releaseOccupancy } from "../session/occupancy.js";
+import { applyWorktreeOccupancy, liveOccupant, releaseOccupancy } from "../session/occupancy.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
 import { selectionOrderingKey } from "../triage/queue/selection.js";
 import {
@@ -695,15 +697,33 @@ export interface LaunchOccupancyQuery {
 
 export type LaunchOccupancyLookupReason = "ok" | "missing" | "wrong-cohort";
 
+function normalizedStoryIds(storyIds: readonly string[]): string[] {
+  const stories = [...storyIds].map((id) => id.trim()).filter((id) => id.length > 0);
+  stories.sort();
+  return stories;
+}
+
+function rosterEquals(left: readonly string[], right: readonly string[]): boolean {
+  const a = normalizedStoryIds(left);
+  const b = normalizedStoryIds(right);
+  if (a.length !== b.length) return false;
+  return a.every((id, i) => id === b[i]);
+}
+
+export const LAUNCH_OCCUPANCY_IDENTITY_SWAP =
+  "Launch occupancy record would silently swap occupancy_session_id or admitted story_ids. Retract first (named re-launch) or persist only when the live lease and roster match.";
+
 export function occupancyCohortKey(
   allocationPlanId: string | null | undefined,
   storyIds: readonly string[] = [],
 ): string {
   const plan = allocationPlanId?.trim() ?? "";
-  if (plan.length > 0) return `plan:${plan}`;
-  const stories = [...storyIds].map((id) => id.trim()).filter((id) => id.length > 0);
-  stories.sort();
-  return `stories:${stories.join(",")}`;
+  const stories = normalizedStoryIds(storyIds);
+  const storiesPart = stories.length > 0 ? `stories:${stories.join(",")}` : "";
+  if (plan.length > 0) {
+    return storiesPart.length > 0 ? `plan:${plan}:${storiesPart}` : `plan:${plan}`;
+  }
+  return storiesPart.length > 0 ? storiesPart : "stories:";
 }
 
 export function launchOccupancyRecordRelpath(cohortKey: string): string[] {
@@ -775,12 +795,64 @@ export function persistLaunchOccupancyRecord(
   const relpath = launchOccupancyRecordRelpath(record.cohort_key);
   const absDir = join(resolve(projectRoot), ...SWARM_LAUNCH_OCCUPANCY_DIR);
   mkdirSync(absDir, { recursive: true });
+  const existing = readLaunchOccupancyFile(projectRoot, record.cohort_key);
+  const payload = `${JSON.stringify(record, null, 2)}\n`;
+  if (existing === null) {
+    containedWrite({
+      root: projectRoot,
+      target: join(...relpath),
+      data: payload,
+      mode: "create",
+    });
+    return;
+  }
+  const live = liveOccupant(projectRoot);
+  if (live === null) {
+    containedRemove({ root: projectRoot, target: join(...relpath) });
+    containedWrite({
+      root: projectRoot,
+      target: join(...relpath),
+      data: payload,
+      mode: "create",
+    });
+    return;
+  }
+  const leaseMatches =
+    live.sessionId === existing.occupancy_session_id &&
+    existing.occupancy_session_id === record.occupancy_session_id;
+  const rosterMatches = rosterEquals(existing.story_ids, record.story_ids);
+  if (!leaseMatches || !rosterMatches) {
+    throw new Error(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+  }
   containedWrite({
     root: projectRoot,
     target: join(...relpath),
-    data: `${JSON.stringify(record, null, 2)}\n`,
+    data: payload,
     mode: "replace",
   });
+}
+
+export function retractLaunchOccupancyRecord(
+  projectRoot: string,
+  query: LaunchOccupancyQuery & { readonly cohortKey?: string },
+): boolean {
+  const explicit = query.cohortKey?.trim() ?? "";
+  const cohortKey =
+    explicit.length > 0
+      ? explicit
+      : occupancyCohortKey(query.allocationPlanId, query.storyIds ?? []);
+  return containedRemove({
+    root: projectRoot,
+    target: join(...launchOccupancyRecordRelpath(cohortKey)),
+  }).removed;
+}
+
+export function admitSwarmLaunchPlanSequence(
+  projectRoot: string,
+  target = "swarm-cohort",
+): PlanSequenceVerifyResult {
+  const seq = readPlanSequence(projectRoot);
+  return verifyPlanTarget(seq, { targetKind: "story", target });
 }
 
 export function resolveLaunchOccupancySessionId(
@@ -797,6 +869,11 @@ export function resolveLaunchOccupancySessionId(
     }
     if (wantedPlan.length > 0 && exact.allocation_plan_id !== wantedPlan) {
       return { sessionId: "", reason: "wrong-cohort" };
+    }
+    const live = liveOccupant(projectRoot);
+    if (live === null) {
+      retractLaunchOccupancyRecord(projectRoot, { cohortKey: requestedKey });
+      return { sessionId: "", reason: "missing" };
     }
     return { sessionId: exact.occupancy_session_id, reason: "ok" };
   }
@@ -816,6 +893,13 @@ export function resolveLaunchOccupancySessionId(
   const sessionIds = new Set(matches.map((rec) => rec.occupancy_session_id));
   if (sessionIds.size !== 1) {
     return { sessionId: "", reason: "wrong-cohort" };
+  }
+  const live = liveOccupant(projectRoot);
+  if (live === null) {
+    for (const rec of matches) {
+      retractLaunchOccupancyRecord(projectRoot, { cohortKey: rec.cohort_key });
+    }
+    return { sessionId: "", reason: "missing" };
   }
   return { sessionId: matches[0]?.occupancy_session_id ?? "", reason: "ok" };
 }
@@ -1100,6 +1184,21 @@ export function swarmLaunch(args: LaunchArgs): {
     args.operatorApproval ??
     `task swarm:launch (${args.autonomous ? "autonomous" : "interactive"})`;
 
+  if (dispatchKind === "swarm-cohort") {
+    const admission = admitSwarmLaunchPlanSequence(projectRoot);
+    if (
+      !admission.ok &&
+      admission.code === "missing" &&
+      (allocationPlanId ?? "").trim().length === 0
+    ) {
+      return {
+        exitCode: EXIT_GATE_FAILED,
+        stdout: "",
+        stderr: `Error: swarm-cohort launch requires an active ordered-plan sequence. ${admission.message}\n`,
+      };
+    }
+  }
+
   const occupancy = applyWorktreeOccupancy(projectRoot, {
     sessionId: args.sessionId ?? undefined,
     env: args.environ ?? process.env,
@@ -1115,10 +1214,18 @@ export function swarmLaunch(args: LaunchArgs): {
   // Heartbeat on an existing owner is not a new claim -- only release a lease
   // this process just minted (#3649 paired failure clause).
   const newlyClaimed = occupancy.action === "claimed";
+  let persistedCohortKey: string | null = null;
   const failAfterClaim = (
     exitCode: number,
     stderr: string,
   ): { exitCode: number; stdout: string; stderr: string } => {
+    if (persistedCohortKey !== null) {
+      try {
+        retractLaunchOccupancyRecord(projectRoot, { cohortKey: persistedCohortKey });
+      } catch (exc: unknown) {
+        stderr = `${stderr}\nLaunch occupancy retract failed after this launch error: ${String(exc)}\n`;
+      }
+    }
     if (newlyClaimed) {
       const recovery =
         "Occupancy release failed after this launch error; the lease may still be live. " +
@@ -1271,6 +1378,7 @@ export function swarmLaunch(args: LaunchArgs): {
       story_ids: storyIds,
       cohort_key: cohortKey,
     });
+    persistedCohortKey = cohortKey;
   } catch (exc: unknown) {
     return failAfterClaim(
       EXIT_CONFIG_ERROR,

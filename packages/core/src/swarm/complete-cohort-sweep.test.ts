@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { applyWorktreeOccupancy, readOccupancy } from "../session/occupancy.js";
+import { applyWorktreeOccupancy, readOccupancy, releaseOccupancy } from "../session/occupancy.js";
 
 vi.mock("../scope/transition.js", () => ({
   runTransition: vi.fn((verb: string) => ({ ok: true, message: `${verb} ok` })),
@@ -11,7 +11,16 @@ vi.mock("../scope/transition.js", () => ({
 import { runTransition } from "../scope/transition.js";
 import { completeCohort, sweepCohort } from "./complete-cohort.js";
 import { completeCohortMain } from "./complete-cohort-cli.js";
-import { occupancyCohortKey, persistLaunchOccupancyRecord } from "./launch.js";
+import {
+  admitSwarmLaunchPlanSequence,
+  LAUNCH_OCCUPANCY_IDENTITY_SWAP,
+  launchOccupancyRecordRelpath,
+  occupancyCohortKey,
+  persistLaunchOccupancyRecord,
+  resolveLaunchOccupancySessionId,
+  retractLaunchOccupancyRecord,
+  swarmLaunch,
+} from "./launch.js";
 
 function writeActiveStory(project: string, storyId: string): string {
   const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
@@ -254,6 +263,183 @@ describe("complete cohort live sweep with mocked transition", () => {
     expect(result.exitCode).toBe(1);
     expect(result.sweep?.errors.join("\n")).toContain("conflicts with cohort owner");
     expect(readOccupancy(project)?.sessionId).toBe(laterOwner);
+    rmSync(project, { recursive: true, force: true });
+  });
+});
+
+describe("launch occupancy record lifecycle (#4595)", () => {
+  function writeLaunchStory(project: string, storyId: string, issue: number): void {
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "active", `${storyId}.xbrief.json`),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: storyId,
+          title: storyId,
+          status: "running",
+          references: [
+            {
+              uri: `https://github.com/deftai/directive/issues/${issue}`,
+              type: "x-vbrief/github-issue",
+            },
+          ],
+          metadata: { kind: "story", swarm: { readiness: "ready" } },
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  function writeProjectDef(project: string): void {
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { policy: { swarmSubagentBackend: "grok-build" } },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(project, ".deft"), { recursive: true });
+    writeFileSync(
+      join(project, ".deft", "routing.local.json"),
+      JSON.stringify({
+        grok: { "leaf-implementation": { model: "grok-4", mode: "pinned" } },
+      }),
+      "utf8",
+    );
+  }
+
+  function stubGates() {
+    return {
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"] as [string, string],
+    };
+  }
+
+  it("does not let --group collapse disjoint waves into one roster file", () => {
+    expect(occupancyCohortKey("wave7", ["a"])).not.toBe(occupancyCohortKey("wave7", ["b"]));
+    expect(occupancyCohortKey("wave7", ["a"])).toBe("plan:wave7:stories:a");
+  });
+
+  it("creates, or replaces only when live lease and roster match", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-persist-"));
+    applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
+    const record = {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-a",
+      story_ids: ["story-a"],
+      cohort_key: occupancyCohortKey(null, ["story-a"]),
+    };
+    persistLaunchOccupancyRecord(project, record);
+    persistLaunchOccupancyRecord(project, record);
+    expect(() =>
+      persistLaunchOccupancyRecord(project, { ...record, occupancy_session_id: "owner-b" }),
+    ).toThrow(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+    expect(() =>
+      persistLaunchOccupancyRecord(project, { ...record, story_ids: ["story-b"] }),
+    ).toThrow(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("retracts leftover records when live occupancy is gone", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-retract-"));
+    applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
+    const key = occupancyCohortKey(null, ["story-a"]);
+    persistLaunchOccupancyRecord(project, {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-a",
+      story_ids: ["story-a"],
+      cohort_key: key,
+    });
+    releaseOccupancy(project, { sessionId: "owner-a" });
+    const resolved = resolveLaunchOccupancySessionId(project, { storyIds: ["story-a"] });
+    expect(resolved.reason).toBe("missing");
+    expect(existsSync(join(project, ...launchOccupancyRecordRelpath(key)))).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("retracts the occupancy record on failAfterClaim after persist", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-fail-"));
+    writeProjectDef(project);
+    writeLaunchStory(project, "story-a", 4595);
+    const outputDirectory = join(project, "existing-output-directory");
+    mkdirSync(outputDirectory, { recursive: true });
+    const result = swarmLaunch({
+      stories: ["story-a"],
+      projectRoot: project,
+      autonomous: true,
+      output: outputDirectory,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("could not write --output");
+    const key = occupancyCohortKey(null, ["story-a"]);
+    expect(existsSync(join(project, ...launchOccupancyRecordRelpath(key)))).toBe(false);
+    expect(readOccupancy(project)).toBeNull();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("calls verifyPlanTarget from swarmLaunch and fail-closes unnamed cohort when missing", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-plan-"));
+    writeProjectDef(project);
+    writeLaunchStory(project, "coh-a", 45951);
+    writeLaunchStory(project, "coh-b", 45952);
+    const missing = admitSwarmLaunchPlanSequence(project);
+    expect(missing.ok).toBe(false);
+    if (missing.ok) throw new Error("expected missing sequence");
+    expect(missing.code).toBe("missing");
+    const denied = swarmLaunch({
+      stories: ["coh-a", "coh-b"],
+      projectRoot: project,
+      autonomous: true,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(denied.exitCode).not.toBe(0);
+    expect(denied.stderr).toContain("ordered-plan sequence");
+    const allowed = swarmLaunch({
+      stories: ["coh-a", "coh-b"],
+      group: "wave7",
+      allocationPlanId: "plan-1",
+      batchingRationale: "approved",
+      projectRoot: project,
+      autonomous: true,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(allowed.exitCode).toBe(0);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("named re-launch retracts a leftover then creates", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-relaunch-"));
+    applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
+    const key = occupancyCohortKey(null, ["story-a"]);
+    persistLaunchOccupancyRecord(project, {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-a",
+      story_ids: ["story-a"],
+      cohort_key: key,
+    });
+    releaseOccupancy(project, { sessionId: "owner-a" });
+    expect(retractLaunchOccupancyRecord(project, { cohortKey: key })).toBe(true);
+    applyWorktreeOccupancy(project, { sessionId: "owner-b", intent: "swarm" });
+    persistLaunchOccupancyRecord(project, {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-b",
+      story_ids: ["story-a"],
+      cohort_key: key,
+    });
+    expect(resolveLaunchOccupancySessionId(project, { storyIds: ["story-a"] }).sessionId).toBe(
+      "owner-b",
+    );
     rmSync(project, { recursive: true, force: true });
   });
 });
