@@ -1,0 +1,83 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4621",
+    "updated": "2026-09-16T13:14:46Z"
+  },
+  "plan": {
+    "title": "bug(docs): committed RULE-MAP.md is stale vs renderer — blocks v0.119.1 Step 5",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(docs): committed RULE-MAP.md is stale vs renderer — blocks v0.119.1 Step 5",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4621",
+      "Overview": "## Recurrence\nMaster CI TypeScript job on b02e17e failed: `packages/core/src/render/rule-map.test.ts` live-repo `--check` expected exit 0, got 1. `task docs:rule-map:check` prints STALE. This blocks `task release` Step 5 for v0.119.1.\n\n## Root cause\nCommitted `docs/RULE-MAP.md` is 2 lines behind the renderer after recent merged work: skills grouping MUST count 644 to 645, and the `observable-scope.md` related-link line now wraps (`#4586` truncated to ellipsis).\n\n## Acceptance\n- [ ] `task docs:rule-map:check` exits 0\n- [ ] live-repo `rule-map --check` in `rule-map.test.ts` passes\n- [ ] No hand-edits to `docs/RULE-MAP.md`; regenerate with `task docs:rule-map` only\n\n## Recurrence signature\nRelease Step 5 / CI `docs:rule-map:check` STALE after content or docs changes that were not followed by `task docs:rule-map`."
+    },
+    "items": [
+      {
+        "title": "`task docs:rule-map:check` exits 0",
+        "status": "proposed"
+      },
+      {
+        "title": "live-repo `rule-map --check` in `rule-map.test.ts` passes",
+        "status": "proposed"
+      },
+      {
+        "title": "No hand-edits to `docs/RULE-MAP.md`; regenerate with `task docs:rule-map` only",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4621",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4621: bug(docs): committed RULE-MAP.md is stale vs renderer — blocks v0.119.1 Step 5"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`task docs:rule-map:check` exits 0",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "live-repo `rule-map --check` in `rule-map.test.ts` passes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "No hand-edits to `docs/RULE-MAP.md`; regenerate with `task docs:rule-map` only",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5475016830,
+        "origin": "deftai/directive#4621",
+        "id": "github.issue.5475016830"
+      }
+    },
+    "id": "github.issue.5475016830",
+    "updated": "2026-09-16T13:14:46Z"
+  }
+}

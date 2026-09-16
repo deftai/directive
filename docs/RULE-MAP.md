@@ -35,7 +35,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 14 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 89 | 34 | 32 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 39 | 554 | 118 | 644 | 0 | 17 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 39 | 554 | 118 | 645 | 0 | 17 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 320 | 90 | 140 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 98 | 10 | 46 | 1 | 5 |
@@ -150,7 +150,7 @@ _Explanatory docs and the framework glossary._
 - `intent-constraint.md` — Refs: #4541 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [observable-scope.md](../content/docs/observable-scope.md) (#4495)
 - `inter-run-learning.md` — **Load when:** designing or implementing cross-session agent memory, hot/cold budgets, frozen snapshots, or retargeting memory pattern issues under epic #2741.
 - `no-deft-directive.md` — Some projects should not use Deft Directive. Use a **root file flag** so tools and agents stop offering install, session ritual, and setup.
-- `observable-scope.md` — Refs: #4495, #4588 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [#4503](https://github.com/deftai/directive/issues/4503), [#4586](https://github.com/deftai/directive/issues/4586)
+- `observable-scope.md` — Refs: #4495, #4588 · Related: [scope-provenance.md](../content/docs/scope-provenance.md) (#3145), [gate-integrity.md](../content/docs/gate-integrity.md) (#3156), [#4503](https://github.com/deftai/directive/issues/4503),…
 - `openclaw-agent-host.md` — Consumer/operator guide for running **Deft Directive** under **OpenClaw** persistent-memory agents (`ape-deft`-class and peers).
 - `operator-log-hygiene-checklist.md` — Copy-paste block for **story acceptance criteria** and **probe locked decisions**. Full pattern: [`patterns/operator-log-hygiene.md`](../content/patterns/operator-log-hygiene.md).
 - `operator-log-hygiene-consumer-pack-stub.md` — Skeleton for **consumer projects** that want a ship-gate for operator-facing logs. Wire this into *your* check aggregate only if you opt in.
