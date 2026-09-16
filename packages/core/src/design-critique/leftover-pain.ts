@@ -19,7 +19,11 @@ export function mapCarriesAssertedPainCoverage(
   issueNumber: number | undefined,
 ): boolean {
   return (
-    assertedPainIdsFromCites(scanPainCites(mapBody).cites, stop1PainIds, issueNumber).length > 0
+    assertedPainIdsFromCites(
+      scanPainCites(mapBody).cites,
+      stop1PainIds,
+      issueNumber,
+    ).length > 0
   );
 }
 
@@ -45,7 +49,8 @@ export function assertedPainIdsFromCites(
     if (row === undefined || row.disposition === "does-not-relieve") continue;
     if (row.disposition === "operator-deferred") {
       if (row.deferredIssueNumber === null) continue;
-      if (issueNumber === undefined || row.deferredIssueNumber === issueNumber) continue;
+      if (issueNumber === undefined || row.deferredIssueNumber === issueNumber)
+        continue;
       asserted.push(id);
       continue;
     }
@@ -61,7 +66,9 @@ export function evaluateYoloLeftoverRecommendation(input: {
 }): { readonly recommendLeftoverPath: boolean } {
   return {
     recommendLeftoverPath:
-      input.yoloMode && input.uncitedOrDoesNotRelieve && input.recutHasDeliverableRemainder,
+      input.yoloMode &&
+      input.uncitedOrDoesNotRelieve &&
+      input.recutHasDeliverableRemainder,
   };
 }
 
@@ -82,7 +89,9 @@ export function evaluateContinueRemainder(input: {
 }): { readonly continueCurrentArc: boolean } {
   return {
     continueCurrentArc:
-      input.leftoverFiled && input.dualStopPostsRemaining > 0 && input.finishStillPossible,
+      input.leftoverFiled &&
+      input.dualStopPostsRemaining > 0 &&
+      input.finishStillPossible,
   };
 }
 
@@ -93,20 +102,23 @@ export function evaluateFinishStillPossible(input: {
   readonly finishStillPossible: boolean;
   readonly haltOnRepeatPrimary: boolean;
 } {
-  if (input.blockingCounts.length < 2) {
-    return { finishStillPossible: true, haltOnRepeatPrimary: false };
-  }
-  const last = input.blockingCounts[input.blockingCounts.length - 1];
-  const prev = input.blockingCounts[input.blockingCounts.length - 2];
-  if (last === undefined || prev === undefined) {
-    return { finishStillPossible: true, haltOnRepeatPrimary: false };
-  }
-  const lastHeading = input.primaryBlockingHeadings[input.primaryBlockingHeadings.length - 1];
-  const prevHeading = input.primaryBlockingHeadings[input.primaryBlockingHeadings.length - 2];
+  const lastHeading =
+    input.primaryBlockingHeadings[input.primaryBlockingHeadings.length - 1];
+  const prevHeading =
+    input.primaryBlockingHeadings[input.primaryBlockingHeadings.length - 2];
   const haltOnRepeatPrimary =
-    typeof lastHeading === "string" && lastHeading.length > 0 && lastHeading === prevHeading;
+    typeof lastHeading === "string" &&
+    lastHeading.length > 0 &&
+    lastHeading === prevHeading;
+  const strictlyFewerEachAudit = input.blockingCounts.every(
+    (curr, i, counts) => {
+      if (i === 0) return true;
+      const prev = counts[i - 1];
+      return prev !== undefined && curr < prev;
+    },
+  );
   return {
-    finishStillPossible: last < prev && !haltOnRepeatPrimary,
+    finishStillPossible: strictlyFewerEachAudit && !haltOnRepeatPrimary,
     haltOnRepeatPrimary,
   };
 }
@@ -115,12 +127,28 @@ export function evaluateBoundRemedyCites(input: {
   readonly unmetIds: readonly string[];
   readonly coveredIds: readonly string[];
   readonly cites: readonly PainCite[];
+  readonly issueNumber?: number;
 }): { readonly ok: boolean } {
   for (const cite of input.cites) {
-    if (cite.disposition === "operator-deferred" && !input.unmetIds.includes(cite.painId)) {
-      return { ok: false };
+    if (cite.disposition === "operator-deferred") {
+      if (!input.unmetIds.includes(cite.painId)) {
+        return { ok: false };
+      }
+      if (cite.deferredIssueNumber === null) {
+        return { ok: false };
+      }
+      if (
+        input.issueNumber !== undefined &&
+        cite.deferredIssueNumber === input.issueNumber
+      ) {
+        return { ok: false };
+      }
+      continue;
     }
-    if (cite.disposition === "relieves" && !input.coveredIds.includes(cite.painId)) {
+    if (
+      cite.disposition === "relieves" &&
+      !input.coveredIds.includes(cite.painId)
+    ) {
       return { ok: false };
     }
   }
@@ -206,7 +234,8 @@ export function evaluateYoloStandingLeftoverScope(input: {
   readonly confirmsHandoff: false;
 } {
   return {
-    confirmsAllAcceptMap: input.allAcceptMap && input.leanCarriesOperatorConfirmedSplit,
+    confirmsAllAcceptMap:
+      input.allAcceptMap && input.leanCarriesOperatorConfirmedSplit,
     confirmsSplit: false,
     waivesPainCoverage: false,
     confirmsHandoff: false,
@@ -217,7 +246,9 @@ export function bindLeanPredecessorValid(input: {
   readonly predecessorRelievesIds: readonly string[];
   readonly bindRelievesIds: readonly string[];
 }): boolean {
-  return !input.bindRelievesIds.some((id) => input.predecessorRelievesIds.includes(id));
+  return !input.bindRelievesIds.some((id) =>
+    input.predecessorRelievesIds.includes(id),
+  );
 }
 
 export function evaluateDualStopPostBudget(input: {
@@ -233,7 +264,9 @@ export function evaluateDualStopPostBudget(input: {
 } {
   const base = input.spendSeats === 1 ? 6 : input.spendSeats === 3 ? 3 : 0;
   const numberedCap = input.operatorRaisedCap ?? base;
-  const postsUsed = input.afterHandoff ? input.criticPostsUsed : input.criticPostsUsed;
+  const postsUsed = input.afterHandoff
+    ? input.criticPostsUsed
+    : input.criticPostsUsed;
   return {
     numberedCap,
     postsRemaining: Math.max(0, numberedCap - postsUsed),

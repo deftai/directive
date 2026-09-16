@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { evaluateAutoStampPath1Write } from "./auto-stamp-path1.js";
 import { scanPainCites } from "./citation-grammar.js";
-import { evaluateCompletedArcRecord, type ThreadComment } from "./completed-arc-record.js";
+import {
+  evaluateCompletedArcRecord,
+  type ThreadComment,
+} from "./completed-arc-record.js";
 import {
   assertedPainIdsFromCites,
   bindLeanPredecessorValid,
@@ -94,13 +97,40 @@ describe("yolo leftover-pain handling (#4593)", () => {
         primaryBlockingHeadings: ["blocks-the-design A", "blocks-the-design A"],
       }),
     ).toEqual({ finishStillPossible: false, haltOnRepeatPrimary: true });
+    expect(
+      evaluateFinishStillPossible({
+        blockingCounts: [3, 4, 2],
+        primaryBlockingHeadings: [
+          "blocks-the-design A",
+          "blocks-the-design B",
+          "blocks-the-design C",
+        ],
+      }).finishStillPossible,
+    ).toBe(false);
+    expect(
+      evaluateFinishStillPossible({
+        blockingCounts: [3, 2, 1],
+        primaryBlockingHeadings: [
+          "blocks-the-design A",
+          "blocks-the-design B",
+          "blocks-the-design C",
+        ],
+      }).finishStillPossible,
+    ).toBe(true);
   });
 
   it("cites operator-deferred only for unmet ids and relieves only for covered ids", () => {
     const cites = scanPainCites(
       "**Lean:** bind.\n\nrelieves: P1\noperator-deferred: P2 #4602\n",
     ).cites;
-    expect(evaluateBoundRemedyCites({ unmetIds: ["P2"], coveredIds: ["P1"], cites }).ok).toBe(true);
+    expect(
+      evaluateBoundRemedyCites({
+        unmetIds: ["P2"],
+        coveredIds: ["P1"],
+        cites,
+        issueNumber: 4593,
+      }).ok,
+    ).toBe(true);
     expect(
       evaluateBoundRemedyCites({
         unmetIds: ["P2"],
@@ -113,6 +143,22 @@ describe("yolo leftover-pain handling (#4593)", () => {
         unmetIds: ["P2"],
         coveredIds: ["P1"],
         cites: scanPainCites("operator-deferred: P1 #4602\n").cites,
+      }).ok,
+    ).toBe(false);
+    expect(
+      evaluateBoundRemedyCites({
+        unmetIds: ["P2"],
+        coveredIds: ["P1"],
+        cites: scanPainCites("operator-deferred: P2\n").cites,
+        issueNumber: 4593,
+      }).ok,
+    ).toBe(false);
+    expect(
+      evaluateBoundRemedyCites({
+        unmetIds: ["P2"],
+        coveredIds: ["P1"],
+        cites: scanPainCites("operator-deferred: P2 #4593\n").cites,
+        issueNumber: 4593,
       }).ok,
     ).toBe(false);
   });
@@ -145,20 +191,29 @@ describe("yolo leftover-pain handling (#4593)", () => {
 
   it("follows pain-audit classes: retract, footnote-bindable, record, or new bind", () => {
     expect(
-      evaluatePainAuditFollowThrough({ findingClasses: ["blocking"], harvestChanged: false }),
+      evaluatePainAuditFollowThrough({
+        findingClasses: ["blocking"],
+        harvestChanged: false,
+      }),
     ).toMatchObject({
       postRetractionThenHandoff: true,
       spendsNumberedDualStopPost: false,
       isRelief: false,
     });
     expect(
-      evaluatePainAuditFollowThrough({ findingClasses: ["footnote"], harvestChanged: false }),
+      evaluatePainAuditFollowThrough({
+        findingClasses: ["footnote"],
+        harvestChanged: false,
+      }),
     ).toMatchObject({
       bindableWithoutExtraLean: true,
       newBindLeanAndAudit: false,
     });
     expect(
-      evaluatePainAuditFollowThrough({ findingClasses: ["sharpening"], harvestChanged: false }),
+      evaluatePainAuditFollowThrough({
+        findingClasses: ["sharpening"],
+        harvestChanged: false,
+      }),
     ).toMatchObject({
       recordingOnlyParentComment: true,
       movesCriticEnvelopes: false,
@@ -166,15 +221,22 @@ describe("yolo leftover-pain handling (#4593)", () => {
       bindableWithoutExtraLean: true,
     });
     expect(
-      evaluatePainAuditFollowThrough({ findingClasses: ["sharpening"], harvestChanged: true }),
+      evaluatePainAuditFollowThrough({
+        findingClasses: ["sharpening"],
+        harvestChanged: true,
+      }),
     ).toMatchObject({
       newBindLeanAndAudit: true,
       spendsNumberedDualStopPost: true,
       movesCriticEnvelopes: true,
       bindableWithoutExtraLean: false,
     });
-    expect(recordingCommentOpensSuccessorLean("role: parent\n\nSharpening note.\n")).toBe(false);
-    expect(recordingCommentOpensSuccessorLean("**Lean:** must not.\n")).toBe(true);
+    expect(
+      recordingCommentOpensSuccessorLean("role: parent\n\nSharpening note.\n"),
+    ).toBe(false);
+    expect(recordingCommentOpensSuccessorLean("**Lean:** must not.\n")).toBe(
+      true,
+    );
   });
 
   it("treats yolo standing as all-accept confirm on a split lean, not split/handoff/waiver", () => {
@@ -199,11 +261,17 @@ describe("yolo leftover-pain handling (#4593)", () => {
 
   it("refuses a bind lean whose predecessor already relieves those ids", () => {
     expect(
-      bindLeanPredecessorValid({ predecessorRelievesIds: ["P1"], bindRelievesIds: ["P1"] }),
+      bindLeanPredecessorValid({
+        predecessorRelievesIds: ["P1"],
+        bindRelievesIds: ["P1"],
+      }),
     ).toBe(false);
-    expect(bindLeanPredecessorValid({ predecessorRelievesIds: [], bindRelievesIds: ["P1"] })).toBe(
-      true,
-    );
+    expect(
+      bindLeanPredecessorValid({
+        predecessorRelievesIds: [],
+        bindRelievesIds: ["P1"],
+      }),
+    ).toBe(true);
   });
 
   it("defaults Dual-stop to 6 posts for spend N=1 and does not refill at Handoff", () => {
@@ -239,8 +307,12 @@ describe("yolo leftover-pain handling (#4593)", () => {
     expect(mapCarriesAssertedPainCoverage(relieves, ["P1"], 4593)).toBe(true);
     expect(mapCarriesAssertedPainCoverage(deferred, ["P1"], 4593)).toBe(true);
     expect(mapCarriesAssertedPainCoverage(sameIssue, ["P1"], 4593)).toBe(false);
-    expect(mapCarriesAssertedPainCoverage(unrelieved, ["P1"], 4593)).toBe(false);
-    expect(assertedPainIdsFromCites(scanPainCites(deferred).cites, ["P1"], 4593)).toEqual(["P1"]);
+    expect(mapCarriesAssertedPainCoverage(unrelieved, ["P1"], 4593)).toBe(
+      false,
+    );
+    expect(
+      assertedPainIdsFromCites(scanPainCites(deferred).cites, ["P1"], 4593),
+    ).toEqual(["P1"]);
   });
 
   it("keeps #4592 path-1 refuse; leftover recommend is not ingest-ready", () => {
@@ -254,12 +326,21 @@ describe("yolo leftover-pain handling (#4593)", () => {
       id: 5691827138,
       body: "**Lean:** recut.\n\nSpec-path: next-build is not this body.\n",
     };
-    const live = evaluateCompletedArcRecord({ comments: [stop1, lean], issueNumber: 4593 });
+    const live = evaluateCompletedArcRecord({
+      comments: [stop1, lean],
+      issueNumber: 4593,
+    });
     expect(live).toMatchObject({ status: "blocked", reason: "missing-record" });
-    const path1 = evaluateAutoStampPath1Write({ comments: [stop1, lean], issueNumber: 4593 });
+    const path1 = evaluateAutoStampPath1Write({
+      comments: [stop1, lean],
+      issueNumber: 4593,
+    });
     expect(path1.writePath1).toBe(false);
     expect(path1.writeIngestReadyRemainingSet).toBe(false);
-    expect(path1.candidate).toMatchObject({ status: "blocked", reason: "unrelieved-pain" });
+    expect(path1.candidate).toMatchObject({
+      status: "blocked",
+      reason: "unrelieved-pain",
+    });
     expect(
       evaluateYoloLeftoverRecommendation({
         yoloMode: true,
@@ -270,7 +351,9 @@ describe("yolo leftover-pain handling (#4593)", () => {
   });
 
   it("skips conflicting dispositions and honors a Dual-stop raise", () => {
-    const mixed = scanPainCites("relieves: P1\noperator-deferred: P1 #4602\n").cites;
+    const mixed = scanPainCites(
+      "relieves: P1\noperator-deferred: P1 #4602\n",
+    ).cites;
     expect(assertedPainIdsFromCites(mixed, ["P1"], 4593)).toEqual([]);
     const raised = evaluateDualStopPostBudget({
       spendSeats: 1,
@@ -288,14 +371,24 @@ describe("yolo leftover-pain handling (#4593)", () => {
     });
     expect(other.numberedCap).toBe(0);
     expect(
-      evaluatePainAuditFollowThrough({ findingClasses: [], harvestChanged: false })
-        .bindableWithoutExtraLean,
+      evaluatePainAuditFollowThrough({
+        findingClasses: [],
+        harvestChanged: false,
+      }).bindableWithoutExtraLean,
     ).toBe(true);
     expect(
-      assertedPainIdsFromCites(scanPainCites("relieves: P1\n").cites, ["P1"], undefined),
+      assertedPainIdsFromCites(
+        scanPainCites("relieves: P1\n").cites,
+        ["P1"],
+        undefined,
+      ),
     ).toEqual(["P1"]);
     expect(
-      assertedPainIdsFromCites(scanPainCites("operator-deferred: P1\n").cites, ["P1"], 4593),
+      assertedPainIdsFromCites(
+        scanPainCites("operator-deferred: P1\n").cites,
+        ["P1"],
+        4593,
+      ),
     ).toEqual([]);
   });
 });
