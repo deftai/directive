@@ -14,15 +14,16 @@
  * the two cannot drift.
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import { existsSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import { loadOnePrUnitGrant } from "../one-pr-unit/store.js";
 import type { OnePrUnitGrant } from "../one-pr-unit/types.js";
 import { type GateRunner, makeGateRunner } from "../orphan-active/issue-state.js";
 import { collectGithubRefs } from "../orphan-active/refs.js";
+import { listActiveRunningBriefsFromLifecycleRoot } from "../orphan-active/running-briefs.js";
 import { fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
@@ -96,55 +97,12 @@ export interface EvaluateOptions {
   readonly prNodeId?: string | null;
 }
 
-interface ActiveBrief {
-  readonly path: string;
-  readonly plan: Record<string, unknown>;
-}
-
-function readJson(path: string): Record<string, unknown> | null {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function planOf(data: Record<string, unknown> | null): Record<string, unknown> | null {
-  const plan = data?.plan;
-  return typeof plan === "object" && plan !== null && !Array.isArray(plan)
-    ? (plan as Record<string, unknown>)
-    : null;
-}
-
 function relBriefPath(path: string, projectRoot: string): string {
   try {
     return relative(resolve(projectRoot), resolve(path)).replace(/\\/g, "/");
   } catch {
     return path.replace(/\\/g, "/");
   }
-}
-
-function listActiveRunningBriefs(lifecycleRoot: string): ActiveBrief[] {
-  const activeDir = join(lifecycleRoot, "active");
-  if (!existsSync(activeDir)) {
-    return [];
-  }
-  const out: ActiveBrief[] = [];
-  for (const entry of readdirSync(activeDir, { withFileTypes: true })) {
-    if (!entry.isFile() || !hasArtifactSuffix(entry.name)) {
-      continue;
-    }
-    const path = join(activeDir, entry.name);
-    const plan = planOf(readJson(path));
-    if (plan === null || String(plan.status ?? "").toLowerCase() !== "running") {
-      continue;
-    }
-    out.push({ path, plan });
-  }
-  return out.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 /**
@@ -421,7 +379,7 @@ export function evaluate(
   const closingSet = new Set(closingIssues);
   const findings: CloseoutFinding[] = [];
 
-  for (const brief of listActiveRunningBriefs(lifecycleRoot)) {
+  for (const brief of listActiveRunningBriefsFromLifecycleRoot(lifecycleRoot)) {
     const { issues } = collectGithubRefs(brief.plan, repo);
     // Match on (repo, number). Closing references are scoped to the PR's repository,
     // so a bare-number match would let an unrelated brief tracking the same number in

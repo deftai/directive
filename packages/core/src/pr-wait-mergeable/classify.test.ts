@@ -76,4 +76,11 @@ describe("classifyMonitorOutcome", () => {
       EXIT_TIMEOUT_OR_ESCALATION,
     ]);
   });
+
+  it("maps NEW_P0_P1 payload on exit 1 to named waiter outcome (#4628)", () => {
+    expect(classifyMonitorOutcome(1, { monitor_result: "NEW_P0_P1" })).toEqual([
+      "new-p0-p1",
+      EXIT_TIMEOUT_OR_ESCALATION,
+    ]);
+  });
 });

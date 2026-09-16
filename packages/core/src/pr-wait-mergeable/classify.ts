@@ -16,6 +16,9 @@ export function classifyMonitorOutcome(
     if (monitorPayload.monitor_result === "ABSENT-REQUIRED") {
       return ["absent-required", EXIT_TIMEOUT_OR_ESCALATION] as const;
     }
+    if (monitorPayload.monitor_result === "NEW_P0_P1") {
+      return ["new-p0-p1", EXIT_TIMEOUT_OR_ESCALATION] as const;
+    }
     return ["config-error", EXIT_CONFIG_ERROR] as const;
   }
   if (monitorReturncode === 2) {

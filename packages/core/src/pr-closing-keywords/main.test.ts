@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
+import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { cmdPrCheckClosingKeywords, parseAllowList, parseArgs, run } from "./main.js";
 import type { RunGhFn } from "./types.js";
@@ -419,6 +420,143 @@ describe("one-PR-unit closer-set (#4494)", () => {
       tmp,
     ]);
     expect(code).toBe(EXIT_OK);
+    stderr.mockRestore();
+  });
+});
+
+describe("--allow-close running-for-N refuse (#4628)", () => {
+  const temps: string[] = [];
+  afterAll(() => {
+    for (const t of temps) {
+      rmSync(t, { recursive: true, force: true });
+    }
+  });
+  function makeRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-allow-close-running-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    return root;
+  }
+  function writeBrief(root: string, name: string, plan: Record<string, unknown>): void {
+    writeFileSync(
+      join(root, "xbrief", "active", name),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }),
+      "utf8",
+    );
+  }
+  function issueRef(n: number): Record<string, unknown> {
+    return {
+      uri: `https://github.com/deftai/directive/issues/${String(n)}`,
+      type: "x-xbrief/github-issue",
+    };
+  }
+
+  it("fails closed when --allow-close N has a running brief for N", () => {
+    const root = makeRoot();
+    writeBrief(root, "2026-09-16-55-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(55)],
+    });
+    const body = join(root, "body.md");
+    writeFileSync(body, "Closes #55\n", "utf8");
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run([
+      "--body-file",
+      body,
+      "--allow-close",
+      "55",
+      "--repo",
+      "deftai/directive",
+      "--project-root",
+      root,
+    ]);
+    expect(code).toBe(EXIT_HITS_FOUND);
+    const msg = stderr.mock.calls.join("");
+    expect(msg).toContain("Refs");
+    expect(msg).toContain("Tracking");
+    expect(msg).toContain("xbrief/active/2026-09-16-55-story.xbrief.json");
+    stderr.mockRestore();
+  });
+
+  it("passes --allow-close N when no running brief tracks N", () => {
+    const root = makeRoot();
+    writeBrief(root, "2026-09-16-99-story.xbrief.json", {
+      title: "other",
+      status: "running",
+      references: [issueRef(99)],
+    });
+    const body = join(root, "body.md");
+    writeFileSync(body, "Closes #55\n", "utf8");
+    expect(
+      run([
+        "--body-file",
+        body,
+        "--allow-close",
+        "55",
+        "--repo",
+        "deftai/directive",
+        "--project-root",
+        root,
+      ]),
+    ).toBe(EXIT_OK);
+  });
+
+  it("passes --allow-close N when the matching brief is not running", () => {
+    const root = makeRoot();
+    writeBrief(root, "2026-09-16-55-story.xbrief.json", {
+      title: "story",
+      status: "proposed",
+      references: [issueRef(55)],
+    });
+    const body = join(root, "body.md");
+    writeFileSync(body, "Closes #55\n", "utf8");
+    expect(
+      run([
+        "--body-file",
+        body,
+        "--allow-close",
+        "55",
+        "--repo",
+        "deftai/directive",
+        "--project-root",
+        root,
+      ]),
+    ).toBe(EXIT_OK);
+  });
+
+  it("fails closed when --allow-close is set and OWNER/REPO cannot be resolved", () => {
+    const root = makeRoot();
+    const body = join(root, "body.md");
+    writeFileSync(body, "Closes #55\n", "utf8");
+    const prev = process.env[ENV_TRIAGE_REPO];
+    delete process.env[ENV_TRIAGE_REPO];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      const code = run(["--body-file", body, "--allow-close", "55", "--project-root", root]);
+      expect(code).toBe(EXIT_CONFIG_ERROR);
+      expect(stderr.mock.calls.join("")).toContain("OWNER/REPO");
+    } finally {
+      stderr.mockRestore();
+      if (prev === undefined) {
+        delete process.env[ENV_TRIAGE_REPO];
+      } else {
+        process.env[ENV_TRIAGE_REPO] = prev;
+      }
+    }
+  });
+
+  it("live --pr without --allow-close still skips intent (#3015)", () => {
+    const runGh: RunGhFn = (cmd) => {
+      if (cmd.includes("body")) {
+        return { returncode: 0, stdout: JSON.stringify({ body: "Closes #4494\n" }), stderr: "" };
+      }
+      return { returncode: 0, stdout: JSON.stringify({ commits: [] }), stderr: "" };
+    };
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(run(["--mode", "both", "--pr", "4497", "--repo", "deftai/directive"], { runGh })).toBe(
+      EXIT_OK,
+    );
     stderr.mockRestore();
   });
 });

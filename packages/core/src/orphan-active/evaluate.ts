@@ -1,6 +1,6 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { ScmStubError } from "../scm/errors.js";
 import type { GitRunner } from "../session/git.js";
@@ -24,6 +24,7 @@ import {
   type StateResolution,
 } from "./issue-state.js";
 import { collectGithubRefs, type IssueRef, type PrRef } from "./refs.js";
+import { listActiveRunningBriefs } from "./running-briefs.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -100,66 +101,12 @@ export interface EvaluateOptions {
   readonly runGit?: GitRunner;
 }
 
-interface ActiveBrief {
-  readonly path: string;
-  readonly plan: Record<string, unknown>;
-}
-
-function readJson(path: string): Record<string, unknown> | null {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function planOf(data: Record<string, unknown> | null): Record<string, unknown> | null {
-  const plan = data?.plan;
-  return typeof plan === "object" && plan !== null && !Array.isArray(plan)
-    ? (plan as Record<string, unknown>)
-    : null;
-}
-
 function relBriefPath(path: string, projectRoot: string): string {
   try {
     return relative(resolve(projectRoot), resolve(path)).replace(/\\/g, "/");
   } catch {
     return path.replace(/\\/g, "/");
   }
-}
-
-function listActiveRunningBriefs(projectRoot: string): ActiveBrief[] {
-  let lifecycleRoot: string;
-  try {
-    lifecycleRoot = resolveLifecycleRoot(projectRoot);
-  } catch {
-    return [];
-  }
-  const activeDir = join(lifecycleRoot, "active");
-  if (!existsSync(activeDir)) {
-    return [];
-  }
-
-  const out: ActiveBrief[] = [];
-  for (const entry of readdirSync(activeDir, { withFileTypes: true })) {
-    if (!entry.isFile() || !hasArtifactSuffix(entry.name)) {
-      continue;
-    }
-    const path = join(activeDir, entry.name);
-    const data = readJson(path);
-    const plan = planOf(data);
-    if (plan === null) {
-      continue;
-    }
-    if (String(plan.status ?? "").toLowerCase() !== "running") {
-      continue;
-    }
-    out.push({ path, plan });
-  }
-  return out.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 /**

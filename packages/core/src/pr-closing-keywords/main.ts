@@ -1,9 +1,13 @@
 import { execFileSync } from "node:child_process";
+import { relative, resolve } from "node:path";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import { loadOnePrUnitGrant } from "../one-pr-unit/store.js";
 import { MISSING_ONE_PR_UNIT_CONSENT } from "../one-pr-unit/types.js";
+import { collectGithubRefs } from "../orphan-active/refs.js";
+import { listActiveRunningBriefs } from "../orphan-active/running-briefs.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { resolveRepo } from "../triage/queue/repo.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { findAllClosingKeywordHits, findHits, renderHit } from "./detect.js";
 import { defaultRunGh, fetchPrBody, fetchPrCommitMessages } from "./gh.js";
@@ -292,6 +296,57 @@ function emitResult(
   return EXIT_HITS_FOUND;
 }
 
+function relBriefPath(path: string, projectRoot: string): string {
+  try {
+    return relative(resolve(projectRoot), resolve(path)).replace(/\\/g, "/");
+  } catch {
+    return path.replace(/\\/g, "/");
+  }
+}
+
+function refuseAllowCloseWhileRunning(
+  closeAllow: Set<number>,
+  projectRoot: string,
+  repoArg: string | null,
+): number | null {
+  if (closeAllow.size === 0) {
+    return null;
+  }
+  const repo = resolveRepo(repoArg, projectRoot);
+  if (repo === null || repo.length === 0) {
+    process.stderr.write(
+      "Error: --allow-close requires OWNER/REPO to match running briefs. " +
+        "Pass --repo OWNER/REPO, set DEFT_TRIAGE_REPO, or run inside a checkout with a GitHub origin remote.\n",
+    );
+    return EXIT_CONFIG_ERROR;
+  }
+  const briefs = listActiveRunningBriefs(projectRoot);
+  const hits: { issue: number; briefPath: string }[] = [];
+  for (const issue of [...closeAllow].sort((a, b) => a - b)) {
+    for (const brief of briefs) {
+      const { issues } = collectGithubRefs(brief.plan, repo);
+      const matched = issues.some(
+        (ref) => ref.repo.toLowerCase() === repo.toLowerCase() && ref.number === issue,
+      );
+      if (matched) {
+        hits.push({ issue, briefPath: relBriefPath(brief.path, projectRoot) });
+        break;
+      }
+    }
+  }
+  if (hits.length === 0) {
+    return null;
+  }
+  process.stderr.write(
+    "FAIL: --allow-close names issue(s) whose brief is still running in xbrief/active/. " +
+      "Use Refs / Tracking until leftover-complete. --allow-close is the #3015 intent-mode allowlist, not leftover-complete consent.\n",
+  );
+  for (const hit of hits) {
+    process.stderr.write(`  --allow-close ${String(hit.issue)} running brief: ${hit.briefPath}\n`);
+  }
+  return EXIT_HITS_FOUND;
+}
+
 export function run(argv: readonly string[], options: RunOptions = {}): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
@@ -308,6 +363,15 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     const message = exc instanceof Error ? exc.message : String(exc);
     process.stderr.write(`Error: ${message}\n`);
     return EXIT_CONFIG_ERROR;
+  }
+
+  const runningRefuse = refuseAllowCloseWhileRunning(
+    closeAllow,
+    args.projectRoot ?? ".",
+    args.repo,
+  );
+  if (runningRefuse !== null) {
+    return runningRefuse;
   }
 
   const runGh = options.runGh ?? defaultRunGh;
