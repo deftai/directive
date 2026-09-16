@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4588",
-    "updated": "2026-09-16T02:35:33Z"
+    "updated": "2026-09-16T04:24:15Z"
   },
   "plan": {
     "title": "design(setup,scope): observable-scope mint still lands mid-build after setup-created scopes park in pending",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "design(setup,scope): observable-scope mint still lands mid-build after setup-created scopes park in pending",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4588",
@@ -139,9 +139,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "74a3d5711a091a273a6989554900e746c5849673fdb13475b1fb713a494c3abd"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4610,
+        "prBase": null,
+        "mergeCommit": "b68b93330e80d5129054af3b2a7c9d6f496dfb52",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b68b93330e80d5129054af3b2a7c9d6f496dfb52",
+        "verifiedAt": "2026-09-16T04:24:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE4NzItYThkZi03NjQwLTg2YjAtMDc4OGIyYTJlYjg1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-16T04:24:15Z"
+      },
+      "completedAt": "2026-09-16T04:24:15Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE4NzItYThkZi03NjQwLTg2YjAtMDc4OGIyYTJlYjg1",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5467563211",
-    "updated": "2026-09-16T02:35:33Z"
+    "updated": "2026-09-16T04:24:15Z"
   }
 }

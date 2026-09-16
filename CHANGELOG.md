@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Complete tracking for #4588.** Recorded the completed xBRIEF after PR 4610. Refs #2321, #3476.
 - **Complete tracking for #4589.** Recorded the completed xBRIEF after PR 4606. Refs #2321, #3476.
 - **Complete tracking for #4565.** Recorded the completed xBRIEF after PR 4604. Refs #2321, #3476.
 - **Complete tracking for #4592.** Recorded the completed xBRIEF after PR 4601. Refs #2321, #3476.
