@@ -4,10 +4,15 @@
  *
  * Does not NLP-grade Bound-remedy English (ADR-005). Does not waive #4592
  * path-1 refuse. Live parent turns stay unenforced; these are fixtures.
+ * Pain-audit dispatch fills operative audit-targets (ids or none). English
+ * Pain-audit headings are not targeting. Parent calls
+ * evaluateAutoStampPath1Write before path-1. Footnote-only follow-through
+ * is not clearance (#4648).
  */
 
 import { type PainCite, scanPainCites } from "./citation-grammar.js";
 import { isSuccessorLeanBody } from "./completed-arc-record.js";
+import { extractOperativeAuditTargets } from "./parent-audit.js";
 
 export type PainAuditFindingClass = "blocking" | "sharpening" | "footnote";
 
@@ -23,7 +28,12 @@ export function mapCarriesAssertedPainCoverage(
   );
 }
 
-/** Same asserted set applyPainCoverage uses: relieves plus different-issue deferred. */
+/**
+ * Same asserted set applyPainCoverage uses: relieves plus different-issue
+ * deferred. Those stay unresolved ADR-006 markers until a later critic
+ * targets them. Stale buildPainCoverageDeposit JSDoc (relief cites "are not
+ * this bind") does not recut this conjunct (#4648).
+ */
 export function assertedPainIdsFromCites(
   cites: readonly PainCite[],
   stop1PainIds: readonly string[],
@@ -132,6 +142,31 @@ export function evaluateBoundRemedyCites(input: {
     }
   }
   return { ok: true };
+}
+
+/** Operative line-start for pain-audit dispatch. Marker ids, or none. */
+export function painAuditDispatchAuditTargetsLine(markerIds: readonly string[]): string {
+  if (markerIds.length === 0) return "audit-targets: none";
+  return `audit-targets: ${markerIds.join(" ")}`;
+}
+
+/**
+ * Pain-audit dispatch fill: criticEnvelopes reads extractOperativeAuditTargets
+ * only. English Pain-audit headings are not targeting. none is not fill when
+ * marker ids are required.
+ */
+export function evaluatePainAuditDispatchFill(input: {
+  readonly body: string;
+  readonly requiredMarkerIds: readonly string[];
+}): { readonly filled: boolean } {
+  const envelope = extractOperativeAuditTargets(input.body);
+  if (envelope === null) return { filled: false };
+  if (input.requiredMarkerIds.length === 0) {
+    return { filled: envelope.declaredNone };
+  }
+  if (envelope.declaredNone) return { filled: false };
+  const have = new Set(envelope.auditTargets);
+  return { filled: input.requiredMarkerIds.every((id) => have.has(id)) };
 }
 
 export function evaluatePainCitePlacement(input: {

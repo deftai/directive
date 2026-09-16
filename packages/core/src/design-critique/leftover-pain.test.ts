@@ -10,11 +10,13 @@ import {
   evaluateContinueRemainder,
   evaluateDualStopPostBudget,
   evaluateFinishStillPossible,
+  evaluatePainAuditDispatchFill,
   evaluatePainAuditFollowThrough,
   evaluatePainCitePlacement,
   evaluateYoloLeftoverRecommendation,
   evaluateYoloStandingLeftoverScope,
   mapCarriesAssertedPainCoverage,
+  painAuditDispatchAuditTargetsLine,
   recordingCommentOpensSuccessorLean,
   recordLeftoverIssueNumber,
 } from "./leftover-pain.js";
@@ -205,6 +207,8 @@ describe("yolo leftover-pain handling (#4593)", () => {
     ).toMatchObject({
       bindableWithoutExtraLean: true,
       newBindLeanAndAudit: false,
+      movesCriticEnvelopes: false,
+      isRelief: false,
     });
     expect(
       evaluatePainAuditFollowThrough({
@@ -369,5 +373,108 @@ describe("yolo leftover-pain handling (#4593)", () => {
     expect(
       assertedPainIdsFromCites(scanPainCites("operator-deferred: P1\n").cites, ["P1"], 4593),
     ).toEqual([]);
+  });
+
+  it("fills pain-audit dispatch with operative audit-targets; English is not targeting (#4648)", () => {
+    const filledLine = painAuditDispatchAuditTargetsLine(["pain-P1"]);
+    expect(filledLine).toBe("audit-targets: pain-P1");
+    expect(painAuditDispatchAuditTargetsLine([])).toBe("audit-targets: none");
+    const filledBody = `model: grok-4.6\nrole: critic\n\n${filledLine}\n`;
+    expect(
+      evaluatePainAuditDispatchFill({
+        body: filledBody,
+        requiredMarkerIds: ["pain-P1"],
+      }).filled,
+    ).toBe(true);
+    const english =
+      "model: grok-4.6\nrole: critic\n\n## Pain-audit of relieves: P1\n\nFootnote-only.\n";
+    expect(
+      evaluatePainAuditDispatchFill({
+        body: english,
+        requiredMarkerIds: ["pain-P1"],
+      }).filled,
+    ).toBe(false);
+    expect(
+      evaluatePainAuditDispatchFill({
+        body: "role: critic\n> audit-targets: pain-P1\n",
+        requiredMarkerIds: ["pain-P1"],
+      }).filled,
+    ).toBe(false);
+    expect(
+      evaluatePainAuditDispatchFill({
+        body: "role: critic\naudit-targets: none\n",
+        requiredMarkerIds: ["pain-P1"],
+      }).filled,
+    ).toBe(false);
+    expect(
+      evaluatePainAuditDispatchFill({
+        body: "role: critic\naudit-targets: none\n",
+        requiredMarkerIds: [],
+      }).filled,
+    ).toBe(true);
+  });
+
+  it("later-arc bind lean needs a critic after that lean id; predecessor critic is not clearance (#4648)", () => {
+    const stop1: ThreadComment = {
+      id: 5704192180,
+      body:
+        "model: grok-4.6\nrole: triage\n\n" +
+        "design-critique: warranted, because leftover stamp.\n\npain: P1\n",
+    };
+    const predLean: ThreadComment = {
+      id: 5701370883,
+      body: "**Lean:** recut.\n\nSpec-path: next-build contract is not this body.\n\nrelieves: P1\n",
+    };
+    const predCritic: ThreadComment = {
+      id: 5701918171,
+      body: "model: grok-4.6\nrole: critic\n\naudit-targets: pain-P1\n",
+    };
+    const laterLean: ThreadComment = {
+      id: 5703783181,
+      body: "**Lean:** recut.\n\nSpec-path: next-build contract is not this body.\n\nrelieves: P1\n",
+    };
+    const path1 = evaluateAutoStampPath1Write({
+      comments: [stop1, predLean, predCritic, laterLean],
+      issueNumber: 4628,
+    });
+    expect(path1.writePath1).toBe(false);
+    expect(path1.writeIngestReadyRemainingSet).toBe(false);
+    expect(path1.candidate).toMatchObject({
+      status: "blocked",
+      reason: "unresolved-pain-audit",
+    });
+    const live = evaluateCompletedArcRecord({
+      comments: [stop1, predLean, predCritic, laterLean],
+      issueNumber: 4628,
+    });
+    expect(live).toMatchObject({ status: "blocked", reason: "missing-record" });
+  });
+
+  it("asserted relieves plus different-issue deferred stay unresolved until a later critic (#4648)", () => {
+    const lean: ThreadComment = {
+      id: 5691827200,
+      body:
+        "**Lean:** recut.\n\nSpec-path: next-build contract is not this body.\n\n" +
+        "relieves: P1\noperator-deferred: P2 #4602\n",
+    };
+    expect(assertedPainIdsFromCites(scanPainCites(lean.body).cites, ["P1", "P2"], 4593)).toEqual([
+      "P1",
+      "P2",
+    ]);
+    const stopBoth: ThreadComment = {
+      id: 5691827100,
+      body:
+        "model: grok-4.6\nrole: triage\n\n" +
+        "design-critique: warranted, because leftover.\n\npain: P1, P2\n",
+    };
+    const path1 = evaluateAutoStampPath1Write({
+      comments: [stopBoth, lean],
+      issueNumber: 4593,
+    });
+    expect(path1.writePath1).toBe(false);
+    expect(path1.candidate).toMatchObject({
+      status: "blocked",
+      reason: "unresolved-pain-audit",
+    });
   });
 });

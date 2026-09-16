@@ -14,7 +14,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - SHA at dispatch:
 - Run posture (`arc-mode: no-ingest` | `arc-mode: checkout`):
 - Target (work issue or umbrella):
-- Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale):
+- Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale). Copy onto the posted critic comment as an operative line-start `audit-targets:`. Pain-audit of relieves uses those ids (`pain-P1`), not an English heading:
 - Seat families (N≥3: three claimed families before spawn):
 - Launcher (spawn_subagent | grok | claude | codex | paste-ready):
 
@@ -44,6 +44,7 @@ Read, do not restate:
 | Parent-facing dispatch rules | Parent-facing dispatch rules |
 | Critic method | Critic method |
 | Envelope and ceiling | Envelope and ceiling |
+| Pain-audit targeting | Pain coverage / Yolo leftover-pain |
 | Seat families / Grok Build launcher | Envelope and ceiling |
 | Comment lead (model then role) | Stop 3 — Critic envelope |
 | Fresh reiteration | Stop 4 — Residual reiteration |

@@ -49,6 +49,16 @@ function criticAfter(id: number, targets: string): ThreadComment {
   };
 }
 
+function englishPainAuditCritic(id: number): ThreadComment {
+  return {
+    id,
+    body:
+      "model: grok-4.6\nrole: critic\n\n" +
+      "## Pain-audit of relieves: P1\n\n" +
+      "Footnote-only. Harvest unchanged.\n",
+  };
+}
+
 describe("evaluateAutoStampPath1Write (#4592)", () => {
   it("publishes the full pain-coverage reason set, not a two-reason allowlist", () => {
     expect(PAIN_COVERAGE_BLOCK_REASONS).toEqual([
@@ -113,6 +123,21 @@ describe("evaluateAutoStampPath1Write (#4592)", () => {
     ];
     const verdict = evaluateAutoStampPath1Write({ comments: live, issueNumber: 4590 });
     expect(verdict.writePath1).toBe(false);
+    expect(verdict.candidate).toMatchObject({
+      status: "blocked",
+      reason: "unresolved-pain-audit",
+    });
+  });
+
+  it("refuses English Pain-audit heading after the bind lean as unresolved-pain-audit (#4648)", () => {
+    const live: ThreadComment[] = [
+      stop1("pain: P1\n"),
+      relievesLean(LEAN_4590),
+      englishPainAuditCritic(LEAN_4590 + 1),
+    ];
+    const verdict = evaluateAutoStampPath1Write({ comments: live, issueNumber: 4590 });
+    expect(verdict.writePath1).toBe(false);
+    expect(verdict.writeIngestReadyRemainingSet).toBe(false);
     expect(verdict.candidate).toMatchObject({
       status: "blocked",
       reason: "unresolved-pain-audit",

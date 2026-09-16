@@ -88,10 +88,14 @@ function refuse(
 /**
  * Production caller for #3640 auto-stamp path-1.
  *
- * Constructs the dest candidate (lean citation only). Refuses both the path-1
- * write and the ingest-ready remaining-set write when that candidate is not
- * complete. Does not sit the refuse on ingest. Does not grow
- * resolveAutoStampCatalogChip.
+ * Parent calls this before any path-1 write. Constructs the dest candidate
+ * (lean citation only). Refuses both the path-1 write and the ingest-ready
+ * remaining-set write when that candidate is not complete. Chip ingest-ready
+ * only when that unpublished candidate is complete. Live-thread
+ * evaluateCompletedArcRecord is missing-record and is not this gate. English
+ * Pain-audit headings are not targeting; criticEnvelopes reads the closed
+ * audit-targets field. Does not grow resolveAutoStampCatalogChip. Does not
+ * treat operatorVerbApplySet autoStamp as this write (#4648).
  */
 export function evaluateAutoStampPath1Write(
   input: AutoStampPath1WriteInput,
