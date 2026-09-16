@@ -118,7 +118,7 @@ describe("lifecycleMain", () => {
   it("skips a lone -- separator before the file (#3439)", () => {
     root = mkdtempSync(join(tmpdir(), "cli-sep-"));
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
-    const file = join(root, "xbrief", "proposed", "sep.xbrief.json");
+    const file = join(root, "xbrief", "proposed", "2026-01-01-sep.xbrief.json");
     writeFileSync(
       file,
       formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
@@ -130,7 +130,7 @@ describe("lifecycleMain", () => {
   it("promotes via CLI with equals-form project root", () => {
     root = mkdtempSync(join(tmpdir(), "cli-eq-"));
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
-    const file = join(root, "xbrief", "proposed", "eq.xbrief.json");
+    const file = join(root, "xbrief", "proposed", "2026-01-01-eq.xbrief.json");
     writeFileSync(
       file,
       formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
@@ -142,7 +142,7 @@ describe("lifecycleMain", () => {
   it("returns usage for unknown flags", () => {
     root = mkdtempSync(join(tmpdir(), "cli-flag-"));
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
-    const file = join(root, "xbrief", "proposed", "s.xbrief.json");
+    const file = join(root, "xbrief", "proposed", "2026-01-01-s.xbrief.json");
     writeFileSync(
       file,
       formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),

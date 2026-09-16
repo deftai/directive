@@ -31,7 +31,7 @@ function writeVbrief(
   root: string,
   folder: string,
   status: string,
-  name = "story.xbrief.json",
+  name = "2026-01-01-story.xbrief.json",
 ): string {
   const path = join(root, "xbrief", folder, name);
   writeFile(path, {
@@ -66,6 +66,32 @@ describe("runTransition", () => {
     }
   });
 
+  it("refuses promote and activate of an uppercase slug (#4578)", () => {
+    root = makeRepo();
+    const proposed = writeVbrief(
+      root,
+      "proposed",
+      "proposed",
+      "2026-09-15-M1-pm-decomposition.xbrief.json",
+    );
+    const promoted = runTransition("promote", proposed);
+    expect(promoted.ok).toBe(false);
+    expect(promoted.message).toContain("(D7)");
+    expect(promoted.message).toContain(".xbrief.json (D7)");
+    expect(
+      existsSync(join(root, "xbrief", "pending", "2026-09-15-M1-pm-decomposition.xbrief.json")),
+    ).toBe(false);
+    const pending = writeVbrief(
+      root,
+      "pending",
+      "pending",
+      "2026-09-15-M1-pm-decomposition.xbrief.json",
+    );
+    const activated = runTransition("activate", pending);
+    expect(activated.ok).toBe(false);
+    expect(activated.message).toContain("(D7)");
+  });
+
   it("promotes proposed to pending", () => {
     root = makeRepo();
     const file = writeVbrief(root, "proposed", "proposed");
@@ -73,7 +99,7 @@ describe("runTransition", () => {
     const result = runTransition("promote", file, fixed);
     expect(result.ok).toBe(true);
     expect(result.message).toContain("Promoted");
-    const dest = join(root, "xbrief", "pending", "story.xbrief.json");
+    const dest = join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json");
     expect(existsSync(dest)).toBe(true);
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { status: string; updated: string };
@@ -87,12 +113,12 @@ describe("runTransition", () => {
     const file = writeVbrief(root, "pending", "pending");
     const result = runTransition("activate", file);
     expect(result.ok).toBe(true);
-    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-story.xbrief.json"))).toBe(true);
   });
 
   it("refuses activate when a plan item has effort XL (#1581)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "xl-story.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-xl-story.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -105,12 +131,14 @@ describe("runTransition", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/effort=XL|#1581/);
     expect(existsSync(path)).toBe(true);
-    expect(existsSync(join(root, "xbrief", "active", "xl-story.xbrief.json"))).toBe(false);
+    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-xl-story.xbrief.json"))).toBe(
+      false,
+    );
   });
 
   it("activates when plan items use S/M/L effort (#1581)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "sized.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-sized.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -124,12 +152,12 @@ describe("runTransition", () => {
     });
     const result = runTransition("activate", path);
     expect(result.ok).toBe(true);
-    expect(existsSync(join(root, "xbrief", "active", "sized.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-sized.xbrief.json"))).toBe(true);
   });
 
   it("refuses activate when narratives are acceptance-shaped without plan.acceptance (#3334)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "prose-ac.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-prose-ac.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -147,12 +175,14 @@ describe("runTransition", () => {
       /0 clauses derived from acceptance-shaped narrative keys \(Test\)/,
     );
     expect(existsSync(path)).toBe(true);
-    expect(existsSync(join(root, "xbrief", "active", "prose-ac.xbrief.json"))).toBe(false);
+    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-prose-ac.xbrief.json"))).toBe(
+      false,
+    );
   });
 
   it("activates heading-less AcceptanceCriteria list items via declared-key derivation (#4374)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "list-ac.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-list-ac.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -167,7 +197,7 @@ describe("runTransition", () => {
     });
     const result = runTransition("activate", path);
     expect(result.ok).toBe(true);
-    const dest = join(root, "xbrief", "active", "list-ac.xbrief.json");
+    const dest = join(root, "xbrief", "active", "2026-01-01-list-ac.xbrief.json");
     expect(existsSync(dest)).toBe(true);
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { acceptance: { clauses: { text: string }[]; none_stated: boolean } };
@@ -181,7 +211,7 @@ describe("runTransition", () => {
 
   it("activates heading-less AcceptanceCriteria list items with inline bold (#4374)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "bold-ac.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-bold-ac.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -195,7 +225,7 @@ describe("runTransition", () => {
     });
     const result = runTransition("activate", path);
     expect(result.ok).toBe(true);
-    const dest = join(root, "xbrief", "active", "bold-ac.xbrief.json");
+    const dest = join(root, "xbrief", "active", "2026-01-01-bold-ac.xbrief.json");
     expect(existsSync(dest)).toBe(true);
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { acceptance: { clauses: { text: string; provenance: string }[] } };
@@ -210,7 +240,7 @@ describe("runTransition", () => {
 
   it("surfaces a named 0-clause notice on promote of bare-prose AcceptanceCriteria (#4374)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "proposed", "bare-ac.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-bare-ac.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -229,7 +259,7 @@ describe("runTransition", () => {
 
   it("activates when acceptance-shaped narratives have plan.acceptance stamped (#3334)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "stamped.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-stamped.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -242,12 +272,12 @@ describe("runTransition", () => {
     });
     const result = runTransition("activate", path);
     expect(result.ok).toBe(true);
-    expect(existsSync(join(root, "xbrief", "active", "stamped.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-stamped.xbrief.json"))).toBe(true);
   });
 
   it("activates a hand-authored brief only after #3323 clause derivation (#3360)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "trial.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-trial.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -269,7 +299,7 @@ describe("runTransition", () => {
     // #3835: the two-path line is no longer ambiguous, because derivation no
     // longer selects a path out of the statement at all.
     expect(result.message).not.toMatch(/flagged-ambiguous/);
-    const dest = join(root, "xbrief", "active", "trial.xbrief.json");
+    const dest = join(root, "xbrief", "active", "2026-01-01-trial.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: {
         acceptance: {
@@ -288,7 +318,7 @@ describe("runTransition", () => {
 
   it("promotes a command-only brief after stamping derived clauses (#3360)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "proposed", "cmd-only.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-cmd-only.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -309,7 +339,7 @@ describe("runTransition", () => {
     const result = runTransition("promote", path);
     expect(result.ok).toBe(true);
     expect(result.message).toMatch(/#3323 clause derivation stamped 1 clause/);
-    const dest = join(root, "xbrief", "pending", "cmd-only.xbrief.json");
+    const dest = join(root, "xbrief", "pending", "2026-01-01-cmd-only.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: {
         acceptance: {
@@ -326,7 +356,7 @@ describe("runTransition", () => {
 
   it("binds a derived clause to an exact file_scope member on promote (#4008)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "proposed", "density.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-density.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -344,7 +374,7 @@ describe("runTransition", () => {
     const result = runTransition("promote", path);
     expect(result.ok).toBe(true);
     expect(result.message).toContain("#4008");
-    const dest = join(root, "xbrief", "pending", "density.xbrief.json");
+    const dest = join(root, "xbrief", "pending", "2026-01-01-density.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { acceptance: { clauses: { artifact_path: string | null }[] } };
     };
@@ -356,7 +386,7 @@ describe("runTransition", () => {
 
   it("refuses promote when a derived clause cannot bind to file_scope (#4008)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "proposed", "bare.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-bare.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -375,12 +405,12 @@ describe("runTransition", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain("#4008");
     expect(result.message).toContain("Basename matching is refused");
-    expect(existsSync(join(root, "xbrief", "pending", "bare.xbrief.json"))).toBe(false);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-bare.xbrief.json"))).toBe(false);
   });
 
   it("does not refuse a stated stamp that already has clauses (#4008)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "proposed", "stated.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-stated.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -408,12 +438,12 @@ describe("runTransition", () => {
     });
     const result = runTransition("promote", path);
     expect(result.ok).toBe(true);
-    expect(existsSync(join(root, "xbrief", "pending", "stated.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-stated.xbrief.json"))).toBe(true);
   });
 
   it("does not refuse command-only stated acceptance that derivation supplements (#4008)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "proposed", "cmd-scope.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-cmd-scope.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -435,12 +465,14 @@ describe("runTransition", () => {
     });
     const result = runTransition("promote", path);
     expect(result.ok).toBe(true);
-    expect(existsSync(join(root, "xbrief", "pending", "cmd-scope.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-cmd-scope.xbrief.json"))).toBe(
+      true,
+    );
   });
 
   it("surfaces refused-derivation remediation on activate even when applied is false (#3398)", () => {
     root = makeRepo();
-    const path = join(root, "xbrief", "pending", "impl-only.xbrief.json");
+    const path = join(root, "xbrief", "pending", "2026-01-01-impl-only.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
@@ -472,7 +504,7 @@ describe("runTransition", () => {
     const prev = process.env[ENV_RUN_SUMMARY_PATH];
     process.env[ENV_RUN_SUMMARY_PATH] = summary;
     try {
-      const path = join(root, "xbrief", "pending", "stamp-write.xbrief.json");
+      const path = join(root, "xbrief", "pending", "2026-01-01-stamp-write.xbrief.json");
       writeFile(path, {
         xBRIEFInfo: { version: "0.8" },
         plan: {
@@ -507,7 +539,7 @@ describe("runTransition", () => {
     const prev = process.env[ENV_RUN_SUMMARY_PATH];
     process.env[ENV_RUN_SUMMARY_PATH] = summary;
     try {
-      const path = join(root, "xbrief", "pending", "xl-derived.xbrief.json");
+      const path = join(root, "xbrief", "pending", "2026-01-01-xl-derived.xbrief.json");
       writeFile(path, {
         xBRIEFInfo: { version: "0.8" },
         plan: {
@@ -539,7 +571,7 @@ describe("runTransition", () => {
     const file = writeVbrief(root, "active", "running");
     const result = runTransition("complete", file);
     expect(result.ok).toBe(true);
-    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const dest = join(root, "xbrief", "completed", "2026-01-01-story.xbrief.json");
     expect(existsSync(file)).toBe(false);
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: {
@@ -563,7 +595,9 @@ describe("runTransition", () => {
       expect(result.ok).toBe(false);
       expect(result.message).toMatch(/#3357|just-completed|soft-skip/);
       expect(existsSync(file)).toBe(true);
-      expect(existsSync(join(root, "xbrief", "completed", "story.xbrief.json"))).toBe(false);
+      expect(existsSync(join(root, "xbrief", "completed", "2026-01-01-story.xbrief.json"))).toBe(
+        false,
+      );
     } finally {
       if (prev === undefined) {
         delete process.env.DEFT_SESSION_ID;
@@ -855,7 +889,7 @@ describe("runTransition", () => {
     const result = runTransition("fail", file);
     expect(result.ok).toBe(true);
     expect(existsSync(file)).toBe(false);
-    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const dest = join(root, "xbrief", "completed", "2026-01-01-story.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { status: string; metadata?: { lifecycleWrite?: { action: string } } };
     };
@@ -987,11 +1021,15 @@ describe("runTransition", () => {
     const result = runTransition("activate", file);
     expect(result.ok).toBe(false);
     expect(result.message).toContain("Invalid transition");
-    expect(result.message).toContain("deft scope:promote -- xbrief/proposed/story.xbrief.json");
-    expect(result.message).toContain("deft scope:activate -- xbrief/pending/story.xbrief.json");
+    expect(result.message).toContain(
+      "deft scope:promote -- xbrief/proposed/2026-01-01-story.xbrief.json",
+    );
+    expect(result.message).toContain(
+      "deft scope:activate -- xbrief/pending/2026-01-01-story.xbrief.json",
+    );
     expect(result.message).toContain("auto-promote from proposed/ is refused");
     expect(existsSync(file)).toBe(true);
-    expect(existsSync(join(root, "xbrief", "pending", "story.xbrief.json"))).toBe(false);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json"))).toBe(false);
   });
 
   it("does not hint cancel-then-restore when restore is asked of active/ (#4412)", () => {
@@ -1006,8 +1044,8 @@ describe("runTransition", () => {
 
   it("rejects move when destination already exists (#2578)", () => {
     root = makeRepo();
-    const file = writeVbrief(root, "active", "running", "dup.xbrief.json");
-    writeVbrief(root, "completed", "completed", "dup.xbrief.json");
+    const file = writeVbrief(root, "active", "running", "2026-01-01-dup.xbrief.json");
+    writeVbrief(root, "completed", "completed", "2026-01-01-dup.xbrief.json");
     const result = runTransition("complete", file);
     expect(result.ok).toBe(false);
     expect(result.message).toContain("Target already exists");
@@ -1068,7 +1106,7 @@ describe("scope lifecycle projection containment (#2447)", () => {
       expect(result.ok).toBe(false);
       expect(result.message).toContain("projection write refused");
       expect(existsSync(file)).toBe(true);
-      expect(existsSync(join(escapeDir, "story.xbrief.json"))).toBe(false);
+      expect(existsSync(join(escapeDir, "2026-01-01-story.xbrief.json"))).toBe(false);
       const unchanged = JSON.parse(readFileSync(file, "utf8")) as { plan: { status: string } };
       expect(unchanged.plan.status).toBe("proposed");
     },
@@ -1084,12 +1122,12 @@ describe("scope lifecycle projection containment (#2447)", () => {
       mkdirSync(escapeCompleted, { recursive: true });
       symlinkSync(escapeCompleted, join(root, "xbrief", "completed"));
 
-      const file = writeVbrief(root, "active", "running", "complete-story.xbrief.json");
+      const file = writeVbrief(root, "active", "running", "complete-2026-01-01-story.xbrief.json");
       const result = runTransition("complete", file);
       expect(result.ok).toBe(false);
       expect(result.message).toContain("projection write refused");
       expect(existsSync(file)).toBe(true);
-      expect(existsSync(join(escapeDir, "complete-story.xbrief.json"))).toBe(false);
+      expect(existsSync(join(escapeDir, "complete-2026-01-01-story.xbrief.json"))).toBe(false);
       const unchanged = JSON.parse(readFileSync(file, "utf8")) as { plan: { status: string } };
       expect(unchanged.plan.status).toBe("running");
     },
@@ -1119,7 +1157,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
 
   it("stamps an existing xBRIEFInfo@0.8 and adds no legacy key", () => {
     const root = repo();
-    const src = join(root, "xbrief", "pending", "story.xbrief.json");
+    const src = join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json");
     writeFile(src, {
       xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
       plan: { title: "T", status: "pending", items: [] },
@@ -1128,7 +1166,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
     expect(result.ok).toBe(true);
 
-    const dest = join(root, "xbrief", "active", "story.xbrief.json");
+    const dest = join(root, "xbrief", "active", "2026-01-01-story.xbrief.json");
     const payload = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown>;
     expect(Object.keys(payload)).toEqual(["xBRIEFInfo", "plan"]);
     expect((payload.xBRIEFInfo as { updated: string }).updated).toBe("2026-06-19T12:00:00Z");
@@ -1137,7 +1175,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
 
   it("stamps an existing vBRIEFInfo@0.6 in place", () => {
     const root = repo();
-    const src = join(root, "xbrief", "pending", "story.xbrief.json");
+    const src = join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json");
     writeFile(src, {
       vBRIEFInfo: { version: "0.6", updated: "2026-04-30T00:00:00Z" },
       plan: { title: "T", status: "pending", items: [] },
@@ -1146,7 +1184,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
     expect(result.ok).toBe(true);
 
-    const dest = join(root, "xbrief", "active", "story.xbrief.json");
+    const dest = join(root, "xbrief", "active", "2026-01-01-story.xbrief.json");
     const payload = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown>;
     expect(Object.keys(payload)).toEqual(["vBRIEFInfo", "plan"]);
     expect(payload.vBRIEFInfo).toEqual({ version: "0.6", updated: "2026-06-19T12:00:00Z" });
@@ -1154,19 +1192,19 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
 
   it("refuses a brief carrying neither envelope by name, before the move", () => {
     const root = repo();
-    const src = join(root, "xbrief", "pending", "story.xbrief.json");
+    const src = join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json");
     writeFile(src, { plan: { title: "T", status: "pending", items: [] } });
 
     const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
     expect(result.ok).toBe(false);
     expect(result.message).toContain("missing required top-level key 'vBRIEFInfo' or 'xBRIEFInfo'");
     expect(existsSync(src)).toBe(true);
-    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(false);
+    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-story.xbrief.json"))).toBe(false);
   });
 
   it("repairs a unique ingest-owner plan.id on promote (#4119)", () => {
     const root = repo();
-    const path = join(root, "xbrief", "proposed", "missing-id.xbrief.json");
+    const path = join(root, "xbrief", "proposed", "2026-01-01-missing-id.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #9" },
       plan: {
@@ -1178,14 +1216,14 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     });
     const result = runTransition("promote", path);
     expect(result.ok).toBe(true);
-    const dest = join(root, "xbrief", "pending", "missing-id.xbrief.json");
+    const dest = join(root, "xbrief", "pending", "2026-01-01-missing-id.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as { plan: { id: string } };
     expect(data.plan.id).toBe("github.issue.fallback.o.r.9");
   });
 
   it("refuses promote of blank malformed conflicting and duplicate plan.id (#4119)", () => {
     const root = repo();
-    const blank = join(root, "xbrief", "proposed", "blank.xbrief.json");
+    const blank = join(root, "xbrief", "proposed", "2026-01-01-blank.xbrief.json");
     writeFile(blank, {
       xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #1" },
       plan: {
@@ -1198,7 +1236,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     });
     expect(runTransition("promote", blank).ok).toBe(false);
 
-    const malformed = join(root, "xbrief", "proposed", "bad.xbrief.json");
+    const malformed = join(root, "xbrief", "proposed", "2026-01-01-bad.xbrief.json");
     writeFile(malformed, {
       xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #2" },
       plan: {
@@ -1211,12 +1249,12 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     });
     expect(runTransition("promote", malformed).ok).toBe(false);
 
-    const occupant = join(root, "xbrief", "completed", "occ.xbrief.json");
+    const occupant = join(root, "xbrief", "completed", "2026-01-01-occ.xbrief.json");
     writeFile(occupant, {
       xBRIEFInfo: { version: "0.8" },
       plan: { id: "github.issue.1", title: "Occ", status: "completed", items: [] },
     });
-    const dup = join(root, "xbrief", "proposed", "dup.xbrief.json");
+    const dup = join(root, "xbrief", "proposed", "2026-01-01-dup.xbrief.json");
     writeFile(dup, {
       xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #3" },
       plan: {
@@ -1229,7 +1267,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     });
     expect(runTransition("promote", dup).ok).toBe(false);
 
-    const conflict = join(root, "xbrief", "proposed", "conflict.xbrief.json");
+    const conflict = join(root, "xbrief", "proposed", "2026-01-01-conflict.xbrief.json");
     writeFile(conflict, {
       xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #4" },
       plan: {
@@ -1246,7 +1284,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
 
   it("promotes an ingest owner with a unique plan.id and leaves child slugs alone (#4119)", () => {
     const root = repo();
-    const owner = join(root, "xbrief", "proposed", "owner.xbrief.json");
+    const owner = join(root, "xbrief", "proposed", "2026-01-01-owner.xbrief.json");
     writeFile(owner, {
       xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #5" },
       plan: {
@@ -1259,7 +1297,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     });
     expect(runTransition("promote", owner).ok).toBe(true);
 
-    const child = join(root, "xbrief", "proposed", "child.xbrief.json");
+    const child = join(root, "xbrief", "proposed", "2026-01-01-child.xbrief.json");
     writeFile(child, {
       xBRIEFInfo: { version: "0.8" },
       plan: {

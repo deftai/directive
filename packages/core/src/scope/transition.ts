@@ -20,6 +20,7 @@ import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consist
 import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
+import { validateFilename } from "../vbrief-validate/filename.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
@@ -187,6 +188,13 @@ export function runTransition(
         `File is in ${currentFolder}/.` +
         (derivedHint !== null ? ` ${derivedHint}` : ""),
     };
+  }
+
+  if (act === "promote" || act === "activate") {
+    const d7 = validateFilename(basename);
+    if (d7.length > 0) {
+      return { ok: false, message: d7.join("\n") };
+    }
   }
 
   const readResult = readBriefForMutation(resolvedPath);

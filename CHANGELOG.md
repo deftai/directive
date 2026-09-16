@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **D7 filename recovery matches the runtime matcher (#4578).** Published FILENAME_PATTERN accepts both .xbrief.json and .vbrief.json. validateFilename prints the rejected basename suffix; the conformance header lists both. Create, promote, activate, and scope:decompose refuse uppercase lifecycle slugs instead of waiting for the commit gate. Ingest slugify is unchanged. completed/ grandfather is leftover. Closes #4578.
 - **Controlled Tabs useState StringLiteral flip is a tab-selected delta (#4586).** Same-file `const [ident, ...] = useState(<StringLiteral>)` with `value={ident}` emits `tab-selected` from the matching `TabsTrigger value=` literal. Closed callees `useState` and `React.useState`. Lazy initializers, non-literal args, and `setTab` stay unresolvable. Tabs-only value={ident}. Colliding same-file idents or TabsTrigger labels stay unresolvable. Does not implement the #4503 recognizer. Closes #4586.
 - **Intent-constraint mint is named at authorship and task check (#4587).** Fail strings name `scope:record-intent-constraint`. Does not recut #4541. Leftover mint-mid-build stays on #4597. Closes #4587.
 - **Yolo leftover-pain handling recommends split-or-halt, files leftover on operator confirm, and continues the remainder (#4593).** Dual-stop default is 6 posts for spend N=1, posts not seats. Reserved pain-audit slot triggers on relieved plus deferred. Blocking audit retracts then Handoffs. Keep the #4592 refuse. Closes #4593.

@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { isFile, loadJson, readText, resolveContentPath } from "./_helpers.js";
 
 describe("test_vbrief_model.py", () => {
-  const FILENAME_PATTERN = /^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$/;
+  const FILENAME_PATTERN = /^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.(?:xbrief|vbrief)\.json$/;
   const VALID_STATUSES = new Set([
     "approved",
     "blocked",
@@ -688,6 +688,9 @@ describe("test_vbrief_model.py", () => {
   });
   it("valid filename 2026-04-12-add-oauth-flow.vbrief.json", () => {
     expect(FILENAME_PATTERN.test("2026-04-12-add-oauth-flow.vbrief.json")).toBe(true);
+  });
+  it("valid filename 2026-04-12-add-oauth-flow.xbrief.json", () => {
+    expect(FILENAME_PATTERN.test("2026-04-12-add-oauth-flow.xbrief.json")).toBe(true);
   });
   it("valid filename 2026-01-01-fix-login-bug.vbrief.json", () => {
     expect(FILENAME_PATTERN.test("2026-01-01-fix-login-bug.vbrief.json")).toBe(true);
