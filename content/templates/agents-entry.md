@@ -135,6 +135,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
 ! Test placement + scope provenance (#3145) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (`--enforce` empty-scope only; declared `file_scope` without base approval fails closed), `deft verify:consumer-check-contract` (composition fails closed; CI omissions warn), `deft verify:evaluator-surface`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`, `docs/consumer-check-contract.md`).
+! Declared `file_scope` expansion after first mint hard-fails merge-time `verify:scope-provenance`; remint is `scope:record-approved-scope --kind renewed-approval` on operator return (multi-PR; #4589). First-mint activate digest is open #4383. ⊗ unattended remint, same-PR approval rewrite, or editing the verifier. Depth: `docs/scope-provenance.md`.
 
 ## Branch Policy Disclosure (#746)
 

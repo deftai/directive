@@ -1,11 +1,12 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildApprovedScopeRecord,
   computeFileScopeDigest,
   extractFileScope,
+  isHumanApprovalStamp,
   normalizeFileScope,
   scopeExpansion,
 } from "./digest.js";
@@ -412,5 +413,196 @@ describe("verify:scope-provenance does not read grants (#3384)", () => {
       expect(src).not.toMatch(/listActiveHumanGrants/);
       expect(src).not.toMatch(/from ["'][^"']*authz/);
     }
+  });
+});
+
+const repoRoot4589 = resolve(fileURLToPath(new URL("../../../../", import.meta.url)));
+
+function readRepo4589(rel: string): string {
+  return readFileSync(join(repoRoot4589, rel), "utf8");
+}
+
+describe("expansion remint after first mint (#4589)", () => {
+  it("names merge-time verify:scope-provenance plus --kind renewed-approval as the remint", () => {
+    const approved = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: xbrief("story-1", ["src/app.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const finding = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: xbrief("story-1", ["src/app.ts", "src/extra.ts"]),
+      approved,
+      xbriefModifiedInChangeSet: true,
+      enforce: true,
+    });
+    expect(finding?.kind).toBe("self-authorizing-scope-expansion");
+    expect(finding?.remediation).toMatch(/verify:scope-provenance/);
+    expect(finding?.remediation).toMatch(/scope:record-approved-scope/);
+    expect(finding?.remediation).toMatch(/--kind renewed-approval/);
+    expect(finding?.remediation).toMatch(/#4589/);
+    expect(finding?.remediation).not.toMatch(/scope:renew-approved-scope/);
+    expect(finding?.remediation).not.toMatch(/scope:remint/);
+  });
+
+  it("does not treat an unmodified xBRIEF as activate-time refuse", () => {
+    const approved = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: xbrief("story-1", ["src/app.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const finding = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: xbrief("story-1", ["src/app.ts", "src/extra.ts"]),
+      approved,
+      xbriefModifiedInChangeSet: false,
+      enforce: true,
+    });
+    expect(finding).toBeNull();
+  });
+
+  it("authorizes expansion only with a human renewed-approval stamp", () => {
+    const approved = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: xbrief("story-1", ["src/app.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const ok = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: xbrief("story-1", ["src/app.ts", "src/new.ts"]),
+      approved,
+      xbriefModifiedInChangeSet: true,
+      enforce: true,
+      renewedHumanApproval: {
+        kind: "renewed-approval",
+        actor: "scott",
+        mintedAt: "2026-08-06T00:00:00Z",
+      },
+    });
+    expect(ok).toBeNull();
+    expect(
+      isHumanApprovalStamp({
+        kind: "renewed-approval",
+        actor: "scott",
+        mintedAt: "2026-08-06T00:00:00Z",
+      }),
+    ).toBe(true);
+
+    const agent = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: xbrief("story-1", ["src/app.ts", "src/new.ts"]),
+      approved,
+      xbriefModifiedInChangeSet: true,
+      enforce: true,
+      renewedHumanApproval: {
+        kind: "agent",
+        actor: "agent:worker",
+        mintedAt: "2026-08-06T00:00:00Z",
+      },
+    });
+    expect(agent?.kind).toBe("self-authorizing-scope-expansion");
+  });
+
+  it("hard-fails same-PR rewrite of the approval record", () => {
+    const approved = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: xbrief("story-1", ["src/app.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const expanded = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: xbrief("story-1", ["src/app.ts", "src/new.ts"]),
+      humanApproval: {
+        kind: "renewed-approval",
+        actor: "scott",
+        mintedAt: "2026-08-06T00:00:00Z",
+      },
+    });
+    const result = evaluateScopeProvenance("/tmp/proj-4589", {
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        `.deft/approved-scope/${approved.planId}.json`,
+      ],
+      activeXbriefs: new Map([
+        [
+          "xbrief/active/story.xbrief.json",
+          JSON.stringify(xbrief("story-1", ["src/app.ts", "src/new.ts"])),
+        ],
+      ]),
+      approvedRecords: [expanded],
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("self-authorizing-scope-expansion");
+    expect(result.findings[0]?.detail).toMatch(/rewritten|same change/i);
+    expect(result.findings[0]?.remediation).toMatch(/--kind renewed-approval/);
+    expect(result.findings[0]?.remediation).toMatch(/#4589/);
+  });
+
+  it("records #4383 as an open predecessor: activate has no approved-scope reader", () => {
+    const lifecycle = readRepo4589("packages/cli/src/scope-lifecycle.ts");
+    expect(lifecycle).not.toMatch(/approved-scope/);
+    expect(lifecycle).not.toMatch(/fileScopeDigest/);
+    expect(lifecycle).not.toMatch(/record-approved-scope/);
+    const scopeDir = join(repoRoot4589, "packages/core/src/scope");
+    const scopeText = readdirSync(scopeDir)
+      .filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"))
+      .map((name) => readFileSync(join(scopeDir, name), "utf8"))
+      .join("\n");
+    expect(scopeText).not.toMatch(/approved-scope/);
+    expect(scopeText).not.toMatch(/fileScopeDigest/);
+    expect(scopeText).not.toMatch(/record-approved-scope/);
+  });
+
+  it("docs name the existing remint, open predecessor, operator-return carrier, and declined paths", () => {
+    const docs = readRepo4589("content/docs/scope-provenance.md");
+    expect(docs).toMatch(/## Expansion remint after first mint \(#4589\)/);
+    expect(docs).toMatch(/merge-time `verify:scope-provenance`/);
+    expect(docs).toMatch(/--kind renewed-approval/);
+    expect(docs).toMatch(/open predecessor \[#4383\]/);
+    expect(docs).not.toMatch(/activate refuses/);
+    expect(docs).toMatch(/Carrier \(already-holding\)/);
+    expect(docs).toMatch(/operator returns and runs the documented multi-PR remint/);
+    expect(docs).toMatch(/Unattended remint after the operator left/);
+    expect(docs).toMatch(/Same-PR rewrite of `\.deft\/approved-scope\/<plan-id>\.json`/);
+    expect(docs).toMatch(/Editing `verify:scope-provenance`/);
+    expect(docs).not.toMatch(/scope:renew-approved-scope/);
+    expect(docs).not.toMatch(/(?<!deft:)task scope:record-approved-scope/);
+  });
+
+  it("AGENTS.md and agents-entry pin the merge-time remint and open #4383 predecessor", () => {
+    const agents = readRepo4589("AGENTS.md");
+    const entry = readRepo4589("content/templates/agents-entry.md");
+    for (const text of [agents, entry]) {
+      expect(text).toMatch(/#4589/);
+      expect(text).toMatch(/--kind renewed-approval/);
+      expect(text).toMatch(/open #4383/);
+      expect(text).toMatch(/unattended remint/);
+      expect(text).toMatch(/same-PR approval rewrite/);
+    }
+  });
+
+  it("human-presence mint still refuses agent and CI shells", () => {
+    const mint = readRepo4589("packages/cli/src/human-presence-mint.ts");
+    expect(mint).toMatch(/AUTHZ_AGENT_SHELL_ENV_MARKERS/);
+    expect(mint).toMatch(/"CI"/);
+    expect(mint).toMatch(/"CURSOR_AGENT"/);
+    expect(mint).toMatch(/AUTHZ_INTERACTIVE_CONFIRM_PHRASE = "mint"/);
   });
 });

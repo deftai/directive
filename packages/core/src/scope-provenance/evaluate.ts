@@ -298,6 +298,19 @@ function remediationForExpansion(): string {
   );
 }
 
+/** Expansion remint names the existing verb plus --kind renewed-approval (#4589). */
+function remediationForRenewedApproval(): string {
+  return (
+    remediationForExpansion() +
+    " For a later declared file_scope expansion after a first human mint, the remint is " +
+    "`deft scope:record-approved-scope -- <xbrief-path> --actor <you> --kind renewed-approval --confirm` " +
+    "on operator return (multi-PR; #4589). Do not invent a second remint verb. This refuse is " +
+    "merge-time verify:scope-provenance, not scope:activate (first-mint activate digest is " +
+    "open predecessor #4383). Unattended remint after the operator left, same-PR rewrite of " +
+    "`.deft/approved-scope/<plan-id>.json`, and editing this verifier to go green stay declined."
+  );
+}
+
 /**
  * Parse + lightly validate an approved-scope JSON blob (base-ref `git show` or disk).
  * Returns null when schema fields required for authorization are missing/malformed.
@@ -482,7 +495,7 @@ export function evaluateOneScopeProvenance(input: {
     detail:
       `active xBRIEF expanded file_scope by ${expanded.length} path(s) in the same change set; ` +
       "modified xBRIEF cannot authorize the new paths",
-    remediation: remediationForExpansion(),
+    remediation: remediationForRenewedApproval(),
   };
 }
 
@@ -715,9 +728,10 @@ export function evaluateScopeProvenance(
           "approved-scope record or preimage rewritten in the same change set as the active xBRIEF; " +
           "cannot self-authorize via concurrent approval rewrite",
         remediation:
-          "Commit human approval via `deft scope:record-approved-scope` on the merge base " +
-          "(or a prior PR), then activate/expand without rewriting the approval in this " +
-          "change set. Same-PR approval rewrites do not authorize expansion (#3145 / #3205 / #3385).",
+          "Commit human approval via `deft scope:record-approved-scope -- <xbrief-path> --actor <you> " +
+          "--kind renewed-approval --confirm` on the merge base (or a prior PR), then expand without " +
+          "rewriting the approval in this change set. Same-PR approval rewrites do not authorize " +
+          "expansion (#3145 / #3205 / #3385 / #4589).",
       });
       continue;
     }
