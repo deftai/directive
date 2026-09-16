@@ -1,10 +1,18 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4591,
+  "issue": 4587,
   "surfaces": [
-    "vitest.config.ts",
-    "xbrief/evaluator-surface-disposition.json"
+    "Taskfile.yml",
+    "tasks/verify.yml",
+    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/consumer-check-contract/evaluate.ts",
+    "packages/core/src/evaluator-surface/**",
+    "packages/core/src/intent-constraint/**",
+    "packages/cli/src/verify-intent-constraint.ts",
+    "packages/cli/src/scope-record-intent-constraint.ts",
+    "xbrief/evaluator-surface-disposition.json",
+    "vitest.config.ts"
   ],
-  "note": "Disclosure of vitest project extends:true so Windows single-file vitest inherits root aliases (#4591). Occupancy stays per-it. Hang-detector last. Not reviewed authorization under #3164."
+  "note": "Disclosure of verify:intent-constraint fail-string placement (#4587). Not a recut of evaluateIntentConstraint. Not reviewed authorization under #3164."
 }
