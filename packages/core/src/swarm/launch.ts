@@ -788,10 +788,20 @@ function listLaunchOccupancyRecords(projectRoot: string): LaunchOccupancyRecord[
   return out;
 }
 
+function corroborateRecordedOccupancy(
+  projectRoot: string,
+  recordedSessionId: string,
+): "ok" | "missing" | "wrong-cohort" {
+  const live = liveOccupant(projectRoot);
+  if (live === null) return "missing";
+  if (live.sessionId !== recordedSessionId) return "wrong-cohort";
+  return "ok";
+}
+
 export function persistLaunchOccupancyRecord(
   projectRoot: string,
   record: LaunchOccupancyRecord,
-): void {
+): "created" | "replaced" {
   const relpath = launchOccupancyRecordRelpath(record.cohort_key);
   const absDir = join(resolve(projectRoot), ...SWARM_LAUNCH_OCCUPANCY_DIR);
   mkdirSync(absDir, { recursive: true });
@@ -804,7 +814,7 @@ export function persistLaunchOccupancyRecord(
       data: payload,
       mode: "create",
     });
-    return;
+    return "created";
   }
   const live = liveOccupant(projectRoot);
   if (live === null) {
@@ -815,7 +825,7 @@ export function persistLaunchOccupancyRecord(
       data: payload,
       mode: "create",
     });
-    return;
+    return "created";
   }
   const leaseMatches =
     live.sessionId === existing.occupancy_session_id &&
@@ -830,6 +840,7 @@ export function persistLaunchOccupancyRecord(
     data: payload,
     mode: "replace",
   });
+  return "replaced";
 }
 
 export function retractLaunchOccupancyRecord(
@@ -870,10 +881,16 @@ export function resolveLaunchOccupancySessionId(
     if (wantedPlan.length > 0 && exact.allocation_plan_id !== wantedPlan) {
       return { sessionId: "", reason: "wrong-cohort" };
     }
-    const live = liveOccupant(projectRoot);
-    if (live === null) {
+    const corroborated = corroborateRecordedOccupancy(
+      projectRoot,
+      exact.occupancy_session_id,
+    );
+    if (corroborated === "missing") {
       retractLaunchOccupancyRecord(projectRoot, { cohortKey: requestedKey });
       return { sessionId: "", reason: "missing" };
+    }
+    if (corroborated === "wrong-cohort") {
+      return { sessionId: "", reason: "wrong-cohort" };
     }
     return { sessionId: exact.occupancy_session_id, reason: "ok" };
   }
@@ -894,14 +911,18 @@ export function resolveLaunchOccupancySessionId(
   if (sessionIds.size !== 1) {
     return { sessionId: "", reason: "wrong-cohort" };
   }
-  const live = liveOccupant(projectRoot);
-  if (live === null) {
+  const recorded = matches[0]?.occupancy_session_id ?? "";
+  const corroborated = corroborateRecordedOccupancy(projectRoot, recorded);
+  if (corroborated === "missing") {
     for (const rec of matches) {
       retractLaunchOccupancyRecord(projectRoot, { cohortKey: rec.cohort_key });
     }
     return { sessionId: "", reason: "missing" };
   }
-  return { sessionId: matches[0]?.occupancy_session_id ?? "", reason: "ok" };
+  if (corroborated === "wrong-cohort") {
+    return { sessionId: "", reason: "wrong-cohort" };
+  }
+  return { sessionId: recorded, reason: "ok" };
 }
 
 export function buildManifest(
@@ -1186,11 +1207,8 @@ export function swarmLaunch(args: LaunchArgs): {
 
   if (dispatchKind === "swarm-cohort") {
     const admission = admitSwarmLaunchPlanSequence(projectRoot);
-    if (
-      !admission.ok &&
-      admission.code === "missing" &&
-      (allocationPlanId ?? "").trim().length === 0
-    ) {
+    const explicitConsent = (allocationPlanId ?? "").trim().length > 0;
+    if (!admission.ok && !explicitConsent) {
       return {
         exitCode: EXIT_GATE_FAILED,
         stdout: "",
@@ -1372,13 +1390,15 @@ export function swarmLaunch(args: LaunchArgs): {
       data: rendered,
       mode: "replace",
     });
-    persistLaunchOccupancyRecord(projectRoot, {
+    const persistKind = persistLaunchOccupancyRecord(projectRoot, {
       allocation_plan_id: allocationPlanId,
       occupancy_session_id: occupancy.sessionId,
       story_ids: storyIds,
       cohort_key: cohortKey,
     });
-    persistedCohortKey = cohortKey;
+    if (persistKind === "created") {
+      persistedCohortKey = cohortKey;
+    }
   } catch (exc: unknown) {
     return failAfterClaim(
       EXIT_CONFIG_ERROR,

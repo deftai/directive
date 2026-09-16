@@ -261,7 +261,7 @@ describe("complete cohort live sweep with mocked transition", () => {
     });
 
     expect(result.exitCode).toBe(1);
-    expect(result.sweep?.errors.join("\n")).toContain("conflicts with cohort owner");
+    expect(result.sweep?.errors.join("\n")).toContain("different cohort");
     expect(readOccupancy(project)?.sessionId).toBe(laterOwner);
     rmSync(project, { recursive: true, force: true });
   });
@@ -440,6 +440,104 @@ describe("launch occupancy record lifecycle (#4595)", () => {
     expect(resolveLaunchOccupancySessionId(project, { storyIds: ["story-a"] }).sessionId).toBe(
       "owner-b",
     );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses a stale recorded session when another occupant holds the live lease", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-stale-"));
+    applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
+    const key = occupancyCohortKey(null, ["story-a"]);
+    persistLaunchOccupancyRecord(project, {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-a",
+      story_ids: ["story-a"],
+      cohort_key: key,
+    });
+    releaseOccupancy(project, { sessionId: "owner-a" });
+    applyWorktreeOccupancy(project, { sessionId: "owner-b", intent: "mutation" });
+    const resolved = resolveLaunchOccupancySessionId(project, { storyIds: ["story-a"] });
+    expect(resolved.reason).toBe("wrong-cohort");
+    expect(resolved.sessionId).toBe("");
+    expect(existsSync(join(project, ...launchOccupancyRecordRelpath(key)))).toBe(true);
+    expect(readOccupancy(project)?.sessionId).toBe("owner-b");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not retract a heartbeat-replaced roster when later --output fails", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-hb-"));
+    writeProjectDef(project);
+    writeLaunchStory(project, "story-a", 4595);
+    const first = swarmLaunch({
+      stories: ["story-a"],
+      projectRoot: project,
+      autonomous: true,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(first.exitCode).toBe(0);
+    const key = occupancyCohortKey(null, ["story-a"]);
+    expect(existsSync(join(project, ...launchOccupancyRecordRelpath(key)))).toBe(true);
+    const outputDirectory = join(project, "existing-output-directory");
+    mkdirSync(outputDirectory, { recursive: true });
+    const second = swarmLaunch({
+      stories: ["story-a"],
+      projectRoot: project,
+      autonomous: true,
+      output: outputDirectory,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(second.exitCode).not.toBe(0);
+    expect(existsSync(join(project, ...launchOccupancyRecordRelpath(key)))).toBe(true);
+    expect(readOccupancy(project)?.sessionId).toBe("test-session");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("fail-closes unnamed swarm-cohort when verifyPlanTarget rejects mismatch", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-plan-mm-"));
+    writeProjectDef(project);
+    writeLaunchStory(project, "coh-a", 45951);
+    writeLaunchStory(project, "coh-b", 45952);
+    mkdirSync(join(project, ".deft"), { recursive: true });
+    writeFileSync(
+      join(project, ".deft", "plan-sequence.json"),
+      JSON.stringify({
+        sequence_id: "seq-1",
+        sequence_kind: "delivery",
+        entries: [{ id: "other-story", kind: "story" }],
+        current_index: 0,
+        batching_allowed: false,
+        continuation_past_final: false,
+        exhausted: false,
+        authorized_by: "test",
+        created_at: "2026-09-16T00:00:00Z",
+        updated_at: "2026-09-16T00:00:00Z",
+      }),
+      "utf8",
+    );
+    const denied = swarmLaunch({
+      stories: ["coh-a", "coh-b"],
+      projectRoot: project,
+      autonomous: true,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(denied.exitCode).not.toBe(0);
+    expect(denied.stderr).toContain("ordered-plan sequence");
+    const allowed = swarmLaunch({
+      stories: ["coh-a", "coh-b"],
+      allocationPlanId: "plan-1",
+      batchingRationale: "approved",
+      projectRoot: project,
+      autonomous: true,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(allowed.exitCode).toBe(0);
     rmSync(project, { recursive: true, force: true });
   });
 });
