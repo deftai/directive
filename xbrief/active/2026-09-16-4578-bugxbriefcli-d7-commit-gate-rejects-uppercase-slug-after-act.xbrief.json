@@ -24,7 +24,13 @@
             "recorded_at": "2026-09-16T01:00:52Z",
             "recorded_by": "agent:4578-d7-filename"
           }
-        }
+        },
+        "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/vbrief-validate/extra-coverage.test.ts:published FILENAME_PATTERN observer (#4578)",
+            "recorded_at": "2026-09-16T01:00:52Z",
+            "recorded_by": "agent:4578-d7-filename"
+          }
       },
       {
         "title": "Refuse, do not normalize, on create, promote, activate, and scope:decompose when the target is a lifecycle scope path. Reuse validateFilename. Ingest slugify stays.",
@@ -36,7 +42,13 @@
             "recorded_at": "2026-09-16T01:00:52Z",
             "recorded_by": "agent:4578-d7-filename"
           }
-        }
+        },
+        "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/xbrief/create.test.ts:refuses uppercase slug when --out is a lifecycle scope path (#4578); packages/core/src/scope/transition.test.ts:refuses promote and activate of an uppercase slug (#4578); packages/core/src/scope/decompose.test.ts:refuses a draft-supplied uppercase lifecycle filename (#4578)",
+            "recorded_at": "2026-09-16T01:00:52Z",
+            "recorded_by": "agent:4578-d7-filename"
+          }
       },
       {
         "title": "Observer: one assertion that derives the published pattern from matchesFilenameConvention, or runs the doc example set through it.",
@@ -48,7 +60,13 @@
             "recorded_at": "2026-09-16T01:00:52Z",
             "recorded_by": "agent:4578-d7-filename"
           }
-        }
+        },
+        "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/vbrief-validate/extra-coverage.test.ts:derives the published pattern from matchesFilenameConvention",
+            "recorded_at": "2026-09-16T01:00:52Z",
+            "recorded_by": "agent:4578-d7-filename"
+          }
       },
       {
         "title": "Suffix arms: both accepted suffixes at the aggregate D7 header; the rejected basename's own suffix at validateFilename.",
@@ -60,11 +78,22 @@
             "recorded_at": "2026-09-16T01:00:52Z",
             "recorded_by": "agent:4578-d7-filename"
           }
-        }
+        },
+        "x-directive/evidence": {
+            "kind": "test",
+            "pointer": "packages/core/src/vbrief-validate/extra-coverage.test.ts:own-suffix recovery and aggregate D7 header lists both accepted suffixes (#4578)",
+            "recorded_at": "2026-09-16T01:00:52Z",
+            "recorded_by": "agent:4578-d7-filename"
+          }
       },
       {
         "title": "completed/ grandfather vs rename vs allow-list remains leftover harvest after that bind.",
-        "status": "proposed"
+        "status": "proposed","x-directive/disposition": {
+  "disposition": "not_applicable",
+  "reason": "Leftover harvest; not this #4578 first-ship.",
+  "provenance": { "kind": "operator-cli", "actor": "Scott" },
+  "recorded_at": "2026-09-16T03:21:46Z"
+}
       }
     ],
     "tags": [
