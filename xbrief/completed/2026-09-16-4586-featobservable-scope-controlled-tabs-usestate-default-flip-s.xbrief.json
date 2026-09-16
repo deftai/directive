@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4586",
-    "updated": "2026-09-16T02:35:15Z"
+    "updated": "2026-09-16T12:09:54Z"
   },
   "plan": {
     "title": "feat(observable-scope): controlled Tabs + useState default flip still silent",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(observable-scope): controlled Tabs + useState default flip still silent",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4586",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Drop the flow-analysis close. Remaining mechanism: if `value={ident}` and `ident` is the first element of `const [ident, ...] = useState(<StringLiteral>)` in the same file, emit `tab-selected` from the matching `TabsTrigger value=` literal. Closed callee names (`useState`, `React.useState`). Non-literal args, lazy `() =>`, and `setTab` stay unresolvable.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/observable-scope/extract.test.ts:emits tab-selected from the matching TabsTrigger when value={ident} unwraps",
@@ -26,7 +26,7 @@
       },
       {
         "title": "This number is after the #4503 recognizer, not beside it. Keep `TabsTrigger` / `defaultValue` / import-follow / same-both-sides off this next-build.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/observable-scope/extract.test.ts:does not treat TabsTrigger as a tab tag",
@@ -36,7 +36,7 @@
       },
       {
         "title": "Always-fail on a controlled `value=` expression stays rejected. Do not execute `useState`. Do not walk `setTab`.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/observable-scope/extract.test.ts:does not throw on a controlled value= expression",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Do not bind a pain-only body. Do not implement the #4503 recognizer from this issue.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/observable-scope/extract.test.ts:does not unwrap defaultValue and does not follow an in-file const into useState",
@@ -121,9 +121,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "cedac38e86f2d72aa22ad754011eca2f7993ac7cf83f2dde2c37bb0088c4323a"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4605,
+        "prBase": null,
+        "mergeCommit": "a46442a08a9a942dceaf7d70f5f8b81f88bda243",
+        "deliveryBranch": "master",
+        "deliveryCommit": "319dcd772e7c2c9e7ca9834be0e455f181a2b58b",
+        "verifiedAt": "2026-09-16T12:09:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGFhMTYtZWE5ZS03MmIwLWJjODktNThiNTc1M2U3MTk4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-16T12:09:54Z"
+      },
+      "completedAt": "2026-09-16T12:09:54Z",
+      "completedSessionId": "host:claude:v1:MDFhMGFhMTYtZWE5ZS03MmIwLWJjODktNThiNTc1M2U3MTk4",
+      "capacityBucket": "new-capability"
     },
     "id": "github.issue.5467456135",
-    "updated": "2026-09-16T02:35:15Z"
+    "updated": "2026-09-16T12:09:54Z"
   }
 }
