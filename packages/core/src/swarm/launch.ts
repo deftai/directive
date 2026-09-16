@@ -818,6 +818,9 @@ export function persistLaunchOccupancyRecord(
   }
   const live = liveOccupant(projectRoot);
   if (live === null || live.sessionId !== existing.occupancy_session_id) {
+    if (live !== null && live.sessionId !== record.occupancy_session_id) {
+      throw new Error(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+    }
     containedRemove({ root: projectRoot, target: join(...relpath) });
     containedWrite({
       root: projectRoot,

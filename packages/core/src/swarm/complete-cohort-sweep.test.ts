@@ -467,6 +467,29 @@ describe("launch occupancy record lifecycle (#4595)", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("refuses persist of a stale session while another occupant is live", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-stale-persist-"));
+    applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
+    const key = occupancyCohortKey(null, ["story-a"]);
+    persistLaunchOccupancyRecord(project, {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-a",
+      story_ids: ["story-a"],
+      cohort_key: key,
+    });
+    releaseOccupancy(project, { sessionId: "owner-a" });
+    applyWorktreeOccupancy(project, { sessionId: "owner-b", intent: "swarm" });
+    expect(() =>
+      persistLaunchOccupancyRecord(project, {
+        allocation_plan_id: null,
+        occupancy_session_id: "owner-a",
+        story_ids: ["story-a"],
+        cohort_key: key,
+      }),
+    ).toThrow(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("refuses a stale recorded session when another occupant holds the live lease", () => {
     const project = mkdtempSync(join(tmpdir(), "occ-stale-"));
     applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
