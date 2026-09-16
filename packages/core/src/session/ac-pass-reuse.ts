@@ -5,7 +5,7 @@
  * Missing, stale, or mismatched hash -> full walk. Empty/failing still refuse.
  */
 
-import { basename, isAbsolute, relative, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { type AcPassBankRecord, bankHasRunsSnapshot, readAcPassBank } from "./ac-pass-banking.js";
 import { type HashProductStateInput, hashProductState } from "./product-state-hash.js";
 import {
@@ -73,13 +73,15 @@ function isUsableBank(bank: AcPassBankRecord): boolean {
 /**
  * Rel-path half of resolveOracleScopeKey (#3337). plan.id is handled first so
  * existing banks keyed by plan.id stay hittable; synthesis is path-only.
+ * Keep `..` and other-volume absolute paths; collapsing those to basename
+ * lets distinct outside-root briefs share a bank key (#4631 Greptile P1).
  */
-function collisionAwareRelPath(xbriefPath: string, projectRoot: string): string {
+export function collisionAwareOracleRelPath(xbriefPath: string, projectRoot: string): string {
   const abs = resolve(xbriefPath);
   const root = resolve(projectRoot);
-  let rel = relative(root, abs).replace(/\\/g, "/");
-  if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) {
-    rel = basename(abs);
+  const rel = relative(root, abs).replace(/\\/g, "/");
+  if (rel.length === 0 || isAbsolute(rel)) {
+    return abs.replace(/\\/g, "/");
   }
   return rel;
 }
@@ -91,7 +93,7 @@ function synthesizeOracleScopeId(context?: AcScopeIdContext | null): string | nu
   if (xbriefPath.length === 0) return null;
   const projectRoot = context?.projectRoot?.trim() ?? "";
   if (projectRoot.length > 0) {
-    const rel = collisionAwareRelPath(xbriefPath, projectRoot);
+    const rel = collisionAwareOracleRelPath(xbriefPath, projectRoot);
     return rel.length > 0 ? rel : null;
   }
   const normalized = xbriefPath.replace(/\\/g, "/");

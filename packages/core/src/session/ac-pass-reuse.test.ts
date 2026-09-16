@@ -289,4 +289,21 @@ describe("resolveScopeIdForAcReuse (#4631)", () => {
     expect(detailed.scopeId).toBeNull();
     expect(detailed.source).toBe("none");
   });
+
+  it("keeps outside-root id-less briefs unique by parent path, not basename", () => {
+    const rootDir = tempRoot();
+    const otherA = mkdtempSync(join(tmpdir(), "outside-a-"));
+    const otherB = mkdtempSync(join(tmpdir(), "outside-b-"));
+    const pathA = join(otherA, "foo.xbrief.json");
+    const pathB = join(otherB, "foo.xbrief.json");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const a = resolveScopeIdForAcReuse(plan, null, { xbriefPath: pathA, projectRoot: rootDir });
+    const b = resolveScopeIdForAcReuse(plan, null, { xbriefPath: pathB, projectRoot: rootDir });
+    expect(a).not.toBe(b);
+    expect(a).not.toBe("foo.xbrief.json");
+    expect(b).not.toBe("foo.xbrief.json");
+    expect(a).not.toBe("foo");
+    expect(a).toContain("foo.xbrief.json");
+    expect(b).toContain("foo.xbrief.json");
+  });
 });

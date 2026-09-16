@@ -9,7 +9,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { basename, isAbsolute, relative, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
   emitAcceptanceStampFromPlan,
   MISSING_AMBIGUITY_ATTESTATION_CAUSE,
@@ -40,6 +40,7 @@ import {
 } from "../run-summary/index.js";
 import { maybeBankOnAcPass } from "../session/ac-pass-banking.js";
 import {
+  collisionAwareOracleRelPath,
   resolveAcReuse,
   resolveScopeIdForAcReuse,
   snapshotFromReuseFields,
@@ -1108,12 +1109,7 @@ export function resolveOracleScopeKey(
   xbriefPath: string,
   projectRoot: string,
 ): string {
-  const abs = resolve(xbriefPath);
-  const root = resolve(projectRoot);
-  let rel = relative(root, abs).replace(/\\/g, "/");
-  if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) {
-    rel = basename(abs);
-  }
+  const rel = collisionAwareOracleRelPath(xbriefPath, projectRoot);
   const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
   if (planId !== null) {
     return `${planId}@${rel}`;
