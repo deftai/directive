@@ -606,7 +606,7 @@ The intake cross-ref scanners (`packages/core/src/intake/markdown-scanners.ts`) 
 - ! Clearance is set membership: the record clears when the cited set contains the latest successor lean id. Position in the body does not select the lean, so citing the prior lean that `## Successor lean` requires cannot block.
 - ! A block detail reports what was scanned, what was found, and the accepted forms. ⊗ Guess at a cause. A guessed detail sends the operator back to re-post the same body and reproduce the refusal.
 
-`CompletedArcBlockReason` is closed. A block detail names one of these thirteen:
+`CompletedArcBlockReason` is closed. A block detail names one of these fourteen:
 
 | Reason | What it reports |
 | --- | --- |
@@ -623,6 +623,7 @@ The intake cross-ref scanners (`packages/core/src/intake/markdown-scanners.ts`) 
 | `malformed-pain` | duplicate Stop 1 ids, unknown cite ids, or conflicting/incomplete dispositions |
 | `unrelieved-pain` | named pain is uncited, `does-not-relieve`, or same-number `operator-deferred` leftover |
 | `unresolved-pain-audit` | different-issue `operator-deferred` remains an unresolved ADR-006 marker until a critic targets it |
+| `later-arc-in-flight` | comments after the earliest matching complete record `synthesisCommentId` still look in-flight while the latest successor-lean heading is still the bound one; ingest waits on later-arc completion (a new successor-lean heading plus a record that cites it), not cite-the-latest-lean |
 
 - ! Publish a reason in that table before the evaluator returns it. An unpublished reason code is the same gap as an unpublished citation form.
 - ⊗ Merge two states under one reason when their remedies differ. `missing-table-cite` and `unshaped-table-cite` were one reason and one detail until #3942, and the shared detail asserted an absent id in both, so an author whose table was on the thread read a true citation being called false and had no path to the missing heading.

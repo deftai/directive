@@ -1621,6 +1621,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "- ! Publish a reason in that table before the evaluator returns it.",
     );
     expect(grammar).toContain("⊗ Merge two states under one reason when their remedies differ.");
+    expect(grammar).toContain("`later-arc-in-flight`");
+    expect(grammar).toContain("a new successor-lean heading plus a record that cites it");
     expect(grammar).toContain("That is conformance to it, not a second rule.");
 
     const pain = markdownSection(text, "### Pain coverage (#4496)");

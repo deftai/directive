@@ -61,6 +61,7 @@ export const COMPLETED_ARC_BLOCK_REASONS = [
   "malformed-pain",
   "unrelieved-pain",
   "unresolved-pain-audit",
+  "later-arc-in-flight",
 ] as const;
 
 export type CompletedArcBlockReason = (typeof COMPLETED_ARC_BLOCK_REASONS)[number];
@@ -746,11 +747,32 @@ export function evaluateCompletedArcRecord(input: {
         ? completeRecords
         : completeRecords.filter((record) => record.citedLeanId === latestLean.id);
     if (matching.length > 0) {
-      return finalizeComplete(
-        recutComments,
-        matching.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b)),
-        input.issueNumber,
+      const latestMatching = matching.reduce((a, b) =>
+        a.synthesisCommentId >= b.synthesisCommentId ? a : b,
       );
+      const complete = finalizeComplete(recutComments, latestMatching, input.issueNumber);
+      if (complete.status !== "complete") {
+        return complete;
+      }
+      const earliestMatching = matching.reduce((a, b) =>
+        a.synthesisCommentId <= b.synthesisCommentId ? a : b,
+      );
+      const suffix = recutComments.filter(
+        (comment) => comment.id > earliestMatching.synthesisCommentId,
+      );
+      if (isInFlightCritiqueThread(suffix)) {
+        return {
+          status: "blocked",
+          reason: "later-arc-in-flight",
+          detail:
+            "comments after completed-arc record synthesis " +
+            String(earliestMatching.synthesisCommentId) +
+            " still look in-flight while the latest successor lean is still " +
+            String(earliestMatching.citedLeanId) +
+            "; ingest waits on later-arc completion (a new successor-lean heading plus a record that cites it)",
+        };
+      }
+      return complete;
     }
     const latestCompleteId = completeRecords.reduce(
       (max, record) => Math.max(max, record.synthesisCommentId),

@@ -8,6 +8,7 @@ import {
   extractCitedCommentIds,
   extractOperativeTargetDigest,
   hashIssueBodyBytes,
+  isInFlightCritiqueThread,
   type ThreadComment,
 } from "./completed-arc-record.js";
 
@@ -996,17 +997,12 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
         "model: grok-4.5\nrole: critic\n\n" +
         "design-critique: cancelled, because this is an example of the refuse line\n",
     };
-    expect(
-      evaluateCompletedArcRecord({
-        labels: ["design-critique:triage-ready"],
-        comments: [lean, table, synthesis, criticCancel],
-      }),
-    ).toEqual({
-      status: "complete",
-      synthesisCommentId: SYNTHESIS_ID,
-      citedLeanId: LEAN_ID,
-      citedTableId: TABLE_ID,
+    const verdict = evaluateCompletedArcRecord({
+      labels: ["design-critique:triage-ready"],
+      comments: [lean, table, synthesis, criticCancel],
     });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "later-arc-in-flight" });
+    expect(verdict).not.toMatchObject({ reason: "cancelled" });
   });
 
   it("ignores a fenced cancelled example on a parent comment", () => {
@@ -1471,5 +1467,227 @@ describe("pain coverage (#4496)", () => {
         comments: [warrant, leftoverLean, table4378, synthesis4378],
       }),
     ).toMatchObject({ status: "blocked", reason: "malformed-pain" });
+  });
+});
+
+describe("later-arc suffix in-flight after matching complete record (#4590)", () => {
+  const stop1P1: ThreadComment = {
+    id: 5442800001,
+    body:
+      "model: grok-4.6\nrole: triage\n\n" +
+      "design-critique: warranted, because later-arc gap.\n\npain: P1\n",
+  };
+  const standingLean: ThreadComment = {
+    id: LEAN_ID,
+    body:
+      "**Lean:** standing map.\n\nSpec-path:\n\n## Bound remedy\n\n" +
+      "1. refuse later-arc ingest.\n\nrelieves: P1\n",
+  };
+  const painAuditCritic: ThreadComment = {
+    id: LEAN_ID + 1,
+    body: "model: grok-4.6\nrole: critic\n\naudit-targets: pain-P1\n",
+  };
+  const bound = [lean, table, synthesis];
+  const boundWithPain = [stop1P1, standingLean, table, painAuditCritic, synthesis];
+  const laterMechanism: ThreadComment = {
+    id: SYNTHESIS_ID + 10,
+    body: "model: grok-4.6\nrole: triage\n\nmechanism-shaped: true\n",
+  };
+  const laterDeposit: ThreadComment = {
+    id: SYNTHESIS_ID + 20,
+    body: "model: grok-4.6\nrole: parent\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5390001612\n",
+  };
+  const laterCritic: ThreadComment = {
+    id: SYNTHESIS_ID + 30,
+    body: "model: grok-4.6\nrole: critic\n\n## Finding 1\nlater-arc finding\n",
+  };
+
+  function suffixAfter(originId: number, comments: readonly ThreadComment[]): ThreadComment[] {
+    return comments.filter((comment) => comment.id > originId);
+  }
+
+  it("keeps bound-only complete; whole-thread in-flight is not the close", () => {
+    expect(isInFlightCritiqueThread(bound)).toBe(true);
+    expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, bound))).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments: bound })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("does not treat a first-arc pain-audit critic as suffix (origin is synthesisCommentId)", () => {
+    expect(isInFlightCritiqueThread(suffixAfter(LEAN_ID, boundWithPain))).toBe(true);
+    expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, boundWithPain))).toBe(false);
+    expect(
+      evaluateCompletedArcRecord({ comments: boundWithPain, issueNumber: 4590 }),
+    ).toMatchObject({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+    });
+  });
+
+  it("refuses later mechanism-shaped: true while the bound lean still stands", () => {
+    const comments = [...bound, laterMechanism];
+    expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, comments))).toBe(true);
+    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+      status: "blocked",
+      reason: "later-arc-in-flight",
+    });
+  });
+
+  it("refuses a later panel-deposit", () => {
+    const comments = [...bound, laterMechanism, laterDeposit];
+    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+      status: "blocked",
+      reason: "later-arc-in-flight",
+    });
+  });
+
+  it("refuses a later role: critic", () => {
+    const comments = [...bound, laterMechanism, laterDeposit, laterCritic];
+    const verdict = evaluateCompletedArcRecord({ comments });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "later-arc-in-flight" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(SYNTHESIS_ID));
+      expect(verdict.detail).toContain("later-arc completion");
+      expect(verdict.detail).not.toContain("cite the latest");
+    }
+  });
+
+  it("refuses a later critic with no new Stop 1", () => {
+    const comments = [...bound, laterCritic];
+    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+      status: "blocked",
+      reason: "later-arc-in-flight",
+    });
+  });
+
+  it("keeps malformed-pain when a later Stop 1 names new pain P2", () => {
+    const laterStop1: ThreadComment = {
+      id: SYNTHESIS_ID + 11,
+      body:
+        "model: grok-4.6\nrole: triage\n\n" +
+        "design-critique: warranted, because later-arc P2.\n\npain: P2\n",
+    };
+    const comments = [...boundWithPain, laterStop1, laterDeposit, laterCritic];
+    expect(evaluateCompletedArcRecord({ comments, issueNumber: 4590 })).toMatchObject({
+      status: "blocked",
+      reason: "malformed-pain",
+    });
+  });
+
+  it("keeps missing-pain when a later Stop 1 has no pain list", () => {
+    const laterStop1: ThreadComment = {
+      id: SYNTHESIS_ID + 11,
+      body:
+        "model: grok-4.6\nrole: triage\n\n" +
+        "design-critique: warranted, because later-arc with no pain list.\n",
+    };
+    const comments = [...boundWithPain, laterStop1];
+    expect(evaluateCompletedArcRecord({ comments, issueNumber: 4590 })).toMatchObject({
+      status: "blocked",
+      reason: "missing-pain",
+    });
+  });
+
+  it("still refuses after a second same-lean synthesis (earliest origin, not latest)", () => {
+    const laterSynthesis: ThreadComment = {
+      id: SYNTHESIS_ID + 40,
+      body:
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+    };
+    const comments = [...bound, laterMechanism, laterDeposit, laterCritic, laterSynthesis];
+    expect(isInFlightCritiqueThread(suffixAfter(laterSynthesis.id, comments))).toBe(false);
+    expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, comments))).toBe(true);
+    const verdict = evaluateCompletedArcRecord({ comments });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "later-arc-in-flight" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(SYNTHESIS_ID));
+      expect(verdict.detail).not.toContain(String(laterSynthesis.id));
+    }
+  });
+
+  it("completes rebound with a new successor-lean heading plus a citing record", () => {
+    const recutLean: ThreadComment = {
+      id: SYNTHESIS_ID + 50,
+      body: "**Lean:** later-arc recut of the standing map.\n",
+    };
+    const recutSynthesis: ThreadComment = {
+      id: SYNTHESIS_ID + 60,
+      body:
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `successor lean ${recutLean.id}\n`,
+    };
+    const comments = [
+      ...bound,
+      laterMechanism,
+      laterDeposit,
+      laterCritic,
+      recutLean,
+      recutSynthesis,
+    ];
+    expect(isInFlightCritiqueThread(suffixAfter(recutSynthesis.id, comments))).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments })).toEqual({
+      status: "complete",
+      synthesisCommentId: recutSynthesis.id,
+      citedLeanId: recutLean.id,
+      citedTableId: null,
+    });
+  });
+
+  it("keeps missing-record for a recut lean with no new citing record", () => {
+    const recutLean: ThreadComment = {
+      id: SYNTHESIS_ID + 50,
+      body: "**Lean:** later-arc recut of the standing map.\n",
+    };
+    const comments = [...bound, recutLean];
+    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+      status: "blocked",
+      reason: "missing-record",
+    });
+  });
+
+  it("does not widen isInFlightCritiqueThread for later warranted without mechanism-shaped", () => {
+    const laterWarrant: ThreadComment = {
+      id: SYNTHESIS_ID + 12,
+      body:
+        "model: grok-4.6\nrole: triage\n\n" +
+        "design-critique: warranted, because leftover warrant.\n\npain: P1\n",
+    };
+    const comments = [...boundWithPain, laterWarrant];
+    expect(isInFlightCritiqueThread(suffixAfter(SYNTHESIS_ID, comments))).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments, issueNumber: 4590 })).toMatchObject({
+      status: "complete",
+      citedLeanId: LEAN_ID,
+    });
+  });
+
+  it("throws later-arc-in-flight through the ingest assertion", () => {
+    const comments = [...bound, laterCritic];
+    expect(() => assertCompletedArcAllowsIngest({ issueNumber: 4590, comments })).toThrow(
+      DesignCritiqueIngestBlockedError,
+    );
+    try {
+      assertCompletedArcAllowsIngest({ issueNumber: 4590, comments });
+    } catch (error) {
+      expect(error).toBeInstanceOf(DesignCritiqueIngestBlockedError);
+      expect((error as DesignCritiqueIngestBlockedError).reason).toBe("later-arc-in-flight");
+    }
+  });
+
+  it("publishes later-arc-in-flight and does not merge it into missing-record", () => {
+    expect(COMPLETED_ARC_BLOCK_REASONS).toContain("later-arc-in-flight");
+    expect(COMPLETED_ARC_BLOCK_REASONS).toContain("missing-record");
+    const comments = [...bound, laterMechanism];
+    expect(evaluateCompletedArcRecord({ comments })).toMatchObject({
+      reason: "later-arc-in-flight",
+    });
+    expect(evaluateCompletedArcRecord({ comments })).not.toMatchObject({
+      reason: "missing-record",
+    });
   });
 });

@@ -339,11 +339,9 @@ describe("family 5 -- open-question reserved line-start (#4531)", () => {
       body: `model: grok-4.6\nrole: critic\n\n${line}\n`,
     };
     expect(isSuccessorLeanBody(critic.body)).toBe(false);
-    expect(evaluateCompletedArcRecord({ comments: [...completeArc, critic] })).toEqual({
-      status: "complete",
-      synthesisCommentId: SYNTHESIS_ID,
-      citedLeanId: LEAN_ID,
-      citedTableId: TABLE_ID,
+    expect(evaluateCompletedArcRecord({ comments: [...completeArc, critic] })).toMatchObject({
+      status: "blocked",
+      reason: "later-arc-in-flight",
     });
 
     const walk = {
