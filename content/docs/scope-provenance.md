@@ -12,7 +12,7 @@ At activation or operator approval, record an immutable **approved-scope digest*
 
 ```text
 .deft/approved-scope/<plan-id>.json
-`````
+```
 
 Shape:
 
@@ -31,7 +31,7 @@ Shape:
     "mintedVia": "scope:record-approved-scope"
   }
 }
-`````
+```
 
 `deft verify:scope-provenance` compares the live active xBRIEF `plan.metadata.swarm.file_scope` to the digest when that xBRIEF is modified in the current change set.
 
@@ -50,13 +50,13 @@ Agent-shaped stamps (`kind: agent`, `actor: agent:…`) never count as renewal o
 
 Authority comes from the approval record in the **merge base**, not from whether the active xBRIEF path existed there:
 
-1. Read `<baseRef>:.deft/approved-scope/<plan-id>.json```
+1. Read `<baseRef>:.deft/approved-scope/<plan-id>.json`
 2. Validate schema, human stamp, plan id, path binding, and digest
 3. Require the current record to be semantically unchanged from that base record
 4. Permit `pending/` → `active/` (or later expansion) when the current xBRIEF scope matches that base-approved scope
 5. Fail closed when the base record is absent, malformed, agent-authored, path/digest mismatched, or created/changed alongside the active xBRIEF
 
-## Operator command: `scope:record-approved-scope```
+## Operator command: `scope:record-approved-scope`
 
 Deposit a human-origin digest (first adoption or renewal). Mint on a real TTY, then commit the approval artifacts to the merge base (or a prior PR) before implement.
 
@@ -67,14 +67,14 @@ deft scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor sco
 # include-only fallback: task deft:scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor scott --confirm
 # or after expansion review:
 deft scope:record-approved-scope -- xbrief/active/story.xbrief.json --actor scott --kind renewed-approval --confirm
-`````
+```
 
 `--actor` is **display only**. It never authorizes mint. `--actor Flynn` from an agent or CI shell cannot mint.
 
 Mint uses the shared #3110 human-presence gate (same module as `authz`):
 
 - Interactive TTY (stdin + stdout) and a controlling terminal (`/dev/tty` or `\\.\CONIN$`)
-- Explicit `--confirm```
+- Explicit `--confirm`
 - Typed phrase `mint` on the controlling TTY
 - Agent/CI env markers (`AUTHZ_AGENT_SHELL_ENV_MARKERS`) refuse fail-closed
 - An active UAT lease refuses mint with no TTY / `--confirm` / phrase escape
@@ -116,11 +116,11 @@ Extracted: `plan.title`, `plan.narratives.*`, `plan.acceptance`, `plan.architect
 Verify:
 
 1. `git show <base>:` for record **and** preimage
-2. Recompute preimage digest vs `intentDigest```
+2. Recompute preimage digest vs `intentDigest`
 3. Re-extract the live brief and compare
 4. Same-PR rewrite of record or preimage fails
 5. Duplicate object keys need a real tokenizer (not `JSON.parse`)
-6. `Decisions` and `references[]` are append-only; new github-issue URLs must be in the base `approvedRepos```
+6. `Decisions` and `references[]` are append-only; new github-issue URLs must be in the base `approvedRepos`
 
 First activation with nonempty `file_scope` needs that base-committed pin. Same-PR mint + activate fails.
 
@@ -132,8 +132,8 @@ Wave 1 mints write the path record with a human-looking stamp. They do **not** w
 
 When the first non-empty `file_scope` story and the 0.97+/0.98 gate land together:
 
-1. Author the pending xBRIEF with the intended `file_scope```
-2. Run `deft scope:record-approved-scope -- <pending-xbrief> --actor <you> --confirm```
+1. Author the pending xBRIEF with the intended `file_scope`
+2. Run `deft scope:record-approved-scope -- <pending-xbrief> --actor <you> --confirm`
 3. **Commit and merge** the approval record (and preferably the pending xBRIEF) first — multi-PR bootstrap
 4. In a follow-up PR, activate (`pending/` → `active/`) without rewriting the approval
 5. `deft verify:scope-provenance -- --base-ref origin/master --enforce` exits 0
@@ -207,9 +207,9 @@ workaround. Do not undeclare a declared `file_scope` to pass the gate.
 
 `verify:scope-provenance` unions:
 
-1. `git diff --name-only <base>...HEAD```
-2. `git diff --name-only HEAD```
-3. `git ls-files --others --exclude-standard```
+1. `git diff --name-only <base>...HEAD`
+2. `git diff --name-only HEAD`
+3. `git ls-files --others --exclude-standard`
 
 and lists on-disk `xbrief/active/` files. Presence in the working tree is what
 matters. Committing or not committing the brief does not hide it from the gate.
