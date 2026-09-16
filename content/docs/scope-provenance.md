@@ -142,9 +142,27 @@ Emptying `file_scope` to soft-warn past the gate is **not** the supported migrat
 
 ## Multi-PR approved expansion
 
-1. PR A: operator reviews expanded scope, runs `scope:record-approved-scope`, merges approval only (or approval + docs)
+This is the human-present carrier for a later declared `file_scope` expansion (#4589). The remint is the existing verb. Do not invent a second remint verb.
+
+1. PR A: operator reviews expanded scope, runs `deft scope:record-approved-scope -- <path> --actor <you> --kind renewed-approval --confirm`, merges approval only (or approval + docs)
 2. PR B: updates the active xBRIEF `file_scope` to exactly that approved set; does **not** rewrite the approval file
 3. Gate passes under `--enforce` because base approval already authorizes the new scope
+
+## Expansion remint after first mint (#4589)
+
+After a first human mint, a later declared `file_scope` expansion in the implementation change set hard-fails merge-time `verify:scope-provenance` (`self-authorizing-scope-expansion`) and re-demands `scope:record-approved-scope` while the operator is gone.
+
+That refuse is not `scope:activate`. First-mint activate digest-equality is open predecessor [#4383](https://github.com/deftai/directive/issues/4383) and is not bound on this leftover. This leftover can be specified now; it cannot assume activate digest-equality exists.
+
+The remint is merge-time `verify:scope-provenance` plus the existing `deft scope:record-approved-scope --kind renewed-approval`. Human-presence mint (#3110) is why that remint cannot run after the operator left: agent/CI env markers refuse; typed `mint` + `--confirm` + a real TTY are required.
+
+**Carrier (already-holding):** the operator returns and runs the documented multi-PR remint above. Presence is at remint time, on PR A, not in the unattended implementation PR.
+
+Declined on this number:
+
+- Unattended remint after the operator left (agent/CI remint)
+- Same-PR rewrite of `.deft/approved-scope/<plan-id>.json` with the expanded brief
+- Editing `verify:scope-provenance` so `task check` goes green ([gate-integrity](./gate-integrity.md) #3156)
 
 ## Migration path
 
@@ -155,7 +173,7 @@ Emptying `file_scope` to soft-warn past the gate is **not** the supported migrat
 ## Remediation
 
 ```bash
-deft scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm
+deft scope:record-approved-scope -- <xbrief-path> --actor <you> --kind renewed-approval --confirm
 git add .deft/approved-scope/<plan-id>.json .deft/approved-scope/<plan-id>.intent.json
 # merge that commit before (or without) co-changing the active xBRIEF expansion
 ```
