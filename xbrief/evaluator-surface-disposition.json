@@ -1,18 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4541,
+  "issue": 4586,
   "surfaces": [
-    "Taskfile.yml",
-    "tasks/verify.yml",
-    "packages/core/src/check/gate-lists.ts",
-    "packages/core/src/consumer-check-contract/evaluate.ts",
-    "packages/core/src/evaluator-surface/**",
-    "packages/core/src/intent-constraint/**",
-    "packages/cli/src/verify-intent-constraint.ts",
-    "packages/cli/src/scope-record-intent-constraint.ts",
-    "xbrief/evaluator-surface-disposition.json",
-    "vitest.config.ts"
+    "packages/core/src/observable-scope/**",
+    "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure of verify:intent-constraint (#4541). Renewed for leftover #4567 intent-constraint empty-active fixture. Not reviewed authorization under #3164."
+  "note": "Disclosure of same-file const useState StringLiteral unwrap for tab-selected (#4586). Not reviewed authorization under #3164. Does not implement the #4503 recognizer."
 }
