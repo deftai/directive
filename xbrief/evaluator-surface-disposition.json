@@ -1,7 +1,7 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4541,
+  "issue": 4587,
   "surfaces": [
     "Taskfile.yml",
     "tasks/verify.yml",
@@ -14,5 +14,5 @@
     "xbrief/evaluator-surface-disposition.json",
     "vitest.config.ts"
   ],
-  "note": "Disclosure of verify:intent-constraint (#4541). Renewed for leftover #4567 intent-constraint empty-active fixture. Not reviewed authorization under #3164."
+  "note": "Disclosure of verify:intent-constraint fail-string placement (#4587). Not a recut of evaluateIntentConstraint. Not reviewed authorization under #3164."
 }
