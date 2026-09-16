@@ -1339,10 +1339,6 @@ export function composeOverviewWithComments(
   }
   parts.push("## Issue comment thread");
   parts.push("");
-  parts.push(
-    "_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._",
-  );
-  parts.push("");
   for (const comment of comments) {
     const author = comment.user?.login ?? "unknown";
     const when = comment.created_at ?? "";
@@ -1354,6 +1350,59 @@ export function composeOverviewWithComments(
     parts.push("");
   }
   return parts.join("\n").trimEnd();
+}
+
+function planMetadataRecord(plan: Record<string, unknown>): Record<string, unknown> {
+  return plan.metadata !== null &&
+    typeof plan.metadata === "object" &&
+    !Array.isArray(plan.metadata)
+    ? (plan.metadata as Record<string, unknown>)
+    : {};
+}
+
+function persistableIssueComment(
+  comment: IssueComment,
+  issueNumber: number,
+): Record<string, unknown> {
+  const body = typeof comment.body === "string" ? comment.body : "";
+  const out: Record<string, unknown> = {
+    body: scanUntrustedIngestText(issueNumber, body),
+  };
+  if (comment.id !== undefined) {
+    out.id = comment.id;
+  }
+  if (typeof comment.html_url === "string" && comment.html_url.length > 0) {
+    out.html_url = comment.html_url;
+  }
+  if (comment.user !== undefined) {
+    out.user = comment.user;
+  }
+  if (typeof comment.created_at === "string") {
+    out.created_at = comment.created_at;
+  }
+  if (typeof comment.updated_at === "string") {
+    out.updated_at = comment.updated_at;
+  }
+  if (typeof comment.author_association === "string") {
+    out.author_association = comment.author_association;
+  }
+  return out;
+}
+
+/** Persist the fetched thread under plan.metadata, not plan.narratives.Overview (#4434). */
+function persistIssueCommentThreadOnPlan(
+  plan: Record<string, unknown>,
+  comments: readonly IssueComment[],
+  issueNumber: number,
+): void {
+  if (comments.length === 0) {
+    return;
+  }
+  const meta = planMetadataRecord(plan);
+  meta[ISSUE_COMMENT_THREAD_KEY] = comments.map((comment) =>
+    persistableIssueComment(comment, issueNumber),
+  );
+  plan.metadata = meta;
 }
 
 export function issueCommentThread(issue: Record<string, unknown>): IssueComment[] {
@@ -1412,8 +1461,9 @@ export function buildIssueVbrief(
   const bodyRaw = issue.body;
   const bodyStr = typeof bodyRaw === "string" && bodyRaw.length > 0 ? bodyRaw : "";
   const commentThread = issueCommentThread(issue);
-  const overviewSource =
-    commentThread.length > 0 ? composeOverviewWithComments(bodyStr, commentThread) : bodyStr;
+  // Overview remainder is the issue body. Comment bodies persist under
+  // plan.metadata[ISSUE_COMMENT_THREAD_KEY], not narratives (#4434).
+  const overviewSource = bodyStr;
   // #1870 / #1152: materialize the canonical Current shape comment as its own
   // narrative so agents cannot plan umbrellas from the stale body alone. Prefer
   // the same selector as `task umbrella:current-shape` (highest pass-N,
@@ -1450,9 +1500,8 @@ export function buildIssueVbrief(
   };
   if (overviewSource.length > 0) {
     warnBodyControlCharacters(number, overviewSource);
-    // #2306: quarantine-scan untrusted body + comment-thread content before it
-    // is persisted as agent-facing scope authority. Fail closed on a credential
-    // hard-fail; otherwise persist the fenced/quarantined transform.
+    // #2306: quarantine-scan untrusted issue body before it is persisted as
+    // Overview dispatch input. Comment-thread content is not copied here (#4434).
     const scanResult = scan(overviewSource);
     if (!scanResult.passed) {
       throw new ScannerHardFailError(number, scanResult.flags);
@@ -1573,6 +1622,7 @@ export function buildIssueVbrief(
   }
 
   stampIntendedPlacement(plan);
+  persistIssueCommentThreadOnPlan(plan, commentThread, number);
 
   const origin = originFromIssue(issue, repoUrl);
   if (origin !== null) {

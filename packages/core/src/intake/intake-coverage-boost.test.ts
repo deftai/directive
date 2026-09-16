@@ -186,7 +186,7 @@ describe("intake coverage boost", () => {
       ).toBe(77);
     });
 
-    it("folds comment thread into overview so corrections supersede body-only fetch (#2143)", () => {
+    it("persists comment thread under plan.metadata, not Overview (#4434 / #2143)", () => {
       const bodyFix = "Use `pnpm -r run build` / `--filter @deftai/directive build`.";
       const commentFix =
         "Do NOT use pnpm -r run build for vendored deposits. Route through `:engine:_ts-build` + `:engine:invoke` instead.";
@@ -195,14 +195,19 @@ describe("intake coverage boost", () => {
         [{ user: { login: "maintainer" }, body: commentFix, created_at: "2026-07-01T12:00:00Z" }],
       );
       const [vbrief] = buildIssueVbrief(issue, "proposed", "https://github.com/deftai/directive");
+      const plan = vbrief.plan as Record<string, unknown>;
       const overview = String(
-        (vbrief.plan as Record<string, unknown>).narratives &&
-          ((vbrief.plan as Record<string, unknown>).narratives as Record<string, string>).Overview,
+        plan.narratives && (plan.narratives as Record<string, string>).Overview,
       );
       expect(overview).toContain(bodyFix);
-      expect(overview).toContain("Issue comment thread");
-      expect(overview).toContain(":engine:_ts-build");
-      expect(overview).toContain(commentFix);
+      expect(overview).not.toContain("Issue comment thread");
+      expect(overview).not.toContain(commentFix);
+      expect(overview).not.toContain(":engine:_ts-build");
+      const comments = (plan.metadata as Record<string, unknown>)[
+        ISSUE_COMMENT_THREAD_KEY
+      ] as Array<Record<string, unknown>>;
+      expect(comments).toHaveLength(1);
+      expect(String(comments[0]?.body ?? "")).toContain(commentFix);
       expect(issueCommentThread(issue)).toHaveLength(1);
       expect(composeOverviewWithComments("", [{ body: "only comment" }])).toContain("only comment");
     });
