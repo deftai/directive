@@ -728,10 +728,11 @@ export function evaluateScopeProvenance(
           "approved-scope record or preimage rewritten in the same change set as the active xBRIEF; " +
           "cannot self-authorize via concurrent approval rewrite",
         remediation:
-          "Commit human approval via `deft scope:record-approved-scope -- <xbrief-path> --actor <you> " +
-          "--kind renewed-approval --confirm` on the merge base (or a prior PR), then expand without " +
-          "rewriting the approval in this change set. Same-PR approval rewrites do not authorize " +
-          "expansion (#3145 / #3205 / #3385 / #4589).",
+          "Same-PR approval rewrites do not authorize expansion. For a later declared file_scope " +
+          "expansion after a first human mint, commit human approval via `deft scope:record-approved-scope -- <xbrief-path> --actor <you> " +
+          "--kind renewed-approval --confirm` on the merge base (or a prior PR), then expand without rewriting the approval in this change set (#3145 / #3205 / #3385 / #4589). First adoption with no prior approval uses " +
+          "the default kind (omit --kind); reserve `--kind renewed-approval` for actual expansion " +
+          "remints. First-mint activate digest is open predecessor #4383.",
       });
       continue;
     }

@@ -553,6 +553,9 @@ describe("expansion remint after first mint (#4589)", () => {
     expect(result.findings[0]?.detail).toMatch(/rewritten|same change/i);
     expect(result.findings[0]?.remediation).toMatch(/--kind renewed-approval/);
     expect(result.findings[0]?.remediation).toMatch(/#4589/);
+    expect(result.findings[0]?.remediation).toMatch(/First adoption/);
+    expect(result.findings[0]?.remediation).toMatch(/omit --kind/);
+    expect(result.findings[0]?.remediation).toMatch(/#4383/);
   });
 
   it("records #4383 as an open predecessor: activate has no approved-scope reader", () => {
@@ -575,6 +578,7 @@ describe("expansion remint after first mint (#4589)", () => {
     expect(docs).toMatch(/## Expansion remint after first mint \(#4589\)/);
     expect(docs).toMatch(/merge-time `verify:scope-provenance`/);
     expect(docs).toMatch(/--kind renewed-approval/);
+    expect(docs).toMatch(/First adoption \(no prior approval\) uses the default kind/);
     expect(docs).toMatch(/open predecessor \[#4383\]/);
     expect(docs).not.toMatch(/activate refuses/);
     expect(docs).toMatch(/Carrier \(already-holding\)/);
