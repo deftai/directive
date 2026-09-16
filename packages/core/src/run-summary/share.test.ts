@@ -203,4 +203,28 @@ describe("computeRitualGateShare (#3320)", () => {
     expect(used.evaluable).toBe(true);
     expect(used.share).toBe(0);
   });
+
+  it("pairs the selected denominator with the source from the same line (#4626)", () => {
+    const plannedThenUsed = computeRitualGateShare(
+      parseRunSummaryJsonl(
+        [
+          JSON.stringify({
+            event: "tool_turn_denominator",
+            session_id: "s1",
+            total_tool_turns: 120,
+            payload: { total_tool_turns: 120, denominator_source: "host_planned" },
+          }),
+          JSON.stringify({
+            event: "check_invocation",
+            session_id: "s1",
+            total_tool_turns: 40,
+            payload: {},
+          }),
+        ].join("\n"),
+      ),
+    );
+    expect(plannedThenUsed.evaluable).toBe(true);
+    expect(plannedThenUsed.totalToolTurns).toBe(40);
+    expect(plannedThenUsed.share).toBe(1 / 40);
+  });
 });

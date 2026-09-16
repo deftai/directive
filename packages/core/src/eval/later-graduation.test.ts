@@ -162,4 +162,41 @@ ${JSON.stringify({ event: "tool_turn_denominator", session_id: "s", total_tool_t
     expect(trigger.share).toBeNull();
     expect(trigger.summary).toMatch(/host_planned \/ cap denominator/);
   });
+
+  it("does not classify persisted harness_actual from reporter process.env (#4626)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-later-ambient-"));
+    temps.push(root);
+    const actual = join(root, "actual.jsonl");
+    writeFileSync(
+      actual,
+      `${JSON.stringify({ event: "check_invocation", session_id: "s", payload: {} })}
+${JSON.stringify({ event: "tool_turn_denominator", session_id: "s", total_tool_turns: 40, payload: { total_tool_turns: 40, denominator_source: "harness_actual" } })}
+`,
+      "utf8",
+    );
+    const prevMax = process.env.DEFT_MAX_TURNS;
+    const prevTotal = process.env.DEFT_TOTAL_TOOL_TURNS;
+    process.env.DEFT_MAX_TURNS = "40";
+    process.env.DEFT_TOTAL_TOOL_TURNS = "40";
+    try {
+      const trigger = evaluateLaterGraduationTrigger({
+        projectRoot: root,
+        runSummaryPath: actual,
+      });
+      expect(trigger.evaluable).toBe(true);
+      expect(trigger.verdict).toBe("do-not-graduate");
+      expect(trigger.share).toBe(1 / 40);
+    } finally {
+      if (prevMax === undefined) {
+        delete process.env.DEFT_MAX_TURNS;
+      } else {
+        process.env.DEFT_MAX_TURNS = prevMax;
+      }
+      if (prevTotal === undefined) {
+        delete process.env.DEFT_TOTAL_TOOL_TURNS;
+      } else {
+        process.env.DEFT_TOTAL_TOOL_TURNS = prevTotal;
+      }
+    }
+  });
 });

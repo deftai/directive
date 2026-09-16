@@ -146,9 +146,7 @@ export function computeRitualGateShare(
     }
     if (denom !== undefined) {
       totalToolTurns = denom;
-      if (source !== undefined) {
-        lastSource = source;
-      }
+      lastSource = source;
     }
   }
   const plannedEnv = env !== undefined ? readPositiveIntegerEnv(env, "DEFT_MAX_TURNS") : undefined;

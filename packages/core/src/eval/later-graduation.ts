@@ -130,7 +130,7 @@ export function evaluateLaterGraduationTrigger(
     );
   }
   return laterGraduationFromShare(
-    computeRitualGateShare(parseRunSummaryJsonl(text), options.env ?? process.env),
+    computeRitualGateShare(parseRunSummaryJsonl(text), options.env),
     threshold,
   );
 }
