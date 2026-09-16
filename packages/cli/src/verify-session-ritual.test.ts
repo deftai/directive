@@ -64,6 +64,36 @@ describe("parseArgs", () => {
   });
 });
 
+describe("parseArgs unrecognized --session-id (#4576)", () => {
+  const dropSuffix = "Drop the flag and retry verify:session-ritual -- --tier=gated.";
+
+  it("rejects equals-form with drop-flag suffix", () => {
+    const parsed = parseArgs(["--tier=gated", "--session-id=host:claude:v1:dGVzdA"]);
+    expect(parsed.error).toContain("unrecognized argument: --session-id=host:claude:v1:dGVzdA");
+    expect(parsed.error).toContain(dropSuffix);
+    expect(parsed.error).not.toContain("session:ready");
+    expect(parsed).not.toHaveProperty("sessionId");
+  });
+
+  it("rejects space-form with drop-flag suffix", () => {
+    const parsed = parseArgs(["--tier=gated", "--session-id", "host:claude:v1:dGVzdA"]);
+    expect(parsed.error).toContain("unrecognized argument: --session-id");
+    expect(parsed.error).toContain(dropSuffix);
+  });
+
+  it("rejects empty-equals with drop-flag suffix", () => {
+    const parsed = parseArgs(["--tier=gated", "--session-id="]);
+    expect(parsed.error).toContain("unrecognized argument: --session-id=");
+    expect(parsed.error).toContain(dropSuffix);
+  });
+
+  it("keeps generic parse error for --bogus", () => {
+    const parsed = parseArgs(["--bogus"]);
+    expect(parsed.error).toBe("unrecognized argument: --bogus");
+    expect(parsed.error).not.toContain(dropSuffix);
+  });
+});
+
 describe("run (#2666)", () => {
   it("exits 2 and prints parse errors", () => {
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
@@ -72,6 +102,50 @@ describe("run (#2666)", () => {
     expect(stderr).toContain("unrecognized argument");
     expect(stderr).not.toContain("session:ready");
     expect(stderr).not.toContain("cache_fresh=<reason>");
+    err.mockRestore();
+  });
+});
+
+describe("run unrecognized --session-id (#4576)", () => {
+  const dropSuffix = "Drop the flag and retry verify:session-ritual -- --tier=gated.";
+
+  it("exits 2 with drop-flag suffix on equals-form", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--tier=gated", "--session-id=host:claude:v1:dGVzdA"])).toBe(2);
+    const stderr = err.mock.calls.join("");
+    expect(stderr).toContain("unrecognized argument: --session-id=host:claude:v1:dGVzdA");
+    expect(stderr).toContain(dropSuffix);
+    expect(stderr).not.toContain("session:ready");
+    err.mockRestore();
+  });
+
+  it("exits 2 with drop-flag suffix on space-form", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--tier=gated", "--session-id", "host:claude:v1:dGVzdA"])).toBe(2);
+    const stderr = err.mock.calls.join("");
+    expect(stderr).toContain("unrecognized argument: --session-id");
+    expect(stderr).toContain(dropSuffix);
+    expect(stderr).not.toContain("session:ready");
+    err.mockRestore();
+  });
+
+  it("exits 2 with drop-flag suffix on empty-equals", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--tier=gated", "--session-id="])).toBe(2);
+    const stderr = err.mock.calls.join("");
+    expect(stderr).toContain("unrecognized argument: --session-id=");
+    expect(stderr).toContain(dropSuffix);
+    expect(stderr).not.toContain("session:ready");
+    err.mockRestore();
+  });
+
+  it("exits 2 on --bogus without drop-flag suffix", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--bogus"])).toBe(2);
+    const stderr = err.mock.calls.join("");
+    expect(stderr).toContain("unrecognized argument");
+    expect(stderr).not.toContain(dropSuffix);
+    expect(stderr).not.toContain("session:ready");
     err.mockRestore();
   });
 });

@@ -97,7 +97,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       }
       parsed.posture = posture;
     } else {
-      return { ...parsed, error: `unrecognized argument: ${arg}` };
+      const error = `unrecognized argument: ${arg}`;
+      if (arg === "--session-id" || arg?.startsWith("--session-id=")) {
+        return {
+          ...parsed,
+          error: `${error} Drop the flag and retry verify:session-ritual -- --tier=gated.`,
+        };
+      }
+      return { ...parsed, error };
     }
   }
   return parsed;

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **verify:session-ritual parse error on `--session-id` names the drop-flag retry (#4576).** Unrecognized `--session-id` / `--session-id=` still exits 2. Stderr appends a suffix to drop the flag and retry `verify:session-ritual -- --tier=gated`. Other unknown flags stay generic. Occupancy bind stays on session:start / session:ready. Closes #4576.
+
 ### Removed
 
 ## [0.119.1] - 2026-09-16
