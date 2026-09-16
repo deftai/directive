@@ -63,7 +63,11 @@ describe("evaluateStory", () => {
     const arch = raw.architecture as Record<string, unknown>;
     const sor = arch.systemOfRecord as Record<string, unknown>;
     const surfaces = sor.stateSurfaces as Record<string, unknown>[];
-    const surface = { ...surfaces[0]! };
+    const firstSurface = surfaces[0];
+    if (firstSurface === undefined) {
+      throw new Error("fixture cache_file_passes.vbrief.json missing stateSurfaces[0]");
+    }
+    const surface = { ...firstSurface };
     delete surface.invalidationRules;
     sor.stateSurfaces = [surface];
     const tmpDir = join(tmpdir(), `sor-test-${Date.now()}`);

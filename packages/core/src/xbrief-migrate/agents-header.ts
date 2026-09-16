@@ -64,14 +64,14 @@ function countOccurrences(haystack: string, needle: string): number {
 /** `x-vbrief/` is not a `vbrief/` hit; ident/hyphen continue the token. */
 function isLeftBoundAt(text: string, index: number): boolean {
   if (index === 0) return true;
-  return !/[A-Za-z0-9_-]/.test(text[index - 1]!);
+  return !/[A-Za-z0-9_-]/.test(text.charAt(index - 1));
 }
 
 /** Child path segment after `vbrief/` — not whitespace, fence close, or EOS. */
 function hasVbriefChildSegment(text: string, index: number): boolean {
   const after = index + VBRIEF_DIR.length;
   if (after >= text.length) return false;
-  const ch = text[after]!;
+  const ch = text.charAt(after);
   return ch !== "/" && ch !== "`" && !/\s/.test(ch);
 }
 

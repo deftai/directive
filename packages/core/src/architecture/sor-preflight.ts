@@ -493,8 +493,7 @@ function validateReferenceApps(
     });
     return;
   }
-  for (const group of Object.keys(REFERENCE_EVIDENCE_GROUPS)) {
-    const groupTerms = REFERENCE_EVIDENCE_GROUPS[group]!;
+  for (const [group, groupTerms] of Object.entries(REFERENCE_EVIDENCE_GROUPS)) {
     const covered = (refs as unknown[]).some((ref) => {
       const text = JSON.stringify(ref).toLowerCase();
       return [...groupTerms].some((term) => text.includes(term));

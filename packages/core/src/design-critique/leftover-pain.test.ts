@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateAutoStampPath1Write } from "./auto-stamp-path1.js";
 import { scanPainCites } from "./citation-grammar.js";
-import {
-  evaluateCompletedArcRecord,
-  type ThreadComment,
-} from "./completed-arc-record.js";
+import { evaluateCompletedArcRecord, type ThreadComment } from "./completed-arc-record.js";
 import {
   assertedPainIdsFromCites,
   bindLeanPredecessorValid,
@@ -231,12 +228,8 @@ describe("yolo leftover-pain handling (#4593)", () => {
       movesCriticEnvelopes: true,
       bindableWithoutExtraLean: false,
     });
-    expect(
-      recordingCommentOpensSuccessorLean("role: parent\n\nSharpening note.\n"),
-    ).toBe(false);
-    expect(recordingCommentOpensSuccessorLean("**Lean:** must not.\n")).toBe(
-      true,
-    );
+    expect(recordingCommentOpensSuccessorLean("role: parent\n\nSharpening note.\n")).toBe(false);
+    expect(recordingCommentOpensSuccessorLean("**Lean:** must not.\n")).toBe(true);
   });
 
   it("treats yolo standing as all-accept confirm on a split lean, not split/handoff/waiver", () => {
@@ -307,12 +300,8 @@ describe("yolo leftover-pain handling (#4593)", () => {
     expect(mapCarriesAssertedPainCoverage(relieves, ["P1"], 4593)).toBe(true);
     expect(mapCarriesAssertedPainCoverage(deferred, ["P1"], 4593)).toBe(true);
     expect(mapCarriesAssertedPainCoverage(sameIssue, ["P1"], 4593)).toBe(false);
-    expect(mapCarriesAssertedPainCoverage(unrelieved, ["P1"], 4593)).toBe(
-      false,
-    );
-    expect(
-      assertedPainIdsFromCites(scanPainCites(deferred).cites, ["P1"], 4593),
-    ).toEqual(["P1"]);
+    expect(mapCarriesAssertedPainCoverage(unrelieved, ["P1"], 4593)).toBe(false);
+    expect(assertedPainIdsFromCites(scanPainCites(deferred).cites, ["P1"], 4593)).toEqual(["P1"]);
   });
 
   it("keeps #4592 path-1 refuse; leftover recommend is not ingest-ready", () => {
@@ -351,9 +340,7 @@ describe("yolo leftover-pain handling (#4593)", () => {
   });
 
   it("skips conflicting dispositions and honors a Dual-stop raise", () => {
-    const mixed = scanPainCites(
-      "relieves: P1\noperator-deferred: P1 #4602\n",
-    ).cites;
+    const mixed = scanPainCites("relieves: P1\noperator-deferred: P1 #4602\n").cites;
     expect(assertedPainIdsFromCites(mixed, ["P1"], 4593)).toEqual([]);
     const raised = evaluateDualStopPostBudget({
       spendSeats: 1,
@@ -377,18 +364,10 @@ describe("yolo leftover-pain handling (#4593)", () => {
       }).bindableWithoutExtraLean,
     ).toBe(true);
     expect(
-      assertedPainIdsFromCites(
-        scanPainCites("relieves: P1\n").cites,
-        ["P1"],
-        undefined,
-      ),
+      assertedPainIdsFromCites(scanPainCites("relieves: P1\n").cites, ["P1"], undefined),
     ).toEqual(["P1"]);
     expect(
-      assertedPainIdsFromCites(
-        scanPainCites("operator-deferred: P1\n").cites,
-        ["P1"],
-        4593,
-      ),
+      assertedPainIdsFromCites(scanPainCites("operator-deferred: P1\n").cites, ["P1"], 4593),
     ).toEqual([]);
   });
 });
