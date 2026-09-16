@@ -21,6 +21,8 @@
 
 **What it is:** Directive is a **repo practice layer** (standards + durable work state + gates), not a coding host or an app orchestrator. Capability index: [content/docs/capabilities.md](./content/docs/capabilities.md). Category map: [docs/CATEGORY.md](./docs/CATEGORY.md).
 
+Agents Lie, Cheat, and Steal (LCS). Directive is the practice layer that helps prevent that.
+
 **Deft is the company; Directive is the product.** The published package is `@deftai/directive`; `deft` is the CLI alias.
 
 **📚 Public docs:** [https://deftai.github.io/directive/](https://deftai.github.io/directive/) — What, Install, Concepts, Gates, Upgrade, License.
