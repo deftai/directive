@@ -148,3 +148,136 @@ export function Page() {
     expect(ids).toContain("control:button:Save");
   });
 });
+
+function tsxIds(source: string): string[] {
+  return extractMarkupFacts(source, "ui.tsx", { projectRoot: process.cwd() }).map((f) => f.id);
+}
+
+function controlledTabsSnippet(initializer: string, valueExpr = "tab"): string {
+  return `
+function Page() {
+  const [tab, setTab] = ${initializer};
+  return (
+    <Tabs value={${valueExpr}} onValueChange={setTab}>
+      <TabsTrigger value="overview">Overview</TabsTrigger>
+      <TabsTrigger value="billing">Billing</TabsTrigger>
+    </Tabs>
+  );
+}
+`;
+}
+
+describe("const useState StringLiteral unwrap (#4586)", () => {
+  it("emits tab-selected from the matching TabsTrigger when value={ident} unwraps", () => {
+    const ids = tsxIds(controlledTabsSnippet('useState("overview")'));
+    expect(ids).toContain("tab-selected:Overview");
+    expect(ids).not.toContain("tab-selected:Billing");
+    expect(ids).not.toContain("tab:Overview");
+    expect(ids).not.toContain("tab:Billing");
+  });
+
+  it("sees a useState StringLiteral flip as a tab-selected delta", () => {
+    expect(tsxIds(controlledTabsSnippet('useState("billing")'))).toContain("tab-selected:Billing");
+    expect(tsxIds(controlledTabsSnippet('useState("overview")'))).not.toContain(
+      "tab-selected:Billing",
+    );
+  });
+
+  it("accepts the closed React.useState callee", () => {
+    expect(tsxIds(controlledTabsSnippet('React.useState("overview")'))).toContain(
+      "tab-selected:Overview",
+    );
+  });
+
+  it("leaves lazy, non-literal, let, and setTab unresolvable", () => {
+    expect(tsxIds(controlledTabsSnippet('useState(() => "overview")'))).not.toContain(
+      "tab-selected:Overview",
+    );
+    expect(tsxIds(controlledTabsSnippet("useState(DEFAULT)"))).not.toContain(
+      "tab-selected:Overview",
+    );
+    expect(
+      tsxIds(`
+function Page() {
+  let [tab, setTab] = useState("overview");
+  return (
+    <Tabs value={tab}>
+      <TabsTrigger value="overview">Overview</TabsTrigger>
+    </Tabs>
+  );
+}
+`),
+    ).not.toContain("tab-selected:Overview");
+    expect(tsxIds(controlledTabsSnippet('useState("overview")', "setTab"))).not.toContain(
+      "tab-selected:Overview",
+    );
+  });
+
+  it("does not treat TabsTrigger as a tab tag and does not throw on a controlled value= expression", () => {
+    const bare = tsxIds(
+      `<Tabs value={tab}><TabsTrigger value="overview">Overview</TabsTrigger></Tabs>`,
+    );
+    expect(bare).not.toContain("tab:Overview");
+    expect(bare).not.toContain("tab-selected:Overview");
+    expect(() =>
+      extractMarkupFacts(
+        `<Tabs value={tab}><TabsTrigger value="overview">Overview</TabsTrigger></Tabs>`,
+        "ui.tsx",
+        { projectRoot: process.cwd() },
+      ),
+    ).not.toThrow();
+  });
+
+  it("falls back to the TabsTrigger value literal when inner text is empty", () => {
+    expect(
+      tsxIds(`
+function Page() {
+  const [tab, setTab] = useState("overview");
+  return (
+    <Tabs value={tab}>
+      <TabsTrigger value="overview" />
+      <TabsTrigger value="billing" />
+    </Tabs>
+  );
+}
+`),
+    ).toContain("tab-selected:overview");
+  });
+
+  it("does not unwrap optional chaining, omitted bindings, or other callees", () => {
+    expect(tsxIds(controlledTabsSnippet('React?.useState("overview")'))).not.toContain(
+      "tab-selected:Overview",
+    );
+    expect(
+      tsxIds(`
+function Page() {
+  const [, tab] = useState("overview");
+  return (
+    <Tabs value={tab}>
+      <TabsTrigger value="overview">Overview</TabsTrigger>
+    </Tabs>
+  );
+}
+`),
+    ).not.toContain("tab-selected:Overview");
+    expect(tsxIds(controlledTabsSnippet('foo.useState("overview")'))).not.toContain(
+      "tab-selected:Overview",
+    );
+  });
+
+  it("does not unwrap defaultValue and does not follow an in-file const into useState", () => {
+    expect(
+      tsxIds(`
+const DEFAULT_TAB = "overview";
+function Page() {
+  const [tab, setTab] = useState(DEFAULT_TAB);
+  return (
+    <Tabs defaultValue={tab}>
+      <TabsTrigger value="overview">Overview</TabsTrigger>
+    </Tabs>
+  );
+}
+`),
+    ).not.toContain("tab-selected:Overview");
+  });
+});
