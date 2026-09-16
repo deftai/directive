@@ -443,6 +443,30 @@ describe("launch occupancy record lifecycle (#4595)", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("retracts leftover roster then creates when a new occupant relaunches", () => {
+    const project = mkdtempSync(join(tmpdir(), "occ-relaunch-live-"));
+    applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
+    const key = occupancyCohortKey(null, ["story-a"]);
+    persistLaunchOccupancyRecord(project, {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-a",
+      story_ids: ["story-a"],
+      cohort_key: key,
+    });
+    releaseOccupancy(project, { sessionId: "owner-a" });
+    applyWorktreeOccupancy(project, { sessionId: "owner-b", intent: "swarm" });
+    persistLaunchOccupancyRecord(project, {
+      allocation_plan_id: null,
+      occupancy_session_id: "owner-b",
+      story_ids: ["story-a"],
+      cohort_key: key,
+    });
+    expect(resolveLaunchOccupancySessionId(project, { storyIds: ["story-a"] }).sessionId).toBe(
+      "owner-b",
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("refuses a stale recorded session when another occupant holds the live lease", () => {
     const project = mkdtempSync(join(tmpdir(), "occ-stale-"));
     applyWorktreeOccupancy(project, { sessionId: "owner-a", intent: "swarm" });
@@ -527,6 +551,16 @@ describe("launch occupancy record lifecycle (#4595)", () => {
     });
     expect(denied.exitCode).not.toBe(0);
     expect(denied.stderr).toContain("ordered-plan sequence");
+    const groupOnly = swarmLaunch({
+      stories: ["coh-a", "coh-b"],
+      group: "wave7",
+      projectRoot: project,
+      autonomous: true,
+      sessionId: "test-session",
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      ...stubGates(),
+    });
+    expect(groupOnly.exitCode).not.toBe(0);
     const allowed = swarmLaunch({
       stories: ["coh-a", "coh-b"],
       allocationPlanId: "plan-1",

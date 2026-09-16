@@ -817,7 +817,7 @@ export function persistLaunchOccupancyRecord(
     return "created";
   }
   const live = liveOccupant(projectRoot);
-  if (live === null) {
+  if (live === null || live.sessionId !== existing.occupancy_session_id) {
     containedRemove({ root: projectRoot, target: join(...relpath) });
     containedWrite({
       root: projectRoot,
@@ -827,9 +827,7 @@ export function persistLaunchOccupancyRecord(
     });
     return "created";
   }
-  const leaseMatches =
-    live.sessionId === existing.occupancy_session_id &&
-    existing.occupancy_session_id === record.occupancy_session_id;
+  const leaseMatches = existing.occupancy_session_id === record.occupancy_session_id;
   const rosterMatches = rosterEquals(existing.story_ids, record.story_ids);
   if (!leaseMatches || !rosterMatches) {
     throw new Error(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
@@ -881,10 +879,7 @@ export function resolveLaunchOccupancySessionId(
     if (wantedPlan.length > 0 && exact.allocation_plan_id !== wantedPlan) {
       return { sessionId: "", reason: "wrong-cohort" };
     }
-    const corroborated = corroborateRecordedOccupancy(
-      projectRoot,
-      exact.occupancy_session_id,
-    );
+    const corroborated = corroborateRecordedOccupancy(projectRoot, exact.occupancy_session_id);
     if (corroborated === "missing") {
       retractLaunchOccupancyRecord(projectRoot, { cohortKey: requestedKey });
       return { sessionId: "", reason: "missing" };
@@ -1207,7 +1202,9 @@ export function swarmLaunch(args: LaunchArgs): {
 
   if (dispatchKind === "swarm-cohort") {
     const admission = admitSwarmLaunchPlanSequence(projectRoot);
-    const explicitConsent = (allocationPlanId ?? "").trim().length > 0;
+    const explicitConsent =
+      (args.allocationPlanId ?? "").trim().length > 0 &&
+      (args.batchingRationale ?? "").trim().length > 0;
     if (!admission.ok && !explicitConsent) {
       return {
         exitCode: EXIT_GATE_FAILED,
