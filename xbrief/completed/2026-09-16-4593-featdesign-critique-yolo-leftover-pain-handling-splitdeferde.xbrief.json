@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4593",
-    "updated": "2026-09-16T05:20:51Z"
+    "updated": "2026-09-16T06:52:10Z"
   },
   "plan": {
     "title": "feat(design-critique): yolo leftover-pain handling (split/defer/deliver) and default Dual-stop cap 6",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(design-critique): yolo leftover-pain handling (split/defer/deliver) and default Dual-stop cap 6",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4593",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "In yolo mode, when named pain is uncited or `does-not-relieve` and a recut still has a deliverable remainder: recommend one leftover path in prose on the thread (file a new issue for the unmet part, or halt).",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:recommends one leftover path when yolo unrelieved recut still has remainder",
@@ -26,7 +26,7 @@
       },
       {
         "title": "If the operator confirms the split as a live turn, file that issue. Record the leftover issue number from the parent's own issue-create output, and from nothing else.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:records leftover issue number from parent issue-create output only",
@@ -36,7 +36,7 @@
       },
       {
         "title": "After the split is filed, continue the current arc on the deliverable remainder while Dual-stop post budget remains and finish is still possible, and halt otherwise.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:continues the remainder only while Dual-stop posts remain and finish is possible",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Finish is still possible while each pain-audit returns strictly fewer blocking findings than the last. Halt on a repeat of the primary blocking heading, not only on the post cap.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:keeps finish possible on strictly fewer blocking findings and halts on repeat primary",
@@ -56,7 +56,7 @@
       },
       {
         "title": "Cite `operator-deferred` only for unmet ids, and `relieves` only for ids the Bound-remedy actually covers. Yolo standing confirms the all-accept map on a lean that already carries that operator-confirmed split. It does not confirm the split, waive pain coverage, or confirm Handoff.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:cites operator-deferred only for unmet ids and relieves only for covered ids",
@@ -66,7 +66,7 @@
       },
       {
         "title": "Pain cites of any disposition belong on the lean the parent intends to bind. A retraction map is a lean the parent does not intend to bind and must still carry cites. Intermediate recuts that are not bind and not retraction carry none. Closed cite forms are the operative cite lines. Every other mention of a pain id or a disposition token on a lean goes in inline code.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:places operative cites on bind and retraction leans, not intermediate recuts",
@@ -76,7 +76,7 @@
       },
       {
         "title": "Dispatch the pain-audit critic after the bind lean.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:follows pain-audit classes: retract, footnote-bindable, record, or new bind",
@@ -86,7 +86,7 @@
       },
       {
         "title": "If that audit returns blocking findings, post a retraction map first, then print Handoff. Retraction is parent-class and spends no numbered Dual-stop post.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:follows pain-audit classes: retract, footnote-bindable, record, or new bind",
@@ -96,7 +96,7 @@
       },
       {
         "title": "If that audit returns footnote-only findings, the bind map stays bindable. No extra lean.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:follows pain-audit classes: retract, footnote-bindable, record, or new bind",
@@ -106,7 +106,7 @@
       },
       {
         "title": "If that audit returns sharpening-only findings that do not change the harvested Bound-remedy, record those takes on a parent comment that does not open with the successor-lean token. Bind remains the cited bind lean. Those headings do not move criticEnvelopes.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:follows pain-audit classes: retract, footnote-bindable, record, or new bind",
@@ -116,7 +116,7 @@
       },
       {
         "title": "If that audit returns sharpening-only findings that change the harvested Bound-remedy, the parent posts a new bind lean with the updated harvest and dispatches another pain-audit. That spends a Dual-stop post. Do not bind the old harvest. Do not merge arbitrary parent comments into intake.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:follows pain-audit classes: retract, footnote-bindable, record, or new bind",
@@ -126,7 +126,7 @@
       },
       {
         "title": "Dual-stop post count does not refill at Handoff. A new ceiling is not a new arc.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:defaults Dual-stop to 6 posts for spend N=1 and does not refill at Handoff",
@@ -136,7 +136,7 @@
       },
       {
         "title": "Bind lean names a predecessor that does not already carry `relieves` of those ids. This lean supersedes 5691821887.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:refuses a bind lean whose predecessor already relieves those ids",
@@ -146,7 +146,7 @@
       },
       {
         "title": "Spend `N=` is seats. Dual-stop numbered cap is critic posts. Default Close is 6 posts for spend `N=1` only. This arc's raise is Dual-stop cap: 9 posts. Do not write Dual-stop cap: N=6.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:defaults Dual-stop to 6 posts for spend N=1 and does not refill at Handoff",
@@ -156,7 +156,7 @@
       },
       {
         "title": "Widen the reserved pain-audit slot trigger to relieved plus deferred, as applyPainCoverage computes asserted.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/handoff.test.ts:admits the reserved slot for deferred asserted coverage (#4593)",
@@ -166,7 +166,7 @@
       },
       {
         "title": "Re-pin both sites in packages/core/src/content-contracts/standards/design_critique_contract.test.ts, reserved-slot bullet at contract line 447, contract line 251, and the reserved-slot test name in packages/core/src/design-critique/handoff.test.ts.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts:locks yolo leftover-pain handling and Dual-stop default 6 posts (#4593)",
@@ -176,7 +176,7 @@
       },
       {
         "title": "A pain-audit critic that returns blocking findings is not relief. Yolo standing does not carry past a blocking audit.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:follows pain-audit classes: retract, footnote-bindable, record, or new bind",
@@ -186,7 +186,7 @@
       },
       {
         "title": "Keep #4592 refuse. Do not dest-place. Do not ingest. Chip ingest-ready only after evaluateCompletedArcRecord would return complete.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/leftover-pain.test.ts:keeps #4592 path-1 refuse; leftover recommend is not ingest-ready",
@@ -368,9 +368,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "f38942201220624bfd742ab204e2b9f745fae5d1a390fb68d7179673b3341810"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4614,
+        "prBase": null,
+        "mergeCommit": "76f1aeb18114720b3713b17552ea2cbc1bd2dc18",
+        "deliveryBranch": "master",
+        "deliveryCommit": "76f1aeb18114720b3713b17552ea2cbc1bd2dc18",
+        "verifiedAt": "2026-09-16T06:52:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGE4ZmEtOWIyOC03ZGQwLWE1ZDUtZDY0MTkxOTA1Mzc1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-16T06:52:10Z"
+      },
+      "completedAt": "2026-09-16T06:52:10Z",
+      "completedSessionId": "host:claude:v1:MDFhMGE4ZmEtOWIyOC03ZGQwLWE1ZDUtZDY0MTkxOTA1Mzc1",
+      "capacityBucket": "new-capability"
     },
     "id": "github.issue.5469054612",
-    "updated": "2026-09-16T04:05:42Z"
+    "updated": "2026-09-16T06:52:10Z"
   }
 }
