@@ -602,6 +602,28 @@ function swarmOnlyPlan(id: string, commands: string[]): Record<string, unknown> 
           recorded_by: "vitest",
         },
       },
+      {
+        id: "clause:1",
+        title: "clause:1",
+        status: "pending",
+        "x-directive/evidence": {
+          kind: "test",
+          pointer: "vitest",
+          recorded_at: "2026-09-02T00:00:00Z",
+          recorded_by: "vitest",
+        },
+      },
+      {
+        id: "clause:2",
+        title: "clause:2",
+        status: "pending",
+        "x-directive/evidence": {
+          kind: "test",
+          pointer: "vitest",
+          recorded_at: "2026-09-02T00:00:00Z",
+          recorded_by: "vitest",
+        },
+      },
     ],
     references: [
       {

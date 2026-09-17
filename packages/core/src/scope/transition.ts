@@ -27,6 +27,7 @@ import {
   evaluateAcceptanceEvidenceGate,
   evaluateScopeCompleteAcceptanceWalk,
   formatAcceptanceCompletionListing,
+  persistClauseKeyedPendingItems,
 } from "./acceptance-evidence.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { atomicWriteBrief, formatBriefJson, readBriefForMutation } from "./brief-io.js";
@@ -336,6 +337,13 @@ export function runTransition(
   let acceptanceReports: readonly CriterionAcceptanceReport[] | undefined;
   let acceptanceListing = "";
   if (act === "complete" && options.skipAcceptanceEvidenceGate !== true) {
+    const persist = persistClauseKeyedPendingItems(planObj);
+    if (persist.addedIds.length > 0) {
+      const persistWrite = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
+      if (!persistWrite.ok) {
+        return { ok: false, message: persistWrite.message };
+      }
+    }
     const acceptanceGate = evaluateAcceptanceEvidenceGate(planObj);
     acceptanceReports = acceptanceGate.reports;
     if (!acceptanceGate.ok) {

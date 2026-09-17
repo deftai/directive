@@ -25,6 +25,7 @@ import {
   type EvaluateVerifyAcOptions,
   evaluateVerifyAcFromPlan,
 } from "../product-first-done-gate/evaluate.js";
+import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 
 /** Canonical namespaced key for typed acceptance evidence (#3305 / #1620). */
 export const ACCEPTANCE_EVIDENCE_KEY = "x-directive/evidence" as const;
@@ -82,6 +83,17 @@ export const UAT_POINTER_SHAPE_REMEDIATION =
 
 /** Item statuses that still represent unfinished acceptance work (#2862 / #3240). */
 const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
+
+/** Stable plan.item id for a clause so stampNamespacedEvidence has a row (#4385). */
+export const CLAUSE_KEYED_ITEM_ID_PREFIX = "clause:" as const;
+
+/**
+ * Leftover of #4385 defect 2: pending change-task ledger
+ * (history/changes/.../tasks.xbrief.json) is not closed by this P1.
+ * Prefer derive-status over a second walker. #4426 owns the issue-less origin half.
+ */
+export const PENDING_CHANGE_TASK_LEDGER_LEFTOVER =
+  "leftover: pending change-task ledger; prefer derive-status over a second walker; #4426 owns issue-less origin (#4385)";
 
 export interface AcceptanceEvidenceRecord {
   readonly kind: AcceptanceEvidenceKind;
@@ -390,6 +402,225 @@ function itemLabel(item: Record<string, unknown>, path: string): string {
   return path;
 }
 
+/** Fence untrusted clause/task text so roster and refuse listings cannot inject (#4385). */
+export function fenceUntrustedAcceptanceText(text: string): string {
+  return `«untrusted:${text.replace(/[«»]/g, "")}»`;
+}
+
+export function clauseKeyedItemId(clauseId: number): string {
+  return `${CLAUSE_KEYED_ITEM_ID_PREFIX}${clauseId}`;
+}
+
+function itemIdKey(item: Record<string, unknown>): string | null {
+  const id = item.id;
+  if (typeof id === "string" && id.trim().length > 0) {
+    return id.trim();
+  }
+  if (typeof id === "number" && Number.isFinite(id)) {
+    return String(id);
+  }
+  return null;
+}
+
+function collectItemIdKeys(items: unknown, keys: Set<string>): void {
+  if (!Array.isArray(items)) {
+    return;
+  }
+  for (const item of items) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const obj = item as Record<string, unknown>;
+    const key = itemIdKey(obj);
+    if (key !== null) {
+      keys.add(key);
+    }
+    collectItemIdKeys(obj.subItems, keys);
+    collectItemIdKeys(obj.items, keys);
+  }
+}
+
+function clauseHasKeyedItem(clauseId: number, keys: ReadonlySet<string>): boolean {
+  return keys.has(clauseKeyedItemId(clauseId)) || keys.has(String(clauseId));
+}
+
+export interface PersistClauseKeyedPendingItemsResult {
+  readonly addedIds: readonly string[];
+}
+
+/**
+ * Complete-prep writer: add pending plan.items keyed to each acceptance clause id.
+ * Does not stamp evidence. Does not run inside evaluateAcceptanceEvidenceGate (#4385).
+ */
+export function persistClauseKeyedPendingItems(
+  plan: Record<string, unknown>,
+): PersistClauseKeyedPendingItemsResult {
+  const clauses = readAcceptanceClauses(plan.acceptance);
+  if (clauses.length === 0) {
+    return { addedIds: [] };
+  }
+  const items = Array.isArray(plan.items) ? plan.items : [];
+  if (!Array.isArray(plan.items)) {
+    plan.items = items;
+  }
+  const keys = new Set<string>();
+  collectItemIdKeys(items, keys);
+  const addedIds: string[] = [];
+  for (const clause of clauses) {
+    if (clauseHasKeyedItem(clause.id, keys)) {
+      continue;
+    }
+    const id = clauseKeyedItemId(clause.id);
+    items.push({
+      id,
+      title: id,
+      status: "pending",
+    });
+    keys.add(id);
+    addedIds.push(id);
+  }
+  return { addedIds };
+}
+
+export interface ScopeStatusInput {
+  readonly id?: string;
+  readonly path?: string;
+  readonly plan: Record<string, unknown>;
+}
+
+export interface ScopeStatusCounts {
+  readonly id: string;
+  readonly status: string;
+  readonly itemCounts: Record<string, number>;
+  readonly itemIds: readonly string[];
+  readonly clauseIds: readonly number[];
+  readonly clauseCounts: {
+    readonly total: number;
+    readonly keyed: number;
+    readonly unbound: number;
+    readonly evidenced: number;
+    readonly dispositioned: number;
+  };
+}
+
+function countItemStatuses(items: unknown, counts: Record<string, number>, ids: string[]): void {
+  if (!Array.isArray(items)) {
+    return;
+  }
+  for (const item of items) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const obj = item as Record<string, unknown>;
+    const status =
+      typeof obj.status === "string" && obj.status.trim().length > 0 ? obj.status.trim() : "(none)";
+    counts[status] = (counts[status] ?? 0) + 1;
+    const key = itemIdKey(obj);
+    if (key !== null) {
+      ids.push(key);
+    }
+    countItemStatuses(obj.subItems, counts, ids);
+    countItemStatuses(obj.items, counts, ids);
+  }
+}
+
+function findItemByKey(items: unknown, wanted: string): Record<string, unknown> | null {
+  if (!Array.isArray(items)) {
+    return null;
+  }
+  for (const item of items) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const obj = item as Record<string, unknown>;
+    if (itemIdKey(obj) === wanted) {
+      return obj;
+    }
+    const nested = findItemByKey(obj.subItems, wanted) ?? findItemByKey(obj.items, wanted);
+    if (nested !== null) {
+      return nested;
+    }
+  }
+  return null;
+}
+
+export function evaluateScopeStatus(
+  scopes: readonly ScopeStatusInput[],
+): readonly ScopeStatusCounts[] {
+  return scopes.map((scope) => {
+    const plan = scope.plan;
+    const itemCounts: Record<string, number> = {};
+    const itemIds: string[] = [];
+    countItemStatuses(plan.items, itemCounts, itemIds);
+    const clauses = readAcceptanceClauses(plan.acceptance);
+    let keyed = 0;
+    let evidenced = 0;
+    let dispositioned = 0;
+    for (const clause of clauses) {
+      const item =
+        findItemByKey(plan.items, clauseKeyedItemId(clause.id)) ??
+        findItemByKey(plan.items, String(clause.id));
+      if (item === null) {
+        continue;
+      }
+      keyed += 1;
+      const fields = readNamespacedAcceptanceFields(item);
+      if (fields.hasEvidence) evidenced += 1;
+      if (fields.hasDisposition) dispositioned += 1;
+    }
+    const id =
+      (typeof scope.id === "string" && scope.id.trim().length > 0 ? scope.id.trim() : null) ??
+      (typeof plan.id === "string" && plan.id.trim().length > 0 ? plan.id.trim() : null) ??
+      (typeof scope.path === "string" && scope.path.trim().length > 0
+        ? scope.path.trim()
+        : "(no-id)");
+    return {
+      id,
+      status:
+        typeof plan.status === "string" && plan.status.trim().length > 0
+          ? plan.status.trim()
+          : "(none)",
+      itemCounts,
+      itemIds,
+      clauseIds: clauses.map((c) => c.id),
+      clauseCounts: {
+        total: clauses.length,
+        keyed,
+        unbound: clauses.length - keyed,
+        evidenced,
+        dispositioned,
+      },
+    };
+  });
+}
+
+/** Counts and ids only. Clause/task text is omitted (fenced if a caller injects it). */
+export function formatScopeStatus(
+  scopes: readonly ScopeStatusInput[],
+  options: { readonly json?: boolean } = {},
+): string {
+  const rows = evaluateScopeStatus(scopes);
+  if (options.json === true) {
+    return JSON.stringify(rows);
+  }
+  if (rows.length === 0) {
+    return "scope:status: (none)";
+  }
+  const blocks = rows.map((row) => {
+    const itemParts = Object.entries(row.itemCounts)
+      .map(([status, n]) => `${status}=${n}`)
+      .join(" ");
+    const itemIds = row.itemIds.length > 0 ? row.itemIds.join(",") : "(none)";
+    const clauseIds = row.clauseIds.length > 0 ? row.clauseIds.join(",") : "(none)";
+    return [
+      `scope:status id=${row.id} status=${row.status}`,
+      `  items: ${itemParts.length > 0 ? itemParts : "(none)"} ids=${itemIds}`,
+      `  clauses: total=${row.clauseCounts.total} keyed=${row.clauseCounts.keyed} unbound=${row.clauseCounts.unbound} evidenced=${row.clauseCounts.evidenced} dispositioned=${row.clauseCounts.dispositioned} ids=${clauseIds}`,
+    ].join("\n");
+  });
+  return blocks.join("\n");
+}
+
 /**
  * Read only namespaced acceptance fields (#3305). Bare `evidence` / `disposition`
  * are never treated as success (no permanent dual-read).
@@ -646,7 +877,9 @@ export function evaluateAcceptanceEvidenceGate(
   if (blockers.length === 0) {
     const lines = reports
       .filter((r) => r.outcome === "evidence" || r.outcome === "disposition")
-      .map((r) => `  - ${r.path} "${r.title}": ${r.outcome} (${r.detail})`);
+      .map(
+        (r) => `  - ${r.path} ${fenceUntrustedAcceptanceText(r.title)}: ${r.outcome} (${r.detail})`,
+      );
     const summary =
       lines.length > 0
         ? `Acceptance evidence gate passed (#3240):\n${lines.join("\n")}`
@@ -654,7 +887,9 @@ export function evaluateAcceptanceEvidenceGate(
     return { ok: true, message: summary, reports };
   }
 
-  const lines = blockers.map((r) => `  - ${r.path} "${r.title}": ${r.detail}`);
+  const lines = blockers.map(
+    (r) => `  - ${r.path} ${fenceUntrustedAcceptanceText(r.title)}: ${r.detail}`,
+  );
   return {
     ok: false,
     message:
@@ -681,16 +916,17 @@ export function formatAcceptanceCompletionListing(
     return "Acceptance criteria: (none)";
   }
   const lines = reports.map((r) => {
+    const label = fenceUntrustedAcceptanceText(r.title);
     if (r.outcome === "evidence" && r.evidence) {
-      return `  - ${r.path} "${r.title}": evidence kind=${r.evidence.kind} pointer=${r.evidence.pointer}`;
+      return `  - ${r.path} ${label}: evidence kind=${r.evidence.kind} pointer=${r.evidence.pointer}`;
     }
     if (r.outcome === "disposition" && r.disposition) {
       return (
-        `  - ${r.path} "${r.title}": disposition=${r.disposition.disposition} ` +
-        `reason=${r.disposition.reason}`
+        `  - ${r.path} ${label}: disposition=${r.disposition.disposition} ` +
+        `reason=${fenceUntrustedAcceptanceText(r.disposition.reason)}`
       );
     }
-    return `  - ${r.path} "${r.title}": ${r.outcome} (${r.detail})`;
+    return `  - ${r.path} ${label}: ${r.outcome} (${r.detail})`;
   });
   return `Acceptance criteria:\n${lines.join("\n")}`;
 }
