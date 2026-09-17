@@ -26,8 +26,8 @@
         },
         "id": "1",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -41,8 +41,8 @@
         },
         "id": "2",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -56,8 +56,8 @@
         },
         "id": "3",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -71,8 +71,8 @@
         },
         "id": "4",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -86,8 +86,8 @@
         },
         "id": "5",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -101,8 +101,8 @@
         },
         "id": "6",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -112,8 +112,8 @@
         "title": "clause:1",
         "status": "completed",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -123,8 +123,8 @@
         "title": "clause:2",
         "status": "completed",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -134,8 +134,8 @@
         "title": "clause:3",
         "status": "completed",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -145,8 +145,8 @@
         "title": "clause:4",
         "status": "completed",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -156,8 +156,8 @@
         "title": "clause:5",
         "status": "completed",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
@@ -167,8 +167,8 @@
         "title": "clause:6",
         "status": "completed",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "content/docs/full-stop.md",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4719",
           "recorded_at": "2026-09-17T21:05:31Z",
           "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
         }
