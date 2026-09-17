@@ -29,7 +29,12 @@ import {
   renderProjectInstall,
 } from "./package-manager.js";
 import { reconcileVersions } from "./pin.js";
-import { ACCEPT_ENGINE_SKEW_ENV, contentMatchesEngine, evaluateSkew, type SkewResult } from "./skew-policy.js";
+import {
+  ACCEPT_ENGINE_SKEW_ENV,
+  contentMatchesEngine,
+  evaluateSkew,
+  type SkewResult,
+} from "./skew-policy.js";
 
 export interface PlanOptions {
   /**
