@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Full-stop reverse-init recipe (#4674).** Uninstall plus delete `.deft/` is not a complete stop. Ordered stop while the CLI exists: leftover-free Cursor hook strip (`policy:disable-host-hooks --host cursor --confirm` then `deft update` writes empty host hook files; do not rm host dirs), unset `core.hooksPath`, then uninstall. Optional local-only cache delete after the CLI is gone. Partition leftover classes; `xbrief/`, `package.json`, and USER.md are not leftovers. No uninstall binary. Refs #4674.
 - **Throttle-skip after a warning-only doctor run is not billed as clean (#4673).** The skip line uses persisted lastFindingCount; lastErrorCount 0 with findings >= 1 does not print clean. isDirty stays lastErrorCount > 0. README diagnosis rows and diagnosis front doors name `--full`. Ritual session-start `deft doctor` stays the cost skip. Missing `.deft/core` skip invalidation stays on #4679. Refs #4673.
 
 ### Removed

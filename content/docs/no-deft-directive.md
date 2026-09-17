@@ -22,7 +22,7 @@ Tracker: [#2926](https://github.com/deftai/directive/issues/2926).
 |-----------|----------|
 | Flag **present** | Directive **off** for this project. Do not install. Do not run session ritual (CLI `session:start` **and** installed host SessionStart hooks). Do not offer setup. |
 | Flag **absent**, no deposit | Tools **may** ask whether to install. On decline, create the flag. On enable, install and do **not** create the flag. |
-| Operator stops using DD | Create `.no-deft-directive`. Do **not** auto-delete an existing deposit. |
+| Operator stops using DD | Create `.no-deft-directive`. Do **not** auto-delete an existing deposit. Uninstall and leftover hook strip are a different goal: [full-stop recipe](./full-stop.md). |
 | Operator starts using DD | Remove the flag, then run `directive init` or `directive update` so install is present. |
 
 One-line message when tools honor the flag:
@@ -83,6 +83,7 @@ When `deft-directive-setup` runs:
 ## Related
 
 - [deft-directive-disable.md](./deft-directive-disable.md) — **temporary** test/local kill-switch (deposit OK; not this flag)
+- [full-stop.md](./full-stop.md) — uninstall / reverse-init recipe (different goal; still do not auto-delete the deposit)
 - [getting-started.md](./getting-started.md) — install and first project
 - [product-signal.md](./product-signal.md) — optional partner signal (defaults off; flag still wins locally)
 - `session:start`, `doctor`, `directive init`, `directive update`
