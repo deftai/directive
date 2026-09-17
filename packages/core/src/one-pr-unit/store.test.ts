@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -211,18 +211,6 @@ describe("DirectiveGitHubAppStore persist-and-bind", () => {
       prNodeId: "PR_B",
     });
     expect(raced).toBeNull();
-  });
-
-  it("reclaims a stale claims.lock", () => {
-    const dir = mkdtempSync(join(tmpdir(), "opu-stale-"));
-    created.push(dir);
-    const lock = join(dir, "claims.lock");
-    writeFileSync(lock, "dead");
-    const old = new Date(Date.now() - 60_000);
-    utimesSync(lock, old, old);
-    mintTwo(new DirectiveGitHubAppStore(dir));
-    expect(existsSync(join(dir, "claims.json"))).toBe(true);
-    expect(existsSync(lock)).toBe(false);
   });
 });
 describe("cross-process mint-then-validate", () => {

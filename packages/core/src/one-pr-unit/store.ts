@@ -4,14 +4,9 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
-import {
-  ContainedWriteError,
-  ContainedWriteErrorCode,
-  containedRemove,
-  containedWrite,
-} from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import type { MintClaimInput, OnePrUnitAppStore } from "./app-store.js";
 import {
   IN_PROCESS_NOT_PRODUCTION,
@@ -121,58 +116,6 @@ function isDiskStoreNotSotPath(raw: string): boolean {
   return n.endsWith(".deft/one-pr-unit") || n.includes("/.deft/one-pr-unit/");
 }
 
-const LOCK_FILE = "claims.lock";
-const LOCK_WAIT_MS = 5000;
-const LOCK_RETRY_MS = 20;
-const LOCK_STALE_MS = 30_000;
-
-function reclaimStaleLock(root: string): void {
-  try {
-    const st = statSync(join(root, LOCK_FILE));
-    if (Date.now() - st.mtimeMs < LOCK_STALE_MS) return;
-    containedRemove({ root, target: LOCK_FILE });
-  } catch {
-    /* missing lock */
-  }
-}
-
-function sleepSync(ms: number): void {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-function withExclusiveLock<T>(root: string, fn: () => T): T {
-  mkdirSync(root, { recursive: true });
-  const deadline = Date.now() + LOCK_WAIT_MS;
-  let held = false;
-  while (!held) {
-    try {
-      containedWrite({
-        root,
-        target: LOCK_FILE,
-        data: `${process.pid}\n`,
-        mode: "create",
-      });
-      held = true;
-    } catch (err) {
-      const exists =
-        err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS;
-      if (!exists) throw err;
-      reclaimStaleLock(root);
-      if (Date.now() >= deadline) throw err;
-      sleepSync(LOCK_RETRY_MS);
-    }
-  }
-  try {
-    return fn();
-  } finally {
-    try {
-      containedRemove({ root, target: LOCK_FILE });
-    } catch {
-      /* leftover lock is retried by create */
-    }
-  }
-}
-
 /** Remaining-deploy item 1: Directive GitHub App private transactional store. */
 export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
   readonly backend = "directive-github-app" as const;
@@ -229,12 +172,10 @@ export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
   }
 
   private mutate<T>(fn: () => T): T {
-    return withExclusiveLock(this.root, () => {
-      this.inner = this.hydrate();
-      const result = fn();
-      this.persist();
-      return result;
-    });
+    this.inner = this.hydrate();
+    const result = fn();
+    this.persist();
+    return result;
   }
 
   private persist(): void {
