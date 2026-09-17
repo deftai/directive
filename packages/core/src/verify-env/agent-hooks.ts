@@ -1,5 +1,6 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
+import { readCorePackageVersion } from "../engine-version.js";
 import { type AgentHookInspection, inspectAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import {
   HOST_TOOL_COVERAGE_RECOVERY,
@@ -11,6 +12,7 @@ import {
   loadHostHooksPolicyFromProject,
   UNUSED_HOST_HOOKS_RECOVERY,
 } from "../policy/host-hooks.js";
+import { compareSemver, readPin } from "../resolution/pin.js";
 import type { OutputStream } from "./verify-hooks-installed.js";
 
 export interface AgentHookHealthResult {
@@ -28,6 +30,19 @@ function isDirectory(path: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** Surface pin/engine skew beside a true valid() fail; do not replace that fail (#4692). */
+function formatPinEngineSkewVisibility(projectRoot: string): string | null {
+  const pinVersion = readPin(projectRoot).pinVersion;
+  if (pinVersion === null) return null;
+  const engineVersion = readCorePackageVersion();
+  const cmp = compareSemver(engineVersion, pinVersion);
+  if (cmp === 0 || cmp === null) return null;
+  return (
+    `Pin/engine skew is also present (engine ${engineVersion}, pin ${pinVersion}). ` +
+    "That is not this valid() fail; `deft update` is not the skew fix."
+  );
 }
 
 /** Read-only P0 agent-host registration health, independent of git hooks. */
@@ -54,6 +69,11 @@ export function evaluateAgentHooks(
     (entry) => entry.status === "missing" || entry.status === "drifted",
   );
   if (unhealthy.length > 0) {
+    const skewNote = formatPinEngineSkewVisibility(root);
+    const recovery =
+      skewNote === null
+        ? "\n  Recovery: run `deft update` (or `directive init`) to refresh project hooks. "
+        : `\n  Recovery: hook registration failed valid() (see hosts above). ${skewNote} `;
     return {
       code: 1,
       message:
@@ -61,7 +81,7 @@ export function evaluateAgentHooks(
         unhealthy
           .map((entry) => `  - ${entry.host}: ${entry.status} at ${entry.path} — ${entry.detail}`)
           .join("\n") +
-        "\n  Recovery: run `deft update` (or `directive init`) to refresh project hooks. " +
+        recovery +
         UNUSED_HOST_HOOKS_RECOVERY,
       stream: "stderr",
       registrations,

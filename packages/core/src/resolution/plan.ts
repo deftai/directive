@@ -28,7 +28,7 @@ import {
   renderGlobalInstall,
 } from "./package-manager.js";
 import { reconcileVersions } from "./pin.js";
-import { evaluateSkew, type SkewResult } from "./skew-policy.js";
+import { ACCEPT_ENGINE_SKEW_ENV, evaluateSkew, type SkewResult } from "./skew-policy.js";
 
 export interface PlanOptions {
   /**
@@ -274,10 +274,11 @@ function resolvePlan(
       return makePlan(
         "blocked",
         {
-          command: `directive <gate> --accept-engine-jump`,
+          command: null,
           rootCause: `engine ${effectiveEngine} is a large jump ahead of pin ${facts.pinVersion}`,
           remediation:
-            "Confirm the jump with --accept-engine-jump or DEFT_ACCEPT_ENGINE_SKEW=1 after reviewing the delta.",
+            `The live escape is ${ACCEPT_ENGINE_SKEW_ENV}=1 after reviewing the delta. ` +
+            "It is not a CLI flag and it does not clear fail-closed.",
         },
         warnings,
       );
@@ -287,8 +288,7 @@ function resolvePlan(
         {
           command: null,
           rootCause: `engine ${effectiveEngine} is a large jump ahead of pin ${facts.pinVersion} (interactive)`,
-          remediation:
-            "Prompt the operator to confirm the engine jump, or pass --accept-engine-jump.",
+          remediation: `Prompt the operator to confirm the engine jump. The live escape is ${ACCEPT_ENGINE_SKEW_ENV}=1; it is not a CLI flag and it does not clear fail-closed.`,
         },
         warnings,
       );

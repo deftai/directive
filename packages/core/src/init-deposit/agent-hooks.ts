@@ -57,6 +57,14 @@ export const NESTED_HOOK_TIMEOUT_SECONDS = 5;
 
 export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number];
 
+/** Matchers write merge and inspect valid() share so they cannot drift (#4692). */
+const NESTED_PRE_TOOL_MATCHERS = [
+  DIRECT_WRITE_HOOK_MATCHER,
+  SPAWN_HOOK_MATCHER,
+  SHELL_HOOK_MATCHER,
+  MCP_HOOK_MATCHER,
+] as const;
+
 /** Deposit file each supported host reads its PreToolUse registration from. */
 export const AGENT_HOOK_PATH_BY_HOST: Readonly<Record<HookHost, AgentHookPath>> = {
   claude: AGENT_HOOK_PATHS[0],
@@ -198,12 +206,7 @@ function mergeNestedConfig(
   hooks.SessionStart = [...session, nestedGroup(host, "session.start")];
   hooks.PreToolUse = [
     ...preTool,
-    nestedGroup(host, "tool.before", DIRECT_WRITE_HOOK_MATCHER),
-    nestedGroup(host, "tool.before", SPAWN_HOOK_MATCHER),
-    // Shell/Bash for runtimeAuthority scopes.push / scopes.merge (#2711)
-    nestedGroup(host, "tool.before", SHELL_HOOK_MATCHER),
-    // MCP push/merge (mcp__*, bare merge_pull_request / git_push, …) (#2711)
-    nestedGroup(host, "tool.before", MCP_HOOK_MATCHER),
+    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => nestedGroup(host, "tool.before", matcher)),
   ];
   if (options.compact) {
     const preCompact = eventArray(hooks, "PreCompact", path).filter(
@@ -279,30 +282,12 @@ function mergeCursorConfig(config: Record<string, unknown>, path: string): Recor
   ];
   hooks.preToolUse = [
     ...preTool,
-    {
+    ...NESTED_PRE_TOOL_MATCHERS.map((matcher) => ({
       command: command("cursor", "tool.before"),
-      matcher: DIRECT_WRITE_HOOK_MATCHER,
+      matcher,
       failClosed: true,
       timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
-    },
-    {
-      command: command("cursor", "tool.before"),
-      matcher: SPAWN_HOOK_MATCHER,
-      failClosed: true,
-      timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
-    },
-    {
-      command: command("cursor", "tool.before"),
-      matcher: SHELL_HOOK_MATCHER,
-      failClosed: true,
-      timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
-    },
-    {
-      command: command("cursor", "tool.before"),
-      matcher: MCP_HOOK_MATCHER,
-      failClosed: true,
-      timeout: CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
-    },
+    })),
   ];
   hooks.preCompact = [
     ...preCompact,
@@ -493,24 +478,12 @@ function hasNestedRegistration(
       const group = object(entry);
       return group?.matcher === undefined && nestedCommands(entry).includes(sessionCommand);
     }) &&
-    preTool.some((entry) => {
-      const group = object(entry);
-      return (
-        group?.matcher === DIRECT_WRITE_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand)
-      );
-    }) &&
-    preTool.some((entry) => {
-      const group = object(entry);
-      return group?.matcher === SPAWN_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
-    }) &&
-    preTool.some((entry) => {
-      const group = object(entry);
-      return group?.matcher === SHELL_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
-    }) &&
-    preTool.some((entry) => {
-      const group = object(entry);
-      return group?.matcher === MCP_HOOK_MATCHER && nestedCommands(entry).includes(toolCommand);
-    });
+    NESTED_PRE_TOOL_MATCHERS.every((matcher) =>
+      preTool.some((entry) => {
+        const group = object(entry);
+        return group?.matcher === matcher && nestedCommands(entry).includes(toolCommand);
+      }),
+    );
   if (!base) return false;
   if (!options.compact) return true;
   const preCompact = Array.isArray(hooks.PreCompact) ? hooks.PreCompact : [];
@@ -540,10 +513,9 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
   const preCompact = Array.isArray(hooks.preCompact) ? hooks.preCompact : [];
   return (
     session.some((entry) => object(entry)?.command === command("cursor", "session.start")) &&
-    preTool.some((entry) => isCursorToolBeforeEntry(entry, DIRECT_WRITE_HOOK_MATCHER)) &&
-    preTool.some((entry) => isCursorToolBeforeEntry(entry, SPAWN_HOOK_MATCHER)) &&
-    preTool.some((entry) => isCursorToolBeforeEntry(entry, SHELL_HOOK_MATCHER)) &&
-    preTool.some((entry) => isCursorToolBeforeEntry(entry, MCP_HOOK_MATCHER)) &&
+    NESTED_PRE_TOOL_MATCHERS.every((matcher) =>
+      preTool.some((entry) => isCursorToolBeforeEntry(entry, matcher)),
+    ) &&
     preCompact.some((entry) => object(entry)?.command === command("cursor", "session.compact"))
   );
 }

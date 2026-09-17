@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { readCorePackageVersion } from "../engine-version.js";
 import { HOOK_HOSTS } from "../hooks/dispatcher.js";
 import {
   HOST_TOOL_SURFACE_AUDIT,
@@ -10,9 +11,11 @@ import {
   isSpawnTool,
 } from "../hooks/tools.js";
 import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
+import { evaluateAgentHooks } from "../verify-env/agent-hooks.js";
 import {
   AGENT_HOOK_PATH_BY_HOST,
   depositedPreToolUseMatchers,
+  inspectAgentHookDeposit,
   writeAgentHookDeposit,
 } from "./agent-hooks.js";
 import { inspectHostToolCoverage } from "./host-tool-coverage.js";
@@ -114,5 +117,57 @@ describe("host tool-surface coverage (#3987)", () => {
     writeFileSync(path, readFileSync(path, "utf8").replace("|run_terminal_command", ""), "utf8");
     const optedOut = { ...DEFAULT_HOST_HOOKS_POLICY, grok: false };
     expect(inspectHostToolCoverage(root, optedOut)).toEqual([]);
+  });
+});
+
+describe("agent_hooks fail still surfaces pin/engine skew (#4692)", () => {
+  function writePin(root: string, pin: string) {
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify({ private: true, devDependencies: { "@deftai/directive": pin } }, null, 2)}\n`,
+      "utf8",
+    );
+  }
+
+  function driftGrok(root: string) {
+    const path = join(root, AGENT_HOOK_PATH_BY_HOST.grok);
+    writeFileSync(path, readFileSync(path, "utf8").replace("|run_terminal_command", ""), "utf8");
+  }
+
+  it("a valid() fail still reports as that fail when pin lags the engine", () => {
+    const root = depositedProject();
+    driftGrok(root);
+    writePin(root, "0.114.0");
+    const result = evaluateAgentHooks(root);
+    expect(result.code).toBe(1);
+    expect(result.registrations.find((entry) => entry.host === "grok")?.status).toBe("drifted");
+    expect(result.message).toContain("registration INCOMPLETE");
+    expect(result.message).toContain("drifted");
+    expect(result.message).toContain("0.114.0");
+    expect(result.message).toMatch(/Pin\/engine skew is also present/);
+    expect(result.message).not.toContain("Recovery: run `deft update`");
+    expect(result.message).toContain("is not the skew fix");
+  });
+
+  it("hook-drift recovery remains when pin matches the engine", () => {
+    const root = depositedProject();
+    driftGrok(root);
+    writePin(root, readCorePackageVersion());
+    const result = evaluateAgentHooks(root);
+    expect(result.code).toBe(1);
+    expect(result.registrations.find((entry) => entry.host === "grok")?.status).toBe("drifted");
+    expect(result.message).toContain("Recovery: run `deft update`");
+    expect(result.message).not.toMatch(/Pin\/engine skew is also present/);
+  });
+
+  it("writeAgentHookDeposit and inspectAgentHookDeposit share one running-engine schema", () => {
+    const root = depositedProject();
+    expect(inspectAgentHookDeposit(root).every((entry) => entry.status === "healthy")).toBe(true);
+    driftGrok(root);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")?.status).toBe(
+      "drifted",
+    );
+    writeAgentHookDeposit(root, { printf: () => undefined });
+    expect(inspectAgentHookDeposit(root).every((entry) => entry.status === "healthy")).toBe(true);
   });
 });

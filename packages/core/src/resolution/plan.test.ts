@@ -192,7 +192,11 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
   it("engine ahead beyond window -> blocked (fail-closed)", () => {
     const p = plan(facts({ engineVersion: "0.80.0" }), { engineSkewWindow: 3 });
     expect(p.mode).toBe("blocked");
-    expect(p.nextAction.command).toContain("--accept-engine-jump");
+    expect(p.nextAction.command).toBeNull();
+    expect(JSON.stringify(p.nextAction)).not.toMatch(/<gate>/);
+    expect(p.nextAction.remediation).toContain("DEFT_ACCEPT_ENGINE_SKEW");
+    expect(p.nextAction.remediation).not.toMatch(/proceed/i);
+    expect(p.nextAction.command ?? "").not.toContain("--accept-engine-jump");
   });
 
   it("engine ahead beyond window with escape hatch -> update", () => {
@@ -212,6 +216,9 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
     );
     expect(p.mode).toBe("blocked");
     expect(p.nextAction.rootCause).toContain("interactive");
+    expect(p.nextAction.command).toBeNull();
+    expect(p.nextAction.remediation).toContain("DEFT_ACCEPT_ENGINE_SKEW");
+    expect(p.nextAction.remediation).not.toMatch(/proceed/i);
   });
 
   it("no reachable engine and no ladder resolution -> blocked", () => {
