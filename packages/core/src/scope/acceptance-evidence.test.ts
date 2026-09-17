@@ -1138,7 +1138,6 @@ describe("#4385 clause-keyed complete persist and scope:status", () => {
     expect(evaluateAcceptanceEvidenceGate(plan).ok).toBe(true);
   });
 
-
   it("scope:status emits counts and ids and omits clause text", () => {
     const plan: Record<string, unknown> = {
       id: "github.issue.5421105917",
