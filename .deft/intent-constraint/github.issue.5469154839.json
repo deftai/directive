@@ -2,13 +2,8 @@
   "schema": "deft.intent-constraint.v1",
   "planId": "github.issue.5469154839",
   "xbriefRelPath": "xbrief/active/2026-09-16-4595-designswarmverify-occupancy-admission-leftover-plan-sequence.xbrief.json",
-  "approvedAt": "2026-09-17T02:34:14Z",
+  "approvedAt": "2026-09-17T02:42:14Z",
   "constraints": [
-    {
-      "value": "Launch occupancy record would silently swap occupancy_session_id or admitted story_ids. Retract first (named re-launch) or persist only when the live lease and roster match.",
-      "unit": "error-message",
-      "rejectionScope": "invocation"
-    },
     {
       "value": "Launch occupancy record would silently swap occupancy_session_id or admitted story_ids. Retract first (named re-launch) or persist only when the live lease and roster match.",
       "unit": "error-message",
@@ -18,8 +13,8 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "MScottAdams",
-    "mintedAt": "2026-09-17T02:34:14Z",
+    "mintedAt": "2026-09-17T02:42:14Z",
     "mintedVia": "scope:record-intent-constraint"
   },
-  "contractDigest": "324b63a5af53ea77330c0363960cedb3e83beaad32a309dfe2c883209aedf360"
+  "contractDigest": "7c302ec347479ea4738bb5bf73fee331b4c5dd78508467f374c313b19bc88606"
 }
