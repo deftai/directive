@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-09-17-4718-bugdoctor-after-successful-update-within-window-enginepin-st.xbrief.json",
+  "planId": "github.issue.5490635275",
+  "approvedAt": "2026-09-17T23:07:21Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/doctor/main.ts",
+    "packages/core/src/resolution/skew-policy.ts",
+    "packages/types/src/resolution.test.ts",
+    "packages/types/src/resolution.ts"
+  ],
+  "fileScopeDigest": "ae7a9ddaf67b912d00d081e26f4fb913c599c74bbe85a372e75bb4e8ef8e2d69",
+  "humanApproval": {
+    "kind": "renewed-approval",
+    "actor": "Scott",
+    "mintedAt": "2026-09-17T23:07:21Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "82ca09621d3941e14b47f187ed8e74e1dbd4bcb8beb0d165ecd9d43cd27427f2",
+  "digestAlgo": "intent-extract-v1"
+}
