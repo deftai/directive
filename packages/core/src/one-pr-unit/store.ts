@@ -198,13 +198,14 @@ export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
         mode: "create",
       });
       renameSync(tmp, join(this.root, CLAIMS_FILE));
-    } catch (err) {
-      try {
-        containedRemove({ root: this.root, target: tmpName });
-      } catch {
-        /* best-effort tmp cleanup */
+    } finally {
+      if (existsSync(tmp)) {
+        try {
+          containedRemove({ root: this.root, target: tmpName });
+        } catch {
+          /* best-effort tmp cleanup */
+        }
       }
-      throw err;
     }
   }
 
@@ -298,9 +299,8 @@ export function bindExactSetThenResolve(input: {
       if (declared.code === "allow-granted") {
         try {
           input.store.bind(reserved.id, node);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (!msg.includes("already bound")) throw err;
+        } catch {
+          /* already bound or raced; resolve by this node */
         }
       }
     }
