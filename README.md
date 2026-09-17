@@ -3,9 +3,9 @@
 >
 > **New clone, or `deft` / `directive` won't run?** Directive runs from an npm-installed engine — there is no committed shell shim, so *you* (agent or human) are the interpreter. Work the **global-first ladder** below top-down and stop at the first rung that yields a working `directive`. The version to install is always the one pinned in the project's committed `package.json`.
 >
-> 1. **Already installed?** Run `directive doctor` (or the `deft` alias). If it runs, you're bootstrapped — skip the rest and follow its `Next command:`.
+> 1. **Already installed?** Run `directive doctor --full` (or the `deft` alias). Follow its `Next command:`. A process that starts is not bootstrap success. Bare `directive doctor` may skip (24h clean / 4h dirty); `--full` bypasses that throttle.
 > 2. **Local engine.** If `.deft/.cli/<platform>` holds an intact engine at or above the `package.json` pin, use it.
-> 3. **Global install (canonical).** `npm i -g @deftai/directive` (Node ≥ 20), then re-run `directive doctor`. Using pnpm? `pnpm add -g @deftai/directive` (same package, same registry) — make sure `PNPM_HOME` is on your `PATH` (`pnpm setup` if not).
+> 3. **Global install (canonical).** `npm i -g @deftai/directive` (Node ≥ 20), then re-run `directive doctor --full`. Using pnpm? `pnpm add -g @deftai/directive` (same package, same registry) — make sure `PNPM_HOME` is on your `PATH` (`pnpm setup` if not).
 > 4. **Sandbox install.** If the global npm prefix isn't writable (sandboxed environment), install into the project instead: `npm install --prefix .deft/.cli/<platform> @deftai/directive@<pinned>`. (This internal `.deft/.cli/` layout is always npm-shaped, regardless of your project's package manager.)
 > 5. **Corporate mirror symptoms.** If install returns `E404` / `ETARGET`, or `@latest` silently stays behind the public release, follow the [corporate or mirrored npm registry recovery](./content/UPGRADING.md#corporate-or-mirrored-npm-registry).
 > 6. **Offline.** If the npm registry is unreachable, install from a staged tarball / vendored payload. If none exists, stage one — recovery cannot proceed without a payload.
@@ -13,7 +13,7 @@
 > This block is always committed (never gitignored) and does **not** depend on the `.deft/core/` payload being present, so it is reachable on a fresh clone even when the vendored framework is missing. Once `directive` runs, continue with the guidance below and in `AGENTS.md`.
 <!-- /deft:cold-start-bootstrap v1 -->
 
-**Stuck?** [Support hub](./content/docs/SUPPORT.md) — symptom index to `directive doctor` or this cold-start. **First project:** [getting-started](./content/docs/getting-started.md).
+**Stuck?** [Support hub](./content/docs/SUPPORT.md) — symptom index to `directive doctor --full` or this cold-start. **First project:** [getting-started](./content/docs/getting-started.md).
 
 # Deft
 
@@ -40,7 +40,7 @@ Directive is three commands — `init`, `update`, and `doctor`. After install, w
 | New, empty project directory | `directive init` | Scaffolds a fresh Directive deposit (`.deft/core/`, the `AGENTS.md` managed section, the `xbrief/` layout, and a committed `package.json` pin). |
 | Existing codebase (app code, no Directive yet) | `directive init` | Installs Directive support beside your code without disturbing it, then points you at brownfield spec extraction. |
 | Existing Directive project (already initialized) | `directive update` | Refreshes the vendored payload and self-heals the engine. (`init` detects this state and delegates to `update` with a disclosure line — it never re-scaffolds an existing install.) |
-| Not sure, or something looks broken | `directive doctor` | Read-only diagnosis that prints exactly one recommended next step. |
+| Not sure, or something looks broken | `directive doctor --full` | Read-only diagnosis. Bare `directive doctor` may throttle-skip (24h clean / 4h dirty); `--full` re-probes and prints exactly one next step. |
 | Legacy / pre-v0.20 layout | `directive init` (or `directive doctor`) | Classifies the layout and routes you to the specific migration path (see [UPGRADING.md](./content/UPGRADING.md)). |
 
 `directive init` is the **universal entrypoint**. `directive` (the `deft` alias also works) runs any verb; `npx @deftai/directive <verb>` or `pnpm dlx @deftai/directive <verb>` runs one without a global install.
@@ -61,11 +61,11 @@ Make sure pnpm's global bin directory is on your `PATH` (run `pnpm setup` once t
 
 ```bash
 directive init      # classify this directory and set up (or route) accordingly
-directive doctor    # confirm the install and print your one next step
+directive doctor --full    # confirm the install; --full bypasses throttle
 directive toolchain:check --consumer
 ```
 
-**Node runtime (required):** Install **Node 20+**, **Git**, **GitHub CLI (`gh`)**, and the package manager you use (`npm` is bundled with Node; pnpm is an alternative). After `directive init`, confirm with `directive doctor` and `directive toolchain:check --consumer`. That consumer probe always checks Node, git, gh, and the selected manager (`npm` or `pnpm`). It does not require Python, uv, Go, or Task. Framework maintainers building this repository use a separate Node 24 pin plus pnpm, Go, and Task; see [CONTRIBUTING.md](./CONTRIBUTING.md). See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
+**Node runtime (required):** Install **Node 20+**, **Git**, **GitHub CLI (`gh`)**, and the package manager you use (`npm` is bundled with Node; pnpm is an alternative). After `directive init`, confirm with `directive doctor --full` and `directive toolchain:check --consumer`. That consumer probe always checks Node, git, gh, and the selected manager (`npm` or `pnpm`). It does not require Python, uv, Go, or Task. Framework maintainers building this repository use a separate Node 24 pin plus pnpm, Go, and Task; see [CONTRIBUTING.md](./CONTRIBUTING.md). See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
 
 **What gets tracked vs ignored:** `init` and `update` add Directive's local-only artifacts to your `.gitignore` — the reconstitutable deposit `.deft/core/`, the per-platform engine cache `.deft/.cli/`, session/ritual state such as `.deft/ritual-state.json`, and the `.deft-cache/` content cache. Your committed `package.json` pin is **never** ignored: it is the anchor that lets `directive init` / `directive update` reconstitute `.deft/core/` on a fresh clone, so it stays tracked in version control.
 

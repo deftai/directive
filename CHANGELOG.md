@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Throttle-skip after a warning-only doctor run is not billed as clean (#4673).** The skip line uses persisted lastFindingCount; lastErrorCount 0 with findings >= 1 does not print clean. isDirty stays lastErrorCount > 0. README diagnosis rows and diagnosis front doors name `--full`. Ritual session-start `deft doctor` stays the cost skip. Missing `.deft/core` skip invalidation stays on #4679. Refs #4673.
+
 ### Removed
 
 ## [0.119.2] - 2026-09-17

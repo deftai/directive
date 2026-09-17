@@ -162,5 +162,11 @@ export function renderDoctorStatusLine(decision: ThrottleDecision, now = new Dat
   }
   const remainingMs = (decision.nextEligibleAt?.getTime() ?? now.getTime()) - now.getTime();
   const remainingH = Math.max(Math.floor(remainingMs / 3_600_000), 0);
+  // Warning-only last run stays a 24h skip (#3379) but must not print clean (#4673).
+  if (decision.lastFindingCount >= 1) {
+    const warns = Math.max(decision.lastFindingCount - decision.lastErrorCount, 0);
+    const warnPhrase = `${warns} warning${warns !== 1 ? "s" : ""}`;
+    return `[doctor] ran ${ageH}h ago, ${warnPhrase} (advisory; throttle-skipped); next eligible in ${remainingH}h; --full forces.`;
+  }
   return `[doctor] ran ${ageH}h ago, clean; next eligible in ${remainingH}h; --full forces.`;
 }

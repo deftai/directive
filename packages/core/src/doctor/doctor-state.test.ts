@@ -88,6 +88,44 @@ describe("doctor-state", () => {
       new Date("2026-01-01T12:00:00Z"),
     );
     expect(renderDoctorStatusLine(clean)).toContain("next eligible");
+    expect(renderDoctorStatusLine(clean)).toContain("clean");
+  });
+
+  it("decideThrottle does not treat warning-only as dirty (#3379 / #4673)", () => {
+    const now = new Date("2026-01-01T05:00:00Z");
+    const decision = decideThrottle(
+      {
+        lastRunAt: new Date("2026-01-01T00:00:00Z"),
+        lastExitCode: 0,
+        lastFindingCount: 1,
+        lastErrorCount: 0,
+      },
+      now,
+    );
+    expect(decision.dirty).toBe(false);
+    expect(decision.skip).toBe(true);
+  });
+
+  it("renderDoctorStatusLine does not bill a warning-only skip as clean (Tester 1 / #4673)", () => {
+    const now = new Date("2026-01-01T01:00:00Z");
+    const warningOnly = decideThrottle(
+      {
+        lastRunAt: new Date("2026-01-01T00:00:00Z"),
+        lastExitCode: 0,
+        lastFindingCount: 1,
+        lastErrorCount: 0,
+      },
+      now,
+    );
+    expect(warningOnly.skip).toBe(true);
+    expect(warningOnly.dirty).toBe(false);
+    const line = renderDoctorStatusLine(warningOnly, now);
+    expect(line).not.toMatch(/\bclean\b/);
+    expect(line).toContain("1 warning");
+    expect(line).toContain("advisory");
+    expect(line).toContain("throttle-skipped");
+    expect(line).toContain("--full forces");
+    expect(line).toContain("next eligible");
   });
 
   it("renderDoctorStatusLine uses singular error phrasing", () => {

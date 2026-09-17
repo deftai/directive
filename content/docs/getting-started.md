@@ -41,13 +41,13 @@ deft --version         # alias — same binary
 One-shot without a global install:
 
 ```bash
-npx @deftai/directive doctor
+npx @deftai/directive doctor --full
 npx @deftai/directive session:start
 ```
 
 This npm path has been the canonical distribution channel since v0.55.1. A pnpm-managed repository can install the same package with `pnpm add -g @deftai/directive` or project-locally with `pnpm add -D @deftai/directive`.
 
-**Success:** `directive --version` prints a version. **Recovery:** run `directive doctor` and follow its one `Next command:`. Agent detect-state cases live in [QUICK-START.md](../QUICK-START.md).
+**Success:** `directive --version` prints a version. **Recovery:** run `directive doctor --full` and follow its one `Next command:`. Agent detect-state cases live in [QUICK-START.md](../QUICK-START.md).
 
 ### Go installer (legacy bridge)
 
@@ -82,7 +82,7 @@ npm i -g @deftai/directive
 directive --version
 ```
 
-**Success:** a version string. **Recovery:** `directive doctor`.
+**Success:** a version string. **Recovery:** `directive doctor --full`.
 
 ### 2. Create a Git repository, then init
 
@@ -96,17 +96,17 @@ directive init
 
 `init` writes the vendored deposit into gitignored `.deft/core/`, renders `AGENTS.md`, scaffolds `xbrief/` lifecycle folders, and adds an include-only root `Taskfile.yml`. Tracked vs ignored: the reconstitutable deposit and session cache are ignored; your `package.json` pin stays tracked.
 
-**Success:** `.deft/core/` and `AGENTS.md` exist. **Recovery:** `directive doctor` (one `Next command:`).
+**Success:** `.deft/core/` and `AGENTS.md` exist. **Recovery:** `directive doctor --full` (one `Next command:`).
 
 ### 3. Doctor
 
 ```bash
-directive doctor
+directive doctor --full
 ```
 
-Doctor is read-only. When the install is healthy it prints `System check passed!`. When action is required it prints exactly one `Next command:` with a root-cause line.
+Doctor is read-only. `--full` bypasses the 24h clean / 4h dirty throttle so a skip is not a healthy install. When the install is healthy it prints `System check passed!`. When action is required it prints exactly one `Next command:` with a root-cause line.
 
-**Success:** `System check passed!` **Recovery:** run the printed `Next command:`. Detect-state ladders stay in [QUICK-START.md](../QUICK-START.md).
+**Success:** `System check passed!` (not a throttle-skip line). **Recovery:** run the printed `Next command:`. Detect-state ladders stay in [QUICK-START.md](../QUICK-START.md).
 
 ### 4. USER.md and project definition
 
@@ -120,13 +120,13 @@ Project identity lives in `xbrief/PROJECT-DEFINITION.xbrief.json`. Greenfield se
 
 Tell your agent to follow `AGENTS.md`, or run `directive bootstrap`. That hands off to the setup skill. The skill asks one question at a time and **must not write files until you confirm** the captured values (`yes` / `confirmed` / `approve`). Promotion and activation are later commitments, not automatic setup continuation.
 
-**Success:** `USER.md` exists at the platform path and `xbrief/PROJECT-DEFINITION.xbrief.json` exists. **Recovery:** `directive doctor`, then re-enter setup. Do not skip the confirmation gate.
+**Success:** `USER.md` exists at the platform path and `xbrief/PROJECT-DEFINITION.xbrief.json` exists. **Recovery:** `directive doctor --full`, then re-enter setup. Do not skip the confirmation gate.
 
 ### 5. First proposed scope
 
 Setup Phase 3 writes the first scope xBRIEF to `xbrief/proposed/` with `plan.status: proposed`. Filename shape: `YYYY-MM-DD-descriptive-slug.xbrief.json`. New writes use `"xBRIEFInfo": { "version": "0.8" }`.
 
-**Success:** one file in `xbrief/proposed/`. **Recovery:** `directive doctor`. If setup stopped early, resume the setup skill; do not hand-copy a completed xBRIEF as the next-build contract.
+**Success:** one file in `xbrief/proposed/`. **Recovery:** `directive doctor --full`. If setup stopped early, resume the setup skill; do not hand-copy a completed xBRIEF as the next-build contract.
 
 ### 6. Git: feature branch and a clean tree
 
@@ -141,7 +141,7 @@ deft verify:branch
 
 `--allow-dirty` on story-ready is an intentional exception, not the happy path.
 
-**Success:** `deft verify:branch` exits 0 on the feature branch. **Recovery:** create a feature branch; commit or stash leftover files; then `directive doctor`.
+**Success:** `deft verify:branch` exits 0 on the feature branch. **Recovery:** create a feature branch; commit or stash leftover files; then `directive doctor --full`.
 
 ### 7. Promote, then activate
 
@@ -154,7 +154,7 @@ deft scope:activate -- xbrief/pending/<file>.xbrief.json
 
 Promote moves proposed → pending. Activate moves pending → `xbrief/active/` and sets `plan.status` to `running`. Both commands are idempotent.
 
-**Success:** the file is in `xbrief/active/` with `plan.status` `running`. **Recovery:** `directive doctor`. If activate says the file must be in `pending/`, run promote first.
+**Success:** the file is in `xbrief/active/` with `plan.status` `running`. **Recovery:** `directive doctor --full`. If activate says the file must be in `pending/`, run promote first.
 
 Promote and activate move a tracked xBRIEF. Commit that change before story-ready. A dirty tree fails the next gate.
 
@@ -172,7 +172,7 @@ deft xbrief:preflight -- xbrief/active/<file>.xbrief.json
 
 `--vbrief-path` is the shipped story-ready flag (the file is still a `.xbrief.json`). Preflight exits 0 only when the candidate lives in `xbrief/active/` and `plan.status` is `running`.
 
-**Success:** both commands exit 0. **Recovery:** fix Git state (step 6), then `directive doctor`. Do not start implementation until preflight is green.
+**Success:** both commands exit 0. **Recovery:** fix Git state (step 6), then `directive doctor --full`. Do not start implementation until preflight is green.
 
 ### 9. First check (terminal verb)
 
@@ -182,7 +182,7 @@ deft check
 
 `deft check` is the named terminal verb for this journey. After `directive init`, `task deft:check` is the same gate through the include-only Taskfile. A green check means the Directive control plane is ready. It does not mean the product is built.
 
-**Success:** `deft check` exits 0. **Recovery:** `directive doctor` and the failing gate's own message. Next: cost phase then `skills/deft-directive-build/SKILL.md` when you are ready to implement.
+**Success:** `deft check` exits 0. **Recovery:** `directive doctor --full` and the failing gate's own message. Next: cost phase then `skills/deft-directive-build/SKILL.md` when you are ready to implement.
 
 ---
 
