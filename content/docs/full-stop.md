@@ -38,6 +38,7 @@ See [hook runtime unavailable](./hook-runtime-unavailable.md).
 `task setup` / `deft setup` sets `core.hooksPath=.githooks`. After uninstall, git still dispatches `.githooks/pre-commit` and `pre-push` at a missing `deft` binary.
 
 ! Unset `core.hooksPath` while the CLI still exists.
+! After the local unset, verify the effective value. A surviving global or system Directive path is still live dispatch.
 
 ### 3. Local-only caches beside `.deft`
 
@@ -83,9 +84,12 @@ directive update
 
 ```bash
 git config --unset core.hooksPath
+git config --get --show-origin core.hooksPath
 ```
 
-If `core.hooksPath` is already unset, git exits non-zero. That is already stopped.
+`--unset` removes only the repository-local value. A non-zero `--unset` means no local value, not that dispatch stopped.
+
+If `--get --show-origin` prints nothing (exit 1), dispatch is stopped. If it still shows `.githooks` or another Directive path, a global or system setting remains. Unset that scope (`git config --global --unset core.hooksPath` or `--system`) and re-check. Do not uninstall while the effective value still points at this repo's `.githooks`.
 
 3. Uninstall the CLI:
 
