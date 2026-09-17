@@ -28,8 +28,8 @@ export const N3_SPEND: ArcSpend = "N≥3";
 
 export const SPEND_ASK_REMEDIATION = "ask before Stop 1";
 
-const N1_TOKEN_RE = /\bn=1\b/i;
-const N3_TOKEN_RE = /\bn(?:=3|>=3|\u22653)\b/i;
+const N1_TOKEN_RE = /\bn=1(?!\.\d)\b/i;
+const N3_TOKEN_RE = /\bn(?:=3|>=3|\u22653)(?!\.\d)\b/i;
 const PANEL_TOKEN_RE = /\bpanel\b/i;
 
 export type SpendRecordRefusal =

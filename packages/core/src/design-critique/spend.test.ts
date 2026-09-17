@@ -119,6 +119,29 @@ describe("parseOperatorSpend (#4705)", () => {
       reason: "missing-token",
     });
   });
+
+  it("rejects decimal continuations and keeps sentence punctuation", () => {
+    expect(parseOperatorSpend("arc 4690 n=1.5")).toEqual({
+      kind: "ask",
+      reason: "missing-token",
+    });
+    expect(parseOperatorSpend("arc 4690 n=3.5")).toEqual({
+      kind: "ask",
+      reason: "missing-token",
+    });
+    expect(parseOperatorSpend("arc 4690 n>=3.5")).toEqual({
+      kind: "ask",
+      reason: "missing-token",
+    });
+    expect(parseOperatorSpend("arc 4690 n=1.")).toEqual({
+      kind: "resolved",
+      spend: N1_SPEND,
+    });
+    expect(parseOperatorSpend("arc 4690 n=1")).toEqual({
+      kind: "resolved",
+      spend: N1_SPEND,
+    });
+  });
 });
 
 describe("evaluateSpendRecord (#4705)", () => {
