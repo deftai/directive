@@ -126,6 +126,17 @@ describe("doctor-state", () => {
     expect(line).toContain("throttle-skipped");
     expect(line).toContain("--full forces");
     expect(line).toContain("next eligible");
+    const twoWarns = decideThrottle(
+      {
+        lastRunAt: new Date("2026-01-01T00:00:00Z"),
+        lastExitCode: 0,
+        lastFindingCount: 2,
+        lastErrorCount: 0,
+      },
+      now,
+    );
+    expect(renderDoctorStatusLine(twoWarns, now)).toContain("2 warnings");
+    expect(renderDoctorStatusLine(twoWarns, now)).not.toMatch(/\bclean\b/);
   });
 
   it("renderDoctorStatusLine uses singular error phrasing", () => {
