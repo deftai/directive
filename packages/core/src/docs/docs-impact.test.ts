@@ -17,6 +17,7 @@ import {
   extractHelpKeysFromSource,
   extractSkillIdsFromPack,
   fetchPrBodyRest,
+  originQualifyBranchName,
   originQualifyGitBase,
   parseDocsImpactArgs,
   parseDocsImpactDeclaration,
@@ -437,6 +438,13 @@ describe("docs-impact comparison base (#4675)", () => {
     expect(originQualifyGitBase("  ")).toBe("");
   });
 
+  it("always origin-qualifies REST branch names, including origin/ and refs/ prefixes", () => {
+    expect(originQualifyBranchName("develop")).toBe("origin/develop");
+    expect(originQualifyBranchName("origin/release")).toBe("origin/origin/release");
+    expect(originQualifyBranchName("refs/heads/release")).toBe("origin/refs/heads/release");
+    expect(originQualifyBranchName("  ")).toBe("");
+  });
+
   it("does not import origin-default resolvers or HEAD~1 fallback", () => {
     const src = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "docs-impact.ts"),
@@ -515,6 +523,28 @@ describe("docs-impact comparison base (#4675)", () => {
     expect(
       git.calls.some((args) => args.includes("origin/main") || args.includes("origin/master")),
     ).toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("origin-qualifies REST base.ref when the branch name starts with origin/", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-origin-named-branch-"));
+    const git = recordingGit("origin/origin/release");
+    const code = docsImpactMain(["--pr", "376", "--repo", "owner/name", "--project-root", dir], {
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify({
+          body: validNoneBody,
+          base: { ref: "origin/release", repo: { default_branch: "main" } },
+        }),
+        stderr: "",
+      }),
+      runGit: git.runGit,
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(git.calls[0]).toEqual(["merge-base", "origin/origin/release", "HEAD"]);
+    expect(git.calls.some((args) => args[0] === "merge-base" && args[1] === "origin/release")).toBe(
+      false,
+    );
     rmSync(dir, { recursive: true, force: true });
   });
 

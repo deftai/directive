@@ -164,12 +164,19 @@ export function verifyDocsImpactBodyFile(
   return docsImpactMain(argv, { runGh: seams.runGh, runGit: seams.runGit });
 }
 
-/** Qualify a forge/operator branch name for git argv. Does not invent origin/master or HEAD. */
+/** REST `base.ref` / `gh pr create --base` are branch names, including names that start with origin/ or refs/. */
+export function originQualifyBranchName(intended: string): string {
+  const trimmed = intended.trim();
+  if (trimmed.length === 0) return "";
+  return `origin/${trimmed}`;
+}
+
+/** Qualify an explicit --base-ref that may already be origin/ or refs/. Does not invent origin/master or HEAD. */
 export function originQualifyGitBase(intended: string): string {
   const trimmed = intended.trim();
   if (trimmed.length === 0) return "";
   if (trimmed.startsWith("origin/") || trimmed.startsWith("refs/")) return trimmed;
-  return `origin/${trimmed}`;
+  return originQualifyBranchName(trimmed);
 }
 
 function sliceAssignment(source: string, name: string): string {
@@ -670,7 +677,8 @@ export function docsImpactMain(
     );
     return EXIT_CONFIG;
   }
-  const gitBase = originQualifyGitBase(intended);
+  const gitBase =
+    parsed.pr !== null ? originQualifyBranchName(intended) : originQualifyGitBase(intended);
   if (gitBase.length === 0) {
     process.stderr.write(
       "Error: missing docs-impact comparison base after origin-qualify. Do not default to origin/master or HEAD.\n",
