@@ -160,12 +160,12 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=15bcdd2806e7 refreshed=2026-09-17T16:26:45Z session=fee4cc0b4e2f -->
+<!-- deft:managed-section v3 sha=9d1387bef870 refreshed=2026-09-17T16:38:14Z session=d65a185df04d -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
-! If any .deft/core/.agents/skills/ path here cannot be read (missing, stale, or a redirect stub), recover (#4090): `directive doctor --full`, else `npm i -g @deftai/directive@<pin>` (package.json) then `directive doctor --full`. ⊗ never a payload path.
+! If any .deft/core/.agents/skills/ path here cannot be read (missing, stale, or a redirect stub), recover (#4090): `directive doctor --full`, else `npm i -g @deftai/directive@<pin>` then doctor --full. ⊗ never a payload path.
 
 ## Temporary test kill-switch (#3039)
 

@@ -3,7 +3,7 @@
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
-! If any .deft/core/.agents/skills/ path here cannot be read (missing, stale, or a redirect stub), recover (#4090): `directive doctor --full`, else `npm i -g @deftai/directive@<pin>` (package.json) then `directive doctor --full`. ⊗ never a payload path.
+! If any .deft/core/.agents/skills/ path here cannot be read (missing, stale, or a redirect stub), recover (#4090): `directive doctor --full`, else `npm i -g @deftai/directive@<pin>` then doctor --full. ⊗ never a payload path.
 
 ## Temporary test kill-switch (#3039)
 
