@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { ThreadComment } from "../design-critique/completed-arc-record.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "../design-critique/exclusive-chip.js";
+import { IssueCommentFetchError } from "../intake/issue-ingest.js";
 import { ScmLabelError } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
@@ -10,6 +12,48 @@ import {
   resolveRepoFromGitOrigin,
   runDesignCritiqueChip,
 } from "./design-critique-chip.js";
+
+const LEAN_ID = 5442939496;
+const TABLE_ID = 5443106967;
+const SYNTHESIS_ID = 5443114746;
+
+const completeComments: ThreadComment[] = [
+  { id: LEAN_ID, body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n" },
+  { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+  {
+    id: SYNTHESIS_ID,
+    body:
+      "model: grok-4.6\nrole: parent\n\n" +
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+  },
+];
+
+const malformedCanonicalComments: ThreadComment[] = [
+  { id: 1, body: "role: critic\n\n## Finding 1\n" },
+  {
+    id: SYNTHESIS_ID,
+    body: "design-critique: synthesis accepted because agents agreed (empty disagreement set)\n",
+  },
+];
+
+const unresolvedPainComments: ThreadComment[] = [
+  {
+    id: 10,
+    body: "role: parent\n\ndesign-critique: warranted, because coverage gap.\n\npain: P1\npain: P2\n",
+  },
+  { id: LEAN_ID, body: "**Lean:** bind relief.\n\nrelieves: P1\nrelieves: P2\n" },
+  { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+  {
+    id: SYNTHESIS_ID,
+    body:
+      "model: grok-4.6\nrole: parent\n\n" +
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+  },
+];
+
+const completeFetch = (): readonly ThreadComment[] => completeComments;
 
 class FakeLabelClient implements LabelClient {
   labels: string[];
@@ -185,7 +229,7 @@ describe("runDesignCritiqueChip", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
     const result = runDesignCritiqueChip(
       ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
-      { client },
+      { client, fetchComments: completeFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toHaveLength(1);
@@ -239,7 +283,7 @@ describe("runDesignCritiqueChip", () => {
     const client = new FakeLabelClient(["process", "design-critique:ingest-ready"]);
     const result = runDesignCritiqueChip(
       ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive"],
-      { client },
+      { client, fetchComments: completeFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toHaveLength(0);
@@ -304,13 +348,31 @@ describe("runDesignCritiqueChip", () => {
     };
     const result = runDesignCritiqueChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive"],
-      { client },
+      { client, fetchComments: completeFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(result.stdout).not.toContain("already exclusive");
     expect(result.stderr).toMatch(/chip apply missed \(non-blocking convenience\)/);
     expect(result.stderr).toMatch(/issue view failed/);
     expect(result.stderr).toMatch(/ingest is not blocked/);
+  });
+
+  it("treats ingest-ready comment fetch failure as blocking proof-fail (#4700)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = runDesignCritiqueChip(
+      ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
+      {
+        client,
+        fetchComments: () => {
+          throw new IssueCommentFetchError("deftai/directive", 1, "page 1 failed");
+        },
+      },
+    );
+    expect(result.exitCode).toBe(1);
+    expect(client.applyCalls).toHaveLength(0);
+    const payload = JSON.parse(result.stdout) as { miss: boolean; blocking: boolean };
+    expect(payload).toMatchObject({ miss: false, blocking: true });
+    expect(result.stdout).not.toContain("chip apply missed");
   });
 
   it("parses git origin as OWNER/NAME in this checkout", () => {
@@ -323,6 +385,7 @@ describe("runDesignCritiqueChip", () => {
     const result = runDesignCritiqueChip(["--issue", "1", "--chip", "ingest-ready", "--json"], {
       client,
       resolveDefaultRepo: () => "deftai/directive",
+      fetchComments: completeFetch,
     });
     expect(result.exitCode).toBe(0);
     const payload = JSON.parse(result.stdout) as { repo: string };
@@ -350,7 +413,7 @@ describe("runDesignCritiqueChip", () => {
     };
     const result = runDesignCritiqueChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
-      { client },
+      { client, fetchComments: completeFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(result.stdout).not.toContain("already exclusive");
@@ -362,5 +425,52 @@ describe("runDesignCritiqueChip", () => {
     };
     expect(payload).toMatchObject({ applied: false, miss: true, blocking: false });
     expect(payload.error).toMatch(/403/);
+  });
+
+  it("does not fetch comments for mechanism-shaped or in-progress (#4700)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    let fetches = 0;
+    const fetchComments = (): ThreadComment[] => {
+      fetches += 1;
+      return completeComments;
+    };
+    const shaped = runDesignCritiqueChip(
+      ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
+      { client, fetchComments },
+    );
+    expect(shaped.exitCode).toBe(0);
+    expect(fetches).toBe(0);
+    const progress = runDesignCritiqueChip(
+      ["--issue", "1", "--chip", "in-progress", "--repo", "o/r"],
+      { client, fetchComments },
+    );
+    expect(progress.exitCode).toBe(0);
+    expect(fetches).toBe(0);
+  });
+
+  it("refuses malformed canonical record plus label (#4700)", () => {
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+    const result = runDesignCritiqueChip(
+      ["--issue", "652", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
+      { client, fetchComments: () => malformedCanonicalComments },
+    );
+    expect(result.exitCode).toBe(1);
+    expect(client.applyCalls).toHaveLength(0);
+    const payload = JSON.parse(result.stdout) as { miss: boolean; blocking: boolean; error: string };
+    expect(payload).toMatchObject({ miss: false, blocking: true });
+    expect(payload.error).toMatch(/synthesis accepted because/);
+    expect(result.stdout).not.toContain("chip apply missed");
+  });
+
+  it("refuses unresolved pain audit plus label (#4700)", () => {
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+    const result = runDesignCritiqueChip(
+      ["--issue", "657", "--chip", "ingest-ready", "--repo", "deftai/directive"],
+      { client, fetchComments: () => unresolvedPainComments },
+    );
+    expect(result.exitCode).toBe(1);
+    expect(client.applyCalls).toHaveLength(0);
+    expect(result.stderr).toMatch(/unresolved-pain-audit/);
+    expect(result.stderr).not.toMatch(/chip apply missed/);
   });
 });

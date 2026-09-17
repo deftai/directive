@@ -260,6 +260,28 @@ describe("reconciliation branches", () => {
   });
 });
 
+
+const COMPLETE_ARC_COMMENTS = [
+  { id: 5442939496, body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n" },
+  { id: 5443106967, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+  {
+    id: 5443114746,
+    body:
+      "model: grok-4.6\nrole: parent\n\n" +
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      "Bound contract: successor lean 5442939496, confirmed by operator, verified-claims table 5443106967.\n",
+  },
+];
+
+function mockIngestReadyComments(spy: ReturnType<typeof vi.spyOn>) {
+  return spy.mockReturnValueOnce({
+    args: [],
+    returncode: 0,
+    stdout: JSON.stringify(COMPLETE_ARC_COMMENTS),
+    stderr: "",
+  });
+}
+
 describe("labels SCM client", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -281,7 +303,7 @@ describe("labels SCM client", () => {
 
   it("apply of a design-critique catalog chip removes the other catalog name (#3642)", () => {
     const spy = vi.spyOn(scm, "call");
-    spy
+    mockIngestReadyComments(spy)
       .mockReturnValueOnce({
         args: [],
         returncode: 0,
@@ -293,8 +315,8 @@ describe("labels SCM client", () => {
       .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
     const client = new ScmLabelClient();
     client.apply("deftai/directive", 3637, ["design-critique:ingest-ready"], []);
-    expect(spy).toHaveBeenCalledTimes(2);
-    const editArgs = spy.mock.calls[1]?.[2] ?? [];
+    expect(spy).toHaveBeenCalledTimes(3);
+    const editArgs = spy.mock.calls[2]?.[2] ?? [];
     expect(editArgs).toContain("design-critique:ingest-ready");
     expect(editArgs).toContain("design-critique:mechanism-shaped");
     expect(editArgs).toContain("--add-label");
@@ -303,7 +325,7 @@ describe("labels SCM client", () => {
 
   it("catalog chip plus another label is one remaining-set edit (#3642)", () => {
     const spy = vi.spyOn(scm, "call");
-    spy
+    mockIngestReadyComments(spy)
       .mockReturnValueOnce({
         args: [],
         returncode: 0,
@@ -315,8 +337,8 @@ describe("labels SCM client", () => {
       .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
     const client = new ScmLabelClient();
     client.apply("deftai/directive", 3637, ["design-critique:ingest-ready", "area:cli"], ["bug"]);
-    expect(spy).toHaveBeenCalledTimes(2);
-    const editArgs = spy.mock.calls[1]?.[2] ?? [];
+    expect(spy).toHaveBeenCalledTimes(3);
+    const editArgs = spy.mock.calls[2]?.[2] ?? [];
     expect(editArgs).toContain("design-critique:ingest-ready");
     expect(editArgs).toContain("design-critique:mechanism-shaped");
     expect(editArgs).toContain("area:cli");
@@ -326,7 +348,7 @@ describe("labels SCM client", () => {
 
   it("already-exclusive catalog chip still applies remaining non-catalog labels (#3642)", () => {
     const spy = vi.spyOn(scm, "call");
-    spy
+    mockIngestReadyComments(spy)
       .mockReturnValueOnce({
         args: [],
         returncode: 0,
@@ -338,8 +360,8 @@ describe("labels SCM client", () => {
       .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
     const client = new ScmLabelClient();
     client.apply("deftai/directive", 3642, ["design-critique:ingest-ready", "area:cli"], []);
-    expect(spy).toHaveBeenCalledTimes(2);
-    const editArgs = spy.mock.calls[1]?.[2] ?? [];
+    expect(spy).toHaveBeenCalledTimes(3);
+    const editArgs = spy.mock.calls[2]?.[2] ?? [];
     expect(editArgs).toContain("area:cli");
     expect(editArgs).toContain("--add-label");
     expect(editArgs).not.toContain("design-critique:mechanism-shaped");

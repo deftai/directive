@@ -1,9 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+  applyIngestReadyRemainingSet,
+  threadCommentsFromIssueComments,
+} from "../design-critique/completed-arc-record.js";
+import {
   applyDesignCritiqueCatalogChip,
   isDesignCritiqueCatalogChip,
 } from "../design-critique/exclusive-chip.js";
+import { fetchIssueComments } from "../intake/issue-ingest.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
@@ -103,7 +108,12 @@ export class ScmLabelClient implements LabelClient {
           this.applyMut(r, n, [...addSet], [...removeSet]);
         },
       };
-      applyDesignCritiqueCatalogChip(inner, repo, issueNumber, nextChip);
+      if (nextChip === "design-critique:ingest-ready") {
+        const comments = threadCommentsFromIssueComments(fetchIssueComments(repo, issueNumber));
+        applyIngestReadyRemainingSet(inner, repo, issueNumber, comments);
+      } else {
+        applyDesignCritiqueCatalogChip(inner, repo, issueNumber, nextChip);
+      }
       if (!applied && (restAdd.length > 0 || restRemove.length > 0)) {
         this.applyMut(repo, issueNumber, restAdd, restRemove);
       }

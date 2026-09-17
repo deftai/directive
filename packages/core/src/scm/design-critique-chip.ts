@@ -7,9 +7,16 @@
 
 import { spawnSync } from "node:child_process";
 import {
+  applyIngestReadyRemainingSet,
+  IngestReadyCompletedArcProofError,
+  threadCommentsFromIssueComments,
+  type ThreadComment,
+} from "../design-critique/completed-arc-record.js";
+import {
   applyDesignCritiqueCatalogChip,
   type DesignCritiqueCatalogChip,
 } from "../design-critique/exclusive-chip.js";
+import { fetchIssueComments, IssueCommentFetchError } from "../intake/issue-ingest.js";
 import { parseGithubOwnerRepo } from "../policy/sync-default.js";
 import { ScmLabelClient } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
@@ -25,7 +32,8 @@ export const DESIGN_CRITIQUE_CHIP_USAGE =
   "usage: scm issue design-critique-chip --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME] [--json]\n" +
   "       Parent attach of design-critique:ingest-ready / in-progress / later-arc mechanism-shaped.\n" +
   "       Closed catalog remaining-set replace. One write. Other facets stay.\n" +
-  "       Apply miss is non-blocking convenience; ingest is not blocked.\n";
+  "       ingest-ready fetches comments and refuses unless live-thread evaluateCompletedArcRecord is complete.\n" +
+  "       Proof-fail is blocking. Apply miss after a passing proof is non-blocking convenience; ingest is not blocked.\n";
 
 export const CHIP_ALIASES: Readonly<Record<string, DesignCritiqueCatalogChip>> = {
   "mechanism-shaped": "design-critique:mechanism-shaped",
@@ -47,6 +55,8 @@ export interface DesignCritiqueChipSeams {
   readonly client?: LabelClient;
   /** Default OWNER/NAME when --repo is omitted (git origin). */
   readonly resolveDefaultRepo?: () => string | null;
+  /** Live-thread comments for ingest-ready proof. Default: fetchIssueComments. */
+  readonly fetchComments?: (repo: string, issueNumber: number) => readonly ThreadComment[];
 }
 
 export interface DesignCritiqueChipResult {
@@ -148,9 +158,27 @@ class ChipUsageError extends Error {
   }
 }
 
+function defaultFetchComments(repo: string, issueNumber: number): ThreadComment[] {
+  return threadCommentsFromIssueComments(fetchIssueComments(repo, issueNumber));
+}
+
+function applyCatalogChip(
+  client: LabelClient,
+  repo: string,
+  issue: number,
+  chip: DesignCritiqueCatalogChip,
+  fetchComments: (repo: string, issueNumber: number) => readonly ThreadComment[],
+): { remaining: string[]; add: readonly string[]; remove: readonly string[] } {
+  if (chip === "design-critique:ingest-ready") {
+    return applyIngestReadyRemainingSet(client, repo, issue, fetchComments(repo, issue));
+  }
+  return applyDesignCritiqueCatalogChip(client, repo, issue, chip);
+}
+
 /**
  * GET current labels, remaining-set replace via applyDesignCritiqueCatalogChip.
- * One LabelClient.apply write. Other facets stay.
+ * ingest-ready remaining-set proves live-thread evaluateCompletedArcRecord first (#4700).
+ * mechanism-shaped and in-progress stay labels-only. One LabelClient.apply write.
  */
 export function runDesignCritiqueChip(
   extra: readonly string[],
@@ -188,8 +216,9 @@ export function runDesignCritiqueChip(
   }
 
   const client = seams.client ?? new ScmLabelClient();
+  const fetchComments = seams.fetchComments ?? defaultFetchComments;
   try {
-    const applied = applyDesignCritiqueCatalogChip(client, repo, args.issue, args.chip);
+    const applied = applyCatalogChip(client, repo, args.issue, args.chip, fetchComments);
     const payload = {
       repo,
       issue: args.issue,
@@ -215,15 +244,23 @@ export function runDesignCritiqueChip(
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    const proofFail =
+      err instanceof IngestReadyCompletedArcProofError || err instanceof IssueCommentFetchError;
     const payload = {
       repo,
       issue: args.issue,
       chip: args.chip,
       applied: false,
-      miss: true,
-      blocking: false,
+      miss: !proofFail,
+      blocking: proofFail,
       error: message,
     };
+    if (proofFail) {
+      if (args.json) {
+        return { exitCode: 1, stdout: `${JSON.stringify(payload)}\n`, stderr: "" };
+      }
+      return { exitCode: 1, stdout: "", stderr: `error: ${message}\n` };
+    }
     if (args.json) {
       return { exitCode: 0, stdout: `${JSON.stringify(payload)}\n`, stderr: "" };
     }

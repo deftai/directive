@@ -78,10 +78,10 @@ export function designCritiqueChipApplyDelta(
 }
 
 /**
- * Exclusive catalog-chip write via LabelClient.apply. GET current, then one
- * apply(add, remove). Does not PUT a naive full wipe.
+ * Inner remaining-set write. ingest-ready callers MUST prove first via
+ * applyIngestReadyRemainingSet (#4700).
  */
-export function applyDesignCritiqueCatalogChip(
+export function writeDesignCritiqueCatalogRemainingSet(
   client: LabelClient,
   repo: string,
   issueNumber: number,
@@ -97,4 +97,23 @@ export function applyDesignCritiqueCatalogChip(
     add,
     remove,
   };
+}
+
+/**
+ * Exclusive catalog-chip write via LabelClient.apply. GET current, then one
+ * apply(add, remove). Does not PUT a naive full wipe.
+ * ingest-ready remaining-set is applyIngestReadyRemainingSet only (#4700).
+ */
+export function applyDesignCritiqueCatalogChip(
+  client: LabelClient,
+  repo: string,
+  issueNumber: number,
+  nextChip: string,
+): { remaining: string[]; add: readonly string[]; remove: readonly string[] } {
+  if (nextChip === "design-critique:ingest-ready") {
+    throw new Error(
+      "design-critique:ingest-ready remaining-set requires live-thread completed-arc proof",
+    );
+  }
+  return writeDesignCritiqueCatalogRemainingSet(client, repo, issueNumber, nextChip);
 }

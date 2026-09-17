@@ -17,6 +17,7 @@
  */
 
 import { createHash } from "node:crypto";
+import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
   ACCEPTED_CITATION_FORMS,
   ACCEPTED_PAIN_CITE_FORMS,
@@ -28,7 +29,10 @@ import {
   scanPainCites,
   scanPainList,
 } from "./citation-grammar.js";
-import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "./exclusive-chip.js";
+import {
+  DESIGN_CRITIQUE_CATALOG_CHIPS,
+  writeDesignCritiqueCatalogRemainingSet,
+} from "./exclusive-chip.js";
 import {
   type AuditEnvelope,
   buildPainCoverageDeposit,
@@ -835,4 +839,94 @@ export function assertCompletedArcAllowsIngest(input: {
     throw new DesignCritiqueIngestBlockedError(input.issueNumber, verdict.reason, verdict.detail);
   }
   return verdict;
+}
+
+const SYNTHESIS_NO_COMMA_NEAR_MISS_RE =
+  /(?:^|\n)\s*design-critique:\s*synthesis accepted because\b/i;
+
+/** Map REST issue comments onto the completed-arc ThreadComment shape. */
+export function threadCommentsFromIssueComments(
+  comments: readonly { readonly id?: number; readonly body?: string }[],
+): ThreadComment[] {
+  const out: ThreadComment[] = [];
+  for (const comment of comments) {
+    if (typeof comment.id === "number" && typeof comment.body === "string") {
+      out.push({ id: comment.id, body: comment.body });
+    }
+  }
+  return out;
+}
+
+export function nearMissCommaDiagnostic(comments: readonly ThreadComment[]): string {
+  for (const comment of comments) {
+    if (
+      SYNTHESIS_NO_COMMA_NEAR_MISS_RE.test(comment.body) &&
+      !isSynthesisAcceptedShape(comment.body)
+    ) {
+      return (
+        "; near-miss: comment " +
+        String(comment.id) +
+        " has `synthesis accepted because` without the required comma (`synthesis accepted, because`)"
+      );
+    }
+  }
+  return "";
+}
+
+export class IngestReadyCompletedArcProofError extends Error {
+  readonly issueNumber: number;
+  readonly verdict: CompletedArcVerdict;
+
+  constructor(
+    issueNumber: number,
+    verdict: CompletedArcVerdict,
+    comments: readonly ThreadComment[] = [],
+  ) {
+    const base =
+      verdict.status === "blocked"
+        ? `design-critique:ingest-ready remaining-set refused: ${verdict.reason} (${verdict.detail})`
+        : verdict.status === "not-in-arc"
+          ? "design-critique:ingest-ready remaining-set refused: live thread is not a complete completed-arc record (not-in-arc); comments present is not complete"
+          : "design-critique:ingest-ready remaining-set refused: live-thread evaluateCompletedArcRecord is not complete";
+    super(base + nearMissCommaDiagnostic(comments));
+    this.name = "IngestReadyCompletedArcProofError";
+    this.issueNumber = issueNumber;
+    this.verdict = verdict;
+  }
+}
+
+/**
+ * Live-thread proof for ingest-ready remaining-set (#4700).
+ * Comments present is not complete. Does not recut ingest clearance.
+ */
+export function proveLiveThreadCompletedArcForIngestReady(input: {
+  readonly comments: readonly ThreadComment[];
+  readonly issueNumber?: number;
+}): Extract<CompletedArcVerdict, { status: "complete" }> {
+  const verdict = evaluateCompletedArcRecord({
+    comments: input.comments,
+    issueNumber: input.issueNumber,
+  });
+  if (verdict.status === "complete") return verdict;
+  throw new IngestReadyCompletedArcProofError(input.issueNumber ?? 0, verdict, input.comments);
+}
+
+/**
+ * Shared ingest-ready remaining-set write. Fetch is the caller's job
+ * (fetchIssueComments). Both runDesignCritiqueChip and ScmLabelClient.apply
+ * exclusive fold use this helper.
+ */
+export function applyIngestReadyRemainingSet(
+  client: LabelClient,
+  repo: string,
+  issueNumber: number,
+  comments: readonly ThreadComment[],
+): { remaining: string[]; add: readonly string[]; remove: readonly string[] } {
+  proveLiveThreadCompletedArcForIngestReady({ comments, issueNumber });
+  return writeDesignCritiqueCatalogRemainingSet(
+    client,
+    repo,
+    issueNumber,
+    "design-critique:ingest-ready",
+  );
 }
