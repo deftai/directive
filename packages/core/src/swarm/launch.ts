@@ -798,6 +798,10 @@ function corroborateRecordedOccupancy(
   return "ok";
 }
 
+function refuseLaunchOccupancyIdentitySwap(): never {
+  throw new Error(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+}
+
 export function persistLaunchOccupancyRecord(
   projectRoot: string,
   record: LaunchOccupancyRecord,
@@ -819,7 +823,7 @@ export function persistLaunchOccupancyRecord(
   const live = liveOccupant(projectRoot);
   if (live === null || live.sessionId !== existing.occupancy_session_id) {
     if (live !== null && live.sessionId !== record.occupancy_session_id) {
-      throw new Error(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+      refuseLaunchOccupancyIdentitySwap();
     }
     containedRemove({ root: projectRoot, target: join(...relpath) });
     containedWrite({
@@ -833,7 +837,7 @@ export function persistLaunchOccupancyRecord(
   const leaseMatches = existing.occupancy_session_id === record.occupancy_session_id;
   const rosterMatches = rosterEquals(existing.story_ids, record.story_ids);
   if (!leaseMatches || !rosterMatches) {
-    throw new Error(LAUNCH_OCCUPANCY_IDENTITY_SWAP);
+    refuseLaunchOccupancyIdentitySwap();
   }
   containedWrite({
     root: projectRoot,
