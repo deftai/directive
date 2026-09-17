@@ -422,6 +422,7 @@ function pushAndOpenPr(
   });
   const verifyCode = verifyDocsImpactBodyFile(bodyFile, projectRoot, {
     runGit: (args) => runGit(["git", ...args], { cwd: projectRoot }),
+    baseRef: baseBranch,
   });
   if (verifyCode !== 0) {
     return {

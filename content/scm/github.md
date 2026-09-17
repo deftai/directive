@@ -42,7 +42,7 @@ Rules that apply to every `gh` invocation, regardless of context.
 `gh pr create --body-file`, `--body`, and `--fill` replace `.github/PULL_REQUEST_TEMPLATE.md`. They do not fill it. Leftover-complete and `swarm:finalize-cohort` openers use an explicit body.
 
 - ! Compose the template `Documentation impact` block (`change_class` / `surfaces` / quoted `rationale`) into the body-file or `--body` payload before create or edit
-- ! Run `task verify:docs-impact -- --body-file <path>` on that same file object, then pass `--body-file <path>` to `gh pr create` / `gh pr edit`. The verified bytes are the uploaded bytes
+- ! Run `task verify:docs-impact -- --body-file <path> --base-ref <base>` on that same file object, then pass `--body-file <path>` and `--base <base>` to `gh pr create` / `gh pr edit`. `<base>` is the same ref in both (typed `plan.policy.deliveryBranch` when that is the PR target; caller value, not an implicit default). The verified bytes are the uploaded bytes
 - ⊗ Treat a custom `--body-file` as an exemption from the declaration
 - ⊗ Verify file A then upload file B
 - ⊗ Treat naming the check in pre-pr / review-cycle / swarm story-open as the leftover-complete or finalize-cohort remedy
@@ -53,9 +53,10 @@ Rules that apply to every `gh` invocation, regardless of context.
 ```powershell
 $bodyFile = [System.IO.Path]::GetTempFileName()
 # $content already includes the template Documentation impact block
+# $base is the same ref as gh pr create --base (typed deliveryBranch when that is the PR target)
 [System.IO.File]::WriteAllText($bodyFile, $content, [System.Text.UTF8Encoding]::new($false))
-task verify:docs-impact -- --body-file $bodyFile
-gh pr create --title "feat: example" --body-file $bodyFile
+task verify:docs-impact -- --body-file $bodyFile --base-ref $base
+gh pr create --title "feat: example" --base $base --body-file $bodyFile
 ```
 
 **Unix (bash/zsh):**
@@ -63,9 +64,10 @@ gh pr create --title "feat: example" --body-file $bodyFile
 ```bash
 bodyFile=$(mktemp)
 # $content already includes the template Documentation impact block
+# $base is the same ref as gh pr create --base (typed deliveryBranch when that is the PR target)
 printf "%s" "$content" > "$bodyFile"
-task verify:docs-impact -- --body-file "$bodyFile"
-gh pr create --title "feat: example" --body-file "$bodyFile"
+task verify:docs-impact -- --body-file "$bodyFile" --base-ref "$base"
+gh pr create --title "feat: example" --base "$base" --body-file "$bodyFile"
 ```
 
 ## Safe Markdown Body Posting (#1555)
@@ -244,8 +246,8 @@ On Windows PowerShell (5.1 and often `pwsh` when commands are not routed through
 $bodyFile = [System.IO.Path]::GetTempFileName()
 [System.IO.File]::WriteAllText($bodyFile, $prBody, [System.Text.UTF8Encoding]::new($false))
 git commit -F $bodyFile
-task verify:docs-impact -- --body-file $bodyFile
-gh pr create --title "feat: example" --body-file $bodyFile
+task verify:docs-impact -- --body-file $bodyFile --base-ref $base
+gh pr create --title "feat: example" --base $base --body-file $bodyFile
 ```
 
 **Recovery pattern for issue/PR PATCH (when wrappers corrupt inline payloads):** write a Node (or other) script to disk with the editor/Write tool, have it emit JSON to a temp file, then `gh api -X PATCH ... --input <file>` via `execFileSync` / equivalent. Verify the posted body afterward for injected Co-authored-by or Made-with markers.
