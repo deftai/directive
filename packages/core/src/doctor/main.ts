@@ -32,6 +32,7 @@ import {
   classify,
   detectPackageManager,
   evaluateSkew,
+  type PackageManager,
   type ResolutionFacts,
   reconcileVersions,
   plan as resolvePlan,
@@ -265,6 +266,17 @@ function readPackageManagerField(
     // Malformed package.json -- fall through to null (npm default).
   }
   return null;
+}
+
+/** Stripped env (DEFT_PACKAGE_MANAGER only), field then lock, no user-agent (#2197 / #4718). */
+function resolveDoctorPackageManager(projectRoot: string, seams: DoctorSeams): PackageManager {
+  const readTextForPm = seams.readText ?? readTextSafe;
+  const isFileForPm = seams.isFile ?? ((path: string) => existsSync(path));
+  return detectPackageManager({
+    env: { DEFT_PACKAGE_MANAGER: process.env.DEFT_PACKAGE_MANAGER },
+    packageManagerField: readPackageManagerField(join(projectRoot, "package.json"), readTextForPm),
+    pnpmLockPresent: isFileForPm(join(projectRoot, "pnpm-lock.yaml")),
+  });
 }
 
 export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): number {
@@ -534,23 +546,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (flags.network) {
     sink.info(NETWORK_DISCLOSURE_LINE);
     sink.info("Checking payload staleness from install manifest...");
-    // Detect the package manager for the upgrade recommendation from signals
-    // that are meaningful for a globally-installed CLI: the explicit
-    // DEFT_PACKAGE_MANAGER override, the project's `packageManager` field
-    // (Corepack), and the project's pnpm-lock.yaml. We deliberately do NOT
-    // consult the ambient npm_config_user_agent here (it is set by whatever
-    // shell/script spawned the process, not by the consumer's project) so the
-    // recommendation is a stable property of the project (#2197).
-    const readTextForPm = seams.readText ?? readTextSafe;
-    const isFileForPm = seams.isFile ?? ((p: string) => existsSync(p));
-    const packageManager = detectPackageManager({
-      env: { DEFT_PACKAGE_MANAGER: process.env.DEFT_PACKAGE_MANAGER },
-      packageManagerField: readPackageManagerField(
-        join(projectRoot, "package.json"),
-        readTextForPm,
-      ),
-      pnpmLockPresent: isFileForPm(join(projectRoot, "pnpm-lock.yaml")),
-    });
+    const packageManager = resolveDoctorPackageManager(projectRoot, seams);
     runPayloadStalenessCheck(projectRoot, sink, addFinding, {
       frameworkRoot,
       readText: seams.readText,
@@ -1820,10 +1816,11 @@ export function runResolutionDecision(
     ...(seams.engineProbe ? { engineProbe: seams.engineProbe } : {}),
   });
   const linkedWorktree = isLinkedWorktreePath(projectRoot);
+  const packageManager = resolveDoctorPackageManager(projectRoot, seams);
   const plan = resolvePlan(
     facts,
     {},
-    { linkedWorktree, platform: process.platform, interactive: false },
+    { linkedWorktree, platform: process.platform, interactive: false, packageManager },
   );
   const operatingMode = resolveOperatingMode(facts, { linkedWorktree });
   const reconciliation = resolveReconciliationLine(facts);

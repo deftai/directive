@@ -182,8 +182,25 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
     expect(p.nextAction.command).toContain("npm i -g @deftai/directive@0.65.0");
   });
 
-  it("engine ahead within window -> update", () => {
+  it("engine ahead within window with content at engine -> align-pin (#4718)", () => {
     const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" }), {
+      engineSkewWindow: 3,
+    });
+    expect(p.mode).toBe("align-pin");
+    expect(p.nextAction.command).toBe("npm install --save-dev @deftai/directive@0.67.0");
+    expect(p.nextAction.remediation.toLowerCase()).toContain("lock");
+  });
+
+  it("engine ahead within window with content behind engine -> update", () => {
+    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.65.0" }), {
+      engineSkewWindow: 3,
+    });
+    expect(p.mode).toBe("update");
+    expect(p.nextAction.command).toBe("npx @deftai/directive update");
+  });
+
+  it("engine ahead within window with null content -> update", () => {
+    const p = plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: null }), {
       engineSkewWindow: 3,
     });
     expect(p.mode).toBe("update");
@@ -199,9 +216,19 @@ describe("resolution/plan precedence table (#2264 a1)", () => {
     expect(p.nextAction.command ?? "").not.toContain("--accept-engine-jump");
   });
 
-  it("engine ahead beyond window with escape hatch -> update", () => {
+  it("engine ahead beyond window with escape hatch and content at engine -> align-pin (#4718)", () => {
     const p = plan(
       facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.80.0" }),
+      { engineSkewWindow: 3 },
+      { acceptEngineJump: true },
+    );
+    expect(p.mode).toBe("align-pin");
+    expect(p.nextAction.command).toBe("npm install --save-dev @deftai/directive@0.80.0");
+  });
+
+  it("engine ahead beyond window with escape hatch and content behind engine -> update", () => {
+    const p = plan(
+      facts({ engineVersion: "0.80.0", deftCorePayloadVersion: "0.65.0" }),
       { engineSkewWindow: 3 },
       { acceptEngineJump: true },
     );
@@ -283,6 +310,7 @@ describe("resolution/plan is the single source of truth (#2264 a2)", () => {
     observed.add(plan(facts({ preCutoverArtifacts: true })).mode); // migrate
     observed.add(plan(facts({ hasDeftCore: false, hasManagedSection: false })).mode); // init
     observed.add(plan(facts({ deftCorePayloadVersion: "0.63.0" })).mode); // update
+    observed.add(plan(facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" })).mode); // align-pin
     observed.add(plan(facts({ engineVersion: "0.63.0" })).mode); // install-global
     observed.add(
       plan(
@@ -366,12 +394,20 @@ describe("resolution/plan package-manager rendering (#2197)", () => {
     expect(initPlan.nextAction.command).toBe("pnpm dlx @deftai/directive init");
 
     const updatePlan = plan(
-      facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" }),
+      facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.65.0" }),
       { engineSkewWindow: 3 },
       { packageManager: "pnpm" },
     );
     expect(updatePlan.mode).toBe("update");
     expect(updatePlan.nextAction.command).toBe("pnpm dlx @deftai/directive update");
+
+    const alignPlan = plan(
+      facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" }),
+      { engineSkewWindow: 3 },
+      { packageManager: "pnpm" },
+    );
+    expect(alignPlan.mode).toBe("align-pin");
+    expect(alignPlan.nextAction.command).toBe("pnpm add -D @deftai/directive@0.67.0");
   });
 
   it("keeps the sandbox rung on npm --prefix even when packageManager is pnpm (locked non-goal)", () => {

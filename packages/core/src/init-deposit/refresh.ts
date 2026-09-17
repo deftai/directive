@@ -233,7 +233,7 @@ export function updateStateFromPlan(
 ): UpdateState {
   if (resolutionPlan.mode === "migrate") return "migration-required";
   if (!isInitialized(facts)) return "not-initialized";
-  if (resolutionPlan.mode === "proceed") return "current";
+  if (resolutionPlan.mode === "proceed" || resolutionPlan.mode === "align-pin") return "current";
   return "updated";
 }
 

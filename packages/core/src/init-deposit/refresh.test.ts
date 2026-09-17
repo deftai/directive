@@ -1360,6 +1360,22 @@ describe("updateStateFromPlan (#2266 four-state classifier)", () => {
     expect(state).toBe("current");
   });
 
+  it("maps align-pin to current so update does not deposit-refresh (#4718)", () => {
+    const facts = makeFacts({ hasDeftCore: true });
+    const state = updateStateFromPlan(facts, {
+      schemaVersion: RESOLUTION_PLAN_SCHEMA_VERSION,
+      mode: "align-pin",
+      files: [],
+      nextAction: {
+        command: "pnpm add -D @deftai/directive@0.119.2",
+        rootCause: "pin lag",
+        remediation: "align pin",
+      },
+      warnings: [],
+    });
+    expect(state).toBe("current");
+  });
+
   it("maps an update plan on an initialized project to updated", () => {
     const facts = makeFacts({ hasDeftCore: true });
     const state = updateStateFromPlan(facts, {

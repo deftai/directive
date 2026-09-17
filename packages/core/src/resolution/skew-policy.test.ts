@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ACCEPT_ENGINE_SKEW_ENV, DEFAULT_ENGINE_SKEW_WINDOW, evaluateSkew } from "./skew-policy.js";
+import {
+  ACCEPT_ENGINE_SKEW_ENV,
+  contentMatchesEngine,
+  DEFAULT_ENGINE_SKEW_WINDOW,
+  evaluateSkew,
+} from "./skew-policy.js";
 
 describe("resolution/skew-policy three-band policy (#2264 a5)", () => {
   it("engine == pin proceeds silently (trace only)", () => {
@@ -77,5 +82,17 @@ describe("resolution/skew-policy three-band policy (#2264 a5)", () => {
   it("a negative / non-integer window falls back to the default", () => {
     const r = evaluateSkew("0.67.0", "0.65.0", { engineSkewWindow: -1 });
     expect(r.band).toBe("within-window");
+  });
+});
+
+describe("contentMatchesEngine (#4718)", () => {
+  it("is true when content is at or ahead of engine", () => {
+    expect(contentMatchesEngine("0.119.2", "0.119.2")).toBe(true);
+    expect(contentMatchesEngine("0.120.0", "0.119.2")).toBe(true);
+  });
+
+  it("is false for null content, so that case stays on update", () => {
+    expect(contentMatchesEngine(null, "0.119.2")).toBe(false);
+    expect(contentMatchesEngine("0.119.0", "0.119.2")).toBe(false);
   });
 });

@@ -77,6 +77,7 @@ export {
 export { type PlanOptions, plan } from "./plan.js";
 export {
   ACCEPT_ENGINE_SKEW_ENV,
+  contentMatchesEngine,
   DEFAULT_ENGINE_SKEW_WINDOW,
   evaluateSkew,
   type SkewBand,

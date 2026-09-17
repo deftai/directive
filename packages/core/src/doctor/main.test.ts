@@ -518,6 +518,37 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     expect(summary.nextCommand).toBe("npx @deftai/directive update");
     expect(summary.reconciliation).toContain("ahead");
   });
+
+  it("content at engine plus pin lag on pnpm is align-pin, not npx update (#4718)", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: 'v0.69.0'\n", "utf8");
+    writeFileSync(
+      join(root, "package.json"),
+      JSON.stringify({
+        private: true,
+        packageManager: "pnpm@10.0.0",
+        devDependencies: { "@deftai/directive": "0.68.0" },
+      }),
+      "utf8",
+    );
+    writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
+    const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
+    expect(summary.mode).toBe("align-pin");
+    expect(summary.actionRequired).toBe(true);
+    expect(summary.nextCommand).toBe("pnpm add -D @deftai/directive@0.69.0");
+    expect(summary.nextCommand).not.toContain("update");
+  });
+
+  it("content at engine plus pin lag on npm is pin follow-through (#4718)", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: 'v0.69.0'\n", "utf8");
+    writePackagePin(root, "0.68.0");
+    const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
+    expect(summary.mode).toBe("align-pin");
+    expect(summary.nextCommand).toBe("npm install --save-dev @deftai/directive@0.69.0");
+  });
 });
 
 describe("xbrief envelope version check (#2971)", () => {

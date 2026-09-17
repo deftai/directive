@@ -26,9 +26,10 @@ import {
   type PackageManager,
   renderEphemeral,
   renderGlobalInstall,
+  renderProjectInstall,
 } from "./package-manager.js";
 import { reconcileVersions } from "./pin.js";
-import { ACCEPT_ENGINE_SKEW_ENV, evaluateSkew, type SkewResult } from "./skew-policy.js";
+import { ACCEPT_ENGINE_SKEW_ENV, contentMatchesEngine, evaluateSkew, type SkewResult } from "./skew-policy.js";
 
 export interface PlanOptions {
   /**
@@ -293,7 +294,22 @@ function resolvePlan(
         warnings,
       );
     default: {
-      // proceed-silent | proceed-loud-update
+      // proceed-silent | proceed-loud-update | content-at-engine pin lag (#4718)
+      if (
+        skew.requiresUpdateFirst &&
+        contentMatchesEngine(facts.deftCorePayloadVersion, effectiveEngine)
+      ) {
+        return makePlan(
+          "align-pin",
+          {
+            command: renderProjectInstall(pm, `${ENGINE_PACKAGE}@${effectiveEngine}`),
+            rootCause: `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion}; deposited content already matches the engine`,
+            remediation:
+              "Align the committed pin to the running engine; add updates the lock. Then run the gate.",
+          },
+          warnings,
+        );
+      }
       if (skew.requiresUpdateFirst || contentStale(facts)) {
         return makePlan(
           "update",

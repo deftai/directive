@@ -38,6 +38,7 @@
         "init",
         "migrate",
         "update",
+        "align-pin",
         "install-global",
         "install-sandbox",
         "install-staged",

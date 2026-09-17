@@ -78,6 +78,7 @@ export interface ResolutionNextAction {
  * - `init`            — no usable deposit; deposit / reconstitute one.
  * - `migrate`         — pre-v0.20 (or legacy) artifacts must migrate first.
  * - `update`          — deposit present but content behind the pin; forward-migrate.
+ * - `align-pin`       — content already at engine; committed pin lags; follow-through.
  * - `install-global`  — install the pinned engine into the global prefix.
  * - `install-sandbox` — install the pinned engine into `.deft/.cli/<platform>`.
  * - `install-staged`  — registry down; install from a staged / vendored payload.
@@ -88,6 +89,7 @@ export type ResolutionMode =
   | "init"
   | "migrate"
   | "update"
+  | "align-pin"
   | "install-global"
   | "install-sandbox"
   | "install-staged"
@@ -108,6 +110,7 @@ export const RESOLUTION_MODES: readonly ResolutionMode[] = [
   "init",
   "migrate",
   "update",
+  "align-pin",
   "install-global",
   "install-sandbox",
   "install-staged",

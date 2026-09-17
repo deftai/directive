@@ -13,7 +13,7 @@
  * - `engine < pin`                         -> reject the global, fall through the ladder.
  */
 
-import { compareSemver, parseSemver } from "./pin.js";
+import { compareSemver, parseSemver, semverGte } from "./pin.js";
 
 /** Default skew window pre-1.0, measured in minor versions. */
 export const DEFAULT_ENGINE_SKEW_WINDOW = 3;
@@ -80,6 +80,15 @@ function classifyAheadBand(
     return engineMinor - pinMinor <= window ? "within-window" : "beyond-window";
   }
   return engineMajor === pinMajor ? "within-window" : "beyond-window";
+}
+
+/** True when deposited content is already at or ahead of the running engine (#4718). Null content is not current and stays on update. */
+export function contentMatchesEngine(
+  contentVersion: string | null,
+  engineVersion: string | null,
+): boolean {
+  if (contentVersion === null || engineVersion === null) return false;
+  return semverGte(contentVersion, engineVersion);
 }
 
 /**

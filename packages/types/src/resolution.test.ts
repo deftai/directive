@@ -19,6 +19,7 @@ describe("resolution types contract (#2264)", () => {
       "init",
       "migrate",
       "update",
+      "align-pin",
       "install-global",
       "install-sandbox",
       "install-staged",

@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unknown reserved x-xbrief/ and x-vbrief/ subtypes are reported (#4698).** `x-xbrief/pull-request` is no longer ignore-by-default: `validateVbriefSchema` (task check) and `collectGithubRefs` report it. Canonical `github-pr` still matches. Engine-written `closes` / `current-shape` / `web-page` / `github-comment` / related-* stay valid. A mixed `github-issue` plus `pull-request` plan still reports the unknown reserved subtype. Does not enforce `KNOWN_REFERENCE_TYPES` as the closed set, close every `x-*` namespace, recut URI-shape fallback, or wire orphan-active `evaluate.ts` (companion #4697). Refs #4698.
 - **Hook diagnosis still names pin/engine skew when agent_hooks fails, and fail-closed nextAction names DEFT_ACCEPT_ENGINE_SKEW without claiming proceed (#4692).** A true valid() fail still reports as that fail. Hook-drift recovery is not the skew fix. Literal <gate> is not runnable argv. Pin reconstitution remains #4710. Refs #4692.
 
+- **Doctor Next command after content is already at engine is pin follow-through, not another update (#4718).** Within-window engine>pin with content>=engine is mode align-pin. Next command is renderProjectInstall at the engine spec (pnpm add -D / npm install --save-dev). Null content and content-behind-pin still recommend update. Pin write inside update stays #4710. Refs #4718.
+
 ### Removed
 
 ## [0.119.2] - 2026-09-17
