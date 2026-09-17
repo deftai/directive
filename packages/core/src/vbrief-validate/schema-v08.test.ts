@@ -190,4 +190,32 @@ describe("validatePlanReferenceTypes reserved subtypes (#4698)", () => {
       ),
     ).toEqual([]);
   });
+
+  it("skips missing, non-array, and malformed entries", () => {
+    expect(validatePlanReferenceTypes(undefined, "brief.json")).toEqual([]);
+    expect(validatePlanReferenceTypes("nope", "brief.json")).toEqual([
+      "brief.json: plan.references must be an array",
+    ]);
+    expect(
+      validatePlanReferenceTypes(
+        [
+          null,
+          "x",
+          { uri: "https://example.test/t/1" },
+          { uri: "https://example.test/t/1", type: 1 },
+        ],
+        "brief.json",
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports an unknown reserved subtype without a nearest canonical", () => {
+    const errors = validatePlanReferenceTypes(
+      [{ uri: "https://example.test/t/1", type: "x-xbrief/not-a-known-type" }],
+      "brief.json",
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("x-xbrief/not-a-known-type");
+    expect(errors[0]).not.toContain("nearest canonical");
+  });
 });

@@ -84,6 +84,14 @@ describe("describeUnknownReservedReferenceType (#4698)", () => {
     });
   });
 
+  it("reports legacy x-vbrief/github-pull-request with nearest github-pr", () => {
+    expect(describeUnknownReservedReferenceType("x-vbrief/github-pull-request")).toEqual({
+      type: "x-vbrief/github-pull-request",
+      subtype: "github-pull-request",
+      nearestCanonical: "x-vbrief/github-pr",
+    });
+  });
+
   it("does not report github-pr", () => {
     expect(describeUnknownReservedReferenceType("x-xbrief/github-pr")).toBeNull();
   });
