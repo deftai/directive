@@ -3,8 +3,15 @@
  * Production backend is remaining-deploy item 1: Directive GitHub App private transactional store.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedRemove,
+  containedWrite,
+} from "../fs/contained-write.js";
 import type { MintClaimInput, OnePrUnitAppStore } from "./app-store.js";
 import {
   IN_PROCESS_NOT_PRODUCTION,
@@ -13,7 +20,7 @@ import {
   resolveClaimFromStore,
 } from "./app-store.js";
 import { evaluateOnePrUnit } from "./evaluate.js";
-import { exactOriginSetEquals, uniqueOrigins } from "./origin-set.js";
+import { exactOriginSetEquals, stripTrailingSlashes, uniqueOrigins } from "./origin-set.js";
 import { getDefaultAppStore, InProcessAppStore } from "./simulator.js";
 import {
   DISK_STORE_NOT_SOT,
@@ -100,15 +107,63 @@ function isInProcessSelection(raw: string): boolean {
   );
 }
 
+function posixifyLower(raw: string): string {
+  let out = "";
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i] as string;
+    out += ch === "\\" ? "/" : ch;
+  }
+  return stripTrailingSlashes(out).toLowerCase();
+}
+
 function isDiskStoreNotSotPath(raw: string): boolean {
-  const n = raw.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  const n = posixifyLower(raw);
   return n.endsWith(".deft/one-pr-unit") || n.includes("/.deft/one-pr-unit/");
+}
+
+const LOCK_FILE = "claims.lock";
+const LOCK_WAIT_MS = 5000;
+const LOCK_RETRY_MS = 20;
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function withExclusiveLock<T>(root: string, fn: () => T): T {
+  mkdirSync(root, { recursive: true });
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  let held = false;
+  while (!held) {
+    try {
+      containedWrite({
+        root,
+        target: LOCK_FILE,
+        data: `${process.pid}\n`,
+        mode: "create",
+      });
+      held = true;
+    } catch (err) {
+      const exists =
+        err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS;
+      if (!exists || Date.now() >= deadline) throw err;
+      sleepSync(LOCK_RETRY_MS);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    try {
+      containedRemove({ root, target: LOCK_FILE });
+    } catch {
+      /* leftover lock is retried by create */
+    }
+  }
 }
 
 /** Remaining-deploy item 1: Directive GitHub App private transactional store. */
 export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
   readonly backend = "directive-github-app" as const;
-  private readonly inner: InProcessAppStore;
+  private inner: InProcessAppStore;
   private readonly root: string;
 
   constructor(root: string) {
@@ -117,63 +172,56 @@ export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
   }
 
   mint(input: MintClaimInput): OnePrUnitClaim {
-    const claim = this.inner.mint(input);
-    this.persist();
-    return claim;
+    return this.mutate(() => this.inner.mint(input));
   }
 
   bind(id: string, prNodeId: string, now?: Date): OnePrUnitClaim {
-    const claim = this.inner.bind(id, prNodeId, now);
-    this.persist();
-    return claim;
+    return this.mutate(() => this.inner.bind(id, prNodeId, now));
   }
 
   getById(id: string): OnePrUnitClaim | null {
-    const claim = this.inner.getById(id);
-    this.persist();
-    return claim;
+    this.inner = this.hydrate();
+    return this.inner.getById(id);
   }
 
   getByPrNodeId(prNodeId: string): OnePrUnitClaim | null {
-    const claim = this.inner.getByPrNodeId(prNodeId);
-    this.persist();
-    return claim;
+    this.inner = this.hydrate();
+    return this.inner.getByPrNodeId(prNodeId);
   }
 
   membershipOf(origin: OriginRef): OnePrUnitClaim | null {
-    const claim = this.inner.membershipOf(origin);
-    this.persist();
-    return claim;
+    this.inner = this.hydrate();
+    return this.inner.membershipOf(origin);
   }
 
   listActive(): OnePrUnitClaim[] {
-    const claims = this.inner.listActive();
-    this.persist();
-    return claims;
+    this.inner = this.hydrate();
+    return this.inner.listActive();
   }
 
   consume(prNodeId: string, claimedSet: readonly OriginRef[], now?: Date): OnePrUnitClaim {
-    const claim = this.inner.consume(prNodeId, claimedSet, now);
-    this.persist();
-    return claim;
+    return this.mutate(() => this.inner.consume(prNodeId, claimedSet, now));
   }
 
   revoke(id: string, actor: string, now?: Date): OnePrUnitClaim {
-    const claim = this.inner.revoke(id, actor, now);
-    this.persist();
-    return claim;
+    return this.mutate(() => this.inner.revoke(id, actor, now));
   }
 
   revokeUnmerged(prNodeId: string, now?: Date): OnePrUnitClaim {
-    const claim = this.inner.revokeUnmerged(prNodeId, now);
-    this.persist();
-    return claim;
+    return this.mutate(() => this.inner.revokeUnmerged(prNodeId, now));
   }
 
   expireDue(now?: Date): OnePrUnitClaim[] {
-    const expired = this.inner.expireDue(now);
-    this.persist();
-    return expired;
+    return this.mutate(() => this.inner.expireDue(now));
+  }
+
+  private mutate<T>(fn: () => T): T {
+    return withExclusiveLock(this.root, () => {
+      this.inner = this.hydrate();
+      const result = fn();
+      this.persist();
+      return result;
+    });
   }
 
   private persist(): void {
@@ -186,7 +234,24 @@ export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
       membership: [...inner.membership.entries()],
       byPrNode: [...inner.byPrNode.entries()],
     };
-    writeFileSync(join(this.root, CLAIMS_FILE), JSON.stringify(payload), "utf8");
+    const tmpName = `.${CLAIMS_FILE}.${String(process.pid)}.${randomBytes(4).toString("hex")}.tmp`;
+    const tmp = join(this.root, tmpName);
+    try {
+      containedWrite({
+        root: this.root,
+        target: tmp,
+        data: JSON.stringify(payload),
+        mode: "create",
+      });
+      renameSync(tmp, join(this.root, CLAIMS_FILE));
+    } catch (err) {
+      try {
+        containedRemove({ root: this.root, target: tmpName });
+      } catch {
+        /* best-effort tmp cleanup */
+      }
+      throw err;
+    }
   }
 
   private hydrate(): InProcessAppStore {
@@ -277,7 +342,12 @@ export function bindExactSetThenResolve(input: {
         binding: { repo: input.repo, prNodeId: node },
       });
       if (declared.code === "allow-granted") {
-        input.store.bind(reserved.id, node);
+        try {
+          input.store.bind(reserved.id, node);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes("already bound")) throw err;
+        }
       }
     }
   }

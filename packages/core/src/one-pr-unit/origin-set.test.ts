@@ -4,6 +4,7 @@ import {
   formatOriginSet,
   normalizeOrigin,
   originKey,
+  stripTrailingSlashes,
   uniqueOrigins,
 } from "./origin-set.js";
 
@@ -33,5 +34,10 @@ describe("origin-set", () => {
         ],
       ),
     ).toBe(false);
+  });
+
+  it("strips trailing slashes without a plus-regex", () => {
+    expect(stripTrailingSlashes("o/r///")).toBe("o/r");
+    expect(normalizeOrigin("DeftAI/Directive///", 1).repo).toBe("deftai/directive");
   });
 });

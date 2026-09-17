@@ -1,7 +1,16 @@
 import type { OriginRef } from "./types.js";
 
+/** Strip trailing slashes without a trailing-plus regex (CodeQL js/polynomial-redos). */
+export function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && (value[end - 1] === "/" || value[end - 1] === "\\")) {
+    end -= 1;
+  }
+  return value.slice(0, end);
+}
+
 export function normalizeRepo(repo: string): string {
-  return repo.trim().replace(/\/+$/, "").toLowerCase();
+  return stripTrailingSlashes(repo.trim()).toLowerCase();
 }
 
 export function originKey(origin: OriginRef): string {

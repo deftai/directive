@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -181,6 +181,36 @@ describe("DirectiveGitHubAppStore persist-and-bind", () => {
       phase: "enforce",
     });
     expect(repoOnly.code).toBe("deny-not-bearer");
+  });
+
+  it("does not persist on getById", () => {
+    const dir = mkdtempSync(join(tmpdir(), "opu-read-"));
+    created.push(dir);
+    mintTwo(new DirectiveGitHubAppStore(dir));
+    const claims = join(dir, "claims.json");
+    const before = readFileSync(claims, "utf8");
+    const later = new DirectiveGitHubAppStore(dir);
+    expect(later.getById("unit-two")?.state).toBe("reserved");
+    expect(readFileSync(claims, "utf8")).toBe(before);
+  });
+
+  it("rehydrates so a second bind cannot reuse a granted claim", () => {
+    const dir = mkdtempSync(join(tmpdir(), "opu-cas-"));
+    created.push(dir);
+    mintTwo(new DirectiveGitHubAppStore(dir));
+    const first = new DirectiveGitHubAppStore(dir);
+    first.bind("unit-two", "PR_A");
+    const second = new DirectiveGitHubAppStore(dir);
+    expect(() => second.bind("unit-two", "PR_B")).toThrow(/already bound/);
+    expect(new DirectiveGitHubAppStore(dir).getByPrNodeId("PR_A")?.id).toBe("unit-two");
+    expect(new DirectiveGitHubAppStore(dir).getByPrNodeId("PR_B")).toBeNull();
+    const raced = bindExactSetThenResolve({
+      store: new DirectiveGitHubAppStore(dir),
+      closerSet: TWO,
+      repo: REPO,
+      prNodeId: "PR_B",
+    });
+    expect(raced).toBeNull();
   });
 });
 describe("cross-process mint-then-validate", () => {
