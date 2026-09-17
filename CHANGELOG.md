@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Maintainer .gitignore un-ignores provenance under .deft/approved-scope and .deft/intent-constraint.** Local scratch and reconstituted .deft/core stay ignored. Not consumer CANONICAL_GITIGNORE_BASELINE. Mint records show in git status without -f.
 - **Solo leftover-land recovery names the post-merge land sequence (#4421).** Sanctioned close-out is unreachable from the solo path, not unsatisfiable. After merge: scope:complete, git add of that verb's diff, leftover-land lifecycle PR. Do not Edit/Write completed/ or mint a completing status. Greptile: active/ on a product PR is correct; completed/ before merge stays a defect; leftover-land after merge is sanctioned. Org dashboard rules cannot be overridden by rules.md. Closes #4421.
 - **Design-critique panel ceiling (#4435).** Multi-critic rounds now include the panel deposit in the round-1 input ceiling. Closes #4435.
 

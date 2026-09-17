@@ -52,8 +52,23 @@ secrets/
 # vContext state
 vcontext/
 
-# Generated Deft exports
-.deft/
+# Maintainer .deft hybrid. This repo is not a consumer deposit and does not
+# inherit CANONICAL_GITIGNORE_BASELINE reconciliation. Blanket-ignore contents
+# of .deft/ (local scratch, occupancy, child-occupancy, reconstituted core).
+# Un-ignore provenance records so mint files show in git status without -f.
+.deft/*
+!.deft/approved-scope/
+!.deft/approved-scope/**
+!.deft/intent-constraint/
+!.deft/intent-constraint/**
+# Journal / lock sidecars only (#4116 classification; not the directory).
+.deft/approved-scope/*.bak
+.deft/approved-scope/*.next.tmp
+.deft/approved-scope/.*.pair.lock.tmp
+.deft/approved-scope/.*.pair.lock.tmp.stale
+.deft/approved-scope/.*.publishing.bak
+.deft/intent-constraint/*.bak
+.deft/intent-constraint/*.next.tmp
 
 # Pre-cutover backups written by `task migrate:vbrief` (#497, #506 D7).
 # Operators who want these versioned can delete these lines or override per-file.
