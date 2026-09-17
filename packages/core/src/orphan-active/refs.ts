@@ -1,4 +1,7 @@
-import { referenceTypeMatches } from "@deftai/directive-types";
+import {
+  describeUnknownReservedReferenceType,
+  referenceTypeMatches,
+} from "@deftai/directive-types";
 import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
 
 export interface IssueRef {
@@ -9,6 +12,12 @@ export interface IssueRef {
 export interface PrRef {
   readonly repo: string;
   readonly number: number;
+}
+
+export interface UnknownReservedRef {
+  readonly type: string;
+  readonly uri: unknown;
+  readonly nearestCanonical: string | null;
 }
 
 /** Parse (repo, pr_number) from a github-pr reference URI. */
@@ -98,9 +107,10 @@ function addPrRef(
 export function collectGithubRefs(
   plan: Record<string, unknown>,
   defaultRepo: string | null,
-): { issues: IssueRef[]; prs: PrRef[] } {
+): { issues: IssueRef[]; prs: PrRef[]; unknownReserved: UnknownReservedRef[] } {
   const issues: IssueRef[] = [];
   const prs: PrRef[] = [];
+  const unknownReserved: UnknownReservedRef[] = [];
   const seenIssues = new Set<string>();
   const seenPrs = new Set<string>();
 
@@ -118,6 +128,15 @@ export function collectGithubRefs(
       } else if (referenceTypeMatches(type, "github-pr")) {
         const [repo, number] = parseGithubPrUri(typed.uri);
         addPrRef(prs, seenPrs, repo, number, defaultRepo);
+      } else {
+        const unknown = describeUnknownReservedReferenceType(type);
+        if (unknown !== null) {
+          unknownReserved.push({
+            type: unknown.type,
+            uri: typed.uri,
+            nearestCanonical: unknown.nearestCanonical,
+          });
+        }
       }
     }
   }
@@ -138,5 +157,5 @@ export function collectGithubRefs(
     }
   }
 
-  return { issues, prs };
+  return { issues, prs, unknownReserved };
 }

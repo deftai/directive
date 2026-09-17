@@ -44,11 +44,15 @@ export {
   type TriageScopeRule,
 } from "./policy.js";
 export {
+  describeUnknownReservedReferenceType,
+  isRecognizedReservedReferenceType,
   isVBriefReferenceType,
   KNOWN_REFERENCE_TYPES,
   type KnownReferenceType,
+  RESERVED_REFERENCE_TYPE_ALIASES,
   referenceTypeMatches,
   type TrustLevel,
+  type UnknownReservedReferenceType,
   type VBriefReference,
 } from "./reference.js";
 export {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { scanVbrief } from "./conformance.js";
 import { validateOriginProvenance } from "./origin.js";
-import { validateVbriefSchema } from "./schema.js";
+import { validatePlanReferenceTypes, validateVbriefSchema } from "./schema.js";
 
 const MINIMAL_V08 = {
   xBRIEFInfo: { version: "0.8" },
@@ -131,5 +131,63 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     };
     expect(scanVbrief(rel, data)).toEqual([]);
     expect(validateOriginProvenance(rel, data, "/tmp/vbrief", false)).toEqual([]);
+  });
+});
+
+describe("validatePlanReferenceTypes reserved subtypes (#4698)", () => {
+  const prUri = "https://github.com/deftai/directive-training/pull/5";
+  const issueUri = "https://github.com/deftai/directive/issues/4698";
+
+  it("reports pull-request with nearest canonical github-pr", () => {
+    const errors = validatePlanReferenceTypes(
+      [{ uri: prUri, type: "x-xbrief/pull-request" }],
+      "brief.json",
+    );
+    expect(errors.some((e) => e.includes("x-xbrief/pull-request"))).toBe(true);
+    expect(errors.some((e) => e.includes("unknown reserved-prefix subtype"))).toBe(true);
+    expect(errors.some((e) => e.includes("x-xbrief/github-pr"))).toBe(true);
+  });
+
+  it("does not report canonical github-pr", () => {
+    expect(
+      validatePlanReferenceTypes([{ uri: prUri, type: "x-xbrief/github-pr" }], "brief.json"),
+    ).toEqual([]);
+  });
+
+  it("keeps engine-written closes and current-shape valid", () => {
+    expect(
+      validatePlanReferenceTypes(
+        [
+          { uri: issueUri, type: "x-xbrief/closes" },
+          {
+            uri: "https://github.com/deftai/directive/issues/4698#issuecomment-1",
+            type: "x-xbrief/current-shape",
+          },
+        ],
+        "brief.json",
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports pull-request in a mixed github-issue plus pull-request plan", () => {
+    const errors = validatePlanReferenceTypes(
+      [
+        { uri: issueUri, type: "x-xbrief/github-issue" },
+        { uri: prUri, type: "x-xbrief/pull-request" },
+      ],
+      "brief.json",
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("plan.references[1].type");
+    expect(errors[0]).toContain("x-xbrief/pull-request");
+  });
+
+  it("does not close consumer x-* namespaces", () => {
+    expect(
+      validatePlanReferenceTypes(
+        [{ uri: "https://example.test/t/1", type: "x-myapp/ticket" }],
+        "brief.json",
+      ),
+    ).toEqual([]);
   });
 });

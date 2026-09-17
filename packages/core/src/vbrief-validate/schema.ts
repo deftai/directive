@@ -1,6 +1,8 @@
+import { describeUnknownReservedReferenceType } from "@deftai/directive-types";
 import { pyStrRepr, pythonTypeName } from "../triage/scope/python-repr.js";
 import {
   PROJECT_DEF_EXPECTED_NARRATIVES,
+  STRICT_ORIGIN_ALLOWLIST,
   VALID_INFO_ROOT_KEYS,
   VALID_ITEM_STATUSES,
   VALID_PLAN_ITEM_EFFORTS,
@@ -113,6 +115,43 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
       }
     }
   }
+}
+
+/** Report reserved-prefix reference types no existing list consumes (#4698). */
+export function validatePlanReferenceTypes(references: unknown, filepath: string): string[] {
+  const errors: string[] = [];
+  if (references === undefined) {
+    return errors;
+  }
+  if (!Array.isArray(references)) {
+    errors.push(`${filepath}: plan.references must be an array`);
+    return errors;
+  }
+  for (let i = 0; i < references.length; i += 1) {
+    const ref = references[i];
+    if (typeof ref !== "object" || ref === null || Array.isArray(ref)) {
+      continue;
+    }
+    const refType = (ref as JsonObject).type;
+    if (typeof refType !== "string") {
+      continue;
+    }
+    if (STRICT_ORIGIN_ALLOWLIST.has(refType)) {
+      continue;
+    }
+    const unknown = describeUnknownReservedReferenceType(refType);
+    if (unknown === null) {
+      continue;
+    }
+    const nearest =
+      unknown.nearestCanonical === null
+        ? ""
+        : `; nearest canonical is ${pyStrRepr(unknown.nearestCanonical)}`;
+    errors.push(
+      `${filepath}: plan.references[${i}].type ${pyStrRepr(refType)} is an unknown reserved-prefix subtype${nearest}`,
+    );
+  }
+  return errors;
 }
 
 /** Validate vBRIEF/xBRIEF structural requirements (v0.6 + v0.8 additive). */
