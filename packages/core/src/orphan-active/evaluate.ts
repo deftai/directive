@@ -394,11 +394,7 @@ function formatRefusal(
   const droppedOrphans = orphans.filter((orphan) => orphan.kind === "dropped-ref");
   const noun = orphans.length === 1 ? "" : "s";
   let headline: string;
-  if (
-    droppedOrphans.length > 0 &&
-    shippedOrphans.length === 0 &&
-    unresolvedOrphans.length === 0
-  ) {
+  if (droppedOrphans.length > 0 && shippedOrphans.length === 0 && unresolvedOrphans.length === 0) {
     headline = `verify:orphan-active: ${droppedOrphans.length} active/running xBRIEF${
       droppedOrphans.length === 1 ? "" : "s"
     } have dropped forge origin references (cannot collect) (project_root=${projectRoot}).`;
