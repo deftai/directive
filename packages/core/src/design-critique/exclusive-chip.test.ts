@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
-import {
-  applyIngestReadyRemainingSet,
-  type ThreadComment,
-} from "./completed-arc-record.js";
+import { applyIngestReadyRemainingSet, type ThreadComment } from "./completed-arc-record.js";
 import {
   applyDesignCritiqueCatalogChip,
   DESIGN_CRITIQUE_CATALOG_CHIPS,
@@ -155,12 +152,7 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
 
   it("apply is a single LabelClient.apply with add and remove together", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
-    const result = applyIngestReadyRemainingSet(
-      client,
-      "deftai/directive",
-      3637,
-      completeComments,
-    );
+    const result = applyIngestReadyRemainingSet(client, "deftai/directive", 3637, completeComments);
     expect(client.applyCalls).toHaveLength(1);
     expect(client.applyCalls[0]).toEqual({
       add: ["design-critique:ingest-ready"],

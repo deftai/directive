@@ -10,8 +10,8 @@ import {
   applyIngestReadyRemainingSet,
   DesignCritiqueIngestBlockedError,
   IngestReadyCompletedArcProofError,
-  threadCommentsFromIssueComments,
   type ThreadComment,
+  threadCommentsFromIssueComments,
 } from "../design-critique/completed-arc-record.js";
 import {
   applyDesignCritiqueCatalogChip,

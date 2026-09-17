@@ -260,7 +260,6 @@ describe("reconciliation branches", () => {
   });
 });
 
-
 const COMPLETE_ARC_COMMENTS = [
   { id: 5442939496, body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n" },
   { id: 5443106967, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },

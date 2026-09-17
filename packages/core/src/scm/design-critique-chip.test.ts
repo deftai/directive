@@ -456,7 +456,11 @@ describe("runDesignCritiqueChip", () => {
     );
     expect(result.exitCode).toBe(1);
     expect(client.applyCalls).toHaveLength(0);
-    const payload = JSON.parse(result.stdout) as { miss: boolean; blocking: boolean; error: string };
+    const payload = JSON.parse(result.stdout) as {
+      miss: boolean;
+      blocking: boolean;
+      error: string;
+    };
     expect(payload).toMatchObject({ miss: false, blocking: true });
     expect(payload.error).toMatch(/synthesis accepted because/);
     expect(result.stdout).not.toContain("chip apply missed");
