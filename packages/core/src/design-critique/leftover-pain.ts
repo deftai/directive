@@ -147,7 +147,7 @@ export function evaluateBoundRemedyCites(input: {
 /** Operative line-start for pain-audit dispatch. Marker ids, or none. */
 export function painAuditDispatchAuditTargetsLine(markerIds: readonly string[]): string {
   if (markerIds.length === 0) return "audit-targets: none";
-  return `audit-targets: ${markerIds.join(" ")}`;
+  return `audit-targets: ${markerIds.join(", ")}`;
 }
 
 /**

@@ -379,6 +379,9 @@ describe("yolo leftover-pain handling (#4593)", () => {
     const filledLine = painAuditDispatchAuditTargetsLine(["pain-P1"]);
     expect(filledLine).toBe("audit-targets: pain-P1");
     expect(painAuditDispatchAuditTargetsLine([])).toBe("audit-targets: none");
+    expect(painAuditDispatchAuditTargetsLine(["pain-P1", "pain-P2"])).toBe(
+      "audit-targets: pain-P1, pain-P2",
+    );
     const filledBody = `model: grok-4.6\nrole: critic\n\n${filledLine}\n`;
     expect(
       evaluatePainAuditDispatchFill({
