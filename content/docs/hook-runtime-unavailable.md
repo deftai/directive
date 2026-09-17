@@ -22,7 +22,7 @@ deft policy:disable-host-hooks --host cursor --confirm
 
 That sets `plan.policy.hostHooks.cursor = false` in `xbrief/PROJECT-DEFINITION.xbrief.json`, and the next `deft update` strips the Cursor registration. Commit and push; the locked-out environment clears on its next pull or fresh clone.
 
-If the goal is to remove Directive, do not uninstall first. Leftover `.cursor/hooks.json` is live failClosed authority after the CLI is gone. Follow the [full-stop recipe](./full-stop.md): leftover-free strip (`policy:disable-host-hooks --host cursor --confirm` then `deft update`) and unset `core.hooksPath` while the CLI still exists, then uninstall.
+If the goal is to remove Directive, do not uninstall first. Leftover `.cursor/hooks.json` is live failClosed authority after the CLI is gone. Follow the [full-stop recipe](./full-stop.md).
 
 ⚠ Capability cost: disabling `hostHooks` for a host removes `deft-hook` pre-execution guardrails for anyone who later opens this repo in that host. The change is tracked and recorded to `meta/policy-changes.log`. Inspect with `deft policy:show --field=hostHooks`; reverse by setting the host back to `true` and running `deft update`.
 
