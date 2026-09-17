@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   applyIngestReadyRemainingSet,
+  assertCompletedArcAllowsIngest,
   threadCommentsFromIssueComments,
 } from "../design-critique/completed-arc-record.js";
 import {
@@ -110,7 +111,16 @@ export class ScmLabelClient implements LabelClient {
       };
       if (nextChip === "design-critique:ingest-ready") {
         const comments = threadCommentsFromIssueComments(fetchIssueComments(repo, issueNumber));
-        applyIngestReadyRemainingSet(inner, repo, issueNumber, comments);
+        const outcome = applyIngestReadyRemainingSet(inner, repo, issueNumber, comments);
+        if (!outcome.ok) {
+          if (outcome.verdict.status === "blocked") {
+            assertCompletedArcAllowsIngest({ issueNumber, comments });
+          }
+          if (!applied && (restAdd.length > 0 || restRemove.length > 0)) {
+            this.applyMut(repo, issueNumber, restAdd, restRemove);
+          }
+          return;
+        }
       } else {
         applyDesignCritiqueCatalogChip(inner, repo, issueNumber, nextChip);
       }

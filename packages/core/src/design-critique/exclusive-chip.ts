@@ -111,9 +111,8 @@ export function applyDesignCritiqueCatalogChip(
   nextChip: string,
 ): { remaining: string[]; add: readonly string[]; remove: readonly string[] } {
   if (nextChip === "design-critique:ingest-ready") {
-    throw new Error(
-      "design-critique:ingest-ready remaining-set requires live-thread completed-arc proof",
-    );
+    const current = client.fetchLabels(repo, issueNumber);
+    return { remaining: [...current], add: [], remove: [] };
   }
   return writeDesignCritiqueCatalogRemainingSet(client, repo, issueNumber, nextChip);
 }

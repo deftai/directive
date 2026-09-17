@@ -902,31 +902,43 @@ export class IngestReadyCompletedArcProofError extends Error {
 export function proveLiveThreadCompletedArcForIngestReady(input: {
   readonly comments: readonly ThreadComment[];
   readonly issueNumber?: number;
-}): Extract<CompletedArcVerdict, { status: "complete" }> {
-  const verdict = evaluateCompletedArcRecord({
+}): CompletedArcVerdict {
+  return evaluateCompletedArcRecord({
     comments: input.comments,
     issueNumber: input.issueNumber,
   });
-  if (verdict.status === "complete") return verdict;
-  throw new IngestReadyCompletedArcProofError(input.issueNumber ?? 0, verdict, input.comments);
 }
+
+export type IngestReadyRemainingSetResult =
+  | {
+      readonly ok: true;
+      readonly remaining: string[];
+      readonly add: readonly string[];
+      readonly remove: readonly string[];
+    }
+  | { readonly ok: false; readonly verdict: CompletedArcVerdict };
 
 /**
  * Shared ingest-ready remaining-set write. Fetch is the caller's job
  * (fetchIssueComments). Both runDesignCritiqueChip and ScmLabelClient.apply
- * exclusive fold use this helper.
+ * exclusive fold use this helper. Blocked threads reuse assertCompletedArcAllowsIngest
+ * (existing throw). not-in-arc does not write.
  */
 export function applyIngestReadyRemainingSet(
   client: LabelClient,
   repo: string,
   issueNumber: number,
   comments: readonly ThreadComment[],
-): { remaining: string[]; add: readonly string[]; remove: readonly string[] } {
-  proveLiveThreadCompletedArcForIngestReady({ comments, issueNumber });
-  return writeDesignCritiqueCatalogRemainingSet(
+): IngestReadyRemainingSetResult {
+  const verdict = proveLiveThreadCompletedArcForIngestReady({ comments, issueNumber });
+  if (verdict.status !== "complete") {
+    return { ok: false, verdict };
+  }
+  const written = writeDesignCritiqueCatalogRemainingSet(
     client,
     repo,
     issueNumber,
     "design-critique:ingest-ready",
   );
+  return { ok: true, ...written };
 }

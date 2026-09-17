@@ -8,6 +8,7 @@
 import { spawnSync } from "node:child_process";
 import {
   applyIngestReadyRemainingSet,
+  DesignCritiqueIngestBlockedError,
   IngestReadyCompletedArcProofError,
   threadCommentsFromIssueComments,
   type ThreadComment,
@@ -162,17 +163,24 @@ function defaultFetchComments(repo: string, issueNumber: number): ThreadComment[
   return threadCommentsFromIssueComments(fetchIssueComments(repo, issueNumber));
 }
 
-function applyCatalogChip(
-  client: LabelClient,
+function proofFailResult(
+  args: DesignCritiqueChipArgs,
   repo: string,
-  issue: number,
-  chip: DesignCritiqueCatalogChip,
-  fetchComments: (repo: string, issueNumber: number) => readonly ThreadComment[],
-): { remaining: string[]; add: readonly string[]; remove: readonly string[] } {
-  if (chip === "design-critique:ingest-ready") {
-    return applyIngestReadyRemainingSet(client, repo, issue, fetchComments(repo, issue));
+  err: Error,
+): DesignCritiqueChipResult {
+  const payload = {
+    repo,
+    issue: args.issue,
+    chip: args.chip,
+    applied: false,
+    miss: false,
+    blocking: true,
+    error: err.message,
+  };
+  if (args.json) {
+    return { exitCode: 1, stdout: `${JSON.stringify(payload)}\n`, stderr: "" };
   }
-  return applyDesignCritiqueCatalogChip(client, repo, issue, chip);
+  return { exitCode: 1, stdout: "", stderr: `error: ${err.message}\n` };
 }
 
 /**
@@ -218,7 +226,21 @@ export function runDesignCritiqueChip(
   const client = seams.client ?? new ScmLabelClient();
   const fetchComments = seams.fetchComments ?? defaultFetchComments;
   try {
-    const applied = applyCatalogChip(client, repo, args.issue, args.chip, fetchComments);
+    let applied: { remaining: string[]; add: readonly string[]; remove: readonly string[] };
+    if (args.chip === "design-critique:ingest-ready") {
+      const comments = fetchComments(repo, args.issue);
+      const outcome = applyIngestReadyRemainingSet(client, repo, args.issue, comments);
+      if (!outcome.ok) {
+        return proofFailResult(
+          args,
+          repo,
+          new IngestReadyCompletedArcProofError(args.issue, outcome.verdict, comments),
+        );
+      }
+      applied = outcome;
+    } else {
+      applied = applyDesignCritiqueCatalogChip(client, repo, args.issue, args.chip);
+    }
     const payload = {
       repo,
       issue: args.issue,
@@ -245,7 +267,9 @@ export function runDesignCritiqueChip(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     const proofFail =
-      err instanceof IngestReadyCompletedArcProofError || err instanceof IssueCommentFetchError;
+      err instanceof IngestReadyCompletedArcProofError ||
+      err instanceof DesignCritiqueIngestBlockedError ||
+      err instanceof IssueCommentFetchError;
     const payload = {
       repo,
       issue: args.issue,
