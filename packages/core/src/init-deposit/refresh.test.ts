@@ -2746,6 +2746,43 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(readFileSync(join(project, "package.json"), "utf8")).toBe(before);
   });
 
+  it("reverts earlier lockfiles when a later lock exec fails (#4710)", async () => {
+    const project = freshRoot("update-pin-multilock-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    writeFileSync(join(project, "package-lock.json"), '{"lockfileVersion":3}\n', "utf8");
+    writeFileSync(join(project, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
+    const beforePkg = readFileSync(join(project, "package.json"), "utf8");
+    const beforeNpm = readFileSync(join(project, "package-lock.json"), "utf8");
+    const beforePnpm = readFileSync(join(project, "pnpm-lock.yaml"), "utf8");
+    let calls = 0;
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        copyContent: async () => {
+          throw new Error("copyContent must not run for skip-copy");
+        },
+        readEngineVersion: () => "0.54.0",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        containedDestExec: (input) => {
+          calls += 1;
+          writeFileSync(join(project, input.destTarget), "MUTATED\n", "utf8");
+          return { ok: calls === 1, stdout: "" };
+        },
+        resolveLockfileManager: (name) => `/stub/${name}`,
+      },
+    );
+
+    expect(result.pinLockRefreshError).toMatch(/lockfile refresh failed/);
+    expect(readFileSync(join(project, "package.json"), "utf8")).toBe(beforePkg);
+    expect(readFileSync(join(project, "package-lock.json"), "utf8")).toBe(beforeNpm);
+    expect(readFileSync(join(project, "pnpm-lock.yaml"), "utf8")).toBe(beforePnpm);
+  });
+
   it("fails the verb when the lockfile manager is missing from PATH (#4710)", async () => {
     const project = freshRoot("update-pin-nopath-");
     const contentRoot = installFakeContentPackage(project, "0.54.0");

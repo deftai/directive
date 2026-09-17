@@ -783,6 +783,44 @@ function restorePackageJson(
   containedRemove({ root: projectDir, target: "package.json" });
 }
 
+function snapshotPresentLockfiles(
+  projectDir: string,
+  locks: ReadonlyArray<{ file: string }>,
+): ReadonlyArray<{ file: string; existed: boolean; bytes: string | null }> {
+  return locks.map((row) => {
+    const path = join(projectDir, row.file);
+    if (!existsSync(path)) return { file: row.file, existed: false, bytes: null };
+    return { file: row.file, existed: true, bytes: readFileSync(path, "utf8") };
+  });
+}
+
+function restorePresentLockfiles(
+  projectDir: string,
+  snapshots: ReadonlyArray<{ file: string; existed: boolean; bytes: string | null }>,
+): void {
+  for (const snap of snapshots) {
+    if (snap.existed && snap.bytes !== null) {
+      containedWrite({
+        root: projectDir,
+        target: snap.file,
+        data: snap.bytes,
+        mode: "replace",
+      });
+      continue;
+    }
+    containedRemove({ root: projectDir, target: snap.file });
+  }
+}
+
+function restorePinAndLockfiles(
+  projectDir: string,
+  pkg: { existed: boolean; bytes: string | null },
+  locks: ReadonlyArray<{ file: string; existed: boolean; bytes: string | null }>,
+): void {
+  restorePackageJson(projectDir, pkg);
+  restorePresentLockfiles(projectDir, locks);
+}
+
 function defaultResolveLockfileManager(execFile: string): string | null {
   return whichAllFromPath(execFile)[0] ?? null;
 }
@@ -790,7 +828,7 @@ function defaultResolveLockfileManager(execFile: string): string | null {
 /**
  * Write the consumer pin when it lags the reconstituted content version, then
  * mutate any present lockfile in-process with closed lockfile-only argv (#4710).
- * Spawn failure reverts the pin. Missing pin (`pinVersion === null`) stays #4429 row 3c.
+ * Spawn failure reverts the pin and any lockfiles already mutated in this pass. Missing pin (`pinVersion === null`) stays #4429 row 3c.
  */
 function reconstituteConsumerPinAndLock(
   projectDir: string,
@@ -804,6 +842,7 @@ function reconstituteConsumerPinAndLock(
   const snapshot = snapshotPackageJson(projectDir);
   ensurePackageJsonPin(projectDir, contentVersion, io);
   const locks = presentLockfiles(projectDir);
+  const lockSnapshots = snapshotPresentLockfiles(projectDir, locks);
   if (locks.length === 0) {
     return null;
   }
@@ -821,7 +860,7 @@ function reconstituteConsumerPinAndLock(
     } else {
       const resolved = resolveManager(row.execFile);
       if (resolved === null) {
-        restorePackageJson(projectDir, snapshot);
+        restorePinAndLockfiles(projectDir, snapshot, lockSnapshots);
         return `lockfile refresh failed: ${row.execFile} is not on PATH`;
       }
       result = execFn({
@@ -832,7 +871,7 @@ function reconstituteConsumerPinAndLock(
       });
     }
     if (!result.ok) {
-      restorePackageJson(projectDir, snapshot);
+      restorePinAndLockfiles(projectDir, snapshot, lockSnapshots);
       return `lockfile refresh failed: ${row.execFile} ${row.args.join(" ")}`;
     }
   }
