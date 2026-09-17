@@ -20,12 +20,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { evaluateLiveProcedureTargets } from "../deposit/live-procedure-targets.js";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { runChecksImpl } from "../doctor/checks.js";
-import { emptyMutationSummary } from "../fs/mutation-ledger.js";
+import { emptyMutationSummary, runInPortRecordMode } from "../fs/mutation-ledger.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import type { ClassifySeams } from "../resolution/index.js";
 import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
+import { LOCKFILE_REFRESH_COMMANDS } from "./init-deposit.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildDepositVersionSkewHeadline,
@@ -47,6 +48,8 @@ import {
   UPDATE_REFUSED_EXIT_CODE,
   updateStateFromPlan,
 } from "./refresh.js";
+import { PIN_DEPENDENCY_NAME } from "./scaffold.js";
+import { destPlanIsEmpty } from "./update-git-preflight.js";
 
 // `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
 // so a guarded parse keeps property reads from blowing up with a TypeError
@@ -2548,5 +2551,312 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(
       readFileSync(join(process.cwd(), "packages/core/src/init-deposit/refresh.ts"), "utf8"),
     ).not.toMatch(/prettier --write|npx prettier|pnpm exec prettier/);
+  });
+
+  it("writes the lagging pin on skip-copy via ensurePackageJsonPin (#4710)", async () => {
+    const project = freshRoot("update-pin-skip-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run for skip-copy pin reconstitution");
+    });
+    const containedDestExec = vi.fn(() => ({ ok: true, stdout: "" }));
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        copyContent,
+        readEngineVersion: () => "0.54.0",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        containedDestExec,
+        resolveLockfileManager: (name) => `/stub/${name}`,
+      },
+    );
+
+    expect(result.alreadyCurrent).toBe(true);
+    expect(result.pinLockRefreshError).toBeUndefined();
+    expect(copyContent).not.toHaveBeenCalled();
+    expect(containedDestExec).not.toHaveBeenCalled();
+    const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
+    expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.54.0");
+  });
+
+  it("dest-execs lockfile-only argv after the pin write; dest-plan records the lock path (#4710)", async () => {
+    const project = freshRoot("update-pin-pnpm-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    writeFileSync(join(project, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
+    const containedDestExec = vi.fn(() => ({ ok: true, stdout: "" }));
+
+    const live = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        copyContent: async () => {
+          throw new Error("copyContent must not run for skip-copy");
+        },
+        readEngineVersion: () => "0.54.0",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        containedDestExec,
+        resolveLockfileManager: (name) => `/stub/${name}`,
+      },
+    );
+
+    expect(live.pinLockRefreshError).toBeUndefined();
+    expect(
+      (
+        parseJsonObject(readFileSync(join(project, "package.json"), "utf8"))
+          .devDependencies as Record<string, string>
+      )[PIN_DEPENDENCY_NAME],
+    ).toBe("0.54.0");
+    expect(containedDestExec).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destTarget: "pnpm-lock.yaml",
+        file: "/stub/pnpm",
+        args: ["install", "--lockfile-only"],
+      }),
+    );
+    expect(JSON.stringify(containedDestExec.mock.calls)).not.toContain("0.54.0");
+    expect(JSON.stringify(containedDestExec.mock.calls)).not.toMatch(
+      /pnpm add|npm install --save-dev|renderProjectInstall/,
+    );
+
+    const planProject = freshRoot("update-pin-plan-");
+    const planContent = installFakeContentPackage(planProject, "0.54.0");
+    writeInitializedProject(planProject, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    writeFileSync(join(planProject, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
+    const planned = await runInPortRecordMode(() =>
+      runRefreshDeposit(
+        { projectDir: planProject, jsonOut: false, nonInteractive: true, upgrade: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => planContent,
+          copyContent: async () => {
+            throw new Error("copyContent must not run for skip-copy");
+          },
+          readEngineVersion: () => "0.54.0",
+          gitPorcelain: () => null,
+          gitLsFiles: () => null,
+        },
+      ),
+    );
+    expect(planned.mutations.exec).toContain("pnpm-lock.yaml");
+    expect(planned.mutations.wrote).toContain("package.json");
+    expect(destPlanIsEmpty(planned.mutations)).toBe(false);
+  });
+
+  it("uses yarn install argv for yarn.lock, not silent npm (#4710)", async () => {
+    const project = freshRoot("update-pin-yarn-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    writeFileSync(join(project, "yarn.lock"), "# yarn lockfile v1\n", "utf8");
+    const containedDestExec = vi.fn(() => ({ ok: true, stdout: "" }));
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        copyContent: async () => {
+          throw new Error("copyContent must not run for skip-copy");
+        },
+        readEngineVersion: () => "0.54.0",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        containedDestExec,
+        resolveLockfileManager: (name) => `/stub/${name}`,
+      },
+    );
+
+    expect(containedDestExec).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destTarget: "yarn.lock",
+        file: "/stub/yarn",
+        args: ["install"],
+      }),
+    );
+    expect(containedDestExec).not.toHaveBeenCalledWith(
+      expect.objectContaining({ file: "/stub/npm" }),
+    );
+  });
+
+  it("reverts the pin and fails the update verb when lock exec is not ok (#4710)", async () => {
+    const project = freshRoot("update-pin-fail-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    writeFileSync(join(project, "package-lock.json"), '{"lockfileVersion":3}\n', "utf8");
+    const before = readFileSync(join(project, "package.json"), "utf8");
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        copyContent: async () => {
+          throw new Error("copyContent must not run for skip-copy");
+        },
+        readEngineVersion: () => "0.54.0",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        containedDestExec: () => ({ ok: false, stdout: "" }),
+        resolveLockfileManager: (name) => `/stub/${name}`,
+      },
+    );
+
+    expect(result.pinLockRefreshError).toMatch(/lockfile refresh failed/);
+    expect(readFileSync(join(project, "package.json"), "utf8")).toBe(before);
+
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        copyContent: async () => {
+          throw new Error("copyContent must not run for skip-copy");
+        },
+        readEngineVersion: () => "0.54.0",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        evaluateAgentHookReadiness: () => agentHookReadiness(),
+        containedDestExec: () => ({ ok: false, stdout: "" }),
+        resolveLockfileManager: (name) => `/stub/${name}`,
+        probeUpdateGit: () => ({
+          kind: "no-repository",
+          dirty_tree: false,
+          dirty_files: [],
+          stderr: "",
+        }),
+      },
+    });
+    expect(code).toBe(1);
+    expect(err.join("")).toContain("lockfile refresh failed");
+    expect(parseJsonObject(out.join("")).error_code).toBe("pin_lock_refresh_failed");
+    expect(readFileSync(join(project, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("fails the verb when the lockfile manager is missing from PATH (#4710)", async () => {
+    const project = freshRoot("update-pin-nopath-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    writeFileSync(join(project, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
+    const before = readFileSync(join(project, "package.json"), "utf8");
+    const containedDestExec = vi.fn(() => ({ ok: true, stdout: "" }));
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        copyContent: async () => {
+          throw new Error("copyContent must not run for skip-copy");
+        },
+        readEngineVersion: () => "0.54.0",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        containedDestExec,
+        resolveLockfileManager: () => null,
+      },
+    );
+
+    expect(result.pinLockRefreshError).toMatch(/not on PATH/);
+    expect(containedDestExec).not.toHaveBeenCalled();
+    expect(readFileSync(join(project, "package.json"), "utf8")).toBe(before);
+  });
+
+  it("does not write a missing pin (row 3c) and ignores engine-skew env as a write-gate (#4710)", async () => {
+    const project = freshRoot("update-pin-null-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "templates"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.54.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    copyFileSync(
+      join(process.cwd(), "content/templates/agents-entry.md"),
+      join(deftDir, "templates/agents-entry.md"),
+    );
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      `# Operator prose\n\n<!-- deft:managed-section v3 sha=deadbeefcafe -->\nbody\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+    const containedDestExec = vi.fn(() => ({ ok: true, stdout: "" }));
+    const prev = process.env.DEFT_ACCEPT_ENGINE_SKEW;
+    process.env.DEFT_ACCEPT_ENGINE_SKEW = "1";
+    try {
+      const result = await runRefreshDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          copyContent: async () => {
+            throw new Error("copyContent must not run for skip-copy");
+          },
+          readEngineVersion: () => "0.54.0",
+          gitPorcelain: () => null,
+          gitLsFiles: () => null,
+          containedDestExec,
+        },
+      );
+      expect(result.alreadyCurrent).toBe(true);
+      expect(existsSync(join(project, "package.json"))).toBe(false);
+      expect(containedDestExec).not.toHaveBeenCalled();
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACCEPT_ENGINE_SKEW;
+      else process.env.DEFT_ACCEPT_ENGINE_SKEW = prev;
+    }
+
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.53.0" });
+    process.env.DEFT_ACCEPT_ENGINE_SKEW = "1";
+    try {
+      await runRefreshDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          copyContent: async () => {
+            throw new Error("copyContent must not run for skip-copy");
+          },
+          readEngineVersion: () => "0.54.0",
+          gitPorcelain: () => null,
+          gitLsFiles: () => null,
+          containedDestExec,
+          resolveLockfileManager: (name) => `/stub/${name}`,
+        },
+      );
+      const pkg = parseJsonObject(readFileSync(join(project, "package.json"), "utf8"));
+      expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.54.0");
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACCEPT_ENGINE_SKEW;
+      else process.env.DEFT_ACCEPT_ENGINE_SKEW = prev;
+    }
+
+    const src = readFileSync(
+      join(process.cwd(), "packages/core/src/init-deposit/refresh.ts"),
+      "utf8",
+    );
+    expect(src).not.toMatch(
+      /accept-engine-jump|DEFT_ACCEPT_ENGINE_SKEW|lastErrorCount|renderProjectInstall/,
+    );
+    expect(LOCKFILE_REFRESH_COMMANDS.map((row) => [row.file, row.execFile, ...row.args])).toEqual([
+      ["package-lock.json", "npm", "install", "--package-lock-only"],
+      ["pnpm-lock.yaml", "pnpm", "install", "--lockfile-only"],
+      ["yarn.lock", "yarn", "install"],
+    ]);
   });
 });

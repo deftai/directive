@@ -198,8 +198,9 @@ export interface EnsurePackageJsonPinResult {
  *  - idempotent               -> re-running with the same pin makes no change.
  *
  * Wired from executing `directive init` (`init-deposit.ts`) before the
- * `.deft/core/` gitignore write. Headless greenfield emits the same pin via
- * `headless-manifest.ts` collectPackageJsonFile.
+ * `.deft/core/` gitignore write, and from `directive update` (`runRefreshDeposit`)
+ * when the pin lags the reconstituted content version (#4710). Headless
+ * greenfield emits the same pin via `headless-manifest.ts` collectPackageJsonFile.
  *
  * #4429 accepted cost: `JSON.stringify(pkg, null, 2)` reformats the whole
  * file (indent and key order). First pin-write of an existing consumer

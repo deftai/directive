@@ -19,9 +19,17 @@ import { assertLiveProcedureDepositClean } from "../deposit/live-procedure-targe
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
+import { whichAllFromPath } from "../doctor/which.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { readLiveGeneration, stampLiveGeneration } from "../freshness/generation.js";
-import { containedRename } from "../fs/contained-write.js";
+import {
+  type ContainedDestExecInput,
+  type ContainedDestExecResult,
+  containedDestExec,
+  containedRemove,
+  containedRename,
+  containedWrite,
+} from "../fs/contained-write.js";
 import {
   activeMutationLedger,
   emptyMutationSummary,
@@ -55,6 +63,7 @@ import {
   renderGlobalInstall,
   resolveEngine,
 } from "../resolution/index.js";
+import { readPin } from "../resolution/pin.js";
 import { depositOpenClawSoftRebindSkill } from "../session/openclaw-soft-rebind-deposit.js";
 import { depositOpenClawL2ProductCommands } from "../slash/openclaw-deposit.js";
 import { gitPorcelain } from "../story-ready/git.js";
@@ -74,7 +83,7 @@ import {
   printDirtyEscapeCommitGuidance,
   reconcileDepositToContentPackage,
 } from "./hygiene.js";
-import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
+import { type InitDepositArgs, parseInitArgv, presentLockfiles } from "./init-deposit.js";
 import {
   buildLegacyRefusalJson,
   buildLegacyRefusalMessage,
@@ -88,6 +97,7 @@ import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
+  ensurePackageJsonPin,
   ensureTaskfile,
   type GitHooksSeams,
   type InitDepositIo,
@@ -134,6 +144,8 @@ export interface RefreshDepositResult {
   readonly stagedPaths: string[];
   /** This-run write/remove ledger (#3392). Same source as printf + JSON. */
   readonly mutations: MutationSummary;
+  /** Pin+lock reconstitution failed; pin was reverted (#4710). */
+  readonly pinLockRefreshError?: string;
 }
 
 function hasCanonicalXbriefLifecycle(projectDir: string): boolean {
@@ -172,6 +184,10 @@ export interface RefreshDepositSeams {
   probeUpdateGit?: (projectDir: string) => UpdateGitPreflight;
   /** True when an UPDATE_DRY_RUN_EXCLUSIONS / $HOME writer might fire (#4158). */
   outOfRootWriterMightFire?: (projectDir: string) => boolean;
+  /** Dest-mutating lockfile exec (#4710). Default {@link containedDestExec}. */
+  containedDestExec?: (input: ContainedDestExecInput) => ContainedDestExecResult;
+  /** PATH resolve for lockfile manager binaries. Default {@link whichAllFromPath}. */
+  resolveLockfileManager?: (execFile: string) => string | null;
 }
 
 /**
@@ -739,6 +755,90 @@ export function recordModePayloadRoot(input: {
   return isPortRecordMode() && !input.alreadyCurrent ? input.contentRoot : input.deftDir;
 }
 
+function pinLagsReconstitutedVersion(projectDir: string, contentVersion: string): boolean {
+  const needed = contentVersion.trim().replace(/^v/i, "");
+  const current = readPin(projectDir).pinVersion;
+  return current !== null && current !== needed;
+}
+
+function snapshotPackageJson(projectDir: string): { existed: boolean; bytes: string | null } {
+  const path = join(projectDir, "package.json");
+  if (!existsSync(path)) return { existed: false, bytes: null };
+  return { existed: true, bytes: readFileSync(path, "utf8") };
+}
+
+function restorePackageJson(
+  projectDir: string,
+  snapshot: { existed: boolean; bytes: string | null },
+): void {
+  if (snapshot.existed && snapshot.bytes !== null) {
+    containedWrite({
+      root: projectDir,
+      target: "package.json",
+      data: snapshot.bytes,
+      mode: "replace",
+    });
+    return;
+  }
+  containedRemove({ root: projectDir, target: "package.json" });
+}
+
+function defaultResolveLockfileManager(execFile: string): string | null {
+  return whichAllFromPath(execFile)[0] ?? null;
+}
+
+/**
+ * Write the consumer pin when it lags the reconstituted content version, then
+ * mutate any present lockfile in-process with closed lockfile-only argv (#4710).
+ * Spawn failure reverts the pin. Missing pin (`pinVersion === null`) stays #4429 row 3c.
+ */
+function reconstituteConsumerPinAndLock(
+  projectDir: string,
+  contentVersion: string,
+  io: InitDepositIo,
+  seams: RefreshDepositSeams,
+): string | null {
+  if (!pinLagsReconstitutedVersion(projectDir, contentVersion)) {
+    return null;
+  }
+  const snapshot = snapshotPackageJson(projectDir);
+  ensurePackageJsonPin(projectDir, contentVersion, io);
+  const locks = presentLockfiles(projectDir);
+  if (locks.length === 0) {
+    return null;
+  }
+  const execFn = seams.containedDestExec ?? containedDestExec;
+  const resolveManager = seams.resolveLockfileManager ?? defaultResolveLockfileManager;
+  for (const row of locks) {
+    let result: ContainedDestExecResult;
+    if (isPortRecordMode()) {
+      result = execFn({
+        root: projectDir,
+        destTarget: row.file,
+        file: row.execFile,
+        args: [...row.args],
+      });
+    } else {
+      const resolved = resolveManager(row.execFile);
+      if (resolved === null) {
+        restorePackageJson(projectDir, snapshot);
+        return `lockfile refresh failed: ${row.execFile} is not on PATH`;
+      }
+      result = execFn({
+        root: projectDir,
+        destTarget: row.file,
+        file: resolved,
+        args: [...row.args],
+      });
+    }
+    if (!result.ok) {
+      restorePackageJson(projectDir, snapshot);
+      return `lockfile refresh failed: ${row.execFile} ${row.args.join(" ")}`;
+    }
+  }
+  return null;
+}
+
 export async function runRefreshDeposit(
   args: RefreshDepositArgs,
   io: InitDepositIo,
@@ -861,6 +961,26 @@ export async function runRefreshDeposit(
       increment: true,
       nowIso: stampedAt,
     });
+  }
+
+  const pinLockRefreshError = reconstituteConsumerPinAndLock(projectDir, contentVersion, io, seams);
+  if (pinLockRefreshError !== null) {
+    return {
+      projectDir,
+      deftDir,
+      contentVersion,
+      engineVersion,
+      previousDepositVersion,
+      alreadyCurrent,
+      strategy,
+      agentsMdUpdated: false,
+      versionSkewNotice,
+      legacyLayout: false,
+      taskfileWired: false,
+      stagedPaths: [],
+      mutations: snapshotMutationSummary(),
+      pinLockRefreshError,
+    };
   }
 
   // #2595: payload freshness and consumer derivative freshness are independent.
@@ -1343,6 +1463,26 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
   return runWithMutationLedger(projectDir, async () => {
     try {
       const result = await runRefreshDeposit(options, io, options.seams);
+      if (result.pinLockRefreshError !== undefined) {
+        options.writeErr(`directive update: ${result.pinLockRefreshError}\n`);
+        if (options.jsonOut) {
+          options.writeOut(
+            `${JSON.stringify(
+              {
+                success: false,
+                error: result.pinLockRefreshError,
+                error_code: "pin_lock_refresh_failed",
+                deposit_completed: false,
+                ...gitPreflightJsonFields(gitPreflight),
+                mutations: mutationSummaryJson(result.mutations),
+              },
+              null,
+              2,
+            )}\n`,
+          );
+        }
+        return 1;
+      }
       const readiness = evaluateAgentHookReadinessSafely(
         result.projectDir,
         options.seams?.evaluateAgentHookReadiness ?? evaluateAgentHookReadiness,

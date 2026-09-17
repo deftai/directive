@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Release-input census keeps POSIX backslash filenames (#4317).** A committed filename with a backslash is no longer treated as a nested path; invalid UTF-8 names print as byte escapes.
 
+- **Update writes the consumer pin and lockfile follow-through on skip-copy pin-lag (#4710).** `runRefreshDeposit` calls `ensurePackageJsonPin` when the pin lags the reconstituted content version, then `containedDestExec` with closed lockfile-only argv from `LOCKFILE_REFRESH_COMMANDS`. Spawn failure reverts the pin and fails the update verb. yarn.lock uses `yarn install`. Doctor Next command stays #4718. Hook one-schema stays #4692. Refs #4710.
 - **Full-stop reverse-init recipe (#4674).** Adds an ordered procedure that strips live hooks before uninstall. See [full-stop](content/docs/full-stop.md). Refs #4674.
 - **verify:orphan-active fail-closes dropped refs instead of skipping them as noOrigin (#4697).** Unknown reserved spellings (`pull-request` and the next unknown) and uncollected `github-issue`/`github-pr` entries exit 1 with a collectable-origin remedy. Title-only setup-created and known non-GitHub types stay the Origins line. Malformed PR-only stays on the unscoped scan. Does not recut `collectGithubRefs` or #4426. Refs #4697.
 - **design-critique ingest-ready remaining-set refuses unless live-thread evaluateCompletedArcRecord is complete (#4700).** Shared proof on the chip verb and ScmLabelClient.apply exclusive fold. Comments present is not complete. Proof-fail is blocking, not CHIP_APPLY_MISS. mechanism-shaped and in-progress stay labels-only. Path-1 stays on evaluateAutoStampPath1Write. Refs #4700.
@@ -6524,6 +6525,7 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
+
 
 
 

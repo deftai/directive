@@ -145,18 +145,24 @@ function readContentVersion(contentRoot: string, readVersion = readCorePackageVe
   return readVersion();
 }
 
-const LOCKFILE_REFRESH_COMMANDS: ReadonlyArray<{
+/** Closed lockfile-only argv after the pin is already in package.json (#4710). */
+export const LOCKFILE_REFRESH_COMMANDS: ReadonlyArray<{
   readonly file: string;
-  readonly command: string;
+  readonly execFile: string;
+  readonly args: readonly string[];
 }> = [
-  { file: "package-lock.json", command: "npm install --package-lock-only" },
-  { file: "pnpm-lock.yaml", command: "pnpm install --lockfile-only" },
-  { file: "yarn.lock", command: "yarn install" },
+  { file: "package-lock.json", execFile: "npm", args: ["install", "--package-lock-only"] },
+  { file: "pnpm-lock.yaml", execFile: "pnpm", args: ["install", "--lockfile-only"] },
+  { file: "yarn.lock", execFile: "yarn", args: ["install"] },
 ];
 
-function presentLockfiles(
-  projectDir: string,
-): ReadonlyArray<(typeof LOCKFILE_REFRESH_COMMANDS)[number]> {
+export type LockfileRefreshCommand = (typeof LOCKFILE_REFRESH_COMMANDS)[number];
+
+export function lockfileRefreshCommand(row: LockfileRefreshCommand): string {
+  return [row.execFile, ...row.args].join(" ");
+}
+
+export function presentLockfiles(projectDir: string): ReadonlyArray<LockfileRefreshCommand> {
   return LOCKFILE_REFRESH_COMMANDS.filter((row) => existsSync(join(projectDir, row.file)));
 }
 
@@ -173,7 +179,7 @@ function assertLockfileAllowsPinWrite(projectDir: string, pinVersion: string): v
   const needed = pinVersion.trim().replace(/^v/i, "");
   if (current === needed) return;
   const files = hits.map((row) => row.file).join(", ");
-  const commands = hits.map((row) => `  ${row.command}`).join("\n");
+  const commands = hits.map((row) => `  ${lockfileRefreshCommand(row)}`).join("\n");
   throw new Error(
     `Refusing to write package.json pin while ${files} exist and do not already ` +
       `pin @deftai/directive@${needed}. Init does not rewrite lockfiles. Run:\n` +
