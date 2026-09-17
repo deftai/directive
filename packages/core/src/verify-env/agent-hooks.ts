@@ -73,7 +73,7 @@ export function evaluateAgentHooks(
     const recovery =
       skewNote === null
         ? "\n  Recovery: run `deft update` (or `directive init`) to refresh project hooks. "
-        : `\n  Recovery: hook registration failed valid() (see hosts above). ${skewNote} `;
+        : `\n  Recovery: run \`deft update\` (or \`directive init\`) to refresh project hooks. ${skewNote} `;
     return {
       code: 1,
       message:

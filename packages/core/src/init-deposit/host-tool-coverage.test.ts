@@ -145,7 +145,7 @@ describe("agent_hooks fail still surfaces pin/engine skew (#4692)", () => {
     expect(result.message).toContain("drifted");
     expect(result.message).toContain("0.114.0");
     expect(result.message).toMatch(/Pin\/engine skew is also present/);
-    expect(result.message).not.toContain("Recovery: run `deft update`");
+    expect(result.message).toContain("Recovery: run `deft update`");
     expect(result.message).toContain("is not the skew fix");
   });
 
