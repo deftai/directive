@@ -685,4 +685,44 @@ describe("closeout attestability gate before merge (#3781)", () => {
     expect(result.exitCode).toBe(EXIT_MERGED);
     expect((closeoutFn as { calls: unknown[] }).calls).toEqual([]);
   });
+
+  it("halts on SHA-matched NEW_P0_P1 in one probe without calling the monitor (#4628)", () => {
+    const monitorFn = makeMonitorFn(0, cleanMonitorPayload(1370));
+    const mergeFn = makeMergeFn(0);
+    const result = waitMergeableAndMerge(1370, "deftai/directive", {
+      capMinutes: 30,
+      protected: [],
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
+      umbrellaReconcileFn: null,
+      monitorFn,
+      mergeFn,
+      watchFn: () => ({ exitCode: 1, verdict: "NEW_P0_P1" }),
+    });
+    expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
+    expect(result.outcome).toBe("new-p0-p1");
+    expect((monitorFn as { calls: unknown[] }).calls).toEqual([]);
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+    expect(result.error).toContain("one probe, no cap wait");
+  });
+
+  it("keeps waiting when one-shot watch is not NEW_P0_P1 (#4628)", () => {
+    const monitorFn = makeMonitorFn(0, cleanMonitorPayload(1370));
+    const mergeFn = makeMergeFn(0);
+    const result = waitMergeableAndMerge(1370, "deftai/directive", {
+      capMinutes: 30,
+      protected: [],
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
+      umbrellaReconcileFn: null,
+      monitorFn,
+      mergeFn,
+      watchFn: () => ({ exitCode: 2, verdict: "PENDING" }),
+    });
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect((monitorFn as { calls: unknown[] }).calls).toHaveLength(1);
+    expect((mergeFn as { calls: unknown[] }).calls).toHaveLength(1);
+  });
 });

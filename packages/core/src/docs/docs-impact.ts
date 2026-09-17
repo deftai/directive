@@ -152,13 +152,31 @@ export function composeDocsImpactBody(body: string, seed: string = DOCS_IMPACT_S
   return `${trimmed}\n\n${seed}`;
 }
 
-/** Run the existing --body-file verifier on one path object (#4293). */
+/** Run the existing --body-file verifier on one path object (#4293 / #4675). */
 export function verifyDocsImpactBodyFile(
   bodyFile: string,
   projectRoot: string,
-  seams: { runGh?: RunGhFn; runGit?: RunGitFn } = {},
+  seams: { runGh?: RunGhFn; runGit?: RunGitFn; baseRef?: string } = {},
 ): number {
-  return docsImpactMain(["--body-file", bodyFile, "--project-root", projectRoot], seams);
+  const argv = ["--body-file", bodyFile, "--project-root", projectRoot];
+  const base = seams.baseRef?.trim() ?? "";
+  if (base.length > 0) argv.push("--base-ref", base);
+  return docsImpactMain(argv, { runGh: seams.runGh, runGit: seams.runGit });
+}
+
+/** REST `base.ref` / `gh pr create --base` are branch names, including names that start with origin/ or refs/. */
+export function originQualifyBranchName(intended: string): string {
+  const trimmed = intended.trim();
+  if (trimmed.length === 0) return "";
+  return `origin/${trimmed}`;
+}
+
+/** Qualify an explicit --base-ref that may already be origin/ or refs/. Does not invent origin/master or HEAD. */
+export function originQualifyGitBase(intended: string): string {
+  const trimmed = intended.trim();
+  if (trimmed.length === 0) return "";
+  if (trimmed.startsWith("origin/") || trimmed.startsWith("refs/")) return trimmed;
+  return originQualifyBranchName(trimmed);
 }
 
 function sliceAssignment(source: string, name: string): string {
@@ -400,18 +418,22 @@ export function parseNameStatus(text: string): NameStatus[] {
   return rows;
 }
 
-export function parseDocsImpactArgs(argv: readonly string[]): {
-  pr: number | null;
-  bodyFile: string | null;
-  repo: string | null;
-  projectRoot: string | null;
-  help: boolean;
-  error: string | null;
-} {
+export interface DocsImpactArgs {
+  readonly pr: number | null;
+  readonly bodyFile: string | null;
+  readonly repo: string | null;
+  readonly projectRoot: string | null;
+  readonly baseRef: string | null;
+  readonly help: boolean;
+  readonly error: string | null;
+}
+
+export function parseDocsImpactArgs(argv: readonly string[]): DocsImpactArgs {
   let pr: number | null = null;
   let bodyFile: string | null = null;
   let repo: string | null = null;
   let projectRoot: string | null = null;
+  let baseRef: string | null = null;
   let help = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -448,29 +470,52 @@ export function parseDocsImpactArgs(argv: readonly string[]): {
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {
       projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--base-ref") {
+      const value = argv[i + 1];
+      if (value === undefined) return emptyArgs("argument --base-ref: expected one argument");
+      baseRef = value;
+      i += 1;
+    } else if (arg?.startsWith("--base-ref=")) {
+      baseRef = arg.slice("--base-ref=".length);
     } else if (arg?.startsWith("-")) {
       return emptyArgs(`unrecognized arguments: ${arg}`);
     }
   }
-  return { pr, bodyFile, repo, projectRoot, help, error: null };
+  return { pr, bodyFile, repo, projectRoot, baseRef, help, error: null };
 }
 
-function emptyArgs(error: string): {
-  pr: number | null;
-  bodyFile: string | null;
-  repo: string | null;
-  projectRoot: string | null;
-  help: boolean;
-  error: string;
-} {
-  return { pr: null, bodyFile: null, repo: null, projectRoot: null, help: false, error };
+function emptyArgs(error: string): DocsImpactArgs {
+  return {
+    pr: null,
+    bodyFile: null,
+    repo: null,
+    projectRoot: null,
+    baseRef: null,
+    help: false,
+    error,
+  };
 }
 
 export function restPullsPath(repo: string, pr: number): string {
   return `repos/${repo}/pulls/${pr}`;
 }
 
-export function fetchPrBodyRest(pr: number, repo: string, runGh: RunGhFn): string | null {
+export interface PrPullRest {
+  readonly body: string;
+  readonly baseRef: string | null;
+}
+
+function pullBaseRef(payload: unknown): string | null {
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const base = (payload as { base?: unknown }).base;
+  if (base === null || typeof base !== "object" || Array.isArray(base)) return null;
+  const ref = (base as { ref?: unknown }).ref;
+  if (typeof ref !== "string") return null;
+  const trimmed = ref.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+export function fetchPrBodyRest(pr: number, repo: string, runGh: RunGhFn): PrPullRest | null {
   const cmd = ["gh", "api", restPullsPath(repo, pr)];
   const { returncode, stdout, stderr } = runGh(cmd);
   if (returncode !== 0) {
@@ -478,8 +523,15 @@ export function fetchPrBodyRest(pr: number, repo: string, runGh: RunGhFn): strin
     return null;
   }
   try {
-    const payload = JSON.parse(stdout) as { body?: unknown };
-    return typeof payload.body === "string" ? payload.body : "";
+    const payload: unknown = JSON.parse(stdout);
+    const body =
+      payload !== null &&
+      typeof payload === "object" &&
+      !Array.isArray(payload) &&
+      typeof (payload as { body?: unknown }).body === "string"
+        ? (payload as { body: string }).body
+        : "";
+    return { body, baseRef: pullBaseRef(payload) };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     process.stderr.write(`Error: failed to parse gh REST output: ${message}\n`);
@@ -564,8 +616,9 @@ export function docsImpactMain(
   const parsed = parseDocsImpactArgs(argv);
   if (parsed.help) {
     process.stdout.write(
-      "usage: docs-impact --pr <n> | --body-file <path> [--repo owner/name] [--project-root <dir>]\n" +
-        "  declared-versus-touched documentation-impact check (#4099). #447 by reference.\n",
+      "usage: docs-impact --pr <n> | --body-file <path> [--base-ref <ref>] [--repo owner/name] [--project-root <dir>]\n" +
+        "  declared-versus-touched documentation-impact check (#4099 / #4675). #447 by reference.\n" +
+        "  --pr uses REST base.ref from the same pull GET. --body-file requires --base-ref (same ref as gh pr create --base).\n",
     );
     return EXIT_OK;
   }
@@ -582,6 +635,7 @@ export function docsImpactMain(
   const runGit = seams.runGit ?? ((args: readonly string[]) => defaultRunGit(args, repoRoot));
 
   let body: string | null = null;
+  let prBaseRef: string | null = null;
   if (parsed.bodyFile !== null) {
     if (!existsSync(parsed.bodyFile)) {
       process.stderr.write(`Error: --body-file not found: ${parsed.bodyFile}\n`);
@@ -594,22 +648,53 @@ export function docsImpactMain(
       process.stderr.write("Error: --pr requires --repo or GITHUB_REPOSITORY\n");
       return EXIT_CONFIG;
     }
-    body = fetchPrBodyRest(parsed.pr, repo, runGh);
-    if (body === null) return EXIT_CONFIG;
+    const pull = fetchPrBodyRest(parsed.pr, repo, runGh);
+    if (pull === null) return EXIT_CONFIG;
+    body = pull.body;
+    prBaseRef = pull.baseRef;
   }
   if (body === null) return EXIT_CONFIG;
 
   // Parse the declaration before git range work so a missing body reaches
-  // semantic EXIT_IMPACT even when origin/master is absent (#4356).
+  // semantic EXIT_IMPACT even when the comparison base is absent (#4356).
   const parsedDecl = parseDocsImpactDeclaration(body);
   if (parsedDecl.declaration === null) {
     process.stderr.write(`${parsedDecl.errors.join("\n")}\n`);
     return EXIT_IMPACT;
   }
 
-  const mergeBase = runGit(["merge-base", "origin/master", "HEAD"]);
-  const baseRef = mergeBase.returncode === 0 ? mergeBase.stdout.trim() : "";
-  const range = baseRef.length > 0 ? `${baseRef}...HEAD` : "origin/master...HEAD";
+  const intended =
+    parsed.pr !== null
+      ? prBaseRef
+      : parsed.baseRef !== null && parsed.baseRef.trim().length > 0
+        ? parsed.baseRef.trim()
+        : null;
+  if (intended === null || intended.length === 0) {
+    process.stderr.write(
+      parsed.pr !== null
+        ? "Error: missing docs-impact comparison base: REST pull JSON has no base.ref. Do not default to origin/master or HEAD.\n"
+        : "Error: missing docs-impact comparison base: pass --base-ref <ref> with --body-file (same ref as gh pr create --base). Do not default to origin/master or HEAD.\n",
+    );
+    return EXIT_CONFIG;
+  }
+  const gitBase =
+    parsed.pr !== null ? originQualifyBranchName(intended) : originQualifyGitBase(intended);
+  if (gitBase.length === 0) {
+    process.stderr.write(
+      "Error: missing docs-impact comparison base after origin-qualify. Do not default to origin/master or HEAD.\n",
+    );
+    return EXIT_CONFIG;
+  }
+  const mergeBase = runGit(["merge-base", gitBase, "HEAD"]);
+  if (mergeBase.returncode !== 0) {
+    process.stderr.write(
+      `Error: unresolvable docs-impact comparison base ${gitBase} (intended ${intended}): ${mergeBase.stderr.trim() || "no output"}\n`,
+    );
+    return EXIT_CONFIG;
+  }
+  const resolved = mergeBase.stdout.trim();
+  const comparison = resolved.length > 0 ? resolved : gitBase;
+  const range = `${comparison}...HEAD`;
   const nameStatusRaw = runGit(["diff", "--name-status", range]);
   if (nameStatusRaw.returncode !== 0) {
     process.stderr.write(
@@ -621,7 +706,7 @@ export function docsImpactMain(
   const snapshotPaths = collectSnapshotPaths(nameStatus);
   const baseFiles: Record<string, string> = {};
   const headFiles: Record<string, string> = {};
-  const showBase = baseRef.length > 0 ? baseRef : "origin/master";
+  const showBase = comparison;
   for (const path of snapshotPaths) {
     baseFiles[path] = gitShowFile(runGit, `${showBase}:${path}`);
     const headPath = resolve(repoRoot, path);

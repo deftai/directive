@@ -10,6 +10,8 @@ import {
   type AgentMergeEvaluateResult,
   evaluateAgentMerge,
 } from "../policy/require-human-merge.js";
+import { EXIT_NEW_P0_P1, VERDICT_NEW_P0_P1 } from "../pr-watch/constants.js";
+import { watch } from "../pr-watch/watch.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
@@ -48,6 +50,13 @@ function defaultPostMergeUmbrellaReconcile(projectRoot: string, repo: string): v
     process.stderr.write(`${renderUmbrellasReport(umOutcome)}\n`);
   }
 }
+
+/** In-process pr:watch seam for the waiter NEW_P0_P1 probe (#4628). */
+export type WaitMergeableWatchFn = (
+  prNumber: number,
+  repo: string | null,
+  options: { readonly oneShot: boolean; readonly projectRoot?: string | null },
+) => { readonly exitCode: number; readonly verdict: string };
 
 export interface WaitMergeableOptions {
   readonly protectedFn?: ProtectedCheckFn;
@@ -93,6 +102,12 @@ export interface WaitMergeableOptions {
    * never mutate real GitHub current-shape comments from the worktree cwd).
    */
   readonly umbrellaReconcileFn?: UmbrellaReconcileFn | null;
+  /**
+   * In-process SHA-matched pr:watch one-shot (#4628). Inject in tests.
+   * Live default is watch() from pr-watch. Skipped when skipHumanMergeGate
+   * is true and watchFn is omitted (test harness convention).
+   */
+  readonly watchFn?: WaitMergeableWatchFn;
 }
 
 /** Run protected-check -> wait -> merge cascade (#1369). */
@@ -215,6 +230,35 @@ export function waitMergeableAndMerge(
       protectedCheck: protectedCheckPayload,
       semanticGreen: { ...semanticGreen.payload } as Record<string, unknown>,
       error: semanticGreen.error,
+    });
+  }
+
+  let watchProbe: { readonly exitCode: number; readonly verdict: string } | null = null;
+  const skipWatchProbe =
+    options.watchFn === undefined &&
+    (options.skipHumanMergeGate === true || process.env.VITEST === "true");
+  if (!skipWatchProbe) {
+    const watchFn = options.watchFn ?? watch;
+    try {
+      watchProbe = watchFn(prNumber, repo, { oneShot: true, projectRoot });
+    } catch {
+      watchProbe = null;
+    }
+  }
+  if (
+    watchProbe !== null &&
+    (watchProbe.exitCode === EXIT_NEW_P0_P1 || watchProbe.verdict === VERDICT_NEW_P0_P1)
+  ) {
+    const [p1Outcome, p1Exit] = classifyMonitorOutcome(1, { monitor_result: "NEW_P0_P1" });
+    return makeResult({
+      prNumber,
+      repo,
+      outcome: p1Outcome,
+      exitCode: p1Exit,
+      error:
+        "SHA-matched Greptile NEW_P0_P1 on PR #" +
+        String(prNumber) +
+        " (one probe, no cap wait). Address findings, push, then re-run task pr:wait-mergeable-and-merge.",
     });
   }
 

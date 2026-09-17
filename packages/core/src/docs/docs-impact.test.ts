@@ -1,18 +1,24 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   composeDocsImpactBody,
   DOCS_IMPACT_SEED_BLOCK,
   detectClosedSurfaceChanges,
   docsImpactMain,
+  EXIT_CONFIG,
   EXIT_IMPACT,
+  EXIT_OK,
   evaluateDocsImpact,
   extractCommandIdsFromSources,
   extractHelpKeysFromSource,
   extractSkillIdsFromPack,
   fetchPrBodyRest,
+  originQualifyBranchName,
+  originQualifyGitBase,
   parseDocsImpactArgs,
   parseDocsImpactDeclaration,
   parseNameStatus,
@@ -208,6 +214,10 @@ describe("docs-impact CLI transport", () => {
   it("requires --pr or --body-file and uses REST pulls path", () => {
     expect(parseDocsImpactArgs([]).error).toBeNull();
     expect(parseDocsImpactArgs(["--pr", "12", "--body-file", "x"]).pr).toBe(12);
+    expect(parseDocsImpactArgs(["--body-file", "x", "--base-ref", "develop"]).baseRef).toBe(
+      "develop",
+    );
+    expect(parseDocsImpactArgs(["--base-ref"]).error).toContain("--base-ref");
     expect(restPullsPath("deftai/directive", 12)).toBe("repos/deftai/directive/pulls/12");
     expect(docsImpactMain([])).toBe(2);
   });
@@ -239,14 +249,17 @@ describe("docs-impact CLI transport", () => {
       bodyPath,
       `no user-doc impact\nrationale: "Nothing in the closed surface set moved."\n`,
     );
-    const code = docsImpactMain(["--body-file", bodyPath, "--project-root", dir], {
-      runGit: (args) => {
-        if (args[0] === "diff") return { returncode: 0, stdout: "M\tREADME.md\n", stderr: "" };
-        if (args[0] === "merge-base") return { returncode: 0, stdout: "abc123\n", stderr: "" };
-        if (args[0] === "show") return { returncode: 0, stdout: "", stderr: "" };
-        return { returncode: 0, stdout: "", stderr: "" };
+    const code = docsImpactMain(
+      ["--body-file", bodyPath, "--project-root", dir, "--base-ref", "origin/master"],
+      {
+        runGit: (args) => {
+          if (args[0] === "diff") return { returncode: 0, stdout: "M\tREADME.md\n", stderr: "" };
+          if (args[0] === "merge-base") return { returncode: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "show") return { returncode: 0, stdout: "", stderr: "" };
+          return { returncode: 0, stdout: "", stderr: "" };
+        },
       },
-    });
+    );
     expect(code).toBe(0);
     expect(docsImpactMain(["--body-file", join(dir, "missing.md")])).toBe(2);
 
@@ -254,7 +267,7 @@ describe("docs-impact CLI transport", () => {
       expect(cmd.join(" ")).toContain("gh api repos/deftai/directive/pulls/3");
       return { returncode: 0, stdout: JSON.stringify({ body: "ok" }), stderr: "" };
     });
-    expect(body).toBe("ok");
+    expect(body).toEqual({ body: "ok", baseRef: null });
     expect(
       fetchPrBodyRest(3, "deftai/directive", () => ({
         returncode: 0,
@@ -277,10 +290,14 @@ describe("docs-impact CLI transport", () => {
           returncode: 0,
           stdout: JSON.stringify({
             body: `no user-doc impact\nrationale: "Closed surfaces unchanged."\n`,
+            base: { ref: "master" },
           }),
           stderr: "",
         }),
-        runGit: () => ({ returncode: 0, stdout: "", stderr: "" }),
+        runGit: (args) => {
+          if (args[0] === "merge-base") return { returncode: 0, stdout: "abc123\n", stderr: "" };
+          return { returncode: 0, stdout: "", stderr: "" };
+        },
       },
     );
     expect(prCode).toBe(0);
@@ -294,14 +311,18 @@ describe("docs-impact CLI transport", () => {
       bodyPath,
       `no user-doc impact\nrationale: "Would wrongly pass if a failed diff were empty."\n`,
     );
-    const code = docsImpactMain(["--body-file", bodyPath, "--project-root", dir], {
-      runGit: (args) => {
-        if (args[0] === "diff") {
-          return { returncode: 128, stdout: "", stderr: "fatal: bad revision origin/master" };
-        }
-        return { returncode: 0, stdout: "", stderr: "" };
+    const code = docsImpactMain(
+      ["--body-file", bodyPath, "--project-root", dir, "--base-ref", "origin/master"],
+      {
+        runGit: (args) => {
+          if (args[0] === "diff") {
+            return { returncode: 128, stdout: "", stderr: "fatal: bad revision origin/master" };
+          }
+          if (args[0] === "merge-base") return { returncode: 0, stdout: "abc123\n", stderr: "" };
+          return { returncode: 0, stdout: "", stderr: "" };
+        },
       },
-    });
+    );
     expect(code).toBe(2);
     expect(extractSkillIdsFromPack("null")).toEqual(new Set());
   });
@@ -353,8 +374,271 @@ describe("explicit body seed then same-file verify (#4293)", () => {
     writeFileSync(bodyPath, composed);
     expect(
       verifyDocsImpactBodyFile(bodyPath, dir, {
-        runGit: () => ({ returncode: 0, stdout: "", stderr: "" }),
+        runGit: (args) => {
+          if (args[0] === "merge-base") return { returncode: 0, stdout: "abc123\n", stderr: "" };
+          return { returncode: 0, stdout: "", stderr: "" };
+        },
+        baseRef: "origin/master",
       }),
     ).toBe(0);
+  });
+});
+
+const validNoneBody =
+  '## Documentation impact\n\nchange_class: none\nsurfaces: none\nrationale: "No closed user-doc surface added or removed."\n';
+
+function recordingGit(succeedOn: string): {
+  readonly calls: string[][];
+  readonly runGit: (args: readonly string[]) => {
+    readonly returncode: number;
+    readonly stdout: string;
+    readonly stderr: string;
+  };
+} {
+  const calls: string[][] = [];
+  return {
+    calls,
+    runGit: (args) => {
+      calls.push([...args]);
+      if (args[0] === "merge-base") {
+        if (args[1] === succeedOn) return { returncode: 0, stdout: "sha-base\n", stderr: "" };
+        return { returncode: 128, stdout: "", stderr: `fatal: bad revision ${args[1]}` };
+      }
+      if (args[0] === "diff" || args[0] === "show") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      return { returncode: 0, stdout: "", stderr: "" };
+    },
+  };
+}
+
+function seedMainOnlyRepo(root: string): void {
+  const git = (args: readonly string[]): void => {
+    execFileSync("git", [...args], { cwd: root, stdio: "ignore" });
+  };
+  git(["init", "-b", "main"]);
+  git(["config", "user.email", "docs-impact@example.com"]);
+  git(["config", "user.name", "docs-impact"]);
+  git(["config", "commit.gpgsign", "false"]);
+  writeFileSync(join(root, "README.md"), "main only\n");
+  git(["add", "README.md"]);
+  git(["commit", "-m", "init"]);
+  git(["update-ref", "refs/remotes/origin/main", "HEAD"]);
+  git(["checkout", "-B", "feat/docs-impact"]);
+  writeFileSync(join(root, "README.md"), "feature\n");
+  git(["add", "README.md"]);
+  git(["commit", "-m", "feature"]);
+}
+
+describe("docs-impact comparison base (#4675)", () => {
+  it("origin-qualifies a branch name and leaves origin/ and refs/ intact", () => {
+    expect(originQualifyGitBase("develop")).toBe("origin/develop");
+    expect(originQualifyGitBase("origin/master")).toBe("origin/master");
+    expect(originQualifyGitBase("refs/heads/main")).toBe("refs/heads/main");
+    expect(originQualifyGitBase("  ")).toBe("");
+  });
+
+  it("always origin-qualifies REST branch names, including origin/ and refs/ prefixes", () => {
+    expect(originQualifyBranchName("develop")).toBe("origin/develop");
+    expect(originQualifyBranchName("origin/release")).toBe("origin/origin/release");
+    expect(originQualifyBranchName("refs/heads/release")).toBe("origin/refs/heads/release");
+    expect(originQualifyBranchName("  ")).toBe("");
+  });
+
+  it("does not import origin-default resolvers or HEAD~1 fallback", () => {
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "docs-impact.ts"),
+      "utf8",
+    );
+    expect(src).not.toContain("resolveDefaultBaseRef");
+    expect(src).not.toContain("ORIGIN_DEFAULT_CANDIDATES");
+    expect(src).not.toContain("HEAD~1");
+  });
+
+  it("returns EXIT_CONFIG for a valid body-file with no --base-ref and does not run git", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-missing-base-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, validNoneBody);
+    let gitCalls = 0;
+    const code = docsImpactMain(["--body-file", bodyPath, "--project-root", dir], {
+      runGit: () => {
+        gitCalls += 1;
+        return { returncode: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(code).toBe(EXIT_CONFIG);
+    expect(gitCalls).toBe(0);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("keeps EXIT_IMPACT for a missing declaration before git and before requiring --base-ref (#4356)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-parse-first-base-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, "## Summary\nempty file is enough to reach body parse\n");
+    let gitCalls = 0;
+    const code = docsImpactMain(["--body-file", bodyPath, "--project-root", dir], {
+      runGit: () => {
+        gitCalls += 1;
+        return { returncode: 128, stdout: "", stderr: "fatal: bad revision origin/master" };
+      },
+    });
+    expect(code).toBe(EXIT_IMPACT);
+    expect(gitCalls).toBe(0);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("uses REST base.ref develop when default_branch is main, one GET, shared git base", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-develop-target-"));
+    const git = recordingGit("origin/develop");
+    let ghCalls = 0;
+    const code = docsImpactMain(
+      ["--pr", "376", "--repo", "deftai/BestiMax", "--project-root", dir],
+      {
+        runGh: (cmd) => {
+          ghCalls += 1;
+          expect(cmd.join(" ")).toBe("gh api repos/deftai/BestiMax/pulls/376");
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              body: validNoneBody,
+              base: { ref: "develop", repo: { default_branch: "main" } },
+            }),
+            stderr: "",
+          };
+        },
+        runGit: git.runGit,
+      },
+    );
+    expect(code).toBe(EXIT_OK);
+    expect(ghCalls).toBe(1);
+    expect(git.calls.some((args) => args[0] === "merge-base" && args[1] === "origin/develop")).toBe(
+      true,
+    );
+    expect(git.calls.some((args) => args[0] === "diff" && args.includes("sha-base...HEAD"))).toBe(
+      true,
+    );
+    expect(git.calls.some((args) => args[0] === "show" && args[1]?.startsWith("sha-base:"))).toBe(
+      true,
+    );
+    expect(
+      git.calls.some((args) => args.includes("origin/main") || args.includes("origin/master")),
+    ).toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("origin-qualifies REST base.ref when the branch name starts with origin/", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-origin-named-branch-"));
+    const git = recordingGit("origin/origin/release");
+    const code = docsImpactMain(["--pr", "376", "--repo", "owner/name", "--project-root", dir], {
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify({
+          body: validNoneBody,
+          base: { ref: "origin/release", repo: { default_branch: "main" } },
+        }),
+        stderr: "",
+      }),
+      runGit: git.runGit,
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(git.calls[0]).toEqual(["merge-base", "origin/origin/release", "HEAD"]);
+    expect(git.calls.some((args) => args[0] === "merge-base" && args[1] === "origin/release")).toBe(
+      false,
+    );
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("keeps origin/master when that is the intended body-file base", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-master-base-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, validNoneBody);
+    const git = recordingGit("origin/master");
+    const code = docsImpactMain(
+      ["--body-file", bodyPath, "--project-root", dir, "--base-ref", "master"],
+      { runGit: git.runGit },
+    );
+    expect(code).toBe(EXIT_OK);
+    expect(git.calls[0]).toEqual(["merge-base", "origin/master", "HEAD"]);
+    expect(git.calls.some((args) => args[0] === "diff" && args.includes("sha-base...HEAD"))).toBe(
+      true,
+    );
+    expect(git.calls.some((args) => args[0] === "show" && args[1]?.startsWith("sha-base:"))).toBe(
+      true,
+    );
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("accepts a valid body-file in a git fixture with main and no master", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-main-only-"));
+    seedMainOnlyRepo(dir);
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, validNoneBody);
+    let masterFailed = false;
+    try {
+      execFileSync("git", ["rev-parse", "--verify", "origin/master"], {
+        cwd: dir,
+        stdio: "ignore",
+      });
+    } catch {
+      masterFailed = true;
+    }
+    expect(masterFailed).toBe(true);
+    const code = docsImpactMain([
+      "--body-file",
+      bodyPath,
+      "--project-root",
+      dir,
+      "--base-ref",
+      "main",
+    ]);
+    expect(code).toBe(EXIT_OK);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("returns EXIT_CONFIG for an unresolvable intended base without fabricating a ref", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-unresolvable-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, validNoneBody);
+    const git = recordingGit("origin/main");
+    const code = docsImpactMain(
+      ["--body-file", bodyPath, "--project-root", dir, "--base-ref", "develop"],
+      { runGit: git.runGit },
+    );
+    expect(code).toBe(EXIT_CONFIG);
+    expect(git.calls).toEqual([["merge-base", "origin/develop", "HEAD"]]);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("returns EXIT_CONFIG when --pr REST JSON omits base.ref after a valid declaration", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-pr-no-base-"));
+    let gitCalls = 0;
+    const code = docsImpactMain(["--pr", "1", "--repo", "owner/name", "--project-root", dir], {
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify({ body: validNoneBody, base: { repo: { default_branch: "main" } } }),
+        stderr: "",
+      }),
+      runGit: () => {
+        gitCalls += 1;
+        return { returncode: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(code).toBe(EXIT_CONFIG);
+    expect(gitCalls).toBe(0);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("threads helper baseRef through verifyDocsImpactBodyFile", () => {
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-helper-base-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, validNoneBody);
+    const git = recordingGit("origin/develop");
+    const code = verifyDocsImpactBodyFile(bodyPath, dir, {
+      runGit: git.runGit,
+      baseRef: "develop",
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(git.calls[0]).toEqual(["merge-base", "origin/develop", "HEAD"]);
+    rmSync(dir, { recursive: true, force: true });
   });
 });
