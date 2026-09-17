@@ -4,7 +4,7 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -124,6 +124,17 @@ function isDiskStoreNotSotPath(raw: string): boolean {
 const LOCK_FILE = "claims.lock";
 const LOCK_WAIT_MS = 5000;
 const LOCK_RETRY_MS = 20;
+const LOCK_STALE_MS = 30_000;
+
+function reclaimStaleLock(root: string): void {
+  try {
+    const st = statSync(join(root, LOCK_FILE));
+    if (Date.now() - st.mtimeMs < LOCK_STALE_MS) return;
+    containedRemove({ root, target: LOCK_FILE });
+  } catch {
+    /* missing lock */
+  }
+}
 
 function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -145,7 +156,9 @@ function withExclusiveLock<T>(root: string, fn: () => T): T {
     } catch (err) {
       const exists =
         err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS;
-      if (!exists || Date.now() >= deadline) throw err;
+      if (!exists) throw err;
+      reclaimStaleLock(root);
+      if (Date.now() >= deadline) throw err;
       sleepSync(LOCK_RETRY_MS);
     }
   }
