@@ -140,7 +140,13 @@ describe("runConsumerDocsImpactSmoke (#4356)", () => {
       ),
     ).toBe(true);
     expect(
-      calls.some((args) => args[0] === "deft:verify:docs-impact" && args.includes("--body-file")),
+      calls.some(
+        (args) =>
+          args[0] === "deft:verify:docs-impact" &&
+          args.includes("--body-file") &&
+          args.includes("--base-ref") &&
+          args.includes("master"),
+      ),
     ).toBe(true);
   });
 

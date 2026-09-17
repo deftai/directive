@@ -51,8 +51,8 @@ function runGitStep(
 }
 
 /**
- * Packed-consumer docs-impact invoke (#4356): after init, run
- * `task deft:verify:docs-impact -- --body-file` against a fixture.
+ * Packed-consumer docs-impact invoke (#4356 / #4675): after init, run
+ * `task deft:verify:docs-impact -- --body-file --base-ref master` against a fixture.
  * Git fixture is init plus origin/master (or equivalent remote-tracking ref).
  */
 export function runConsumerDocsImpactSmoke(
@@ -131,11 +131,15 @@ export function runConsumerDocsImpactSmoke(
   onProgress?.(
     "greenfield smoke: task deft:verify:docs-impact (valid body, origin/master fixture)",
   );
-  const valid = spawn(taskBin, ["deft:verify:docs-impact", "--", "--body-file", validBody], {
-    cwd: projectDir,
-    env,
-    timeoutMs: 60_000,
-  });
+  const valid = spawn(
+    taskBin,
+    ["deft:verify:docs-impact", "--", "--body-file", validBody, "--base-ref", "master"],
+    {
+      cwd: projectDir,
+      env,
+      timeoutMs: 60_000,
+    },
+  );
   const validText = `${valid.stderr}\n${valid.stdout}`;
   if (looksLikeModuleNotFound(validText)) {
     return [
@@ -151,7 +155,7 @@ export function runConsumerDocsImpactSmoke(
   }
   return [
     true,
-    "task deft:verify:docs-impact --body-file passed after init with origin/master fixture",
+    "task deft:verify:docs-impact --body-file --base-ref master passed after init with origin/master fixture",
   ];
 }
 
