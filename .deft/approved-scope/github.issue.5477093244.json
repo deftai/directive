@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-09-16-4636-testsession-codex-ci-leaks-host-identity-into-session-occupa.xbrief.json",
   "planId": "github.issue.5477093244",
-  "approvedAt": "2026-09-17T01:41:41Z",
+  "approvedAt": "2026-09-17T02:13:47Z",
   "fileScope": [
     "CHANGELOG.md",
     "packages/cli/src/occupancy-steal.test.ts",
@@ -14,9 +14,9 @@
   ],
   "fileScopeDigest": "7692a66d9291ad595cf352c78a00409976265e813e810dfa817077c77d0e368f",
   "humanApproval": {
-    "kind": "operator",
+    "kind": "renewed-approval",
     "actor": "MScottAdams",
-    "mintedAt": "2026-09-17T01:41:41Z",
+    "mintedAt": "2026-09-17T02:13:47Z",
     "mintedVia": "scope:record-approved-scope"
   },
   "intentDigest": "b90f7479806eefbb152d05d15ef5ae4c3f8c49504358d170009eaec591209dd6",
