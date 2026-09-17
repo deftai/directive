@@ -1,0 +1,548 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4697",
+    "updated": "2026-09-17T21:07:54Z"
+  },
+  "plan": {
+    "title": "bug(verify): verify:orphan-active silently skips briefs whose forge origin it cannot resolve",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(verify): verify:orphan-active silently skips briefs whose forge origin it cannot resolve",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4697",
+      "Overview": "# `verify:orphan-active` treats \"I cannot resolve this brief\" as \"nothing to report\"\n\nA brief whose forge origin the evaluator cannot resolve is counted and skipped. It is never assessed and never becomes a finding. The gate then exits 0 while printing, in its own output, that it did not look at one of the briefs it scanned.\n\nThat is the wrong default. A brief Directive cannot resolve is exactly the brief most likely to be malformed, and it is the one case the sweep passes over.\n\n## Measured\n\nInstalled npm artifact, `@deftai/directive-core@0.119.1` (dist, not a source checkout — line numbers below are dist).\n\n`orphan-active/evaluate.js:421`:\n\n```js\nscanned += 1;\nif (issues.length === 0 && prs.length === 0) {\n    noOrigin += 1;\n    continue;          // never assessed, never reported\n}\nconst assessment = assessOrphanSignature(issues, prs, ctx, issueFilter, tally);\n```\n\n`noOrigin` reaches the operator only through an informational basis line (`evaluate.js:211`). It does not affect findings and does not affect the exit code.\n\n## Live reproduction\n\nA consumer repo had one active/running brief for work that had already merged. The gate passed:\n\n```\nverify:orphan-active: no orphaned active/running xBRIEFs (scanned 2 running briefs in active/).\n  Basis: inventory 1.\n  Origins: 1 of 2 scanned briefs resolved zero forge origins.\n```\n\nThe brief sat in `active/` consuming WIP for the better part of a day, describing work that was already in `master`. The gate reported the blind spot in the same breath as the all-clear.\n\n## Counterfactual\n\nThe brief carried a PR reference typed `x-xbrief/pull-request` instead of the canonical `x-xbrief/github-pr`, so `collectGithubRefs` returned `{issues: [], prs: []}`. Changing only that string, in a checksummed copy, and re-running the same gate:\n\n```\nverify:orphan-active: 1 active/running xBRIEF look shipped but still consume WIP\n  Offending briefs:\n    - xbrief/active/<brief>.xbrief.json (linked PR #5 is merged)\n```\n\nRestored byte-exact afterwards (sha256 verified). One wrong word in a type string is the whole difference between caught and invisible. The detection logic was correct and ready; it was never reached.\n\n## Why the neighbouring gates do not cover it\n\n- **#3875** — `verify:pr-closeout-attestable` exists and is unwired. Even wired, it triggers on the PR's closing reference. The PR here had `closingIssuesReferences: []` (a dependency-upgrade PR, no `Closes #N`). Brief-bearing work with no closing issue is outside that trigger by construction.\n- **#3791** — automating the post-merge sweep routes through this same evaluator, so an originless brief stays skipped however the sweep is invoked.\n- **#3495** — the mirror case (work with no brief). This is a brief with no resolvable origin.\n- **#3790** — misattribution of resolved orphans, a different failure.\n\n## Suggested shape\n\nDo not silently continue. An originless active/running brief should surface as its own finding kind, distinct from a confirmed orphan, because the remedy is different: the brief needs a usable origin reference (or a deliberate \"no forge origin\" marker), not `scope:complete`.\n\nWhether it should fail closed or warn is a judgement for maintainers. What should not survive is the current state, where the count is computed, printed, and then dropped on the floor.\n\nRelated: #3875, #3791, #3495, #3790, #3913.\n\n",
+      "Labels": "bug, agent-experience, area:cli, area:vbrief, design-critique:ingest-ready",
+      "UserStory": "As an operator running verify:orphan-active, I want dropped refs to fail closed instead of silent noOrigin skip, so a brief with x-xbrief/pull-request for a merged PR cannot print all-clear.",
+      "ImplementationPlan": "1. Branch dropped-ref at the empty-collect continue in packages/core/src/orphan-active/evaluate.ts after the scoped --issue N filter. 2. No github-shaped refs stay #4426 fail-open plus Origins. Do not recut collectGithubRefs. 3. Tests in evaluate.test.ts cover title-only exit 0, pull-request unscoped exit 1, github-pr control, plan/jira Origins, scoped --issue N exclusion. 4. CHANGELOG [Unreleased] #4697.",
+      "Traces": "Bound contract: successor lean 5717046056."
+    },
+    "items": [
+      {
+        "title": "Partition empty collect. No github-shaped reference entries stays #4426 fail-open plus the Origins line. Do not add a no-forge-origin marker.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, partition empty collect. No github-shaped reference entries stays #4426 fail-open plus the Origins line. Do not add a no-forge-origin marker."
+        },
+        "id": "1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Dropped-ref predicate: unknown reserved spelling (pull-request and the next unknown), or github-issue/github-pr that did not collect (unparseable URI, missing defaultRepo). Known non-GitHub reserved types stay the Origins line. Exit 1. Remediation is make the origin collectable (or companion #4698 at write time), not scope:complete and not retry-the-lookup.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, dropped-ref predicate: unknown reserved spelling (pull-request and the next unknown), or github-issue/github-pr that did not collect (unparseable URI, missing defaultRepo). Known non-GitHub reserved types stay the Origins line. Exit 1. Remediation is make the origin collectable (or companion #4698 at write time), not scope:complete and not retry-the-lookup."
+        },
+        "id": "2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Branch that class at the empty-collect continue in evaluate.ts, after the scoped --issue N filter. Do not move detection before issueFilter. Do not fall through into assessOrphanSignature. Do not recut collectGithubRefs.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, branch that class at the empty-collect continue in evaluate.ts, after the scoped --issue N filter. Do not move detection before issueFilter. Do not fall through into assessOrphanSignature. Do not recut collectGithubRefs."
+        },
+        "id": "3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Malformed PR-only stays on the unscoped scan, same as well-formed PR-only (#3429). Do not fail closed scoped --issue N on a brief that does not name N.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, malformed PR-only stays on the unscoped scan, same as well-formed PR-only (#3429). Do not fail closed scoped --issue N on a brief that does not name N."
+        },
+        "id": "4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Tests: title-only setup-created still exit 0 with Origins; pull-request type on a merged PR exits 1 with collectable-origin remedy on the unscoped sweep; github-pr control still ships; plan-only or jira-only running briefs stay Origins/exit 0; scoped --issue N still excludes PR-only briefs that do not name N.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, tests: title-only setup-created still exit 0 with Origins; pull-request type on a merged PR exits 1 with collectable-origin remedy on the unscoped sweep; github-pr control still ships; plan-only or jira-only running briefs stay Origins/exit 0; scoped --issue N still excludes PR-only briefs that do not name N."
+        },
+        "id": "5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:1",
+        "title": "clause:1",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:2",
+        "title": "clause:2",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:3",
+        "title": "clause:3",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:4",
+        "title": "clause:4",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:5",
+        "title": "clause:5",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4697",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4697: bug(verify): verify:orphan-active silently skips briefs whose forge origin it cannot resolve"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, partition empty collect. No github-shaped reference entries stays #4426 fail-open plus the Origins line. Do not add a no-forge-origin marker.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, dropped-ref predicate: unknown reserved spelling (pull-request and the next unknown), or github-issue/github-pr that did not collect (unparseable URI, missing defaultRepo). Known non-GitHub reserved types stay the Origins line. Exit 1. Remediation is make the origin collectable (or companion #4698 at write time), not scope:complete and not retry-the-lookup.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, branch that class at the empty-collect continue in evaluate.ts, after the scoped --issue N filter. Do not move detection before issueFilter. Do not fall through into assessOrphanSignature. Do not recut collectGithubRefs.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, malformed PR-only stays on the unscoped scan, same as well-formed PR-only (#3429). Do not fail closed scoped --issue N on a brief that does not name N.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, tests: title-only setup-created still exit 0 with Origins; pull-request type on a merged PR exits 1 with collectable-origin remedy on the unscoped sweep; github-pr control still ships; plan-only or jira-only running briefs stay Origins/exit 0; scoped --issue N still excludes PR-only briefs that do not name N.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/orphan-active/evaluate.ts",
+          "packages/core/src/orphan-active/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "Companion: #4698 covers the write-side half — the `x-xbrief/pull-request` type that produced the originless brief in the reproduction above validates because the schema constrains reference `type` by pattern only. The two remedies are independent: #4698 stops the malformed reference being written, this issue stops an unresolvable brief being skipped regardless of how it got that way.",
+          "id": 5715165110,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5715165110",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T13:29:51Z",
+          "updated_at": "2026-09-17T13:29:51Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because verify:orphan-active increments noOrigin and continues when collectGithubRefs returns zero issues and zero PRs, then exits 0 while printing that scanned briefs resolved zero forge origins.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4697-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Fork is fail-open skip vs originless finding, not panel spend.\n\nrefutation-target: a brief with zero resolved forge origins is not an orphan, so counting it and exiting 0 is the correct default.\n\ntarget: #4697\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the measured consumer miss: one active/running brief for already-merged work, gate printed `no orphaned active/running xBRIEFs` plus `Origins: 1 of 2 scanned briefs resolved zero forge origins`, exit 0. The brief used `x-xbrief/pull-request` instead of `x-xbrief/github-pr`. Changing only that type string made the same gate fail closed on linked PR merged. Companion write-side is #4698; this arc is the skip, not the schema.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/orphan-active/evaluate.ts: after collectGithubRefs, `if (issues.length === 0 && prs.length === 0) { noOrigin += 1; continue; }` never calls assessOrphanSignature. noOrigin is basis-only.\n- evaluate.test.ts locks that shape: \"counts noOrigin for running briefs with zero forge refs and stays fail-open on the unscoped sweep (#4426)\" expects code 0; \"does not treat noOrigin as a non-zero unscoped verdict (#4426)\" expects empty orphans and the all-clear line.\n- packages/core/src/orphan-active/refs.ts collectGithubRefs matches only referenceTypeMatches(type, \"github-issue\") and \"github-pr\". Any other type, including x-xbrief/pull-request, contributes nothing.\n\nInventory: #3875 pr-closeout-attestable unwired and closing-reference triggered; #3791 sweep uses this evaluator; #3495 is the no-brief mirror. Do not recut collectGithubRefs as this finding. No implement and no ingest from this parent.\r\n\n",
+          "id": 5716436526,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5716436526",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T14:53:34Z",
+          "updated_at": "2026-09-17T14:53:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716436526\ncharter: refutation\nspend: N=1\nround: 1 critic\n\nThe recorded target does not survive as one default over both empty-ref briefs and dropped-ref briefs. The issue design can bind only if it partitions those classes and fail-closes the dropped-ref class. A new warn channel, a new no-origin marker, and a recut of collectGithubRefs are not this remedy.\n\n## 1. Empty collect is two classes; #4426 already owns one of them — sharpens-framing\n\nEvidence. Pin-read evaluate.ts at edf1d698aafcf956cff08ad3ad14ff608505861a: after collectGithubRefs, `if (issues.length === 0 && prs.length === 0) { noOrigin += 1; continue; }` never calls assessOrphanSignature. OrphanActiveBasis.noOrigin JSDoc says reporting only and does not change the two unknown policies. I re-ran evaluate.test.ts -t noOrigin: three tests passed. \"counts noOrigin for running briefs with zero forge refs and stays fail-open on the unscoped sweep (#4426)\" writes a running brief with only a title, expects code 0, scanned 2, noOrigin 1, and the Origins line. \"does not treat noOrigin as a non-zero unscoped verdict (#4426)\" writes two title-only running briefs, expects code 0, empty orphans, and the all-clear headline. content/docs/orphan-active-verdict-basis.md records noOrigin as #4426 reporting and forbids citing exit 0 with noOrigin > 0 as evidence those briefs are clean of shipped residue. CHANGELOG for #4426 is setup-created scopes: count unresolved origins, unscoped sweep stays fail-open, origin writes stay off the agent. I did not find a brief-level no-forge-origin marker. emit-hints none / umbrella / per-vBRIEF is an operator choice at emit time, not a field on the plan. assessOrphanSignature after the PR loop returns PASS when issueRefs.length === 0, so deleting the continue without a new branch still exits 0 for true originless.\n\nFailure mode. Binding \"an originless active/running brief should surface as its own finding kind\" over the whole empty-collect set recuts #4426. Every running setup-created brief before issue:emit would become a finding. Check composition (Taskfile.yml check:framework-source and check:consumer) runs verify:orphan-active --changed-only; a fail-closed empty-ref class would redden those lanes for legitimate pre-emit work. Inventing the suggested marker is a new mechanism; empty references are already the #4426 signal.\n\nDisposition. Bind only with a partition: empty collect with no github-shaped reference entries stays #4426 fail-open plus the Origins line. Empty collect that dropped reference entries is a different class (finding 2). Do not add a marker to make setup-created legal. Do not treat \"cannot resolve\" as one kind.\n\n## 2. Warn already prints; P1 is the exit 0 skip of dropped refs — blocks-the-design\n\nEvidence. The live reproduction in the issue body is the all-clear headline, Origins: 1 of 2, exit 0, while a running brief for already-merged work sat in active/. That is the Origins line working. packages/cli/src/verify-orphan-active.ts run() prints result.message and returns result.code. evaluate() returns code 1 only when orphans.length > 0; quiet success returns code 0 and an empty message. OrphanKind is only shipped | unresolved. Both fail closed. formatRefusal remediates shipped with scope:complete and unresolved with retry the GitHub lookup. I measured referenceTypeMatches(\"x-xbrief/pull-request\", \"github-pr\") === false and the github-pr control true (tsx import of packages/types/src/reference.ts). collectGithubRefs only matches github-issue and github-pr. KNOWN_REFERENCE_TYPES has no pull-request spelling. The measured counterfactual (change only that type string, same gate fail-closes on linked PR merged) is dropped refs, not setup-created empty refs.\n\nFailure mode. Deferring fail-closed versus warn leaves P1 in place. Warn is the current Origins line; agents and check consume exit code. Putting dropped refs into orphans[] is fail-closed in this evaluator. Reusing kind unresolved prints retry-the-lookup, which cannot recover a type collectGithubRefs ignored. Reusing kind shipped prints scope:complete, which is the wrong remedy when the origin string is sitting in the JSON unread. The existing prose forbid in verdict-basis.md is not a control: the measured miss printed Origins and still exited 0.\n\nDisposition. The lean cannot bind while that verdict stays a later judgement. Bound remedy for this issue is a distinct finding class for dropped refs (unmatched reserved-namespace or unparseable github-shaped entries), exit 1, remediation to make the origin collectable (or companion #4698 at write time), not scope:complete and not retry. Empty-ref setup-created stays finding 1. Companion #4698 is inventory only; it does not close this skip.\n\nInjection / swarm lens. The target changes gate authority over untrusted xBRIEF reference types. A reserved-namespace type string the matcher does not know currently fail-opens a gate composed into check:framework-source and check:consumer. That is the control to add, not a later reader of the Origins line.\n\n## 3. Detection-was-ready is true only after collect returns the PR — sharpens-framing\n\nEvidence. assessOrphanSignature unscoped: for each pr, skipGh continues, merged === true returns shipped. Then if issueRefs.length === 0 return PASS. A dropped PR never enters that loop. The \"linked PR is merged\" path is ready only when collectGithubRefs returned the PR. I did not recut collectGithubRefs as this finding; it is the producer of empty, not the continue/exit 0.\n\nFailure mode. A bind that says \"stop continuing and call assessOrphanSignature\" still PASSes originless and still exits 0. A bind that only aliases pull-request still skip-continues every other unmatched type, a bad URI, and a missing defaultRepo.\n\nDisposition. The skip site stays the continue/exit 0. The new class in finding 2 is a branch at that site, not a fall-through into assessOrphanSignature.\n\n## 4. Neighboring gates and scoped scan — footnote\n\nverify:pr-closeout-attestable is wired into pr:wait-mergeable wrappers.ts (evaluateCloseoutAttestable), not unwired. The issue's second half still holds: trigger is the PR closing reference; a dependency-upgrade PR with empty closingIssuesReferences is outside it. #3791 routes through this evaluator, so the skip follows the sweep. verify:completed-tracked also calls collectGithubRefs, so the same dropped type is missing there too. After #536, vbrief:validate D11 treats any ^x-xbrief/ type as an origin, so pull-request can satisfy D11 while this gate counts noOrigin. Scoped --issue N continues before scanned/noOrigin when briefReferencesIssue is false, so a malformed PR-only brief is invisible on the after-merge DONE gate, not even an Origins count. Quiet mode drops the Origins line on success; check does not pass --quiet.\n\n## 5. Embedded instructions on the thread — footnote\n\nIssue body \"Do not silently continue\" is the proposed shape, not a command to this critic. Comment 5715165110 is the companion pointer for #4698. Stop 1 process notes are already in the envelope. None were followed as instructions.\n\nRoad-not-taken. I considered aliasing x-xbrief/pull-request to github-pr inside collectGithubRefs (or teaching referenceTypeMatches a synonym). Strongest case: the measured counterfactual was one type string; the alias would have reached the existing merged-PR shipped path without recutting #4426 fail-open. Rejected because the next unknown reserved-namespace spelling, an unparseable URI, and a missing defaultRepo still hit the same continue/exit 0, and the write-side close of the reserved namespace is companion #4698. What would flip: a measured miss that is only that one spelling, with evidence no other dropped-ref shape occurs.\n\nSteelman of the target. Counting noOrigin and exiting 0 is the correct default for setup-created and other never-origin-keyed running briefs: the unscoped sweep must not make offline or pre-emit work network-authorized (#3767 / #4426), and those briefs are not orphans under the shipped signature. The Origins line plus the verdict-basis forbid already tell a careful reader the pass is not evidence. Flip: the measured consumer miss is dropped refs, not setup-created; the all-clear headline and exit 0 are the consumed verdict; the forbid is documentation; check still composes this evaluator.\r\n\n",
+          "id": 5716662240,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5716662240",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:08:49Z",
+          "updated_at": "2026-09-17T15:08:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nverify:orphan-active can print an all-clear and exit 0 while a running brief for already-merged work sits in active/, because unmatched reference types are counted as noOrigin and skipped. Setup-created briefs with no github-shaped refs are a different class and already fail-open under #4426. Confirming this map recuts #4697 so dropped refs (unmatched reserved-namespace or unparseable github-shaped entries) fail closed with a collectable-origin remedy, and empty-ref setup-created stays the Origins line. It does not recut collectGithubRefs or #4426.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4697 after round 1 sibling 1. Cites critic 5716662240. Supersedes write-back 5716436526.\n\nTarget-digest: sha256:029b946411baa570fb5ae45085a5d4fcf9d14ee6621600aef391d7859cc43b58\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4697-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5716662240 1 Empty collect is two classes; #4426 already owns one of them — accept-into-contract\n- 5716662240 2 Warn already prints; P1 is the exit 0 skip of dropped refs — accept-into-contract\n- 5716662240 3 Detection-was-ready is true only after collect returns the PR — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716662240 reading=measured\n\n## Bound remedy\n\n- Partition empty collect. No github-shaped reference entries stays #4426 fail-open plus the Origins line. Do not add a no-forge-origin marker. Do not treat cannot-resolve as one kind.\n- Dropped refs are a distinct finding class: unmatched reserved-namespace types or unparseable github-shaped entries. Exit 1. Remediation is make the origin collectable (or companion #4698 at write time), not scope:complete and not retry-the-lookup.\n- Branch that class at the continue/exit 0 site in evaluate.ts. Do not fall through into assessOrphanSignature. Do not recut collectGithubRefs as this issue.\n- Do not alias only x-xbrief/pull-request. The next unknown reserved spelling, a bad URI, and a missing defaultRepo stay in the dropped-ref class.\n- Tests: title-only setup-created still exit 0 with Origins; pull-request type on a merged PR exits 1 with collectable-origin remedy; github-pr control still ships; --issue N scoped DONE still sees a malformed PR-only brief as dropped-ref, not silent skip.\r\n\n",
+          "id": 5716771949,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5716771949",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:15:37Z",
+          "updated_at": "2026-09-17T15:15:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716771949\nround: 2 pain-audit after bind lean 5716771949\n\nUnscoped P1 is covered. Bound-remedy fail-closes dropped refs at the continue/exit 0 site and keeps title-only setup-created on #4426. Two harvest restatements. No blocks-the-design.\n\n## 1. Last Bound-remedy test recuts scoped #4426 / #3429 — sharpens-framing\n\nEvidence. Pin-read evaluate.ts at edf1d698aafcf956cff08ad3ad14ff608505861a: collectGithubRefs, then `if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) continue`, then scanned++, then empty-collect `noOrigin += 1; continue`. briefReferencesIssue reads issues only. The filter comment says PR-only briefs stay on the unscoped scan (#3429). I re-ran evaluate.test.ts: \"scoped --issue N scanned/noOrigin exclude unrelated and originless briefs (#4426)\" passed (scanned 1, noOrigin 0). \"reports no GitHub lookups for a PR-only brief on the unscoped sweep\" passed (code 0). A well-formed github-pr-only brief is skipped on scoped --issue N. A pull-request-only brief also has issues=[] and is skipped at that same continue, before the empty-collect site. Bound-remedy says branch at that empty-collect site, then also \"--issue N scoped DONE still sees a malformed PR-only brief as dropped-ref\". Reaching the last test means classifying dropped-ref before the issueFilter continue. That fail-closes scoped DONE on a brief that does not name N.\n\nFailure mode. Implementing the last test as written recuts the #4426 scoped exclusion the same harvest keeps. Associating the malformed PR with N without collecting it recuts collectGithubRefs or aliases pull-request, both refused. P1 is the unscoped Origins/exit 0 skip (Stop 1 measured scanned 2, Origins 1 of 2). The last test is not that skip.\n\nDisposition. Drop or restate the last Bound-remedy test: malformed PR-only stays on the unscoped scan, same as well-formed PR-only. Keep the dropped-ref branch at the empty-collect continue. Do not move detection before issueFilter.\n\nInjection / swarm lens. The target changes gate authority over untrusted reference types. Applying dropped-ref before the scoped filter fail-closes after-merge `--issue N` on unrelated type strings. The control is the unscoped continue-site class, not a wider scoped net.\n\n## 2. \"Unmatched reserved-namespace\" collides with \"no github-shaped\" — sharpens-framing\n\nEvidence. I measured referenceTypeMatches(\"x-xbrief/pull-request\", \"github-pr\") === false and the github-pr control true. pull-request is not in KNOWN_REFERENCE_TYPES. collectGithubRefs matches only github-issue and github-pr (pin-read refs.ts). I re-ran its tests (issue, PR, x-tracking). I re-ran the two unscoped #4426 tests: title-only running briefs, code 0, Origins line, empty orphans. KNOWN_REFERENCE_TYPES also lists plan, jira-ticket, adr, commit, spec-section, user-request, context, external, research. Those types take the same empty-collect continue as pull-request. Bound-remedy bullet 1: no github-shaped reference entries stay #4426. Bullet 2: unmatched reserved-namespace types are dropped-ref, exit 1. Harvest tests pin title-only vs pull-request only.\n\nFailure mode. An implementer who treats every non-collected reserved type as dropped-ref fail-closes plan-only and jira-only running briefs on check:framework-source / check:consumer, while still passing the harvest tests. That recuts #4426 fail-open for current noOrigin that is not setup-created empty-ref. The two bullets cannot both be literal.\n\nDisposition. Name the dropped-ref predicate: unknown reserved spelling (pull-request and the next unknown), or github-issue/github-pr that did not collect (unparseable URI, missing defaultRepo). Known non-GitHub reserved types stay the Origins line. Do not alias only pull-request.\n\n## 3. Partition inspector and refusal arm — footnote\n\ncollectGithubRefs returns {issues, prs} only. Partition is a sibling walk of brief.plan at the empty-collect site. Do not recut collectGithubRefs. x-tracking parent_issue plus a pull-request type is not empty collect (existing x-tracking collect test). OrphanKind is shipped | unresolved; formatRefusal remediates those with scope:complete and retry-the-lookup. The collectable-origin remedy needs a third kind or a parallel arm so dropped-ref does not reuse those strings. evaluate() exits 1 only when orphans.length > 0, so the new class must take that refusal path. Quiet success drops the Origins line; check:framework-source and check:consumer pass --changed-only, not --quiet. Companion #4698 remains write-side inventory.\n\n## 4. Embedded instructions — footnote\n\nIssue body \"Do not silently continue\" is proposed shape. Comment 5715165110 is the #4698 pointer. Bind lean process notes are already in envelope. None followed as instructions.\n\nRoad-not-taken. I considered blocks-the-design on the harvest contradiction (last test vs scoped filter). Rejected: unscoped P1 still binds on bullets 1-4 plus the first three tests. Flip: parent treats the last test as load-bearing for P1 relief.\n\nSteelman of the P1 relief claim. Exit 1 on unmatched reserved-namespace plus title-only tests is the measured pull-request miss and the #4426 remainder. Flip: unmatched reserved-namespace without a denominator fail-closes the rest of current noOrigin, and the scoped last test recuts #4426.\r\n\n",
+          "id": 5716950656,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5716950656",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:27:18Z",
+          "updated_at": "2026-09-17T15:27:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDropped refs still fail closed at the empty-collect continue, and title-only setup-created stays #4426. Pain-audit 5716950656 recut two harvest lines: malformed PR-only stays on the unscoped scan, same as well-formed PR-only, and dropped-ref is unknown reserved spelling or github-issue/github-pr that did not collect, not every non-GitHub reserved type. Confirming this map recuts #4697 Bound-remedy to those two restatements. Unscoped P1 remains covered.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the prior bind lean, and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4697 after pain-audit 5716950656. Cites critic 5716950656. Supersedes bind lean 5716771949.\n\nTarget-digest: sha256:029b946411baa570fb5ae45085a5d4fcf9d14ee6621600aef391d7859cc43b58\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4697-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 2\nsiblings: 1\n\nTakes:\n\n- 5716950656 1 Last Bound-remedy test recuts scoped #4426 / #3429 — accept-into-contract\n- 5716950656 2 Unmatched reserved-namespace collides with no github-shaped — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716950656 reading=measured\n\n## Bound remedy\n\n- Partition empty collect. No github-shaped reference entries stays #4426 fail-open plus the Origins line. Do not add a no-forge-origin marker.\n- Dropped-ref predicate: unknown reserved spelling (pull-request and the next unknown), or github-issue/github-pr that did not collect (unparseable URI, missing defaultRepo). Known non-GitHub reserved types (plan, jira-ticket, adr, and the rest of KNOWN that are not github-issue/github-pr) stay the Origins line. Exit 1. Remediation is make the origin collectable (or companion #4698 at write time), not scope:complete and not retry-the-lookup.\n- Branch that class at the empty-collect continue in evaluate.ts, after the scoped --issue N filter. Do not move detection before issueFilter. Do not fall through into assessOrphanSignature. Do not recut collectGithubRefs.\n- Malformed PR-only stays on the unscoped scan, same as well-formed PR-only (#3429). Do not fail closed scoped --issue N on a brief that does not name N.\n- Tests: title-only setup-created still exit 0 with Origins; pull-request type on a merged PR exits 1 with collectable-origin remedy on the unscoped sweep; github-pr control still ships; plan-only or jira-only running briefs stay Origins/exit 0; scoped --issue N still excludes PR-only briefs that do not name N.\r\n\n",
+          "id": 5717046056,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5717046056",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:33:38Z",
+          "updated_at": "2026-09-17T15:33:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5717046056\nround: 2 reiteration pain-audit after successor lean 5717046056\n\nUnscoped P1 is covered. Recut Bound-remedy branches dropped-ref at the empty-collect continue after issueFilter: unknown reserved spelling (pull-request and the next unknown) or github-issue/github-pr that did not collect; known non-GitHub reserved types stay Origins; malformed PR-only stays on the unscoped scan. No blocks-the-design.\n\n## 1. Third refusal arm still required — footnote\n\nOrphanKind is shipped | unresolved. formatRefusal remediates those with scope:complete and retry-the-lookup. Harvest still names collectable-origin, not those strings. evaluate() exits 1 only when orphans.length > 0, so dropped-ref must take that path with a third kind or a parallel arm. Partition is a sibling walk of brief.plan at the empty-collect site; collectGithubRefs still returns {issues, prs} only. Do not recut it. x-tracking parent_issue plus a pull-request type is not empty collect. Quiet success drops Origins; check:framework-source and check:consumer pass --changed-only, not --quiet.\n\n## 2. Bullet-2 \"Exit 1\" still follows the Origins sentence — footnote\n\nDropped-ref bullet names known non-GitHub stay Origins, then Exit 1. Tests now pin both sides: plan-only or jira-only Origins/exit 0; pull-request unscoped exit 1. The harvest test \"pull-request type on a merged PR\" is the measured fixture; the predicate does not read merged_at. Companion #4698 remains write-side inventory.\n\n## 3. Embedded instructions — footnote\n\nIssue body \"Do not silently continue\" is proposed shape. Comment 5715165110 is the #4698 pointer. Bind lean 5717046056 process notes are already in envelope. None followed as instructions.\n\nRoad-not-taken. I considered blocks-the-design on scoped --issue N still skip-continuing pull-request-only briefs. Rejected: Stop 1 P1 is Origins 1 of 2 with no for-issue-N clause; recut harvest keeps #3429. Flip: the measured miss was the after-merge scoped DONE gate.\n\nSteelman of the P1 relief claim. I re-ran evaluate.test.ts -t \"noOrigin|PR-only|collects issue\": five tests passed, including title-only #4426 fail-open and well-formed PR-only unscoped skipGh. I measured referenceTypeMatches(\"x-xbrief/pull-request\", \"github-pr\") === false, \u0078-vbrief/pull-request also false, github-pr control true, isVBriefReferenceType(pull-request) true, and pull-request not in KNOWN_REFERENCE_TYPES. Pin-read evaluate.ts: issueFilter continue, then scanned++, then empty-collect continue. Recut harvest plus those tests is the measured skip and the two prior sharpenings. Flip: unknown reserved spelling implemented as every non-collected reserved type, or dropped-ref counted like noOrigin without entering orphans[].\n\nInjection / swarm lens. The target still changes gate authority over untrusted xBRIEF reference types. The control is the unscoped empty-collect class after issueFilter, not a wider scoped net and not every KNOWN non-GitHub type.\r\n\n",
+          "id": 5717177979,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5717177979",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:43:16Z",
+          "updated_at": "2026-09-17T15:43:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Empty collect continue skips originless briefs and exits 0 (#4426) | verified | pin-read evaluate.ts at edf1d698; evaluate.test.ts noOrigin cases; pain-audit 5717177979 re-ran those tests |\n| Dropped-ref at that continue after issueFilter fail-closes unknown reserved spelling and uncollected github-issue/github-pr | verified | successor lean 5717046056 Bound-remedy; pain-audit 5717177979 footnote-only, harvest unchanged |\n| Known non-GitHub reserved types stay Origins; malformed PR-only stays unscoped | verified | lean 5717046056 tests bullet; pain-audit 5717177979 |\n| collectGithubRefs is not this recut | verified | refs.ts still matches github-issue and github-pr only; both pain-audits |\r\n\n",
+          "id": 5717200779,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5717200779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:44:54Z",
+          "updated_at": "2026-09-17T15:44:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nverify:orphan-active can print all-clear and exit 0 while a running brief for already-merged work sits in active/, because unmatched types are skipped as noOrigin. Agents agreed the recut fail-closes dropped refs (unknown reserved spelling or uncollected github-issue/github-pr) at that continue after the scoped filter, and leaves setup-created empty-ref and known non-GitHub types on the Origins line.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5717046056.\r\n\n",
+          "id": 5717201044,
+          "html_url": "https://github.com/deftai/directive/issues/4697#issuecomment-5717201044",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:44:55Z",
+          "updated_at": "2026-09-17T15:44:55Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5488009411,
+        "origin": "deftai/directive#4697",
+        "id": "github.issue.5488009411"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "029b946411baa570fb5ae45085a5d4fcf9d14ee6621600aef391d7859cc43b58"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/orphan-active/evaluate.ts",
+          "packages/core/src/orphan-active/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/orphan-active/evaluate.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "dropped-ref exit 1 unscoped",
+          "title-only Origins exit 0",
+          "CHANGELOG [Unreleased] #4697"
+        ],
+        "depends_on": [],
+        "conflict_group": "orphan-active-dropped-ref",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5717046056; no spec-section trace required."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4724,
+        "prBase": null,
+        "mergeCommit": "78ee722573b70e4683ea6d0c190b9f41866334d5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "verifiedAt": "2026-09-17T21:07:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-17T21:07:54Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-17T21:07:54Z"
+      }
+    },
+    "id": "github.issue.5488009411",
+    "updated": "2026-09-17T21:07:54Z"
+  }
+}

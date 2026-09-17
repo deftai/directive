@@ -1,0 +1,454 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4672",
+    "updated": "2026-09-17T21:09:12Z"
+  },
+  "plan": {
+    "title": "Swarm deadlock: cannot edit xbrief/active in requirements posture; mutation requires uv",
+    "status": "completed",
+    "narratives": {
+      "Description": "Swarm deadlock: cannot edit xbrief/active in requirements posture; mutation requires uv",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4672",
+      "Overview": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C11–C18 FAIL (no worktrees, no PRs, no CLI, no tests). PRs were never attempted — swarm never launched.\n**Defect:** 19\n\n### Expected\n\"Swarm the two active stories with parallel agents\" launches workers (or a documented next command that a new user can run).\n\n### What happened\nLease takeover succeeded. No extra tools installed (tester refused uv). Hook blocked editing active stories: requirements mode excludes `xbrief/active/`; mutation mode still requires uv. No stories changed. No agents launched. `git worktree list` stayed one line (`chore/deft-init`). Agent: consumer docs say uv is unnecessary; proceeding requires \"Deft's supported maintenance process\"; cannot bypass.\n\nThis is the Tester 1 integrity path (build `show-env-report`, honor `generatedAt`). It never ran.\n\n### Evidence\nCodex final C message; `git worktree list` → `C:/Users/codex/show-env-report-uat 855e9ad [chore/deft-init]`.\n\n### Environment\nDirective 0.119.1. Two xBRIEFs `status: running` in `xbrief/active/`.\r\n\n",
+      "Labels": "bug, python:uv, swarm, agent-experience, design-critique:ingest-ready",
+      "UserStory": "As a TypeScript-native consumer, I want mutation session:start to finish without uv, so swarm:launch can run against already-running stories without widening xbrief/active requirements.",
+      "ImplementationPlan": "1. Recut packages/core/src/verify-env/verify-tools.ts selectedSpecs onto CONSUMER_TOOLS / MAINTAINER_TOOLS from toolchain-check.ts so uv and python are maintainer-only on the unflagged verifyRequiredTools call session-start already makes. 2. Tests in verify-tools.test.ts: consumer unflagged missing-uv is not exit 1; maintainer/include still requires uv. 3. Do not widen REQUIREMENTS_DEFAULT_ALLOW_PATHS. Do not invent a third skip on session-start.ts. Do not wire skip-claim into mutation session:start. 4. CHANGELOG [Unreleased] #4672.",
+      "Traces": "Bound contract: successor lean 5716843479."
+    },
+    "items": [
+      {
+        "title": "Do not widen REQUIREMENTS_DEFAULT_ALLOW_PATHS with xbrief/active/**. Keep the fence. Mutation remains the upgrade path for those writes.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, do not widen REQUIREMENTS_DEFAULT_ALLOW_PATHS with xbrief/active/**. Keep the fence. Mutation remains the upgrade path for those writes."
+        },
+        "id": "1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/verify-tools.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Recut verify:tools onto CONSUMER_TOOLS / MAINTAINER_TOOLS so uv and python are maintainer-only, matching toolchain:check. Do not invent a third skip on mutation session:start. Do not wire skip-claim into mutation session:start.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, recut verify:tools onto CONSUMER_TOOLS / MAINTAINER_TOOLS so uv and python are maintainer-only, matching toolchain:check. Do not invent a third skip on mutation session:start. Do not wire skip-claim into mutation session:start."
+        },
+        "id": "2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/verify-tools.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Consumer swarm path is swarm:launch against already-running stories (readiness gate, occupancy heartbeat, dest worktrees, dest overlay). Primary active writes stay mutation-class.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, consumer swarm path is swarm:launch against already-running stories (readiness gate, occupancy heartbeat, dest worktrees, dest overlay). Primary active writes stay mutation-class."
+        },
+        "id": "3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/verify-tools.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "If UAT briefs fail readiness for missing swarm fields, patch them after mutation session:start is reachable without uv, or file that as a separate readiness fixture. Not this harvest.",
+        "status": "cancelled",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, if UAT briefs fail readiness for missing swarm fields, patch them after mutation session:start is reachable without uv, or file that as a separate readiness fixture. Not this harvest."
+        }
+      },
+      {
+        "id": "clause:1",
+        "title": "clause:1",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/verify-tools.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:2",
+        "title": "clause:2",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/verify-tools.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:3",
+        "title": "clause:3",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/verify-tools.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:4",
+        "title": "clause:4",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/verify-tools.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "python:uv",
+      "swarm",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4672",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4672: Swarm deadlock: cannot edit xbrief/active in requirements posture; mutation requires uv"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, do not widen REQUIREMENTS_DEFAULT_ALLOW_PATHS with xbrief/active/**. Keep the fence. Mutation remains the upgrade path for those writes.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, recut verify:tools onto CONSUMER_TOOLS / MAINTAINER_TOOLS so uv and python are maintainer-only, matching toolchain:check. Do not invent a third skip on mutation session:start. Do not wire skip-claim into mutation session:start.",
+          "artifact_path": "packages/core/src/verify-env/verify-tools.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, consumer swarm path is swarm:launch against already-running stories (readiness gate, occupancy heartbeat, dest worktrees, dest overlay). Primary active writes stay mutation-class.",
+          "artifact_path": "packages/core/src/verify-env/verify-tools.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, if UAT briefs fail readiness for missing swarm fields, patch them after mutation session:start is reachable without uv, or file that as a separate readiness fixture. Not this harvest.",
+          "artifact_path": "packages/core/src/verify-env/verify-tools.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/verify-env/verify-tools.ts",
+          "packages/core/src/verify-env/verify-tools.test.ts",
+          "packages/core/src/verify-env/toolchain-check.ts",
+          "packages/core/src/session/session-start.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705171182,
+          "html_url": "https://github.com/deftai/directive/issues/4672#issuecomment-5705171182",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:59:03Z",
+          "updated_at": "2026-09-16T21:59:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a consumer swarm cannot edit xbrief/active under requirements posture, and mutation session:start records verify:tools failed when uv is missing, so the two running stories never launch.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4672-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Fork is whether consumer swarm may require uv, and whether xbrief/active is requirements-class, not panel spend.\n\nrefutation-target: a TypeScript-native consumer swarm may require uv for mutation session:start, and xbrief/active writes may stay blocked under requirements posture.\n\ntarget: #4672\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the measured Tester 1 shape: lease takeover succeeded, tester refused uv, hook blocked editing active stories, git worktree list stayed one line, swarm never launched. Observed on @deftai/directive@0.119.1 Windows Codex.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/session/posture.ts REQUIREMENTS_DEFAULT_ALLOW_PATHS is docs/**, specs/**, README.md, xbrief/proposed/**, vbrief/proposed/**. xbrief/active/** is not on that allow list. REQUIREMENTS_DEFAULT_DENY_PATHS covers AGENTS.md, packages/**, src/**. dispatcher.ts allMutationTargetsAreRequirementsClass requires every write target to pass requirementsPathAllowed; otherwise write-requirements-out-of-class and REQUIREMENTS_UPGRADE_PATH (mutation session:start plus an active xBRIEF).\n- packages/core/src/verify-env/verify-tools.ts still lists uv and python. Only git is foundational. computeExitCode returns 1 when uv is missing. session-start.ts cold path treats verify:tools exit !== 0 as session not ready (verify_tools ok=false).\n- README.md consumer toolchain:check does not require Python, uv, Go, or Task. verify:tools is a different gate and still fails mutation readiness without uv.\n\nInventory: Python runtime was removed at v0.63.0. Consumer doctor/toolchain path is Node/git/gh. No implement and no ingest from this parent.\n\n",
+          "id": 5716471618,
+          "html_url": "https://github.com/deftai/directive/issues/4672#issuecomment-5716471618",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T14:55:53Z",
+          "updated_at": "2026-09-17T14:55:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716471618\ncharter: refutation\nspend: N=1\nround: 1 critic\naudit-targets: none\n\n## Refutation outcome\n\nThe recorded target is two measured facts, not one swarm deadlock. uv still fail-closes mutation session:start. requirements posture still refuses xbrief/active writes. The second fact is the existing requirements fence doing its job. A lean that widens that fence to unblock swarm cannot bind.\n\n## 1. Do not make xbrief/active requirements-class\n\nclass: blocks-the-design\n\nEvidence: pin-read packages/core/src/session/posture.ts REQUIREMENTS_DEFAULT_ALLOW_PATHS is docs/**, specs/**, README, REQUIREMENTS.md, xbrief/proposed/**, vbrief/proposed/**. xbrief/active/** is absent. packages/core/src/policy/runtime-authority.ts evaluateRuntimeAuthorityPath returns deny-allowlist when allowPaths is non-empty and unmatched. packages/core/src/hooks/dispatcher.ts requirementsPathAllowed plus allMutationTargetsAreRequirementsClass then deny write-requirements-out-of-class and print REQUIREMENTS_UPGRADE_PATH. requirementsPostureMessage skips gated ritual and story-start; occupancy still required. packages/core/src/swarm/launch.ts resolveStories from active/, enforceGates, then applyWorktreeOccupancy with intent swarm; it does not write primary xbrief/active. Dest overlay and DEFT_ACTIVE_SCOPE bind dest copies after worktree create.\n\nFailure mode: a requirements occupant (no gated ritual, no story-start) rewrites the running-set that swarm:launch will dispatch and that dest overlay copies into worker dests. Shared launch state changes under a docs/proposed fence. Occupancy identity is the only remaining control.\n\nDisposition: a successor lean cannot bind an allow-list widen or a requirements-class carve-out for xbrief/active/**. Keep the fence. Mutation remains the upgrade path for those writes.\n\n## 2. Recut verify:tools onto the existing consumer/maintainer split\n\nclass: sharpens-framing\n\nEvidence: packages/core/src/verify-env/verify-tools.ts TOOL_SPECS still lists uv and python; only git is foundational. computeExitCode returns 1 when any non-foundational tool is missing. packages/core/src/session/session-start.ts cold path always runs verify:tools even under rapid/minimal; exit !== 0 records verify_tools ok=false and ready=false. Failed mutation does not call clearRequirementsOverlayAfterReady, so the requirements overlay stays. README.md consumer toolchain:check does not require Python, uv, Go, or Task. packages/core/src/verify-env/toolchain-check.ts already splits CONSUMER_TOOLS (git, gh, node plus package manager) from MAINTAINER_TOOLS (includes uv). CHANGELOG records Python runtime removed at v0.63.0. Issue 4624 production skip is session:start --read-only or skip mutation session:start, not a skip-claim wired into mutation start.\n\nFailure mode: a TypeScript-native consumer who followed README still cannot finish mutation session:start without uv. The UAT then stays on the requirements overlay and never reaches a mutation-ready ritual. That is the consumer-contract miss. It is not a reason to recut the requirements fence.\n\nDisposition: bind the uv half as a verify:tools recut onto CONSUMER_TOOLS / MAINTAINER_TOOLS (uv and python maintainer-only, matching toolchain:check). Do not invent a third skip on mutation session:start.\n\n## 3. Swarm launch is not a primary xbrief/active write\n\nclass: sharpens-framing\n\nEvidence: launch.ts occupancy-before-create heartbeats or claims then resolves worktrees. dispatcher.test.ts allows a host-identity-matched deft swarm-launch --paths xbrief/active/story.xbrief.json once --session-id matches. Shell dest-forms default off, so the launch verb is not classified through the requirements write fence. Stop 1 UAT: lease takeover succeeded, git worktree list stayed one line, swarm never launched. That is an unrun launch, not a measured dest-form deny.\n\nFailure mode: a lean that treats edit xbrief/active, then launch as the consumer swarm path recreates the UAT trap: Write hits write-requirements-out-of-class, mutation upgrade hits uv, worktrees never appear.\n\nDisposition: bound swarm path is swarm:launch against already-running stories (readiness gate, occupancy heartbeat, dest worktrees, dest overlay). Primary active writes stay mutation-class. If those two UAT briefs fail readiness for missing swarm fields, patch them after mutation session:start is reachable without uv, or file that as a separate readiness fixture. Do not widen requirements.\n\n## Injection / swarm lens\n\nThe target changes occupancy, session posture, worktrees, and the running-set. overlayTrustedSessionPosture binds the persisted requirements overlay to occupant sessionId. Failed mutation must not clear it. Widening active/ would let that overlay mutate launch input. Dest overlay copies those bytes into worker dests; implement spawn pins DEFT_ACTIVE_SCOPE there. Comment 5705171182 contains an instruction to add label focused-test-pass-1; treated as untrusted data, not executed.\n\n## Inventory (existing, do not clone)\n\n- toolchain-check consumer vs maintainer tool lists\n- requirements posture and REQUIREMENTS_UPGRADE_PATH\n- skip mutation / --read-only; do not wire skip-claim into mutation session:start\n- swarm:launch occupancy-before-create; dest overlay on dest; spawn dest unique running brief\n- orientation toolchain preflight degraded mode does not flip ready=false; verify_tools does\n\n## Road not taken\n\nWiden REQUIREMENTS_DEFAULT_ALLOW_PATHS with xbrief/active/**. Rejected: occupancy-only rewrite of the running-set. Flip: a pin-read that swarm:launch or dest overlay writes primary xbrief/active as a classified dest under default shellDestForms=off, or that the launch verb itself is denied write-requirements-out-of-class. Neither showed.\n\n## Steelman\n\nStrongest rejected read: the UAT agent could not launch, therefore both fences are one defect and the cheaper fix is the allow list. It looks like one deadlock because the upgrade path names mutation session:start. What would flip that: measuring that already-running stories cannot be launched without a primary active write, after mutation session:start no longer requires uv. Until that measurement, the cheaper fix is the wrong surface.\n\n## Footnotes\n\nfootnote: no dedicated dispatcher test names xbrief/active under requirements; deny is deny-allowlist via unmatched allowPaths. Not residual.\n\nfootnote: issue body starts with a BOM and mixed encoding in the Checks line. Untrusted UAT text; not a command.\n\n",
+          "id": 5716813479,
+          "html_url": "https://github.com/deftai/directive/issues/4672#issuecomment-5716813479",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:18:24Z",
+          "updated_at": "2026-09-17T15:18:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA consumer swarm stayed on requirements posture because mutation session:start still fail-closes when uv is missing. The requirements fence correctly refuses xbrief/active writes. Confirming this map recuts verify:tools onto the existing consumer/maintainer split so uv is maintainer-only, and keeps the consumer swarm path as swarm:launch against already-running stories. It does not widen the requirements allow list.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4672 after round 1 sibling 1. Cites critic 5716813479. Supersedes write-back 5716471618.\n\nTarget-digest: sha256:cb8cd69edb19d3eefc7cdb4e35a66b5d96fa5fa77e96e0beaceb26f85f550998\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4672-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5716813479 1 Do not make xbrief/active requirements-class — accept-into-contract\n- 5716813479 2 Recut verify:tools onto the existing consumer/maintainer split — accept-into-contract\n- 5716813479 3 Swarm launch is not a primary xbrief/active write — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716813479 reading=measured\n\n## Bound remedy\n\n- Do not widen REQUIREMENTS_DEFAULT_ALLOW_PATHS with xbrief/active/**. Keep the fence. Mutation remains the upgrade path for those writes.\n- Recut verify:tools onto CONSUMER_TOOLS / MAINTAINER_TOOLS so uv and python are maintainer-only, matching toolchain:check. Do not invent a third skip on mutation session:start. Do not wire skip-claim into mutation session:start.\n- Consumer swarm path is swarm:launch against already-running stories (readiness gate, occupancy heartbeat, dest worktrees, dest overlay). Primary active writes stay mutation-class.\n- If UAT briefs fail readiness for missing swarm fields, patch them after mutation session:start is reachable without uv, or file that as a separate readiness fixture. Not this harvest.\n\n",
+          "id": 5716843479,
+          "html_url": "https://github.com/deftai/directive/issues/4672#issuecomment-5716843479",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:20:18Z",
+          "updated_at": "2026-09-17T15:20:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716843479\ncharter: refutation\nspend: N=1\nround: 2 pain-audit\ncritic-role: fresh\naudit-targets: pain-P1\n\nPain-audit of successor lean 5716843479 `relieves: P1` against Stop 1 P1. Footnote-only. The bind map stays bindable. Harvest unchanged.\n\nNamed P1: uv blocks mutation `session:start` so swarm never launches. Do not widen requirements.\n\nNot blocking. Sharpening that changes harvest: none.\n\n## 1. Bound-remedy covers that P1 shape\n\nclass: footnote\n\nEvidence. Pin-read at edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- `packages/core/src/verify-env/verify-tools.ts` `TOOL_SPECS` still lists `uv` (line 86) and `python` (line 110). Only `git` is foundational. `computeExitCode` (lines 259-261) returns 1 when any unresolved non-foundational tool is missing. Missing uv is already exit 1; the foundational bit is not the gate.\n- `packages/core/src/session/session-start.ts` cold path always calls `verifyRequiredTools({ outputFn })` with no consumer split (line 1779), even under rapid/minimal. `exit !== 0` records `verify_tools` `ok=false`. Failed quick steps make `ready=false` (lines 2098-2104). Overlay clear runs only when `code === 0` (lines 2105-2109). Failed mutation does not revoke the requirements overlay.\n- `packages/core/src/verify-env/toolchain-check.ts` already splits `CONSUMER_TOOLS` (git, gh, node; lines 29-33) from `MAINTAINER_TOOLS` (includes uv; lines 19-26). README consumer `toolchain:check --consumer` does not require Python, uv, Go, or Task.\n- `packages/core/src/doctor/main.ts` already skips uv when `consumerContext` (`projectRoot !== frameworkRoot`, lines 291 and 465-469). The measured miss is `verify:tools` as mutation readiness, not doctor.\n- `packages/core/src/session/posture.ts` `REQUIREMENTS_DEFAULT_ALLOW_PATHS` (lines 41-49) has no `xbrief/active/**`. `packages/core/src/swarm/launch.ts` resolves stories, `enforceGates`, then `applyWorktreeOccupancy` with `intent: \"swarm\"` (around 1151-1228). It does not write primary `xbrief/active`.\n\nLean 5716843479 Bound-remedy: keep the requirements fence; recut `verify:tools` onto those existing lists so uv and python are maintainer-only; do not invent a third skip on mutation `session:start`; do not wire skip-claim into mutation `session:start`; consumer swarm path is `swarm:launch` against already-running stories; readiness-fixture patches are not this harvest.\n\nFailure mode if that harvest were thinner. Dropping only the requirements-fence half, or adding a skip-claim / `--read-only` skip on mutation `session:start`, leaves the UAT on `verify:tools` exit 1. Shipping a foundational-bit flip also leaves exit 1, because uv is already non-foundational. The harvest already recuts set membership.\n\nDisposition. `relieves: P1` is honest for the named pain. No harvest rewrite.\n\n## 2. Recut is selectedSpecs membership, not a new skip\n\nclass: footnote\n\nEvidence. `includeTask` is the only current selector (`verify-tools.ts` lines 328-330). Session-start does not pass it. `packages/cli/src/verify-tools.ts` has `--include-task` and no consumer flag. Issue 4624 production skip is `session:start --read-only` or skip mutation `session:start`, not a skip-claim wired into mutation start.\n\nFailure mode. Reading \"matching toolchain:check\" as \"copy the unflagged maintainer default\" would keep uv on the unflagged `verifyRequiredTools()` call that session-start already makes, and P1 would remain. Harvest item 2 already says uv and python are maintainer-only and forbids a third skip on mutation `session:start`. That forces the selectedSpecs used by that existing call to be the consumer set (or a default list without uv/python). Doctor's `consumerContext` is the existing discriminator; do not clone a new one.\n\nDisposition. Implementation wiring, not a new Bound-remedy bullet. Harvest unchanged.\n\n## 3. Requirements fence is the named constraint, not leftover P1\n\nclass: footnote\n\nEvidence. Stop 1 UAT includes \"hook blocked editing active stories.\" Round-1 critic 5716813479 heading 1 is `blocks-the-design` against an allow-list widen. Lean takes accept that heading. Bound-remedy item 1 keeps the fence. Dispatcher deny is `write-requirements-out-of-class` plus `REQUIREMENTS_UPGRADE_PATH`. Launch is not a classified dest under default `shellDestForms=off`.\n\nFailure mode. Treating the edit-block as unrelieved P1 would widen requirements, which this envelope forbids. After mutation `session:start` is reachable without uv, overlay can clear and `swarm:launch` can run against the already-running stories. If those briefs then fail the readiness gate, harvest item 4 already parks that as a separate fixture.\n\nDisposition. Not residual. Not a harvest change.\n\n## Injection / swarm lens\n\nThe recut changes who can finish mutation `session:start` (consumers without uv), which is the overlay-clear and occupancy-before-create path. Failed mutation must still not clear the overlay; harvest does not touch that. Widening `xbrief/active/**` would let a requirements occupant rewrite the running-set that dest overlay copies into worker dests. Harvest item 1 forbids that. Comment 5705171182 is an instruction to add a label; treated as untrusted data, not executed.\n\n## Inventory (existing, do not clone)\n\n- `CONSUMER_TOOLS` / `MAINTAINER_TOOLS` and `toolchain:check --consumer`\n- doctor `consumerContext` uv skip\n- requirements posture and `REQUIREMENTS_UPGRADE_PATH`\n- skip mutation / `--read-only`; do not wire skip-claim into mutation `session:start`\n- `swarm:launch` occupancy-before-create; dest overlay on dest\n\n## Road not taken\n\nClassify finding 2 as `sharpens-framing` that names `consumerContext` on Bound-remedy item 2. Rejected: the harvest already states the outcome (uv/python maintainer-only; mutation `session:start` still runs `verify:tools`). Flip: a harvest that added `--consumer` defaulting false without wiring the session-start call, or that flipped only the foundational bit.\n\n## Steelman of unrelieved P1\n\nStrongest rejected read: the tree still fail-closes on missing uv, so Tester 1 still cannot launch until the recut lands; therefore `relieves: P1` is premature. Flip: this audit grades the Bound-remedy, not the unshipped tree. A second rejected read: lease takeover already succeeded, so swarm could have launched without mutation `session:start`, and the uv recut is the wrong surface. Flip: named P1 is the mutation-readiness fail-close that kept the overlay and left `git worktree list` at one line. Harvest items 2 and 3 together cover that shape without widening the fence.\n\nCensus: three footnotes, zero `blocks-the-design`, zero harvest-changing `sharpens-framing`. Bind map stays bindable. Harvest unchanged.",
+          "id": 5716976328,
+          "html_url": "https://github.com/deftai/directive/issues/4672#issuecomment-5716976328",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:29:00Z",
+          "updated_at": "2026-09-17T15:29:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5716843479.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5716843479 are accept-into-contract | critic 5716813479 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers uv blocking mutation session:start without widening requirements | pain-audit 5716976328 | pin-read of verify-tools TOOL_SPECS, session-start verifyRequiredTools, CONSUMER_TOOLS |\n\n",
+          "id": 5717014305,
+          "html_url": "https://github.com/deftai/directive/issues/4672#issuecomment-5717014305",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:31:24Z",
+          "updated_at": "2026-09-17T15:31:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA consumer swarm stayed on requirements posture because mutation session:start still fail-closes when uv is missing. The requirements fence correctly refuses xbrief/active writes. The accepted recut puts uv and python on the existing maintainer tool list so consumers can finish mutation session:start, and keeps swarm:launch against already-running stories. It does not widen the requirements allow list.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and the successor lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5716843479.\n\n",
+          "id": 5717014306,
+          "html_url": "https://github.com/deftai/directive/issues/4672#issuecomment-5717014306",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:31:24Z",
+          "updated_at": "2026-09-17T15:31:24Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480360368,
+        "origin": "deftai/directive#4672",
+        "id": "github.issue.5480360368"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "cb8cd69edb19d3eefc7cdb4e35a66b5d96fa5fa77e96e0beaceb26f85f550998"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/verify-env/verify-tools.ts",
+          "packages/core/src/verify-env/verify-tools.test.ts",
+          "packages/core/src/verify-env/toolchain-check.ts",
+          "packages/core/src/session/session-start.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/verify-env/verify-tools.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "uv/python maintainer-only on unflagged verify:tools",
+          "requirements fence unchanged",
+          "CHANGELOG [Unreleased] #4672"
+        ],
+        "depends_on": [],
+        "conflict_group": "verify-tools-consumer-split",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5716843479; no spec-section trace required."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4720,
+        "prBase": null,
+        "mergeCommit": "02c2540a1c86be60b2b73ec33ed11b8ef1ecbdd4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "verifiedAt": "2026-09-17T21:09:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-17T21:09:12Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-17T21:09:12Z"
+      }
+    },
+    "id": "github.issue.5480360368",
+    "updated": "2026-09-17T21:09:12Z"
+  }
+}

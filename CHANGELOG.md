@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Leftover-complete through-merge-4576 briefs.** Moves #4672, #4673, #4674, #4697, #4698, #4700, #4705 from `xbrief/active/` to `xbrief/completed/` with `kind: test` evidence on harvest items and bound `clause:N` rows. Does not recut #3240 or #4385. Follow-on derive-stamp is #4732.
+
 - **ROADMAP stays off merge-lane freshness and leftover-complete writes (#4316).** Tests lock `roadmap:check` off FRAMEWORK_CHECK_GATES / CONSUMER_CHECK_GATES / Taskfile check aggregates; the TypeScript suite has no live-checkout ROADMAP freshness pin, including aliased `roadmapRenderMain`, stored `repoRoot()`, and `checkDrift` via a checkout path; `scope:complete` and restamp do not write ROADMAP.md; leftover allowlist rejects ROADMAP.md; issue-closing PR template no longer asks for that edit. `task roadmap:check` stays the explicit diagnostic. Closes #4316.
 
 ### Fixed

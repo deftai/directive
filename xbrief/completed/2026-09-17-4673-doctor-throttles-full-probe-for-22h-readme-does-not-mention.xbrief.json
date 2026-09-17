@@ -1,0 +1,527 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4673",
+    "updated": "2026-09-17T21:08:14Z"
+  },
+  "plan": {
+    "title": "doctor throttles full probe for 22h; README does not mention --full",
+    "status": "completed",
+    "narratives": {
+      "Description": "doctor throttles full probe for 22h; README does not mention --full",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4673",
+      "Overview": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C4 FAIL; C19 FAIL\n**Defect:** 20\n\n### Expected\n`directive doctor` after update actually probes, or README documents throttle / `--full`. README: doctor prints exactly one next command.\n\n### What happened\nAfter `npm i -g @deftai/directive@latest` (still 0.119.1) and `directive update` (no-op), doctor printed: `[doctor] ran 1h ago, clean; next eligible in 22h; --full forces.` Plus the vendored/migrate warning. Did not re-probe. Cached \"clean\" was from a run that had 1 warning and no next command.\n\n### Evidence\n`directive.cmd doctor` during section D.\n\n### Environment\nDirective 0.119.1.\r\n\n",
+      "Labels": "bug, documentation, doctor, agent-experience, design-critique:ingest-ready",
+      "UserStory": "As an agent running directive doctor after a warning-only last run, I want the skip line not billed as clean, so a 24h throttle is not treated as bootstrap success.",
+      "ImplementationPlan": "1. Recut renderDoctorStatusLine in packages/core/src/doctor/doctor-state.ts from already-persisted lastFindingCount so lastErrorCount 0 and lastFindingCount >= 1 does not print clean. 2. Tests in doctor-state.test.ts cover that Tester 1 shape. 3. Do not recut isDirty / decideThrottle to lastFindingCount > 0. 4. Recut README.md diagnosis rows. Copy SUPPORT.md. Conditional getting-started.md and agents-entry.md only if skip-line recut does not already make bare doctor non-clean. 5. Do not rewrite ritual session-start doctor to --full. Missing .deft/core skip invalidation stays on #4679. 6. CHANGELOG [Unreleased] #4673.",
+      "Traces": "Bound contract: successor lean 5716771301."
+    },
+    "items": [
+      {
+        "title": "Recut the throttle-skip human line from already-persisted lastFindingCount. A skip with lastErrorCount 0 and lastFindingCount >= 1 must not print clean or look like diagnosis success. Do not invent a third window.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, recut the throttle-skip human line from already-persisted lastFindingCount. A skip with lastErrorCount 0 and lastFindingCount >= 1 must not print clean or look like diagnosis success. Do not invent a third window."
+        },
+        "id": "1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not recut isDirty / decideThrottle to lastFindingCount > 0. Advisory warnings stay warnings so ritual and PreToolUse do not fail-closed (#3379).",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, do not recut isDirty / decideThrottle to lastFindingCount > 0. Advisory warnings stay warnings so ritual and PreToolUse do not fail-closed (#3379)."
+        },
+        "id": "2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Recut README diagnosis rows (cold-start rung 1, something-looks-broken, post-install confirm) so a skip is not bootstrap success. Name throttle / --full there, or stop treating a running doctor process as success. Copy SUPPORT.md. Do not add a new flag.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, recut README diagnosis rows (cold-start rung 1, something-looks-broken, post-install confirm) so a skip is not bootstrap success. Name throttle / --full there, or stop treating a running doctor process as success. Copy SUPPORT.md. Do not add a new flag."
+        },
+        "id": "3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Diagnosis front doors that still omit --full (agents-entry / AGENTS.md #4090 recovery, getting-started recovery) are in this harvest only if Finding 1 skip-line recut does not already make every bare-doctor caller see a non-clean diagnosis. Ritual session-start deft doctor stays the cost skip. Do not rewrite that recorded doctor to --full.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, diagnosis front doors that still omit --full (agents-entry / AGENTS.md #4090 recovery, getting-started recovery) are in this harvest only if Finding 1 skip-line recut does not already make every bare-doctor caller see a non-clean diagnosis. Ritual session-start deft doctor stays the cost skip. Do not rewrite that recorded doctor to --full."
+        },
+        "id": "4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Missing .deft/core skip invalidation stays on #4679. Do not add update-side doctor-state invalidation as the first recut.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, missing .deft/core skip invalidation stays on #4679. Do not add update-side doctor-state invalidation as the first recut."
+        },
+        "id": "5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:1",
+        "title": "clause:1",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:2",
+        "title": "clause:2",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:3",
+        "title": "clause:3",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:4",
+        "title": "clause:4",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:5",
+        "title": "clause:5",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "doctor",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4673",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4673: doctor throttles full probe for 22h; README does not mention --full"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, recut the throttle-skip human line from already-persisted lastFindingCount. A skip with lastErrorCount 0 and lastFindingCount >= 1 must not print clean or look like diagnosis success. Do not invent a third window.",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, do not recut isDirty / decideThrottle to lastFindingCount > 0. Advisory warnings stay warnings so ritual and PreToolUse do not fail-closed (#3379).",
+          "artifact_path": "packages/core/src/doctor/doctor-state.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, recut README diagnosis rows (cold-start rung 1, something-looks-broken, post-install confirm) so a skip is not bootstrap success. Name throttle / --full there, or stop treating a running doctor process as success. Copy SUPPORT.md. Do not add a new flag.",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, diagnosis front doors that still omit --full (agents-entry / AGENTS.md #4090 recovery, getting-started recovery) are in this harvest only if Finding 1 skip-line recut does not already make every bare-doctor caller see a non-clean diagnosis. Ritual session-start deft doctor stays the cost skip. Do not rewrite that recorded doctor to --full.",
+          "artifact_path": "content/docs/getting-started.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, missing .deft/core skip invalidation stays on #4679. Do not add update-side doctor-state invalidation as the first recut.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/doctor/doctor-state.ts",
+          "packages/core/src/doctor/doctor-state.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "README.md",
+          "content/docs/getting-started.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705171409,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5705171409",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:59:04Z",
+          "updated_at": "2026-09-16T21:59:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because default doctor throttle-skips as clean for 24h after a warning-only run, and README leads with directive doctor without naming --full, so a later damage or a dirty-cache miss is not re-probed.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4673-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Fork is whether a warning-only last run may own a 24h clean skip, not panel spend.\n\nrefutation-target: a clean-window throttle-skip after a warning-only run is acceptable consumer diagnosis; equivalently README may lead with directive doctor without --full.\n\ntarget: #4673\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the measured Tester 1 shape: after npm i -g @deftai/directive@latest and directive update, doctor printed ran 1h ago, clean; next eligible in 22h; --full forces. Cached clean was from a run with 1 warning and no next command. Observed on 0.119.1 Windows Codex.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/doctor/constants.ts CLEAN_WINDOW_HOURS = 24. doctor-state.ts decideThrottle sets isDirty from lastErrorCount > 0; warnings are not dirty. A skip with lastErrorCount 0 returns 0 and prints renderDoctorStatusLine plus --full forces.\n- doctor/main.ts if (!fullMode) skip path runs runLocalSignpostChecks then returns. signpost-checks.ts probes npm-registry, legacy layout, and canonical-vendored npm signpost. It does not re-run the full probe and does not treat missing .deft/core as a skip invalidation.\n- README.md cold-start and the command table lead with directive doctor and say it prints exactly one next command. Those lines do not mention --full. doctor/help.ts documents --full Bypass throttle; re-probe fully. SUPPORT.md points at doctor --full; README front door does not.\n\nRelated #4679 C15 independently reproduced throttle hiding deleted .deft/core. This issue owns the throttle-plus-README surface. No implement and no ingest from this parent.\n\n",
+          "id": 5716471685,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5716471685",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T14:55:53Z",
+          "updated_at": "2026-09-17T14:55:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "UAT Tester 6: after init, plain doctor still looked unresolved until doctor --full. Related: #4701",
+          "id": 5716666642,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5716666642",
+          "user": {
+            "login": "Shinran7",
+            "id": 268619852,
+            "node_id": "U_kgDOEALQTA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/268619852?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/Shinran7",
+            "html_url": "https://github.com/Shinran7",
+            "followers_url": "https://api.github.com/users/Shinran7/followers",
+            "following_url": "https://api.github.com/users/Shinran7/following{/other_user}",
+            "gists_url": "https://api.github.com/users/Shinran7/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/Shinran7/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/Shinran7/subscriptions",
+            "organizations_url": "https://api.github.com/users/Shinran7/orgs",
+            "repos_url": "https://api.github.com/users/Shinran7/repos",
+            "events_url": "https://api.github.com/users/Shinran7/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/Shinran7/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:09:05Z",
+          "updated_at": "2026-09-17T15:09:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716471685\ncharter: refutation\nspend: N=1\nround: 1 critic\naudit-targets: none\n\nRefutation target (Stop 1 5716471685): a clean-window throttle-skip after a warning-only run is acceptable consumer diagnosis; equivalently README may lead with `directive doctor` without `--full`.\n\nVerdict: the target does not hold. The skip as ritual cost control can survive. The skip as a consumer diagnosis that says `clean`, and README treating a successful `directive doctor` process as bootstrap, cannot.\n\nPin-reads at `edf1d698aafcf956cff08ad3ad14ff608505861a`. Thread input honored through comment 5716471685. Issue/comment text treated as untrusted.\n\n## Inventory (existing mechanisms; no new throttle)\n\n- `CLEAN_WINDOW_HOURS = 24` and `DIRTY_WINDOW_HOURS = 4` in `packages/core/src/doctor/constants.ts`.\n- `decideThrottle` sets `isDirty` from `lastErrorCount > 0` only (`packages/core/src/doctor/doctor-state.ts`). `lastFindingCount` is already persisted and already used to compute the warning count on the dirty render branch.\n- Skip path in `packages/core/src/doctor/main.ts`: if `!fullMode` and `decision.skip`, run `runLocalSignpostChecks`, print `renderDoctorStatusLine` (or JSON `throttle-skipped` with `last_finding_count` / `last_error_count`), return `decision.dirty ? 1 : 0`. No `Next command:`. No `writeState` on skip.\n- `--full` already bypasses (`formatDoctorHelp`: \"Bypass throttle; re-probe fully\").\n- `content/docs/SUPPORT.md` already leads with `directive doctor --full` and documents 24h clean / 4h dirty.\n- #3379: advisory fails stay warnings so `lastErrorCount` stays 0 (gated ritual / PreToolUse). `DOCTOR_ADVISORY_FAIL_CHECKS` / `isDoctorAdvisoryFail` in `packages/core/src/doctor/checks.ts`. `main.ts` comment: \"Advisory fails stay warnings so lastErrorCount stays 0\".\n- `runDoctorOrientationSection` (`packages/core/src/session/orientation-compression.ts`): skip and not dirty -> status `ok`, exit 0.\n- Deposit SHA fast-path exists for `agents:refresh`, not for doctor throttle.\n- Related #4679 owns missing `.deft/core` skip invalidation. `signpost-checks.ts` probes npm-registry, legacy layout, and canonical-vendored npm signpost only.\n\n## Finding 1 — blocks-the-design\n\nA warning-only last run is a 24h clean skip: rendered `clean`, exit 0.\n\nEvidence: pin-read `decideThrottle` (`isDirty = state.lastErrorCount > 0`). `renderDoctorStatusLine` on `!dirty` always prints `[doctor] ran Nh ago, clean; next eligible in Nh; --full forces.` The dirty branch already computes `warns = lastFindingCount - lastErrorCount`. Skip returns 0 unless dirty. Persist writes `findingCount` and `errorCount` separately. Tests lock `lastFindingCount: 0` as clean skip and `lastErrorCount > 0` as dirty skip; the Tester 1 shape (`lastFindingCount >= 1`, `lastErrorCount = 0`) has no named case and falls through to `clean`. Issue body: cached \"clean\" came from a run with 1 warning and no next command. Orientation maps that skip to `ok`.\n\nFailure mode: after `npm i -g @deftai/directive@latest` and `directive update` (no-op), `directive doctor` prints a clean bill of health and exits 0. An agent treats that as diagnosis success. The prior warning, and later tree damage that is not `lastErrorCount > 0`, is not re-probed for 24h. JSON skip carries `last_finding_count`; the default human/agent path does not.\n\nDisposition: a lean that accepts this diagnosis cannot bind. Recut the skip line from the already-persisted `lastFindingCount`. Do not invent a third window. Do not recut `isDirty` to `lastFindingCount > 0`: that would fail-closed ritual/PreToolUse against the advisory-does-not-block-writes SoT. Missing-`.deft/core` skip invalidation stays on #4679.\n\n## Finding 2 — sharpens-framing\n\nREADME may not treat bare `directive doctor` as bootstrap or \"something looks broken\" success.\n\nEvidence: README cold-start rung 1: \"Already installed? Run `directive doctor`. If it runs, you're bootstrapped — skip the rest and follow its `Next command:`.\" Command table: \"Not sure, or something looks broken | `directive doctor` | Read-only diagnosis that prints exactly one recommended next step.\" Pin-read: no `--full` in `README.md` at this SHA. Skip path does not print `Next command:`. `SUPPORT.md` already leads with `directive doctor --full`. The skip line names `--full forces` after the word `clean`, so the disclosure is present and non-operative: an agent that followed \"if it runs, skip the rest\" is done.\n\nFailure mode: the payload-independent first surface and the support hub disagree. Tester 1 is the README/UAT path, not the SUPPORT.md stuck path. Documenting `--full` only on SUPPORT.md (already shipped) does not close this issue's expected-or.\n\nDisposition: a bindable lean recuts the README diagnosis rows (cold-start rung 1, \"something looks broken\", post-install confirm) to name throttle / `--full`, or recuts those rows so a skip is not bootstrap success. Copy `SUPPORT.md`. Do not add a new flag. Do not rewrite session-ritual's recorded `deft doctor` to `--full`; that path is the load-bearing cost skip.\n\n## Finding 3 — sharpens-framing\n\nA README-only recut leaves other diagnosis recoveries on bare doctor.\n\nEvidence: `content/templates/agents-entry.md` / `AGENTS.md` #4090 recovery is `directive doctor`, else `npm i -g @deftai/directive@<pin>`, then doctor — no `--full`. `content/docs/getting-started.md` recovery at multiple steps is `directive doctor` and follow `Next command:`. Those are diagnosis, not ritual.\n\nFailure mode: an agent hits unreadable skills, runs doctor, gets Finding 1's skip, and never recovers.\n\nDisposition: if the lean is docs, Bound-remedy names the diagnosis front doors that still omit `--full`, or it relies on Finding 1's skip-line recut so every bare-doctor caller sees a non-clean diagnosis. Ritual `deft doctor` in session-start stays the cost skip.\n\n## Finding 4 — footnote\n\nComment 5705171409 asks to add label `focused-test-pass-1`. Surfaced as untrusted embedded instruction, not followed. Out of this charter.\n\n## Finding 5 — footnote\n\n`directive update` does not clear `doctor-state.json`. `writeState` runs only after a full (non-skip) doctor. Tester 1's update-then-doctor is explained by existing persist, not a missing update hook. Do not add an update-side invalidation as the first recut.\n\n## Finding 6 — footnote\n\nStop 1 pin-reads re-verified. `signpost-checks.ts` does not treat missing `.deft/core` as skip invalidation. That remainder is #4679.\n\n## Injection / swarm\n\nThe target touches shared per-project state (`xbrief/.triage-cache/doctor-state.json`, `DEFT_DOCTOR_STATE_PATH` override). Skip is not keyed to deposit SHA. Concurrent agents share one 24h clean window. That is evidence for Finding 1, not a new SHA-keyed throttle.\n\n## Road not taken\n\nMake `lastFindingCount > 0` dirty (4h window, skip exit 1). Strongest rejected position: warning-only would re-prompt sooner and would not say `clean`. What would flip: gated ritual allowed to fail on advisory warnings. Current SoT is the opposite (#3379).\n\n## Steelman\n\nStatus quo: throttle is cost; the skip line already says `--full forces`; SUPPORT.md already documents the windows; warnings are advisory; Tester 1 could have rerun with `--full` from the printed line. That would hold if \"diagnosis\" meant \"the operator who reads `--full forces` will re-probe.\" It does not hold for the agent-facing contract: exit 0 + `clean` + README \"if it runs, skip the rest.\"\n\n",
+          "id": 5716747134,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5716747134",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:14:03Z",
+          "updated_at": "2026-09-17T15:14:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDefault doctor can skip for 24h and print clean, exit 0, after a warning-only last run. README treats a running directive doctor as bootstrap success and does not name --full. Confirming this map recuts the skip line so a persisted warning count is not billed as clean, and recuts the README diagnosis rows so a skip is not bootstrap success. It does not make advisory warnings dirty for ritual, and it does not move missing-.deft/core skip invalidation off #4679.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4673 after round 1 sibling 1. Cites critic 5716747134. Supersedes write-back 5716471685.\n\nTarget-digest: sha256:390c7fac78d583a3d8322ec70a93806527af54d2307e52f11d6cca6fdd26f504\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4673-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5716747134 1 A warning-only last run is a 24h clean skip: rendered clean, exit 0 — accept-into-contract\n- 5716747134 2 README may not treat bare directive doctor as bootstrap or something-looks-broken success — accept-into-contract\n- 5716747134 3 A README-only recut leaves other diagnosis recoveries on bare doctor — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716747134 reading=measured\n\n## Bound remedy\n\n- Recut the throttle-skip human line from already-persisted lastFindingCount. A skip with lastErrorCount 0 and lastFindingCount >= 1 must not print clean or look like diagnosis success. Do not invent a third window.\n- Do not recut isDirty / decideThrottle to lastFindingCount > 0. Advisory warnings stay warnings so ritual and PreToolUse do not fail-closed (#3379).\n- Recut README diagnosis rows (cold-start rung 1, something-looks-broken, post-install confirm) so a skip is not bootstrap success. Name throttle / --full there, or stop treating a running doctor process as success. Copy SUPPORT.md. Do not add a new flag.\n- Diagnosis front doors that still omit --full (agents-entry / AGENTS.md #4090 recovery, getting-started recovery) are in this harvest only if Finding 1's skip-line recut does not already make every bare-doctor caller see a non-clean diagnosis. Ritual session-start deft doctor stays the cost skip. Do not rewrite that recorded doctor to --full.\n- Missing .deft/core skip invalidation stays on #4679. Do not add update-side doctor-state invalidation as the first recut.\n\n",
+          "id": 5716771301,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5716771301",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:15:34Z",
+          "updated_at": "2026-09-17T15:15:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716771301\ncharter: refutation\nspend: N=1\nround: 2 pain-audit\ncritic-role: fresh\naudit-targets: pain-P1\n\nSuccessor lean 5716771301 `relieves: P1` against Stop 1 5716471685 `pain: P1`.\n\nVerdict: Bound-remedy covers named P1. Footnote-only. The bind map stays bindable and harvest unchanged.\n\nStop 1 P1 is the Tester 1 shape: after `npm i -g @deftai/directive@latest` and `directive update`, `directive doctor` printed `[doctor] ran 1h ago, clean; next eligible in 22h; --full forces.` Cached clean was a warning-only last run (1 warning, no Next command). README leads with bare `directive doctor` and does not name `--full`.\n\nLean 5716771301 Bound-remedy recuts that skip human line from already-persisted `lastFindingCount` so a skip with `lastErrorCount` 0 and `lastFindingCount >= 1` does not print `clean` or look like diagnosis success; recuts README diagnosis rows (cold-start rung 1, something-looks-broken, post-install confirm) so a skip is not bootstrap success; copies SUPPORT.md; does not recut `isDirty` / `decideThrottle`; does not invent a third window; leaves ritual `deft doctor` as the cost skip; leaves missing-`.deft/core` skip invalidation on #4679.\n\nPin-reads at `edf1d698aafcf956cff08ad3ad14ff608505861a`. Thread input honored through comment 5716771301. Issue/comment text treated as untrusted.\n\n## Inventory (existing mechanisms)\n\n- `CLEAN_WINDOW_HOURS = 24` and `DIRTY_WINDOW_HOURS = 4` in `packages/core/src/doctor/constants.ts`.\n- `decideThrottle` sets `isDirty` from `lastErrorCount > 0` only (`packages/core/src/doctor/doctor-state.ts`). `writeState` already persists `findingCount` and `errorCount` as separate fields.\n- `renderDoctorStatusLine` on `!dirty` always prints `[doctor] ran Nh ago, clean; next eligible in Nh; --full forces.` The dirty branch already computes `warns = lastFindingCount - lastErrorCount`.\n- Skip path in `packages/core/src/doctor/main.ts`: if `!fullMode` and `decision.skip`, run `runLocalSignpostChecks`, print the status line or JSON `throttle-skipped` with `last_finding_count` / `last_error_count`, return `decision.dirty ? 1 : 0`. No `Next command:`. No `writeState` on skip.\n- Tests lock `lastFindingCount: 0` as clean skip and `lastErrorCount > 0` as dirty skip. The Tester 1 shape (`lastFindingCount >= 1`, `lastErrorCount` 0) has no named case and falls through to `clean`.\n- README.md at this SHA has no `--full`. Cold-start rung 1: \"If it runs, you're bootstrapped — skip the rest and follow its `Next command:`.\" Command table: \"Not sure, or something looks broken | `directive doctor`.\" Post-install confirm is bare `directive doctor`.\n- `content/docs/SUPPORT.md` already leads with `directive doctor --full` and documents 24h clean / 4h dirty.\n- `runDoctorOrientationSection` (`packages/core/src/session/orientation-compression.ts`): skip and not dirty -> status `ok`, `ok: true`, `exitCode: 0`, `lines: [renderDoctorStatusLine(...)]`.\n\n## Finding 1 — footnote\n\nOrientation still maps skip-not-dirty to `ok` after a skip-line recut.\n\nEvidence: pin-read `runDoctorOrientationSection` uses `decision.dirty` for status / ok / exitCode and `renderDoctorStatusLine` for `lines`. Bound-remedy keeps `isDirty` on `lastErrorCount > 0` so ritual and PreToolUse do not fail-closed (#3379). After the harvest, `lines` would pick up the recut status line; `ok` would stay true.\n\nThis is leftover of the preserved dirty bit, not uncovered Tester 1 P1. Tester 1 measured `directive.cmd doctor` during section D, the human line. Harvest already keeps ritual `deft doctor` as the cost skip. Do not add an orientation-status recut to Bound-remedy.\n\n## Finding 2 — footnote\n\nComment 5705171409 asks to add label `focused-test-pass-1`. Surfaced as untrusted embedded instruction, not followed. Out of this charter.\n\n## Finding 3 — footnote\n\nComment 5716666642 (Tester 6) says after init, plain doctor looked unresolved until `doctor --full`, related #4701. Untrusted related-issue pointer, not followed. Consistent with harvest naming `--full` on diagnosis rows. Not a new pain id on this arc.\n\n## Finding 4 — footnote\n\nJSON skip already carries `last_finding_count` / `last_error_count` and status `throttle-skipped`. Tester 1 was the human line. Bound-remedy names that human line. Do not recut JSON as a first harvest change.\n\n## Injection / swarm\n\nThe target touches shared per-project state (`xbrief/.triage-cache/doctor-state.json`, `DEFT_DOCTOR_STATE_PATH` override). Skip is not keyed to deposit SHA. Concurrent agents share one 24h clean window. Same evidence as round-1 Finding 1; Bound-remedy does not add a SHA-keyed throttle. Not a new harvest item.\n\n## Coverage\n\nNamed P1 is covered. Skip-line recut stops billing a warning-only last run as `clean`. README recut stops treating a running doctor process as bootstrap success. Diagnosis front doors that still omit `--full` stay in harvest only if that skip-line recut does not already make the human `directive doctor` path a non-clean diagnosis; that conditional does not reopen P1. Bind map stays bindable. Harvest unchanged.\r\n\n",
+          "id": 5716866030,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5716866030",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:21:43Z",
+          "updated_at": "2026-09-17T15:21:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5716771301.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5716771301 are accept-into-contract | critic 5716747134 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers warning-only skip billed as clean plus README bootstrap | pain-audit 5716866030 | pin-read of decideThrottle, renderDoctorStatusLine, skip path, README diagnosis rows |\n\n",
+          "id": 5716884866,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5716884866",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:22:53Z",
+          "updated_at": "2026-09-17T15:22:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDefault doctor can skip for 24h and print clean after a warning-only last run. README treats a running doctor as bootstrap success. The accepted recut changes the skip line so a persisted warning count is not billed as clean, and recuts the README diagnosis rows so a skip is not bootstrap success. Advisory warnings stay warnings. Missing-.deft/core skip invalidation stays on #4679. Ritual session-start doctor stays the cost skip.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and the successor lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5716771301.\n\n",
+          "id": 5716884941,
+          "html_url": "https://github.com/deftai/directive/issues/4673#issuecomment-5716884941",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:22:53Z",
+          "updated_at": "2026-09-17T15:22:53Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480360533,
+        "origin": "deftai/directive#4673",
+        "id": "github.issue.5480360533"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "390c7fac78d583a3d8322ec70a93806527af54d2307e52f11d6cca6fdd26f504"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/doctor-state.ts",
+          "packages/core/src/doctor/doctor-state.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "README.md",
+          "content/docs/getting-started.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/doctor/doctor-state.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "warning-only skip does not print clean",
+          "README diagnosis rows name throttle/--full",
+          "CHANGELOG [Unreleased] #4673"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-throttle-readme",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5716771301; no spec-section trace required."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4721,
+        "prBase": null,
+        "mergeCommit": "6627449c4c8c67896a712370d6bbec2b96ba9cf5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "verifiedAt": "2026-09-17T21:08:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-17T21:08:14Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-17T21:08:14Z"
+      }
+    },
+    "id": "github.issue.5480360533",
+    "updated": "2026-09-17T21:08:14Z"
+  }
+}

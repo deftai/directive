@@ -1,0 +1,535 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4700",
+    "updated": "2026-09-17T21:07:32Z"
+  },
+  "plan": {
+    "title": "[framework-gap] design-critique ingest-ready writer does not prove completed-arc readiness",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] design-critique ingest-ready writer does not prove completed-arc readiness",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4700",
+      "Overview": "## Summary\n\ndesign-critique ingest-ready writer does not prove completed-arc readiness\n\n## Context\n\n**Version attribution:** Directive 0.119.1 is the source release of this defect.\n\nFreshserviceAI was running Directive 0.119.1 when issues 652-657 all received `design-critique:ingest-ready`, then `issue:ingest` refused 652-656 as `missing-record` and 657 as `unresolved-pain-audit`. Live REST history and the 0.119.1 package source were examined.\n\n## Expected behavior\n\nA parent bind must not expose `ingest-ready` unless the live issue thread proves the latest successor lean has a canonical completed-arc record and all pain-audit predicates pass. The record and label transition should be one guarded operation or require a fresh evaluator proof.\n\n## Actual behavior / gap\n\nThe shipped `scm issue design-critique-chip` verb fetches only labels and can apply `ingest-ready` without reading comments. A fake `LabelClient` probe stamped a comment-free issue. Issues 652-656 used the malformed token `synthesis accepted because` without the required comma but were labeled ready; issue 657 asserted relieves P1-P4 with no later targeting critic but was labeled ready. `evaluateAutoStampPath1Write` would refuse 657, yet it is not called by the SCM mutation path.\n\n## Session notes\n\nFresh residual distinct from closed #4592 and #4648: current master still routes `--chip ingest-ready` directly to `applyDesignCritiqueCatalogChip`. Add integration tests for malformed canonical record plus label and unresolved pain audit plus label; improve near-miss diagnostics. Refs #4592, #4648.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "Labels": "bug, design, agent-experience, process, area:skills, critic, design-critique:ingest-ready",
+      "UserStory": "As a consumer parent binding ingest-ready, I want the remaining-set writer to refuse unless the live thread has a complete completed-arc record, so a comment-free or missing-record issue cannot be labeled ready.",
+      "ImplementationPlan": "1. Gate ingest-ready remaining-set replace on live-thread evaluateCompletedArcRecord complete (fetchIssueComments). Shared helper for runDesignCritiqueChip and ScmLabelClient.apply exclusive fold. 2. Proof-fail is nonzero, not CHIP_APPLY_MISS. mechanism-shaped and in-progress stay labels-only. Keep path-1 on evaluateAutoStampPath1Write; do not wrap it as the chip-verb gate. 3. Tests: malformed canonical record plus label; unresolved pain audit plus label. 4. CHANGELOG [Unreleased] #4700. Do not Closes #4592.",
+      "Traces": "Bound contract: successor lean 5718272554."
+    },
+    "items": [
+      {
+        "title": "Remaining-set-replace of design-critique:ingest-ready MUST fetch comments (fetchIssueComments already paginates) and refuse unless live-thread evaluateCompletedArcRecord is complete. Pain predicates already live in that function. Comments present is not complete.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, remaining-set-replace of design-critique:ingest-ready MUST fetch comments (fetchIssueComments already paginates) and refuse unless live-thread evaluateCompletedArcRecord is complete. Pain predicates already live in that function. Comments present is not complete."
+        },
+        "id": "1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Put that proof on the ingest-ready remaining-set write (shared helper both runDesignCritiqueChip and the ScmLabelClient.apply exclusive fold use). LabelClient.apply of ingest-ready without that complete proof fail-closes.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, put that proof on the ingest-ready remaining-set write (shared helper both runDesignCritiqueChip and the ScmLabelClient.apply exclusive fold use). LabelClient.apply of ingest-ready without that complete proof fail-closes."
+        },
+        "id": "2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Proof-fail is fail-closed (nonzero), not CHIP_APPLY_MISS exit 0. Apply-miss after a passing proof may stay non-blocking.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, proof-fail is fail-closed (nonzero), not CHIP_APPLY_MISS exit 0. Apply-miss after a passing proof may stay non-blocking."
+        },
+        "id": "3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Keep path-1 on evaluateAutoStampPath1Write (unpublished candidate, then post, then chip). Do not wrap path-1 as the chip-verb gate. Do not invent a combined comment+label writer. Do not grow resolveAutoStampCatalogChip.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, keep path-1 on evaluateAutoStampPath1Write (unpublished candidate, then post, then chip). Do not wrap path-1 as the chip-verb gate. Do not invent a combined comment+label writer. Do not grow resolveAutoStampCatalogChip."
+        },
+        "id": "4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "--chip mechanism-shaped and in-progress stay labels-only.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, --chip mechanism-shaped and in-progress stay labels-only."
+        },
+        "id": "5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Add integration tests for malformed canonical record plus label and unresolved pain audit plus label. Near-miss diagnostics for the comma token are additive once the writer is gated.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, add integration tests for malformed canonical record plus label and unresolved pain audit plus label. Near-miss diagnostics for the comma token are additive once the writer is gated."
+        },
+        "id": "6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Distinct residual from closed #4592 / #4648: those gate path-1 auto-stamp and pain-audit targeting, not this labels-only remaining-set writer.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, distinct residual from closed #4592 / #4648: those gate path-1 auto-stamp and pain-audit targeting, not this labels-only remaining-set writer."
+        },
+        "id": "7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "area:skills",
+      "critic",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4700",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4700: [framework-gap] design-critique ingest-ready writer does not prove completed-arc readiness"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4592",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4592"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4592",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4592"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, remaining-set-replace of design-critique:ingest-ready MUST fetch comments (fetchIssueComments already paginates) and refuse unless live-thread evaluateCompletedArcRecord is complete. Pain predicates already live in that function. Comments present is not complete.",
+          "artifact_path": "packages/core/src/scm/design-critique-chip.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, put that proof on the ingest-ready remaining-set write (shared helper both runDesignCritiqueChip and the ScmLabelClient.apply exclusive fold use). LabelClient.apply of ingest-ready without that complete proof fail-closes.",
+          "artifact_path": "packages/core/src/design-critique/exclusive-chip.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, proof-fail is fail-closed (nonzero), not CHIP_APPLY_MISS exit 0. Apply-miss after a passing proof may stay non-blocking.",
+          "artifact_path": "packages/core/src/scm/design-critique-chip.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, keep path-1 on evaluateAutoStampPath1Write (unpublished candidate, then post, then chip). Do not wrap path-1 as the chip-verb gate. Do not invent a combined comment+label writer. Do not grow resolveAutoStampCatalogChip.",
+          "artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, --chip mechanism-shaped and in-progress stay labels-only.",
+          "artifact_path": "packages/core/src/scm/design-critique-chip.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "When this slice ships, add integration tests for malformed canonical record plus label and unresolved pain audit plus label. Near-miss diagnostics for the comma token are additive once the writer is gated.",
+          "artifact_path": "packages/core/src/scm/design-critique-chip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "When this slice ships, distinct residual from closed #4592 / #4648: those gate path-1 auto-stamp and pain-audit targeting, not this labels-only remaining-set writer.",
+          "artifact_path": "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scm/design-critique-chip.ts",
+          "packages/core/src/scm/design-critique-chip.test.ts",
+          "packages/core/src/design-critique/exclusive-chip.ts",
+          "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "packages/core/src/vbrief-reconcile/labels.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because scm issue design-critique-chip --chip ingest-ready fetches only labels and can apply ingest-ready without reading comments, so a parent bind can expose the list-state chip while evaluateCompletedArcRecord would refuse.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4700-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: operator add 4700 onto each separately; independent single-seat Grok critic arc, not panel spend.\n\nrefutation-target: a parent bind must not expose ingest-ready unless the live issue thread proves the latest successor lean has a canonical completed-arc record and all pain-audit predicates pass; the record and label transition should be one guarded operation or require a fresh evaluator proof.\n\ntarget: #4700\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the FreshserviceAI 0.119.1 consumer incident: issues 652-657 all received design-critique:ingest-ready, then issue:ingest refused 652-656 as missing-record and 657 as unresolved-pain-audit. 652-656 used the malformed token synthesis accepted because without the required comma. 657 asserted relieves P1-P4 with no later targeting critic.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/scm/design-critique-chip.ts routes --chip ingest-ready to applyDesignCritiqueCatalogChip. Usage still says apply miss is non-blocking convenience; ingest is not blocked.\n- packages/core/src/design-critique/exclusive-chip.ts applyDesignCritiqueCatalogChip fetches only labels (client.fetchLabels) then remaining-set apply. No comments. No evaluateCompletedArcRecord. No evaluateAutoStampPath1Write.\n- packages/core/src/design-critique/auto-stamp-path1.ts evaluateAutoStampPath1Write is the path-1 gate. It is not imported by the SCM mutation path.\n\nFresh residual distinct from closed #4592 and #4648. Chip is list-visible convenience, not ingest clearance. No implement and no ingest from this parent.\r\n\n",
+          "id": 5717942912,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5717942912",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:38:54Z",
+          "updated_at": "2026-09-17T16:38:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation target (Stop 1 5717942912): a parent bind must not expose ingest-ready unless the live issue thread proves the latest successor lean has a canonical completed-arc record and all pain-audit predicates pass; the record and label transition should be one guarded operation or require a fresh evaluator proof.\n\nRe-verified at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Vitest 148/148 on `design-critique-chip.test.ts`, `exclusive-chip.test.ts`, `auto-stamp-path1.test.ts`, `completed-arc-record.test.ts`. Node probe of `SYNTHESIS_SHAPE_RE`. Inventory before a new writer: `evaluateCompletedArcRecord` / `assertCompletedArcAllowsIngest`, `evaluateAutoStampPath1Write`, `fetchIssueComments`, `applyDesignCritiqueCatalogChip`, `resolveAutoStampCatalogChip` (always returns ingest-ready; not a gate).\n\nThe first clause survives. The remedy clause cannot bind as written.\n\n## 1. blocks-the-design\n\n\"One guarded operation or a fresh evaluator proof\" is an exclusive-or of two incompatible existing mechanisms.\n\nEvidence. `runDesignCritiqueChip` at this SHA calls only `applyDesignCritiqueCatalogChip` (labels GET, remaining-set apply). It does not import `evaluateCompletedArcRecord` or `evaluateAutoStampPath1Write`. Vitest stamps `--chip ingest-ready` through a FakeLabelClient that never sees comments (`replaces mechanism-shaped with ingest-ready in one apply`; exclusive-chip `apply is a single LabelClient.apply`). `evaluateAutoStampPath1Write` constructs an unpublished `design-critique: synthesis accepted, because …` citing the latest lean, then evaluates Stop 1 + lean + that unpublished body. Vitest: stop1 + relieves lean + targeting critic, no live synthesis → `writePath1: true` and `writeIngestReadyRemainingSet: true`; live-thread `evaluateCompletedArcRecord` on that same fixture is `missing-record`. The chip verb does not post comments. `restPostComment` and `LabelClient.apply` are separate I/O. `CHIP_APPLY_MISS_TOKEN` is exit 0 (\"ingest is not blocked\"). Leftover-pain already names both \"Chip ingest-ready only after evaluateCompletedArcRecord would return complete\" and \"If a verb is needed, wrap that function only\" / \"Do not call live-thread evaluateCompletedArcRecord as the stamp gate (`missing-record`)\" — path-1 unpublished vs live chip, not one gate.\n\nFailure mode. Bound-remedy that wraps `evaluateAutoStampPath1Write` into `--chip ingest-ready` remaining-set-replaces when `writeIngestReadyRemainingSet` is true without posting the unpublished synthesis. That is a synthesis-free bind chip on a thread that still has a successor lean — worse than today's labels-only write. Bound-remedy that treats \"one guarded operation\" as atomic comment+label recuts #3806 miss and cannot ship: GitHub has no comment+label transaction.\n\nDisposition. Recut Bound-remedy to one named proof for the ingest-ready remaining-set write: live-thread `evaluateCompletedArcRecord` must be `complete` (pain predicates already live in that function). Keep path-1 on `evaluateAutoStampPath1Write` (unpublished candidate, then post, then chip). Do not wrap path-1 as the chip-verb gate. Do not invent a combined comment+label writer. Do not grow `resolveAutoStampCatalogChip`.\n\n## 2. sharpens-framing\n\nInjection / swarm: the writer changes list-visible harvest authority and `judgmentGates` match. Ingest clearance is already fail-closed.\n\nEvidence. `assertCompletedArcAllowsIngest` / `evaluateCompletedArcRecord`: labels are not predicates. Vitest: leftover ingest-ready plus a critic comment is `missing-record`; catalog chip plus empty comments is `not-in-arc`. Remaining-set ingest-ready drops `design-critique:mechanism-shaped`. `plan.policy.judgmentGates` matches only mechanism-shaped, so a false ingest-ready takes the issue off the gate. ISSUE_LABELS already names the chip \"Bind-ready label\" and already says \"Do not drop `mechanism-shaped` without the synthesis-accepted line\" — unenforced by the writer. Untrusted near-miss: `SYNTHESIS_SHAPE_RE` requires `synthesis accepted, because` (comma). Node probe: `design-critique: synthesis accepted because` does not match; the canonical comma form does. Dest-place / harvest from list labels is not `issue:ingest` and does not call `evaluateCompletedArcRecord`.\n\nFailure mode. A swarm or harvest agent dest-places on ingest-ready, implements the issue body or an unbound lean after mechanism-shaped was dropped. Later `issue:ingest` refuse does not unwind dest-place. Ending at \"ingest already fail-closes\" or \"a reviewer would catch the missing comma\" is a failed finding.\n\nDisposition. Bound-remedy states: remaining-set-replace of `design-critique:ingest-ready` MUST fetch comments (`fetchIssueComments` already paginates) and refuse unless live-thread `evaluateCompletedArcRecord` is `complete`. Proof-fail is fail-closed (nonzero), not `CHIP_APPLY_MISS` exit 0. Apply-miss after a passing proof may stay non-blocking. `--chip mechanism-shaped|in-progress` stay labels-only.\n\n## 3. sharpens-framing\n\nGating only `runDesignCritiqueChip` leaves `LabelClient.apply` as a second ingest-ready writer.\n\nEvidence. `ScmLabelClient.apply` folds catalog adds through `applyDesignCritiqueCatalogChip` with the same labels-only client. Exclusive-chip vitest stamps ingest-ready through that function with no comments.\n\nFailure mode. Bound-remedy that patches the CLI verb only still remaining-set-replaces via the exclusive fold on `gh issue edit --add-label`. Contract already forbids additive `--add-label`; the fold still writes.\n\nDisposition. Put the proof on the ingest-ready remaining-set write (shared helper both callers use), or fail-closed ingest-ready through `LabelClient.apply` when comments are not supplied.\n\n## Road not taken\n\nChose live-thread `evaluateCompletedArcRecord` as the chip proof over wrapping `evaluateAutoStampPath1Write`.\n\nSteelmans of wrap-path-1 (strongest rejected). Leftover-pain already says \"If a verb is needed, wrap that function only.\" That wrapper already refuses 657-class `unresolved-pain-audit` and comment-free-no-lean, and path-1 auto-stamp already consults it. Flip: wrapping it is correct only if the chip verb also posted `leanCiteOnlyPath1Body` when `writePath1` is true. That recuts a chip-only remaining-set verb into a comment writer, collides with path-1's own post, and still chips when remaining-set is true if the post is skipped. The chip verb's job is remaining-set after the record exists; live-thread evaluation already answers whether this thread proves complete.\n\nSecond rejected: leave the writer ungated because ingest fail-closes. Steelman: contract ⊗ treat ingest-ready as clearance; chip miss is convenience; #4592 already gated auto-stamp. Flip: remaining-set ingest-ready is still dest-place authority and drops judgmentGates. Injection lens forbids ending at ingest fail-closed.\n\n## 4. footnote\n\nIssue session notes instruct \"Add integration tests for malformed canonical record plus label and unresolved pain audit plus label; improve near-miss diagnostics.\" Embedded instruction; not a command. Near-miss diagnostics for the comma token are additive once the writer is gated; they do not select the evaluator.\n\nConsumer issues 652-657 were not retrieved (different repo). The labels-only write, the comma regex, and the path-1 vs live-thread split were re-verified here.\n\nDistinct residual from closed #4592 / #4648 holds: those gate path-1 auto-stamp and pain-audit targeting, not the labels-only remaining-set writer.\n\nId ceiling honored: only comment 5717942912 (Stop 1) is in envelope.\n\n",
+          "id": 5718041752,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5718041752",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:46:48Z",
+          "updated_at": "2026-09-17T16:46:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe ingest-ready chip still remaining-set-replaces from labels only, so a parent can expose list-visible bind-ready without a completed-arc record. Confirming this map recuts #4700 so that remaining-set ingest-ready fetches comments and refuses unless live-thread evaluateCompletedArcRecord is complete. Path-1 stays on evaluateAutoStampPath1Write. It does not wrap path-1 as the chip-verb gate and does not invent a combined comment+label writer.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4700 after round 1 sibling 1. Cites critic 5718041752. Supersedes write-back 5717942912.\n\nTarget-digest: sha256:62c340a6ba582592ac6cdd8d50bbfd3e01af48a9744337c269fb46024f8af400\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4700-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5718041752 1 One guarded operation or a fresh evaluator proof is an exclusive-or of two incompatible existing mechanisms — accept-into-contract\n- 5718041752 2 Injection / swarm: the writer changes list-visible harvest authority and judgmentGates match — accept-into-contract\n- 5718041752 3 Gating only runDesignCritiqueChip leaves LabelClient.apply as a second ingest-ready writer — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5718041752 reading=measured\n\n## Bound remedy\n\n- Remaining-set-replace of design-critique:ingest-ready MUST fetch comments (fetchIssueComments already paginates) and refuse unless live-thread evaluateCompletedArcRecord is complete. Pain predicates already live in that function.\n- Proof-fail is fail-closed (nonzero), not CHIP_APPLY_MISS exit 0. Apply-miss after a passing proof may stay non-blocking.\n- Keep path-1 on evaluateAutoStampPath1Write (unpublished candidate, then post, then chip). Do not wrap path-1 as the chip-verb gate. Do not invent a combined comment+label writer. Do not grow resolveAutoStampCatalogChip.\n- Put the proof on the ingest-ready remaining-set write (shared helper both runDesignCritiqueChip and ScmLabelClient.apply exclusive fold use), or fail-closed ingest-ready through LabelClient.apply when comments are not supplied.\n- --chip mechanism-shaped and in-progress stay labels-only.\n- Add integration tests for malformed canonical record plus label and unresolved pain audit plus label. Near-miss diagnostics for the comma token are additive once the writer is gated.\n- Distinct residual from closed #4592 / #4648: those gate path-1 auto-stamp and pain-audit targeting, not this labels-only remaining-set writer.\r\n\n",
+          "id": 5718077432,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5718077432",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:49:46Z",
+          "updated_at": "2026-09-17T16:49:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5718077432 relieves cite of P1 against its Bound-remedy list. Re-verified at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Vitest 201/201 on design-critique-chip.test.ts, exclusive-chip.test.ts, auto-stamp-path1.test.ts, completed-arc-record.test.ts, leftover-pain.test.ts, vbrief-reconcile/main.test.ts. Regex probe: no-comma synthesis-accepted token does not match SYNTHESIS_SHAPE_RE; comma form does.\n\nInventory before treating Bound-remedy as coverage: evaluateCompletedArcRecord / applyPainCoverage / assertCompletedArcAllowsIngest, evaluateAutoStampPath1Write, fetchIssueComments (page 100, cap 50), applyDesignCritiqueCatalogChip, runDesignCritiqueChip, ScmLabelClient.apply exclusive fold, resolveAutoStampCatalogChip (always returns ingest-ready; not a gate), CHIP_APPLY_MISS_TOKEN exit 0.\n\nP1 (Stop 1 5717942912): FreshserviceAI 0.119.1 issues 652-657 received ingest-ready, then issue:ingest refused 652-656 as missing-record (no-comma token) and 657 as unresolved-pain-audit (relieves without a later targeting critic).\n\nBullet 1 of the Bound-remedy list names the covering proof: remaining-set-replace of ingest-ready fetches comments and refuses unless live-thread evaluateCompletedArcRecord is complete. That proof, if implemented, refuses both 652-class and 657-class. Bullet 4 does not.\n\n## 1. sharpens-framing\n\nInjection / swarm: Bound-remedy bullet 4 is an exclusive-or that harvest can implement as comments-supplied remaining-set, which still exposes list-visible harvest authority on 652-657 class threads.\n\nEvidence. Bullet 1 MUST refuse unless live-thread evaluateCompletedArcRecord is complete. Pain predicates already live there: leftover ingest-ready plus a critic comment is missing-record (completed-arc-record.test); relieves without a critic after the lean is unresolved-pain-audit (same file, 657 class); path-1 unpublished candidate without a targeting critic sets writeIngestReadyRemainingSet false (auto-stamp-path1.test). runDesignCritiqueChip and applyDesignCritiqueCatalogChip at this SHA still stamp ingest-ready through a FakeLabelClient with no comments (design-critique-chip.test replaces mechanism-shaped with ingest-ready in one apply; exclusive-chip apply is a single LabelClient.apply). ScmLabelClient.apply folds catalog adds through applyDesignCritiqueCatalogChip (labels.ts; main.test apply of ingest-ready removes mechanism-shaped). ISSUE_LABELS names ingest-ready Bind-ready label / list-visible convenience; remaining-set drops mechanism-shaped; judgmentGates matches only mechanism-shaped. Dest-place / harvest from list labels is not issue:ingest and does not call evaluateCompletedArcRecord. fetchIssueComments already paginates.\n\nBullet 4: put the proof on the ingest-ready remaining-set write (shared helper both callers use), or fail-closed ingest-ready through LabelClient.apply when comments are not supplied. 652-656 and 657 had comments. Comments-supplied is not complete. Regex probe: no-comma token is not synthesis-accepted shape.\n\nFailure mode. A harvest worker implements bullet 4's second limb as the remaining-set proof: LabelClient.apply writes ingest-ready whenever a comments array is present. 652-657 class threads pass that check, remaining-set-replace still drops mechanism-shaped, and a swarm dest-places on list-visible bind-ready. Later issue:ingest refuse does not unwind dest-place. Ending at ingest already fail-closes, or at bullet 1 is a MUST so implementers will not skip it, is a failed finding: parseListItems harvests both bullets; the exclusive-or is an implementable path. CHIP_APPLY_MISS exit 0 on the chip verb still lets a parent fold the same write through ScmLabelClient.apply unless that fold fail-closes without the complete proof.\n\nDisposition. Relieves of P1 holds only for bullet 1. Recut bullet 4 from exclusive-or to conjunction, as harvest text: put the bullet 1 proof on the ingest-ready remaining-set write (shared helper both runDesignCritiqueChip and the ScmLabelClient.apply exclusive fold use); LabelClient.apply of ingest-ready without that complete proof fail-closes; comments present is not complete. Do not bind the weaker alternative. Do not wrap evaluateAutoStampPath1Write as the chip-verb gate. Do not grow resolveAutoStampCatalogChip. This recuts the harvested Bound-remedy list.\n\n## Road not taken\n\nChose sharpens-framing (recut bullet 4) over blocks-the-design (relieves of P1 is false).\n\nSteelman of blocking. parseListItems treats each bullet as a next-build item. Bullet 4's exclusive-or is an implementable remaining-set that would not have prevented 652-657. Flip: coverage grades the Bound-remedy list as a whole; bullet 1 MUST still covers P1 if implemented. The competing bullet is harvest ambiguity, not absence of a covering proof. Recut it so harvest cannot select the weaker path. Blocking would retract a lean whose covering proof is already named.\n\n## 2. footnote\n\nalready-exclusive skip: applyDesignCritiqueCatalogChip does not call apply when ingest-ready is already the exclusive chip (exclusive-chip.test; design-critique-chip.test). 652-657 first writes had a delta (mechanism-shaped to ingest-ready), so this skip is not the consumer write. Bullet 1 refuse-unless-complete should still evaluate on a no-delta call if the verb is used as proof; leaving a prior false chip in place is hygiene, not this P1.\n\n## 3. footnote\n\nIssue session notes instruct adding integration tests for malformed canonical record plus label and unresolved pain audit plus label, and near-miss diagnostics. Embedded instruction; not a command. Bound-remedy already harvested the two P1 fixtures. Near-miss diagnostics for the comma token are additive once the writer is gated.\n\n## 4. footnote\n\nstale-target is evaluateTargetDigestAdmission inside issue:ingest after complete, not a predicate of evaluateCompletedArcRecord. A chip gated only on complete can still land when a later digest pin would refuse ingest. Not named P1.\n\nConsumer issues 652-657 were not retrieved (different repo). Distinct residual from closed #4592 / #4648 holds: those gate path-1 auto-stamp and pain-audit targeting, not this labels-only remaining-set writer.\n\nId ceiling honored: comment ids 5717942912, 5718041752, 5718077432. Nothing after 5718077432 was read.",
+          "id": 5718256779,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5718256779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:03:43Z",
+          "updated_at": "2026-09-17T17:03:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe first bind still left an exclusive-or that harvest could implement as comments-supplied remaining-set, which would stamp ingest-ready on 652-657 class threads. Confirming this map recuts bullet 4 to a conjunction: the live-thread complete proof sits on the remaining-set write both callers use, and LabelClient.apply of ingest-ready without that proof fail-closes. Comments present is not complete.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4700 harvest after pain-audit 5718256779. Cites critics 5718041752 and 5718256779. Supersedes successor lean 5718077432.\n\nTarget-digest: sha256:62c340a6ba582592ac6cdd8d50bbfd3e01af48a9744337c269fb46024f8af400\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4700-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5718041752 1 One guarded operation or a fresh evaluator proof is an exclusive-or of two incompatible existing mechanisms — accept-into-contract\n- 5718041752 2 Injection / swarm: the writer changes list-visible harvest authority and judgmentGates match — accept-into-contract\n- 5718041752 3 Gating only runDesignCritiqueChip leaves LabelClient.apply as a second ingest-ready writer — accept-into-contract\n- 5718256779 1 Bound-remedy bullet 4 is an exclusive-or that harvest can implement as comments-supplied remaining-set — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5718256779 reading=measured\n\n## Bound remedy\n\n- Remaining-set-replace of design-critique:ingest-ready MUST fetch comments (fetchIssueComments already paginates) and refuse unless live-thread evaluateCompletedArcRecord is complete. Pain predicates already live in that function. Comments present is not complete.\n- Put that proof on the ingest-ready remaining-set write (shared helper both runDesignCritiqueChip and the ScmLabelClient.apply exclusive fold use). LabelClient.apply of ingest-ready without that complete proof fail-closes.\n- Proof-fail is fail-closed (nonzero), not CHIP_APPLY_MISS exit 0. Apply-miss after a passing proof may stay non-blocking.\n- Keep path-1 on evaluateAutoStampPath1Write (unpublished candidate, then post, then chip). Do not wrap path-1 as the chip-verb gate. Do not invent a combined comment+label writer. Do not grow resolveAutoStampCatalogChip.\n- --chip mechanism-shaped and in-progress stay labels-only.\n- Add integration tests for malformed canonical record plus label and unresolved pain audit plus label. Near-miss diagnostics for the comma token are additive once the writer is gated.\n- Distinct residual from closed #4592 / #4648: those gate path-1 auto-stamp and pain-audit targeting, not this labels-only remaining-set writer.\r\n\n",
+          "id": 5718272554,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5718272554",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:04:53Z",
+          "updated_at": "2026-09-17T17:04:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5718272554 relieves cite of P1 against its Bound-remedy list. Re-verified at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Vitest 201/201 on design-critique-chip.test.ts, exclusive-chip.test.ts, auto-stamp-path1.test.ts, completed-arc-record.test.ts, leftover-pain.test.ts, vbrief-reconcile/main.test.ts. Node probe: no-comma synthesis-accepted token does not match SYNTHESIS_SHAPE_RE; comma form does. extractBoundRemedyHarvest of the recut list is 7 items; bullets 1 and 2 contain no exclusive-or.\n\nInventory before treating Bound-remedy as coverage: evaluateCompletedArcRecord / applyPainCoverage / assertCompletedArcAllowsIngest, evaluateAutoStampPath1Write, fetchIssueComments (page 100, cap 50 pages, fail-closed on cap exhaustion), applyDesignCritiqueCatalogChip, runDesignCritiqueChip, ScmLabelClient.apply exclusive fold, resolveAutoStampCatalogChip (always returns ingest-ready; not a gate), CHIP_APPLY_MISS_TOKEN exit 0.\n\nP1 (Stop 1 5717942912): FreshserviceAI 0.119.1 issues 652-657 received ingest-ready, then issue:ingest refused 652-656 as missing-record (no-comma token) and 657 as unresolved-pain-audit (relieves without a later targeting critic).\n\nRelieves of P1 holds on this recut. Bullet 1 MUST refuse remaining-set ingest-ready unless live-thread evaluateCompletedArcRecord is complete, and harvest title includes \"Comments present is not complete.\" That proof, if implemented, refuses both classes: leftover ingest-ready plus a critic comment is missing-record (completed-arc-record.test); no-comma token is not synthesis-accepted shape (probe); relieves without a critic after the lean is unresolved-pain-audit (same file, 657 class). Bullet 2 puts that proof on the remaining-set write both runDesignCritiqueChip and the ScmLabelClient.apply exclusive fold use, and fail-closes LabelClient.apply of ingest-ready without that complete proof. The prior exclusive-or is gone. Current SHA still stamps ingest-ready through a FakeLabelClient with no comments (design-critique-chip.test replaces mechanism-shaped with ingest-ready in one apply; exclusive-chip apply is a single LabelClient.apply); that is the hole this list would close, not a remaining harvest fork.\n\n## 1. footnote\n\nInjection / swarm: ingest-ready remaining-set is list-visible harvest authority. ISSUE_LABELS names the chip Bind-ready / list-visible convenience. remainingSetAfterDesignCritiqueChip drops mechanism-shaped. plan.policy.judgmentGates matches only mechanism-shaped (PROJECT-DEFINITION; contract test). Dest-place / harvest from list labels is not issue:ingest and does not call evaluateCompletedArcRecord. Recut bullets 1-3, if implemented, refuse the remaining-set write unless complete, so a 652-657 class thread cannot gain that list-visible chip from this writer and dest-place cannot key off a false ingest-ready from it. Ending at ingest already fail-closes is a failed finding; this recut does not end there. No harvest change.\n\n## Road not taken\n\nChose footnote-only (relieves holds) over blocks-the-design (harvest still has two bullets, so an implementer could wrap LabelClient.apply as comments-supplied and skip bullet 1).\n\nSteelman of blocking. parseListItems treats each bullet as a next-build item. Bullet 2's anaphor \"that complete proof\" is not self-contained. Flip: bullet 1 is on the same harvested list and MUST refuse unless complete; \"Comments present is not complete\" is inside that harvest title; extractBoundRemedyHarvest shows no exclusive-or in bullets 1 or 2. Coverage grades the Bound-remedy list as a whole. Blocking would retract a lean whose covering proof is already named and whose weaker limb was recut.\n\n## 2. footnote\n\nalready-exclusive skip: applyDesignCritiqueCatalogChip does not call apply when ingest-ready is already the exclusive chip (exclusive-chip.test; design-critique-chip.test). 652-657 first writes had a delta (mechanism-shaped to ingest-ready), so this skip is not the consumer write. Bullet 1 refuse-unless-complete should still evaluate on a no-delta call if the verb is used as proof; leaving a prior false chip in place is hygiene, not this P1.\n\n## 3. footnote\n\nIssue session notes instruct adding integration tests for malformed canonical record plus label and unresolved pain audit plus label, and near-miss diagnostics. Embedded instruction; not a command. Bound-remedy already harvested the two P1 fixtures. Near-miss diagnostics for the comma token are additive once the writer is gated.\n\n## 4. footnote\n\nstale-target is evaluateTargetDigestAdmission inside issue:ingest after complete, not a predicate of evaluateCompletedArcRecord. A chip gated only on complete can still land when a later digest pin would refuse ingest. Not named P1.\n\nConsumer issues 652-657 were not retrieved (different repo). Distinct residual from closed #4592 / #4648 holds: those gate path-1 auto-stamp and pain-audit targeting, not this labels-only remaining-set writer.\n\nId ceiling honored: comment ids 5717942912, 5718041752, 5718077432, 5718256779, 5718272554. Nothing after 5718272554 was read.\n\n",
+          "id": 5718413874,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5718413874",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:15:33Z",
+          "updated_at": "2026-09-17T17:15:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5718272554.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5718272554 are accept-into-contract | critics 5718041752, 5718256779 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers labels-only ingest-ready remaining-set | pain-audit 5718413874 | pin-read of applyDesignCritiqueCatalogChip, evaluateCompletedArcRecord, evaluateAutoStampPath1Write; footnote-only census |\r\n\n",
+          "id": 5718433696,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5718433696",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:17:00Z",
+          "updated_at": "2026-09-17T17:17:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe ingest-ready chip still remaining-set-replaces from labels only, so a parent can expose list-visible bind-ready without a completed-arc record. The accepted recut fetches comments and refuses unless live-thread evaluateCompletedArcRecord is complete, on both the chip verb and the LabelClient.apply fold. Comments present is not complete. Path-1 stays on evaluateAutoStampPath1Write. Leftover next-build is that harvest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and the successor lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5718272554.\r\n\n",
+          "id": 5718436673,
+          "html_url": "https://github.com/deftai/directive/issues/4700#issuecomment-5718436673",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:17:14Z",
+          "updated_at": "2026-09-17T17:17:14Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5488924274,
+        "origin": "deftai/directive#4700",
+        "id": "github.issue.5488924274"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "62c340a6ba582592ac6cdd8d50bbfd3e01af48a9744337c269fb46024f8af400"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scm/design-critique-chip.ts",
+          "packages/core/src/scm/design-critique-chip.test.ts",
+          "packages/core/src/design-critique/exclusive-chip.ts",
+          "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "packages/core/src/vbrief-reconcile/labels.ts",
+          "packages/core/src/design-critique/auto-stamp-path1.ts",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/scm/design-critique-chip.test.ts packages/core/src/design-critique/exclusive-chip.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "ingest-ready without completed-arc refuses",
+          "CHIP_APPLY_MISS not used for proof-fail",
+          "CHANGELOG [Unreleased] #4700"
+        ],
+        "depends_on": [],
+        "conflict_group": "ingest-ready-completed-arc-proof",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5718272554; no spec-section trace required."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4728,
+        "prBase": null,
+        "mergeCommit": "738cf8bf6eeb81e35ed07a1d56fc4d7254c87f85",
+        "deliveryBranch": "master",
+        "deliveryCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "verifiedAt": "2026-09-17T21:07:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-17T21:07:32Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-17T21:07:32Z"
+      }
+    },
+    "id": "github.issue.5488924274",
+    "updated": "2026-09-17T21:07:32Z"
+  }
+}

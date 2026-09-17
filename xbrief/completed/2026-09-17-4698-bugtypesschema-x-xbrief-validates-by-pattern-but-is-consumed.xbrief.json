@@ -1,0 +1,408 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4698",
+    "updated": "2026-09-17T21:06:35Z"
+  },
+  "plan": {
+    "title": "bug(types,schema): x-xbrief/ validates by pattern but is consumed as a closed set — unknown subtypes are silently ignored",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(types,schema): x-xbrief/ validates by pattern but is consumed as a closed set — unknown subtypes are silently ignored",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4698",
+      "Overview": "# `x-xbrief/` is an open namespace at write time and a closed set at read time\n\nReference `type` is validated by pattern only. Consumers match it by exact string. Nothing closes the gap, so an author can write a plausible, wrong type into the framework's own reserved namespace, pass every validator, and be silently invisible to the gates that depend on that reference.\n\n## Measured\n\nInstalled npm artifact, `@deftai/directive-core@0.119.1` / `@deftai/directive-types@0.119.1` (dist).\n\n**Write side — pattern only.** `xbrief-core-0.8.schema.json`, `$defs/VBriefReference/allOf[1]/properties/type`:\n\n```json\n{\n  \"type\": \"string\",\n  \"pattern\": \"^x-[a-zA-Z0-9_-]+/\",\n  \"description\": \"A xBRIEF reference type. Canonical types: x-xbrief/plan, x-xbrief/github-issue, x-xbrief/github-pr, x-xbrief/commit, x-xbrief/external, x-xbrief/research, x-xbrief/adr. Custom consumer types SHOULD use x-<consumer>/ namespace (e.g. x-myapp/ticket).\"\n}\n```\n\nThe canonical list lives in the description. It is not enforced.\n\n**Read side — exact match.** `directive-types/dist/reference.js:34`:\n\n```js\nexport function referenceTypeMatches(value, bareType) {\n    return (value === `${VBRIEF_REFERENCE_PREFIX}${bareType}` ||\n            value === `${XBRIEF_REFERENCE_PREFIX}${bareType}`);\n}\n```\n\n**The list that would close it is dead code.** `KNOWN_REFERENCE_TYPES` is exported from `directive-types/dist/reference.js` with all twenty canonical names. Grepping the installed `directive-core` and `directive-types` dist trees for that identifier returns **zero consumers**. It is documentation shaped like validation.\n\nThe only reference-type check anywhere in the engine is `scope-provenance/compare-intent.js:167`, and it is narrow — appended refs against `GITHUB_ISSUE_REF_TYPES` during intent comparison:\n\n```js\ndetail: `appended reference type ${JSON.stringify(type)} is not in GITHUB_ISSUE_REF_TYPES`,\n```\n\nNothing checks a reference type at authoring, activation, or promotion.\n\n## Observed failure\n\nAn agent authored an active brief with:\n\n```json\n{\"uri\": \"https://github.com/deftai/directive-training/pull/5\", \"type\": \"x-xbrief/pull-request\"}\n```\n\nCanonical is `x-xbrief/github-pr`. The brief is schema-valid, passes `verify:vbrief-conformance` (which checks bare keys), and passes commit hooks. `collectGithubRefs` then returns no PR, `verify:orphan-active` resolves zero forge origins, and the brief is skipped — see the companion issue on that fail-open. The brief stayed in `active/` after its PR merged.\n\nBoth halves are individually defensible. Together they mean a one-word error in a reserved-namespace type is undetectable by any gate, at any point in the lifecycle, and manifests only as a gate quietly not doing its job.\n\n## The `SHOULD` is the tell\n\nThe schema description says custom consumer types *should* use an `x-<consumer>/` namespace. `x-xbrief/` is not a consumer namespace — it is the framework's. A type in that namespace is a claim to be one of the canonical types. The schema currently accepts that claim without checking it.\n\n## Suggested shape\n\nConstrain `x-xbrief/` and `\u0078-vbrief/` to their known subtypes while leaving other `x-<consumer>/` namespaces open. Either enforce `KNOWN_REFERENCE_TYPES` at read/validate time, or narrow the schema pattern for the two reserved prefixes. A warning naming the nearest canonical type would have turned a silent day-long lifecycle miss into one line at authoring time.\n\nIf the open namespace is deliberate, the reciprocal fix is on the consumer side: a reference in `x-xbrief/` that no matcher recognises should be reported, not ignored.\n\nRelated: #4697; #3913.\n\n",
+      "Labels": "bug, agent-experience, area:vbrief, design-critique:ingest-ready",
+      "UserStory": "As an author of xBRIEF references, I want an unknown x-xbrief/ subtype reported at a consumed gate, so x-xbrief/pull-request cannot stay schema-valid and invisible to exact-match readers.",
+      "ImplementationPlan": "1. Report unknown x-xbrief/ or \u0078-vbrief/ subtypes at a gate task check actually runs, or at exact-match readers. Do not enforce KNOWN_REFERENCE_TYPES as the closed set. 2. Reuse STRICT_ORIGIN_ALLOWLIST, conventions registry, referenceTypeMatches call sites. 3. Optional nearest-canonical warning for pull-request to github-pr. 4. Do not recut collectGithubRefs URI-shape fallback (companion #4697). 5. CHANGELOG [Unreleased] #4698.",
+      "Traces": "Bound contract: successor lean 5716772328."
+    },
+    "items": [
+      {
+        "title": "An unknown x-xbrief/ or \u0078-vbrief/ subtype must not remain ignore-by-default. Report it at a gate task check actually runs, or at the exact-match readers. Silent skip is fail-open.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, an unknown x-xbrief/ or \u0078-vbrief/ subtype must not remain ignore-by-default. Report it at a gate task check actually runs, or at the exact-match readers. Silent skip is fail-open."
+        },
+        "id": "1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/reference.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not enforce KNOWN_REFERENCE_TYPES as the closed set. That list is non-exhaustive and omits engine-written closes, blocks, refs, and current-shape. If a reserved-prefix closed set is chosen, it includes those engine-written types. Do not close every x-* namespace.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, do not enforce KNOWN_REFERENCE_TYPES as the closed set. That list is non-exhaustive and omits engine-written closes, blocks, refs, and current-shape. If a reserved-prefix closed set is chosen, it includes those engine-written types. Do not close every x-* namespace."
+        },
+        "id": "2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/reference.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Reuse the existing lists (STRICT_ORIGIN_ALLOWLIST, conventions registry, referenceTypeMatches call sites). Do not add a fifth. Prefix-only schema narrowing still accepts pull-request. Flipping --strict-origin-types is at-least-one and recuts #536; it is not this bug.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, reuse the existing lists (STRICT_ORIGIN_ALLOWLIST, conventions registry, referenceTypeMatches call sites). Do not add a fifth. Prefix-only schema narrowing still accepts pull-request. Flipping --strict-origin-types is at-least-one and recuts #536; it is not this bug."
+        },
+        "id": "3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/reference.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "A nearest-canonical warning for pull-request / github-pull-request to github-pr is the ITEM_STATUS_ALIASES class, not a new registry.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, a nearest-canonical warning for pull-request / github-pull-request to github-pr is the ITEM_STATUS_ALIASES class, not a new registry."
+        },
+        "id": "4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/reference.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not recut collectGithubRefs URI-shape fallback as this arc. Companion #4697 owns the skip. Tests: pull-request is reported; github-pr still matches; engine-written closes/current-shape stay valid; mixed github-issue plus pull-request still reports the unknown reserved subtype.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, do not recut collectGithubRefs URI-shape fallback as this arc. Companion #4697 owns the skip. Tests: pull-request is reported; github-pr still matches; engine-written closes/current-shape stay valid; mixed github-issue plus pull-request still reports the unknown reserved subtype."
+        },
+        "id": "5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/reference.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:vbrief",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4698",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4698: bug(types,schema): x-xbrief/ validates by pattern but is consumed as a closed set — unknown subtypes are silently ignored"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, an unknown x-xbrief/ or \u0078-vbrief/ subtype must not remain ignore-by-default. Report it at a gate task check actually runs, or at the exact-match readers. Silent skip is fail-open.",
+          "artifact_path": "packages/types/src/reference.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, do not enforce KNOWN_REFERENCE_TYPES as the closed set. That list is non-exhaustive and omits engine-written closes, blocks, refs, and current-shape. If a reserved-prefix closed set is chosen, it includes those engine-written types. Do not close every x-* namespace.",
+          "artifact_path": "packages/types/src/reference.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, reuse the existing lists (STRICT_ORIGIN_ALLOWLIST, conventions registry, referenceTypeMatches call sites). Do not add a fifth. Prefix-only schema narrowing still accepts pull-request. Flipping --strict-origin-types is at-least-one and recuts #536; it is not this bug.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, a nearest-canonical warning for pull-request / github-pull-request to github-pr is the ITEM_STATUS_ALIASES class, not a new registry.",
+          "artifact_path": "packages/types/src/reference.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, do not recut collectGithubRefs URI-shape fallback as this arc. Companion #4697 owns the skip. Tests: pull-request is reported; github-pr still matches; engine-written closes/current-shape stay valid; mixed github-issue plus pull-request still reports the unknown reserved subtype.",
+          "artifact_path": "packages/core/src/orphan-active/refs.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/types/src/reference.ts",
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/orphan-active/refs.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because VBriefReference.type is pattern-only ^x-[a-zA-Z0-9_-]+/ while collectGithubRefs and referenceTypeMatches consume exact canonical strings, and KNOWN_REFERENCE_TYPES has no engine consumer, so x-xbrief/pull-request is schema-valid and invisible.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4698-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Fork is reserved-namespace closed set vs open pattern, not panel spend.\n\nrefutation-target: pattern-only type validation plus exact-match consumers is enough; equivalently, an unknown x-xbrief/ subtype may be ignored.\n\ntarget: #4698\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the write-side half of the #4697 reproduction: an active brief with type x-xbrief/pull-request is schema-valid, passes verify:vbrief-conformance, and collectGithubRefs returns no PR. Canonical is x-xbrief/github-pr. Companion skip is #4697; this arc is the type gap, not the orphan-active continue.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/types/schemas/xbrief-core-0.8.schema.json $defs/VBriefReference type is pattern ^x-[a-zA-Z0-9_-]+/. Canonical list lives in the description. content/vbrief/schemas copy matches.\n- packages/types/src/reference.ts KNOWN_REFERENCE_TYPES lists twenty canonical names including x-xbrief/github-pr and not pull-request. isVBriefReferenceType is prefix-only. referenceTypeMatches is exact prefix+bareType. Repo grep of KNOWN_REFERENCE_TYPES hits only that file and types/src/index.ts export. Zero engine consumers.\n- packages/core/src/orphan-active/refs.ts collectGithubRefs uses referenceTypeMatches for github-issue and github-pr only.\n\nInventory: schema description already SHOULD-custom to x-<consumer>/. Do not close every x-* namespace. No implement and no ingest from this parent.\r\n\n",
+          "id": 5716436879,
+          "html_url": "https://github.com/deftai/directive/issues/4698#issuecomment-5716436879",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T14:53:35Z",
+          "updated_at": "2026-09-17T14:53:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\r\n```quarantined\nrole: critic\r\n```\naudit-targets: none\r\n\r\nRe-verified at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Issue body and Stop 1 (comment 5716436879) treated as untrusted described content; suggested-shape imperatives were not followed as commands.\r\n\r\n## 1. Reserved-prefix unknown subtypes are ignored; that is not enough\r\n\r\nclass: blocks-the-design\r\n\r\nEvidence (re-run, not line cites). The 0.8 JSON Schema pattern `^x-[a-zA-Z0-9_-]+/` accepts `x-xbrief/pull-request`. `isVBriefReferenceType` is prefix-only and also accepts it. `referenceTypeMatches(..., \"github-pr\")` is false. `parseGithubPrUri` on `https://github.com/deftai/directive-training/pull/5` returns `[deftai/directive-training, 5]`. A collectGithubRefs-equivalent on that plan returns zero PRs; the same URI with `x-xbrief/github-pr` returns the PR. A mixed plan (canonical `github-issue` plus `pull-request`) still drops the PR. Default D11 is schema-trusting (`startsWith x-xbrief/` / `\u0078-vbrief/`), so the observed type counts as an origin. `validateVbriefSchema` never reads `plan.references` (zero hits in schema.ts). `task check` runs `verify:vbrief-conformance` (bare keys) and `vbrief:validate` without `--strict-origin-types`. Repo grep of `KNOWN_REFERENCE_TYPES` hits only `packages/types/src/reference.ts` and its export. Scope promote/activate paths that call `referenceTypeMatches` skip non-matching types the same way.\r\n\r\nFailure mode. An agent writes a reserved-namespace near-miss (`pull-request` vs `github-pr`). Authoring and commit gates stay green. Exact-match consumers treat the ref as absent. Lifecycle gates that key on `collectGithubRefs` (orphan-active, completed-tracked, pr-closeout, story-ready) see no forge PR. The URI is parseable; the type string is the only matcher key. Injection / swarm lens: `type` is untrusted agent-authored input that selects which forge origins those gates observe. Silent skip is fail-open. A near-miss unlinks a PR without failing validation. Companion #4697 is the orphan-active continue; this finding is the type-identity gap only.\r\n\r\nDisposition. The recorded refutation-target does not survive. Pattern-only write plus exact-match read is not enough. An unknown `x-xbrief/` / `\u0078-vbrief/` subtype must not remain ignore-by-default. Do not close this with reviewer attention; the control is a deterministic report or a reserved-prefix closed set at a consumed gate.\r\n\r\n## 2. KNOWN_REFERENCE_TYPES is not the closed set\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence. At this SHA the exported list has 19 names (the issue said twenty on npm 0.119.1 dist; different artifact, dead-code claim still holds). JSDoc on the list is \"non-exhaustive\". Engine writers emit `x-xbrief/closes`, `x-xbrief/blocks`, `x-xbrief/refs` (issue-ingest cross-ref pairs) and `x-xbrief/current-shape` (`CURRENT_SHAPE_REF_TYPE`). None of those four are in `KNOWN_REFERENCE_TYPES` or `STRICT_ORIGIN_ALLOWLIST` (16 names). The corpus uses `x-xbrief/closes` in PROJECT-DEFINITION and completed briefs.\r\n\r\nFailure mode. Enforcing `KNOWN_REFERENCE_TYPES` at read/validate time fail-closes ingest-emitted closing-keyword and current-shape refs. False-closed on types the engine writes.\r\n\r\nDisposition. A successor map cannot bind \"enforce KNOWN_REFERENCE_TYPES\". If a closed reserved set is chosen, it must include engine-written types. If the reserved prefixes stay open, the remedy is consumer-side report of reserved-prefix types no matcher consumes, without treating KNOWN as that matcher union. Do not close every `x-*` namespace.\r\n\r\n## 3. Existing mechanisms already chose open plus opt-in; prefix-narrowing and schema-file-only miss the observed type\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence. `content/conventions/references.md` states any `\u0078-vbrief/*` is schema-valid, consumers MAY extend with additional `\u0078-vbrief/*` values, and `--strict-origin-types` is the allow-list opt-in. #536 landed schema-trusting D11 as the default. Strict D11 is at-least-one origin: a brief with `x-xbrief/github-issue` plus `x-xbrief/pull-request` still passes. Narrowing the 0.8 pattern to `^x-(xbrief|vbrief)/` still accepts `x-xbrief/pull-request` (the observed type already sits under the reserved prefix). Engine `validateVbriefSchema` does not implement the published JSON Schema. Schema 0.8 description SHOULD-custom to `x-<consumer>/`; conventions MAY-extend `\u0078-vbrief/*` — those sentences disagree.\r\n\r\nInventory before a new list. `STRICT_ORIGIN_ALLOWLIST`, the conventions registry, `KNOWN_REFERENCE_TYPES`, and `referenceTypeMatches` call sites are four disagreeing sets. Swarm `resolveCohortFromVbriefs` already ignores type and reads `/pull/` from the URI (`extractPrFromUri`); its fixture uses `\u0078-vbrief/github-pull-request` and still finds the PR. `ITEM_STATUS_ALIASES` is the existing synonym map (`complete` to `completed`).\r\n\r\nFailure mode. A remedy that only edits the published JSON Schema, or that flips `--strict-origin-types` on, leaves the mixed-ref miss green and recuts #536 without saying so. Cloning URI fallback into `collectGithubRefs` would agree with swarm for PRs and still leave the other exact-match call sites (issue-emit, capacity, triage, plan links) silent.\r\n\r\nDisposition. Land enforcement on a gate `task check` actually runs, or on the exact-match readers. Reuse the existing lists; do not add a fifth. Prefix-only schema narrowing is not this bug. A nearest-canonical warning for `pull-request` / `github-pull-request` to `github-pr` is the ITEM_STATUS_ALIASES class, not a new registry.\r\n\r\n## 4. Count, related, empty subtype\r\n\r\nclass: footnote\r\n\r\nKNOWN count 19 at this pin versus the issue's twenty on 0.119.1 dist. #3913 is a later authority census, not this type-identity gap. Pattern accepts `x-xbrief/` with an empty subtype. 0.6 schema pattern `^\u0078-vbrief/` rejects all `x-xbrief/*` (legacy read).\r\n\r\n## Road not taken\r\n\r\nURI-shape fallback in `collectGithubRefs` (call `parseGithubPrUri` regardless of type). Steelman: the observed URI already parses; swarm already keys on URI; this would have collected PR 5 without closing the namespace or breaking `closes` / `current-shape`.\r\n\r\nRejected because it patches one collector, not the type gap. A research or external ref whose URI happens to be a PR URL would become a lifecycle PR origin. This arc's target is reserved-prefix identity, not the #4697 skip. What would flip: a successor map that scoped the remedy to GitHub-ref collection only — that would recut this arc into the companion.\r\n\r\nAlso considered defaulting D11 to `--strict-origin-types`. Steelman: the allow-list already exists; a sole `pull-request` origin would warn. Rejected because D11 is at-least-one (mixed refs still pass), STRICT omits engine-written types, and #536 chose schema-trusting default to stop false-positive origin warnings. What would flip: a new check that every reserved-prefix ref is allow-listed, which is not the existing flag.\r\n\n",
+          "id": 5716693243,
+          "html_url": "https://github.com/deftai/directive/issues/4698#issuecomment-5716693243",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:10:39Z",
+          "updated_at": "2026-09-17T15:10:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn author can write x-xbrief/pull-request, pass schema and conformance, and have every exact-match reader treat the PR as absent. Enforcing KNOWN_REFERENCE_TYPES would fail-close types the engine itself writes. Confirming this map recuts #4698 so an unknown reserved-prefix subtype is reported at a gate task check actually runs, or at the exact-match readers, without using KNOWN as the closed set and without closing every x-* namespace.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4698 after round 1 sibling 1. Cites critic 5716693243. Supersedes write-back 5716436879.\n\nTarget-digest: sha256:7466ae9a3647f98d15b3b53b958d338cacf565757b322c7511f9d42e842fa796\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4698-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5716693243 1 Reserved-prefix unknown subtypes are ignored; that is not enough — accept-into-contract\n- 5716693243 2 KNOWN_REFERENCE_TYPES is not the closed set — accept-into-contract\n- 5716693243 3 Existing mechanisms already chose open plus opt-in; prefix-narrowing and schema-file-only miss the observed type — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716693243 reading=measured\n\n## Bound remedy\n\n- An unknown x-xbrief/ or \u0078-vbrief/ subtype must not remain ignore-by-default. Report it at a gate task check actually runs, or at the exact-match readers. Silent skip is fail-open.\n- Do not enforce KNOWN_REFERENCE_TYPES as the closed set. That list is non-exhaustive and omits engine-written closes, blocks, refs, and current-shape. If a reserved-prefix closed set is chosen, it includes those engine-written types. Do not close every x-* namespace.\n- Reuse the existing lists (STRICT_ORIGIN_ALLOWLIST, conventions registry, referenceTypeMatches call sites). Do not add a fifth. Prefix-only schema narrowing still accepts pull-request. Flipping --strict-origin-types is at-least-one and recuts #536; it is not this bug.\n- A nearest-canonical warning for pull-request / github-pull-request to github-pr is the ITEM_STATUS_ALIASES class, not a new registry.\n- Do not recut collectGithubRefs URI-shape fallback as this arc. Companion #4697 owns the skip. Tests: pull-request is reported; github-pr still matches; engine-written closes/current-shape stay valid; mixed github-issue plus pull-request still reports the unknown reserved subtype.\r\n\n",
+          "id": 5716772328,
+          "html_url": "https://github.com/deftai/directive/issues/4698#issuecomment-5716772328",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:15:38Z",
+          "updated_at": "2026-09-17T15:15:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716772328\ncharter: refutation\nspend: N=1\nround: 2 pain-audit\ncritic-role: fresh\n\nPain-audit of successor lean 5716772328 relieves: P1 against Stop 1 P1. Footnote-only. The bind map stays bindable. Harvest unchanged.\n\nP1 is the write-side half of the #4697 reproduction: an active brief with type x-xbrief/pull-request is schema-valid, passes verify:vbrief-conformance, and collectGithubRefs returns no PR. Canonical is x-xbrief/github-pr. Companion skip is #4697; this arc is the type gap.\n\n## 1. Bound-remedy covers that P1 shape\n\nclass: footnote\n\nEvidence (re-run at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a, not line cites). 0.8 pattern ^x-[a-zA-Z0-9_-]+/ accepts x-xbrief/pull-request, x-xbrief/ (empty subtype), and x-myapp/ticket. Prefix-only narrowing ^x-(xbrief|vbrief)/ still accepts pull-request. isVBriefReferenceType is prefix-only and accepts it. referenceTypeMatches(..., \"github-pr\") is false; the same URI with x-xbrief/github-pr is true. parseGithubPrUri on https://github.com/deftai/directive-training/pull/5 returns [deftai/directive-training, 5]. A collectGithubRefs-equivalent returns zero PRs for pull-request, the PR for github-pr, and still zero PRs on a mixed plan (canonical github-issue plus pull-request). Default D11 treats pull-request as an origin (startsWith x-xbrief/). --strict-origin-types is at-least-one: pull-request alone is not allow-listed; mixed github-issue plus pull-request still passes. validateVbriefSchema never reads plan.references. verify:vbrief-conformance checks bare keys; references is PLAN_CORE. task check runs verify:vbrief-conformance and vbrief:validate with no --strict-origin-types. Repo grep of KNOWN_REFERENCE_TYPES hits packages/types/src/reference.ts and its export only.\n\nKNOWN has 19 names and omits engine-written x-xbrief/closes, x-xbrief/blocks, x-xbrief/refs, and x-xbrief/current-shape (CURRENT_SHAPE_REF_TYPE; CROSS_REF_PATTERNS emit the first three). STRICT_ORIGIN_ALLOWLIST has 16 names and omits the same four plus \u0078-vbrief/context, \u0078-vbrief/research, x-xbrief/context. Conventions MAY-extend \u0078-vbrief/*; schema description SHOULD-custom to x-<consumer>/. Swarm extractPrFromUri ignores type and still finds a PR from /pull/ (fixture \u0078-vbrief/github-pull-request). ITEM_STATUS_ALIASES is complete to completed.\n\nThe Bound-remedy on lean 5716772328 names: unknown x-xbrief/ or \u0078-vbrief/ subtype must not remain ignore-by-default; report at a gate task check actually runs, or at the exact-match readers; silent skip is fail-open; do not enforce KNOWN_REFERENCE_TYPES as the closed set; if a reserved-prefix closed set is chosen it includes engine-written types; do not close every x-* namespace; reuse STRICT_ORIGIN_ALLOWLIST, the conventions registry, and referenceTypeMatches call sites (do not add a fifth); prefix-only schema narrowing still accepts pull-request; flipping --strict-origin-types recuts #536; nearest-canonical warning for pull-request / github-pull-request is the ITEM_STATUS_ALIASES class; do not recut collectGithubRefs URI-shape fallback (companion #4697). Tests: pull-request is reported; github-pr still matches; engine-written closes/current-shape stay valid; mixed github-issue plus pull-request still reports the unknown reserved subtype.\n\nFailure mode if that harvest were thinner. Shipping only a schema-file edit, or flipping --strict-origin-types, leaves the mixed-ref miss green. Shipping URI fallback into collectGithubRefs recuts this arc into #4697 and still leaves other exact-match call sites silent. Enforcing KNOWN as the closed set fail-closes types the engine writes. The harvest already refuses those four.\n\nDisposition. relieves: P1 is honest for the named Stop 1 pain (report, not ignore-by-default). Schema-valid and collectGithubRefs-empty can remain; those conjuncts are the open pattern and the companion skip. No harvest rewrite.\n\n## 2. Unknown is not unmatched-by-this-reader\n\nclass: footnote\n\nEvidence. collectGithubRefs matches only github-issue and github-pr; every other reserved type is skipped with no else-branch. Production referenceTypeMatches call sites do not match closes, blocks, refs, or current-shape (those strings appear on the helper unit test and on emit). GITHUB_ISSUE_REF_TYPES is the three github-issue spellings used at compare-intent; it is not a general type registry.\n\nFailure mode. Reading \"report at the exact-match readers\" as \"warn on every type this reader does not match\" would flag engine-written closes/current-shape at collectGithubRefs and contradict the harvest test that those types stay valid. Unknown means a reserved-prefix subtype outside the (extended) closed set, which already must include engine-written types.\n\nDisposition. The harvest already closes that reading. Implementation may report from a consumed gate or from readers against that set; it must not treat skip-as-unmatched as the unknown predicate.\n\n## 3. WARN-only on vbrief:validate stays exit 0\n\nclass: footnote\n\nEvidence. vbrief:validate prints WARN lines and exits 0 unless --warnings-as-errors. task check invokes vbrief:validate with no such flag. A diagnostic that is only a warning therefore leaves the check green.\n\nFailure mode. Implementing \"report\" as WARN-only keeps authoring and commit gates green. That is not the named P1 once a consumed report exists; it is severity. The harvest says report, not fail-closed, and #536 made warnings non-fatal on purpose. An implementer who lands the report as a validate error (not a warning) still fits the harvest.\n\nDisposition. Not a harvest change. Do not recut #536 to flip warnings-as-errors.\n\n## 4. Count, empty subtype, companion\n\nclass: footnote\n\nKNOWN count 19 at this pin versus the issue's twenty on 0.119.1 dist. Pattern accepts x-xbrief/ with an empty subtype. 0.6 schema pattern ^\u0078-vbrief/ rejects all x-xbrief/*. Companion #4697 remains the skip/continue; this audit does not recut URI fallback into collectGithubRefs. x-myapp/ticket stays schema-valid under the open consumer namespace.\n\nRoad-not-taken. I considered classifying the report-location OR as blocks-the-design because the three Stop 1 conjuncts (schema-valid, conformance pass, collectGithubRefs empty) can all remain if report lands only at a reader. Rejected: Stop 1 scoped this arc as the type gap, not the orphan-active continue; round-1 heading 3 already landed that OR; the harvest tests require mixed-ref report and forbid URI fallback. What would flip: a harvest that dropped \"must not remain ignore-by-default\" or that treated KNOWN as the closed set.\n\nSteelman of unrelieved P1. The tree today still ignores pull-request at every exact-match reader, so the reproduction still runs until the recut lands. Flip: this audit grades the Bound-remedy, not the unshipped tree.\n\nInjection / swarm lens. type is untrusted agent-authored input that selects which forge origins lifecycle gates observe. Silent skip stays fail-open; the harvest parks that skip on #4697 and requires a deterministic report on this arc. Do not close with reviewer attention.\n\nCensus: four footnotes, zero blocking, zero harvest-changing sharpening. Bind map stays bindable. Harvest unchanged.\r\n\n",
+          "id": 5716949399,
+          "html_url": "https://github.com/deftai/directive/issues/4698#issuecomment-5716949399",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:27:13Z",
+          "updated_at": "2026-09-17T15:27:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| x-xbrief/pull-request is schema-valid on the 0.8 pattern and collectGithubRefs returns no PR | verified | pin-read packages/types/schemas/xbrief-core-0.8.schema.json and packages/core/src/orphan-active/refs.ts at edf1d698; pain-audit 5716949399 re-ran the same SHA |\n| KNOWN_REFERENCE_TYPES is not a consumed closed set and omits engine-written closes/blocks/refs/current-shape | verified | pin-read packages/types/src/reference.ts; repo grep of KNOWN_REFERENCE_TYPES; pain-audit 5716949399 |\n| Prefix-only schema narrowing still accepts pull-request; --strict-origin-types is at-least-one | verified | pain-audit 5716949399 measured D11 and STRICT_ORIGIN_ALLOWLIST at edf1d698 |\n| Bound-remedy reports unknown reserved-prefix subtypes at a consumed gate or exact-match readers without enforcing KNOWN | verified | successor lean 5716772328 Bound-remedy; pain-audit 5716949399 footnote-only, harvest unchanged |\r\n\n",
+          "id": 5717044500,
+          "html_url": "https://github.com/deftai/directive/issues/4698#issuecomment-5717044500",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:33:31Z",
+          "updated_at": "2026-09-17T15:33:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn author can write x-xbrief/pull-request, pass schema and conformance, and have exact-match readers treat the PR as absent. Agents agreed the recut is to report that unknown reserved-prefix subtype at a gate task check actually runs, or at those readers, without using KNOWN_REFERENCE_TYPES as the closed set and without closing every x-* namespace.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5716772328.\r\n\n",
+          "id": 5717044754,
+          "html_url": "https://github.com/deftai/directive/issues/4698#issuecomment-5717044754",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:33:33Z",
+          "updated_at": "2026-09-17T15:33:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5488010529,
+        "origin": "deftai/directive#4698",
+        "id": "github.issue.5488010529"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7466ae9a3647f98d15b3b53b958d338cacf565757b322c7511f9d42e842fa796"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/types/src/reference.ts",
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/orphan-active/refs.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/vbrief-validate --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "unknown reserved subtype reported",
+          "github-pr still matches",
+          "closes/current-shape stay valid",
+          "CHANGELOG [Unreleased] #4698"
+        ],
+        "depends_on": [],
+        "conflict_group": "reserved-prefix-unknown-subtype",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5716772328; no spec-section trace required."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4725,
+        "prBase": null,
+        "mergeCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "deliveryBranch": "master",
+        "deliveryCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "verifiedAt": "2026-09-17T21:06:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-17T21:06:35Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-17T21:06:35Z"
+      }
+    },
+    "id": "github.issue.5488010529",
+    "updated": "2026-09-17T21:06:35Z"
+  }
+}

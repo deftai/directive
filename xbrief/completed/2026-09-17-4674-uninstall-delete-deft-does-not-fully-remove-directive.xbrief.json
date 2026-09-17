@@ -1,0 +1,525 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4674",
+    "updated": "2026-09-17T21:08:55Z"
+  },
+  "plan": {
+    "title": "Uninstall + delete .deft/ does not fully remove Directive",
+    "status": "completed",
+    "narratives": {
+      "Description": "Uninstall + delete .deft/ does not fully remove Directive",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4674",
+      "Overview": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C25 PASS (CLI gone); C26 PASS (list written); C27 FAIL\n**Defect:** 21\n\n### Expected\nDocs explain how a team fully stops. Uninstall + delete `.deft/` is the scripted remove.\n\n### What happened\n`npm uninstall -g @deftai/directive` removed the CLI. `Remove-Item -Recurse -Force .deft` removed the deposit. Leftovers:\n\n`.agents` `.claude` `.codex` `.cursor` `.deft-cache` `.githooks` `.github` `.grok` `meta` `xbrief` `.deft-run-summary.json` `.gitattributes` `.gitignore` `.prettierignore` `AGENTS.md` `greptile.json` `package.json` `ROADMAP.md` `Taskfile.yml`\n\nOutside repo: `%APPDATA%\\deft\\USER.md`\n\n`.deft-cache` sits **beside** `.deft`, so delete-`.deft` misses it. `core.hooksPath=.githooks` may still be set. README does not describe a full stop.\n\n### Evidence\n`dir` after uninstall + Remove-Item `.deft`.\n\n### Environment\nDirective 0.119.1. Windows.\r\n\n",
+      "Labels": "bug, documentation, agent-experience, area:installer, design-critique:ingest-ready",
+      "UserStory": "As an operator who wants to fully stop Directive, I want an ordered recipe that strips live host-hook authority before uninstall, so leftover failClosed hooks do not lock the tree after the CLI is gone.",
+      "ImplementationPlan": "1. Add content/docs/full-stop.md with leftover-class partition and ordered stop while CLI exists. 2. Point hook-runtime-unavailable.md and SUPPORT.md at that recipe. Do not bind README.md in this slice (4673 owns README). 3. Stop-using stays .no-deft-directive. xbrief package.json USER.md are not leftovers. Do not add an uninstall binary. 4. CHANGELOG [Unreleased] #4674.",
+      "Traces": "Bound contract: successor lean 5716799467."
+    },
+    "items": [
+      {
+        "title": "Partition leftovers before bind. Do not bind a single leftover list of host dirs, xbrief, and .deft-cache.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, partition leftovers before bind. Do not bind a single leftover list of host dirs, xbrief, and .deft-cache."
+        },
+        "id": "1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Stop-using stays existing .no-deft-directive / policy:disable-directive. Those already say do not auto-delete the deposit.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, stop-using stays existing .no-deft-directive / policy:disable-directive. Those already say do not auto-delete the deposit."
+        },
+        "id": "2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Ordered stop while the CLI still exists: policy:disable-host-hooks leftover-free strip (reuse; write empty host hook files, do not rm host dirs), then git config --unset core.hooksPath (or a thin reverse of task setup), then npm uninstall. After the CLI is gone, optional delete of local-only caches beside .deft (.deft-cache/, .deft-run-summary.json, ignored .deft sidecars).",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, ordered stop while the CLI still exists: policy:disable-host-hooks leftover-free strip (reuse; write empty host hook files, do not rm host dirs), then git config --unset core.hooksPath (or a thin reverse of task setup), then npm uninstall. After the CLI is gone, optional delete of local-only caches beside .deft (.deft-cache/, .deft-run-summary.json, ignored .deft sidecars)."
+        },
+        "id": "3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "xbrief/ and package.json are tracked practice-layer, not uninstall leftovers. USER.md is cross-project identity on win32; keep it off the recipe.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, xbrief/ and package.json are tracked practice-layer, not uninstall leftovers. USER.md is cross-project identity on win32; keep it off the recipe."
+        },
+        "id": "4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not add a new uninstall binary that deletes the Tester 1 dir list. Do not treat a post-uninstall file list as completeness.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, do not add a new uninstall binary that deletes the Tester 1 dir list. Do not treat a post-uninstall file list as completeness."
+        },
+        "id": "5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "README already names .deft-cache as gitignored beside .deft. Bind the gap as a missing reverse-init / full-stop recipe with order and leftover classes, not as an unknown path.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, rEADME already names .deft-cache as gitignored beside .deft. Bind the gap as a missing reverse-init / full-stop recipe with order and leftover classes, not as an unknown path."
+        },
+        "id": "6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:1",
+        "title": "clause:1",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:2",
+        "title": "clause:2",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:3",
+        "title": "clause:3",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:4",
+        "title": "clause:4",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:5",
+        "title": "clause:5",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "id": "clause:6",
+        "title": "clause:6",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/full-stop.md",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "agent-experience",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4674",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4674: Uninstall + delete .deft/ does not fully remove Directive"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, partition leftovers before bind. Do not bind a single leftover list of host dirs, xbrief, and .deft-cache.",
+          "artifact_path": "content/docs/full-stop.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, stop-using stays existing .no-deft-directive / policy:disable-directive. Those already say do not auto-delete the deposit.",
+          "artifact_path": "content/docs/no-deft-directive.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, ordered stop while the CLI still exists: policy:disable-host-hooks leftover-free strip (reuse; write empty host hook files, do not rm host dirs), then git config --unset core.hooksPath (or a thin reverse of task setup), then npm uninstall. After the CLI is gone, optional delete of local-only caches beside .deft (.deft-cache/, .deft-run-summary.json, ignored .deft sidecars).",
+          "artifact_path": "content/docs/full-stop.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, xbrief/ and package.json are tracked practice-layer, not uninstall leftovers. USER.md is cross-project identity on win32; keep it off the recipe.",
+          "artifact_path": "content/docs/full-stop.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, do not add a new uninstall binary that deletes the Tester 1 dir list. Do not treat a post-uninstall file list as completeness.",
+          "artifact_path": "content/docs/full-stop.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "When this slice ships, rEADME already names .deft-cache as gitignored beside .deft. Bind the gap as a missing reverse-init / full-stop recipe with order and leftover classes, not as an unknown path.",
+          "artifact_path": "content/docs/SUPPORT.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/docs/full-stop.md",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/docs/SUPPORT.md",
+          "content/docs/no-deft-directive.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "framework-content",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705171629,
+          "html_url": "https://github.com/deftai/directive/issues/4674#issuecomment-5705171629",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:59:05Z",
+          "updated_at": "2026-09-16T21:59:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because npm uninstall -g plus delete .deft leaves host dirs, xbrief, AGENTS.md, Taskfile.yml, .deft-cache beside .deft, and %APPDATA%\\\\deft\\\\USER.md, and README has no full-stop recipe.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4674-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Fork is whether uninstall plus delete .deft is a complete stop, not panel spend.\n\nrefutation-target: uninstall plus delete .deft is a complete stop; leftover host dirs, xbrief, and .deft-cache may stay undocumented.\n\ntarget: #4674\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the measured Tester 1 shape: npm uninstall -g @deftai/directive removed the CLI; Remove-Item .deft removed the deposit; leftovers included .agents .claude .codex .cursor .deft-cache .githooks .github .grok meta xbrief AGENTS.md Taskfile.yml package.json and %APPDATA%\\\\deft\\\\USER.md. C27 FAIL. Observed on 0.119.1 Windows.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- README.md has no uninstall or full-stop section. Init/update docs say .deft/core, .deft/.cli, ritual-state, and .deft-cache are gitignored local-only artifacts. .deft-cache sits beside .deft, so delete-.deft misses it.\n- content/docs/deft-directive-disable.md forbids auto-delete .deft or uninstall deposit. There is no matching full-stop doc that lists host dirs, xbrief, USER.md, or core.hooksPath=.githooks.\n- USER.md lives in %APPDATA%\\\\deft on win32 (#2544). That path is outside the repo by design.\n\nInventory: leftover host skill dirs and xbrief are deposit/init artifacts, not the npm package. A complete stop is a docs-plus-list problem, not a second uninstall binary. No implement and no ingest from this parent.\n\n",
+          "id": 5716471628,
+          "html_url": "https://github.com/deftai/directive/issues/4674#issuecomment-5716471628",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T14:55:53Z",
+          "updated_at": "2026-09-17T14:55:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716471628\ncharter: refutation\nspend: N=1\nround: 1 critic\naudit-targets: none\n\n## Verdict\n\nThe first clause of the recorded refutation-target survives. Pin-reads at `edf1d698aafcf956cff08ad3ad14ff608505861a` confirm that `npm uninstall -g` plus delete `.deft` is not a complete stop: sibling `.deft-cache/`, tracked host deposits, `xbrief/`, and `core.hooksPath` sit outside `.deft/`. I cannot restore completeness by documenting those paths as one leftover list.\n\nThe second clause does not survive as written. \"Leftover host dirs, xbrief, and .deft-cache may stay undocumented\" names three different leftover classes as if they were one docs gap. Existing stop, opt-out, and host-hook strip machinery already forbids auto-delete and already names a live-authority leftover. A lean that binds as a docs-plus-list of those three cannot bind.\n\nInjection / swarm lens applies: leftover host hook files change mutation authority after the CLI is gone; `%APPDATA%\\\\deft\\\\USER.md` is identity, not a per-repo leftover.\n\n## Finding 1 — leftover classes are not one undocumented list\n\nclass: blocks-the-design\n\nEvidence. Pin-read `packages/core/src/init-deposit/gitignore.ts` at this SHA: canonical baseline line 41 is `.deft-cache/` as a sibling of `.deft`, not a child. Lines 61–65 refuse a blanket `.claude/` ignore because `.claude/settings.json`, `.claude/skills/`, and `.claude/commands/` are managed deposits that must stay trackable. `NEVER_IGNORE_LINES` (line 225) keeps `package.json` tracked as the reconstitution pin. `xbrief/` is the tracked next-build tree; only `xbrief/.triage-cache/` sidecars are ignored. README already documents `%APPDATA%\\\\deft\\\\USER.md` as the win32 USER.md home (personal, cross-project). Tester 1 leftover list also includes `AGENTS.md`, `Taskfile.yml`, `.github`, `ROADMAP.md`, and `package.json` — committed practice-layer files, not npm-package residue.\n\nFailure mode. A bound \"document leftover host dirs, xbrief, and .deft-cache\" recipe will be read as a delete-these list. Following it destroys work product (`xbrief/`), the reconstitution pin (`package.json`), and every-project identity (`USER.md`), while still missing `core.hooksPath` (a git config, not a file). Blind-delete of `.cursor/` / `.claude/` also drops consumer host settings that `policy:disable-host-hooks` leftover-free strip preserves by writing `{}` (`packages/core/src/init-deposit/agent-hooks.test.ts`, leftover-free opted-out deposits).\n\nDisposition. Do not accept-into-contract a single leftover list. Partition before bind: (1) stop-using via existing `.no-deft-directive` / `policy:disable-directive`, which already says do not auto-delete the deposit (`content/docs/no-deft-directive.md:25`, `:78`); (2) local-only caches beside `.deft` (`.deft-cache/`, `.deft-run-summary.json`, ignored `.deft/*` sidecars); (3) reverse-init of tracked deposits as a separate explicit destructive operation, not implied by uninstall. `xbrief/` and USER.md are not uninstall leftovers.\n\n## Finding 2 — leftover host hooks are live authority after CLI removal\n\nclass: blocks-the-design\n\nEvidence. `content/docs/hook-runtime-unavailable.md:3,9` at this SHA: `.cursor/hooks.json` is trackable `failClosed: true`; the registration travels via git and the runtime does not. After `npm uninstall -g`, leftover host hook files still deny every mutation with opaque exit 127. Documented recovery is `deft policy:disable-host-hooks --host cursor --confirm` then `deft update` (`hook-runtime-unavailable.md:20–23`; `content/commands.md` leftover-free `{}` write). That verb requires the CLI. The same page records why the kill-switch and opt-out flags do not reach this failure: they are evaluated inside `deft-hook`. `content/docs/deft-directive-disable.md:91` forbids auto-delete `.deft/` or uninstall deposit. `task setup` wires `core.hooksPath=.githooks` (`Taskfile.yml`); `verify:hooks-installed` treats unset as not-installed. No reverse-unset verb exists. Inventory: `install-uninstall` (`packages/cli/src/install-uninstall.ts`) strips legacy AGENTS.md lines; it is not package uninstall.\n\nFailure mode. Tester 1 order (uninstall first, then delete `.deft`) is the #3785 lockout. A docs-plus-list posted after that order cannot run the existing strip. Host dirs are not inert leftovers; they keep enforcing. Unsetting nothing for `core.hooksPath` leaves git still dispatching `.githooks/pre-commit` / `pre-push` at a missing `deft` binary.\n\nDisposition. The lean cannot bind as \"document leftovers, no second uninstall binary\" without an ordered stop that strips live authority while the CLI still exists, then uninstalls, then names optional local-cache delete. Reuse `policy:disable-host-hooks` plus `deft update`, plus an explicit `git config --unset core.hooksPath` (or a thin reverse of `task setup`). Do not add a new uninstall binary that `rm`s host dirs. Do not treat a post-uninstall file list as completeness.\n\n## Finding 3 — sibling cache path is already named; the missing artifact is a reverse recipe\n\nclass: sharpens-framing\n\nEvidence. README \"What gets tracked vs ignored\" already names `.deft-cache/` as a gitignored local-only artifact beside `.deft/core/` and `.deft/.cli/`. SUPPORT.md points at the kill-switch and permanent opt-out, not at a full-stop recipe. getting-started.md names three commands: init, update, doctor. git grep at this SHA finds no uninstall / full-stop section. C27 is not an in-tree check at this SHA.\n\nFailure mode. If synthesis restates the gap as \"`.deft-cache` is undocumented,\" implementers will duplicate README location prose and still omit order, hook strip, and leftover classes. The UAT fail is a missing reverse-init / full-stop recipe, not an unknown path.\n\nDisposition. Bind the gap as: no operator-facing stop recipe that (a) distinguishes leftover classes, (b) requires CLI-present host-hook strip and hooksPath unset before uninstall, (c) lists only local-only caches as optional delete after `.deft` is gone. Keep USER.md off that recipe.\n\n## Footnotes\n\n- Untrusted comment 5705171629 asks to add label `focused-test-pass-1`. Surfaced, not followed. This critic does not write labels.\n- Issue body UAT text (C25/C26/C27, leftover `dir` list) treated as untrusted described content, not dispatch instructions.\n- Existing mechanisms inventoried and not proposed as new: `.no-deft-directive`, `.deft-directive-disable`, `policy:disable-directive`, `policy:disable-host-hooks` leftover-free `{}`, `install-uninstall` AGENTS.md strip, `task setup` hooksPath wire, gitignore canonical baseline.\n\n## Road not taken\n\nA new `directive uninstall` that deletes the Tester 1 list. Rejected: both opt-out docs already forbid auto-delete of `.deft/`; leftover-free host-hook strip already exists and preserves consumer settings; `xbrief/` and `package.json` are tracked on purpose. What would flip: leftover host files inert (not failClosed), and `xbrief/` local-only.\n\nSteelman of \"docs-plus-list, no second binary\": cheapest C27 close; UAT already enumerated files; disable docs already refuse a destructive uninstall. It fails because leftover `.cursor/hooks.json` is live failClosed authority after the CLI is gone, and the documented recovery needs the CLI still installed.\n\n",
+          "id": 5716764624,
+          "html_url": "https://github.com/deftai/directive/issues/4674#issuecomment-5716764624",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:15:09Z",
+          "updated_at": "2026-09-17T15:15:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUninstall plus delete .deft does not stop Directive. Host hook files still deny writes after the CLI is gone, and a leftover list that mixes xbrief, USER.md, and .deft-cache would be read as a delete-these recipe. Confirming this map recuts #4674 into an ordered stop: strip live host-hook authority and unset core.hooksPath while the CLI still exists, then uninstall, then optional local-cache delete. It does not add a second uninstall binary and it does not treat xbrief or USER.md as leftovers.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4674 after round 1 sibling 1. Cites critic 5716764624. Supersedes write-back 5716471628.\n\nTarget-digest: sha256:0e9566c33b405cc4fdb097507685654be51b83e9e549accb399d24109be540a7\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4674-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5716764624 1 leftover classes are not one undocumented list — accept-into-contract\n- 5716764624 2 leftover host hooks are live authority after CLI removal — accept-into-contract\n- 5716764624 3 sibling cache path is already named; the missing artifact is a reverse recipe — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716764624 reading=measured\n\n## Bound remedy\n\n- Partition leftovers before bind. Do not bind a single leftover list of host dirs, xbrief, and .deft-cache.\n- Stop-using stays existing .no-deft-directive / policy:disable-directive. Those already say do not auto-delete the deposit.\n- Ordered stop while the CLI still exists: policy:disable-host-hooks leftover-free strip (reuse; write empty host hook files, do not rm host dirs), then git config --unset core.hooksPath (or a thin reverse of task setup), then npm uninstall. After the CLI is gone, optional delete of local-only caches beside .deft (.deft-cache/, .deft-run-summary.json, ignored .deft sidecars).\n- xbrief/ and package.json are tracked practice-layer, not uninstall leftovers. USER.md is cross-project identity on win32; keep it off the recipe.\n- Do not add a new uninstall binary that deletes the Tester 1 dir list. Do not treat a post-uninstall file list as completeness.\n- README already names .deft-cache as gitignored beside .deft. Bind the gap as a missing reverse-init / full-stop recipe with order and leftover classes, not as an unknown path.\n\n",
+          "id": 5716799467,
+          "html_url": "https://github.com/deftai/directive/issues/4674#issuecomment-5716799467",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:17:27Z",
+          "updated_at": "2026-09-17T15:17:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\npinned-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\nid-ceiling: 5716799467\ncharter: refutation\nspend: N=1\nround: 2 pain-audit\ncritic-role: fresh\naudit-targets: pain-P1\n\nPain-audit of successor lean 5716799467 `relieves: P1` against Stop 1 P1. Footnote-only. The bind map stays bindable. Harvest unchanged.\n\nP1 is the measured Tester 1 shape: `npm uninstall -g @deftai/directive` removed the CLI; `Remove-Item .deft` removed the deposit; leftovers included `.agents` `.claude` `.codex` `.cursor` `.deft-cache` `.githooks` `.github` `.grok` `meta` `xbrief` `AGENTS.md` `Taskfile.yml` `package.json` and `%APPDATA%\\deft\\USER.md`. C27 FAIL. Refutation-target first clause: uninstall plus delete `.deft` is a complete stop.\n\n## Finding 1 — Bound-remedy covers that P1 shape as a recut, not as delete-the-dir-list\n\nclass: footnote\n\nEvidence. Pin-read at `edf1d698aafcf956cff08ad3ad14ff608505861a`. README has no uninstall or full-stop section; Getting Started names three commands (`init`, `update`, `doctor`). \"What gets tracked vs ignored\" already names `.deft-cache/` as a gitignored sibling of `.deft/core/` and `.deft/.cli/`. `packages/core/src/init-deposit/gitignore.ts` canonical baseline starts with `.deft-cache/`; comments refuse blanket `.claude/` because `.claude/settings.json` is a managed deposit; `NEVER_IGNORE_LINES` keeps `package.json` tracked. README already documents `%APPDATA%\\deft\\USER.md` as the win32 USER.md home. `content/docs/no-deft-directive.md` and `content/docs/deft-directive-disable.md` both forbid auto-delete of `.deft/`. `FAIL_CLOSED_HOOK_HOSTS` in `packages/core/src/init-deposit/hook-runtime-travel.ts` is `cursor` only. `.cursor/hooks.json` deposits `failClosed: true`. After uninstall with that file still present, every mutation denies on opaque 127 (`content/docs/hook-runtime-unavailable.md`). `task setup` in `Taskfile.yml` sets `core.hooksPath=.githooks`; there is no reverse-unset verb. C27 is not an in-tree check at this SHA.\n\nThe Bound-remedy on lean 5716799467 names: partition leftover classes (do not bind one list of host dirs, xbrief, and `.deft-cache`); stop-using stays `.no-deft-directive` / `policy:disable-directive` (do not auto-delete the deposit); ordered stop while the CLI still exists via leftover-free host-hook strip then `git config --unset core.hooksPath` then npm uninstall, then optional delete of local-only caches beside `.deft`; `xbrief/` and `package.json` are tracked practice-layer; USER.md stays off the recipe; no new uninstall binary; do not treat a post-uninstall file list as completeness; bind the gap as a missing reverse-init / full-stop recipe with order and leftover classes.\n\nFailure mode if that harvest were thinner. Shipping only \"document the Tester 1 dir list\" would be read as a delete-these recipe, destroy `xbrief/` and the reconstitution pin, miss `core.hooksPath`, and leave `.cursor/hooks.json` failClosed after the CLI is gone — the measured incompleteness of uninstall-plus-delete-`.deft`. The harvest already refuses that list as completeness and sequences live-authority strip before uninstall.\n\nDisposition. `relieves: P1` is honest for the named Stop 1 pain. Uninstall plus delete `.deft` is not a complete stop; the Bound-remedy recuts complete-stop into an ordered recipe plus leftover-class partition. No harvest rewrite.\n\n## Finding 2 — leftover-free strip is disable then update; harvest already names the writer\n\nclass: footnote\n\nEvidence. `disableHostHooks` in `packages/core/src/policy/host-hooks.ts` persists `plan.policy.hostHooks.<host>=false` and prints \"Run `deft update` to strip Directive-managed hook entries for that host.\" It does not write host files. `writeAgentHookDeposit` strips opted-out hosts; when a Directive-only deposit has no remaining unmanaged entries, leftover-free files write `{}` (`packages/core/src/init-deposit/agent-hooks.test.ts` leftover-free opted-out deposits). `content/docs/hook-runtime-unavailable.md` already sequences `--host cursor --confirm` then the next `deft update`. Bound-remedy item 3 names `policy:disable-host-hooks leftover-free strip (reuse; write empty host hook files, do not rm host dirs)`.\n\nFailure mode. Reading that bullet as the disable verb alone would set policy, uninstall, and leave failClosed `.cursor/hooks.json` — P1 unrelieved. The harvest already names leftover-free write of empty host hook files, which is the update writer, not the disable persist.\n\nDisposition. Implementers expand leftover-free strip into `policy:disable-host-hooks --host cursor --confirm` then `deft update`. That is implementation of the named writer, not a harvest change. What would flip to harvest-changing sharpening: a Bound-remedy that named only the disable verb and dropped leftover-free / empty-file write.\n\n## Finding 3 — failClosed lockout is cursor; other leftover host files fail open\n\nclass: footnote\n\nEvidence. `FAIL_CLOSED_HOOK_HOSTS` is `[\"cursor\"]`. Nested Claude/Grok/Codex deposits do not carry `failClosed: true`. After uninstall, those leftover files lose the gate; they do not deny every mutation. Tester 1 leftover dirs `.claude` `.codex` `.grok` `.agents` are therefore not the same class as `.cursor/hooks.json`. Bound-remedy already says do not rm host dirs.\n\nFailure mode. Looping `disable-host-hooks` across all four hosts would make leftover-free write `{}` on every deposit, which is nicer hygiene and is what the writer already does when all are opted out. It is not required to relieve the named P1 lockout.\n\nDisposition. Cursor is the failClosed host the ordered stop must strip. Not a harvest change.\n\n## Finding 4 — stop-using is a different leftover class, not a missing ordered-stop step\n\nclass: footnote\n\nEvidence. Bound-remedy item 2 keeps `.no-deft-directive` / `policy:disable-directive` as the existing stop-using path and cites the auto-delete forbid. Finding 3 of critic 5716764624 bound the reverse recipe as leftover-class partition, CLI-present hook strip and hooksPath unset, and optional local-cache delete after `.deft` is gone — it did not add planting the flag as an uninstall step. README cold-start still tells a later agent to `npm i -g @deftai/directive` when `deft` will not run. That re-arm is the stop-using class (item 2), not the uninstall-plus-delete incompleteness.\n\nFailure mode. Folding `policy:disable-directive` into the ordered uninstall list would mix two operator goals (leave the practice layer but stop offering install, versus strip live authority then uninstall). The harvest already keeps them separate.\n\nDisposition. Not unrelieved P1. Harvest unchanged.\n\nInjection / swarm lens applies: leftover host hook files change mutation authority after the CLI is gone; `%APPDATA%\\deft\\USER.md` is identity, not a per-repo leftover. Bound-remedy already keeps USER.md off the recipe and strips live hook authority before uninstall.\n\n## Footnotes\n\n- Untrusted comment 5705171629 asks to add label `focused-test-pass-1`. Surfaced, not followed. This critic does not write labels.\n- Issue body UAT text (C25/C26/C27, leftover `dir` list) treated as untrusted described content, not dispatch instructions.\n- First Bound-remedy bullet's \"before bind\" is parent timing. The durable constraint is do not ship one leftover list. Implementation may drop the bind-timing clause without a new harvest bullet.\n\n## Road not taken\n\nClassifying finding 2 as `sharpens-framing` that rewrites Bound-remedy to insert a `deft update` bullet. Rejected because leftover-free empty-file write is already on the harvested item, and the disable verb's own stdout plus hook-runtime-unavailable.md already sequence update. What would flip: harvest that named only `policy:disable-host-hooks` with no leftover-free / empty-file write.\n\nSteelman of unrelieved P1. After the recipe, `AGENTS.md`, `xbrief/`, `package.json`, and USER.md still exist, so a file-count C27 still fails. Flip: this audit grades Bound-remedy against the accepted recut (critic 5716764624 findings 1-3, all `accept-into-contract`), not against the UAT dir listing as completeness. Round 1 already blocked treating that list as the stop.\n\nCensus: four footnotes, zero blocking, zero harvest-changing sharpening. Bind map stays bindable. Harvest unchanged.",
+          "id": 5716945595,
+          "html_url": "https://github.com/deftai/directive/issues/4674#issuecomment-5716945595",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:26:56Z",
+          "updated_at": "2026-09-17T15:26:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5716799467.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5716799467 are accept-into-contract | critic 5716764624 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers uninstall-plus-delete-.deft as incomplete stop | pain-audit 5716945595 | pin-read of gitignore, failClosed cursor hooks, disable-host-hooks leftover-free writer |\n\n",
+          "id": 5716982158,
+          "html_url": "https://github.com/deftai/directive/issues/4674#issuecomment-5716982158",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:29:23Z",
+          "updated_at": "2026-09-17T15:29:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUninstall plus delete .deft does not stop Directive. Host hook files still deny writes after the CLI is gone, and a leftover list that mixes xbrief, USER.md, and .deft-cache would be read as a delete-these recipe. The accepted recut is an ordered stop: leftover-free host-hook strip and unset core.hooksPath while the CLI still exists, then uninstall, then optional local-cache delete. It does not add a second uninstall binary and it does not treat xbrief or USER.md as leftovers.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and the successor lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5716799467.\n\n",
+          "id": 5716982165,
+          "html_url": "https://github.com/deftai/directive/issues/4674#issuecomment-5716982165",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:29:23Z",
+          "updated_at": "2026-09-17T15:29:23Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480360863,
+        "origin": "deftai/directive#4674",
+        "id": "github.issue.5480360863"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0e9566c33b405cc4fdb097507685654be51b83e9e549accb399d24109be540a7"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/docs/full-stop.md",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/docs/SUPPORT.md",
+          "content/docs/no-deft-directive.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "ordered stop recipe while CLI exists",
+          "no delete-these leftover list",
+          "CHANGELOG [Unreleased] #4674"
+        ],
+        "depends_on": [],
+        "conflict_group": "full-stop-recipe",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5716799467; no spec-section trace required."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4719,
+        "prBase": null,
+        "mergeCommit": "749e6887dd1cddf32fef2bb3227d5f7306e9dcd1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "verifiedAt": "2026-09-17T21:08:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-17T21:08:55Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-17T21:08:55Z"
+      }
+    },
+    "id": "github.issue.5480360863",
+    "updated": "2026-09-17T21:08:55Z"
+  }
+}

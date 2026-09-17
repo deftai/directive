@@ -1,0 +1,701 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4705",
+    "updated": "2026-09-17T21:07:11Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): missing spend token silently selects N=1; launchable panels never ask",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(design-critique): missing spend token silently selects N=1; launchable panels never ask",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4705",
+      "Overview": "# Missing spend token silently selects N=1\n\n`parseOperatorRunPosture` asks when the launching utterance has no run-posture token. Spend has no parser. `arc no-ingest yolo 4690 4692 4697 4698` therefore resolved posture, recorded yolo-standing, and launched four N=1 Grok critics while `claude` and `codex` were on PATH. The operator's next turn was whether the proper size panel had launched. It had not.\n\nThis is an omission hole, not a judgment hole. #3657 already refused \"high blast radius selects N≥3\". The missing check is the front-door ask, the same shape as run-posture missing-token.\n\n## Measured (2026-09-17)\n\nOperator utterance (closed tokens only): `arc no-ingest yolo 4690 4692 4697 4698`.\n\n- `parseOperatorRunPosture` → `no-ingest`. Yolo is not a posture token (`run-posture.test.ts` \"asks when yolo has no posture token\").\n- Yolo standing confirms a posted all-accept map. It does not pick spend (`content/contracts/design-critique.md` Operator verbs / Stop 1 Run posture).\n- PATH on this host: `claude.exe`, `codex.exe`, `grok.exe` all resolve. N≥3 was launchable under `#4432`.\n- Stop 1 on all four issues recorded `spend: N=1` and `spend-why: default motion. … not panel spend` with no operator spend token and no ask.\n- `evaluatePanelSeatComposition` / `evaluateN3LaunchProbe` never ran. They only apply after the parent already chose N≥3.\n- Native `spawn_subagent` dest-cwd was denied as implement-class (leftover `xbrief/active/` 4383). Recovery was Grok CLI last-resort, one family.\n\nStop 1 ids: #4690 `5716435824`, #4692 `5716436205`, #4697 `5716436526`, #4698 `5716436879`.\n\n## Expected\n\nMissing spend token asks before Stop 1, the same front door as missing run-posture. Closed tokens on the utterance select spend. Yolo does not. Silence is not N=1.\n\nA Stop 1 `spend: N=1` line is admitted only when the parser resolved N=1 or the parent recorded that it asked and the operator answered N=1.\n\n## Actual\n\nDefault motion prose (\"A permitted N≥3 does not change that default\") plus the Grok playbook out-of-scope line \"Do not launch a 3-panel unless the operator asks\" (`content/docs/grok-build-subscription-setup.md` Out of scope, citing closed #4027 lean-timing) is the only spend selector. There is no `parseOperatorSpend`. There is no `evaluateSpendRecord`. `spend-why` is unparsed English. The cheaper path (one Grok critic, no PATH probe, no panel-deposit) always wins.\n\n## Why not recut permission into selection\n\n#3657 / contract Stop 2: the panel row is permission, not a charter, and not auto-selected by blast radius. One panel that added unique value does not make every high-blast-radius issue spend N≥3. This issue does not change that.\n\n#3846 is the inverse consumer gap (N≥3 without operator consent). Its proposed \"N=1 on silence\" is this defect. Ask-on-missing-token is the compatible front door: #3846 can still require a consent id on the panel-deposit after the operator picks N≥3.\n\n## Desired deterministic solution\n\nOne parser and one fixture. Do not NLP blast radius. Do not grow `evaluatePanelSeatComposition` as this gate.\n\n### `parseOperatorSpend`\n\nClosed tokens, word boundaries, operator chat utterance only (same discipline as `parseOperatorRunPosture`):\n\n- `panel`, `n=3`, `n≥3`, `n>=3` → `{ kind: \"resolved\", spend: \"N≥3\" }`\n- `n=1` → `{ kind: \"resolved\", spend: \"N=1\" }`\n- both classes → `{ kind: \"ask\", reason: \"ambiguous\" }`\n- neither → `{ kind: \"ask\", reason: \"missing-token\" }`\n\nYolo is not a spend token. `critique panel` as a skill trigger in SKILL.md is not an utterance parse. Do not substring-match the skill name.\n\n### `evaluateSpendRecord`\n\nFixture over parent-claimed inputs, not a live occupancy observer (same class as `evaluateDirectDispatch`):\n\n- `parse` missing-token or ambiguous, `asked: false` → refuse, remediation: ask before Stop 1\n- `parse` missing-token or ambiguous, `asked: true`, `answer: N=1 | N≥3` → admit that spend\n- `parse` resolved → Stop 1 `spend:` must match; mismatch refuses\n- missing Stop 1 `spend:` field refuses\n\nRemediation string names the ask, not \"launch a panel\".\n\n### Playbook fence\n\nRewrite the #4027 out-of-scope bullet so it cannot be read as a spend selector. #4027 closed lean-timing. Host-auth playbook does not choose N.\n\n### What this does not do\n\n- ⊗ Select N≥3 from blast radius or open solution space.\n- ⊗ Treat yolo as spend confirm.\n- ⊗ Make `evaluateN3LaunchProbe` the spend gate.\n- ⊗ Close #3846.\n- ⊗ Pin this into `templates/agents-entry.md`.\n\n## Acceptance\n\n- Unit: `parseOperatorSpend(\"arc no-ingest yolo 4690\")` is ask/missing-token.\n- Unit: `parseOperatorSpend(\"arc 4690 panel\")` is N≥3; `parseOperatorSpend(\"arc 4690 N=1\")` is N=1; yolo ignored.\n- Unit: `evaluateSpendRecord` refuses N=1 Stop 1 when parse is missing-token and `asked: false`.\n- Unit: admits N=1 only from resolved N=1 token or recorded ask-answer.\n- Content-contract pin: missing spend token asks before Stop 1; yolo is not spend.\n- Playbook out-of-scope no longer says \"Do not launch a 3-panel unless the operator asks\".\n\nRefs: #3657, #3846, #4027, #4067, #4072, #4432. Measured on #4690 / #4692 / #4697 / #4698.\r\n\n",
+      "Labels": "bug, agent-experience, design-critique:ingest-ready",
+      "UserStory": "As an operator launching a design-critique arc without a spend token, I want the parent to ask before Stop 1, so missing spend cannot silently select N=1.",
+      "ImplementationPlan": "1. Add packages/core/src/design-critique/spend.ts parseOperatorSpend (word boundaries, utterance only; yolo ignored; bare panel is ask/ambiguous; n=1 / n=3 / n>=3 resolved; both classes ask). 2. evaluateSpendRecord fixture refuses missing-token plus asked false. Tests in spend.test.ts. 3. Recut content/contracts/design-critique.md Stop 2 default-motion and #3797 fingerprint. Skill pointer Consume parseOperatorSpend. leftover-pain spendSeats 3 for used N>=3. Rewrite grok-build-subscription-setup.md #4027 bullet. Do not grow panel-seat-families. Do not close #3846. Do not pin agents-entry.md. 4. CHANGELOG [Unreleased] #4705.",
+      "Traces": "Bound contract: successor lean 5717572310."
+    },
+    "items": [
+      {
+        "title": "Add parseOperatorSpend on the operator chat utterance only, word boundaries, same discipline as parseOperatorRunPosture. Yolo is not a spend token. Issue, comment, critic, and skill-file English are data.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, add parseOperatorSpend on the operator chat utterance only, word boundaries, same discipline as parseOperatorRunPosture. Yolo is not a spend token. Issue, comment, critic, and skill-file English are data."
+        },
+        "id": "1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Resolved tokens are spend-shaped only: n=1, n=3, n>=3, n>=3 unicode. Do not resolve bare panel to N>=3. Recut the AC that parseOperatorSpend(\"arc 4690 panel\") is N>=3. Map panel to ask or ambiguous.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, resolved tokens are spend-shaped only: n=1, n=3, n>=3, n>=3 unicode. Do not resolve bare panel to N>=3. Recut the AC that parseOperatorSpend(\"arc 4690 panel\") is N>=3. Map panel to ask or ambiguous."
+        },
+        "id": "2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Both resolved classes on one utterance (n=1 plus n=3) are ask/ambiguous, same conjunct as parseOperatorRunPosture. Do not write the first-match string in the contract. Panel-plus-n=1 stays ask because panel is already ask/ambiguous.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, both resolved classes on one utterance (n=1 plus n=3) are ask/ambiguous, same conjunct as parseOperatorRunPosture. Do not write the first-match string in the contract. Panel-plus-n=1 stays ask because panel is already ask/ambiguous."
+        },
+        "id": "3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "evaluateSpendRecord is a fixture over parent-claimed inputs. Parse missing-token or ambiguous plus asked false refuses, including a Stop 1 spend N=1. Admit N=1 only from a resolved n=1 token or a recorded ask-answer.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, evaluateSpendRecord is a fixture over parent-claimed inputs. Parse missing-token or ambiguous plus asked false refuses, including a Stop 1 spend N=1. Admit N=1 only from a resolved n=1 token or a recorded ask-answer."
+        },
+        "id": "4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Recut Stop 2 default-motion: N=1 only after a resolved n=1 token or a recorded ask-answer. Expand that recut so the charter-row N column does not display a selected spend (unselected / ask, not N=1). Recut unchanged in behaviour to charter selection only. Recut the recording-obligation sentence and the brief spend clause so they do not display a selected spend. Recut the #3797 fingerprint to identify charter rows by exemplar ids and charter names, not the N=1 cell. Permission-not-selection (#3657) and the panel row stay.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, recut Stop 2 default-motion: N=1 only after a resolved n=1 token or a recorded ask-answer. Expand that recut so the charter-row N column does not display a selected spend (unselected / ask, not N=1). Recut unchanged in behaviour to charter selection only. Recut the recording-obligation sentence and the brief spend clause so they do not display a selected spend. Recut the #3797 fingerprint to identify charter rows by exemplar ids and charter names, not the N=1 cell. Permission-not-selection (#3657) and the panel row stay."
+        },
+        "id": "5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Closed Stop 1 line-start spend-ask: resolved|asked. Drop or equivalent. asked is an operator chat answer after the missing-token ask. spend-why English, Stop 2 table cells, and default-motion prose are not that field.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, closed Stop 1 line-start spend-ask: resolved|asked. Drop or equivalent. asked is an operator chat answer after the missing-token ask. spend-why English, Stop 2 table cells, and default-motion prose are not that field."
+        },
+        "id": "6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Spend missing-token asks even on grok-bot detect. Do not copy resolveArcRunPostureForHost onto spend.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, spend missing-token asks even on grok-bot detect. Do not copy resolveArcRunPostureForHost onto spend."
+        },
+        "id": "7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Content-contract pin: missing spend token asks before Stop 1; yolo is not spend; names parseOperatorSpend. Skill pointer of the same shape as the run-posture line (parse closed tokens; else ask) plus Consume parseOperatorSpend. Do not grow the thin skill with the variant table.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, content-contract pin: missing spend token asks before Stop 1; yolo is not spend; names parseOperatorSpend. Skill pointer of the same shape as the run-posture line (parse closed tokens; else ask) plus Consume parseOperatorSpend. Do not grow the thin skill with the variant table."
+        },
+        "id": "8",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Map used N>=3 permission to Dual-stop spendSeats 3. N>3 stays unaddressed.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, map used N>=3 permission to Dual-stop spendSeats 3. N>3 stays unaddressed."
+        },
+        "id": "9",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Keep #3846 open. Recut its silence clause to ask-on-missing. Consent id on the panel-deposit after the operator picks N>=3 stays on #3846. Do not close #3846.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, keep #3846 open. Recut its silence clause to ask-on-missing. Consent id on the panel-deposit after the operator picks N>=3 stays on #3846. Do not close #3846."
+        },
+        "id": "10",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Rewrite the playbook #4027 out-of-scope bullet so it cannot be read as a spend selector. Host-auth playbook does not choose N.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, rewrite the playbook #4027 out-of-scope bullet so it cannot be read as a spend selector. Host-auth playbook does not choose N."
+        },
+        "id": "11",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not grow evaluatePanelSeatComposition or evaluateN3LaunchProbe as the spend gate. Do not pin this into templates/agents-entry.md.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When this slice ships, do not grow evaluatePanelSeatComposition or evaluateN3LaunchProbe as the spend gate. Do not pin this into templates/agents-entry.md."
+        },
+        "id": "12",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/spend.test.ts",
+          "recorded_at": "2026-09-17T21:05:31Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4705",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4705: bug(design-critique): missing spend token silently selects N=1; launchable panels never ask"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4027",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4027"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3846",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3846"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 12 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, add parseOperatorSpend on the operator chat utterance only, word boundaries, same discipline as parseOperatorRunPosture. Yolo is not a spend token. Issue, comment, critic, and skill-file English are data.",
+          "artifact_path": "packages/core/src/design-critique/spend.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, resolved tokens are spend-shaped only: n=1, n=3, n>=3, n>=3 unicode. Do not resolve bare panel to N>=3. Recut the AC that parseOperatorSpend(\"arc 4690 panel\") is N>=3. Map panel to ask or ambiguous.",
+          "artifact_path": "packages/core/src/design-critique/spend.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, both resolved classes on one utterance (n=1 plus n=3) are ask/ambiguous, same conjunct as parseOperatorRunPosture. Do not write the first-match string in the contract. Panel-plus-n=1 stays ask because panel is already ask/ambiguous.",
+          "artifact_path": "packages/core/src/design-critique/spend.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, evaluateSpendRecord is a fixture over parent-claimed inputs. Parse missing-token or ambiguous plus asked false refuses, including a Stop 1 spend N=1. Admit N=1 only from a resolved n=1 token or a recorded ask-answer.",
+          "artifact_path": "packages/core/src/design-critique/spend.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, recut Stop 2 default-motion: N=1 only after a resolved n=1 token or a recorded ask-answer. Expand that recut so the charter-row N column does not display a selected spend (unselected / ask, not N=1). Recut unchanged in behaviour to charter selection only. Recut the recording-obligation sentence and the brief spend clause so they do not display a selected spend. Recut the #3797 fingerprint to identify charter rows by exemplar ids and charter names, not the N=1 cell. Permission-not-selection (#3657) and the panel row stay.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "When this slice ships, closed Stop 1 line-start spend-ask: resolved|asked. Drop or equivalent. asked is an operator chat answer after the missing-token ask. spend-why English, Stop 2 table cells, and default-motion prose are not that field.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "When this slice ships, spend missing-token asks even on grok-bot detect. Do not copy resolveArcRunPostureForHost onto spend.",
+          "artifact_path": "packages/core/src/design-critique/run-posture.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "When this slice ships, content-contract pin: missing spend token asks before Stop 1; yolo is not spend; names parseOperatorSpend. Skill pointer of the same shape as the run-posture line (parse closed tokens; else ask) plus Consume parseOperatorSpend. Do not grow the thin skill with the variant table.",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "When this slice ships, map used N>=3 permission to Dual-stop spendSeats 3. N>3 stays unaddressed.",
+          "artifact_path": "packages/core/src/design-critique/leftover-pain.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "When this slice ships, keep #3846 open. Recut its silence clause to ask-on-missing. Consent id on the panel-deposit after the operator picks N>=3 stays on #3846. Do not close #3846.",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "When this slice ships, rewrite the playbook #4027 out-of-scope bullet so it cannot be read as a spend selector. Host-auth playbook does not choose N.",
+          "artifact_path": "content/docs/grok-build-subscription-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "When this slice ships, do not grow evaluatePanelSeatComposition or evaluateN3LaunchProbe as the spend gate. Do not pin this into templates/agents-entry.md.",
+          "artifact_path": "packages/core/src/design-critique/panel-seat-families.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/design-critique/spend.ts",
+          "packages/core/src/design-critique/spend.test.ts",
+          "packages/core/src/design-critique/run-posture.ts",
+          "packages/core/src/design-critique/leftover-pain.ts",
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/docs/grok-build-subscription-setup.md",
+          "content/templates/design-critique-brief.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because parseOperatorRunPosture asks on a missing run-posture token while spend has no parser, so a closed-token launching utterance still silent-defaults spend: N=1 and never asks even when a launchable N>=3 panel is on PATH.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4705-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: operator each separately; independent single-seat Grok critic arc, not panel spend.\n\nrefutation-target: missing spend token must ask before Stop 1 (parseOperatorSpend plus evaluateSpendRecord); silence is not N=1; yolo is not spend.\n\ntarget: #4705\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the 2026-09-17 measured hole: operator utterance arc no-ingest yolo 4690 4692 4697 4698 resolved posture, recorded yolo-standing, and launched four N=1 Grok critics while claude.exe, codex.exe, and grok.exe all resolved. Stop 1 on all four recorded spend: N=1 with spend-why default motion and no operator spend token and no ask. The operator's next turn was whether the proper size panel had launched. It had not.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/design-critique/run-posture.ts parseOperatorRunPosture: yolo is not a posture token. Missing token asks. There is no parseOperatorSpend and no evaluateSpendRecord in packages/core/src.\n- content/contracts/design-critique.md Stop 2: N>=3 is panel permission, not auto-selection. Default motion remains N=1 unless the parent records using the permission. spend-why is unparsed English.\n- packages/core/src/design-critique/panel-seat-families.ts evaluatePanelSeatComposition and evaluateN3LaunchProbe apply only after N>=3 is already chosen. They do not select spend.\n- content/docs/grok-build-subscription-setup.md Out of scope cites closed #4027 and says Do not launch a 3-panel unless the operator asks. That line is a spend-selector trap, not lean-timing.\n\nThis Stop 1 records spend N=1 because the launching utterance for this arc is each separately, not because silence selected it. Inverse open gap remains #3846 (N>=3 without operator consent). No implement and no ingest from this parent.\r\n\n",
+          "id": 5716930081,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5716930081",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:25:48Z",
+          "updated_at": "2026-09-17T15:25:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRe-verified at dispatch-sha `edf1d698aafcf956cff08ad3ad14ff608505861a` (dest HEAD matches). Ceiling is Stop 1 comment 5716930081. Round-1 N=1, no sibling posts in envelope.\n\nRefutation-target (Stop 1): missing spend token must ask before Stop 1 (`parseOperatorSpend` plus `evaluateSpendRecord`); silence is not N=1; yolo is not spend.\n\n**Refutation result.** The parser-absent half and \"yolo is not spend\" survive re-measurement. \"Silence is not N=1\" survives as the desired recut, but it cannot bind next to the uncut Stop 2 default-motion sentence or a resolved `panel` token. Details below.\n\n## 1. Bare `panel` must not resolve to N>=3 (blocks-the-design)\n\n**Evidence.** Desired closed set maps `panel` to resolved N>=3 with word boundaries, same discipline as `parseOperatorRunPosture`. Node check of `/\\bpanel\\b/i` on this host:\n\n- `arc no-ingest yolo 4690 4692 4697 4698` (measured): no match\n- `arc 4690 panel` (desired AC): match\n- `do not launch a 3-panel unless the operator asks` (playbook line, content/docs/grok-build-subscription-setup.md:212): match\n- `record a panel-deposit`: match\n- `not a panel`: match\n- `critique panel` (skill trigger, content/skills/deft-directive-design-critique/SKILL.md): match\n- `panels never ask`: no match\n\nHyphen is a word boundary, so `3-panel` and `panel-deposit` are hits. The issue already says the skill trigger is not an utterance parse and not a substring of the skill name; word-boundary `panel` still matches that trigger phrase when it appears in chat.\n\n**Failure mode.** Spend is how many process-only critics receive the untrusted thread (#480), how many CLIs spawn, whether a panel-deposit and three claimed families are required, and which Dual-stop cap applies. A polarity-blind `panel` token selects the non-default spend from \"not a panel\", from \"panel-deposit\", and from the playbook's own \"3-panel\" sentence. That is unauthorized N>=3, the #3846 hole, without an ask. Closing this with reviewer attention fails: the parser would have already resolved.\n\n**Disposition.** Drop `panel` from the resolved set, or map it to ask / ambiguous, not N>=3. Resolved tokens stay spend-shaped: `n=1`, `n=3`, `n>=3`, and the unicode greater-or-equal form (case-insensitive, as the AC already uses `N=1`). Recut the AC that `parseOperatorSpend(\"arc 4690 panel\")` is N>=3. Numeric tokens still let an operator who means a panel resolve without English `panel`.\n\n## 2. Uncut Stop 2 default-motion contradicts refuse-unasked-N=1 (blocks-the-design)\n\n**Evidence.** Pin-read content/contracts/design-critique.md Stop 2 (line 107): \"Default motion after a mechanism-shaped stamp: N=1 fresh open critique.\" Then: a permitted N>=3 does not change that default; the parent records the spend when it uses the permission. Content-contract test \"locks the variant-table evaluation rule, not the row prose (#3657)\" pins permission-not-selection, not that sentence as a silent selector.\n\nDesired `evaluateSpendRecord`: parse missing-token or ambiguous plus `asked: false` refuses, including a Stop 1 `spend: N=1`. Measured Stop 1s 5716435824 / 5716436205 / 5716436526 / 5716436879 each recorded spend N=1 and spend-why default motion with no spend token and no ask.\n\nIssue \"What this does not do\" refuses blast-radius selection and cites #3657. It does not recut the default-motion sentence. \"Same front door as missing run-posture\" is the claimed analogue. `parseOperatorRunPosture` has no published safe default (checkout vs no-ingest are both occupancy-unsafe if wrong). Spend does: Stop 2 already named N=1.\n\n**Failure mode.** Implementer lands the parser and the pin \"missing spend token asks before Stop 1\" while leaving line 107 in force. Two MUSTs: silent N=1 is the default motion, and silent N=1 is refused. The next parent reading Stop 2 will re-record spend-why default motion on the next `arc no-ingest yolo <ids>` utterance. The measured hole returns under contract cover.\n\n**Disposition.** Recut default-motion to: N=1 only after a resolved `n=1` token or a recorded ask-answer. Permission-not-selection (#3657) stays. \"What this does not do\" must not be read as \"Stop 2 text is unchanged.\"\n\n## 3. #3846 N=1 on silence is a recut, not a compatible inverse (sharpens-framing)\n\n**Evidence.** REST issues/3846 (open): expected behavior \"N=1 must remain fail-closed unless the operator explicitly approves a panel\" and session notes \"N=1 behavior on silence\". This issue says that silence clause is this defect, then \"Ask-on-missing-token is the compatible front door\" and must not close #3846.\n\n**Failure mode.** #3846 remains open with a published expected that this Bound-remedy inverts. A later #3846 implementer re-teaches silent N=1 as the consent fail-closed. Two issues, two SoTs, same front door.\n\n**Disposition.** Bind can keep #3846 open. The silence clause on #3846 is leftover that must be recut (ask on missing; consent id on the panel-deposit still belongs to #3846 after the operator picks N>=3). Do not call that compatible without naming the recut.\n\n## 4. The run-posture analogue is not an identity copy (sharpens-framing)\n\n**Evidence.**\n\n- `resolveArcRunPostureForHost` (packages/core/src/design-critique/run-posture.ts): on grokBotDetected plus missing-token, resolves no-ingest and does not ask. Copying that default onto spend recreates silent N=1 on grok-bot.\n- `evaluateDualStopPostBudget` (packages/core/src/design-critique/leftover-pain.ts): spendSeats === 1 yields 6; spendSeats === 3 yields 3; else 0. Parser output N>=3 is not the integer 3. Unmapped, numbered cap is 0.\n- `evaluateSpendRecord` is specified as a fixture over parent-claimed inputs, same class as `evaluateDirectDispatch`. It does not read Stop 1 comments. Measured unparsed field is spend-why English; grep of packages/ at this SHA finds no spend-why consumer. `arc-mode:` has `arcModeRecordLine`; yolo has optional `yolo-standing:`. Spend has neither a published Stop 1 line-start nor a thread parser.\n- `evaluatePanelSeatComposition` / `evaluateN3LaunchProbe` skip spend selection (spendN < 3 returns ok). Do not grow them. Confirmed.\n\n**Failure mode.** \"Same front door\" plus grok-bot default recreates the hole on this host class. A Stop 1 spend N>=3 without a seat integer yields Dual-stop cap 0 (halt or unaddressed N>3). Parent-claimed asked true with no durable spend-ask line means a later critic cannot re-verify, and spend-why English stays the selector.\n\n**Disposition.** Spend missing-token asks even on grok-bot detect (do not copy `resolveArcRunPostureForHost`). Map used permission to Dual-stop spendSeats 3 (N>3 stays unaddressed). Publish Stop 1 spend plus spend-ask resolved|asked (or equivalent) next to arc-mode / yolo-standing, so the fixture has a comment shape to grade, not only claimed booleans.\n\n## Injection / swarm lens\n\nFired: spend changes authority over untrusted-thread fan-out, CLI spawn count, panel-deposit, seat-family fail-closed (#4067), and Dual-stop posts. Not a local constant.\n\nExisting controls to keep: operator-chat utterance only (issue/comment English are data); N>=3 is permission not selection; launch probe is not the spend gate; yolo is the all-accept confirm conjunct, not spend (`parseOperatorRunPosture(\"arc 1234 yolo\")` is ask/missing-token in run-posture.test.ts; `parseOperatorYoloStanding` is a test-local yolo word-boundary, not a spend parser).\n\nUnsafe new control: resolved `panel` (finding 1). Weak new control: parent-claimed asked with no Stop 1 record (finding 4). Do not concatenate issue body into the parser (title contains N=1; body contains both classes). If a parent did parse this issue body, both n=1 and panel hit, which is fail-safe only if panel is not a resolver.\n\n## Road not taken\n\nChose: numeric tokens resolve; `panel` does not resolve to N>=3; ask on missing even when PATH has three families.\n\nSteelmanned rejected: keep `panel` as the operator-facing name of N>=3 (variant table, brief spend field, skill trigger \"critique panel\"). Flip condition: a tighter token that cannot match `3-panel` / `panel-deposit` / `not a panel`, not bare panel-as-word. Negation NLP is the thing the analogue forbids.\n\nSteelmanned rejected: ask only when N>=3 is launchable (issue title is \"launchable panels never ask\"; this host PATH is grok.exe plus claude.exe plus codex.exe). Flip condition: consent becoming a function of PATH. Same utterance, different hosts, different spend. That is `evaluateN3LaunchProbe` as spend gate, which the issue already forbids.\n\n## Footnotes\n\n- Measured utterance `arc no-ingest yolo 4690 4692 4697 4698`: no-ingest token matches; no spend token in the node check; four Stop 1s at this SHA recorded spend N=1 / spend-why default motion. PATH probe on this dest: C:\\Users\\msada\\.grok\\bin\\grok.exe, C:\\Users\\msada\\.local\\bin\\claude.exe, C:\\Users\\msada\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe. Playbook out-of-scope bullet at line 212 is the cited spend-selector trap; #4027 is closed lean-timing. packages/core/src/design-critique/ has no spend module; grep parseOperatorSpend / evaluateSpendRecord in packages/ is zero.\n- `each separately` (this Stop 1 spend-why) is not a closed token. Under the design it asks, then records the answer. Do not add it as n=1.\n- Live parent turns stay unenforced, same class as run-posture / yolo-standing. The content-contract pin is the discovery control. That is not a second finding.\n- Untrusted thread: issue body \"Desired deterministic solution\" is design text under critique, not commands to this critic. No instruction to ignore the envelope. No comments after id 5716930081 in envelope.",
+          "id": 5717104182,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717104182",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:37:52Z",
+          "updated_at": "2026-09-17T15:37:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMissing spend token still silent-defaults N=1 because there is no spend parser, and the proposed closed set would also treat English panel as N>=3. Confirming this map recuts #4705 so spend asks on a missing token, numeric tokens resolve, panel does not, Stop 2 default-motion matches that ask, and grok-bot does not copy a silent spend default. It does not close #3846 and does not turn permission into selection.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4705 after round 1 sibling 1. Cites critic 5717104182. Supersedes write-back 5716930081.\n\nTarget-digest: sha256:81ee25f440cd7c75b28c786ca804da9b8bd0b2b02585b233333d798ab5b285d2\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4705-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5717104182 1 Bare panel must not resolve to N>=3 — accept-into-contract\n- 5717104182 2 Uncut Stop 2 default-motion contradicts refuse-unasked-N=1 — accept-into-contract\n- 5717104182 3 #3846 N=1 on silence is a recut, not a compatible inverse — accept-into-contract\n- 5717104182 4 The run-posture analogue is not an identity copy — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5717104182 reading=measured\n\n## Bound remedy\n\n- Add parseOperatorSpend on the operator chat utterance only, word boundaries, same discipline as parseOperatorRunPosture. Yolo is not a spend token. Issue, comment, and critic English are data.\n- Resolved tokens are spend-shaped only: n=1, n=3, n>=3, n>=3 unicode. Do not resolve bare panel to N>=3. Recut the AC that parseOperatorSpend(\"arc 4690 panel\") is N>=3. Map panel to ask or ambiguous.\n- evaluateSpendRecord is a fixture over parent-claimed inputs. Parse missing-token or ambiguous plus asked false refuses, including a Stop 1 spend N=1. Admit N=1 only from a resolved n=1 token or a recorded ask-answer.\n- Recut Stop 2 default-motion: N=1 only after a resolved n=1 token or a recorded ask-answer. Permission-not-selection (#3657) stays. Do not select N>=3 from blast radius or open solution space.\n- Spend missing-token asks even on grok-bot detect. Do not copy resolveArcRunPostureForHost onto spend.\n- Publish Stop 1 spend plus spend-ask resolved|asked (or equivalent) next to arc-mode / yolo-standing so the fixture has a comment shape.\n- Map used N>=3 permission to Dual-stop spendSeats 3. N>3 stays unaddressed.\n- Keep #3846 open. Recut its silence clause to ask-on-missing. Consent id on the panel-deposit after the operator picks N>=3 stays on #3846. Do not close #3846.\n- Rewrite the playbook #4027 out-of-scope bullet so it cannot be read as a spend selector. Host-auth playbook does not choose N.\n- Do not grow evaluatePanelSeatComposition or evaluateN3LaunchProbe as the spend gate. Do not pin this into templates/agents-entry.md.\r\n\n",
+          "id": 5717123029,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717123029",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:39:17Z",
+          "updated_at": "2026-09-17T15:39:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5717123029 `relieves: P1` against its Bound-remedy. Re-verified at dispatch-sha `edf1d698aafcf956cff08ad3ad14ff608505861a` (dest HEAD matches). Ceiling 5717123029 inclusive. No later 4705 comments in envelope.\n\n**P1 re-measurement.** Operator utterance `arc no-ingest yolo 4690 4692 4697 4698`: `parseOperatorRunPosture` resolves `no-ingest`; node word-boundary check of `panel` / `n=1` / `n=3` / `n>=3` / `n≥3` is no-match; yolo is not a spend token. REST re-fetch of Stop 1s 5716435824 / 5716436205 / 5716436526 / 5716436879: each `spend: N=1` and `spend-why: default motion. ... not panel spend`. `git ls-tree` of `packages/core/src/design-critique/` at this SHA has no spend module; repo grep of `parseOperatorSpend` / `evaluateSpendRecord` / `spend-why` in `packages/` is zero. PATH on this dest: `grok.exe`, `claude.exe`, `codex.exe`. `evaluateN3LaunchProbe` with `spendN < 3` returns ok (does not select spend). Playbook `content/docs/grok-build-subscription-setup.md:212` still says do not launch a 3-panel unless the operator asks.\n\n**Relieves verdict.** Parser on the operator chat utterance, refuse of missing-token plus `asked: false` (including Stop 1 `spend: N=1`), numeric-only resolved set, grok-bot not copied, and the Stop 2 default-motion sentence recut cover the measured missing-token hole. Two Bound-remedy leftovers still teach or record silent N=1. Those change harvest. Not a block of the parser approach.\n\n## 1. Stop 2 charter-row N=1 cells survive the default-motion recut (sharpens-framing)\n\n**Evidence.** Bound-remedy recuts the default-motion sentence (contract line 107: \"Default motion after a mechanism-shaped stamp: N=1 fresh open critique\"). It does not recut the charter-row N column (lines 83-84, both `N=1`, including `Otherwise (default)`) or evaluation-rule \"Those rows are unchanged in behaviour\" (line 96). Content-contract test \"locks the variant-table evaluation rule, not the row prose (#3657)\" pins permission-not-selection, not those N=1 cells. The four measured Stop 1s named `spend-why: default motion` from that sentence, not from a spend token.\n\n**Failure mode.** Implementer replaces line 107 and leaves the table. The next parent reading Stop 2 still sees selected spend N=1 as the charter-row value and \"unchanged in behaviour,\" records `spend: N=1` without calling `parseOperatorSpend`, and the measured hole returns under the table. Parser-plus-fixture does not intercept a live Stop 1 post (`evaluateSpendRecord` is parent-claimed, same class as `evaluateDirectDispatch`).\n\n**Disposition.** Expand the Stop 2 recut so the charter-row N column does not display a selected spend (unselected / ask, not N=1). Recut \"unchanged in behaviour\" to charter selection only. Permission-not-selection (#3657) and the panel row stay. Line 107 recut alone is not the Stop 2 recut.\n\n## 2. `spend-ask` \"or equivalent\" reopens `spend-why` as the asked record (sharpens-framing)\n\n**Evidence.** Bound-remedy admits N=1 from a resolved `n=1` token or a recorded ask-answer, and publishes `spend-ask: resolved|asked (or equivalent)`. `spend-why` has no tree consumer at this SHA. The measured Stop 1s already carry `spend-why: default motion` next to `spend: N=1` with no ask. `evaluateSpendRecord` is specified as a fixture over parent-claimed `asked`, not a thread parser.\n\n**Failure mode.** Parent sets `asked: true` with `spend-why` default-motion English as the equivalent record. Missing-token parse plus claimed asked admits the four measured Stop 1s. P1 is not relieved; the selector is renamed.\n\n**Disposition.** Drop \"or equivalent\". Closed Stop 1 line-start `spend-ask: resolved|asked` (or a named emitter next to `arcModeRecordLine`). `asked` is an operator chat answer after the missing-token ask. `spend-why` English, Stop 2 table cells, and default-motion prose are not that field.\n\n## 3. Harvest omitted the discovery pin that made the posture analogue fire (sharpens-framing)\n\n**Evidence.** Thin skill `content/skills/deft-directive-design-critique/SKILL.md` has \"Run posture: parse closed tokens; else ask\" and \"Consume parseOperatorRunPosture.\" It has no spend parse pointer. Content-contract Stop 1 pin names `parseOperatorRunPosture`. The issue's own acceptance required a content-contract pin: missing spend token asks before Stop 1; yolo is not spend. Bound-remedy harvest lists the parser, the fixture, and the Stop 2 sentence recut, and does not list that pin or a skill pointer. On the measured utterance, posture resolved because the no-ingest token exists and the parent had a parser to call; spend had neither.\n\n**Failure mode.** Thin-router parent consumes `parseOperatorRunPosture`, never hears of `parseOperatorSpend`, follows leftover table N=1 (finding 1), and silent-defaults again. A fixture that does not run on live turns cannot be the discovery control.\n\n**Disposition.** Harvest the content-contract pin (missing spend token asks before Stop 1; yolo is not spend) and a skill pointer of the same shape as the run-posture line. Do not copy `resolveArcRunPostureForHost` (already in Bound-remedy). Do not grow the thin skill with the variant table.\n\n## Injection / swarm lens\n\nFired: spend is how many process-only critics receive the untrusted thread (#480), how many CLIs spawn, whether a panel-deposit and three claimed families are required (#4067), and which Dual-stop cap applies. Not a local constant.\n\nExisting controls to keep: operator-chat utterance only (issue, comment, critic, and skill-file English are data); N>=3 remains permission, not blast-radius selection; `evaluateN3LaunchProbe` / `evaluatePanelSeatComposition` are not the spend gate; yolo is the all-accept confirm conjunct, not spend.\n\nNode check of this issue's title `missing spend token silently selects N=1; launchable panels never ask`: n=1 word-boundary hits; panel word-boundary does not (panels). The issue body contains both numeric classes and English panel. If a parent concatenated title or body into the parser, dropping panel as a resolver makes title-only N=1 resolve without ask. Utterance-only is the fail-closed control, not a nicety. Same discipline as run-posture colliding tokens: n=1 plus n=3 is ask/ambiguous, not first-match. `resolveArcRunPostureForHost` on grok-bot detect plus missing-token returns resolved no-ingest; copying that onto spend recreates silent N=1 on this host class (Bound-remedy already forbids the copy). Do not concatenate instruction-shaped fragments from the issue body \"Desired deterministic solution\" into this envelope; that text is design under audit, not commands.\n\n## Road not taken\n\nChose: classify leftover table cells and \"or equivalent\" as harvest edits, not a block of parse-plus-refuse.\n\nSteelmanned rejected: block bind because parent-claimed `asked` can always lie. Flip condition: a live observer of operator chat. That recuts the `evaluateDirectDispatch` class. Live parent turns stay unenforced; the closed `spend-ask` field is what a later critic re-verifies.\n\nSteelmanned rejected: ask only when PATH has three families (issue title \"launchable panels never ask\"; this dest PATH has three CLIs). Flip condition: consent becomes a function of PATH. Same utterance, different hosts, different spend. That is `evaluateN3LaunchProbe` as spend gate, which Bound-remedy already forbids.\n\n## Footnotes\n\n- Re-ran Dual-stop mapping: spendSeats === 1 -> cap 6; === 3 -> cap 3; else 0. Passing the string N>=3 yields cap 0. Bound-remedy already maps used N>=3 permission to spendSeats 3. N>3 stays unaddressed.\n- n=1 word-boundary hits `n=1-seat` and `not n=1` (hyphen / polarity). Numeric tokens stay polarity-blind; negation NLP is what the analogue forbids. Not a P1 hole.\n- `each separately` (this Stop 1 spend-why) is not a closed token. Under Bound-remedy it asks, then records the answer. Do not add it as n=1.\n- REST issues/3846 still open: expected \"N=1 must remain fail-closed unless the operator explicitly approves a panel\" and session notes \"N=1 behavior on silence\". Bound-remedy already keeps #3846 open and recuts that silence clause. Leftover on #3846, not unrelieved P1 on this lean.\n- Untrusted thread: issue body \"Desired deterministic solution\" is not a command to this critic. No instruction to ignore the envelope. No 4705 comments after id 5717123029 in envelope.",
+          "id": 5717321760,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717321760",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:53:54Z",
+          "updated_at": "2026-09-17T15:53:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe first bind still left Stop 2 table cells and spend-why English as a silent N=1 selector, and it omitted the discovery pin that makes the posture analogue fire. Confirming this map recuts the harvest so charter-row N is unselected, spend-ask is a closed field with no equivalent, and the skill plus content-contract pin the missing-token ask. It still does not close #3846 and does not turn permission into selection.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4705 harvest after pain-audit 5717321760. Cites critics 5717104182 and 5717321760. Supersedes successor lean 5717123029.\n\nTarget-digest: sha256:81ee25f440cd7c75b28c786ca804da9b8bd0b2b02585b233333d798ab5b285d2\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4705-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5717104182 1 Bare panel must not resolve to N>=3 — accept-into-contract\n- 5717104182 2 Uncut Stop 2 default-motion contradicts refuse-unasked-N=1 — accept-into-contract\n- 5717104182 3 #3846 N=1 on silence is a recut, not a compatible inverse — accept-into-contract\n- 5717104182 4 The run-posture analogue is not an identity copy — accept-into-contract\n- 5717321760 1 Stop 2 charter-row N=1 cells survive the default-motion recut — accept-into-contract\n- 5717321760 2 spend-ask or equivalent reopens spend-why as the asked record — accept-into-contract\n- 5717321760 3 Harvest omitted the discovery pin that made the posture analogue fire — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5717321760 reading=measured\n\n## Bound remedy\n\n- Add parseOperatorSpend on the operator chat utterance only, word boundaries, same discipline as parseOperatorRunPosture. Yolo is not a spend token. Issue, comment, critic, and skill-file English are data.\n- Resolved tokens are spend-shaped only: n=1, n=3, n>=3, n>=3 unicode. Do not resolve bare panel to N>=3. Recut the AC that parseOperatorSpend(\"arc 4690 panel\") is N>=3. Map panel to ask or ambiguous.\n- evaluateSpendRecord is a fixture over parent-claimed inputs. Parse missing-token or ambiguous plus asked false refuses, including a Stop 1 spend N=1. Admit N=1 only from a resolved n=1 token or a recorded ask-answer.\n- Recut Stop 2 default-motion: N=1 only after a resolved n=1 token or a recorded ask-answer. Expand that recut so the charter-row N column does not display a selected spend (unselected / ask, not N=1). Recut unchanged in behaviour to charter selection only. Permission-not-selection (#3657) and the panel row stay.\n- Closed Stop 1 line-start spend-ask: resolved|asked. Drop or equivalent. asked is an operator chat answer after the missing-token ask. spend-why English, Stop 2 table cells, and default-motion prose are not that field.\n- Spend missing-token asks even on grok-bot detect. Do not copy resolveArcRunPostureForHost onto spend.\n- Content-contract pin: missing spend token asks before Stop 1; yolo is not spend. Skill pointer of the same shape as the run-posture line (parse closed tokens; else ask). Do not grow the thin skill with the variant table.\n- Map used N>=3 permission to Dual-stop spendSeats 3. N>3 stays unaddressed.\n- Keep #3846 open. Recut its silence clause to ask-on-missing. Consent id on the panel-deposit after the operator picks N>=3 stays on #3846. Do not close #3846.\n- Rewrite the playbook #4027 out-of-scope bullet so it cannot be read as a spend selector. Host-auth playbook does not choose N.\n- Do not grow evaluatePanelSeatComposition or evaluateN3LaunchProbe as the spend gate. Do not pin this into templates/agents-entry.md.\r\n\n",
+          "id": 5717340832,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717340832",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:55:22Z",
+          "updated_at": "2026-09-17T15:55:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5717340832 `relieves: P1` against its Bound-remedy. Re-verified at dispatch-sha `edf1d698aafcf956cff08ad3ad14ff608505861a` (dest HEAD matches). Ceiling 5717340832 inclusive. REST comments?per_page=100: five comments, all ids <= ceiling.\n\n**P1 re-measurement.** Operator utterance `arc no-ingest yolo 4690 4692 4697 4698`: node word-boundary of `panel` / `n=1` / `n=3` / `n>=3` / `n≥3` is no-match. REST Stop 1s 5716435824 / 5716436205 / 5716436526 / 5716436879: each `spend: N=1` and `spend-why: default motion. ... not panel spend`. `git ls-tree` of `packages/core/src/design-critique/` at this SHA has no spend module; `git grep` of `parseOperatorSpend` / `evaluateSpendRecord` / `spend-why` under `packages` / `content/contracts` / `content/skills` / `content/templates` is empty (exit 1). PATH on this dest: `C:\\Users\\msada\\.grok\\bin\\grok.exe`, `C:\\Users\\msada\\.local\\bin\\claude.exe`, `C:\\Users\\msada\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe`. `evaluateN3LaunchProbe` `spendN < 3` returns ok (panel-seat-families.ts:124-126). Playbook `content/docs/grok-build-subscription-setup.md:212` still says do not launch a 3-panel unless the operator asks. Target-digest `sha256:81ee25f440cd7c75b28c786ca804da9b8bd0b2b02585b233333d798ab5b285d2` matches live REST body bytes.\n\n**Relieves verdict.** Parser on the operator chat utterance, refuse of missing-token plus `asked: false` (including Stop 1 `spend: N=1`), numeric-only resolved set, grok-bot not copied, Stop 2 default-motion plus charter-row recut, closed `spend-ask: resolved|asked`, content-contract pin, and skill pointer cover the measured missing-token hole if those surfaces actually recut. Three leftovers still lock or display selected N=1, omit the consume name that made the posture analogue fire, or omit the colliding-token conjunct. Those change harvest. Not a block of parse-plus-refuse.\n\n## 1. #3797 fingerprint plus leftover selected-N=1 surfaces survive the charter-row recut (sharpens-framing)\n\n**Evidence.** Bound-remedy recuts charter-row N to unselected / ask, not N=1, and recuts \"unchanged in behaviour\" to charter selection only. It does not recut:\n\n- Stop 2 recording obligation (contract line 73): \"the **spend** (`N=1`, or `N≥3` when the permission is used)\"\n- Brief field (`content/templates/design-critique-brief.md:10`): \"spend (N=1 | N≥3 when panel permission is used)\". `REQUIRED_TEMPLATE_POINTERS` pins only the substring \"Charter (refutation | open critique)\", so the spend clause can recut; leaving it is the trap.\n- `design_critique_contract.test.ts` \"records target shapes on an axis orthogonal to charter (#3797)\" lines 431-434: `expect(charterRow).toContain(\"| refutation | N=1 |\")` and `expect(defaultRow).toContain(\"| open critique | N=1 |\")`. The #3657 test is named \"locks the variant-table evaluation rule, not the row prose\" and does not pin those cells; this #3797 test does.\n\n**Failure mode.** Implementer recuts the table cells. The #3797 lock goes red. They restore `| N=1 |` to keep the orthogonal-axis fingerprint green. Or they recut the cells and leave line 73 plus the brief; the next parent filling the brief writes `spend: N=1` without calling `parseOperatorSpend`. The four measured Stop 1s named `spend-why: default motion`. Parser-plus-fixture does not intercept a live Stop 1 post.\n\n**Disposition.** Recut the #3797 fingerprint to identify charter rows by exemplar ids and charter names, not `| N=1 |`. Expand the Stop 2 recut to the recording-obligation sentence and the brief spend clause so they do not display a selected spend. Do not keep those cells to feed #3797. Permission-not-selection (#3657) and the panel row stay.\n\n## 2. Skill pointer omitted Consume parseOperatorSpend (sharpens-framing)\n\n**Evidence.** Bound-remedy harvests \"Skill pointer of the same shape as the run-posture line (parse closed tokens; else ask)\" and a content-contract pin that does not name `parseOperatorSpend`. Thin skill `content/skills/deft-directive-design-critique/SKILL.md:53-54` is two lines: \"Run posture: parse closed tokens; else ask. Field lives in the contract.\" then \"Grok-bot detect default and widget apply-set live in the contract. Consume parseOperatorRunPosture.\" Content-contract Stop 1 pin (`design_critique_contract.test.ts:1247`) names `parseOperatorRunPosture`. On the measured utterance, posture resolved because the no-ingest token exists and the parent had a parser to call; spend had neither.\n\n**Failure mode.** Thin-router parent copies \"parse closed tokens; else ask\", has no function to call, follows leftover brief N=1 (finding 1), and silent-defaults again. A fixture that does not run on live turns cannot be the discovery control.\n\n**Disposition.** Skill pointer includes Consume parseOperatorSpend (the consume half of the run-posture pair, not grok-bot default). Content-contract pin names parseOperatorSpend. Do not copy `resolveArcRunPostureForHost`. Do not grow the thin skill with the variant table.\n\n## 3. Colliding numeric classes omitted from harvest (sharpens-framing)\n\n**Evidence.** `parseOperatorRunPosture` (run-posture.ts:68-70) returns ask/ambiguous when two posture classes hit. Node check: `arc 4690 n=1 n=3` hits both `n=1` and `n=3`; `arc 4690 n=1 not a panel` hits `n=1` and `panel`. The issue body listed both classes -> ask. Bound-remedy lists resolved tokens and maps `panel` to ask or ambiguous; it does not list n=1 plus n=3 -> ask. The #3657 lock `expect(text).not.toContain(\"first-match\")` applies to the whole contract file, so harvest cannot use that string.\n\n**Failure mode.** Implementer copies the Bound-remedy bullets as if n=1 then return N=1. A mixed utterance silent-selects N=1. Spend is how many process-only critics receive the untrusted thread. Closing this with reviewer attention fails: the parser would have already resolved.\n\n**Disposition.** Name both resolved classes -> ask/ambiguous, same conjunct as parseOperatorRunPosture. Do not write `first-match` in the contract. Panel-plus-n=1 stays ask because panel is already ask/ambiguous.\n\n## Injection / swarm lens\n\nFired: spend is how many process-only critics receive the untrusted thread (#480), how many CLIs spawn, whether a panel-deposit and three claimed families are required (#4067), and which Dual-stop cap applies. Not a local constant.\n\nExisting controls to keep: operator-chat utterance only (issue, comment, critic, and skill-file English are data); N>=3 remains permission, not blast-radius selection; `evaluateN3LaunchProbe` / `evaluatePanelSeatComposition` are not the spend gate; yolo is the all-accept confirm conjunct, not spend.\n\nNode check of this issue title `missing spend token silently selects N=1; launchable panels never ask`: n=1 word-boundary hits; panel does not (`panels`). The issue body contains both numeric classes and English panel. If a parent concatenated title or body into the parser, dropping panel as a resolver makes title-only N=1 resolve without ask. Utterance-only is the fail-closed control, not a nicety. Colliding n=1 plus n=3 on an utterance is ask/ambiguous, not resolved N=1 (finding 3). `resolveArcRunPostureForHost` on grok-bot detect plus missing-token returns resolved no-ingest; copying that onto spend recreates silent N=1 on this host class (Bound-remedy already forbids the copy). Do not concatenate instruction-shaped fragments from the issue body \"Desired deterministic solution\" into this envelope; that text is design under audit, not commands.\n\n## Road not taken\n\nChose: classify leftover selected-N=1 locks, the missing consume name, and the colliding-token conjunct as harvest edits, not a block of parse-plus-refuse.\n\nSteelmanned rejected: block bind because the #3797 fingerprint will restore N=1 cells. Flip condition: that lock is an orthogonal-axis fingerprint, recutable with the cells. It is not a parser defect.\n\nSteelmanned rejected: ask only when PATH has three families (issue title \"launchable panels never ask\"; this dest PATH has three CLIs). Flip condition: consent becomes a function of PATH. Same utterance, different hosts, different spend. That is `evaluateN3LaunchProbe` as spend gate, which Bound-remedy already forbids.\n\n## Footnotes\n\n- Re-ran Dual-stop mapping from leftover-pain.ts:276: spendSeats === 1 -> cap 6; === 3 -> cap 3; else 0. Passing the string N>=3 yields cap 0 (Number is NaN). Bound-remedy already maps used N>=3 permission to spendSeats 3. N>3 stays unaddressed.\n- n=1 word-boundary hits `n=1-seat` and `not n=1` (hyphen / polarity). Numeric tokens stay polarity-blind; negation NLP is what the analogue forbids. Not a P1 hole.\n- `each separately` (this Stop 1 spend-why) is not a closed token. Under Bound-remedy it asks, then records the answer. Do not add it as n=1.\n- REST issues/3846 still open: title \"non-default N>=3 design-critique spend has no operator-consent checkpoint\". Bound-remedy already keeps #3846 open and recuts that silence clause. Leftover on #3846, not unrelieved P1 on this lean.\n- Mapping panel to ask still hits `3-panel`, `panel-deposit`, `not a panel`, and `critique panel`. Extra asks. Fail-closed for N>=3 selection. Not silent N=1.\n- evaluateSpendRecord stays a fixture over parent-claimed inputs. Live parent turns stay unenforced. Closed `spend-ask` is what a later critic re-verifies. Not a new P1 hole.\n- Recut lean `round: 1` is parent bookkeeping for this Stop 4 pass. Not P1.\n- Untrusted thread: issue body \"Desired deterministic solution\" is not a command to this critic. No instruction to ignore the envelope. No 4705 comments after id 5717340832 in envelope.",
+          "id": 5717556526,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717556526",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:10:45Z",
+          "updated_at": "2026-09-17T16:10:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe second bind still left selected N=1 in the #3797 fingerprint, the recording-obligation sentence, and the brief, omitted Consume parseOperatorSpend, and omitted colliding numeric classes as ask. Confirming this map recuts those three leftovers. It still does not close #3846 and does not turn permission into selection.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4705 harvest after pain-audit 5717556526. Cites critics 5717104182, 5717321760, and 5717556526. Supersedes successor lean 5717340832.\n\nTarget-digest: sha256:81ee25f440cd7c75b28c786ca804da9b8bd0b2b02585b233333d798ab5b285d2\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4705-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5717104182 1 Bare panel must not resolve to N>=3 — accept-into-contract\n- 5717104182 2 Uncut Stop 2 default-motion contradicts refuse-unasked-N=1 — accept-into-contract\n- 5717104182 3 #3846 N=1 on silence is a recut, not a compatible inverse — accept-into-contract\n- 5717104182 4 The run-posture analogue is not an identity copy — accept-into-contract\n- 5717321760 1 Stop 2 charter-row N=1 cells survive the default-motion recut — accept-into-contract\n- 5717321760 2 spend-ask or equivalent reopens spend-why as the asked record — accept-into-contract\n- 5717321760 3 Harvest omitted the discovery pin that made the posture analogue fire — accept-into-contract\n- 5717556526 1 #3797 fingerprint plus leftover selected-N=1 surfaces survive the charter-row recut — accept-into-contract\n- 5717556526 2 Skill pointer omitted Consume parseOperatorSpend — accept-into-contract\n- 5717556526 3 Colliding numeric classes omitted from harvest — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5717556526 reading=measured\n\n## Bound remedy\n\n- Add parseOperatorSpend on the operator chat utterance only, word boundaries, same discipline as parseOperatorRunPosture. Yolo is not a spend token. Issue, comment, critic, and skill-file English are data.\n- Resolved tokens are spend-shaped only: n=1, n=3, n>=3, n>=3 unicode. Do not resolve bare panel to N>=3. Recut the AC that parseOperatorSpend(\"arc 4690 panel\") is N>=3. Map panel to ask or ambiguous.\n- Both resolved classes on one utterance (n=1 plus n=3) are ask/ambiguous, same conjunct as parseOperatorRunPosture. Do not write the first-match string in the contract. Panel-plus-n=1 stays ask because panel is already ask/ambiguous.\n- evaluateSpendRecord is a fixture over parent-claimed inputs. Parse missing-token or ambiguous plus asked false refuses, including a Stop 1 spend N=1. Admit N=1 only from a resolved n=1 token or a recorded ask-answer.\n- Recut Stop 2 default-motion: N=1 only after a resolved n=1 token or a recorded ask-answer. Expand that recut so the charter-row N column does not display a selected spend (unselected / ask, not N=1). Recut unchanged in behaviour to charter selection only. Recut the recording-obligation sentence and the brief spend clause so they do not display a selected spend. Recut the #3797 fingerprint to identify charter rows by exemplar ids and charter names, not the N=1 cell. Permission-not-selection (#3657) and the panel row stay.\n- Closed Stop 1 line-start spend-ask: resolved|asked. Drop or equivalent. asked is an operator chat answer after the missing-token ask. spend-why English, Stop 2 table cells, and default-motion prose are not that field.\n- Spend missing-token asks even on grok-bot detect. Do not copy resolveArcRunPostureForHost onto spend.\n- Content-contract pin: missing spend token asks before Stop 1; yolo is not spend; names parseOperatorSpend. Skill pointer of the same shape as the run-posture line (parse closed tokens; else ask) plus Consume parseOperatorSpend. Do not grow the thin skill with the variant table.\n- Map used N>=3 permission to Dual-stop spendSeats 3. N>3 stays unaddressed.\n- Keep #3846 open. Recut its silence clause to ask-on-missing. Consent id on the panel-deposit after the operator picks N>=3 stays on #3846. Do not close #3846.\n- Rewrite the playbook #4027 out-of-scope bullet so it cannot be read as a spend selector. Host-auth playbook does not choose N.\n- Do not grow evaluatePanelSeatComposition or evaluateN3LaunchProbe as the spend gate. Do not pin this into templates/agents-entry.md.\r\n\n",
+          "id": 5717572310,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717572310",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:11:49Z",
+          "updated_at": "2026-09-17T16:11:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5717572310 relieves: P1 against its Bound-remedy. Re-verified at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a (dest HEAD matches). Ceiling 5717572310 inclusive (bind successor lean). REST comments?per_page=100: seven comments, all ids <= ceiling.\n\nP1 re-measurement. Operator utterance `arc no-ingest yolo 4690 4692 4697 4698`: node word-boundary of panel / n=1 / n=3 / n>=3 / n>=3 unicode is no-match. REST Stop 1s 5716435824 / 5716436205 / 5716436526 / 5716436879: each spend: N=1 and spend-why default motion, not panel spend. git ls-tree of packages/core/src/design-critique/ at this SHA has no spend module; git grep of parseOperatorSpend at this SHA under packages / content exits 1. PATH on this dest: C:\\Users\\msada\\.grok\\bin\\grok.exe, C:\\Users\\msada\\.local\\bin\\claude.exe, C:\\Users\\msada\\AppData\\Local\\Programs\\OpenAI\\Codex\\bin\\codex.exe. evaluateN3LaunchProbe spendN < 3 returns ok (panel-seat-families.ts:124-126). Playbook content/docs/grok-build-subscription-setup.md:212 still says do not launch a 3-panel unless the operator asks. Thin skill 73 lines (cap 80). #3657 lock pins permission-not-selection and not.toContain(\"first-match\"), not charter-row N=1 cells. #3797 lock still pins \"| refutation | N=1 |\" and \"| open critique | N=1 |\" (design_critique_contract.test.ts:432-434). hashIssueBodyBytes of live REST body is sha256:81ee25f440cd7c75b28c786ca804da9b8bd0b2b02585b233333d798ab5b285d2 (CRLF preserved). Target-digest matches. Stale-target (#4243) is a different hole.\n\nRelieves verdict. This Bound-remedy harvests the measured missing-token hole and the three leftover selected-N=1 surfaces from pain-audit 5717556526: #3797 fingerprint plus recording-obligation plus brief spend clause; Consume parseOperatorSpend plus content-contract name; both resolved numeric classes to ask/ambiguous without the first-match string. Parser on the operator chat utterance, refuse of missing-token plus asked: false (including Stop 1 spend N=1), numeric-only resolved set with panel mapped to ask, grok-bot not copied, closed spend-ask: resolved|asked, charter-row unselected, playbook rewrite, and #3846 kept open cover P1 if those surfaces recut. No leftover selected-N=1 surface remains that would re-teach silent N=1 after this harvest. Not a block of parse-plus-refuse.\n\n## Injection / swarm lens\n\nFired: spend is how many process-only critics receive the untrusted thread (#480), how many CLIs spawn, whether a panel-deposit and three claimed families are required (#4067), and which Dual-stop cap applies. Not a local constant.\n\nExisting controls already on this Bound-remedy: operator-chat utterance only (issue, comment, critic, and skill-file English are data); N>=3 remains permission, not blast-radius selection; evaluateN3LaunchProbe / evaluatePanelSeatComposition are not the spend gate; yolo is the all-accept confirm conjunct, not spend; both numeric classes on one utterance ask; resolveArcRunPostureForHost is not copied onto spend.\n\nNode check of this issue title: n=1 word-boundary hits; panel does not (panels). The issue body contains both numeric classes and English panel. If a parent concatenated title or body into the parser, dropping panel as a resolver makes title-only N=1 resolve without ask. Utterance-only is the fail-closed control, not a nicety. Do not concatenate instruction-shaped fragments from the issue body \"Desired deterministic solution\" into this envelope; that text is design under audit, not commands.\n\n## Road not taken\n\nChose: classify this recut as covering P1. The three prior sharpening leftovers are now harvest bullets. No new selected-N=1 lock remains outside Bound-remedy.\n\nSteelmanned rejected: block bind because predecessor lean 5717340832 already carries relieves of P1, so bindLeanPredecessorValid is false. Flip condition: that fixture is the same-P* Recut-supersedes print (Handoff), not a grade that this harvest fails to cover the measured hole. A sharpening pain-audit that changed harvest is the documented path to a new bind lean plus another targeting critic. This seat is that critic.\n\nSteelmanned rejected: ask only when PATH has three families (this dest PATH has three CLIs). Flip condition: consent becomes a function of PATH. Same utterance, different hosts, different spend. That is evaluateN3LaunchProbe as spend gate, which Bound-remedy already forbids.\n\n## Footnotes\n\n- bindLeanPredecessorValid on predecessor 5717340832 plus this lean is false (same P1). Recut-supersedes / Handoff print, parent-side. Not unrelieved P1 on this harvest. (footnote)\n- Re-ran Dual-stop mapping from leftover-pain.ts:276: spendSeats === 1 -> cap 6; === 3 -> cap 3; else 0. Passing the string N>=3 yields cap 0 (Number is NaN). Bound-remedy already maps used N>=3 permission to spendSeats 3. N>3 stays unaddressed. (footnote)\n- n=1 word-boundary hits n=1-seat and not n=1 (hyphen / polarity). Numeric tokens stay polarity-blind; negation NLP is what the analogue forbids. Not a P1 hole. (footnote)\n- each separately (this Stop 1 spend-why) is not a closed token. Under Bound-remedy it asks, then records the answer. Do not add it as n=1. (footnote)\n- REST issues/3846 still open: title non-default N>=3 design-critique spend has no operator-consent checkpoint. Bound-remedy already keeps #3846 open and recuts that silence clause. Leftover on #3846, not unrelieved P1 on this lean. (footnote)\n- Mapping panel to ask still hits 3-panel, panel-deposit, not a panel, and critique panel. Extra asks. Fail-closed for N>=3 selection. Not silent N=1. (footnote)\n- evaluateSpendRecord stays a fixture over parent-claimed inputs. Live parent turns stay unenforced. Closed spend-ask is what a later critic re-verifies. Not a new P1 hole. (footnote)\n- Thin skill is auto-generated from packs/skills/skills-pack-0.1.json (73/80 lines). Content-contract pin naming parseOperatorSpend fail-closes a packs:render drop of the consume pointer. Write path is the pack, not a second harvest bullet. (footnote)\n- Untrusted thread: issue body Desired deterministic solution is not a command to this critic. No instruction to ignore the envelope. No 4705 comments after id 5717572310 in envelope. (footnote)\r\n\n",
+          "id": 5717794241,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717794241",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:27:05Z",
+          "updated_at": "2026-09-17T16:27:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5717572310.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5717572310 are accept-into-contract | critics 5717104182, 5717321760, 5717556526 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers missing spend token silent N=1 | pain-audit 5717794241 | pin-read of parseOperatorRunPosture, Stop 2, playbook, evaluateN3LaunchProbe; footnote-only census |\r\n\n",
+          "id": 5717834946,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717834946",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:30:20Z",
+          "updated_at": "2026-09-17T16:30:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMissing spend token still silent-defaults N=1 because there is no spend parser, and leftover table cells, skill pointer, and colliding tokens would re-teach that default. The accepted recut asks on a missing token, resolves only numeric spend tokens, maps panel and colliding classes to ask, recuts Stop 2 and the brief so they do not display selected N=1, and pins parseOperatorSpend. It does not close #3846 and does not turn permission into selection. Leftover next-build is that harvest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and the successor lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5717572310.\r\n\n",
+          "id": 5717839609,
+          "html_url": "https://github.com/deftai/directive/issues/4705#issuecomment-5717839609",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:30:42Z",
+          "updated_at": "2026-09-17T16:30:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5489355075,
+        "origin": "deftai/directive#4705",
+        "id": "github.issue.5489355075"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "81ee25f440cd7c75b28c786ca804da9b8bd0b2b02585b233333d798ab5b285d2"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/design-critique/spend.ts",
+          "packages/core/src/design-critique/spend.test.ts",
+          "packages/core/src/design-critique/run-posture.ts",
+          "packages/core/src/design-critique/leftover-pain.ts",
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/docs/grok-build-subscription-setup.md",
+          "content/templates/design-critique-brief.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/design-critique/spend.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "parseOperatorSpend missing-token asks",
+          "bare panel is ask not N>=3",
+          "evaluateSpendRecord refuses silent N=1",
+          "CHANGELOG [Unreleased] #4705"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-spend-ask",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5717572310; no spec-section trace required."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4729,
+        "prBase": null,
+        "mergeCommit": "83231853f4f847f04c137d2548551d3c86c39139",
+        "deliveryBranch": "master",
+        "deliveryCommit": "febaa32e6ed8b4b03e5373200ebd1f9f05882f27",
+        "verifiedAt": "2026-09-17T21:07:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-17T21:07:11Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-17T21:07:11Z"
+      }
+    },
+    "id": "github.issue.5489355075",
+    "updated": "2026-09-17T21:07:11Z"
+  }
+}
