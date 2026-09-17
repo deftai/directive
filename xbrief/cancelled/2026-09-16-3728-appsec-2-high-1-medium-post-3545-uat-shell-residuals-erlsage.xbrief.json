@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3728",
-    "updated": "2026-09-16T11:59:34Z"
+    "updated": "2026-09-17T11:48:15Z"
   },
   "plan": {
     "title": "AppSec: 2 HIGH + 1 MEDIUM — post-#3545 UAT Shell residuals (erl/sage/CAS/tcpdump/screen/joe/guestfish/adb/dmd/vbc plant authz + kill-switch; approved-scope mint)",
-    "status": "running",
+    "status": "cancelled",
     "narratives": {
       "Description": "AppSec: 2 HIGH + 1 MEDIUM — post-#3545 UAT Shell residuals (erl/sage/CAS/tcpdump/screen/joe/guestfish/adb/dmd/vbc plant authz + kill-switch; approved-scope mint)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3728",
@@ -16,23 +16,23 @@
     "items": [
       {
         "title": "Do not bind a listed-bin harvest PR. Named bins stay regression corpus.",
-        "status": "proposed"
+        "status": "cancelled"
       },
       {
         "title": "```quarantined\nPayload flags (`-eval`, `--batch-string`, `-code`, `-R`, and same-class `-r`) join `INTERPRETER_CODE_FLAGS`, plus unquoted path-token harvest in those payloads.\n```",
-        "status": "proposed"
+        "status": "cancelled"
       },
       {
         "title": "`/out:` joins the `-out:` colon harvest.",
-        "status": "proposed"
+        "status": "cancelled"
       },
       {
         "title": "Do not offer dest-flag sets as an alternative for payload-interior dests.",
-        "status": "proposed"
+        "status": "cancelled"
       },
       {
         "title": "Protected dest-of-write must be `unknown` or `settings` (not empty) and deny under active UAT. Do not require `settings`. Do not coerce dest-visible `unknown` into grantable `settings`.",
-        "status": "proposed"
+        "status": "cancelled"
       }
     ],
     "tags": [
@@ -109,9 +109,13 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "8058d3af0133a8f4438ae034527efdb25aa1ffe16aeecc94e753bf942a06e4d0"
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-17T11:48:15Z"
       }
     },
     "id": "github.issue.5247501837",
-    "updated": "2026-09-16T11:59:34Z"
+    "updated": "2026-09-17T11:48:15Z"
   }
 }
