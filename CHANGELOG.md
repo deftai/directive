@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Full-stop reverse-init recipe (#4674).** Adds an ordered procedure that strips live hooks before uninstall. See [full-stop](content/docs/full-stop.md). Refs #4674.
+- **verify:orphan-active fail-closes dropped refs instead of skipping them as noOrigin (#4697).** Unknown reserved spellings (`pull-request` and the next unknown) and uncollected `github-issue`/`github-pr` entries exit 1 with a collectable-origin remedy. Title-only setup-created and known non-GitHub types stay the Origins line. Malformed PR-only stays on the unscoped scan. Does not recut `collectGithubRefs` or #4426. Refs #4697.
 - **Throttle-skip after a warning-only doctor run is not billed as clean (#4673).** The skip line uses persisted lastFindingCount; lastErrorCount 0 with findings >= 1 does not print clean. isDirty stays lastErrorCount > 0. README diagnosis rows and diagnosis front doors name `--full`. Ritual session-start `deft doctor` stays the cost skip. Missing `.deft/core` skip invalidation stays on #4679. Refs #4673.
 - **Consumer mutation session:start no longer fail-closes on missing uv (#4672).** Unflagged verify:tools uses the toolchain:check consumer set (git, gh). uv and python stay maintainer-only with --include-task. Does not widen requirements xbrief/active. Does not skip mutation session:start. Refs #4672.
 
@@ -6514,4 +6515,5 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
+
 

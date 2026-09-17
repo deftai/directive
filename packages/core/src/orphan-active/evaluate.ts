@@ -1,5 +1,10 @@
 import { existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import {
+  isVBriefReferenceType,
+  KNOWN_REFERENCE_TYPES,
+  referenceTypeMatches,
+} from "@deftai/directive-types";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { ScmStubError } from "../scm/errors.js";
@@ -28,7 +33,7 @@ import { listActiveRunningBriefs } from "./running-briefs.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
-export type OrphanKind = "shipped" | "unresolved";
+export type OrphanKind = "shipped" | "unresolved" | "dropped-ref";
 
 export interface OrphanActiveBrief {
   readonly path: string;
@@ -55,7 +60,8 @@ export interface OrphanActiveBasis {
   readonly scanned: number;
   /**
    * Evaluated briefs whose `collectGithubRefs` returned zero issues and zero
-   * PRs (#4426). Reporting only — does not change the two unknown policies.
+   * PRs and that were not classified as dropped-ref (#4426 / #4697). Reporting
+   * only — does not change the two unknown policies.
    */
   readonly noOrigin: number;
 }
@@ -213,6 +219,35 @@ function unresolved(reason: string): OrphanAssessment {
   return { orphaned: true, reason, kind: "unresolved" };
 }
 
+const KNOWN_REFERENCE_TYPE_SET: ReadonlySet<string> = new Set(KNOWN_REFERENCE_TYPES);
+
+/**
+ * Sibling walk of plan.references at the empty-collect site (#4697).
+ * collectGithubRefs stays {issues, prs} only — this does not recut it.
+ */
+function droppedRefReason(plan: Record<string, unknown>): string | null {
+  const refs = plan.references;
+  if (!Array.isArray(refs)) {
+    return null;
+  }
+  for (const ref of refs) {
+    if (typeof ref !== "object" || ref === null || Array.isArray(ref)) {
+      continue;
+    }
+    const type = String((ref as Record<string, unknown>).type ?? "");
+    if (type.length === 0) {
+      continue;
+    }
+    if (referenceTypeMatches(type, "github-issue") || referenceTypeMatches(type, "github-pr")) {
+      return `${type} did not collect (unparseable URI or missing defaultRepo)`;
+    }
+    if (isVBriefReferenceType(type) && !KNOWN_REFERENCE_TYPE_SET.has(type)) {
+      return `unknown reserved reference type ${type} is not collectable`;
+    }
+  }
+  return null;
+}
+
 function assessOrphanSignature(
   issueRefs: readonly IssueRef[],
   prRefs: readonly PrRef[],
@@ -356,13 +391,30 @@ function formatRefusal(
 ): string {
   const shippedOrphans = orphans.filter((orphan) => orphan.kind === "shipped");
   const unresolvedOrphans = orphans.filter((orphan) => orphan.kind === "unresolved");
+  const droppedOrphans = orphans.filter((orphan) => orphan.kind === "dropped-ref");
   const noun = orphans.length === 1 ? "" : "s";
   let headline: string;
-  if (unresolvedOrphans.length > 0 && shippedOrphans.length === 0) {
+  if (
+    droppedOrphans.length > 0 &&
+    shippedOrphans.length === 0 &&
+    unresolvedOrphans.length === 0
+  ) {
+    headline = `verify:orphan-active: ${droppedOrphans.length} active/running xBRIEF${
+      droppedOrphans.length === 1 ? "" : "s"
+    } have dropped forge origin references (cannot collect) (project_root=${projectRoot}).`;
+  } else if (
+    unresolvedOrphans.length > 0 &&
+    shippedOrphans.length === 0 &&
+    droppedOrphans.length === 0
+  ) {
     headline = `verify:orphan-active: ${unresolvedOrphans.length} active/running xBRIEF${
       unresolvedOrphans.length === 1 ? "" : "s"
     } have unresolved GitHub state (cannot confirm shipped) (project_root=${projectRoot}).`;
-  } else if (shippedOrphans.length > 0 && unresolvedOrphans.length === 0) {
+  } else if (
+    shippedOrphans.length > 0 &&
+    unresolvedOrphans.length === 0 &&
+    droppedOrphans.length === 0
+  ) {
     headline = `verify:orphan-active: ${shippedOrphans.length} active/running xBRIEF${
       shippedOrphans.length === 1 ? "" : "s"
     } look shipped but still consume WIP (project_root=${projectRoot}).`;
@@ -395,6 +447,12 @@ function formatRefusal(
       "  Remediation: retry the GitHub lookup (auth, rate-limit, network, skipGh) then re-run:",
       `    ${retry}`,
       "  Do not run task scope:complete until the origin is confirmed closed or the linked PR is confirmed merged.",
+    );
+  }
+  if (droppedOrphans.length > 0) {
+    lines.push(
+      "  Remediation: make the origin collectable (canonical x-xbrief/github-issue or x-xbrief/github-pr, or companion #4698 at write time).",
+      "  Do not run task scope:complete. Do not retry the GitHub lookup.",
     );
   }
   lines.push("  Offending briefs:");
@@ -545,6 +603,15 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       }
       scanned += 1;
       if (issues.length === 0 && prs.length === 0) {
+        const dropped = droppedRefReason(brief.plan);
+        if (dropped !== null) {
+          orphans.push({
+            path: relBriefPath(brief.path, root),
+            reason: dropped,
+            kind: "dropped-ref",
+          });
+          continue;
+        }
         noOrigin += 1;
         continue;
       }

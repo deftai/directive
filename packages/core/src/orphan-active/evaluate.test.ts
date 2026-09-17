@@ -924,6 +924,170 @@ describe("evaluate", () => {
     expect(result.message).toContain("scanned 1 running brief");
     expect(result.message).toContain("Origins: 0 of 1 scanned brief resolved zero forge origins.");
   });
+
+  it("fail-closes pull-request type on the unscoped sweep with collectable-origin remedy (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "dropped-pr.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/pull/42",
+          type: "x-xbrief/pull-request",
+        },
+      ],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh: NEVER_CALLED });
+    expect(result.code).toBe(1);
+    expect(result.orphans).toEqual([
+      {
+        path: "xbrief/active/dropped-pr.xbrief.json",
+        reason: "unknown reserved reference type x-xbrief/pull-request is not collectable",
+        kind: "dropped-ref",
+      },
+    ]);
+    expect(result.message).toContain("make the origin collectable");
+    expect(result.message).toContain("companion #4698");
+    expect(result.message).not.toContain("task scope:complete --");
+    expect(result.message).toContain("Do not retry the GitHub lookup");
+    expect(result.message).not.toContain("Remediation: retry the GitHub lookup");
+    expect(result.basis.noOrigin).toBe(0);
+  });
+
+  it("fail-closes the next unknown reserved spelling, not only pull-request (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "merge-request.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/pull/42",
+          type: "x-xbrief/merge-request",
+        },
+      ],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh: NEVER_CALLED });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.kind).toBe("dropped-ref");
+    expect(result.orphans[0]?.reason).toContain("x-xbrief/merge-request");
+    expect(result.message).toContain("make the origin collectable");
+  });
+
+  it("fail-closes github-pr that did not collect (unparseable URI) (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "bad-pr-uri.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "not-a-pr-uri",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh: NEVER_CALLED });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.kind).toBe("dropped-ref");
+    expect(result.orphans[0]?.reason).toContain("x-xbrief/github-pr did not collect");
+    expect(result.message).toContain("make the origin collectable");
+    expect(result.message).toContain("Do not retry the GitHub lookup");
+    expect(result.message).not.toContain("Remediation: retry the GitHub lookup");
+  });
+
+  it("github-pr control still ships a merged PR (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "merged-pr-control.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/pull/42",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/pulls/42")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ merged_at: "2026-07-22T00:00:00Z" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const result = evaluate(root, { repo: "deftai/directive", runGh });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.kind).toBe("shipped");
+    expect(result.orphans[0]?.reason).toBe("linked PR #42 is merged");
+    expect(result.message).toContain("task scope:complete --");
+  });
+
+  it("plan-only running briefs stay Origins and exit 0 (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "plan-only.xbrief.json", {
+      status: "running",
+      references: [{ uri: "xbrief/plan.xbrief.json", type: "x-xbrief/plan" }],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh: NEVER_CALLED });
+    expect(result.code).toBe(0);
+    expect(result.orphans).toEqual([]);
+    expect(result.basis.scanned).toBe(1);
+    expect(result.basis.noOrigin).toBe(1);
+    expect(result.message).toContain("Origins: 1 of 1 scanned brief resolved zero forge origins.");
+  });
+
+  it("jira-only running briefs stay Origins and exit 0 (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "jira-only.xbrief.json", {
+      status: "running",
+      references: [{ uri: "PROJ-123", type: "x-xbrief/jira-ticket" }],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh: NEVER_CALLED });
+    expect(result.code).toBe(0);
+    expect(result.orphans).toEqual([]);
+    expect(result.basis.scanned).toBe(1);
+    expect(result.basis.noOrigin).toBe(1);
+    expect(result.message).toContain("Origins: 1 of 1 scanned brief resolved zero forge origins.");
+  });
+
+  it("scoped --issue N still excludes PR-only briefs that do not name N (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "pull-request-only.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/pull/42",
+          type: "x-xbrief/pull-request",
+        },
+      ],
+    });
+    writeBrief(root, "github-pr-only.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/pull/43",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    writeBrief(root, "target-issue.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/2321",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 2321, "open");
+    const result = evaluate(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      issue: 2321,
+    });
+    expect(result.code).toBe(0);
+    expect(result.orphans).toEqual([]);
+    expect(result.basis.scanned).toBe(1);
+    expect(result.basis.noOrigin).toBe(0);
+    expect(result.message).toContain("for issue #2321");
+  });
 });
 
 function stripGhGhxFromPath(): () => void {
