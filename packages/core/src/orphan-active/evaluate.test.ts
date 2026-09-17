@@ -971,6 +971,23 @@ describe("evaluate", () => {
     expect(result.message).toContain("make the origin collectable");
   });
 
+  it("fail-closes github-issue that did not collect (unparseable URI) (#4697)", () => {
+    const root = makeRepo();
+    writeBrief(root, "bad-issue-uri.xbrief.json", {
+      status: "running",
+      references: [
+        { uri: "not-an-issue-uri", type: "x-xbrief/github-issue" },
+        "skip-non-object",
+        null,
+        { uri: "https://example.invalid", type: "" },
+      ],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh: NEVER_CALLED });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.kind).toBe("dropped-ref");
+    expect(result.orphans[0]?.reason).toContain("x-xbrief/github-issue did not collect");
+  });
+
   it("fail-closes github-pr that did not collect (unparseable URI) (#4697)", () => {
     const root = makeRepo();
     writeBrief(root, "bad-pr-uri.xbrief.json", {
