@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **design-critique ingest-ready remaining-set refuses unless live-thread evaluateCompletedArcRecord is complete (#4700).** Shared proof on the chip verb and ScmLabelClient.apply exclusive fold. Comments present is not complete. Proof-fail is blocking, not CHIP_APPLY_MISS. mechanism-shaped and in-progress stay labels-only. Path-1 stays on evaluateAutoStampPath1Write. Refs #4700.
 - **Throttle-skip after a warning-only doctor run is not billed as clean (#4673).** The skip line uses persisted lastFindingCount; lastErrorCount 0 with findings >= 1 does not print clean. isDirty stays lastErrorCount > 0. README diagnosis rows and diagnosis front doors name `--full`. Ritual session-start `deft doctor` stays the cost skip. Missing `.deft/core` skip invalidation stays on #4679. Refs #4673.
 - **Consumer mutation session:start no longer fail-closes on missing uv (#4672).** Unflagged verify:tools uses the toolchain:check consumer set (git, gh). uv and python stay maintainer-only with --include-task. Does not widen requirements xbrief/active. Does not skip mutation session:start. Refs #4672.
+- **Missing design-critique spend token asks before Stop 1 (#4705).** `parseOperatorSpend` resolves `n=1` / `n=3` / `n>=3` on the operator chat utterance; yolo is not spend; bare panel and colliding classes ask. `evaluateSpendRecord` refuses silent N=1. Stop 2 and the brief no longer display selected N=1. Leaves #3846 open. Refs #3657, #4027, #4072.
 
 ### Removed
 

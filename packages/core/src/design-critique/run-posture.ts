@@ -84,6 +84,7 @@ export function parseOperatorRunPosture(utterance: string): RunPostureParse {
  * Host-facing run-posture resolver (#4202). Consumes parseOperatorRunPosture.
  * On grok-bot detect, missing-token defaults to no-ingest. Checkout tokens still
  * win. Does not clone the parser and does not implement grok-bot detect.
+ * Spend has no host default: do not copy this onto parseOperatorSpend (#4705).
  */
 export function resolveArcRunPostureForHost(input: {
   utterance: string;

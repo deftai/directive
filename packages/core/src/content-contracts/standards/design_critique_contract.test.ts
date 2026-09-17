@@ -18,6 +18,7 @@ import {
   evaluateDirectDispatch,
   parseOperatorRunPosture,
 } from "../../design-critique/run-posture.js";
+import { evaluateSpendRecord, parseOperatorSpend } from "../../design-critique/spend.js";
 import {
   operatorVerbApplySet,
   WIDGET_ACCEPT,
@@ -133,6 +134,12 @@ const REQUIRED_CONTRACT_POINTERS = [
   "### Run posture",
   "parseOperatorRunPosture",
   "evaluateDirectDispatch",
+  "### Spend",
+  "parseOperatorSpend",
+  "evaluateSpendRecord",
+  "spend-ask:",
+  "#4705",
+  "#3846",
   "session:start --read-only",
   "gh issue comment --body-file -",
   "git show <dispatch-sha>:",
@@ -212,6 +219,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Chip apply miss is non-blocking",
   "## Plain-language summary",
   "parse closed tokens",
+  "parseOperatorSpend",
   "ingest is a separate operator verb",
   "Seat families",
   "Grok Build launcher",
@@ -429,9 +437,13 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
     // The two shapes stay off the charter and spend tables.
     const charterRow = text.split("\n").find((line) => line.includes("#3462"));
-    expect(charterRow).toContain("| refutation | N=1 |");
+    expect(charterRow).toContain("| refutation |");
+    expect(charterRow).toContain("#3462");
+    expect(charterRow).not.toContain("| N=1 |");
     const defaultRow = text.split("\n").find((line) => line.includes("#3547"));
-    expect(defaultRow).toContain("| open critique | N=1 |");
+    expect(defaultRow).toContain("| open critique |");
+    expect(defaultRow).toContain("#3547");
+    expect(defaultRow).not.toContain("| N=1 |");
     const shapeRows = text
       .split("\n")
       .filter((line) => line.includes("set-level") || line.includes("against-implementation"));
@@ -1868,5 +1880,63 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(
       pack.skills.filter((entry) => entry.id === "deft-directive-design-critique"),
     ).toHaveLength(1);
+  });
+
+  it("locks spend missing-token ask (#4705)", () => {
+    const text = readText(CONTRACT);
+    const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");
+    const stop2 = markdownSection(text, "## Stop 2 \u2014 Variant selection");
+    expect(stop1).toContain("### Spend");
+    expect(stop1).toContain("parseOperatorSpend");
+    expect(stop1).toContain("evaluateSpendRecord");
+    expect(stop1).toContain("spend-ask:");
+    expect(stop1).toContain("asks before Stop 1");
+    expect(stop1).toContain("Yolo is not a spend token");
+    expect(stop1).toContain("Do not copy `resolveArcRunPostureForHost` onto spend");
+    expect(stop1).toContain("That recuts the #3846 silence clause");
+    expect(stop1).toContain("\u2297 Close #3846");
+    expect(stop1).toContain("\u2297 Treat silence as N=1");
+    expect(stop1).toContain(
+      "\u2297 Grow `evaluatePanelSeatComposition` or `evaluateN3LaunchProbe` as the spend gate",
+    );
+    expect(stop2).toContain("unselected until `parseOperatorSpend` resolves");
+    expect(stop2).toContain("Those rows are unchanged in behaviour for charter selection only");
+    expect(stop2).toContain("N=1 only after a resolved `n=1` token or a recorded ask-answer");
+    expect(text).not.toContain("first-match");
+    const template = readText(TEMPLATE);
+    expect(template).toContain("Charter (refutation | open critique)");
+    expect(template).not.toContain("spend (N=1 | N\u22653 when panel permission is used)");
+    expect(template).toContain("Spend `spend:` / `spend-ask:`");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("Spend: parse closed tokens");
+    expect(skill).toContain("Consume parseOperatorSpend");
+    expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
+    const playbook = readText("docs/grok-build-subscription-setup.md");
+    expect(playbook).not.toContain("Do not launch a 3-panel unless the operator asks");
+    expect(playbook).toContain("Host-auth playbook does not choose N");
+    const agentsEntry = readText("templates/agents-entry.md");
+    expect(agentsEntry).not.toContain("parseOperatorSpend");
+    const pack = JSON.parse(readText("packs/skills/skills-pack-0.1.json")) as {
+      skills: readonly { id: string; body?: string }[];
+    };
+    const dc = pack.skills.find((entry) => entry.id === "deft-directive-design-critique");
+    expect(dc?.body).toContain("Consume parseOperatorSpend");
+    expect(parseOperatorSpend("arc no-ingest yolo 4690")).toEqual({
+      kind: "ask",
+      reason: "missing-token",
+    });
+    expect(parseOperatorSpend("arc 4690 panel")).toEqual({
+      kind: "ask",
+      reason: "ambiguous",
+    });
+    expect(
+      evaluateSpendRecord({
+        parse: parseOperatorSpend("arc no-ingest yolo 4690"),
+        asked: false,
+        answer: null,
+        stop1Spend: "N=1",
+        spendAsk: null,
+      }).ok,
+    ).toBe(false);
   });
 });

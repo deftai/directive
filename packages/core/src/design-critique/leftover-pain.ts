@@ -262,6 +262,15 @@ export function bindLeanPredecessorValid(input: {
   return !input.bindRelievesIds.some((id) => input.predecessorRelievesIds.includes(id));
 }
 
+/**
+ * Map used spend permission to Dual-stop spendSeats (#4705).
+ * N≥3 is 3. N=1 is 1. N>3 stays unaddressed (evaluateDualStopPostBudget
+ * numberedCap 0 for any other spendSeats).
+ */
+export function dualStopSpendSeats(spend: "N=1" | "N≥3"): 1 | 3 {
+  return spend === "N≥3" ? 3 : 1;
+}
+
 export function evaluateDualStopPostBudget(input: {
   readonly spendSeats: number;
   readonly criticPostsUsed: number;

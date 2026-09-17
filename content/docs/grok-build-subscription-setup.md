@@ -209,7 +209,7 @@ Keep process-only plus one `gh issue comment --body-file` post. `claude agents` 
 
 ## Out of scope
 
-- [#4027](https://github.com/deftai/directive/issues/4027) — N≥3 design-critique lean-timing. This playbook is host auth. Do not launch a 3-panel unless the operator asks.
+- [#4027](https://github.com/deftai/directive/issues/4027) — N≥3 design-critique lean-timing. This playbook is host auth. Host-auth playbook does not choose N. Closed #4027 is lean-timing, not a spend selector.
 - [#2520](https://github.com/deftai/directive/issues/2520) — multi-engine least-privilege *pattern*. Related theme, different artifact.
 - Unsetting User keys that other tools still need.
 - Product code in `deftai/directive`.

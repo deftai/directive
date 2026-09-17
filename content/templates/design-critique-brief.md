@@ -7,7 +7,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Model (copy onto the first line of the posted comment as `model: <slug>`):
 - Role (copy onto the second line of the posted comment as `role: triage|critic|parent`):
 - Issue:
-- Charter (refutation | open critique), spend (N=1 | N≥3 when panel permission is used), and one-line reason:
+- Charter (refutation | open critique), spend (unselected until parseOperatorSpend resolves or the operator answers; N≥3 when panel permission is used after that), and one-line reason:
 - Round (1 critic | 2 reiteration | 3 synthesis | 4 Pass-4 audit):
 - Critic role (fresh | resume):
 - Id ceiling (GitHub comment id, inclusive):
@@ -40,6 +40,7 @@ Read, do not restate:
 | Gate (ADR-005) | Stop 1 — Gate |
 | Stop 1 `refutation-target:` | Stop 1 — Gate |
 | Run posture `arc-mode:` | Stop 1 — Gate |
+| Spend `spend:` / `spend-ask:` | Stop 1 — Gate |
 | Variant selection | Stop 2 — Variant selection |
 | Parent-facing dispatch rules | Parent-facing dispatch rules |
 | Critic method | Critic method |

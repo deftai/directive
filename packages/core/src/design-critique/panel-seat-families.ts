@@ -4,6 +4,8 @@
  * Input is parent-claimed families plus a PATH probe. This does not classify
  * model slugs, and it does not observe live GitHub comments (#3850).
  * It does not observe launchability (#4432).
+ * It does not select spend (#4705). evaluateN3LaunchProbe skips when spendN < 3;
+ * that skip is not a spend front door.
  */
 
 export type SeatLauncher = "spawn_subagent" | "grok" | "claude" | "codex" | "paste-ready";
