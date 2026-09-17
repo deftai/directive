@@ -70,6 +70,9 @@ describe("isRecognizedReservedReferenceType (#4698)", () => {
     expect(isRecognizedReservedReferenceType("x-xbrief/refs")).toBe(true);
     expect(isRecognizedReservedReferenceType("x-xbrief/web-page")).toBe(true);
     expect(isRecognizedReservedReferenceType("x-vbrief/web-page")).toBe(true);
+    expect(isRecognizedReservedReferenceType("x-xbrief/github-comment")).toBe(true);
+    expect(isRecognizedReservedReferenceType("x-xbrief/related-plan")).toBe(true);
+    expect(isRecognizedReservedReferenceType("x-xbrief/document")).toBe(true);
   });
 
   it("does not treat KNOWN as the only closed set by rejecting pull-request", () => {
@@ -103,6 +106,8 @@ describe("describeUnknownReservedReferenceType (#4698)", () => {
     expect(describeUnknownReservedReferenceType("x-xbrief/current-shape")).toBeNull();
     expect(describeUnknownReservedReferenceType("x-xbrief/web-page")).toBeNull();
     expect(describeUnknownReservedReferenceType("x-vbrief/web-page")).toBeNull();
+    expect(describeUnknownReservedReferenceType("x-xbrief/github-comment")).toBeNull();
+    expect(describeUnknownReservedReferenceType("x-xbrief/related-plan")).toBeNull();
   });
 
   it("does not close consumer x-* namespaces", () => {

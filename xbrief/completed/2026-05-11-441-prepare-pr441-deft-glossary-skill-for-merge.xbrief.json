@@ -64,7 +64,7 @@
     "references": [
       {
         "uri": "https://github.com/deftai/directive/pull/441",
-        "type": "x-xbrief/github-pull-request",
+        "type": "x-xbrief/github-pr",
         "title": "PR #441: feat(skills): add deft-glossary skill"
       },
       {

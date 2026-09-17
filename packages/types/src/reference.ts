@@ -94,17 +94,33 @@ function reservedPrefixOf(
  * closes / blocks / refs / current-shape via referenceTypeMatches.
  * Not a closed set of KNOWN alone (#4698).
  */
+const ENGINE_WRITTEN_BARE_TYPES = [
+  "closes",
+  "blocks",
+  "refs",
+  "current-shape",
+  "web-page",
+  "github-comment",
+  "github-issue-comment",
+  "related",
+  "related-issue",
+  "related-plan",
+  "related-doc",
+  "related-file",
+  "related-repo",
+  "document",
+  "parent",
+  "other",
+  "reference",
+  "scope-expansion-comment",
+  "link",
+] as const;
+
 export function isRecognizedReservedReferenceType(type: string): boolean {
   if ((KNOWN_REFERENCE_TYPES as readonly string[]).includes(type)) {
     return true;
   }
-  return (
-    referenceTypeMatches(type, "closes") ||
-    referenceTypeMatches(type, "blocks") ||
-    referenceTypeMatches(type, "refs") ||
-    referenceTypeMatches(type, "current-shape") ||
-    referenceTypeMatches(type, "web-page")
-  );
+  return ENGINE_WRITTEN_BARE_TYPES.some((bare) => referenceTypeMatches(type, bare));
 }
 
 /**

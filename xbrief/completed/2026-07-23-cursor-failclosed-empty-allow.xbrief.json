@@ -26,7 +26,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/pull/2778",
-        "type": "x-xbrief/github-pull-request",
+        "type": "x-xbrief/github-pr",
         "title": "PR #2778: emit Cursor permission allow for failClosed deposits"
       }
     ],

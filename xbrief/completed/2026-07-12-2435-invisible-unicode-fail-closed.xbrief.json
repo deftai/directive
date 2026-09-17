@@ -41,7 +41,7 @@
     "references": [
       {
         "uri": "https://github.com/deftai/directive/pull/2435",
-        "type": "x-xbrief/github-pull-request",
+        "type": "x-xbrief/github-pr",
         "title": "PR #2435: fix(triage): fail closed on quarantined titles in triage:queue"
       }
     ],
