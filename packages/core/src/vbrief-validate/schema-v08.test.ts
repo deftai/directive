@@ -209,6 +209,39 @@ describe("validatePlanReferenceTypes reserved subtypes (#4698)", () => {
     ).toEqual([]);
   });
 
+  it("validateVbriefSchema reports pull-request on the check path", () => {
+    const errors = validateVbriefSchema(
+      {
+        ...MINIMAL_V08,
+        plan: {
+          ...MINIMAL_V08.plan,
+          references: [{ uri: prUri, type: "x-xbrief/pull-request" }],
+        },
+      },
+      "brief.json",
+    );
+    expect(errors.some((e) => e.includes("x-xbrief/pull-request"))).toBe(true);
+  });
+
+  it("validateVbriefSchema keeps github-pr, web-page, and closes valid", () => {
+    expect(
+      validateVbriefSchema(
+        {
+          ...MINIMAL_V08,
+          plan: {
+            ...MINIMAL_V08.plan,
+            references: [
+              { uri: prUri, type: "x-xbrief/github-pr" },
+              { uri: "https://example.test/doc", type: "x-xbrief/web-page" },
+              { uri: issueUri, type: "x-xbrief/closes" },
+            ],
+          },
+        },
+        "brief.json",
+      ),
+    ).toEqual([]);
+  });
+
   it("reports an unknown reserved subtype without a nearest canonical", () => {
     const errors = validatePlanReferenceTypes(
       [{ uri: "https://example.test/t/1", type: "x-xbrief/not-a-known-type" }],

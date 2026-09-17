@@ -68,6 +68,8 @@ describe("isRecognizedReservedReferenceType (#4698)", () => {
     expect(isRecognizedReservedReferenceType("x-xbrief/current-shape")).toBe(true);
     expect(isRecognizedReservedReferenceType("x-xbrief/blocks")).toBe(true);
     expect(isRecognizedReservedReferenceType("x-xbrief/refs")).toBe(true);
+    expect(isRecognizedReservedReferenceType("x-xbrief/web-page")).toBe(true);
+    expect(isRecognizedReservedReferenceType("x-vbrief/web-page")).toBe(true);
   });
 
   it("does not treat KNOWN as the only closed set by rejecting pull-request", () => {
@@ -96,9 +98,11 @@ describe("describeUnknownReservedReferenceType (#4698)", () => {
     expect(describeUnknownReservedReferenceType("x-xbrief/github-pr")).toBeNull();
   });
 
-  it("does not report engine-written closes or current-shape", () => {
+  it("does not report engine-written closes, current-shape, or web-page", () => {
     expect(describeUnknownReservedReferenceType("x-xbrief/closes")).toBeNull();
     expect(describeUnknownReservedReferenceType("x-xbrief/current-shape")).toBeNull();
+    expect(describeUnknownReservedReferenceType("x-xbrief/web-page")).toBeNull();
+    expect(describeUnknownReservedReferenceType("x-vbrief/web-page")).toBeNull();
   });
 
   it("does not close consumer x-* namespaces", () => {

@@ -235,6 +235,8 @@ export function validateVbriefSchema(data: JsonObject, filepath: string): string
           }
         }
       }
+
+      errors.push(...validatePlanReferenceTypes(planObj.references, filepath));
     }
   }
 

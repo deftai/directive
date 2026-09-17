@@ -102,7 +102,8 @@ export function isRecognizedReservedReferenceType(type: string): boolean {
     referenceTypeMatches(type, "closes") ||
     referenceTypeMatches(type, "blocks") ||
     referenceTypeMatches(type, "refs") ||
-    referenceTypeMatches(type, "current-shape")
+    referenceTypeMatches(type, "current-shape") ||
+    referenceTypeMatches(type, "web-page")
   );
 }
 
