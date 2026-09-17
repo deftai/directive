@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=4ee4cbf4daf5 refreshed=2026-09-17T00:05:38Z session=16ddeba5b19c -->
+<!-- deft:managed-section v3 sha=cd1596a985ca refreshed=2026-09-17T00:24:38Z session=4dd1da749f2f -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -305,7 +305,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Windows PowerShell: multi-line git/gh bodies (#2646 / #2744)
 
-! Multi-line git commit / gh issue|pr|comment bodies: write UTF-8 (no BOM) to OS temp, then `git commit -F` / `gh --body-file` / `deft scm:body:* --body-file`. Issue-body RMW on win32: `deft scm:body:issue:fetch --out-file` then edit the file then `deft scm:body:issue:edit --body-file` (#2607 postcondition verify). ⊗ bash heredocs, `<<<`, inline multi-line `--body`, or PS capture-concat of `gh api --jq .body` (string[]/$OFS destroys bodies — #2087, #2741, #1492). Detail: `.deft/core/scm/github.md` § #2646 / #2744. `ghx` is read-only — mutations stay on live `gh`. Explicit PR `--body-file` / `--body` / `--fill` skip the GitHub template (#4293): compose the template `Documentation impact` block, then `deft verify:docs-impact -- --body-file` `--base-ref` (same ref as `gh pr create --base`) on those same bytes (leftover-complete / finalize-cohort).
+! Multi-line git commit / gh issue|pr|comment bodies: write UTF-8 (no BOM) to OS temp, then `git commit -F` / `gh --body-file` / `deft scm:body:* --body-file`. Issue-body RMW on win32: `deft scm:body:issue:fetch --out-file` then edit the file then `deft scm:body:issue:edit --body-file` (#2607 postcondition verify). ⊗ bash heredocs, `<<<`, inline multi-line `--body`, or PS capture-concat of `gh api --jq .body` (string[]/$OFS destroys bodies — #2087, #2741, #1492). Detail: `.deft/core/scm/github.md` § #2646 / #2744. `ghx` is read-only — mutations stay on live `gh`. Explicit PR `--body-file` / `--body` / `--fill` skip the GitHub template (#4293): compose the template `Documentation impact` block, then `deft verify:docs-impact -- --body-file --base-ref` on those same bytes (leftover-complete).
 
 ## Contextual guardrails (runtime-detect lazy-load)
 
