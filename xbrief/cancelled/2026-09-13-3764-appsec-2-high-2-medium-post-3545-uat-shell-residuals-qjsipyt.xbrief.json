@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3764",
-    "updated": "2026-09-15T20:35:00Z"
+    "updated": "2026-09-17T11:48:00Z"
   },
   "plan": {
     "title": "fix(hooks,security): dest-of-write grammar leftover on #3764 (option 1 payload literals)",
-    "status": "running",
+    "status": "cancelled",
     "narratives": {
       "Description": "AppSec: 2 HIGH + 2 MEDIUM — post-#3545 UAT Shell residuals (qjs/ipython/csi/chrome/lame/webpack/… plant authz + kill-switch; approved-scope mint; CHANGELOG leaf symlink)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3764",
@@ -17,12 +17,12 @@
     "items": [
       {
         "title": "Do not bind another named-bin pass, and do not bind fail-closed on unclassifiable write-shaped Shell, as the class close.",
-        "status": "proposed",
+        "status": "cancelled",
         "effort": "S"
       },
       {
         "title": "Do not recut remaining UAT bins to `settings` deny. Residual dest-of-write grammar emits `unknown` and active-UAT `authz-uat-deny` (grant-immune), matching #4188.",
-        "status": "proposed",
+        "status": "cancelled",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "uat",
@@ -33,7 +33,7 @@
       },
       {
         "title": "Remaining UAT dest-of-write grammar: dest-flag values (attached `=`, `--target-dir` / `--print-to-pdf` / `--distpath` / `-of` / `-output` / `-C`), last-positional defeat by a trailing non-flag word, the `TEST_BINS` skip (`task` / `cargo` / `npm` / …), and option 1: a protected-path literal inside interpreter `-c`/`-e`/`--eval` bodies is dest-of-write (emit `unknown`; no write-marker gate; reads/`print` of those paths deny). Names stay regression fixtures. Concatenation and non-literal paths remain residual.",
-        "status": "proposed",
+        "status": "cancelled",
         "effort": "M",
         "x-directive/evidence": {
           "kind": "uat",
@@ -44,7 +44,7 @@
       },
       {
         "title": "Scope that UAT residual to payload-root-relative dests. Sibling-worktree effective-root admission is out of this issue.",
-        "status": "proposed",
+        "status": "cancelled",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "uat",
@@ -55,17 +55,17 @@
       },
       {
         "title": "Finding 4 stays split to the containment story (comment 5496116702). It is not a same-story patch on this UAT residual. The CHANGELOG sink is real; restated victim is an in-tree changelog-shaped file, not `package.json`. Guard before the first read via existing `containedWrite` / `assertWriteTargetSafe` / `assertDestinationNotSymlink`. Cite `render/roadmap-render.ts` as the in-repo peer.",
-        "status": "proposed",
+        "status": "cancelled",
         "effort": "S"
       },
       {
         "title": "Replace the body evidence table with dest-grammar rows against `9a28d509`. Last-positional already gated; payload and dest-flag values remain.",
-        "status": "proposed",
+        "status": "cancelled",
         "effort": "S"
       },
       {
         "title": "Campaign-wide `uat-suspend` is the accepted recovery for remaining UAT dest-of-write work here. Consumer comment 5479859534 (protected-files missing approval verb) is a different residual and is not this classify class.",
-        "status": "proposed",
+        "status": "cancelled",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "uat",
@@ -188,9 +188,13 @@
         "handoffState": "implemented",
         "deployed": null,
         "uatVerified": true
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-17T11:48:00Z"
       }
     },
     "id": "github.issue.5258241122",
-    "updated": "2026-09-15T20:35:00Z"
+    "updated": "2026-09-17T11:48:00Z"
   }
 }
