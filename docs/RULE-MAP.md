@@ -8,7 +8,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 24 groupings, 276 documents
+- **Rules:** 24 groupings, 277 documents
 - **Tasks:** 62 namespaces, 254 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 191 | 16 | 137 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 37 | 19 | 12 | 60 | 1 | 2 |
+| docs | Explanatory docs and the framework glossary. | 38 | 19 | 12 | 60 | 1 | 2 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -139,6 +139,7 @@ _Explanatory docs and the framework glossary._
 - `delivery-attempt.md` — Deterministic pre-dispatch gate and durable attempt ledger for autonomous **delivery** and **operational-acceptance** loops.
 - `directive-lifecycle.md` — A single-picture mental model of how Deft Directive turns an idea into shipped, auditable work — and keeps doing so as the project grows. It is **not** a one-and-done pipeline; it is two connected phases that loop.
 - `freshness-contract.md` — Long-lived multi-agent sessions can keep executing the pre-upgrade payload they loaded earlier even after `directive update` / deposit apply succeeds and disk probes report "up to date." This product **freshness contract** is host-agnostic:
+- `full-stop.md` — Uninstall plus delete `.deft/` is not a complete stop. Leftover host hook files still deny writes after the CLI is gone. This page is the reverse-init recipe: leftover classes, then the ordered stop while the CLI still exists.
 - `gate-integrity.md` — General product and process rule for Directive fix loops, refine loops, and quality-gate repair: **when a gate is red, clear red by fixing the work under test — not by mutating the gate.**
 - `getting-started.md` — Deft Directive is a Taskfile-first framework for AI-assisted software work. It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide is the…
 - `good-agents-md.md` — **Source**: https://x.com/augmentcode/status/2047164534310494709 **Author**: Slava Zhenylenko (Member of Technical Staff, Augment Code) **Published**: 2026-04-23
