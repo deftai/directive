@@ -15,7 +15,6 @@ import {
   formatScopeStatus,
   inferRequiredStrictAxes,
   isEvidenceKindSuitable,
-  PENDING_CHANGE_TASK_LEDGER_LEFTOVER,
   persistClauseKeyedPendingItems,
   readNamespacedAcceptanceFields,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
@@ -1139,11 +1138,6 @@ describe("#4385 clause-keyed complete persist and scope:status", () => {
     expect(evaluateAcceptanceEvidenceGate(plan).ok).toBe(true);
   });
 
-  it("names the pending change-task ledger as leftover", () => {
-    expect(PENDING_CHANGE_TASK_LEDGER_LEFTOVER).toMatch(/derive-status/);
-    expect(PENDING_CHANGE_TASK_LEDGER_LEFTOVER).toMatch(/#4426/);
-    expect(PENDING_CHANGE_TASK_LEDGER_LEFTOVER).toMatch(/leftover/);
-  });
 
   it("scope:status emits counts and ids and omits clause text", () => {
     const plan: Record<string, unknown> = {

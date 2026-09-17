@@ -91,9 +91,8 @@ export const CLAUSE_KEYED_ITEM_ID_PREFIX = "clause:" as const;
  * Leftover of #4385 defect 2: pending change-task ledger
  * (history/changes/.../tasks.xbrief.json) is not closed by this P1.
  * Prefer derive-status over a second walker. #4426 owns the issue-less origin half.
+ * Not an exported production symbol.
  */
-export const PENDING_CHANGE_TASK_LEDGER_LEFTOVER =
-  "leftover: pending change-task ledger; prefer derive-status over a second walker; #4426 owns issue-less origin (#4385)";
 
 export interface AcceptanceEvidenceRecord {
   readonly kind: AcceptanceEvidenceKind;
