@@ -1,5 +1,6 @@
 import * as childProcess from "node:child_process";
 import { accessSync, constants } from "node:fs";
+import { CONSUMER_TOOLS, MAINTAINER_TOOLS } from "./toolchain-check.js";
 
 export type ProbeFn = (command: string) => string | null;
 export type InputFn = (prompt: string) => string;
@@ -156,6 +157,21 @@ const TOOL_SPECS: readonly ToolSpec[] = [
   },
 ];
 
+const CONSUMER_TOOL_NAME_SET = new Set(CONSUMER_TOOLS.map((tool) => tool.name));
+const MAINTAINER_ONLY_TOOL_NAME_SET = new Set<string>([
+  ...MAINTAINER_TOOLS.map((tool) => tool.name).filter((name) => !CONSUMER_TOOL_NAME_SET.has(name)),
+  "python",
+]);
+
+/** Unflagged verify:tools (session:start) uses the consumer set. includeTask keeps maintainer-only uv/python plus task (#4672). */
+function selectToolSpecs(includeTask: boolean): readonly ToolSpec[] {
+  return TOOL_SPECS.filter((spec) => {
+    if (spec.name === "task") return includeTask;
+    if (MAINTAINER_ONLY_TOOL_NAME_SET.has(spec.name)) return includeTask;
+    return true;
+  });
+}
+
 const PACKAGE_MANAGERS: Readonly<Record<string, readonly string[]>> = {
   windows: ["winget", "scoop", "choco"],
   macos: ["brew"],
@@ -303,6 +319,7 @@ export function verificationResultToJson(result: VerificationResult): string {
 export interface VerifyRequiredToolsOptions {
   readonly install?: boolean;
   readonly assumeYes?: boolean;
+  /** When true, include task plus maintainer-only uv/python (#4672). */
   readonly includeTask?: boolean;
   readonly platformId?: string;
   readonly probe?: ProbeFn;
@@ -319,9 +336,7 @@ export function verifyRequiredTools(options: VerifyRequiredToolsOptions = {}): V
   const statuses: ToolStatus[] = [];
   const lines: string[] = [];
 
-  const selectedSpecs = options.includeTask
-    ? TOOL_SPECS
-    : TOOL_SPECS.filter((spec) => spec.name !== "task");
+  const selectedSpecs = selectToolSpecs(options.includeTask ?? false);
 
   for (const spec of selectedSpecs) {
     const found = installedCommand(spec, probe);

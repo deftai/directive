@@ -16,6 +16,7 @@ export interface ToolCheck {
   readonly command: readonly string[];
 }
 
+/** Maintainer toolchain:check probes. verify:tools includeTask adds uv from this set; python stays verify:tools-only (#4672). */
 export const MAINTAINER_TOOLS: readonly ToolCheck[] = [
   { name: "go", command: ["go", "version"] },
   { name: "uv", command: ["uv", "--version"] },
@@ -25,7 +26,7 @@ export const MAINTAINER_TOOLS: readonly ToolCheck[] = [
   { name: "pnpm", command: ["pnpm", "--version"] },
 ];
 
-/** Consumer prerequisites shared by npm and pnpm projects. */
+/** Consumer prerequisites shared by npm and pnpm projects. Unflagged verify:tools follows this set for names it probes (git, gh) (#4672). */
 export const CONSUMER_TOOLS: readonly ToolCheck[] = [
   { name: "git", command: ["git", "--version"] },
   { name: "gh", command: ["gh", "--version"] },

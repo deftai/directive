@@ -56,6 +56,26 @@ describe("verifyRequiredTools", () => {
     expect(json).toContain('"exit_code"');
     expect(JSON.parse(json)).toMatchObject({ exit_code: 0, platform: "linux" });
   });
+
+  it("does not fail unflagged consumer verify when uv is missing (#4672)", () => {
+    const result = verifyRequiredTools({
+      platformId: "linux",
+      probe: probeWith("git", "gh", "apt-get"),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.statuses.map((status) => status.name)).not.toContain("uv");
+    expect(result.statuses.map((status) => status.name)).not.toContain("python");
+  });
+
+  it("still requires uv when includeTask selects the maintainer set (#4672)", () => {
+    const result = verifyRequiredTools({
+      includeTask: true,
+      platformId: "linux",
+      probe: probeWith("git", "task", "python3", "gh", "apt-get"),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.statuses.some((status) => status.name === "uv" && !status.installed)).toBe(true);
+  });
 });
 
 describe("detectPlatform", () => {

@@ -62,6 +62,7 @@ describe("verify-tools branches", () => {
   it("covers unknown platform manual-only guidance", () => {
     const lines: string[] = [];
     const result = verifyRequiredTools({
+      includeTask: true,
       platformId: "unknown",
       probe: (c) => (["git", "task", "python3", "gh"].includes(c) ? `/usr/bin/${c}` : null),
       outputFn: (line) => {
