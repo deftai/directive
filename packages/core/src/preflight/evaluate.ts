@@ -55,12 +55,46 @@ export const ELIGIBLE_LIFECYCLE_DIRS = ["xbrief/active", "vbrief/active"] as con
 export const PREFLIGHT_USAGE_HINT =
   "Expected: `task xbrief:preflight -- xbrief/active/<story>.xbrief.json` (legacy: `task vbrief:preflight -- <path>`).";
 
+/** Preflight is never an authz allow. First-write remainder is #4709. */
+export const PREFLIGHT_AUTHORIZATION_REMAINDER = "#4709" as const;
+
+export interface PreflightAuthorizationResult {
+  readonly allow: false;
+  readonly remainder: typeof PREFLIGHT_AUTHORIZATION_REMAINDER;
+  readonly reason: string;
+}
+
+export const PREFLIGHT_NOT_AUTHORIZATION: PreflightAuthorizationResult = {
+  allow: false,
+  remainder: PREFLIGHT_AUTHORIZATION_REMAINDER,
+  reason:
+    "xbrief:preflight exit 0 is lifecycle-ready (active/ plus running plus structural checks). It is not implementation authorization. Ordinary-session first-write remainder is #4709.",
+};
+
 /** Result of a vBRIEF preflight evaluation; mirrors the Python `evaluate` tuple. */
 export interface EvaluateResult {
   readonly exitCode: 0 | 1;
   readonly message: string;
   /** #3241 parent-lineage probe when structural checks passed far enough to load the payload. */
   readonly parentLineage?: ParentLineageResult;
+  /** Separate from lifecycle-ready / exit 0. Never an authz allow (#4690). */
+  readonly authorization: PreflightAuthorizationResult;
+}
+
+function outcome(
+  exitCode: 0 | 1,
+  message: string,
+  extra?: { parentLineage?: ParentLineageResult },
+): EvaluateResult {
+  if (extra?.parentLineage !== undefined) {
+    return {
+      exitCode,
+      message,
+      parentLineage: extra.parentLineage,
+      authorization: PREFLIGHT_NOT_AUTHORIZATION,
+    };
+  }
+  return { exitCode, message, authorization: PREFLIGHT_NOT_AUTHORIZATION };
 }
 
 export interface EvaluateOptions {
@@ -131,22 +165,13 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") {
-      return {
-        exitCode: 1,
-        message: buildReject(path, `vBRIEF not found at ${path}.`),
-      };
+      return outcome(1, buildReject(path, `vBRIEF not found at ${path}.`));
     }
-    return {
-      exitCode: 1,
-      message: buildReject(path, `Could not read vBRIEF at ${path}: ${String(e.message)}.`),
-    };
+    return outcome(1, buildReject(path, `Could not read vBRIEF at ${path}: ${String(e.message)}.`));
   }
 
   if (!st.isFile()) {
-    return {
-      exitCode: 1,
-      message: buildReject(path, `vBRIEF path ${path} is not a regular file.`),
-    };
+    return outcome(1, buildReject(path, `vBRIEF path ${path} is not a regular file.`));
   }
 
   let raw: string;
@@ -154,10 +179,7 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     raw = readFileSync(vbriefPath, "utf8");
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException;
-    return {
-      exitCode: 1,
-      message: buildReject(path, `Could not read vBRIEF at ${path}: ${String(e.message)}.`),
-    };
+    return outcome(1, buildReject(path, `Could not read vBRIEF at ${path}: ${String(e.message)}.`));
   }
 
   let payload: unknown;
@@ -168,68 +190,56 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     const lineCol = /\(line (\d+) column \d+\)/.exec(e.message);
     const line = lineCol ? Number(lineCol[1]) : 1;
     const pyMsg = nodeJsonErrorToPythonMsg(e.message);
-    return {
-      exitCode: 1,
-      message: buildReject(path, `vBRIEF at ${path} is not valid JSON: ${pyMsg} (line ${line}).`),
-    };
+    return outcome(
+      1,
+      buildReject(path, `vBRIEF at ${path} is not valid JSON: ${pyMsg} (line ${line}).`),
+    );
   }
 
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-    return {
-      exitCode: 1,
-      message: buildReject(path, `vBRIEF at ${path} top-level value is not a JSON object.`),
-    };
+    return outcome(1, buildReject(path, `vBRIEF at ${path} top-level value is not a JSON object.`));
   }
 
   const folder = basename(dirname(vbriefPath));
   const parent = basename(dirname(dirname(vbriefPath)));
   const lifecycleDir = `${parent}/${folder}`;
   if (folder !== ACTIVE_FOLDER) {
-    return {
-      exitCode: 1,
-      message: buildReject(
+    return outcome(
+      1,
+      buildReject(
         path,
         `xBRIEF is in ${lifecycleDir}/ -- only xbrief/active/ (or legacy vbrief/active/) is eligible for implementation.`,
       ),
-    };
+    );
   }
 
   const record = payload as Record<string, unknown>;
   const plan = record.plan;
   if (plan === null || typeof plan !== "object" || Array.isArray(plan)) {
-    return {
-      exitCode: 1,
-      message: buildReject(path, `vBRIEF at ${path} lacks a \`plan\` object -- malformed.`),
-    };
+    return outcome(1, buildReject(path, `vBRIEF at ${path} lacks a \`plan\` object -- malformed.`));
   }
 
   const planRecord = plan as Record<string, unknown>;
   const status = planRecord.status;
   if (typeof status !== "string" || status.length === 0) {
-    return {
-      exitCode: 1,
-      message: buildReject(path, `vBRIEF at ${path} lacks \`plan.status\` -- malformed.`),
-    };
+    return outcome(1, buildReject(path, `vBRIEF at ${path} lacks \`plan.status\` -- malformed.`));
   }
 
   if (status !== ELIGIBLE_STATUS) {
-    return {
-      exitCode: 1,
-      message: buildReject(
+    return outcome(
+      1,
+      buildReject(
         path,
         `plan.status is '${status}' -- only '${ELIGIBLE_STATUS}' is eligible for implementation.`,
       ),
-    };
+    );
   }
 
   // Slash-command intent containment (#1193 / extends #810): non-implement session
   // verbs must not authorize implementation preflight even when the xBRIEF is active.
   const intent = evaluateIntentCeilingFromEnv("implement");
   if (!intent.allowed) {
-    return {
-      exitCode: 1,
-      message: buildReject(path, intent.reason),
-    };
+    return outcome(1, buildReject(path, intent.reason));
   }
 
   // #3241 pre-PR / implementation preflight: parent lineage fail-closed.
@@ -241,14 +251,11 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
   });
   if (!lineage.ok) {
     const defect = lineage.defect_class !== null ? ` [defect_class=${lineage.defect_class}]` : "";
-    return {
-      exitCode: 1,
-      parentLineage: lineage,
-      message: buildReject(
-        path,
-        `${lineage.message}${defect}\n  ${formatParentLineageLine(lineage)}`,
-      ),
-    };
+    return outcome(
+      1,
+      buildReject(path, `${lineage.message}${defect}\n  ${formatParentLineageLine(lineage)}`),
+      { parentLineage: lineage },
+    );
   }
 
   // #3363: fail closed when the live GitHub origin is newer than the brief.
@@ -258,13 +265,11 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     cwd: options.projectRoot,
   });
   if (!originFreshness.ok) {
-    return {
-      exitCode: 1,
+    // #3828: the brief is active + running by this point, so the activate
+    // hint would name a transition that hard-errors from the printed state.
+    return outcome(1, buildReject(path, originFreshness.message, formatOriginFreshnessHint(path)), {
       parentLineage: lineage,
-      // #3828: the brief is active + running by this point, so the activate
-      // hint would name a transition that hard-errors from the printed state.
-      message: buildReject(path, originFreshness.message, formatOriginFreshnessHint(path)),
-    };
+    });
   }
 
   // #3425: fail closed when an applicable project invariant has no disposition.
@@ -273,11 +278,7 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     skip: options.skipProjectInvariants === true,
   });
   if (!invariants.ok) {
-    return {
-      exitCode: 1,
-      parentLineage: lineage,
-      message: buildReject(path, invariants.message),
-    };
+    return outcome(1, buildReject(path, invariants.message), { parentLineage: lineage });
   }
 
   // #3424: declared files vs review-trigger SoT. Missing field is grandfathered
@@ -287,11 +288,7 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     const projectRoot = resolveProjectRootFromBrief(path, options.projectRoot);
     const placement = evaluateIntendedPlacement(planRecord, { projectRoot });
     if (!placement.ok) {
-      return {
-        exitCode: 1,
-        parentLineage: lineage,
-        message: buildReject(path, placement.message),
-      };
+      return outcome(1, buildReject(path, placement.message), { parentLineage: lineage });
     }
     if (placement.warning === true) {
       placementWarning = placement.message;
@@ -301,32 +298,24 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
       resolveProjectRootFromBrief(path, options.projectRoot),
     );
     if (!mint.ok) {
-      return {
-        exitCode: 1,
-        parentLineage: lineage,
-        message: buildReject(path, mint.message),
-      };
+      return outcome(1, buildReject(path, mint.message), { parentLineage: lineage });
     }
   }
 
-  // Keep the historical OK line when lineage is N/A (backward-compatible tests / agents).
+  // Lifecycle-ready OK line. Not implementation authorization (#4690).
   let message = lineage.applicable
-    ? `OK ${path} -- ready for implementation. parent lineage OK ` +
+    ? `OK ${path} -- lifecycle-ready. parent lineage OK ` +
       `(${lineage.parent_requirement_ids.length} req IDs` +
       (lineage.negative_invariant_ids.length > 0
         ? `, ${lineage.negative_invariant_ids.length} negative invariants`
         : "") +
       `).`
-    : `OK ${path} -- ready for implementation.`;
+    : `OK ${path} -- lifecycle-ready.`;
   if (placementWarning !== undefined) {
     message = `${message} ${placementWarning}`;
   }
 
-  return {
-    exitCode: 0,
-    parentLineage: lineage,
-    message,
-  };
+  return outcome(0, message, { parentLineage: lineage });
 }
 
 export {
@@ -337,11 +326,18 @@ export {
 
 /** Structured `--json` payload (sorted keys), mirroring Python `_emit_json`. */
 export function emitJson(vbriefPath: string, exitCode: number, message: string): string {
-  const payload = {
+  const payload: Record<string, unknown> = {
     ready: exitCode === 0,
     exit_code: exitCode,
     vbrief_path: vbriefPath,
     message,
+    authorization: PREFLIGHT_NOT_AUTHORIZATION,
   };
-  return JSON.stringify(payload, Object.keys(payload).sort());
+  // Sort top-level keys only. An array replacer would strip nested
+  // authorization.allow / remainder / reason (#4690).
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(payload).sort()) {
+    sorted[key] = payload[key];
+  }
+  return JSON.stringify(sorted);
 }

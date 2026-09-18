@@ -13,6 +13,7 @@ import {
   emitJson,
   evaluate,
   formatActivateHint,
+  PREFLIGHT_NOT_AUTHORIZATION,
   PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";
 import { emitJson as emitJsonFromIndex, evaluate as evaluateFromIndex } from "./index.js";
@@ -58,7 +59,7 @@ describe("evaluate", () => {
     );
     const result = evaluate(path);
     expect(result.exitCode).toBe(0);
-    expect(result.message).toBe(`OK ${path} -- ready for implementation.`);
+    expect(result.message).toBe(`OK ${path} -- lifecycle-ready.`);
   });
 
   it("returns exit 0 for xbrief/active/ layout path", () => {
@@ -171,7 +172,7 @@ describe("evaluate", () => {
     const path = writeVbrief("active", "ingested.xbrief.json", JSON.stringify(vbrief));
     const result = evaluate(path, { skipOriginFreshness: true });
     expect(result.exitCode).toBe(0);
-    expect(result.message).toContain("ready for implementation");
+    expect(result.message).toContain("lifecycle-ready");
     expect(result.message).not.toContain("lacks plan.metadata.intended_placement");
   });
 
@@ -284,21 +285,88 @@ describe("parent lineage pre-PR (#3241)", () => {
   });
 });
 
-describe("emitJson", () => {
-  it("emits sorted keys matching the Python schema", () => {
-    const json = emitJson("/x/y.xbrief.json", 0, "OK");
-    expect(json).toBe(
-      JSON.stringify(
-        { ready: true, exit_code: 0, vbrief_path: "/x/y.xbrief.json", message: "OK" },
-        ["exit_code", "message", "ready", "vbrief_path"],
-      ),
+describe("preflight is not authorization (#4690)", () => {
+  it("treats exit 0 as lifecycle-ready, not an authz allow", () => {
+    const path = writeVbrief(
+      "active",
+      "story.xbrief.json",
+      JSON.stringify({ plan: { status: "running", metadata: underThresholdPlacement() } }),
     );
+    const result = evaluate(path);
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("lifecycle-ready");
+    expect(result.message.toLowerCase()).not.toContain("implementation authorization");
+    expect(result.authorization.allow).toBe(false);
+    expect(result.authorization).toEqual(PREFLIGHT_NOT_AUTHORIZATION);
+    expect(result.authorization.remainder).toBe("#4709");
+    const payload = JSON.parse(emitJson(path, result.exitCode, result.message)) as {
+      ready: boolean;
+      authorization: { allow: boolean };
+    };
+    expect(payload.ready).toBe(true);
+    expect(payload.authorization.allow).toBe(false);
+  });
+
+  it("reaches lifecycle-ready with no DEFT_SESSION_SLASH_VERB without naming implementation authorization", () => {
+    const previous = process.env.DEFT_SESSION_SLASH_VERB;
+    delete process.env.DEFT_SESSION_SLASH_VERB;
+    try {
+      const path = writeVbrief(
+        "active",
+        "story.xbrief.json",
+        JSON.stringify({ plan: { status: "running", metadata: underThresholdPlacement() } }),
+      );
+      const result = evaluate(path);
+      expect(result.exitCode).toBe(0);
+      expect(result.message).toContain("lifecycle-ready");
+      expect(result.message.toLowerCase()).not.toContain("implementation authorization");
+      expect(result.authorization.allow).toBe(false);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DEFT_SESSION_SLASH_VERB;
+      } else {
+        process.env.DEFT_SESSION_SLASH_VERB = previous;
+      }
+    }
+  });
+});
+
+describe("emitJson", () => {
+  it("emits sorted keys matching the Python schema plus a separate authorization result", () => {
+    const json = emitJson("/x/y.xbrief.json", 0, "OK");
+    const payload = JSON.parse(json) as {
+      ready: boolean;
+      exit_code: number;
+      vbrief_path: string;
+      message: string;
+      authorization: typeof PREFLIGHT_NOT_AUTHORIZATION;
+    };
+    expect(Object.keys(payload)).toEqual([
+      "authorization",
+      "exit_code",
+      "message",
+      "ready",
+      "vbrief_path",
+    ]);
+    expect(payload).toEqual({
+      authorization: PREFLIGHT_NOT_AUTHORIZATION,
+      exit_code: 0,
+      message: "OK",
+      ready: true,
+      vbrief_path: "/x/y.xbrief.json",
+    });
+    expect(payload.authorization.allow).toBe(false);
   });
 
   it("marks ready false for non-zero exit", () => {
-    const payload = JSON.parse(emitJson("/p", 1, "nope")) as { ready: boolean; exit_code: number };
+    const payload = JSON.parse(emitJson("/p", 1, "nope")) as {
+      ready: boolean;
+      exit_code: number;
+      authorization: { allow: boolean };
+    };
     expect(payload.ready).toBe(false);
     expect(payload.exit_code).toBe(1);
+    expect(payload.authorization.allow).toBe(false);
   });
 });
 
@@ -433,7 +501,7 @@ describe("origin freshness (#3363)", () => {
       fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }),
     });
     expect(result.exitCode).toBe(0);
-    expect(result.message).toContain("ready for implementation");
+    expect(result.message).toContain("lifecycle-ready");
   });
 
   it("fails closed when origin fetch errors and skip disables the check", () => {
