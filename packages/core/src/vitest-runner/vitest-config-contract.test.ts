@@ -186,6 +186,8 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).not.toContain("install-upgrade.test.ts");
     expect(source).not.toMatch(/fileParallelism:\s*false/);
     expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
+    expect(source).toMatch(/name:\s*"unit"[\s\S]*maxWorkers:\s*winMaxWorkers/);
+    expect(source).toMatch(/name:\s*"spawn-heavy"[\s\S]*maxWorkers:\s*winMaxWorkers/);
   });
 
   it("projects inherit root aliases so unbuilt packages resolve without tsc", () => {

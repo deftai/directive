@@ -239,6 +239,8 @@ export default defineConfig({
           include: ["packages/*/src/**/*.test.ts"],
           exclude: [...spawnHeavyGlobs],
           testTimeout: isWin32 ? 240_000 : 5_000,
+          // Projects do not inherit root maxWorkers; pin the same cap (#4744).
+          ...(isWin32 ? { maxWorkers: winMaxWorkers } : {}),
         },
       },
       {
@@ -247,6 +249,7 @@ export default defineConfig({
           name: "spawn-heavy",
           include: [...spawnHeavyGlobs],
           testTimeout: isWin32 ? 240_000 : 5_000,
+          ...(isWin32 ? { maxWorkers: winMaxWorkers } : {}),
         },
       },
     ],
