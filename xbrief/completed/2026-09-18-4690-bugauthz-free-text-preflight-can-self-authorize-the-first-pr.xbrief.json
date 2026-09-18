@@ -55,7 +55,7 @@
         },
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/preflight/evaluate.ts",
+          "pointer": "packages/core/src/preflight/evaluate.test.ts",
           "recorded_at": "2026-09-18T17:31:09.026Z",
           "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
         }
