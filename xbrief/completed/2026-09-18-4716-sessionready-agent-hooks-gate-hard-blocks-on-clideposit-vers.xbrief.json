@@ -1,0 +1,409 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4716",
+    "updated": "2026-09-18T19:54:58Z"
+  },
+  "plan": {
+    "title": "session:ready agent_hooks gate hard-blocks on CLI/deposit version skew; only destructive deft update offered for the active host",
+    "status": "completed",
+    "narratives": {
+      "Description": "session:ready agent_hooks gate hard-blocks on CLI/deposit version skew; only destructive deft update offered for the active host",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4716",
+      "Overview": "## Summary\n\nA **CLI-vs-vendored-deposit version skew** escalates the `session:ready` `agent_hooks` gate into a **hard, blocking failure** whose only offered remedy for the *host actually in use* is the **destructive** `deft update`. There is no lightweight \"re-register/refresh hooks to match the installed CLI\" path, so a routine version drift blocks all gated tools (Edit/Write) until the operator either runs a repo-wide deposit rewrite or disables host-hook guardrails.\n\n## Environment\n\n- Installed engine: `@deftai/directive-core@0.119.2` (via `@deftai/directive`)\n- Vendored deposit committed in the repo: `v0.117.0` (`.deft/core/VERSION`, `GENERATION.json` generation 6, `managed_by: npm`)\n- OS: macOS (darwin); host: `claude` (Claude Code); package manager: pnpm\n- Context: a fresh `git worktree` branched from the delivery branch, then `deft session:ready --session-id=<...>` for mutation intent.\n\nThe CLI is ~2-3 minor versions ahead of the deposit vendored in the repo.\n\n## What happens\n\n`deft session:ready` claims occupancy successfully, then **exits 1** on the gated `agent_hooks` step:\n\n    session ritual gated step 'agent_hooks' failed: deft agent hook registration INCOMPLETE:\n      - claude: drifted at .claude/settings.json -- Directive SessionStart, direct-write/spawn PreToolUse, or compact re-arm registration is missing/drifted.\n      - cursor: drifted at .cursor/hooks.json -- ...\n      Recovery: run `deft update` (or `directive init`) to refresh project hooks. If an affected host is unused, inspect `deft policy:show --field=hostHooks`, then run `deft policy:disable-host-hooks --host <host> --confirm`.\n      Remaining blocker after session:ready.\n\nAfter this, **all gated tools are blocked** -- e.g. the Claude Code Write tool is denied even for a path *outside* the repo:\n\n    Directive denied Write: session ritual gated step 'agent_hooks' failed ...\n\n## Why this is a problem\n\n1. **A pure version skew becomes a hard gate.** The hooks aren't corrupted -- the newer CLI (0.119.2) expects a hook-registration shape the older vendored deposit (0.117.0) never wrote. This is an expected, common drift (the CLI updates independently of the vendored deposit), yet it blocks all mutation.\n2. **The only remedy for the active host is destructive.** `policy:disable-host-hooks` is explicitly scoped to *unused* hosts. For the host actually in use (`claude`, reported `drifted`), the sole offered fix is `deft update` -- a **repo-wide deposit rewrite** (a prior run rewrote ~1,585 files; cf. the closed #3437 on `deft update` destructiveness and `--dry-run` not signalling it). Forcing a framework-wide upgrade to clear a hook-registration mismatch is disproportionate and unsafe to run mid-task or on a shared branch.\n3. **No narrow recovery.** There is no command to *only* re-emit/refresh the host hook registrations to match the installed CLI without rewriting the whole deposit.\n4. **The block also denies writes outside the repo** (scratchpad/temp paths), which is broader than needed to protect repo integrity.\n\n## Requested\n\n- A **targeted, non-destructive** remedy to reconcile host hook registrations with the installed CLI (e.g. a `hooks:refresh` that rewrites only `.claude/settings.json` / `.cursor/hooks.json`, not the deposit).\n- Treat a **CLI-ahead-of-deposit hook-shape mismatch** as a warning (or offer the narrow fix) rather than a hard blocker of gated tools, at least once occupancy is claimed.\n- If `deft update` remains canonical, state clearly in the gate message that it is a **repo-wide deposit rewrite**, not a narrow hook repair.\n- Scope the write-block to repo paths so out-of-tree scratch writes aren't denied.\n\n## Notes\n\nOccupancy itself claimed fine (`occupancy claimed session ... intent=mutation`); the block is solely the `agent_hooks` gated step. Filed from a consumer repo pinned to deposit 0.117.0 with CLI 0.119.2.\n\n",
+      "Labels": "bug, agent-experience, harness, vendored-deposit, area:installer, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- writeAgentHookDeposit without runRefreshDeposit file-swap\n- drifted still fail-closed\n- CHANGELOG [Unreleased] #4716"
+    },
+    "items": [
+      {
+        "title": "Expose writeAgentHookDeposit as the recovery without runRefreshDeposit file-swap (new verb or no-swap path). Write all still-enabled hosts. Re-run the existing live probe.",
+        "status": "completed",
+        "id": "clause:1",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Expose writeAgentHookDeposit as the recovery without runRefreshDeposit file-swap (new verb or no-swap path). Write all still-enabled hosts. Re-run the existing live probe."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T19:54:34.980Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Keep structural missing/drifted fail-closed. Do not treat warning as an equal bound shape.",
+        "status": "completed",
+        "id": "clause:2",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Keep structural missing/drifted fail-closed. Do not treat warning as an equal bound shape."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T19:54:34.980Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Do not take out-of-tree write exemption (Requested item 4). In-repo scratch stays #1802. Out-of-tree ritual stays #4013.",
+        "status": "completed",
+        "id": "clause:3",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not take out-of-tree write exemption (Requested item 4). In-repo scratch stays #1802. Out-of-tree ritual stays #4013."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T19:54:34.980Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Keep a rewrite-disclosure clause on the update recovery line. Disclosure-only does not relieve P1.",
+        "status": "completed",
+        "id": "clause:4",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Keep a rewrite-disclosure clause on the update recovery line. Disclosure-only does not relieve P1."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T19:54:34.980Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Do not add doctor to WRITE_GATED_EXECUTE_STEPS.",
+        "status": "completed",
+        "id": "clause:5",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not add doctor to WRITE_GATED_EXECUTE_STEPS."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T19:54:34.980Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "harness",
+      "vendored-deposit",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4716",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4716: session:ready agent_hooks gate hard-blocks on CLI/deposit version skew; only destructive deft update offered for the active host"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3437",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3437"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, Expose writeAgentHookDeposit as the recovery without runRefreshDeposit file-swap (new verb or no-swap path). Write all still-enabled hosts. Re-run the existing live probe.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, Keep structural missing/drifted fail-closed. Do not treat warning as an equal bound shape.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, Do not take out-of-tree write exemption (Requested item 4). In-repo scratch stays #1802. Out-of-tree ritual stays #4013.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, Keep a rewrite-disclosure clause on the update recovery line. Disclosure-only does not relieve P1.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, Do not add doctor to WRITE_GATED_EXECUTE_STEPS.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because session:ready agent_hooks hard-blocks gated tools on CLI-ahead-of-deposit hook-shape skew and the only recovery for the active host is deft update.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4716-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: operator add onto each separately; independent single-seat Grok critic arc, not panel spend.\n\nrefutation-target: CLI-ahead-of-deposit hook-shape mismatch must not hard-block gated tools with only deft update as the active-host recovery; a targeted hooks refresh (or a warning plus an honest rewrite disclosure) is the bound shape.\n\ntarget: #4716\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the measured session:ready on a fresh git worktree: occupancy claimed, then gated agent_hooks failed INCOMPLETE for claude (and cursor) at .claude/settings.json / .cursor/hooks.json. CLI @deftai/directive-core@0.119.2 vs vendored deposit v0.117.0. Write denied even for a path outside the repo. Recovery names deft update (or directive init) plus policy:disable-host-hooks only for unused hosts.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/verify-env/agent-hooks.ts evaluateAgentHookReadiness: missing or drifted registrations return code 1 and Recovery: run deft update (or directive init) to refresh project hooks, then UNUSED_HOST_HOOKS_RECOVERY (policy:disable-host-hooks for unused hosts).\n- packages/core/src/init-deposit/refresh.ts writeAgentHookDeposit runs inside runRefreshDeposit after payload swap/no-op. No separate hooks-only verb is named on that path.\n- packages/core/src/session/verify-session-ritual.ts WRITE_GATED_REQUIRED_STEPS is agent_hooks then doctor; WRITE_GATED_EXECUTE_STEPS is agent_hooks only.\n- Closed #3437 is update dry-run rewrite disclosure, not this gate.\n\nRelated: #4706 deposit hygiene after update; #4692/#4710 pin reconstitution. Comment thread empty at Stop 1. No implement and no ingest from this parent.\n\n\n",
+          "id": 5718667509,
+          "html_url": "https://github.com/deftai/directive/issues/4716#issuecomment-5718667509",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:36:00Z",
+          "updated_at": "2026-09-17T17:36:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound-1 refutation of Stop 1 comment 5718667509 (ceiling) and issue body. Pin SHA edf1d698aafcf956cff08ad3ad14ff608505861a. No ingest.\n\n## Warning-as-equal-bound-shape fail-opens agent_hooks\n\nclass: blocks-the-design\n\nEvidence. `inspectAgentHookDeposit` has no CLI-vs-deposit version class. `drifted` is any enabled host whose on-disk JSON fails the *current CLI* `hasNestedRegistration` / `hasCursorRegistration` check (missing SessionStart, missing a current matcher, compact miss, Cursor timeout/failClosed, or unreadable JSON). `evaluateAgentHooks` returns code 1 for missing or drifted and prints Recovery: run `deft update` (or `directive init`). `evaluateAgentHookReadiness` (the gated `verify:hooks-installed --scope=agent --live` wrapper) returns that structural result with `liveStatus: not-run` — it does not special-case CLI-ahead. `content/contracts/agent-hook-readiness.md` requires mutation readiness not report green when an enabled hook is missing or drifted. `WRITE_GATED_EXECUTE_STEPS` is `agent_hooks` only, so that red is the write/spawn deny. The refutation-target OR-equals a warning to a targeted refresh. The issue body says treat the mismatch as a warning rather than a hard blocker.\n\nFailure mode. A Bound-remedy that keeps the warning arm lets occupancy-claimed mutation proceed with incomplete interceptors. The inspect cannot tell a newer CLI missing SHELL/MCP/spawn matchers from a stripped SessionStart. Softening one narrative subclass softens every drifted file. New matchers (#2711 / #3987) would fail open until someone happens to run a full update.\n\nDisposition. Drop warning as an equal bound shape. Keep structural missing/drifted fail-closed. The bound recovery is a narrow write of the current hook files, not a green ritual on stale registration.\n\n## Out-of-tree write exemption recuts #4013 and #2885\n\nclass: blocks-the-design\n\nEvidence. Issue Requested item 4 asks to scope the write-block to repo paths so out-of-tree scratch is not denied. `content/docs/hook-root-admission.md` publishes the no-toplevel case as deliberate (#4013): OS temp / home / non-git destinations keep payload-root occupancy *and* gated ritual. Exempting that class would drop those gates, re-stamp the wrong lease on allow, and give an untrusted extra path a vote in `admitMutationTargetSet`. `#2885` already skips *active-scope* deny for outside-root Write/Edit, not ritual; spawn still requires scope. `isAssistScratchWrite` (#1802) already skips ritual for allowlisted *in-repo* gitignored roots (`.deft-scratch/`, `temp/`), with a symlink-escape refuse (#3186). `content/commands.md` states Claude PreToolUse matches tool names, not paths, so loaded hooks gate Write including outside the project tree.\n\nFailure mode. Harvesting item 4 into Bound-remedy reopens a closed authority lattice as if it were hook-skew UX. A ritual-red session could Write an absolute temp/home path (or a #4023 relative/junction alias) while in-repo Write stayed denied.\n\nDisposition. Do not take item 4 on this issue. In-repo scratch already has #1802. Out-of-tree ritual exemption stays on #4013's successor terms (target-class lattice, mixed-set rule, per-gate table, canonicalize first). Unused-host opt-out remains `policy:disable-host-hooks --host <host> --confirm`, which is the documented way to stop matcher-on-tool-name gating — and it is the wrong recovery for the *active* host.\n\n## Name writeAgentHookDeposit; do not invent a second merger\n\nclass: sharpens-framing\n\nEvidence. `writeAgentHookDeposit` already merges current SessionStart / PreToolUse / compact entries into `.claude/settings.json`, `.grok/hooks/deft.json`, `.cursor/hooks.json`, `.codex/hooks.json`, preserves unmanaged JSON, refuses invalid JSON rather than overwrite, and is contained. `runRefreshDeposit` always calls it (refresh.ts after the payload swap or already-current no-op). `runInitDeposit` calls it too. There is no CLI verb. `alreadyCurrent` is deposit VERSION vs CLI content version; CLI-ahead (0.119.2 vs vendored 0.117.0) is `file-swap`, which is the ~1,585-file rewrite. The operator cannot reach the existing hook writer without that swap when versions diverge. `commands.md` repair line is only `deft update`. Analog: `agents:refresh` rewrites the AGENTS.md projection without swapping `.deft/core`.\n\nFailure mode. A new `hooks:refresh` merger, or a session:ready auto-repair with a second JSON writer, drifts from the function tests already lock. Scoping the writer to the \"active\" host leaves other enabled hosts drifted (the report lists claude *and* cursor); the gate is all enabled hosts, so INCOMPLETE remains.\n\nDisposition. Bound-remedy: expose `writeAgentHookDeposit` as the recovery (new verb or a no-swap path that does not call `runRefreshDeposit` file-swap). Write all still-enabled hosts. Then re-run the existing live probe. Do not add `doctor` to `WRITE_GATED_EXECUTE_STEPS` (that remainder is #4692 / #4710). Do not fold #4706 deposit-hygiene into this write.\n\n## Honest update disclosure is not P1 relief\n\nclass: sharpens-framing\n\nEvidence. Closed #3437 is the update *dry-run* rewrite headline when manifest and content disagree (`buildVersionSkewNotice` / dry-run headline in refresh.ts). The gated Recovery string does not say `deft update` is a repo-wide payload `file-swap` when VERSION differs. Adding that sentence is honesty. It leaves the hard-block and the missing narrow writer in place.\n\nFailure mode. Treating \"warning plus honest rewrite disclosure\" as an OR-equal to the narrow write binds a message change and calls P1 relieved.\n\nDisposition. Keep a rewrite-disclosure clause on the update recovery line. Cite `relieves` only for a path that actually unblocks without file-swap (the existing hook writer, CLI-exposed). Disclosure-only is remainder, not this bind.\n\n## Occupancy claimed then gated-fail is not a split-identity bug\n\nclass: footnote\n\n`session:start` / occupancy claim is quick-tier and does not record `agent_hooks` success (agent-hook-readiness.md). `session:ready` then forces the live gated step. That split is #2993 / #3100, not a defect in this report. Do not recut occupancy to skip ritual.\n\nTriage named `evaluateAgentHookReadiness` as the Recovery author; the sentence is `evaluateAgentHooks`, returned unchanged when structural.code !== 0. Live fixtures never ran on this incident.\n\n## Existing mechanisms (inventory)\n\n- Structural inspect: `inspectAgentHookDeposit` / `evaluateAgentHooks`\n- Live wrapper: `evaluateAgentHookReadiness` + `probeAgentHooksLive`\n- Writer: `writeAgentHookDeposit` (init + update only; no verb)\n- Cheap projections on update no-op: `writeAgentsMd`, `writeAgentHookDeposit`, `writeConsumerGitHooks`, `writeMultiHostSkillDiscovery` — hooks already sit in that class when VERSION matches; CLI-ahead never takes that class\n- Unused-host recovery: `UNUSED_HOST_HOOKS_RECOVERY` / `policy:disable-host-hooks --confirm` (capability-cost; strips on next update)\n- In-repo scratch skip of ritual: `isAssistScratchWrite` (#1802)\n- Outside-root active-scope skip only: #2885\n- Out-of-tree still ritualled: #4013 / hook-root-admission.md\n- Repair copy: `deft update` (commands.md)\n- Related, do not fold: #3437 dry-run disclosure; #4706 post-update deposit hygiene; #4692 / #4710 pin reconstitution and execute-steps remainder\n\n## Injection / swarm lens\n\nTarget changes authority (write/spawn gate), interceptor identity (host hook JSON vs running CLI), shared committed hook files, and worktree root admission.\n\n- Warning arm: fail-open PreToolUse while occupancy is already claimed. Missing spawn matcher is implement-class dest consult (#4066) not firing. Missing SHELL/MCP matcher is the #3987 reissue path not firing. Do not bind that.\n- Narrow writer: mutates shared `.claude/settings.json` / `.cursor/hooks.json` (often tracked). Merge-not-clobber and invalid-JSON throw are the existing controls; keep them. A worktree-local write dirties that worktree only until commit; that is the point of a targeted repair and is not dest-place.\n- Item 4 / no-toplevel exemption: untrusted absolute or #4023-relative path becomes an authority-selection input for mixed patches. Already refused on #4013. Assist/ephemeral classification is not a substitute (worktree product files were removed from assist scratch, #3794).\n- Auto-repair inside `session:ready`: the CLI process can write hook JSON while the host Write tool is red (same as update today). Prefer an explicit verb so the operator sees the file set. Do not hide a shared-state write behind ready.\n\n## Road not taken\n\nJudge registration against the *vendored deposit* hook contract instead of the running CLI, so a consumer pinned at 0.117.0 stays green on CLI 0.119.2 without writing files.\n\nSteelmans. Strongest rejected: the pin *is* the contract; CLI-ahead is expected drift; hard-block is the installer forcing an upgrade. Flip: the running `deft-hook` is the CLI. Old matchers mean the newer CLI's spawn/shell/MCP interceptors never register, which is a live enforcement hole, not a pin preference. The proportional fix is write current hook files without swapping `.deft/core`. Versioning the inspect to the deposit would encode that hole.\n\nWarning-on-CLI-ahead is the other reject: it needs a detector that does not exist, and it collides with the readiness contract. Disclosure-only is honesty, not relief.\n\n",
+          "id": 5718810893,
+          "html_url": "https://github.com/deftai/directive/issues/4716#issuecomment-5718810893",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:47:32Z",
+          "updated_at": "2026-09-17T17:47:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nsession:ready hard-blocked gated tools because the running CLI expected hook JSON the vendored deposit never wrote, and the only recovery for the host in use was a full deposit rewrite. The accepted harvest is a narrow write of the existing hook-deposit function without swapping .deft/core, still fail-closed on drifted registrations, with no out-of-tree write exemption and no warning-as-equal-shape. Honest update disclosure stays on the update line and does not by itself relieve the block.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Bound-remedy. Disposition: classified headings accept-into-contract. Residual: none on classified headings. Pain: relieves P1 (pain-audit after this lean).\nSpec-path: next-build contract is not this body.\n\n**Lean:** successor of Stop 1 5718667509 after critic 5718810893. Cites critic 5718810893. Supersedes write-back 5718667509.\n\nTarget-digest: sha256:5fa371044c493d3871df9d488f7a98f4b2755506def055f3b14978d2de9e2615\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4716-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5718810893 1 Warning-as-equal-bound-shape fail-opens agent_hooks -- accept-into-contract\n- 5718810893 2 Out-of-tree write exemption recuts #4013 and #2885 -- accept-into-contract\n- 5718810893 3 Name writeAgentHookDeposit; do not invent a second merger -- accept-into-contract\n- 5718810893 4 Honest update disclosure is not P1 relief -- accept-into-contract\n- remaining classified headings -- accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Expose writeAgentHookDeposit as the recovery without runRefreshDeposit file-swap (new verb or no-swap path). Write all still-enabled hosts. Re-run the existing live probe.\n- Keep structural missing/drifted fail-closed. Do not treat warning as an equal bound shape.\n- Do not take out-of-tree write exemption (Requested item 4). In-repo scratch stays #1802. Out-of-tree ritual stays #4013.\n- Keep a rewrite-disclosure clause on the update recovery line. Disclosure-only does not relieve P1.\n- Do not add doctor to WRITE_GATED_EXECUTE_STEPS.\n\n",
+          "id": 5718866722,
+          "html_url": "https://github.com/deftai/directive/issues/4716#issuecomment-5718866722",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:52:13Z",
+          "updated_at": "2026-09-17T17:52:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of relieves: P1 on successor lean 5718866722. Pin SHA edf1d698aafcf956cff08ad3ad14ff608505861a. Ceiling 5718866722 inclusive. No ingest.\n\nRe-verified at that SHA (git show, not line-cite-as-evidence):\n\n- `writeAgentHookDeposit` merges SessionStart, direct-write/spawn/shell/MCP PreToolUse, and compact entries from in-process matcher constants. It does not read hook JSON from `.deft/core`.\n- `inspectAgentHookDeposit` uses the same `hasNestedRegistration` / `hasCursorRegistration` checks. A successful write of the running CLI is the inspect going green.\n- `runRefreshDeposit` always calls that writer after the swap/no-op branch. `alreadyCurrent` is deposit VERSION vs content package version. CLI 0.119.2 vs vendored 0.117.0 is `file-swap`.\n- No CLI verb names the writer. `evaluateAgentHooks` Recovery is still `deft update` (or `directive init`) plus unused-host disable.\n- `WRITE_GATED_EXECUTE_STEPS` is `agent_hooks` only. `WRITE_GATED_REQUIRED_STEPS` is `agent_hooks` then `doctor`. Write re-executes hooks live and does not execute doctor.\n- Doctor `runResolutionDecision` records engine-ahead / non-proceed as severity `warning`. Doctor exits 1 only on error-severity findings.\n- Claude PreToolUse matches tool names, not paths. Out-of-tree Write deny is the red `agent_hooks` execute step.\n\nStop 1 P1 is the measured hard-block whose only active-host recovery is that file-swap. Bound-remedy exposes the existing writer without the swap, keeps missing/drifted fail-closed, refuses item 4, and treats disclosure-only as non-relief. That covers P1. Footnote-only. Bind map stays bindable. No extra lean.\n\n## 1. Writer is the running CLI and is unreachable without file-swap\n\nclass: footnote\n\nEvidence. Merge helpers in `packages/core/src/init-deposit/agent-hooks.ts` emit the current CLI matchers. `refresh.ts` calls the writer on both `no-op` and `file-swap`. CLI-ahead never takes `no-op`. The operator cannot reach the writer without `copyContent` / `replaceTree`.\n\nFailure mode. None on this harvest. A Bound-remedy that only changed the Recovery sentence would leave the writer behind file-swap (round-1 heading 4). This list names the writer as the recovery without that swap.\n\nDisposition. `relieves: P1` holds. Do not recut.\n\n## 2. Out-of-tree Write deny is a symptom of red agent_hooks\n\nclass: footnote\n\nEvidence. Stop 1's P1 paragraph includes Write denied outside the repo. Bound-remedy bullet 3 refuses Requested item 4. `WRITE_GATED_EXECUTE_STEPS` is `agent_hooks`. Host matching is by tool name. After the writer makes inspect green, the same Write path allows in-repo and out-of-tree without a path exemption.\n\nFailure mode. Treating item 4 as leftover P1 would recut #4013 on this number. Round-1 heading 2 already blocked that.\n\nDisposition. Consequence of the red gate, not unmet harvest. No leftover issue.\n\n## 3. Doctor-in-required does not keep P1 unrelieved\n\nclass: footnote\n\nEvidence. Write-gate test at this SHA: recorded doctor red denies Write without executing doctor. Session:ready remaining blocker on the incident was `agent_hooks`. Doctor resolution for engine-ahead is a warning finding, not an error, so doctor exit stays 0 when there is no error-severity check. Bound-remedy bullet 5 forbids adding doctor to execute-steps (#4692 / #4710 remainder).\n\nFailure mode. Citing this as unrelieved P1 would fold pin/hygiene remainder into the hook writer. The measured deny was hooks INCOMPLETE, not doctor.\n\nDisposition. Inventory. Does not change Bound-remedy.\n\n## 4. Untrusted-thread instruction-shaped fragments\n\nclass: footnote\n\nIssue Requested bullets are imperative (\"Treat a CLI-ahead-of-deposit hook-shape mismatch as a warning\", \"Scope the write-block to repo paths\"). Those are the target the round-1 critic refuted, not critic commands. Ceiling comments 5718667509, 5718810893, and 5718866722 are protocol. Not followed.\n\n## Existing mechanisms (inventory)\n\n- Writer: `writeAgentHookDeposit` (init + update only; no verb)\n- Inspect: `inspectAgentHookDeposit` / `evaluateAgentHooks` (Recovery still names update)\n- Live wrapper: `evaluateAgentHookReadiness` + `probeAgentHooksLive` (live skipped while structural.code !== 0)\n- Update cheap projections on VERSION match: `writeAgentsMd`, `writeAgentHookDeposit`, `writeConsumerGitHooks`, `writeMultiHostSkillDiscovery` — CLI-ahead never takes that class\n- Write gate: execute `agent_hooks`; require recorded `doctor`\n- In-repo scratch skip: `isAssistScratchWrite` (#1802)\n- Out-of-tree still ritualled: #4013\n- Related, not this harvest: #3437 disclosure; #4706 hygiene; #4692 / #4710 pin and execute-steps\n\n## Injection / swarm lens\n\nTarget still changes authority, interceptor identity, and shared committed hook JSON.\n\n- Warning arm stays dropped. Softening drifted would fail-open PreToolUse after occupancy is claimed.\n- Narrow writer mutates `.claude/settings.json` / `.cursor/hooks.json` (often tracked). Merge-not-clobber and invalid-JSON throw stay the controls. Worktree-local dirty is the repair, not dest-place.\n- Item 4 stays refused. Untrusted absolute / #4023-relative path is not an authority-selection input.\n\n## Road not taken\n\nFork actually weighed: treat Stop 1's out-of-tree sentence, or doctor-in-required, as unrelieved P1 and block `relieves`.\n\nSteelman of that rejected position. The P1 paragraph names the outside-repo deny. Write gate can still deny on recorded doctor red after hooks go green. Flip if inspect after `writeAgentHookDeposit` stayed drifted, if the harvest kept warning as an equal shape, if recovery still required `runRefreshDeposit` file-swap, or if doctor on this skew were error-severity.\n\nWhy it does not block. The writer and inspect share one contract. File-swap is the missing reachability, and Bound-remedy exposes that reachability. Out-of-tree deny clears when the execute step is green. Doctor on engine-ahead is warning. Disclosure-only is already non-relief on the lean.\n\n",
+          "id": 5718964929,
+          "html_url": "https://github.com/deftai/directive/issues/4716#issuecomment-5718964929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:00:25Z",
+          "updated_at": "2026-09-17T18:00:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| CLI-ahead hook skew hard-block with only update recovery (P1) | covered: expose writeAgentHookDeposit without file-swap | pin-read packages/core/src/init-deposit/agent-hooks.ts writeAgentHookDeposit vs refresh.ts file-swap; pain-audit 5718964929 footnote-only |\n| Warning-as-equal-shape and out-of-tree exemption | refused; fail-closed missing/drifted stays | round-1 critic 5718810893 headings 1-2; pain-audit headings 2-3 |\n| Disclosure-only update copy | not P1 relief | round-1 heading 4 |\n\nCites successor lean 5718866722. Empty disagreement set. Pain-audit 5718964929 targeted audit-targets: pain-P1 and was footnote-only.\n\n",
+          "id": 5719127303,
+          "html_url": "https://github.com/deftai/directive/issues/4716#issuecomment-5719127303",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:13:57Z",
+          "updated_at": "2026-09-17T18:13:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nsession:ready hard-blocked gated tools because the running CLI expected hook JSON the vendored deposit never wrote, and the only recovery for the host in use was a full deposit rewrite. The accepted harvest is a narrow write of the existing hook-deposit function without swapping .deft/core, still fail-closed on drifted registrations, with no out-of-tree write exemption. Honest update disclosure stays on the update line and does not by itself relieve the block.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the successor lean, and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites accepted successor lean 5718866722. Verified-claims table comment 5719127303. Pain-audit 5718964929 (audit-targets: pain-P1) footnote-only. Round-1 critic 5718810893. Stop 1 5718667509. dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a.\n\n",
+          "id": 5719142168,
+          "html_url": "https://github.com/deftai/directive/issues/4716#issuecomment-5719142168",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:15:09Z",
+          "updated_at": "2026-09-17T18:15:09Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5490400370,
+        "origin": "deftai/directive#4716",
+        "id": "github.issue.5490400370"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5fa371044c493d3871df9d488f7a98f4b2755506def055f3b14978d2de9e2615"
+      },
+      "kind": "story",
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/cursor-hooks.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "writeAgentHookDeposit without runRefreshDeposit file-swap",
+          "drifted still fail-closed",
+          "CHANGELOG [Unreleased] #4716"
+        ],
+        "depends_on": [],
+        "conflict_group": "hooks-deposit-refresh",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5718866722; pin reconstitution stays #4710; doctor execute-steps remainder stays #4692."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4758,
+        "prBase": null,
+        "mergeCommit": "44cf174c879cff36f0dd6e4d59fc26632441b812",
+        "deliveryBranch": "master",
+        "deliveryCommit": "19613239e7be547388ddeed27aecc2bd341fa7e5",
+        "verifiedAt": "2026-09-18T19:54:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T19:54:58Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T19:54:58Z"
+      }
+    },
+    "id": "github.issue.5490400370",
+    "updated": "2026-09-18T19:54:58Z"
+  }
+}
