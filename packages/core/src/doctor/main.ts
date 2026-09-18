@@ -390,7 +390,8 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (!fullMode) {
     const state = (seams.readState ?? readState)(projectRoot);
     const decision = decideThrottle(state, nowFn());
-    if (decision.skip) {
+    // Missing .deft/core cannot inherit a remembered-clean skip (#4723).
+    if (decision.skip && classify(projectRoot, seams).hasDeftCore) {
       const throttleFindings: Finding[] = [];
       const throttleSink = createPlainSink({ jsonMode, quietMode });
       runLocalSignpostChecks(

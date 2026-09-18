@@ -50,6 +50,8 @@ describe("main human-mode branches", () => {
   });
 
   it("clean throttle skip human line", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-skip-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
     const lines: string[] = [];
     const orig = process.stdout.write.bind(process.stdout);
     process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -58,7 +60,7 @@ describe("main human-mode branches", () => {
     }) as typeof process.stdout.write;
     try {
       expect(
-        cmdDoctor([], {
+        cmdDoctor(["--project-root", root], {
           whichFn: () => "/bin/x",
           readState: () => ({
             lastRunAt: new Date(),
@@ -67,16 +69,19 @@ describe("main human-mode branches", () => {
             lastErrorCount: 0,
           }),
           now: () => new Date(),
+          engineProbe: () => ({ reachable: false, version: null }),
         }),
       ).toBe(0);
       expect(lines.join("")).toContain("[doctor] ran");
     } finally {
       process.stdout.write = orig;
+      rmSync(root, { recursive: true, force: true });
     }
   });
 
   it("labels throttle-skipped registry warnings as configuration advisories", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
     const lines: string[] = [];
     const orig = process.stdout.write.bind(process.stdout);
     process.stdout.write = ((chunk: string | Uint8Array) => {

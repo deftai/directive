@@ -44,6 +44,8 @@ describe("cmdDoctor", () => {
 
   it("honours throttle skip when dirty", () => {
     const now = new Date("2026-01-01T12:00:00Z");
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-dirty-skip-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
     const stdout: string[] = [];
     const origWrite = process.stdout.write.bind(process.stdout);
     process.stdout.write = ((chunk: string | Uint8Array): boolean => {
@@ -52,7 +54,7 @@ describe("cmdDoctor", () => {
     }) as typeof process.stdout.write;
     let exit: number;
     try {
-      exit = cmdDoctor(["--json"], {
+      exit = cmdDoctor(["--json", "--project-root", root], {
         whichFn: () => "/usr/bin/x",
         readState: () => ({
           lastRunAt: new Date("2026-01-01T10:00:00Z"),
@@ -61,9 +63,11 @@ describe("cmdDoctor", () => {
           lastErrorCount: 1,
         }),
         now: () => now,
+        engineProbe: () => ({ reachable: false, version: null }),
       });
     } finally {
       process.stdout.write = origWrite;
+      rmSync(root, { recursive: true, force: true });
     }
     expect(exit).toBe(1);
     const payload = JSON.parse(stdout.join("")) as { hint?: string };

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -13,6 +13,31 @@ import {
   statePath,
   writeState,
 } from "./doctor-state.js";
+import { cmdDoctor } from "./main.js";
+
+const REMEMBERED_CLEAN = {
+  lastRunAt: new Date(),
+  lastExitCode: 0,
+  lastFindingCount: 0,
+  lastErrorCount: 0,
+} as const;
+
+function captureDoctor(
+  args: readonly string[],
+  seams: Parameters<typeof cmdDoctor>[1] = {},
+): { code: number; output: string } {
+  const lines: string[] = [];
+  const orig = process.stdout.write.bind(process.stdout);
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    lines.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+  try {
+    return { code: cmdDoctor(args, seams), output: lines.join("") };
+  } finally {
+    process.stdout.write = orig;
+  }
+}
 
 describe("doctor-state", () => {
   it("statePath honours env override", () => {
@@ -198,5 +223,58 @@ describe("doctor-state", () => {
 
   it("formatIsoZ handles null", () => {
     expect(formatIsoZ(null)).toBe("");
+  });
+
+  it("throttle-skip falls through when .deft/core is gone (#4723)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-missing-core-"));
+    try {
+      const { code, output } = captureDoctor(["--project-root", root], {
+        readState: () => REMEMBERED_CLEAN,
+        now: () => new Date(),
+        whichFn: () => "/bin/x",
+        engineProbe: () => ({ reachable: false, version: null }),
+      });
+      expect(output).not.toMatch(/\[doctor\] ran/);
+      expect(output).not.toContain("throttle-skipped");
+      expect(output).not.toMatch(/\bclean\b/);
+      expect(output).toContain("Checking system dependencies");
+      expect(code).not.toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("throttle-skip json is not throttle-skipped when .deft/core is gone (#4723)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-missing-core-json-"));
+    try {
+      const { output } = captureDoctor(["--json", "--project-root", root], {
+        readState: () => REMEMBERED_CLEAN,
+        now: () => new Date(),
+        whichFn: () => "/bin/x",
+        engineProbe: () => ({ reachable: false, version: null }),
+      });
+      expect(output).not.toContain('"status": "throttle-skipped"');
+      expect(output).toContain('"status": "completed"');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("throttle-skip still fires when .deft/core is present (#4723)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-has-core-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    try {
+      const { code, output } = captureDoctor(["--project-root", root], {
+        readState: () => REMEMBERED_CLEAN,
+        now: () => new Date(),
+        whichFn: () => "/bin/x",
+        engineProbe: () => ({ reachable: false, version: null }),
+      });
+      expect(code).toBe(0);
+      expect(output).toContain("[doctor] ran");
+      expect(output).toContain("clean");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
