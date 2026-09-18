@@ -1,0 +1,359 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4722",
+    "updated": "2026-09-18T19:59:45Z"
+  },
+  "plan": {
+    "title": "bug(check): bare deft check requires --framework-root/--project-root",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(check): bare deft check requires --framework-root/--project-root",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4722",
+      "Overview": "# Parent\n\nLeftover P3 from tracker #4679. One child, one seam. Do not harvest with #4679 P2 (SessionStart kill-switch recovery) or P1 (missing-core doctor skip).\n\n# Summary\n\nBare `deft check` / `directive check` exits 2 because `packages/cli/src/check.ts` `parseArgs` requires `--framework-root` and `--project-root`. `migrate-xbrief.ts` already defaults through `resolveFrameworkRootForProject` when the flag is omitted (#2146). Getting-started documents bare `deft check` as the consumer success signal.\n\n# Field instance\n\nUAT Tester 5 C11 on #4679, @deftai/directive@0.119.1 Claude Code. Bare `deft check` / `directive check` exit 2: those flags are required. Framework `Taskfile.yml` already injects both flags for `task check`. Include-only MINIMAL_TASKFILE points at `task deft:check`, whose included Taskfile injects the flags. Bare CLI does not.\n\n# Bound remedy\n\n- Default project-root to cwd and framework-root through `resolveFrameworkRootForProject` (explicit, then `DEFT_ROOT`, then source checkout, then `.deft/core`, then legacy `deft/`).\n- Keep fail-closed when the resolver cannot find a deposit.\n- Do not add a new check CLI. Do not teach testers the flags as the close. Do not recut getting-started off bare `deft check`.\n\n# Related\n\n#4679 (tracker, leftover parent). Lean 5716993446. Round-1 critic 5716790233 Finding 4.\n\n",
+      "Labels": "bug, agent-experience, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Default project-root to cwd when `--project-root` is omitted. Resolve framework-root from that project-root through explicit, then `DEFT_ROOT`, then source checkout, then `.deft/core`, then legacy `deft/`. Keep both flags as overrides. One handler for `deft` and `directive`. Copy `packages/cli/src/migrate-xbrief.ts` parseArgs order.",
+        "status": "completed",
+        "id": "clause:1",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Default project-root to cwd when `--project-root` is omitted. Resolve framework-root from that project-root through explicit, then `DEFT_ROOT`, then source checkout, then `.deft/core`, then legacy `deft/`. Keep both flags as overrides. One handler for `deft` and `directive`. Copy `packages/cli/src/migrate-xbrief.ts` parseArgs order."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/check.ts",
+          "recorded_at": "2026-09-18T19:59:22.470Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Fail-closed for check: probe those same project-root candidates (plus explicit / `DEFT_ROOT`) and refuse `resolveDefaultFrameworkRoot` as check's framework-root. Do not recut #2146 for doctor or migrate. Do not treat consumer-gate-integrity or go-task spawn as the miss.",
+        "status": "completed",
+        "id": "clause:2",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Fail-closed for check: probe those same project-root candidates (plus explicit / `DEFT_ROOT`) and refuse `resolveDefaultFrameworkRoot` as check's framework-root. Do not recut #2146 for doctor or migrate. Do not treat consumer-gate-integrity or go-task spawn as the miss."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/check.ts",
+          "recorded_at": "2026-09-18T19:59:22.470Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Do not add a new check CLI. Do not teach testers the flags as the close. Do not recut getting-started off bare `deft check`. Do not harvest with #4679 P1 or P2.",
+        "status": "completed",
+        "id": "clause:3",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not add a new check CLI. Do not teach testers the flags as the close. Do not recut getting-started off bare `deft check`. Do not harvest with #4679 P1 or P2."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/check.ts",
+          "recorded_at": "2026-09-18T19:59:22.470Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4722",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4722: bug(check): bare deft check requires --framework-root/--project-root"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4679",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4679"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, Default project-root to cwd when `--project-root` is omitted. Resolve framework-root from that project-root through explicit, then `DEFT_ROOT`, then source checkout, then `.deft/core`, then legacy `deft/`. Keep both flags as overrides. One handler for `deft` and `directive`. Copy `packages/cli/src/migrate-xbrief.ts` parseArgs order.",
+          "artifact_path": "packages/cli/src/check.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, Fail-closed for check: probe those same project-root candidates (plus explicit / `DEFT_ROOT`) and refuse `resolveDefaultFrameworkRoot` as check's framework-root. Do not recut #2146 for doctor or migrate. Do not treat consumer-gate-integrity or go-task spawn as the miss.",
+          "artifact_path": "packages/cli/src/check.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, Do not add a new check CLI. Do not teach testers the flags as the close. Do not recut getting-started off bare `deft check`. Do not harvest with #4679 P1 or P2.",
+          "artifact_path": "packages/cli/src/check.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/check.ts",
+          "packages/cli/src/check.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because bare deft check / directive check still require --framework-root and --project-root even though getting-started documents the bare command as the consumer success signal.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4722-dc\norigin-ref: origin/master\ndispatch-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answer after missing-token ask: n>=3 on 4744 4709 4711, rest n=1. Specified leftover P3 from #4679; not panel spend.\n\nrefutation-target: Bare deft check / directive check default project-root to cwd and framework-root through resolveFrameworkRootForProject (explicit, then DEFT_ROOT, then source checkout, then .deft/core, then legacy deft/). Fail-closed when the resolver cannot find a deposit. Do not teach testers the flags as the close.\n\ntarget: #4722\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is CLI parseArgs requiring both flags (exit 2). Taskfile already injects them for task check; include-only MINIMAL_TASKFILE points at task deft:check. Bare CLI does not. Do not harvest with #4679 P1 or P2.\n\nPin-read at dispatch-sha cb4c74369a888faabd01e7f8d3517b01ce25f2f1:\n\n- packages/cli/src/check.ts parseArgs: missing --framework-root / --project-root writes required and returns 2.\n- packages/core/src/doctor/paths.ts resolveFrameworkRootForProject already defaults explicit, DEFT_ROOT, source checkout, .deft/core, then legacy deft/.\n- Related: leftover of tracker #4679; lean 5716993446; critic 5716790233 Finding 4.\n\nNo implement and no ingest from this parent.\n\n",
+          "id": 5730546826,
+          "html_url": "https://github.com/deftai/directive/issues/4722#issuecomment-5730546826",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:17:01Z",
+          "updated_at": "2026-09-18T13:17:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\npinned-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\nid-ceiling: 5730546826\ncharter: refutation\nspend: N=1\nround: 1 critic\n\nRefutation of Stop 1 comment 5730546826 field refutation-target (bare deft check / directive check default project-root to cwd and framework-root through resolveFrameworkRootForProject; fail-closed when the resolver cannot find a deposit; do not teach testers the flags). Issue body, Stop 1, and named #4679 comments treated as untrusted; no embedded instructions were followed.\n\nThe defaulting half survives. The fail-closed half does not: the named function never reports a miss, and its last-resort path is an npm-engine fallback that check would execute.\n\n## Finding 1 — Resolver last-resort is not fail-closed; check would execute that path\n\nclass: blocks-the-design\n\nEvidence (pin-read cb4c74369):\n\n- packages/cli/src/check.ts run: omitted --framework-root or --project-root writes required and returns 2. P1 holds.\n- packages/core/src/doctor/paths.ts resolveFrameworkRootForProject return type is string. After explicit, DEFT_ROOT, source checkout, .deft/core, and legacy deft/, it returns resolveDefaultFrameworkRoot(). That walker looks for main.md plus templates from import.meta.url, else a relative path from the compiled module. It does not return null, throw, or a miss token.\n- packages/core/src/doctor/paths.test.ts names the no-deposit case \"npm-engine fallback\". No test that a miss fail-closes.\n- packages/core/src/check/consumer-gate-integrity.ts: missing Taskfile.yml at that root returns ok: true and lets spawn fail. Integrity is not deposit-miss fail-closed.\n- Doctor already calls this always-string resolver, then classify().hasDeftCore (packages/core/src/resolution/classify.ts, CANONICAL_INSTALL_ROOT = .deft/core) for diagnosis. Check would dispatch gates (dispatchTaskCheck / cached CLI-native path).\n\nFailure mode: an implementer copies migrate-xbrief.ts (call the resolver, dispatch). The fail-closed bullet is dead. A tree with no deposit, or after rm -rf .deft/core (UAT C15 shape on this tracker's parent), bare check uses the engine package as framework-root and runs that Taskfile/gate graph against cwd. Inspecting the returned path cannot tell a project deposit from last-resort engine files (main.md + templates). That is check identity / shared state, not a later reviewer catch.\n\nDisposition: this lean cannot bind as written. Keep cwd default and the resolver walk through explicit, DEFT_ROOT, source checkout, .deft/core, legacy deft/. Recut fail-closed to a project-root probe of those same candidates (plus explicit / DEFT_ROOT) and refuse resolveDefaultFrameworkRoot for check. Do not recut #2146 for doctor or migrate. Do not treat integrity or go-task spawn as the miss.\n\nInjection / swarm lens (fires: authority, shared state): frameworkRoot selects the gate graph and Taskfile. Last-resort engine path plus cwd as projectRoot makes the installed CLI package the check definition. Dest worktrees and occupancy are not this seam (#4625). Untrusted flags stay overrides.\n\n## Finding 2 — Copy migrate-xbrief parse order, not two independent cwd defaults\n\nclass: sharpens-framing\n\nEvidence: packages/cli/src/migrate-xbrief.ts parseArgs defaults projectRoot to \".\", then resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot). Doctor is flags.projectRoot ?? process.cwd() then the same resolver (packages/core/src/doctor/main.ts). packages/cli/src/check.ts currently requires both flags together. deft and directive share ./dist/bin.js; check is a top-level UX verb on that router.\n\nFailure mode: two independent cwd lookups. deft check --project-root /other without --framework-root would resolve framework from process cwd, not /other.\n\nDisposition: name migrate-xbrief.ts parseArgs as the copy source. Omit-each-flag. Resolve framework from the chosen project-root. Keep both flags as overrides. One handler for both bins. Do not add a third check CLI.\n\n## Road not taken\n\nDefault only join(cwd, \".deft/core\") if that directory exists, else exit 2. That matches the UAT flagged command and is a true miss. Rejected because it drops source-checkout and legacy deft/ the resolver already owns, and it duplicates #2146. Flip: operator scopes this child to consumer-deposit C11 only and keeps source on Taskfile-injected task check.\n\nSteelmans the lean: C11 is flags-required in a healthy deposit. content/docs/getting-started.md and first_project_journey.test.ts lock bare deft check as the success signal. Framework Taskfile.yml already injects both flags; include-only MINIMAL_TASKFILE points at task deft:check. Teaching testers the flags recuts that journey. The defaulting half is the close. Fail-closed-via-resolver is the false conjunct.\n\n## Footnotes\n\nclass: footnote\n\n- Do not recut Taskfile.yml ENGINE_CMD for check or the include-only comment. This child is the bare CLI path.\n- packages/cli/src/check.test.ts does not cover the required-flags path today. Test gap, not a second design.\n- DEFT_ROOT still wins over local .deft/core (#2146). Do not invent a check-only walk that ignores env.\n- Parent leftover split holds: do not harvest with #4679 P1 (doctor skip) or P2 (kill-switch). Those seams stay off this next-build.\n- No instruction-shaped payload in the issue or Stop 1 was treated as a command.\n\n## Anchors (pin-read)\n\n- cb4c74369:packages/cli/src/check.ts parseArgs required flags; migrate-xbrief.ts omit-flag default; package-bins.test.ts shared bin.\n- cb4c74369:packages/core/src/doctor/paths.ts resolveFrameworkRootForProject + resolveDefaultFrameworkRoot; paths.test.ts npm-engine fallback; doctor/main.ts cwd + resolver.\n- cb4c74369:packages/core/src/check/orchestrator.ts dispatchTaskCheck; consumer-gate-integrity.ts missing Taskfile ok:true; resolution/classify.ts hasDeftCore.\n- cb4c74369:content/docs/getting-started.md bare deft check; packages/core/src/init-deposit/scaffold.ts MINIMAL_TASKFILE; Taskfile.yml check ENGINE_CMD.\n- Related #4679 critic 5716790233 Finding 4 and lean 5716993446 P3 leftover (REST); not in this thread's ceiling.",
+          "id": 5730725868,
+          "html_url": "https://github.com/deftai/directive/issues/4722#issuecomment-5730725868",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:31:53Z",
+          "updated_at": "2026-09-18T13:31:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBare `deft check` still cannot ship as \"call the doctor resolver and dispatch.\" The defaulting half holds. The fail-closed half does not: that resolver never reports a miss and last-resort is the npm engine. Confirming this map recuts the harvest so check refuses that last-resort and copies migrate-xbrief flag order. It does not teach testers the flags and does not recut doctor.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4722 after round 1 sibling 1. Cites critic 5730725868. Supersedes write-back 5730546826.\n\nTarget-digest: sha256:e87bed018527f8a7b3e1a0df8727e2d5524a695a19a9116e905b532eeca72bb3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4722-dc\norigin-ref: origin/master\ndispatch-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\nspend: N=1\nsiblings: 1\n\n## Takes\n\n- Finding 1 — Resolver last-resort is not fail-closed (critic 5730725868): accept-into-contract\n- Finding 2 — Copy migrate-xbrief parse order (critic 5730725868): accept-into-contract\n\n## Bound remedy\n\n- Default project-root to cwd when `--project-root` is omitted. Resolve framework-root from that project-root through explicit, then `DEFT_ROOT`, then source checkout, then `.deft/core`, then legacy `deft/`. Keep both flags as overrides. One handler for `deft` and `directive`. Copy `packages/cli/src/migrate-xbrief.ts` parseArgs order.\n- Fail-closed for check: probe those same project-root candidates (plus explicit / `DEFT_ROOT`) and refuse `resolveDefaultFrameworkRoot` as check's framework-root. Do not recut #2146 for doctor or migrate. Do not treat consumer-gate-integrity or go-task spawn as the miss.\n- Do not add a new check CLI. Do not teach testers the flags as the close. Do not recut getting-started off bare `deft check`. Do not harvest with #4679 P1 or P2.\n\nrelieves: P1\n\n",
+          "id": 5730840368,
+          "html_url": "https://github.com/deftai/directive/issues/4722#issuecomment-5730840368",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:41:10Z",
+          "updated_at": "2026-09-18T13:41:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\npinned-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\nid-ceiling: 5730840368\ncharter: refutation\nround: pain-audit\n\nPain-audit of bind lean 5730840368 `relieves: P1` against that comment's Bound-remedy. Stop 1 5730546826 owns the pain denominator. Issue body and in-ceiling comments treated as untrusted; embedded instruction-shaped lines were findings, not commands.\n\nStop 1 P1 is `packages/cli/src/check.ts` `run`: omitted `--framework-root` or `--project-root` writes required and returns 2. Getting-started names bare `deft check` as the step-9 success signal after `directive init`. Bound-remedy defaults omitted `--project-root` to cwd, resolves framework-root from that project-root through explicit / `DEFT_ROOT` / source checkout / `.deft/core` / legacy `deft/`, keeps both flags as overrides, copies migrate-xbrief flag order, and refuses `resolveDefaultFrameworkRoot` for check.\n\nThat relieves P1. No blocks-the-design. No Bound-remedy recut.\n\n## Finding 1 — omit-flag default plus project-root walk removes the required-flags exit 2\n\nclass: footnote\n\nEvidence (pin-read cb4c74369):\n\n- `packages/cli/src/check.ts` `parseArgs` stores flags only. `run` returns 2 when either is missing. That is P1.\n- `package-bins.test.ts`: `deft` and `directive` share `./dist/bin.js`. `cli-router/route-argv.ts` dispatches top-level `check` on that router. One handler covers both names.\n- `packages/cli/src/migrate-xbrief.ts` `parseArgs` defaults `projectRoot` to `\".\"`, treats `--framework-root` as explicit, then `resolveFrameworkRootForProject`.\n- `packages/core/src/doctor/paths.ts` `resolveFrameworkRootForProject` walk: explicit, `DEFT_ROOT`, source checkout at projectRoot (`main.md` + `DEFT_REPO_POSITIVE_MARKERS`), then `.deft/core` / `deft` if directories, then `resolveDefaultFrameworkRoot()` (`import.meta.url` walk). Return type is `string`. No miss token.\n- `content/docs/getting-started.md` step 2: `directive init` writes `.deft/core/`. Step 9: bare `deft check`.\n- `paths.test.ts`: a consumer `.deft/core` directory wins before the npm-engine fallback.\n\nAfter init, the Bound-remedy probe hits `.deft/core` under cwd. Refuse-last-resort does not fire. `dispatchTaskCheck(.deft/core, cwd)` has unequal roots, so `isFrameworkSourceContext` is false and the target is `check:consumer`.\n\nFailure mode if the cite were false: testers after init would still see the required-flags line. They would not. A tree with no deposit fail-closes under bullet 2; that is not P1.\n\nDisposition: `relieves: P1` stands. Footnote only.\n\n## Finding 2 — injection / swarm lens\n\nclass: footnote\n\nFires: authority, shared state, worktrees. `frameworkRoot` selects `Taskfile.yml` and `resolveCheckTarget`. Bound-remedy changes that identity.\n\nUntrusted argv stays flag overrides. `DEFT_ROOT` is process env (#2146), not thread text. Cwd-default is dest-local: a dest with a deposit resolves its `.deft/core`; a dest without one fail-closes instead of running engine gates against dest cwd. Occupancy is not this seam. Parallel dests do not share a resolved frameworkRoot except via env. No prompt or envelope injection.\n\nFailure mode the recut already names: last-resort engine path plus cwd as projectRoot makes the installed CLI package the check definition. Refuse `resolveDefaultFrameworkRoot` is the deterministic control. Do not treat `consumer-gate-integrity` (missing Taskfile returns `ok: true`) or go-task spawn as that control.\n\nDisposition: no extra identity hole on P1. Harvest unchanged.\n\n## Footnotes\n\nclass: footnote\n\n- Copy migrate-xbrief flag order (omit-each; project-root then explicit framework-root; one handler). Do not copy the trailing `resolveFrameworkRootForProject` call; that function still ends in last-resort. Bullet 2 already refuses it.\n- Implement fail-closed as a walk that never calls `resolveDefaultFrameworkRoot`. Do not identity-compare the resolver string to that function: it returns `DEFT_ROOT` when set, and from this repo returns the source root, so a compare would refuse valid env and maintainer cwd.\n- Do not default framework-root to cwd. `isFrameworkSourceContext` is true when `fw === pr` and would select `check:framework-source` on a consumer.\n- Do not use `classify().hasDeftCore` as the miss. Source checkout is an allowed candidate and is not `.deft/core`.\n- migrate-xbrief uses `\".\"`; Bound-remedy says cwd. `resolve()` treats them as the same.\n- `packages/cli/src/check.test.ts` still has no required-flags case. Test gap, not a second design.\n- Do not recut `Taskfile.yml` `ENGINE_CMD` for check or include-only `MINIMAL_TASKFILE`. This child is the bare CLI path.\n- Parent leftover split holds: do not harvest with #4679 P1 or P2.\n- No instruction-shaped payload in the issue or in-ceiling comments was treated as a command.\n\n## Anchors (pin-read)\n\n- cb4c74369:packages/cli/src/check.ts required-flags `run`; migrate-xbrief.ts parseArgs; package-bins.test.ts shared bin; cli-router/route-argv.ts top-level check.\n- cb4c74369:packages/core/src/doctor/paths.ts resolveFrameworkRootForProject + resolveDefaultFrameworkRoot; paths.test.ts deposit-before-fallback; doctor/constants.ts DEFT_REPO_POSITIVE_MARKERS.\n- cb4c74369:packages/core/src/check/orchestrator.ts dispatchTaskCheck; context.ts isFrameworkSourceContext; consumer-gate-integrity.ts missing Taskfile ok:true.\n- cb4c74369:content/docs/getting-started.md steps 2 and 9; packages/core/src/init-deposit/scaffold.ts MINIMAL_TASKFILE; Taskfile.yml check ENGINE_CMD.\n- Bind lean 5730840368; Stop 1 5730546826; round-1 critic 5730725868 in envelope, not re-judged.",
+          "id": 5730952449,
+          "html_url": "https://github.com/deftai/directive/issues/4722#issuecomment-5730952449",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:50:15Z",
+          "updated_at": "2026-09-18T13:50:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Method | Status |\n|---|---|---|\n| Stop 1 P1 is bare check required-flags exit 2 | pin-read packages/cli/src/check.ts run(); getting-started step 9 | verified |\n| Bound-remedy defaults omitted project-root to cwd and walks explicit / DEFT_ROOT / source / .deft/core / legacy deft/ | pin-read migrate-xbrief.ts parseArgs; doctor/paths.ts | verified |\n| Check refuse of resolveDefaultFrameworkRoot keeps last-resort from becoming framework-root | pin-read paths.ts; pain-audit 5730952449 | verified |\n| Pain-audit of relieves: P1 is footnote-only | critic 5730952449 audit-targets: pain-P1 | verified |\n| Round-1 classified headings accepted on successor lean 5730840368 | REST comment 5730840368 takes | verified |\n\nMethod: pin-read at cb4c74369 plus REST of in-envelope comments. Same-family agreement is not confirmatory.\n\n",
+          "id": 5730977755,
+          "html_url": "https://github.com/deftai/directive/issues/4722#issuecomment-5730977755",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:52:19Z",
+          "updated_at": "2026-09-18T13:54:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBare deft check can default flags after init, and must refuse the npm-engine last-resort as framework-root. Pain-audit of that relief was footnote-only.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5730840368\nverified-claims table 5730977755\n\n",
+          "id": 5730977967,
+          "html_url": "https://github.com/deftai/directive/issues/4722#issuecomment-5730977967",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:52:20Z",
+          "updated_at": "2026-09-18T13:54:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5490854275,
+        "origin": "deftai/directive#4722",
+        "id": "github.issue.5490854275"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e87bed018527f8a7b3e1a0df8727e2d5524a695a19a9116e905b532eeca72bb3"
+      },
+      "kind": "story",
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/cli/src/check.ts",
+          "packages/cli/src/check.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/cli/src/check.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "bare deft check defaults project-root to cwd",
+          "check refuses resolveDefaultFrameworkRoot last-resort",
+          "CHANGELOG [Unreleased] #4722"
+        ],
+        "depends_on": [],
+        "conflict_group": "check-default-roots",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5730840368; do not recut doctor or migrate #2146."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4787,
+        "prBase": null,
+        "mergeCommit": "63b7181e45cd30816647dfb31cc3b6890de0e835",
+        "deliveryBranch": "master",
+        "deliveryCommit": "63b7181e45cd30816647dfb31cc3b6890de0e835",
+        "verifiedAt": "2026-09-18T19:59:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T19:59:45Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T19:59:45Z"
+      }
+    },
+    "id": "github.issue.5490854275",
+    "updated": "2026-09-18T19:59:45Z"
+  }
+}
