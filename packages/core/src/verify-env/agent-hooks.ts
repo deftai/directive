@@ -30,7 +30,7 @@ import type { OutputStream } from "./verify-hooks-installed.js";
 export const AGENT_HOOK_NO_SWAP_RECOVERY =
   "Recovery: rewrite still-enabled host hook registrations with writeAgentHookDeposit " +
   "(does not swap `.deft/core`). Then re-run `deft verify:hooks-installed --scope=agent --live`. " +
-  "`deft update` (or `directive init`) is a repo-wide payload file-swap when VERSION differs " +
+  "Recovery: run `deft update` (or `directive init`) is a repo-wide payload file-swap when VERSION differs " +
   "and is not required to clear this gate. ";
 
 export interface RepairAgentHookRegistrationsOptions {
