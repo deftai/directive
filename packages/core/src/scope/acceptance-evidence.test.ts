@@ -1678,6 +1678,20 @@ describe("#4732 ingest/promote clause-id bind and declared test stamp", () => {
     const parsed = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { items: Array<{ id?: string; title: string }> };
     };
+    expect(existsSync(path)).toBe(false);
     expect(parsed.plan.items.map((item) => item.id)).toEqual(["clause:1", "clause:2"]);
+  });
+
+  it("promotePath leaves the source in proposed/ when clause-id bind fails", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "2026-09-17-bind-fail.xbrief.json");
+    writeFileSync(path, "{not-json", "utf8");
+    const result = promotePath(path, { projectRoot: root });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Clause-id bind failed before promote|Invalid JSON/);
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-09-17-bind-fail.xbrief.json"))).toBe(
+      false,
+    );
   });
 });

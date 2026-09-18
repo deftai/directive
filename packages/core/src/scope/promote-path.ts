@@ -75,6 +75,12 @@ export function promotePath(filePath: string, options: PromotePathOptions = {}):
   }
 
   const now = options.now ?? new Date();
+  const lifecycleRoot = dirname(dirname(resolved));
+  const bindWrite = bindClauseIdsOnSourceBrief(resolved, root, lifecycleRoot);
+  if (!bindWrite.ok) {
+    return { ok: false, message: bindWrite.message, exitCode: 1 };
+  }
+
   const result = runTransition("promote", resolved, now);
   if (!result.ok) {
     return { ok: false, message: result.message, exitCode: 1 };
@@ -82,7 +88,6 @@ export function promotePath(filePath: string, options: PromotePathOptions = {}):
 
   const basename = resolved.split(/[/\\]/).pop() ?? "";
   // Destination after promote is sibling pending/ under the same lifecycle root.
-  const lifecycleRoot = dirname(dirname(resolved));
   const destPath = join(lifecycleRoot, "pending", basename);
 
   let auditEntry: Record<string, unknown> | null = null;
@@ -139,18 +144,6 @@ export function promotePath(filePath: string, options: PromotePathOptions = {}):
     recordWipCapOverride(destPath, root, capCheck, now);
   }
 
-  const bindWrite = bindClauseIdsOnPromotedBrief(destPath, root, lifecycleRoot);
-  if (!bindWrite.ok) {
-    return {
-      ok: false,
-      message: bindWrite.message,
-      exitCode: 1,
-      destPath,
-      auditEntry,
-      wipCapOverride: capCheck.forceOverride,
-    };
-  }
-
   return {
     ok: true,
     message: result.message,
@@ -168,7 +161,7 @@ function asPlanRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
-function bindClauseIdsOnPromotedBrief(
+function bindClauseIdsOnSourceBrief(
   destPath: string,
   projectRoot: string,
   lifecycleRoot: string,
@@ -180,7 +173,7 @@ function bindClauseIdsOnPromotedBrief(
   if (!loaded.ok) {
     return {
       ok: false,
-      message: `Promoted to pending/ but clause-id bind failed: ${loaded.message}`,
+      message: `Clause-id bind failed before promote: ${loaded.message}`,
     };
   }
   const plan = asPlanRecord(loaded.data.plan);
@@ -195,7 +188,7 @@ function bindClauseIdsOnPromotedBrief(
   if (!write.ok) {
     return {
       ok: false,
-      message: `Promoted to pending/ but clause-id bind write failed: ${write.message}`,
+      message: `Clause-id bind write failed before promote: ${write.message}`,
     };
   }
   return { ok: true, message: "" };
