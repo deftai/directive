@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveContentPackageRoot } from "@deftai/directive-core/dist/content-root.js";
@@ -32,12 +32,22 @@ export interface EvaluateDepositFileSetOptions {
   readonly installedRoot?: string | null;
 }
 
-function samePath(left: string, right: string): boolean {
-  return resolve(left) === resolve(right);
+export function sameResolvedPath(left: string, right: string): boolean {
+  return canonicalizeExistingPath(left) === canonicalizeExistingPath(right);
+}
+
+function canonicalizeExistingPath(path: string): string {
+  let canonical = resolve(path);
+  try {
+    if (existsSync(canonical)) canonical = realpathSync(canonical);
+  } catch {
+    // keep resolve() fallback
+  }
+  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
 }
 
 function rootsDiverge(walkRoot: string | null, installedRoot: string | null): boolean {
-  return walkRoot !== null && installedRoot !== null && !samePath(walkRoot, installedRoot);
+  return walkRoot !== null && installedRoot !== null && !sameResolvedPath(walkRoot, installedRoot);
 }
 
 /** Compare `.deft/core/` against `@deftai/directive-content` (#2804 / #4706). */
@@ -84,7 +94,7 @@ function namesUpdatePruneRecovery(result: DepositFileSetHygieneResult): boolean 
   if (!rootsDiverge(walkRoot, result.installedRoot)) {
     return true;
   }
-  return !samePath(compared, walkRoot);
+  return !sameResolvedPath(compared, walkRoot);
 }
 
 export function renderDepositFileSetHygieneLine(

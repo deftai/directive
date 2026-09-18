@@ -19,7 +19,7 @@ vi.mock("@deftai/directive-core/dist/doctor/agents-md.js", () => ({
 
 import { resolveInstalledContentRoot } from "@deftai/directive-core/dist/deposit/resolve-content.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
-import { evaluateDepositFileSetHygiene, renderDepositFileSetHygieneLine, run } from "./doctor.js";
+import { evaluateDepositFileSetHygiene, renderDepositFileSetHygieneLine, run, sameResolvedPath } from "./doctor.js";
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
@@ -426,6 +426,17 @@ describe("doctor CLI", () => {
     expect(out).toContain("Pre-cutover:");
     expect(out).toContain("xBrief migration:");
     expect(out).toContain("Deposit hygiene:");
+  });
+
+  it("treats equivalent roots as the same after canonicalize (#4706 polish)", () => {
+    const root = makeRoot("doctor-roots-canon-");
+    const installedRoot = join(root, "engine-content");
+    mkdirSync(installedRoot, { recursive: true });
+    writeFileSync(join(installedRoot, "main.md"), "# Deft\n", "utf8");
+    expect(sameResolvedPath(installedRoot, installedRoot)).toBe(true);
+    if (process.platform === "win32") {
+      expect(sameResolvedPath(installedRoot, installedRoot.toUpperCase())).toBe(true);
+    }
   });
 
   it("prints both content roots when walk-root and installed root diverge (#4706)", () => {

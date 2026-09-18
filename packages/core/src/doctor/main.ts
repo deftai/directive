@@ -48,7 +48,7 @@ import {
   agentsRefreshPlanWithInstalledTemplate,
   hasManagedSectionMarker,
   hasV3ManagedMarker,
-  peekDoctorAgentsTemplateRoot,
+  resolveDoctorAgentsTemplateRootSync,
 } from "./agents-md.js";
 import {
   checkXbriefEnvelopeMajorVersion,
@@ -1082,7 +1082,7 @@ function runAgentsMdFreshnessCheck(
     const planFn =
       seams.agentsRefreshPlan ??
       ((root: string) => {
-        const templateRoot = peekDoctorAgentsTemplateRoot();
+        const templateRoot = resolveDoctorAgentsTemplateRootSync();
         return templateRoot !== undefined
           ? agentsRefreshPlanWithInstalledTemplate(root, templateRoot)
           : agentsRefreshPlan(root);

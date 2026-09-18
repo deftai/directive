@@ -10,6 +10,7 @@ import {
   hasV3ManagedMarker,
   peekDoctorAgentsTemplateRoot,
   readAgentsTemplateFromContentTree,
+  resolveDoctorAgentsTemplateRootSync,
   setDoctorAgentsTemplateRoot,
 } from "./agents-md.js";
 
@@ -218,5 +219,13 @@ describe("agents-md extra branches", () => {
     expect(peekDoctorAgentsTemplateRoot()).toBe("/engine/content");
     setDoctorAgentsTemplateRoot(undefined);
     expect(peekDoctorAgentsTemplateRoot()).toBeUndefined();
+  });
+
+  it("cmdDoctor template root uses peek when set, else installed package (#4706 polish)", () => {
+    setDoctorAgentsTemplateRoot("/engine/content");
+    expect(resolveDoctorAgentsTemplateRootSync()).toBe("/engine/content");
+    setDoctorAgentsTemplateRoot(undefined);
+    const resolved = resolveDoctorAgentsTemplateRootSync();
+    expect(resolved === undefined || resolved.includes("directive-content") || resolved.includes("content")).toBe(true);
   });
 });

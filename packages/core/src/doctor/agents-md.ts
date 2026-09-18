@@ -1,6 +1,11 @@
 /** Canonical AGENTS.md classifier lives in platform/agents-md.ts (#4090). */
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
+import {
+  CONTENT_PACKAGE_NAME,
+  contentPackageRootFromResolvedEntry,
+} from "../deposit/resolve-content.js";
 import {
   type AgentsMdSeams,
   agentsRefreshPlan,
@@ -20,6 +25,18 @@ export function setDoctorAgentsTemplateRoot(root: string | undefined): void {
 
 export function peekDoctorAgentsTemplateRoot(): string | undefined {
   return doctorAgentsTemplateRoot;
+}
+
+/** CLI peek first; otherwise resolve the installed content package so cmdDoctor matches deft doctor. */
+export function resolveDoctorAgentsTemplateRootSync(): string | undefined {
+  if (doctorAgentsTemplateRoot !== undefined) return doctorAgentsTemplateRoot;
+  try {
+    const require = createRequire(import.meta.url);
+    const entry = require.resolve(`${CONTENT_PACKAGE_NAME}/package.json`);
+    return contentPackageRootFromResolvedEntry(entry);
+  } catch {
+    return undefined;
+  }
 }
 
 /**
