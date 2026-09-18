@@ -145,3 +145,92 @@ describe("verify-hooks-installed --live", () => {
     expect(errors.join("")).toContain("readiness exploded");
   });
 });
+
+describe("verify-hooks-installed --repair (#4711)", () => {
+  it("rejects --repair without an agent scope", () => {
+    const writes: string[] = [];
+    const code = run(["--repair"], { writeErr: (text) => writes.push(text) });
+    expect(code).toBe(2);
+    expect(writes.join("")).toContain("--repair requires --scope=agent or --scope=all");
+  });
+
+  it("parses --repair with --scope=agent", () => {
+    expect(parseArgs(["--scope=agent", "--repair"])).toMatchObject({
+      scope: "agent",
+      repair: true,
+    });
+  });
+
+  it("rewrites via writeAgentHookDeposit seam, prints changedPaths, and live-rechecks", () => {
+    const output: string[] = [];
+    const repairRegistrations = vi.fn(
+      (_root: string, options?: { reevaluate?: (projectRoot: string) => { code: 0 | 1 | 2 } }) => {
+        const after = options?.reevaluate?.("/project") ?? { code: 0 as const };
+        return {
+          written: { changed: true, changedPaths: [".claude/settings.json", ".cursor/hooks.json"] },
+          after,
+        };
+      },
+    );
+    const evaluateReadiness = vi.fn(() => ({
+      code: 0 as const,
+      message: "live green",
+      stream: "stdout" as const,
+      skipped: false,
+      liveStatus: "functional" as const,
+      hosts: [],
+      registrations: [],
+      liveProbe: null,
+    }));
+    const code = run(["--scope=agent", "--repair"], {
+      repairRegistrations,
+      evaluateReadiness,
+      writeOut: (text) => output.push(text),
+    });
+    expect(code).toBe(0);
+    expect(repairRegistrations).toHaveBeenCalledTimes(1);
+    expect(evaluateReadiness).toHaveBeenCalledTimes(1);
+    expect(output.join("")).toContain("changedPaths: .claude/settings.json, .cursor/hooks.json");
+    expect(output.join("")).toContain("may now be dirty");
+    expect(output.join("")).toContain("stays denied");
+    expect(output.join("")).toContain("Relaunch or reload host matchers");
+    expect(output.join("")).toContain("live green");
+  });
+
+  it("refuses malformed hook config without claiming live green", () => {
+    const errors: string[] = [];
+    const evaluateReadiness = vi.fn();
+    const code = run(["--scope=agent", "--repair"], {
+      repairRegistrations: () => {
+        throw new Error(
+          ".claude/settings.json is not valid JSON; refusing to overwrite user configuration",
+        );
+      },
+      evaluateReadiness,
+      writeErr: (text) => errors.push(text),
+    });
+    expect(code).toBe(2);
+    expect(errors.join("")).toContain("not valid JSON");
+    expect(evaluateReadiness).not.toHaveBeenCalled();
+  });
+
+  it("returns the live recheck exit code after a successful write", () => {
+    const code = run(["--scope=agent", "--repair", "--quiet"], {
+      repairRegistrations: (_root, options) => ({
+        written: { changed: true, changedPaths: [".grok/hooks/deft.json"] },
+        after: options?.reevaluate?.("/project") ?? { code: 0 as const },
+      }),
+      evaluateReadiness: () => ({
+        code: 1 as const,
+        message: "still drifted",
+        stream: "stderr" as const,
+        skipped: false,
+        liveStatus: "non-functional" as const,
+        hosts: [],
+        registrations: [],
+        liveProbe: null,
+      }),
+    });
+    expect(code).toBe(1);
+  });
+});

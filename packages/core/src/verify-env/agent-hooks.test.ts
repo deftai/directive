@@ -4,7 +4,11 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
-import { evaluateAgentHooks } from "./agent-hooks.js";
+import {
+  AGENT_HOOK_WORKTREE_REPAIR_RECOVERY,
+  evaluateAgentHooks,
+  formatAgentHookRepairDisposition,
+} from "./agent-hooks.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -156,6 +160,42 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).toContain("registration INCOMPLETE");
     expect(result.coverage).toContainEqual(
       expect.objectContaining({ host: "grok", kind: "uncovered-tool" }),
+    );
+  });
+});
+
+describe("evaluateAgentHooks worktree repair recovery (#4711)", () => {
+  it("prints the thin --repair command and liveness from registration INCOMPLETE", () => {
+    const result = evaluateAgentHooks(project());
+    expect(result.code).toBe(1);
+    expect(result.message).toContain(AGENT_HOOK_WORKTREE_REPAIR_RECOVERY);
+    expect(result.message).toContain("verify:hooks-installed --scope=agent --repair");
+    expect(result.message).toContain("this worktree");
+    expect(result.message).toContain("do not copy from another checkout");
+    expect(result.message).toContain("relaunch or reload host matchers");
+    expect(result.message).toContain("retry");
+    expect(result.message).toContain("session:ready");
+    expect(result.message).toContain("agents:refresh");
+    expect(result.message).toContain("do not write these files");
+  });
+
+  it("formatAgentHookRepairDisposition reports exact changedPaths and dirty tracked JSON", () => {
+    const message = formatAgentHookRepairDisposition({
+      changed: true,
+      changedPaths: [".claude/settings.json", ".cursor/hooks.json"],
+    });
+    expect(message).toContain("changedPaths: .claude/settings.json, .cursor/hooks.json");
+    expect(message).toContain("may now be dirty");
+    expect(message).toContain("Do not copy from another checkout");
+    expect(message).toContain("committing refreshed deposits");
+    expect(message).toContain("stays denied");
+    expect(message).toContain("Relaunch or reload host matchers");
+    expect(message).toContain("file+shim, not host interception");
+  });
+
+  it("formatAgentHookRepairDisposition prints (none) when nothing changed", () => {
+    expect(formatAgentHookRepairDisposition({ changed: false, changedPaths: [] })).toContain(
+      "changedPaths: (none)",
     );
   });
 });

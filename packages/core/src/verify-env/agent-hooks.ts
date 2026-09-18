@@ -33,6 +33,28 @@ export const AGENT_HOOK_NO_SWAP_RECOVERY =
   "Recovery: run `deft update` (or `directive init`) is a repo-wide payload file-swap when VERSION differs " +
   "and is not required to clear this gate. ";
 
+/** #4711 thin command printed from evaluateAgentHooks. session:ready is not this writer. */
+export const AGENT_HOOK_WORKTREE_REPAIR_RECOVERY =
+  "Command: `deft verify:hooks-installed --scope=agent --repair` against this projectRoot " +
+  "(engine constants; all enabled hosts). Rewritten tracked hook JSON may be dirty in this worktree; " +
+  "do not copy from another checkout. Keep the denied action blocked until that repair and " +
+  "`deft verify:hooks-installed --scope=agent --live` are green, then relaunch or reload host matchers and retry. " +
+  "`session:ready` and `agents:refresh` do not write these files. ";
+
+/** Post-repair disposition for the thin CLI command (#4711). */
+export function formatAgentHookRepairDisposition(written: AgentHookDepositResult): string {
+  const changedPaths = written.changedPaths.length > 0 ? written.changedPaths.join(", ") : "(none)";
+  return (
+    "Rewrote this worktree via writeAgentHookDeposit (engine constants; all enabled hosts).\n" +
+    `changedPaths: ${changedPaths}\n` +
+    "Tracked hook JSON in this worktree may now be dirty. Do not copy from another checkout. " +
+    "Durable prevention is committing refreshed deposits on the delivery branch.\n" +
+    "The triggering action stays denied until `deft verify:hooks-installed --scope=agent --live` is green. " +
+    "Relaunch or reload host matchers, then retry. " +
+    "Live recheck is file+shim, not host interception."
+  );
+}
+
 export interface RepairAgentHookRegistrationsOptions {
   readonly io?: InitDepositIo;
   readonly hostHooksPolicy?: HostHooksPolicy;
@@ -127,7 +149,7 @@ export function evaluateAgentHooks(
   );
   if (unhealthy.length > 0) {
     const skewNote = formatPinEngineSkewVisibility(root);
-    const recovery = `\n  ${AGENT_HOOK_NO_SWAP_RECOVERY}${skewNote === null ? "" : `${skewNote} `}`;
+    const recovery = `\n  ${AGENT_HOOK_NO_SWAP_RECOVERY}${AGENT_HOOK_WORKTREE_REPAIR_RECOVERY}${skewNote === null ? "" : `${skewNote} `}`;
     return {
       code: 1,
       message:
