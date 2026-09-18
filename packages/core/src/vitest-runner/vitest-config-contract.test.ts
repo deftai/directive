@@ -190,8 +190,7 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).not.toMatch(/fileParallelism:\s*false/);
     expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
     expect(source).toMatch(/name:\s*"unit"[\s\S]*maxWorkers:\s*winMaxWorkers/);
-    expect(source).toMatch(/spawnHeavyWinMaxWorkers/);
-    expect(source).toMatch(/name:\s*"spawn-heavy"[\s\S]*maxWorkers:\s*spawnHeavyWinMaxWorkers/);
+    expect(source).toMatch(/name:\s*"spawn-heavy"[\s\S]*maxWorkers:\s*Number\(isWin32\)/);
   });
 
   it("projects inherit root aliases so unbuilt packages resolve without tsc", () => {
