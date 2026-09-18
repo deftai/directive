@@ -1,4 +1,7 @@
-import { describeUnknownReservedReferenceType } from "@deftai/directive-types";
+import {
+  describeUnknownReservedReferenceType,
+  type UnknownReservedReferenceType,
+} from "@deftai/directive-types";
 import { pyStrRepr, pythonTypeName } from "../triage/scope/python-repr.js";
 import {
   PROJECT_DEF_EXPECTED_NARRATIVES,
@@ -117,15 +120,54 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
   }
 }
 
-/** Report reserved-prefix reference types no existing list consumes (#4698). */
-export function validatePlanReferenceTypes(references: unknown, filepath: string): string[] {
+/**
+ * Bounded 0.119.2 compatibility set (#4746). Positive membership of six
+ * bares under x-vbrief/ and x-xbrief/. Not a fifth type registry and not
+ * ENGINE_WRITTEN_BARE_TYPES. nearestCanonical == null is not the classifier.
+ */
+const CLASS_B_COMPATIBILITY_BARES: ReadonlySet<string> = new Set([
+  "depends-on",
+  "supersedes",
+  "source-document",
+  "user-approval",
+  "revisit-condition",
+  "superseded-by",
+]);
+
+export interface PlanReferenceTypeIssues {
+  readonly errors: string[];
+  readonly warnings: string[];
+}
+
+function severityForUnknownReserved(unknown: UnknownReservedReferenceType): "error" | "warning" {
+  return CLASS_B_COMPATIBILITY_BARES.has(unknown.subtype) ? "warning" : "error";
+}
+
+function formatUnknownReserved(
+  filepath: string,
+  index: number,
+  unknown: UnknownReservedReferenceType,
+): string {
+  const nearest =
+    unknown.nearestCanonical === null
+      ? ""
+      : `; nearest canonical is ${pyStrRepr(unknown.nearestCanonical)}`;
+  return `${filepath}: plan.references[${index}].type ${pyStrRepr(unknown.type)} is an unknown reserved-prefix subtype${nearest}`;
+}
+
+/** Report reserved-prefix reference types no existing list consumes (#4698 / #4746). */
+export function validatePlanReferenceTypes(
+  references: unknown,
+  filepath: string,
+): PlanReferenceTypeIssues {
   const errors: string[] = [];
+  const warnings: string[] = [];
   if (references === undefined) {
-    return errors;
+    return { errors, warnings };
   }
   if (!Array.isArray(references)) {
     errors.push(`${filepath}: plan.references must be an array`);
-    return errors;
+    return { errors, warnings };
   }
   for (let i = 0; i < references.length; i += 1) {
     const ref = references[i];
@@ -143,19 +185,23 @@ export function validatePlanReferenceTypes(references: unknown, filepath: string
     if (unknown === null) {
       continue;
     }
-    const nearest =
-      unknown.nearestCanonical === null
-        ? ""
-        : `; nearest canonical is ${pyStrRepr(unknown.nearestCanonical)}`;
-    errors.push(
-      `${filepath}: plan.references[${i}].type ${pyStrRepr(refType)} is an unknown reserved-prefix subtype${nearest}`,
-    );
+    const severity = severityForUnknownReserved(unknown);
+    const message = formatUnknownReserved(filepath, i, unknown);
+    if (severity === "warning") {
+      warnings.push(message);
+    } else {
+      errors.push(message);
+    }
   }
-  return errors;
+  return { errors, warnings };
 }
 
 /** Validate vBRIEF/xBRIEF structural requirements (v0.6 + v0.8 additive). */
-export function validateVbriefSchema(data: JsonObject, filepath: string): string[] {
+export function validateVbriefSchema(
+  data: JsonObject,
+  filepath: string,
+  warnings?: string[],
+): string[] {
   const errors: string[] = [];
 
   const resolved = resolveInfoBlock(data);
@@ -236,7 +282,11 @@ export function validateVbriefSchema(data: JsonObject, filepath: string): string
         }
       }
 
-      errors.push(...validatePlanReferenceTypes(planObj.references, filepath));
+      const refIssues = validatePlanReferenceTypes(planObj.references, filepath);
+      errors.push(...refIssues.errors);
+      if (warnings !== undefined) {
+        warnings.push(...refIssues.warnings);
+      }
     }
   }
 

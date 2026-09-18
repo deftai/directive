@@ -103,7 +103,7 @@ export function validateAll(
     allVbriefs.set(resolved, data);
     resolvedToOriginal.set(resolved, display);
 
-    errors.push(...validateVbriefSchema(data, display));
+    errors.push(...validateVbriefSchema(data, display, warnings));
     errors.push(...validateFilename(display));
     errors.push(...validateFolderStatus(display, data, vbriefDir));
     warnings.push(...validateOriginProvenance(display, data, vbriefDir, strictOriginTypes));
@@ -129,7 +129,7 @@ export function validateAll(
       const resolvedPd = resolve(projectDefAbsolute);
       allVbriefs.set(resolvedPd, data);
       resolvedToOriginal.set(resolvedPd, projectDefDisplay);
-      errors.push(...validateVbriefSchema(data, projectDefDisplay));
+      errors.push(...validateVbriefSchema(data, projectDefDisplay, warnings));
       errors.push(...validateProjectDefinition(projectDefDisplay, data, vbriefDir));
       warnings.push(...validateCreatedUpdatedChronology(data, projectDefDisplay));
     }

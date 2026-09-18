@@ -48,7 +48,12 @@ export {
   renderExtensionRoundtripFinding,
   VbriefSchemaValidationError,
 } from "./roundtrip.js";
-export { normalizeNarrativeKey, validateVbriefSchema } from "./schema.js";
+export type { PlanReferenceTypeIssues } from "./schema.js";
+export {
+  normalizeNarrativeKey,
+  validatePlanReferenceTypes,
+  validateVbriefSchema,
+} from "./schema.js";
 export type { ValidateAllResult } from "./validate-all.js";
 export {
   discoverVbriefs,

@@ -27,7 +27,7 @@ schema's `URI` object and adds a `type` field that MUST match the pattern
 Required fields:
 
 - ! `uri` — the canonical URL or relative path (required by the `URI` base type; not `url`)
-- ! `type` — MUST begin with `x-vbrief/` (see registry below)
+- ! `type` — MUST begin with `x-vbrief/`, `x-xbrief/`, or `x-<consumer>/` (see registry below)
 
 Optional (schema-defined) fields:
 
@@ -36,14 +36,18 @@ Optional (schema-defined) fields:
 - ? `tags` — array of strings for categorization
 
 - ⊗ Use `url` as the field name — the schema requires `uri`
-- ⊗ Use `type` values outside `x-vbrief/*` (e.g. `"github-issue"` with no prefix) — strict validators will reject them
+- ⊗ Use `type` values outside `x-vbrief/*`, `x-xbrief/*`, and `x-<consumer>/*` (e.g. `"github-issue"` with no prefix) — strict validators will reject them
 - ⊗ Rely on `id` to convey issue numbers — that field is not schema-defined; put the issue number in `title` instead
 
 ## `x-vbrief/*` Type Registry
 
-The following `type` values are recognized by deft's tooling and skills. Any
-`x-vbrief/*` value is schema-valid, but the types below carry documented
-semantics.
+The following `type` values are recognized by deft's tooling and skills. JSON
+Schema still accepts `x-vbrief/*` and `x-xbrief/*`, but `validatePlanReferenceTypes`
+fail-closes unknown reserved-prefix subtypes except a bounded Class B
+compatibility set (`depends-on`, `supersedes`, `source-document`,
+`user-approval`, `revisit-condition`, `superseded-by`) under both prefixes,
+which warn. Forward custom types use `x-<consumer>/`. The types below carry
+documented semantics.
 
 - `x-vbrief/plan` — reference to another vBRIEF plan (epic→story or story→epic links, also the canonical v0.5 enum value)
 - `x-vbrief/github-issue` — a GitHub issue (the **primary** origin of an ingested scope vBRIEF). `task issue:emit` treats any `plan.references[]` entry whose type matches `github-issue` / `x-vbrief/github-issue` / `x-xbrief/github-issue` as **already tracked** and SKIPs create. Do **not** add related-only issue refs with this type when the brief still needs emit for its primary origin — keep related links in narratives / PR body / `Refs #N` prose instead (#2881 related-ref footgun).
@@ -52,7 +56,7 @@ semantics.
 - `x-vbrief/user-request` — a direct user request captured verbatim (no external tracker ID)
 - `x-vbrief/spec-section` — a pointer into `specification.vbrief.json` by item id or narrative key (traceability link for FR/NFR requirements)
 
-Consumer projects ? MAY extend the registry with additional `x-vbrief/*` values. When you do, document them in a project-local conventions file and cite them from `PROJECT-DEFINITION.vbrief.json`.
+Consumer projects ? MAY extend with `x-<consumer>/*` values. Document them in a project-local conventions file and cite them from `PROJECT-DEFINITION.vbrief.json`. Do not add new reserved-prefix subtypes. Historical Class B names under `x-vbrief/` and `x-xbrief/` remain read-accepted as warnings; do not rewrite completed JSON to relocate them.
 
 ### Additive sibling fields
 
@@ -117,5 +121,5 @@ from *informational* references using this narrative:
 - ⊗ Write references with a bare `"type": "github-issue"` — the schema requires `^x-vbrief/`
 - ⊗ Write references with `"url"` instead of `"uri"`
 - ⊗ Rely on a custom `"id"` field for issue numbers — encode it in `title` (or `description`) instead
-- ⊗ Invent new non-prefixed type vocabularies — use `x-vbrief/*` everywhere
+- ⊗ Invent new non-prefixed type vocabularies — use registry `x-vbrief/*` / `x-xbrief/*` names, or `x-<consumer>/*` for project-local types. Do not add new reserved-prefix subtypes.
 - ⊗ Leave scope vBRIEFs in `pending/` / `active/` without any `x-vbrief/*` origin reference
