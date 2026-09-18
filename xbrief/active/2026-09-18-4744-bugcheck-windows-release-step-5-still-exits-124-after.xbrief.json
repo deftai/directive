@@ -66,8 +66,7 @@
           "packages/core/src/session/occupancy-stress.test.ts",
           "packages/cli/src/install-upgrade.test.ts",
           "packages/core/src/integration-e2e/triage-bootstrap-at-scale.test.ts",
-          "packages/core/src/session/branches.test.ts",
-          "xbrief/evaluator-surface-disposition.json"
+          "packages/core/src/session/branches.test.ts"
         ],
         "verify_commands": [
           "task check"
@@ -119,8 +118,7 @@
         "packages/core/src/session/occupancy-stress.test.ts",
         "packages/cli/src/install-upgrade.test.ts",
         "packages/core/src/integration-e2e/triage-bootstrap-at-scale.test.ts",
-        "packages/core/src/session/branches.test.ts",
-        "xbrief/evaluator-surface-disposition.json"
+        "packages/core/src/session/branches.test.ts"
       ],
       "cohesion_exemption": "split_plan"
     },
