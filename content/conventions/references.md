@@ -27,7 +27,7 @@ schema's `URI` object and adds a `type` field that MUST match the pattern
 Required fields:
 
 - ! `uri` — the canonical URL or relative path (required by the `URI` base type; not `url`)
-- ! `type` — MUST begin with `x-vbrief/`, `x-xbrief/`, or `x-<consumer>/` (see registry below)
+- ! `type` — xBRIEF 0.8 MUST begin with `x-vbrief/`, `x-xbrief/`, or `x-<consumer>/` (see registry below). Legacy v0.6 still requires `^x-vbrief/` only.
 
 Optional (schema-defined) fields:
 
