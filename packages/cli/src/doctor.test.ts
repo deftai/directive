@@ -19,7 +19,12 @@ vi.mock("@deftai/directive-core/dist/doctor/agents-md.js", () => ({
 
 import { resolveInstalledContentRoot } from "@deftai/directive-core/dist/deposit/resolve-content.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
-import { evaluateDepositFileSetHygiene, renderDepositFileSetHygieneLine, run, sameResolvedPath } from "./doctor.js";
+import {
+  evaluateDepositFileSetHygiene,
+  renderDepositFileSetHygieneLine,
+  run,
+  sameResolvedPath,
+} from "./doctor.js";
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 

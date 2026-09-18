@@ -226,6 +226,10 @@ describe("agents-md extra branches", () => {
     expect(resolveDoctorAgentsTemplateRootSync()).toBe("/engine/content");
     setDoctorAgentsTemplateRoot(undefined);
     const resolved = resolveDoctorAgentsTemplateRootSync();
-    expect(resolved === undefined || resolved.includes("directive-content") || resolved.includes("content")).toBe(true);
+    expect(
+      resolved === undefined ||
+        resolved.includes("directive-content") ||
+        resolved.includes("content"),
+    ).toBe(true);
   });
 });
