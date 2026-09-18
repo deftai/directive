@@ -1,0 +1,688 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4710",
+    "updated": "2026-09-18T01:54:55Z"
+  },
+  "plan": {
+    "title": "bug(update): update must write the consumer pin; doctor-names-file is not reconstitution",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(update): update must write the consumer pin; doctor-names-file is not reconstitution",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4710",
+      "Overview": "# Update must write the consumer pin\n\nLeftover of #4692 after blocking pain-audit 5716925951 and Handoff 5717045800. Operator confirmed the leftover split on 2026-09-17. Do not ingest #4692 as pin reconstitution closed.\n\n## Summary\n\nA Bound-remedy that says update writes the pin **or** doctor names `package.json` does not cover reconstitution. A next-build worker can keep the doctor-names arm, print a path, and leave every clone with a lagging pin after `directive update`. Pin reconstitution is: update writes the consumer `@deftai/directive` pin as part of the upgrade it performed. Fail-closed pin/engine skew is a doctor warning at edf1d698, not the write-gate unlock. Do not add a doctor-prose PreToolUse carve-out.\n\n## Measured (dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a)\n\n- `ensurePackageJsonPin` lives in `packages/core/src/init-deposit/scaffold.ts` and is called from init. `runRefreshDeposit` (`refresh.ts`) writes hooks and does not write the pin.\n- `classifyUpdateState` maps any non-proceed `plan.mode`, including fail-closed `blocked`, onto `updated`, so beyond-window skew does not stop the writer. The writer still leaves the pin behind.\n- `packages/core/src/resolution/plan.ts` fail-closed `nextAction.command` is the literal `directive <gate> --accept-engine-jump`. packages/cli has zero matches. `DEFT_ACCEPT_ENGINE_SKEW` is a library escape and does not yield proceed.\n- `WRITE_GATED_REQUIRED_STEPS` is agent_hooks then doctor. `WRITE_GATED_EXECUTE_STEPS` is agent_hooks only.\n\n## Desired shape\n\n- `directive update` / `runRefreshDeposit` writes the consumer `@deftai/directive` pin as part of the upgrade it performed. No doctor-names-file OR. Pin write is reconstitution identity (#2264 / #2269), not `lastErrorCount`.\n- Printed recovery never proceeds without a pin match. If doctor prints a next command, it is parsed argv that yields a pin write, or it names `DEFT_ACCEPT_ENGINE_SKEW` without claiming proceed. Do not add a doctor/session-ready flag whose only effect is proceed-without-pin-match. Literal `<gate>` is not runnable argv.\n- Hook diagnosis still surfaces pin/engine skew without replacing a true `valid()` fail. One schema for `writeAgentHookDeposit` and `inspectAgentHookDeposit`. When hooks fail, still run or surface doctor so reconstitution is visible. Do not prescribe `deft update` as the skew fix when update is a no-op against the running engine schema.\n- Do not treat `evaluateSkew` fail-closed, `--accept-engine-jump`, or `DEFT_ACCEPT_ENGINE_SKEW` as the write-gate unlock. `lastErrorCount` is severity error, not `actionRequired`.\n- Tests: update moves the pin; a fixture with engine ahead of pin after refresh has matching package.json; printed nextAction either parses to a pin write or names the live env form without proceed; hook-drift recovery is not prescribed as the skew fix; pin/skew remains warning-only unless a later named error check is added as its own remainder.\n\n## Out of scope\n\n- Write-gate carve-out of doctor-named files (correctly out of #4692 P1).\n- D7 `.vbrief.json` filename copy.\n- Recutting #4692 remainder: hook visibility / print honesty without claiming pin reconstitution (stays on #4692).\n\nRelated: #4692, #2264, #2269.\r\n\n",
+      "Labels": "bug, doctor, agent-experience, Upgrade Blocker, area:installer, design-critique:ingest-ready",
+      "ImplementationPlan": "1. packages/core/src/init-deposit/refresh.ts 2. packages/core/src/init-deposit/init-deposit.ts 3. packages/core/src/init-deposit/scaffold.ts Tests via npx vitest run packages/core/src/init-deposit --coverage.enabled=false. CHANGELOG [Unreleased] append-only.",
+      "Traces": "Bound contract is successor lean 5719707821; doctor Next command stays #4718."
+    },
+    "items": [
+      {
+        "title": "runRefreshDeposit writes the pin via ensurePackageJsonPin on skip-copy when pin lags the reconstituted version.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, runRefreshDeposit writes the pin via ensurePackageJsonPin on skip-copy when pin lags the reconstituted version."
+        },
+        "effort": "M",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Then in-process lock mutation: containedDestExec with closed file+args from the matching LOCKFILE_REFRESH_COMMANDS row after that pin write (lockfile-only, not renderProjectInstall add-the-dep). destTarget is the present lock path. Dest-plan records that path in port-record so skip-copy pin-lag is not empty.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Then in-process lock mutation: containedDestExec with closed file+args from the matching LOCKFILE_REFRESH_COMMANDS row after that pin write (lockfile-only, not renderProjectInstall add-the-dep). destTarget is the present lock path. Dest-plan records that path in port-record so skip-copy pin-lag is not empty."
+        },
+        "effort": "M",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Spawn failure (ok false, manager missing, no network, non-zero) fails the update verb or reverts the pin. Print-argv-on-refuse does not relieve P1.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Spawn failure (ok false, manager missing, no network, non-zero) fails the update verb or reverts the pin. Print-argv-on-refuse does not relieve P1."
+        },
+        "effort": "M",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "yarn.lock uses the existing yarn install argv from that table, not silent npm. Do not leftover yarn.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, yarn.lock uses the existing yarn install argv from that table, not silent npm. Do not leftover yarn."
+        },
+        "effort": "M",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not interpolate a raw version into a shell line. Spec is the content package version, same as the pin helper.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not interpolate a raw version into a shell line. Spec is the content package version, same as the pin helper."
+        },
+        "effort": "M",
+        "id": "clause:5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not leftover this reconstitution identity onto #4718. Doctor Next command stays #4718. Hook one-schema stays #4692. Keep #4429 row 3c proceed for pinVersion === null. Never-proceeds applies only when a pin exists and mismatches.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not leftover this reconstitution identity onto #4718. Doctor Next command stays #4718. Hook one-schema stays #4692. Keep #4429 row 3c proceed for pinVersion === null. Never-proceeds applies only when a pin exists and mismatches."
+        },
+        "effort": "M",
+        "id": "clause:6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not treat --accept-engine-jump, DEFT_ACCEPT_ENGINE_SKEW, or lastErrorCount as the write-gate unlock.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not treat --accept-engine-jump, DEFT_ACCEPT_ENGINE_SKEW, or lastErrorCount as the write-gate unlock."
+        },
+        "effort": "M",
+        "id": "clause:7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "Upgrade Blocker",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4710",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4710: bug(update): update must write the consumer pin; doctor-names-file is not reconstitution"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "runRefreshDeposit writes the pin via ensurePackageJsonPin on skip-copy when pin lags the reconstituted version.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Then in-process lock mutation: containedDestExec with closed file+args from the matching LOCKFILE_REFRESH_COMMANDS row after that pin write (lockfile-only, not renderProjectInstall add-the-dep). destTarget is the present lock path. Dest-plan records that path in port-record so skip-copy pin-lag is not empty.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Spawn failure (ok false, manager missing, no network, non-zero) fails the update verb or reverts the pin. Print-argv-on-refuse does not relieve P1.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "yarn.lock uses the existing yarn install argv from that table, not silent npm. Do not leftover yarn.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not interpolate a raw version into a shell line. Spec is the content package version, same as the pin helper.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Do not leftover this reconstitution identity onto #4718. Doctor Next command stays #4718. Hook one-schema stays #4692. Keep #4429 row 3c proceed for pinVersion === null. Never-proceeds applies only when a pin exists and mismatches.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Do not treat --accept-engine-jump, DEFT_ACCEPT_ENGINE_SKEW, or lastErrorCount as the write-gate unlock.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/init-deposit",
+        "cohesion_exemption": [
+          "CHANGELOG.md"
+        ],
+        "split_plan": "Existing files already over review-trigger stay in place this slice. CHANGELOG is append-only cohesion. Do not split those files."
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Cross-link reproduction (within-window + pnpm lock)\n\nConsumer reproduction filed as **#4718** (notetechnic, `@deftai/directive@0.119.2`).\n\nSame residue as this issue’s pin reconstitution leftover, with two extra measured shapes that #4710’s Desired shape should absorb or explicitly defer:\n\n1. **Content already matches engine; pin lags** — after `directive update` deposited `0.119.2`, doctor still primary-next-actions `npx @deftai/directive update` because within-window `requiresUpdateFirst` short-circuits to `renderEphemeral(pm, \"update\")` even when `contentStale()` is false (`contentBehindPin` only). Loop cannot clear without a pin write / pin follow-through command.\n\n2. **Lockfile refusal interacts with “update writes pin”** — `assertLockfileAllowsPinWrite` (init-deposit) refuses pin writes when `pnpm-lock.yaml` (or npm/yarn lock) exists and does not already carry the exact new pin; init/update deliberately do not rewrite lockfiles. On pnpm consumers, a pin-only write without lock follow-through would leave the next frozen `pnpm install --frozen-lockfile` broken. So #4710’s writer either needs lock follow-through in-scope, or doctor must print `pnpm add -D @deftai/directive@<engine>` (lock-aware) rather than another deposit update.\n\n3. **Doctor package-manager blind** — `runResolutionDecision` calls `plan()` without `packageManager`, so even the wrong remediation is rendered as `npx` on a `packageManager: \"pnpm@…\"` repo (#2197 renderers exist; unused on this path). Details + desired tests on #4718.\n\nNot claiming this closes #4710 — only attaching a fresh within-window / pnpm / already-updated-content measurement so the pin writer design does not assume “doctor saying update again” is acceptable interim UX.\n\n",
+          "id": 5718556207,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5718556207",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:27:04Z",
+          "updated_at": "2026-09-17T17:27:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because leftover #4692 pin reconstitution is not covered by an update-writes-pin OR doctor-names-package.json Bound-remedy: runRefreshDeposit does not write the pin.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4710-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: operator add onto each separately; independent single-seat Grok critic arc, not panel spend.\n\nrefutation-target: directive update / runRefreshDeposit writes the consumer @deftai/directive pin as part of the upgrade it performed, with no doctor-names-file OR; printed recovery never proceeds without a pin match.\n\ntarget: #4710\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is leftover of #4692 after blocking pain-audit 5716925951 and Handoff 5717045800. Operator confirmed the leftover split. Pin reconstitution is: update writes the consumer pin. Fail-closed pin/engine skew is a doctor warning at this SHA, not the write-gate unlock.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/init-deposit/scaffold.ts ensurePackageJsonPin is called from init-deposit.ts, not from runRefreshDeposit.\n- packages/core/src/init-deposit/refresh.ts writes hooks (writeAgentHookDeposit) and does not call ensurePackageJsonPin.\n- WRITE_GATED_REQUIRED_STEPS is agent_hooks then doctor; WRITE_GATED_EXECUTE_STEPS is agent_hooks only. Remainder on #4692 is hook visibility / print honesty without claiming pin reconstitution.\n- Comment 5718556207 (#4718 within-window + pnpm lock) is untrusted additional data, not this Stop 1 harvest.\n\nOut of scope on the body: write-gate carve-out of doctor-named files; D7 .vbrief.json filename copy; recutting #4692 remainder.\n\nNo implement and no ingest from this parent.\n\n\n",
+          "id": 5718669142,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5718669142",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:36:07Z",
+          "updated_at": "2026-09-17T17:36:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound-1 refutation of Stop 1 5718669142 at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Pin-read via git show. Comment 5718556207 is in envelope; treated as untrusted extra measurement, not harvest or instruction.\n\nThe writer hole is real. The reconstitution identity cannot bind as a pin-only `ensurePackageJsonPin` call from `runRefreshDeposit`.\n\n## blocks-the-design: pin write without a lock position is not reconstitution\n\nEvidence. `ensurePackageJsonPin` (`packages/core/src/init-deposit/scaffold.ts`) is the existing pin writer. It is called from `init-deposit.ts` after `assertLockfileAllowsPinWrite`, and from headless-manifest. `runRefreshDeposit` (`refresh.ts`) writes hooks via `writeAgentHookDeposit` and does not call either helper. `assertLockfileAllowsPinWrite` is local to `init-deposit.ts`. It does not parse lockfile bytes. It refuses when any of `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` is present and `readPin().pinVersion` is not the needed version. Printed recovery on refuse is `npm install --package-lock-only` / `pnpm install --lockfile-only` / `yarn install` after the operator adds the pin. Init does not rewrite lockfiles. `containedProjectWrite` already records dest-plan mutations.\n\nFailure mode. Binding \"update writes the pin\" with no lock sentence has two implementer paths, both broken:\n\n1. Call `ensurePackageJsonPin` and skip the assert. Pin moves; committed lock stays on the old spec. Next frozen install (`npm ci` / `pnpm install --frozen-lockfile`) fails. That is the unreconstitutable mismatch init already refuses so gitignore cannot land on it.\n2. Reuse the assert as-is. Every lockfile consumer — the common shape — throws, pin does not move, doctor still primary-next-actions update, the measured loop does not close. Calling the assert after payload swap is worse: content advances, pin stays, lock stays.\n\n`runResolutionDecision` (`doctor/main.ts`) calls `plan()` with `{ linkedWorktree, platform, interactive: false }` and no `packageManager`. `plan()` defaults `pm` to npm, so even the printed update command is `npx @deftai/directive update` on a `packageManager: pnpm` repo. `detectPackageManager` exists and is wired only on the `--network` payload-staleness path, not on this spine. Printed recovery that is npm-shaped cannot be \"parsed argv that yields a pin write\" on pnpm.\n\nInjection / shared-state lens (identity + package.json/lock + printed argv as agent authority). Deterministic control is reuse of `ensurePackageJsonPin` + `containedProjectWrite` (symlink containment already on that sink) plus a named lock position. Do not interpolate a raw version string into a shell line. `package-manager.ts` already rejects instruction-shaped `packageManager` values; keep that. Dest worktrees share no extra dest-lock, but pin/lock writes are consumer shared state: dest-plan must include them so the git dirty gate cannot treat an already-current skip-copy as empty.\n\nDisposition. Bound-remedy must name one lock position before bind. Cannot claim reconstitution closed on a pin-only writer.\n\nRoad-not-taken. Leftover-split lock follow-through to #4718, remainder on #4710 = in-process pin write only when no lockfile is present or `readPin` already equals the new pin, plus printed lock-aware argv otherwise, without claiming lockfile consumers reconstituted.\n\nSteelman of pin-only. Init already split lock to operator commands; package.json pin is the #2264 SoT; lock follow-through is clone-install, not pin identity. Flip: if Bound-remedy says reconstitution includes a committed lock that already carries the new pin (or leftover #4718 with that remainder), pin-only can bind. As written it does not.\n\n## sharpens-framing: pin write on already-current skip-copy\n\nEvidence. `runRefreshDeposit` sets `alreadyCurrent` when deposit VERSION matches content package, then skip-copies, still writes hooks, does not look at pin. `evaluateSkew` within-window sets `requiresUpdateFirst: true`. `plan()` returns mode `update` on `requiresUpdateFirst || contentStale()`. `contentStale()` is `contentBehindPin` or missing managed-section sha, not engine-ahead-of-pin. `updateStateFromPlan` maps that update (and also fail-closed `blocked`) onto `updated`, so the CLI still runs refresh. After a deposit that already matches content, refresh is a no-op copy and today leaves the pin behind, so doctor keeps rendering update.\n\nFailure mode. \"As part of the upgrade it performed\" can be implemented as file-swap-only. The engine-ahead / content-current / pin-lag loop then survives the writer.\n\nDisposition. Bound-remedy names pin write on the skip-copy path when pin lags the version being reconstituted. Dest-plan/git preflight becomes non-empty when only the pin moves.\n\n## sharpens-framing: \"never proceeds without a pin match\" vs #4429 row 3c\n\nEvidence. `plan()` row 3c (`facts.pinVersion === null`) returns mode `proceed` plus a warning. #4429 locked that as proceed-not-error so pre-pin consumers do not retro-fail doctor. `runResolutionDecision` sets `actionRequired` from `plan.mode !== \"proceed\"` and emits the resolution finding at severity `warning`, so `lastErrorCount` stays 0. Fail-closed `nextAction.command` is the literal `directive <gate> --accept-engine-jump`. `packages/cli` has zero matches for `accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW` at this SHA. Escape hatch in `evaluateSkew` sets `requiresUpdateFirst: true`, not proceed-silent.\n\nFailure mode. Reading \"printed recovery never proceeds without a pin match\" as a recut of row 3c silently withdraws #4429 proceed. Reading it as nextAction-only while leaving mode `proceed` leaves doctor printing \"Resolution: proceed\" for missing pin. Those are different binds.\n\nDisposition. Bound-remedy picks one: keep 3c proceed for `pinVersion === null` and apply \"never proceeds\" only when a pin exists and mismatches; or recut 3c to mode `update` (warning, not error) and name that #4429 proceed is withdrawn. Do not treat `--accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW` / `lastErrorCount` as the write-gate unlock.\n\n## sharpens-framing: do not absorb #4692 hook-schema remainder\n\nEvidence. Body desired shape asks for one schema across `writeAgentHookDeposit` and `inspectAgentHookDeposit`, and for doctor still to surface when hooks fail. Body out of scope and Stop 1 keep #4692 remainder as hook visibility / print honesty without claiming pin reconstitution. `WRITE_GATED_REQUIRED_STEPS` is `agent_hooks` then `doctor`; `WRITE_GATED_EXECUTE_STEPS` is `agent_hooks` only (`session-start.ts`). Adding doctor to execute-steps is the remainder #4692 already parked.\n\nFailure mode. Next-build grows #4710 into hook-schema unification and hides the pin writer.\n\nDisposition. Bound-remedy on #4710 is the pin writer plus printed recovery honesty. Hook one-schema stays on #4692. This issue may require only that a hook-write fail still surfaces doctor so a pin write (or pin-write refusal) is visible.\n\n## footnote: measured anchors that hold\n\n`ensurePackageJsonPin` is init/headless only. `runRefreshDeposit` does not write the pin. `classifyUpdateState` maps non-proceed including `blocked` onto `updated`. Fail-closed command is not runnable argv. Skew findings are warnings, not `lastErrorCount`. Those support the leftover split; they do not make pin-only reconstitution bind.\n\n",
+          "id": 5718825208,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5718825208",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:48:45Z",
+          "updated_at": "2026-09-17T17:48:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUpdate still leaves the consumer pin behind, and a pin-only write without a lock position is not reconstitution. The accepted harvest is that refresh writes the pin through the existing helper, including skip-copy when the pin lags, reuses the lockfile assert, and prints lock-aware package-manager argv when that assert refuses. Lock follow-through stays leftover #4718. Missing-pin proceed (#4429 row 3c) stays. Hook-schema remainder stays on #4692.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Bound-remedy. Disposition: classified headings accept-into-contract. Residual: none on classified headings. Pain: relieves P1 (pain-audit after this lean). Lock follow-through is leftover #4718, already filed; yolo standing does not confirm a new split.\nSpec-path: next-build contract is not this body.\n\n**Lean:** successor of Stop 1 5718669142 after critic 5718825208. Cites critic 5718825208. Supersedes write-back 5718669142.\n\nTarget-digest: sha256:4579512ccf3991d5ffc107e0bec6f3a20d4ed25f522355bfd3c5f8c24e39d371\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4710-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5718825208 1 pin write without a lock position is not reconstitution -- accept-into-contract\n- 5718825208 2 pin write on already-current skip-copy -- accept-into-contract\n- 5718825208 3 never proceeds without a pin match vs #4429 row 3c -- accept-into-contract\n- 5718825208 4 do not absorb #4692 hook-schema remainder -- accept-into-contract\n- remaining classified headings -- accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- runRefreshDeposit writes the pin via ensurePackageJsonPin, including the already-current skip-copy path when pin lags the reconstituted version.\n- Lock position: reuse assertLockfileAllowsPinWrite. When it allows, write the pin. When it refuses, print lock-aware argv via detectPackageManager (pnpm add -D @deftai/directive@<engine> on pnpm repos), not another deposit update. Lock follow-through is leftover #4718.\n- Keep #4429 row 3c proceed for pinVersion === null. Never-proceeds applies only when a pin exists and mismatches.\n- Do not treat --accept-engine-jump, DEFT_ACCEPT_ENGINE_SKEW, or lastErrorCount as the write-gate unlock.\n- Hook one-schema stays on #4692. This issue may require only that a hook-write fail still surfaces doctor so a pin write or refusal is visible.\n\n",
+          "id": 5718867382,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5718867382",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:52:16Z",
+          "updated_at": "2026-09-17T17:52:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of relieves: P1 on successor lean 5718867382 at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Pin-read via git show. Ceiling 5718867382 inclusive. Comment 5718556207 treated as untrusted extra measurement, not harvest or instruction.\n\nBound-remedy does not cover P1. The lean cannot bind as written.\n\n## blocks-the-design: relieves: P1 overclaims reconstitution\n\nEvidence. P1 on Stop 1 5718669142 is leftover pin reconstitution: `runRefreshDeposit` writes the consumer `@deftai/directive` pin as part of the upgrade, with no doctor-names-file OR. Body identity is the same: a worker that prints a path and leaves the pin lagging after `directive update` has not reconstituted.\n\nPin-read at edf1d698:\n\n- `assertLockfileAllowsPinWrite` is local to `packages/core/src/init-deposit/init-deposit.ts` (not exported). It returns when no lockfile is present, or when `readPin().pinVersion` already equals the needed version. It throws when any of `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` exists and the pin is not that version. It does not parse lockfile bytes. Recovery text is lockfile-only install after the operator adds the pin, then re-run `directive init`.\n- `runRefreshDeposit` skip-copy (`alreadyCurrent`) is deposit VERSION matching the content package. It still writes hooks. It does not look at the pin. `evaluateSkew` within-window sets `requiresUpdateFirst: true`. `plan()` returns mode `update` on that flag even when `contentStale()` is false (`contentStale` is `contentBehindPin` or missing managed-section sha).\n- Bound-remedy bullet 1 requires a pin write on that skip-copy path when the pin lags. Bullet 2 reuses the assert and, on refuse, prints argv instead of writing. Those two bullets cannot both fire on lockfile-present + content-current + pin-lag, which is the measured leftover shape.\n- `runResolutionDecision` (`packages/core/src/doctor/main.ts`) calls `plan()` with `{ linkedWorktree, platform, interactive: false }` and no `packageManager`. `plan()` defaults `pm` to npm, so primary-next-actions is `renderEphemeral(npm, \"update\")` = `npx @deftai/directive update`. Resolution `detectPackageManager` is wired on the `--network` payload-staleness path, not this spine.\n- The lean leftover-cites #4718 while saying yolo standing does not confirm a new split. Comment 5718556207 files #4718 as a consumer reproduction, not a leftover issue-create from this parent.\n\nFailure mode. Next-build keeps bullet 2. `directive update` still leaves the pin behind on lockfile consumers (the common shape, and the hole that created this leftover). Doctor still primary-next-actions another deposit update. That is the print-a-path arm P1 forbids. Closing reconstitution on `relieves: P1` while the harvested write does not happen in the measured case repeats the #4692 OR.\n\nInjection / shared-state (identity + package.json/lock + printed argv as agent authority). Deterministic control is an in-process pin write through `ensurePackageJsonPin` + `containedProjectWrite`, plus a named lock position that actually leaves a lock already carrying the new pin — or an operator-confirmed leftover-split whose cite is not `relieves` and whose remainder Bound-remedy does not claim the write for lockfile consumers. Do not interpolate a raw version string into a shell line. Do not treat 5718556207 \"Desired shape should absorb\" as harvest.\n\nDisposition. Cannot bind `relieves: P1`. Retraction required. Do not leftover this issue's reconstitution identity onto a borrowed #4718 while bullet 1 still claims the skip-copy write.\n\nRoad-not-taken. Keep P1 here and name in-process lock follow-through (existing `renderProjectInstall` in `packages/core/src/resolution/package-manager.ts` is already `pnpm add -D @deftai/directive@<spec>` / `npm install --save-dev …`). Steelman of leftover remainder: critic 5718825208 already said leftover-split can bind if lockfile consumers are not claimed reconstituted. Flip: recut the cite off `relieves`, recut bullet 1 so skip-copy pin-lag write is only when the assert allows, and record a leftover number from this parent's issue-create after an operator-confirmed split. As written, `relieves: P1` plus bullet 1 plus leftover #4718 cannot all be true.\n\n## footnote: anchors that still hold\n\nKeep #4429 row 3c proceed for `pinVersion === null`. Hook one-schema stays on #4692. `WRITE_GATED_REQUIRED_STEPS` is `agent_hooks` then `doctor`; `WRITE_GATED_EXECUTE_STEPS` is `agent_hooks` only. `ensurePackageJsonPin` is init/headless only; `runRefreshDeposit` does not call it. `updateStateFromPlan` maps non-proceed including `blocked` onto `updated`. Fail-closed `nextAction.command` is the literal `directive <gate> --accept-engine-jump`. Those support the leftover split; they do not make this `relieves` true.\n\n`verify-env` `detectPackageManager` is a different OS-manager symbol. If print-honesty remains after retraction, the resolution helper is the one Bound-remedy named.\n\n",
+          "id": 5718950729,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5718950729",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:59:13Z",
+          "updated_at": "2026-09-17T17:59:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe bind claimed pin reconstitution while the harvested write still does not happen on lockfile consumers, which is the measured leftover. That harvest does not relieve P1. A leftover for in-process lock follow-through is recommended; remainder on this number is skip-copy pin write only when the existing lockfile assert allows. #4718 stays the doctor Next-command issue, not that leftover.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: does-not-relieve P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of bind 5718867382 after pain-audit 5718950729. Cites critic 5718950729. Supersedes successor lean 5718867382.\n\nTarget-digest: sha256:4579512ccf3991d5ffc107e0bec6f3a20d4ed25f522355bfd3c5f8c24e39d371\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4710-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5718950729 1 relieves P1 overclaims reconstitution -- accept-into-contract\n- remaining classified headings -- accept-into-contract\n\ndoes-not-relieve: P1\n\n## Bound remedy\n\n- Remainder: runRefreshDeposit may call ensurePackageJsonPin on skip-copy only when assertLockfileAllowsPinWrite allows (no lockfile, or readPin already equals the new pin).\n- When the assert refuses, print lock-aware argv via detectPackageManager / renderProjectInstall. Do not claim lockfile consumers reconstituted.\n- Keep #4429 row 3c proceed for pinVersion === null. Hook one-schema stays on #4692.\n- Do not leftover this reconstitution identity onto #4718. #4718 is doctor Next command after already-updated content.\n\nYolo leftover-pain: recommended split is a new leftover issue for in-process lock follow-through reconstitution (existing renderProjectInstall pnpm add -D / npm install --save-dev). Yolo standing does not confirm that split. Do not file until a live operator confirm.\n\n\n",
+          "id": 5719142999,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719142999",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:15:14Z",
+          "updated_at": "2026-09-17T18:15:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nHandoff after retraction 5719142999 (does-not-relieve P1 plus Spec-path). Pain-audit 5718950729 was blocking. Retraction is parent-class and spends no Dual-stop critic slot.\n\nopen-question: Confirm a new leftover issue for in-process lock follow-through reconstitution, or deliver that writer on #4710 without claiming #4718.\n\n#4718 remains the doctor Next-command arc (already in flight). Yolo standing does not confirm the split. Do not dest-place. Do not ingest.\n\n\n",
+          "id": 5719170361,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719170361",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:17:25Z",
+          "updated_at": "2026-09-17T18:17:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because leftover pin reconstitution on lockfile consumers is still unmet after retraction 5719142999; operator confirmed stay-on-issue (deliver lock follow-through here, not a leftover number).\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4710-dc\norigin-ref: origin/master\ndispatch-sha: 6627449c4c8c67896a712370d6bbec2b96ba9cf5\n\ncharter: open critique\nspend: N=1\nspend-why: post-handoff remainder continue; operator stay-on-issue; independent single-seat Grok critic, not panel spend.\n\ntarget: #4710\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nPost-handoff Stop 1. Omits refutation-target. Charter is open critique. Operator live turn: stay on issue. Handoff 5719170361. Retraction 5719142999 does-not-relieve P1. Pain-audit 5718950729 blocked because relieves overclaimed reconstitution while skip-copy pin write and lockfile-assert-refuse print-argv cannot both fire on the measured lockfile-present pin-lag shape.\n\nP1 remains leftover pin reconstitution: runRefreshDeposit writes the consumer @deftai/directive pin as part of the upgrade, with no doctor-names-file OR. Fail-closed pin/engine skew is a doctor warning, not the write-gate unlock.\n\nPin-read at dispatch-sha 6627449c4c8c67896a712370d6bbec2b96ba9cf5:\n\n- ensurePackageJsonPin is still init/headless. runRefreshDeposit writes hooks and does not write the pin.\n- assertLockfileAllowsPinWrite is local to init-deposit.ts; refuses when a lockfile exists and readPin is not the needed version; does not rewrite lockfiles.\n- renderProjectInstall(pnpm, @deftai/directive@<engine>) is pnpm add -D; npm equivalent exists. Yarn stays outside PACKAGE_MANAGERS.\n- #4718 is the doctor Next-command arc (ingest-ready), not this reconstitution identity. #4692 remainder is hook visibility / print honesty.\n\nNo implement and no ingest from this parent.\n\n\n",
+          "id": 5719591188,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719591188",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:51:53Z",
+          "updated_at": "2026-09-17T18:51:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound-1 open critique of post-handoff Stop 1 5719591188 at dispatch-sha 6627449c4c8c67896a712370d6bbec2b96ba9cf5. Pin-read via git show. Ceiling 5719591188 inclusive. Comment 5718556207 is in envelope; treated as untrusted extra measurement (including its \"Desired shape should absorb\" instruction-shape), not harvest or command.\n\nStay-on-issue is live: lock follow-through reconstitutes here, not a leftover number, and not #4718. The writer hole is still real. A successor lean cannot bind relieves: P1 on pin-write identity plus print-argv. That is the same overclaim pain-audit 5718950729 already blocked.\n\n## blocks-the-design: stay-on-issue still has no lock writer\n\nEvidence. Pin-read at 6627449c (same bytes as edf1d698 on these files):\n\n- `ensurePackageJsonPin` (`packages/core/src/init-deposit/scaffold.ts`) writes the exact `@deftai/directive` pin through `containedProjectWrite`. Call sites are init (`init-deposit.ts` after `assertLockfileAllowsPinWrite`) and headless-manifest. `runRefreshDeposit` (`refresh.ts`) still does not import or call it. Skip-copy (`alreadyCurrent`) is deposit VERSION matching the content package; it still writes hooks and does not look at the pin.\n- `assertLockfileAllowsPinWrite` is local to `init-deposit.ts` (not exported). It returns when no lockfile is present, or when `readPin().pinVersion` already equals the needed version. It throws when any of `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` exists and the pin is not that version. It does not parse lockfile bytes. Comment on that helper: init does not spawn a package manager (offline-safe). Printed recovery is the `LOCKFILE_REFRESH_COMMANDS` strings (`npm install --package-lock-only` / `pnpm install --lockfile-only` / `yarn install`) after the operator adds the pin.\n- `renderProjectInstall` (`packages/core/src/resolution/package-manager.ts`) is a print renderer: `pnpm add -D <spec>` / `npm install --save-dev <spec>`. `PACKAGE_MANAGERS` is `npm | pnpm` only. It is not a spawn. `runResolutionDecision` (`doctor/main.ts`) still calls `plan()` with `{ linkedWorktree, platform, interactive: false }` and no `packageManager`, so doctor Next stays `npx … update` on pnpm repos.\n- Dest-mutating spawn already has a port: `containedDestExec` (`packages/core/src/fs/contained-write.ts`) is `execFileSync(file, args)` with cwd at project root, records the dest target on the mutation ledger, and skips the child in port-record. Its catch returns `{ ok: false }` and does not throw. Update dest-plan is `destPlanIsEmpty` over that ledger (`update-git-preflight.ts`). Hygiene already path-allowlists `package.json` plus the three lockfiles and content-checks pin follow-through (`isPnpmLockDirectivePinFollowThrough` / npm / yarn twins, #3193).\n- Stop 1 5719591188 restates P1 as `runRefreshDeposit` writes the pin, with no doctor-names-file OR, and records stay-on-issue. It lists `renderProjectInstall` as a pin-read fact. It does not name an in-process lock mutation. Retraction 5719142999 Bound-remedy is pin write only when the assert allows, else print argv, and `does-not-relieve: P1`. Operator refused leftover-split.\n\nFailure mode. Next-build has three implementer paths, all broken on the measured lockfile-present + content-current + pin-lag shape:\n\n1. Copy the retraction remainder (assert + print `renderProjectInstall` / `detectPackageManager`). Pin does not move on lockfile consumers. Doctor still primary-next-actions another deposit update. That is the print-a-path arm P1 forbids. `relieves: P1` on that harvest repeats 5718950729.\n2. Call `ensurePackageJsonPin` and skip the assert / skip lock mutation. Pin moves; committed lock stays on the old spec. Next frozen install fails. Init already refuses that mismatch so gitignore cannot land on it.\n3. Exec the `renderProjectInstall` string (shell interpolation of version + manager). That is a new authority path: untrusted `packageManager` / env text into a shell line. Lenient `detectPackageManager` maps unsupported managers (yarn) to npm and would emit `npm install --save-dev` on a `yarn.lock` tree. `resolveProjectPackageManager` is the fail-closed resolver and is unused on this spine.\n\nStay-on-issue closed leftover-split, so (1) cannot bind. (2) and (3) are not reconstitution. There is no fourth path in the Stop 1 harvest.\n\nInjection / shared-state (identity + package.json/lock + printed argv as agent authority + dest-plan/git index). Deterministic control is already on the tree: pin via `ensurePackageJsonPin` + `containedProjectWrite`; lock via `containedDestExec` with closed `file`+`args` taken from the matching `LOCKFILE_REFRESH_COMMANDS` row after that pin write (not a rendered shell string); dest-plan records the lock path in port-record so the git dirty gate cannot treat skip-copy pin-lag as empty; hygiene #3193 already states the co-travel unit. Spec comes from the content package version, same as the pin helper. Do not interpolate a raw version into a shell line. Do not leftover this identity onto #4718.\n\nDisposition. Bound-remedy must name in-process lock mutation that leaves any present lockfile already carrying the new pin after `directive update`, including skip-copy when pin lags. Print-argv is not that. `relieves: P1` cannot bind until that writer is named. P1 identity on this Stop 1 is still pin-write-only; stay-on-issue recut reconstitution to pin plus lock.\n\nRoad-not-taken. Leftover-split (new issue for lock follow-through, remainder pin-only when the assert allows) is what retraction 5719142999 recommended. Steelman: init already split lock to the operator; package.json pin is the #2264 SoT; lock is clone-install. Flip: operator stay-on-issue is a live turn; same-number leftover is not ingest clearance; the measured leftover is lockfile consumers. As written, Stop 1 cannot bind.\n\n## sharpens-framing: lock writer, dest-plan, fail-closed, yarn\n\nEvidence. `containedDestExec` is the dest-mutating exec port the dry-run chokepoint already allowlists. Port-record records `exec` on `destTarget` and skips the child. A raw `pnpm`/`npm` spawn outside that port is a dest-plan lie: skip-copy hooks can be no-ops, `destPlanIsEmpty` true, git preflight not required, then live spawn mutates a tree the gate did not see.\n\n`LOCKFILE_REFRESH_COMMANDS` is lockfile-only after the pin is already in package.json. `renderProjectInstall` is add-the-dep and rewrites package.json again (fights the pin helper's JSON.stringify reformat). Stay-on-issue should keep `ensurePackageJsonPin` as the pin writer and use lockfile-only argv for the lock, not exec the add-the-dep renderer.\n\n`containedDestExec` swallows spawn failure (`ok: false`, no throw). Pin write then swallowed lock miss is the unreconstitutable mismatch. Bound-remedy fail-closes the update (or reverts the pin) when the lock exec cannot run: no network, manager missing from PATH, or non-zero. Print-on-refuse is the retraction harvest and does not relieve P1.\n\n`yarn.lock` is in `presentLockfiles` / hygiene allowlist / `isYarnLockDirectivePinFollowThrough`. It is outside `PACKAGE_MANAGERS`. A harvest that only names `renderProjectInstall` leaves yarn unreconstituted or, with lenient detect, writes a second lockfile.\n\nSkip-copy staging (`refresh.ts`) calls `depositStagePaths` when `!alreadyCurrent || effects.files.length > 0`. Porcelain `effects.files` includes installer-managed paths after the writes. If pin+lock writes happen inside `runRefreshDeposit` before that probe, staging can see them. Dest-plan still needs the ledger record in the earlier port-record pass.\n\nDisposition. Bound-remedy names: `ensurePackageJsonPin` on skip-copy when pin lags; then `containedDestExec` with closed argv for the present lockfile; destTarget is that lock path; spawn failure fails the verb; yarn is either the existing `yarn install` argv or an explicit out-of-scope leftover, not silent npm. Do not add a doctor-prose PreToolUse carve-out. Do not treat `--accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW` / `lastErrorCount` as the write-gate unlock.\n\n## sharpens-framing: do not absorb #4718, #4692, or #4429 row 3c\n\nEvidence. #4718 is open, labeled `design-critique:ingest-ready`, title is doctor Next-command after already-updated content (pnpm ignored; pin/lock is the real gap). Stop 1 already says #4718 is not this reconstitution identity. After pin+lock match, `plan()` proceed is the shared postcondition; the doctor printer stays on #4718. Body and Stop 1 keep #4692 remainder as hook visibility / print honesty (`WRITE_GATED_EXECUTE_STEPS` is `agent_hooks` only). `plan()` row 3c is still `proceed` plus warning when `pinVersion === null` (#4429). Prior critic 5718825208 already split \"never proceeds without a pin match\" to: keep 3c for missing pin; never-proceeds only when a pin exists and mismatches.\n\nFailure mode. Stay-on-issue grows #4710 into doctor Next-command, hook-schema unification, or a recut of missing-pin proceed. That hides the lock writer and collides with ingest-ready #4718 / remainder #4692.\n\nDisposition. Bound-remedy on #4710 is the pin+lock writer plus dest-plan/git/offline fail-closed. Doctor print honesty stays on #4718. Hook one-schema stays on #4692. Keep 3c proceed for `pinVersion === null`.\n\n## footnote: measured anchors that hold\n\n`ensurePackageJsonPin` is still init/headless only. `runRefreshDeposit` does not write the pin. `assertLockfileAllowsPinWrite` still refuses lockfile-present pin-lag and does not rewrite lockfiles. `updateStateFromPlan` still maps non-proceed including `blocked` onto `updated`. Fail-closed `nextAction.command` is still the literal `directive <gate> --accept-engine-jump`. Skew findings stay warnings. Those support stay-on-issue; they do not make print-argv reconstitution bind.",
+          "id": 5719686458,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719686458",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:59:49Z",
+          "updated_at": "2026-09-17T18:59:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nStay-on-issue means reconstitution on this number includes lockfile consumers, not a leftover ticket. Pin-only write plus printed argv still leaves the measured pnpm tree unreconstitutable. The accepted harvest is that update writes the pin through the existing helper, then mutates the present lockfile in-process with closed lockfile-only argv on the dest-exec port, fail-closed if that exec cannot run. Doctor Next command stays on #4718.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Bound-remedy. Disposition: classified headings accept-into-contract. Residual: none on classified headings. Pain: relieves P1 (pain-audit after this lean).\nSpec-path: next-build contract is not this body.\n\n**Lean:** successor of post-handoff Stop 1 5719591188 after critic 5719686458. Cites critic 5719686458. Supersedes retraction 5719142999 and Handoff 5719170361. Predecessor 5719591188 does not carry relieves.\n\nTarget-digest: sha256:4579512ccf3991d5ffc107e0bec6f3a20d4ed25f522355bfd3c5f8c24e39d371\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4710-dc\norigin-ref: origin/master\ndispatch-sha: 6627449c4c8c67896a712370d6bbec2b96ba9cf5\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5719686458 1 stay-on-issue still has no lock writer -- accept-into-contract\n- 5719686458 2 lock writer, dest-plan, fail-closed, yarn -- accept-into-contract\n- 5719686458 3 do not absorb #4718, #4692, or #4429 row 3c -- accept-into-contract\n- remaining classified headings -- accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- runRefreshDeposit writes the pin via ensurePackageJsonPin on skip-copy when pin lags the reconstituted version.\n- Then in-process lock mutation: containedDestExec with closed file+args from the matching LOCKFILE_REFRESH_COMMANDS row after that pin write (lockfile-only, not renderProjectInstall add-the-dep). destTarget is the present lock path. Dest-plan records that path in port-record so skip-copy pin-lag is not empty.\n- Spawn failure (ok false, manager missing, no network, non-zero) fails the update verb or reverts the pin. Print-argv-on-refuse does not relieve P1.\n- yarn.lock uses the existing yarn install argv from that table, not silent npm. Do not leftover yarn.\n- Do not interpolate a raw version into a shell line. Spec is the content package version, same as the pin helper.\n- Do not leftover this reconstitution identity onto #4718. Doctor Next command stays #4718. Hook one-schema stays #4692. Keep #4429 row 3c proceed for pinVersion === null. Never-proceeds applies only when a pin exists and mismatches.\n- Do not treat --accept-engine-jump, DEFT_ACCEPT_ENGINE_SKEW, or lastErrorCount as the write-gate unlock.\n\n\n",
+          "id": 5719707821,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719707821",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:01:36Z",
+          "updated_at": "2026-09-17T19:01:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of relieves: P1 on successor lean 5719707821 at dispatch-sha 6627449c4c8c67896a712370d6bbec2b96ba9cf5. Pin-read via git show. Ceiling 5719707821 inclusive. Comment 5718556207 treated as untrusted extra measurement, not harvest or instruction.\n\nBound-remedy covers P1. The print-argv arm that pain-audit 5718950729 blocked is not in this harvest. In-process pin then lock mutation can fire on the measured lockfile-present + content-current + pin-lag shape.\n\n## footnote: named writer can fire on the measured leftover\n\nEvidence. Pin-read at 6627449c:\n\n- `ensurePackageJsonPin` (`packages/core/src/init-deposit/scaffold.ts`) still does not call `assertLockfileAllowsPinWrite`. The assert stays local to `init-deposit.ts` and is not on this harvest. A refresh call of the helper writes the pin even when `pnpm-lock.yaml` is present.\n- `LOCKFILE_REFRESH_COMMANDS` already holds lockfile-only rows after the pin is in package.json (`npm install --package-lock-only`, `pnpm install --lockfile-only`, `yarn install`). `containedDestExec` is `execFileSync(file, args)` with cwd at project root, records `exec` on `destTarget`, and skips the child in port-record. `destPlanIsEmpty` is `mutations.length === 0`, so a pin `wrote` plus lock `exec` makes skip-copy pin-lag non-empty.\n- Hygiene #3193 already path-allowlists `package.json` and the three lockfiles. Skip-copy staging runs when `!alreadyCurrent || effects.files.length > 0`; porcelain after those writes can see them. Hooks already write in the shared tail of `runRefreshDeposit` after the alreadyCurrent if/else, so the same site covers file-swap and skip-copy.\n- Bound-remedy does not leftover #4718, does not exec `renderProjectInstall`, does not interpolate a raw version into a shell line, keeps #4429 row 3c, and keeps #4692 hook-schema off this number.\n\nFailure mode if this were still print-argv: none on this lean. Spawn failure fail-closes the verb; that is not reconstitution, and it is not the doctor-names / print-a-path arm P1 forbids.\n\nInjection / shared-state (identity + package.json/lock + dest-plan/git index + dest-exec of a package manager). Deterministic control is already named: pin via `ensurePackageJsonPin` + `containedProjectWrite`; lock via `containedDestExec` with closed file+args from the matching table row; spec from the content package version. Win32 `.cmd` shims are the same PATHEXT class this repo already solved with `whichAllFromPath` (PATH scan, no shell locator). Do not add a `shell:true` spawn. Do not leftover this identity onto #4718.\n\n## footnote: measured anchors that hold\n\n`ensurePackageJsonPin` is still init/headless only. `runRefreshDeposit` still does not write the pin. `assertLockfileAllowsPinWrite` still refuses lockfile-present pin-lag and does not rewrite lockfiles. `updateStateFromPlan` still maps non-proceed including `blocked` onto `updated`. Fail-closed `nextAction.command` is still the literal `directive <gate> --accept-engine-jump`. Those support stay-on-issue; they do not reopen print-argv reconstitution.\n\n",
+          "id": 5719821856,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719821856",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:11:15Z",
+          "updated_at": "2026-09-17T19:11:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Update reconstitutes pin on lockfile consumers (P1) | covered: ensurePackageJsonPin then containedDestExec lockfile-only | pin-read scaffold.ts ensurePackageJsonPin; LOCKFILE_REFRESH_COMMANDS; containedDestExec dest-plan; pain-audit 5719821856 footnote-only |\n| Print-argv / doctor-names OR | not in this harvest | pain-audit 5718950729 blocked that arm; recut lean 5719707821 |\n| Doctor Next command / hook-schema / missing-pin proceed | leftover #4718 / remainder #4692 / #4429 row 3c | checking critic 5719686458 heading 3 |\n\nCites successor lean 5719707821. Empty disagreement set. Pain-audit 5719821856 targeted audit-targets: pain-P1 and was footnote-only.\n\n\n",
+          "id": 5719836280,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719836280",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:12:27Z",
+          "updated_at": "2026-09-17T19:12:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nStay-on-issue means reconstitution on this number includes lockfile consumers, not a leftover ticket. Pin-only write plus printed argv still leaves the measured pnpm tree unreconstitutable. The accepted harvest is that update writes the pin through the existing helper, then mutates the present lockfile in-process with closed lockfile-only argv on the dest-exec port, fail-closed if that exec cannot run. Doctor Next command stays on #4718.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the successor lean, and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites accepted successor lean 5719707821. Verified-claims table comment 5719836280. Pain-audit 5719821856 (audit-targets: pain-P1) footnote-only. Checking critic 5719686458. Post-handoff Stop 1 5719591188. dispatch-sha 6627449c4c8c67896a712370d6bbec2b96ba9cf5.\n\n\n",
+          "id": 5719841366,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5719841366",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:12:53Z",
+          "updated_at": "2026-09-17T19:12:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Architectural supersession pointer\n\nFull local-first / triangle-elimination requirements are in **#4730**.\n\nThis issue (#4710) remains valid as a **transitional** fix (update writes pin + lock follow-through) while the triangle still exists. #4730 explicitly warns: do **not** freeze engine-led “deposit first, pin catches up” as the long-term SoT. End-state is **pin-led** `upgrade` (pin+lock → local install → deposit/sync from local package).\n\n",
+          "id": 5720316172,
+          "html_url": "https://github.com/deftai/directive/issues/4710#issuecomment-5720316172",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:52:24Z",
+          "updated_at": "2026-09-17T19:52:24Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5489995691,
+        "origin": "deftai/directive#4710",
+        "id": "github.issue.5489995691"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4579512ccf3991d5ffc107e0bec6f3a20d4ed25f522355bfd3c5f8c24e39d371"
+      },
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/init-deposit --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "update writes pin via ensurePackageJsonPin",
+          "lockfile follow-through via LOCKFILE_REFRESH_COMMANDS",
+          "CHANGELOG [Unreleased] #4710"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer-upgrade-pin",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5719707821; doctor Next command stays #4718."
+      },
+      "literal_acceptance_not_commands": [
+        "directive doctor --accept-engine-jump"
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4735,
+        "prBase": null,
+        "mergeCommit": "033138bdb85cc6b97338673be3cd70aaeb73e769",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2936a72be62c35903a5f9a04d7869f69bf4cbb2b",
+        "verifiedAt": "2026-09-18T01:54:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T01:54:55Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T01:54:55Z"
+      }
+    },
+    "id": "github.issue.5489995691",
+    "updated": "2026-09-18T01:54:55Z"
+  }
+}

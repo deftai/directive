@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release writes ROADMAP then CHANGELOG through retained descriptors (#4318).** Step 5 refuses unsafe CHANGELOG node types before any release-owned read (including `--skip-ci` and dry-run). Step 6 prepares both artifacts without writing. Step 7 completes ROADMAP before CHANGELOG. Refs #4164.
 
 - **Release validates committed lifecycle inputs before the native scanner and again before CHANGELOG write (#4317).** Uncommitted or unsafe xBRIEF files now fail the release instead of reaching the scanner or ROADMAP write. Refs #4164.
+- **Leftover-complete installer trio #4692 #4710 #4718.** Moves those briefs to `xbrief/completed/` after PRs 4736, 4735, and 4734. Refs #4692, #4710, #4718.
+
 - **Leftover-complete #4732 after PR 4739.** Moves the brief to `xbrief/completed/` with `kind: test` evidence on bound clause ids. Refs #4732.
 
 - **Leftover-complete through-merge-4576 briefs.** Moves #4672, #4673, #4674, #4697, #4698, #4700, #4705 from `xbrief/active/` to `xbrief/completed/` with `kind: test` evidence on harvest items and bound `clause:N` rows. Does not recut #3240 or #4385. Follow-on derive-stamp is #4732.

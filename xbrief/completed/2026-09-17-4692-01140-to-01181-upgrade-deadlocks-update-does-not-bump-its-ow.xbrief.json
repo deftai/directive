@@ -1,0 +1,597 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4692",
+    "updated": "2026-09-18T01:54:19Z"
+  },
+  "plan": {
+    "title": "0.114.0 to 0.118.1 upgrade deadlocks: update does not bump its own pin, and the printed recovery flag does not exist",
+    "status": "completed",
+    "narratives": {
+      "Description": "0.114.0 to 0.118.1 upgrade deadlocks: update does not bump its own pin, and the printed recovery flag does not exist",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4692",
+      "Overview": "Upgrading a consumer project from the 0.114.0 deposit to 0.118.1 left the install in a state where **every agent write was blocked and no documented recovery could clear it**. Four defects compounded; each is independently reproducible.\n\nEnvironment: Windows 11, git-bash shell, node v24.18.0, engine `@deftai/directive-core@0.118.1`, hybrid vendored install (`.deft/core/` + managed AGENTS.md), consumer deposit.\n\n## 1. `update` does not carry its own pin forward, so doctor can never clear\n\n`directive update` brings the deposit to 0.118.1 — it rewrites `.deft/core/**`, `.deft/GENERATION.json`, `xbrief/.deft-version`, and the host hook files. It does **not** touch the `@deftai/directive` pin in the consumer's root `package.json`.\n\ndoctor then fails closed on precisely that mismatch:\n\n```\nVersion reconciliation: engine 0.118.1, content none, pin 0.114.0\n  -- engine 0.118.1 is a large jump ahead of pin 0.114.0; failing closed.\n```\n\nBecause the gated `doctor` ritual step blocks writes, and the remedy is a write to `package.json`, `directive update` cannot fix the condition it creates. Ran it twice on a clean tree; the pin stayed `0.114.0` both times.\n\nBumping the pin by hand is what resolves it:\n\n```\n✓ Resolution: proceed -- engine 0.118.1 matches pin 0.118.1 and content is current.\n```\n\n**Expected:** `update` bumps the consumer's pin as part of the upgrade it just performed, or doctor names `package.json` explicitly as the file to edit.\n\n## 2. The recovery flag doctor prints does not exist\n\ndoctor's own \"next action\" output:\n\n```\nNext command: directive <gate> --accept-engine-jump\n  Does / why safe: Confirm the jump with --accept-engine-jump or DEFT_ACCEPT_ENGINE_SKEW=1 after reviewing the delta.\n```\n\nBut no command accepts it:\n\n```\n$ directive doctor --accept-engine-jump\n✗ Unknown flag(s): --accept-engine-jump\nℹ Allowed: --session, --fix, --repair, --repair-taskfile, --json, --quiet, --full,\n           --network, --project-root, --force, --openclaw-all-agents, -h, --help\n\n$ deft session:ready --session-id=... --accept-engine-jump\nsession_ready: unrecognized argument: --accept-engine-jump\n```\n\nOnly the `DEFT_ACCEPT_ENGINE_SKEW=1` env var exists. Agent harnesses commonly refuse env vars that read as safety-bypass switches, so the flag form is the one that matters here — and it is the one that does not work.\n\n**Expected:** the printed command runs, or the message leads with the form that actually exists.\n\n## 3. The write gate deadlocks on a condition only a write can clear\n\nThe general shape, independent of the pin case: when a gated ritual step fails because of a file's contents, and that file is a project file, the agent cannot fix it — `Edit`/`Write` are denied with the same failure that needs the edit.\n\n```\nDirective denied Edit: session ritual gated step 'doctor' failed:\n  [doctor] ran 0h ago, 1 error / 1 warning -- UNRESOLVED\n```\n\nThe deny text correctly notes that shell dest-forms are not covered and that reaching for one \"defeats the gate rather than satisfying it\" — so the agent is left with no sanctioned path at all. A human at the keyboard had to make the one-line edit.\n\n**Expected:** a remediation carve-out — the specific file(s) doctor names as the blocker should be writable while that error is outstanding. Otherwise any doctor-blocking condition in a tracked file is unrecoverable by the agent.\n\n## 4. `agent_hooks` drift reports the wrong layer and prescribes a no-op\n\nBefore the pin was the visible problem, the failure surfaced as hook drift:\n\n```\nsession ritual gated step 'agent_hooks' failed: deft agent hook registration INCOMPLETE:\n  - claude: drifted at .claude/settings.json\n  - grok:   drifted at .grok/hooks/deft.json\n  - cursor: drifted at .cursor/hooks.json\n  - codex:  drifted at .codex/hooks.json\n  Recovery: run `deft update` (or `directive init`) to refresh project hooks.\n```\n\nRunning the prescribed `deft update` rewrote all four files **byte-identically to what was already committed** — `git status` showed them unmodified afterwards — and the check still reported them drifted. The writer and the checker disagreed because `update` resolved the *pinned* 0.114.0 deposit while the 0.118.1 checker enforced its own expectations.\n\nSo the error named the wrong layer (hooks, not version skew) and prescribed a command that provably changes nothing. This cost by far the most time, because the recovery looks like it should work and silently does not.\n\n**Expected:** when pin/engine skew is present, that is reported as the cause rather than per-host hook drift.\n\n## 5. Minor: D7 filename error names the wrong extension\n\n```\nverify_vbrief_conformance: 1 D7 filename error(s) (#4245).\n  Scope filenames MUST match YYYY-MM-DD-descriptive-slug.vbrief.json\nFAIL: xbrief/active/my-scope.xbrief.json: filename does not match\n      convention YYYY-MM-DD-descriptive-slug.vbrief.json (D7)\n```\n\nThe repo is on the xBRIEF model (`verify_xbrief_drift: no legacy-layout drift -- xbrief/ is canonical`), and renaming to `2026-09-16-descriptive-slug.xbrief.json` passes. The message tells you to use the legacy `.vbrief.json` extension, which would be wrong.\n\n## Sequence that reproduces it\n\n1. Consumer repo on the 0.114.0 deposit; install engine 0.118.1 globally.\n2. `deft session:ready` → fails on `agent_hooks`, four hosts \"drifted\".\n3. `deft update` → rewrites the hook files identically; `session:ready` still fails the same way. **(loop)**\n4. Commit the 0.118.1 deposit sync (GENERATION.json, .deft-version, hooks, managed AGENTS.md). `agent_hooks` now passes.\n5. `deft session:ready` → now fails on `doctor`: pin 0.114.0 vs engine 0.118.1.\n6. `directive update` → does not bump the pin. `doctor` still errors. **(loop)**\n7. `--accept-engine-jump` → unknown flag on every command.\n8. Edit `package.json` → denied by the gate that the edit would clear. **(deadlock)**\n9. Human edits `package.json` by hand → doctor passes, `session:ready` OK.\n\nSteps 3 and 6 are loops, and step 8 is a hard stop. The only exits are a human edit or an env var that many agent harnesses will refuse.\n\n## Suggested priority\n\n(1) and (4) are the ones that cost real time — both present as \"run this command\", and the command does nothing. (3) is the structural one: without a remediation carve-out, any doctor-blocking condition in a tracked file needs a human.\n\n",
+      "Labels": "bug, doctor, agent-experience, Upgrade Blocker, area:installer, design-critique:ingest-ready",
+      "ImplementationPlan": "1. packages/core/src/init-deposit/agent-hooks.ts 2. packages/core/src/init-deposit/host-tool-coverage.test.ts 3. packages/core/src/verify-env/agent-hooks.ts 4. packages/core/src/resolution/plan.ts 5. packages/core/src/resolution/plan.test.ts Tests via npx vitest run packages/core/src/init-deposit/host-tool-coverage.test.ts packages/core/src/resolution/plan.test.ts --coverage.enabled=false. CHANGELOG [Unreleased] append-only.",
+      "Traces": "Bound contract is successor lean 5717718597; pin reconstitution is #4710."
+    },
+    "items": [
+      {
+        "title": "When agent_hooks fails, still surface pin/engine skew, or still run doctor, so reconstitution is visible. Do not replace a true valid() fail with a pin-skew cause. One schema for writeAgentHookDeposit and inspectAgentHookDeposit.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, When agent_hooks fails, still surface pin/engine skew, or still run doctor, so reconstitution is visible. Do not replace a true valid() fail with a pin-skew cause. One schema for writeAgentHookDeposit and inspectAgentHookDeposit."
+        },
+        "effort": "M",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Printed nextAction on this number either parses or names DEFT_ACCEPT_ENGINE_SKEW without claiming proceed. Do not add a doctor or session-ready flag whose only effect is proceed-without-pin-match. Literal <gate> is not runnable argv.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Printed nextAction on this number either parses or names DEFT_ACCEPT_ENGINE_SKEW without claiming proceed. Do not add a doctor or session-ready flag whose only effect is proceed-without-pin-match. Literal <gate> is not runnable argv."
+        },
+        "effort": "M",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not claim pin reconstitution closed on this number. That remainder is #4710. Do not add a doctor-prose write-gate carve-out.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not claim pin reconstitution closed on this number. That remainder is #4710. Do not add a doctor-prose write-gate carve-out."
+        },
+        "effort": "M",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Tests: hook-drift recovery is not prescribed as the skew fix; a valid() fail still reports as that fail; printed nextAction does not claim proceed.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Tests: hook-drift recovery is not prescribed as the skew fix; a valid() fail still reports as that fail; printed nextAction does not claim proceed."
+        },
+        "effort": "M",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "Upgrade Blocker",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4692",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4692: 0.114.0 to 0.118.1 upgrade deadlocks: update does not bump its own pin, and the printed recovery flag does not exist"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When agent_hooks fails, still surface pin/engine skew, or still run doctor, so reconstitution is visible. Do not replace a true valid() fail with a pin-skew cause. One schema for writeAgentHookDeposit and inspectAgentHookDeposit.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Printed nextAction on this number either parses or names DEFT_ACCEPT_ENGINE_SKEW without claiming proceed. Do not add a doctor or session-ready flag whose only effect is proceed-without-pin-match. Literal <gate> is not runnable argv.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not claim pin reconstitution closed on this number. That remainder is #4710. Do not add a doctor-prose write-gate carve-out.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Tests: hook-drift recovery is not prescribed as the skew fix; a valid() fail still reports as that fail; printed nextAction does not claim proceed.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/resolution/plan.ts",
+          "packages/core/src/resolution/plan.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/init-deposit",
+        "cohesion_exemption": [
+          "CHANGELOG.md"
+        ],
+        "split_plan": "Existing files already over review-trigger stay in place this slice. CHANGELOG is append-only cohesion. Do not split those files."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because directive update does not bump the consumer @deftai/directive pin, doctor prints directive <gate> --accept-engine-jump, and no doctor/CLI parse surface accepts that flag, so a 0.114.0-to-0.118.1 upgrade deadlocks every gated write.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4692-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Fork is pin-forward vs printed-flag vs write-carve-out, not panel spend.\n\nrefutation-target: update may leave the consumer pin behind the engine it just installed, and the printed --accept-engine-jump recovery is a live CLI flag an agent can pass.\n\ntarget: #4692\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is one remainder class with four measured shapes from a Windows consumer 0.114.0 -> 0.118.1 upgrade: (1) update rewrites deposit/hooks/GENERATION.json and does not bump package.json pin; (2) doctor nextAction prints `directive <gate> --accept-engine-jump`, and `directive doctor --accept-engine-jump` / `session:ready --accept-engine-jump` are unknown flags; (3) the write gate then denies the package.json edit that would clear doctor; (4) before the pin was visible, agent_hooks reported four-host drift and prescribed `deft update`, which rewrote hooks byte-identically to the pinned 0.114.0 deposit. D7 `.vbrief.json` filename copy is not this pain.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/resolution/plan.ts fail-closed nextAction.command is the literal `directive <gate> --accept-engine-jump`. evaluateSkew accepts acceptEngineJump as a library option. packages/cli has zero matches for accept-engine-jump / acceptEngineJump. doctor does not parse that flag.\n- packages/core/src/resolution/skew-policy.ts ACCEPT_ENGINE_SKEW_ENV is DEFT_ACCEPT_ENGINE_SKEW. Env escape exists; the printed flag form does not reach a CLI parser.\n- init-deposit update path treats package.json as the reconstitution pin (#2264 / #2269 never-ignore). No writer in init-deposit/update*.ts bumps the @deftai/directive dependency key as part of update.\n- evaluateSkew fail-closed is the doctor error the write gate then re-uses as the deny.\n\nInventory: pin-only hygiene in core-guard-pin-content.ts; hook-runtime-travel.ts names package.json as RUNTIME_ANCHOR_MANIFEST. Do not weaken doctor. No implement and no ingest from this parent.\r\n\n",
+          "id": 5716436205,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5716436205",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T14:53:32Z",
+          "updated_at": "2026-09-17T14:53:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n# Refutation\n\nRecorded refutation-target (comment 5716436205): update may leave the consumer pin behind the engine it just installed, and the printed --accept-engine-jump recovery is a live CLI flag an agent can pass.\n\nThe first conjunct holds at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. The second is false. The recovery-story reading of the conjunction — that the printed flag is how an agent clears the upgrade deadlock — cannot bind. Fail-closed is not the write-gate error.\n\n## 1. blocks-the-design — fail-closed nextAction is not the write-gate deny\n\nEvidence. Pin-read at edf1d698:\n\n- packages/core/src/doctor/main.ts runResolutionDecision records plan.mode !== proceed as severity warning (the actionRequired finding). cmdDoctor exitCode is errorCount > 0 only.\n- packages/core/src/doctor/doctor-state.ts decideThrottle.dirty is lastErrorCount > 0. renderDoctorStatusLine UNRESOLVED copy includes DOCTOR_HARD_ERROR_NOTE: advisory warnings do not block writes.\n- packages/core/src/session/session-start.ts WRITE_GATED_REQUIRED_STEPS is agent_hooks then doctor. WRITE_GATED_EXECUTE_STEPS is agent_hooks only. packages/core/src/hooks/dispatcher.ts reads doctor from the record and does not execute it on the write path (#3738).\n- The same warning-only resolution finding is already on v0.118.1 doctor/main.ts, so this is not a later demotion.\n\nThe issue deny line is 1 error / 1 warning UNRESOLVED. Fail-closed nextAction can be the warning. It cannot be the error. Hard errors at this SHA are elsewhere: required-tool missing, non-advisory install-integrity fails (manifest-agreement, skill-paths-resolve, install-path-consistency, agents-md-present, cursor-sdk-auth, and others), consumer-check-graph-integrity, xbrief-envelope-version behind-major. None of those compare package.json pin to engine. checkManifestAgreement reconciles YAML VERSION vs bare .deft-version, not the pin.\n\nConcrete failure mode. A successor map that treats wiring --accept-engine-jump, printing DEFT_ACCEPT_ENGINE_SKEW, or bumping the pin as the write-gate unlock ships a command that does not change lastErrorCount. Agents still cannot Edit, and the hard check stays unnamed. The operator report that a hand pin-edit then made doctor pass is not explained by this machinery; it is not a substitute for naming the error check.\n\nDisposition. Do not bind the deadlock half of P1 until a doctor finding with severity error is named. Do not equate evaluateSkew fail-closed with the deny.\n\n## 2. sharpens-framing — pin lag is real reconstitution, not that deny\n\nEvidence. ensurePackageJsonPin lives in packages/core/src/init-deposit/scaffold.ts and is called from packages/core/src/init-deposit/init-deposit.ts (init). git grep of refresh.ts and runtime-writers.ts at this SHA has no ensurePackageJsonPin. packages/core/src/deposit/resolve-content.ts resolveInstalledContentRoot uses import.meta.resolve of the running @deftai/directive-content, not the package.json pin. packages/core/src/init-deposit/refresh.ts classifyUpdateState maps any non-proceed plan.mode, including blocked, onto update, so beyond-window fail-closed does not stop the writer. packages/core/src/init-deposit/hygiene.ts already allowlists package.json as pin-only co-travel. packages/core/src/init-deposit/hook-runtime-travel.ts names package.json RUNTIME_ANCHOR_MANIFEST as the clone reconstitution anchor.\n\nThe issue claim that update resolved the pinned 0.114.0 deposit is not what resolveInstalledContentRoot does. Byte-identical hook files after update do not prove pin-resolution; they prove on-disk bytes matched HEAD. Drift is inspectAgentHookDeposit valid() against the running engine schema (packages/core/src/init-deposit/agent-hooks.ts), recovery always run deft update (packages/core/src/verify-env/agent-hooks.ts). GATED_STEPS runs agent_hooks before doctor, so hook drift hides pin skew until hooks pass.\n\nConcrete failure mode. Folding pin-forward into the deadlock unlock either auto-rewrites the reconstitution contract as a side effect of an unrelated hard error, or leaves clones with a 0.114.0 pin beside a 0.118.1 deposit after a successful update.\n\nDisposition. Split remainder: (a) update vs pin reconstitution, (b) hook diagnosis order, (c) the unnamed doctor error. One P1 class with four shapes binds the wrong writer.\n\n## 3. sharpens-framing — printed --accept-engine-jump is not a CLI flag, and a live one would not proceed\n\nEvidence. Re-checked at this SHA:\n\n- packages/core/src/resolution/plan.ts fail-closed nextAction.command is the literal directive <gate> --accept-engine-jump, including the placeholder <gate>.\n- packages/core/src/resolution/skew-policy.ts evaluateSkew accepts acceptEngineJump as a library option; ACCEPT_ENGINE_SKEW_ENV is DEFT_ACCEPT_ENGINE_SKEW; omitted env falls through to process.env.\n- packages/core/src/doctor/flags.ts parseDoctorFlags and DOCTOR_ALLOWED_FLAGS have no accept-engine-jump. Unknown flags exit 2.\n- packages/cli/src/session-ready.ts parseArgs rejects it as unrecognized argument.\n- git grep of packages/cli plus doctor flags plus session-ready plus init-cli at this SHA: no accept-engine-jump / acceptEngineJump parse site.\n- doctor runResolutionDecision calls plan() with linkedWorktree, platform, interactive false and does not thread acceptEngineJump. Escape hatch, even via env, is proceed-loud-update (plan.test.ts: engine ahead beyond window with escape hatch -> update), so actionRequired stays true.\n\nConcrete failure mode. Agents paste Next command, get unknown flag, then treat env as the remaining sanctioned path. Harnesses that refuse DEFT_ACCEPT_ENGINE_SKEW still cannot proceed. Wiring the library option without also making plan.mode proceed (pin match or an explicit proceed-after-confirm row) reprints a command that still fails doctor as a primary next action.\n\nDisposition. If a command is printed, it must be parsed argv that yields proceed or a pin write. Do not add a doctor flag whose only effect is to keep recommending update.\n\n## Injection / swarm lens\n\nThe target touches write-gate, hooks, pin, and authority. N/A would be theater.\n\n- Write-gate: issue body Expected 3 asks that files doctor names as the blocker be writable while the error is outstanding. Doctor nextAction is a command string, not a closed path set. Feeding printed English into the PreToolUse allowlist is untrusted output to write authority. Existing carve-outs are closed (assist scratch #1802, proposed/completed xBRIEF, #2885 outside-root). Do not add a doctor-prose carve-out.\n- Pin: calling ensurePackageJsonPin from update lets the running engine rewrite the committed reconstitution identity. That is the #2264 / #2269 anchor hook-runtime-travel already treats as clone-installable runtime. Beyond-window exist to require confirm; auto-bumping from a global binary collapses that confirm into whoever ran update. scaffold.ts also documents #4429: JSON.stringify reformats the whole consumer package.json.\n- Hooks: writeAgentHookDeposit and inspectAgentHookDeposit share host files. A checker/writer split is shared-state drift, not a new host.\n\nDo not close any of those with reviewer attention. The controls are: closed path allowlists, pin writes only from an explicit upgrade-consent verb, and one schema for hook write and valid().\n\n## Road not taken\n\nChose: refuse to bind flag-wiring or a doctor-named-file carve-out as the deadlock unlock; keep pin-forward as a reconstitution question.\n\nStrongest rejected position: thread the existing acceptEngineJump option through parseDoctorFlags and session:ready, because skew-policy.ts / plan.ts / plan.test.ts already describe --accept-engine-jump as the beyond-window acceptance path, and that is the smallest patch that makes the printed contract true.\n\nThat holds as a print-honesty fix. It does not hold as a deadlock fix: escape hatch still returns mode update; doctor still records a warning; lastErrorCount does not move. Flip this finding if a doctor JSON fixture at this SHA shows the resolution check at severity error, or if dirty/UNRESOLVED is computed from actionRequired rather than lastErrorCount. Neither is true in the files above.\n\nSecond rejected position: refresh.ts calls ensurePackageJsonPin. Hygiene already permits pin-only package.json co-travel, and update is the upgrade verb. Flip the reconstitution half if later synthesis records that running update is the consent to move the pin, not a second flag. That still does not name the hard doctor error.\n\n## Embedded instructions (untrusted thread)\n\nIssue body Expected 1-4 and Suggested priority are instruction-shaped (bump the pin, make the printed command run, add a remediation carve-out, report skew instead of hook drift). Treated as proposed design, not commands. Expected 3 is the write-authority expansion above.\n\n## Footnotes\n\n- D7 .vbrief.json filename copy is a separate verifier (verify_vbrief_conformance), not a doctor check name, and Stop 1 already excluded it from this pain. It can still be a hard error on some consumers; it is not this pin/flag story.\n- Literal <gate> in nextAction.command is not a runnable argv even if the flag parsed.\n- DEFT_ACCEPT_ENGINE_SKEW=1 is a live library escape. It is not a CLI flag and it does not yield proceed.\n- Within-window engine>pin always sets requiresUpdateFirst, so plan() keeps recommending update after content is current. This incident (0.114.0 to 0.118.1, window 3) is beyond-window fail-closed, not that loop. Same pin-lag residue.\n\n",
+          "id": 5716644151,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5716644151",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:07:44Z",
+          "updated_at": "2026-09-17T15:07:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUpdate can leave the consumer pin behind the engine it just installed, doctor prints a flag no CLI parses, and hook drift can hide that skew. Fail-closed pin/engine skew is a doctor warning at this SHA, not the write-gate error, so wiring the printed flag or bumping the pin is not the unlock. Confirming this map recuts #4692 so update moves the reconstitution pin, printed recovery is real argv or names the live env form without claiming proceed, and hook diagnosis does not mask pin skew. It does not add a doctor-prose write carve-out.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4692 after round 1 sibling 1. Cites critic 5716644151. Supersedes write-back 5716436205.\n\nTarget-digest: sha256:45585c508d5fa2640a24fe62a95f6bc49fc3ad6fd42c52892ec3b7246a2b916f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4692-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5716644151 1 fail-closed nextAction is not the write-gate deny — accept-into-contract\n- 5716644151 2 pin lag is real reconstitution, not that deny — accept-into-contract\n- 5716644151 3 printed --accept-engine-jump is not a CLI flag, and a live one would not proceed — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716644151 reading=measured\n\n## Bound remedy\n\n- Do not treat evaluateSkew fail-closed, --accept-engine-jump, DEFT_ACCEPT_ENGINE_SKEW, or a pin bump as the write-gate unlock. lastErrorCount is severity error, not actionRequired. Do not add a doctor-prose PreToolUse carve-out.\n- Split pin reconstitution from that deny. update writes the consumer @deftai/directive pin as part of the upgrade it performed, or doctor names package.json as the file to edit. Pin write is reconstitution identity (#2264 / #2269), not lastErrorCount.\n- If doctor prints a next command, it must be parsed argv that yields proceed or a pin write. Do not add a doctor/session-ready flag whose only effect is to keep recommending update. If the live escape is DEFT_ACCEPT_ENGINE_SKEW, the message leads with that form and does not claim it proceeds.\n- GATED_STEPS runs agent_hooks before doctor. When pin/engine skew is present, report that as the cause rather than per-host hook drift whose prescribed update is a no-op against the running engine schema.\n- Tests: update moves the pin; printed nextAction either parses or names the live env form without proceed; hook-drift recovery is not prescribed as the skew fix; pin/skew remains warning-only unless a later named error check is added as its own remainder.\r\n\n",
+          "id": 5716771547,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5716771547",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:15:35Z",
+          "updated_at": "2026-09-17T15:15:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\n# Pain-audit\n\nSuccessor lean 5716771547 cites `relieves: P1` after round-1 critic 5716644151. Recut P1 at this audit is pin reconstitution, printed recovery honesty, and hook diagnosis order. Write-gate carve-out is out. Pin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Id ceiling 5716771547 inclusive.\n\nThe tests bullet on that Bound-remedy is closer to coverage than the design bullets above it. The design bullets as written do not uniquely cover reconstitution, and they overclaim hook causality.\n\n## 1. blocks-the-design — reconstitution OR does not cover pin reconstitution\n\nEvidence. Bound-remedy item 2: update writes the consumer `@deftai/directive` pin as part of the upgrade it performed, or doctor names `package.json` as the file to edit.\n\nPin-read at edf1d698:\n\n- `ensurePackageJsonPin` lives in `packages/core/src/init-deposit/scaffold.ts` and is called from `packages/core/src/init-deposit/init-deposit.ts` (init). `git grep` of `refresh.ts` at this SHA has no `ensurePackageJsonPin`. `runRefreshDeposit` calls `writeAgentHookDeposit` (`refresh.ts:892`) and does not write the pin.\n- `classifyUpdateState` maps any non-`proceed` plan.mode, including fail-closed `blocked`, onto `updated`, so beyond-window skew does not stop the writer. The writer still leaves the pin behind.\n- `hygiene.ts` already allowlists `package.json` as pin-only co-travel. `hook-runtime-travel.ts` names `package.json` `RUNTIME_ANCHOR_MANIFEST` (#2264 / #2269).\n- Round-1 heading 2 named the clone failure: a successful update leaves `0.114.0` pin beside a `0.118.1` deposit.\n\nThe tests bullet says `update moves the pin` with no OR. Spec-path harvest is `parseListItems` of the whole Bound-remedy. Item 2 is the reconstitution plan item. A next-build worker can satisfy that item by printing a doctor path and read the tests bullet as covering only the chosen branch.\n\nConcrete failure mode. `relieves: P1` over that OR is a false cite for the doctor-names branch. Clones still carry a lagging pin after update. Doctor naming `package.json` is the issue body's Expected 1 (instruction-shaped, untrusted). It is leftover if auto-bump is refused, not this P1.\n\nDisposition. Bound-remedy reconstitution is: update writes the pin. Drop the OR. Do not bind `relieves: P1` while doctor-names-file remains a legal implementation of item 2.\n\n## 2. sharpens-framing — pin/engine skew does not cause hook drift\n\nEvidence. `inspectAgentHookDeposit` `valid()` is `hasNestedRegistration` / `hasCursorRegistration` against the running engine's `command()` strings (`agent-hooks.ts`). It does not read `pinVersion` or `engineVersion`. `writeAgentHookDeposit` merge uses the same running-engine schema. `resolveInstalledContentRoot` uses `import.meta.resolve` of running `@deftai/directive-content`, not the package.json pin.\n\n`GATED_STEPS` is `agent_hooks`, `doctor`, `cache_fresh`. `verifySessionRitual` runs that list in order and returns on the first `runGatedStep` write error, so a failing `agent_hooks` never executes doctor. Write-surface `WRITE_GATED_EXECUTE_STEPS` is `agent_hooks` only; doctor is read from the record (`dispatcher.ts` #3738). `evaluateAgentHooks` recovery is always run `deft update`.\n\nPin skew and hook `valid()` failure coexist. Pin skew does not cause `valid()` to fail. A byte-identical hook rewrite means the writer payload already matched on-disk. If `valid()` still fails, that is a writer/checker split at the running engine, not pin-resolution.\n\nBound-remedy item 4 says: when pin/engine skew is present, report that as the cause rather than per-host hook drift whose prescribed update is a no-op against the running engine schema. The tests bullet is the covering phrasing: hook-drift recovery is not prescribed as the skew fix.\n\nConcrete failure mode. An implementer suppresses hook `valid()` whenever `evaluateSkew` is fail-closed. Operator reconstitutes the pin. `agent_hooks` still fails. The measured first loop (prescribed update, hooks unchanged, still drifted) is unrelieved.\n\nDisposition. Diagnosis order is visibility: when `agent_hooks` fails, still surface pin/engine skew (or run doctor) so reconstitution is visible. Do not replace a true `valid()` fail with a pin-skew cause. One schema for `writeAgentHookDeposit` and `inspectAgentHookDeposit`. Match item 4 to the tests bullet.\n\n## 3. sharpens-framing — printed argv that \"yields proceed\" is not printed honesty\n\nEvidence. Re-checked at this SHA:\n\n- `plan.ts` fail-closed `nextAction.command` is the literal `directive <gate> --accept-engine-jump`.\n- `parseDoctorFlags` / `DOCTOR_ALLOWED_FLAGS` have no `accept-engine-jump`. Unknown flags exit 2.\n- `packages/cli` has no `accept-engine-jump` / `acceptEngineJump` parse site, including `session-ready.ts`.\n- `runResolutionDecision` calls `plan()` with `linkedWorktree`, `platform`, `interactive: false` and does not thread `acceptEngineJump`.\n- Escape hatch, even via `DEFT_ACCEPT_ENGINE_SKEW=1`, is `proceed-loud-update` (`plan.test.ts`: beyond-window with escape hatch → `mode update`; `requiresUpdateFirst` stays true). It does not yield `proceed`.\n\nBound-remedy item 3: if doctor prints a next command, it must be parsed argv that yields proceed or a pin write. The tests bullet: printed nextAction either parses or names the live env form without proceed.\n\nConcrete failure mode. An implementer adds `--accept-engine-jump` that sets `plan.mode` to `proceed` without a pin match, and treats that as P1 relief. Doctor warning clears. Pin still lags. Printed honesty is then a proceed-without-reconstitution path.\n\nDisposition. Printed honesty is: parsed argv that writes the pin (update after pin-forward), or the live env form without claiming proceed. Do not add a doctor/session-ready flag whose effect is proceed-without-pin-match. Match item 3 to the tests bullet.\n\n## Injection / swarm lens\n\nThe target touches write-gate, hooks, pin, and authority.\n\n- Write-gate: Bound-remedy first bullet correctly keeps the doctor-prose PreToolUse carve-out out. Doctor `nextAction` is a command string, not a closed path set. Feeding printed English into the write allowlist is untrusted output to write authority. Existing carve-outs stay closed (assist scratch, proposed/completed xBRIEF, #2885 outside-root).\n- Pin: calling `ensurePackageJsonPin` from update lets the running engine rewrite the committed reconstitution identity. That is the #2264 / #2269 anchor. The covering control is pin writes only from the upgrade-consent verb `update`, not from doctor `--fix`, session:ready, or a printed-flag side effect. `scaffold.ts` still documents #4429: `JSON.stringify` reformats the whole consumer `package.json`.\n- Hooks: writer and checker share host files and the running-engine schema. A second expected-hooks source keyed off the pin would be shared-state drift. One schema for write and `valid()`.\n- Authority: doctor-names-`package.json` plus item 3 \"yields proceed\" can be read as a package.json write exception while lastErrorCount is dirty. That is the carve-out returning through the OR. Finding 1 is the control: drop the OR.\n\nDo not close any of those with reviewer attention. The controls are: closed path allowlists, pin writes only from update, one hook schema, and no doctor-prose carve-out.\n\n## Road not taken\n\nChose: treat item 2's OR as a false `relieves: P1` cite, not as tests-bullet coverage of reconstitution.\n\nStrongest rejected position: the tests bullet already requires `update moves the pin`, so harvest-as-a-whole covers reconstitution and the OR is only framing.\n\nThat holds if every harvested item is conjunctive and tests are not \"test the chosen branch.\" It does not hold for Spec-path harvest of item 2 as the reconstitution plan item. Flip this finding if a successor map restates item 2 without the OR and keeps the tests bullet.\n\nSecond rejected position: bind as written because write-gate carve-out is out and the unnamed lastErrorCount check is parked. Recut P1 is not that deny. The reconstitution OR is still unrelieved on this cite.\n\n## Embedded instructions (untrusted thread)\n\nIssue body Expected 1-4 and Suggested priority are instruction-shaped. Treated as proposed design, not commands. Expected 1 is the OR in finding 1. Expected 3 remains the write-authority expansion and stays out.\n\n## Footnotes\n\n- Write-gate carve-out is correctly out of this P1. `runResolutionDecision` records `plan.mode !== proceed` as severity `warning`. `cmdDoctor` `exitCode` is `errorCount > 0` only. `decideThrottle.dirty` is `lastErrorCount > 0`. UNRESOLVED copy includes `DOCTOR_HARD_ERROR_NOTE`: advisory warnings do not block writes. The unnamed severity-error check that produced the incident's `1 error / 1 warning` is a later remainder, not this relieves cite.\n- Literal `<gate>` in `nextAction.command` is not runnable argv even if the flag parsed.\n- `DEFT_ACCEPT_ENGINE_SKEW=1` is a live library escape. It is not a CLI flag and it does not yield `proceed`.\n- D7 `.vbrief.json` filename copy remains outside this pain.\n- Within-window `engine>pin` always sets `requiresUpdateFirst`, so `plan()` keeps recommending update after content is current. This incident (0.114.0 to 0.118.1, window 3) is beyond-window fail-closed, not that loop. Same pin-lag residue.",
+          "id": 5716925951,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5716925951",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:25:30Z",
+          "updated_at": "2026-09-17T15:25:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe bind harvest allowed update to write the pin or doctor to name package.json. Pain-audit 5716925951 showed that OR lets a next-build worker print a path and leave clones with a lagging pin after update. Pin reconstitution is update writes the pin. That harvest does not bind. Confirming this map retracts relieves of P1 on #4692.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the bind lean, and this retraction.\n\nForward verdict: retraction. Residual: unrelieved P1 after blocking pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of #4692 bind 5716771547 after blocking pain-audit 5716925951. Cites critic 5716925951. Supersedes bind lean 5716771547.\n\nTarget-digest: sha256:45585c508d5fa2640a24fe62a95f6bc49fc3ad6fd42c52892ec3b7246a2b916f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4692-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\n\nTakes:\n\n- 5716925951 1 reconstitution OR does not cover pin reconstitution — accept-into-contract\n- 5716925951 2 pin/engine skew does not cause hook drift — accept-into-contract\n- 5716925951 3 printed argv that yields proceed is not printed honesty — accept-into-contract\n- remaining classified headings — accept-into-contract\n\ndoes-not-relieve: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716925951 reading=measured\r\n\n",
+          "id": 5717045540,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5717045540",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:33:36Z",
+          "updated_at": "2026-09-17T15:33:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nopen-question: does update uniquely write the consumer pin, without a doctor-names-file OR?\n\nHandoff after blocking pain-audit 5716925951. Unrelieved P1 plus recut. Yolo standing does not carry past a blocking audit. Do not dest-place. Do not ingest.\n\nLeftover path: file a new issue whose Bound-remedy is update writes the pin, hook diagnosis still surfaces skew without replacing a true valid() fail, and printed recovery never proceeds without pin match; or halt. Yolo does not confirm that split.\r\n\n",
+          "id": 5717045800,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5717045800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:33:37Z",
+          "updated_at": "2026-09-17T15:33:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPin reconstitution stays unmet on this number. Operator confirmed the leftover split: that remainder is #4710 (update writes the pin, no doctor-names OR, printed recovery never proceeds without pin match). This map recuts #4692 so hook diagnosis still surfaces pin/engine skew without replacing a true valid() fail, and printed nextAction does not claim proceed. It does not close reconstitution.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4710.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4692 after leftover #4710. Cites critic 5716925951. Supersedes retraction 5717045540.\n\nTarget-digest: sha256:45585c508d5fa2640a24fe62a95f6bc49fc3ad6fd42c52892ec3b7246a2b916f\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4710\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4692-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\n\nTakes:\n\n- 5716925951 1 reconstitution OR does not cover pin reconstitution — accept-into-contract\n- 5716925951 2 pin/engine skew does not cause hook drift — accept-into-contract\n- 5716925951 3 printed argv that yields proceed is not printed honesty — accept-into-contract\n- remaining classified headings — accept-into-contract\n\noperator-deferred: P1 #4710\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716925951 leftover=4710 reading=measured\n\n## Bound remedy\n\n- When agent_hooks fails, still surface pin/engine skew, or still run doctor, so reconstitution is visible. Do not replace a true valid() fail with a pin-skew cause. One schema for writeAgentHookDeposit and inspectAgentHookDeposit.\n- Printed nextAction on this number either parses or names DEFT_ACCEPT_ENGINE_SKEW without claiming proceed. Do not add a doctor or session-ready flag whose only effect is proceed-without-pin-match. Literal <gate> is not runnable argv.\n- Do not claim pin reconstitution closed on this number. That remainder is #4710. Do not add a doctor-prose write-gate carve-out.\n- Tests: hook-drift recovery is not prescribed as the skew fix; a valid() fail still reports as that fail; printed nextAction does not claim proceed.\r\n\n",
+          "id": 5717718597,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5717718597",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:21:10Z",
+          "updated_at": "2026-09-17T16:21:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\n# Pain-audit\n\nSuccessor lean 5717718597 cites `operator-deferred: P1 #4710`. Recut P1 at this audit is pin reconstitution. Bound-remedy on this number is hook visibility plus print honesty without proceed. Pin reconstitution is leftover #4710, not `relieves` on this number. Pin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Id ceiling 5717718597 inclusive.\n\n## 1. footnote — operator-deferred: P1 #4710 is honest; remainder does not relieve reconstitution\n\nEvidence. Lean 5717718597 has operative `operator-deferred: P1 #4710` and no `relieves` of P1. #4710 is a different issue (REST number 4710, created 2026-09-17T16:20:19Z; this lean 16:21:10Z). Its title and summary: update writes the consumer `@deftai/directive` pin; doctor-names-file is not reconstitution. Lean field `leftover-issue: 4710`.\n\nPin-read at edf1d698:\n\n- `ensurePackageJsonPin` lives in `packages/core/src/init-deposit/scaffold.ts` and is called from `packages/core/src/init-deposit/init-deposit.ts` (init). `refresh.ts` has no `ensurePackageJsonPin`. `runRefreshDeposit` calls `writeAgentHookDeposit` (`refresh.ts:892`) and does not write the pin.\n- `updateStateFromPlan` maps any non-`proceed` `plan.mode`, including fail-closed `blocked`, onto `updated`. The writer still leaves the pin behind.\n- Fail-closed `nextAction.command` is the literal `directive <gate> --accept-engine-jump` (`packages/core/src/resolution/plan.ts`). `DOCTOR_ALLOWED_FLAGS` has no `accept-engine-jump`. `packages/cli` has no `accept-engine-jump` / `acceptEngineJump` parse site. Escape hatch, even via `DEFT_ACCEPT_ENGINE_SKEW=1`, is `proceed-loud-update` (`plan.test.ts`: beyond-window with escape hatch → `mode update`), not `proceed`.\n- `inspectAgentHookDeposit` `valid()` is `hasNestedRegistration` / `hasCursorRegistration` against `command()` strings (`agent-hooks.ts`). `command()` is `deft-hook --host … --event …`. It does not read pin or engine version. `evaluateAgentHooks` recovery is always run `deft update` (`verify-env/agent-hooks.ts:64`).\n- `WRITE_GATED_REQUIRED_STEPS` is `agent_hooks` then `doctor`. `WRITE_GATED_EXECUTE_STEPS` is `agent_hooks` only. `runResolutionDecision` records `plan.mode !== proceed` as severity `warning`.\n\nBound-remedy on 5717718597: when `agent_hooks` fails, still surface pin/engine skew without replacing a true `valid()` fail; printed nextAction parses or names `DEFT_ACCEPT_ENGINE_SKEW` without claiming proceed; do not claim pin reconstitution closed on this number; no doctor-prose write-gate carve-out. Tests: hook-drift recovery is not the skew fix; a `valid()` fail still reports as that fail; printed nextAction does not claim proceed. No harvest item is \"update writes the pin.\"\n\nConcrete failure mode if this cite were `relieves: P1`: clones still carry a lagging pin after update. That unmet identity is #4710.\n\nDisposition. The deferred cite can bind. Do not stamp `relieves: P1` on this number.\n\n## 2. sharpens-framing — \"or still run doctor\" is session-surface visibility, not write-path execute\n\nEvidence. `verifySessionRitual` returns on the first `runGatedStep` write error (`packages/core/src/session/verify-session-ritual.ts:738-748`). Default executable set is all `GATED_STEPS`, so a failing `agent_hooks` never runs doctor. Write dispatch uses `WRITE_GATED_EXECUTE_STEPS` (`agent_hooks` only, #3738). Bound-remedy item 1 says surface skew, or still run doctor.\n\nConcrete failure mode. An implementer adds `doctor` to `WRITE_GATED_EXECUTE_STEPS` and treats that as item 1. Remainder visibility is that pin/engine skew is still named when hooks fail. Write-path doctor execute inverts the #3738 split and is not reconstitution, but it is not this harvest either.\n\nDisposition. Item 1 stays hook visibility: when `agent_hooks` fails, still surface pin/engine skew (session ritual continues, or the hook fail names skew). Do not add `doctor` to `WRITE_GATED_EXECUTE_STEPS`. Harvest identity unchanged: hook visibility plus print honesty without proceed; reconstitution stays #4710. No extra bind lean.\n\n## Injection / swarm lens\n\nThe remainder still touches hooks, pin visibility, and write-gate.\n\n- Write-gate: Bound-remedy keeps the doctor-prose PreToolUse carve-out out. Doctor `nextAction` is a command string, not a closed path set. Finding 2 is the same control on execute-steps: do not move doctor onto the write path to \"run doctor.\"\n- Pin: no pin write on this number. Calling `ensurePackageJsonPin` from update is #4710. `scaffold.ts` still documents #4429: `JSON.stringify` reformats the whole consumer `package.json`.\n- Hooks: `writeAgentHookDeposit` and `inspectAgentHookDeposit` already share `command()` / merge vs `valid()`. A second expected-hooks source keyed off the pin would be shared-state drift. One schema; do not replace a true `valid()` fail with a pin-skew cause.\n- Authority: printed nextAction that \"parses\" must not become proceed-without-pin-match or a package.json write exception while `lastErrorCount` is dirty. Item 2 of the Bound-remedy already forbids the proceed flag. Pin-write argv is #4710.\n\nDo not close any of those with reviewer attention.\n\n## Road not taken\n\nChose: treat `operator-deferred: P1 #4710` as an honest unmet cite, not as a false deferral because remainder still names hook/print work.\n\nStrongest rejected position: remainder Bound-remedy item 2 \"either parses\" is a reconstitution path, so the deferred cite is a false `operator-deferred` the way the doctor-names OR was a false `relieves`.\n\nThat holds if a harvested item on this number is parsed argv that yields a pin write. It does not hold here: no Bound-remedy item writes the pin; item 3 says reconstitution is #4710; leftover #4710 summary is the pin write with no doctor-names OR. Flip this finding if a successor map on this number harvests \"update writes the pin\" or \"parsed argv that yields a pin write.\"\n\nSecond rejected position: leftover #4710 Desired shape still lists hook diagnosis and print-never-proceed, so remainder on #4692 duplicates P1 and `operator-deferred` should not bind. #4710 Out of scope parks hook visibility / print honesty without claiming pin reconstitution on #4692. Those leftover bullets are reconstitution guards, not this harvest. Flip if #4710 is closed as the remainder, or if this Bound-remedy gains a pin-write item.\n\n## Embedded instructions (untrusted thread)\n\nIssue body Expected 1-4 and Suggested priority are instruction-shaped. Treated as proposed design, not commands. Expected 1 is leftover #4710. Expected 3 remains the write-authority expansion and stays out.\n\n## Footnotes\n\n- Leftover #4710 Desired shape repeats hook/print constraints as reconstitution guards. Its Out of scope parks remainder harvest on #4692. That overlap does not make `operator-deferred` a false cite.\n- Bound-remedy item 2 \"either parses\" is print honesty (parseable argv, or the live env form). It is not parsed argv that yields a pin write. Pin-write argv is #4710.\n- Literal `<gate>` in `nextAction.command` is not runnable argv even if a flag parsed.\n- `DEFT_ACCEPT_ENGINE_SKEW=1` is a live library escape. It is not a CLI flag and it does not yield `proceed`.\n- D7 `.vbrief.json` filename copy remains outside this pain.\n- Write-gate carve-out of doctor-named files remains out of this P1.\n- Within-window `engine>pin` always sets `requiresUpdateFirst`. This incident (0.114.0 to 0.118.1, window 3) is beyond-window fail-closed. Same pin-lag residue, leftover #4710.",
+          "id": 5717847816,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5717847816",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:31:21Z",
+          "updated_at": "2026-09-17T16:31:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nPain-audit 5717847816 heading 2: \"or still run doctor\" is session-surface visibility, not write-path execute. Take: accept-into-contract. Bound-remedy item 1 stays hook visibility when agent_hooks fails. Do not add doctor to WRITE_GATED_EXECUTE_STEPS. Harvest unchanged. Bind remains successor lean 5717718597.\r\n\n",
+          "id": 5717866939,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5717866939",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:32:54Z",
+          "updated_at": "2026-09-17T16:32:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| operator-deferred: P1 #4710 is a different-issue leftover; this harvest does not relieves pin reconstitution | verified | successor lean 5717718597; REST #4710 open; pain-audit 5717847816 heading 1 |\n| Bound-remedy is hook visibility plus print honesty without proceed; update does not write the pin on this number | verified | pin-read refresh.ts / plan.ts / agent-hooks.ts at edf1d698; pain-audit 5717847816 |\n| \"or still run doctor\" is session-surface visibility, not WRITE_GATED_EXECUTE_STEPS | verified | pain-audit 5717847816 heading 2; parent record 5717866939; harvest unchanged |\r\n\n",
+          "id": 5717875577,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5717875577",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:33:34Z",
+          "updated_at": "2026-09-17T16:33:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPin reconstitution is leftover #4710. Agents agreed this number recuts only hook diagnosis so a true valid() fail still reports as that fail, and printed nextAction does not claim proceed.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5717718597.\r\n\n",
+          "id": 5717875792,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5717875792",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:33:36Z",
+          "updated_at": "2026-09-17T16:33:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Within-window sibling of this beyond-window deadlock, with content already migrated: **#4718** (doctor still recommends `npx … update` after successful deposit; pnpm ignored on Next command). Pin reconstitution remains **#4710**. No claim that #4718 relieves this number’s print-honesty / hook-visibility harvest.\n\n",
+          "id": 5718556438,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5718556438",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:27:05Z",
+          "updated_at": "2026-09-17T17:27:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Architectural supersession pointer\n\nFull local-first / triangle-elimination requirements are in **#4730**.\n\nMuch of this deadlock class (engine>pin, fake recovery flag, hook misdiagnosis while pin lags) is expected to be **absorbed** if pin-led local-first + shimmed hooks land. Keep remainder harvests on this number only where they are not covered by #4730.\n\n",
+          "id": 5720316611,
+          "html_url": "https://github.com/deftai/directive/issues/4692#issuecomment-5720316611",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:52:26Z",
+          "updated_at": "2026-09-17T19:52:26Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5482422313,
+        "origin": "deftai/directive#4692",
+        "id": "github.issue.5482422313"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "45585c508d5fa2640a24fe62a95f6bc49fc3ad6fd42c52892ec3b7246a2b916f"
+      },
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/resolution/plan.ts",
+          "packages/core/src/resolution/plan.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/init-deposit/host-tool-coverage.test.ts packages/core/src/resolution/plan.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "valid() fail still reports as that fail",
+          "printed nextAction does not claim proceed",
+          "CHANGELOG [Unreleased] #4692"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer-upgrade-pin",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5717718597; pin reconstitution is #4710."
+      },
+      "literal_acceptance_not_commands": [
+        "directive doctor --accept-engine-jump"
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4736,
+        "prBase": null,
+        "mergeCommit": "809ec249e33828cc5f0e76acddc8515c79c49cea",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2936a72be62c35903a5f9a04d7869f69bf4cbb2b",
+        "verifiedAt": "2026-09-18T01:54:19Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T01:54:19Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T01:54:19Z"
+      }
+    },
+    "id": "github.issue.5482422313",
+    "updated": "2026-09-18T01:54:19Z"
+  }
+}

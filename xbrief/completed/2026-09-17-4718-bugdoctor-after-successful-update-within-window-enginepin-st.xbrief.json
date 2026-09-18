@@ -1,0 +1,421 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4718",
+    "updated": "2026-09-18T01:59:26Z"
+  },
+  "plan": {
+    "title": "bug(doctor): after successful update, within-window engine>pin still recommends npx update (ignores pnpm; pin/lock is the real gap)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(doctor): after successful update, within-window engine>pin still recommends npx update (ignores pnpm; pin/lock is the real gap)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4718",
+      "Overview": "## Summary\n\nOn a pnpm consumer after a successful global upgrade + `directive update`, doctor still prints a primary next action of `npx @deftai/directive update` even though:\n\n1. deposited content already matches the running engine, and\n2. the remaining gap is the committed `package.json` pin (+ lock follow-through), and\n3. the repo declares `packageManager: \"pnpm@…\"` / has `pnpm-lock.yaml` (so the ephemeral form should be `pnpm dlx`, not `npx`).\n\nThis is a **wrong remediation loop**, not a missing deposit. Related leftover pin write is #4710; related beyond-window deadlock/print honesty is #4692. This issue is the **within-window + already-updated content + package-manager-blind Next command** shape.\n\n## Measured on `@deftai/directive@0.119.2` (consumer: notetechnic)\n\n### State after operator followed the documented path\n\n| Layer | Version | Source |\n| --- | --- | --- |\n| Global engine on PATH | `0.119.2` | `npm i -g @deftai/directive@latest` |\n| `.deft/core/VERSION` / `.deft/GENERATION.json` / `xbrief/.deft-version` | `0.119.2` | `directive update` (success, `deposit_completed: true`) |\n| `package.json` pin `@deftai/directive` | `0.119.0` | unchanged by update |\n| `pnpm-lock.yaml` | `@deftai/directive@0.119.0` | unchanged by update |\n| Local `node_modules` (pnpm) | `0.119.0` | from prior `pnpm install` |\n\nDoctor then printed:\n\n```text\nVersion reconciliation: engine 0.119.2, content 0.119.2, pin 0.119.0 -- .deft/core/VERSION (0.119.2) is ahead of the package.json pin (0.119.0); engine 0.119.2 is ahead of pin 0.119.0 within the skew window; proceeding after content update\n\n⚠ Primary next action ...\n  Root cause: engine 0.119.2 is ahead of pin 0.119.0 within the skew window\nNext command: npx @deftai/directive update\n  Does / why safe: Forward-migrate content with `directive update`, then run the gate.\n```\n\nRe-running that Next command cannot clear the warning: content is already current; pin/lock were never the update writer's responsibility today.\n\n### Code evidence (installed `directive-core@0.119.2`)\n\n1. **Within-window always forces `update`, even when content is already ahead of pin**\n\n`resolution/skew-policy.js`: `engine > pin` within window → `decision: \"proceed-loud-update\"`, `requiresUpdateFirst: true`.\n\n`resolution/plan.js` (default branch):\n\n```js\nif (skew.requiresUpdateFirst || contentStale(facts)) {\n  return makePlan(\"update\", {\n    command: renderEphemeral(pm, \"update\"),\n    rootCause: skew.requiresUpdateFirst\n      ? `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion} within the skew window`\n      : `deposited content is behind pin ${facts.pinVersion}`,\n    remediation: \"Forward-migrate content with `directive update`, then run the gate.\",\n  }, warnings);\n}\n```\n\n`contentStale()` only treats **content behind pin** as stale. It does **not** detect “content already migrated; pin lag remains.” So after a successful update that left pin behind, `requiresUpdateFirst` alone keeps recommending another update forever.\n\n2. **Doctor detects pnpm, then ignores it when calling `plan()`**\n\n`doctor/main.js` `runResolutionDecision`:\n\n```js\nconst plan = resolvePlan(facts, {}, {\n  linkedWorktree,\n  platform: process.platform,\n  interactive: false,\n  // packageManager NOT passed → defaults to \"npm\" in plan.js\n});\n```\n\nThe same doctor file **does** call `detectPackageManager({ packageManagerField, pnpmLockPresent, … })` for payload-staleness, but that result is not threaded into `runResolutionDecision` / `plan()`.\n\n`resolution/package-manager.js` already knows the right forms (`pnpm dlx`, `pnpm add -D`, `pnpm add -g`) from #2197 — doctor just does not use them on the primary Next command path.\n\n3. **Update deposits from the running engine's content package, not from the pin**\n\n`deposit/resolve-content.js` resolves `@deftai/directive-content` via `import.meta.resolve` of the **running** CLI. Global `0.119.2` therefore correctly deposited content `0.119.2` while the repo pin stayed `0.119.0`. That is why the operator can be “done” on deposit and still fail doctor’s primary action.\n\n4. **Init/update pin write vs lockfile (why “just bump pin in update” is incomplete on pnpm)**\n\n`init-deposit/init-deposit.js` `assertLockfileAllowsPinWrite`:\n\n- Init/update pin writers **do not rewrite lockfiles** (offline-safe).\n- If `pnpm-lock.yaml` / `package-lock.json` / `yarn.lock` exists and does not already carry the exact new pin, pin write is **refused** with instructions to run e.g. `pnpm install --lockfile-only` after adding the dep.\n\nSo even #4710’s desired “update writes the pin” must confront lock follow-through on pnpm consumers, or doctor must print a pin+lock remediation (`pnpm add -D @deftai/directive@<engine>`) instead of another deposit update.\n\n## Intended mental model (as documented) vs what confused the operator\n\nDocs (`UPGRADING.md`, `getting-started.md`, `#2264`) describe **three layers**:\n\n1. **Engine** — global CLI (`npm i -g` / `pnpm add -g`) **or** project-local equivalent (`pnpm add -D` + `pnpm exec`).\n2. **Pin** — committed exact `package.json` devDependency; reconstitution contract for fresh clones because `.deft/core/` is gitignored (hybrid).\n3. **Deposit** — `.deft/core/` copied from `@deftai/directive-content` by `init`/`update`.\n\nGlobal install is **not** redundant with the pin: global (or PATH-reachable) engine is what agents/hooks invoke day to day; the pin is the **repo identity** so clones can reconstitute and so doctor can reconcile. Local `node_modules/@deftai/directive` **does** install when you `pnpm install` — that is intentional for reconstitution / optional `pnpm exec`, not a second “must use instead of global” runtime.\n\nThe operator confusion is justified: after doing the documented global+update steps, doctor’s Next command still points at deposit update via `npx`, which neither bumps the pin nor respects pnpm.\n\n## Desired shape\n\n1. **After content is already >= engine (or otherwise not behind), within-window `engine>pin` must not recommend another `update`.**\n   - Prefer a pin follow-through Next command via existing renderers, e.g. `pnpm add -D @deftai/directive@0.119.2` (or npm equivalent), naming lock follow-through explicitly when a lockfile is present.\n   - Or, if #4710 lands “update writes pin”, doctor’s post-update primary action must become `proceed` only when pin(+lock identity) matches — not “run update again.”\n\n2. **`runResolutionDecision` must pass the detected package manager into `plan()`** so Next command uses `pnpm dlx` / `pnpm add -D` / `pnpm add -g` on pnpm repos (#2197 renderers already exist).\n\n3. **Tests**\n   - Fixture: engine `0.119.2`, content `0.119.2`, pin `0.119.0`, `pnpm-lock.yaml` present → primary command is **not** `npx … update` and **not** another no-op deposit update.\n   - Fixture: same versions with npm lock → npm-shaped pin follow-through, not a second update.\n   - Fixture: content behind pin → still recommends update (existing behavior preserved).\n\n## Out of scope\n\n- Implementing the full #4710 pin writer itself (track there), except insofar as doctor must stop lying when pin lag is the only remainder.\n- Beyond-window `--accept-engine-jump` print honesty (#4692).\n- Changing hybrid gitignore / reconstitutable `.deft/core/` layout.\n\n## Related\n\n- #4710 (update must write consumer pin — leftover reconstitution)\n- #4692 (beyond-window upgrade deadlock / printed recovery)\n- #2264 / #2269 (resolution spine + pin as canonical identity)\n- #2197 (pnpm command renderers — present, but unused on doctor’s primary Next command path)\n- #3193 (upgrade PR pin-only + lock follow-through co-travel)\n\n## Reproduction (minimal)\n\n```bash\n# pnpm consumer with pin 0.119.0 already committed\nnpm i -g @deftai/directive@0.119.2   # or @latest\ncd <project>\ndirective update                     # deposits content 0.119.2; leaves pin 0.119.0\ndirective doctor                     # Next command: npx @deftai/directive update\n```\n\n",
+      "Labels": "bug, doctor, agent-experience, area:installer, design-critique:ingest-ready",
+      "ImplementationPlan": "1. packages/types/src/resolution.ts 2. packages/types/src/resolution.test.ts 3. packages/core/src/doctor/main.ts 4. packages/core/src/resolution/skew-policy.ts Tests via npx vitest run packages/types/src/resolution.test.ts packages/core/src/resolution/plan.test.ts --coverage.enabled=false. CHANGELOG [Unreleased] append-only.",
+      "Traces": "Bound contract is successor lean 5719231055; pin write stays #4710. plan.ts print honesty stays #4692."
+    },
+    "items": [
+      {
+        "title": "Name a non-update ResolutionMode for content already at engine plus pin lag (new enum member plus schema lockstep). Map that mode so update/init do not deposit-refresh. Keep doctor primary Next command on a non-proceed mode. Command-string swap on mode update cannot bind. Silent proceed cannot bind.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Name a non-update ResolutionMode for content already at engine plus pin lag (new enum member plus schema lockstep). Map that mode so update/init do not deposit-refresh. Keep doctor primary Next command on a non-proceed mode. Command-string swap on mode update cannot bind. Silent proceed cannot bind."
+        },
+        "effort": "M",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/resolution.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Current-content is semverGte(contentVersion, engineVersion); null content stays on update. Keep content-behind-pin still recommends update. Drop or-otherwise-not-behind.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Current-content is semverGte(contentVersion, engineVersion); null content stays on update. Keep content-behind-pin still recommends update. Drop or-otherwise-not-behind."
+        },
+        "effort": "M",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/resolution.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Thread doctor detectPackageManager (stripped env, field then lock, no user-agent) into plan(). Do not add packageManager to ResolutionFacts. Threading alone does not close P1.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Thread doctor detectPackageManager (stripped env, field then lock, no user-agent) into plan(). Do not add packageManager to ResolutionFacts. Threading alone does not close P1."
+        },
+        "effort": "M",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/resolution.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Next command is renderProjectInstall(pm, @deftai/directive@ + engine). Remediation may say add updates the lock. Pin write inside update stays #4710.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Next command is renderProjectInstall(pm, @deftai/directive@ + engine). Remediation may say add updates the lock. Pin write inside update stays #4710."
+        },
+        "effort": "M",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/types/src/resolution.ts",
+          "recorded_at": "2026-09-18T01:52:22Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4718",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4718: bug(doctor): after successful update, within-window engine>pin still recommends npx update (ignores pnpm; pin/lock is the real gap)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Name a non-update ResolutionMode for content already at engine plus pin lag (new enum member plus schema lockstep). Map that mode so update/init do not deposit-refresh. Keep doctor primary Next command on a non-proceed mode. Command-string swap on mode update cannot bind. Silent proceed cannot bind.",
+          "artifact_path": "packages/types/src/resolution.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Current-content is semverGte(contentVersion, engineVersion); null content stays on update. Keep content-behind-pin still recommends update. Drop or-otherwise-not-behind.",
+          "artifact_path": "packages/types/src/resolution.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Thread doctor detectPackageManager (stripped env, field then lock, no user-agent) into plan(). Do not add packageManager to ResolutionFacts. Threading alone does not close P1.",
+          "artifact_path": "packages/types/src/resolution.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Next command is renderProjectInstall(pm, @deftai/directive@ + engine). Remediation may say add updates the lock. Pin write inside update stays #4710.",
+          "artifact_path": "packages/types/src/resolution.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/types/src/resolution.ts",
+          "packages/types/src/resolution.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/resolution/skew-policy.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/resolution",
+        "cohesion_exemption": [
+          "CHANGELOG.md"
+        ],
+        "split_plan": "Existing files already over review-trigger stay in place this slice. CHANGELOG is append-only cohesion. Do not split those files."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because after a successful directive update, within-window engine>pin still prints npx update even though content already matches the engine and the remaining gap is pin plus lock on a pnpm repo.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4718-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: operator add onto each separately; independent single-seat Grok critic arc, not panel spend.\n\nrefutation-target: after content is already current, within-window engine>pin must not recommend another deposit update; Next command is pin follow-through via the detected package manager.\n\ntarget: #4718\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the notetechnic measurement on @deftai/directive@0.119.2: global engine 0.119.2, directive update deposited content 0.119.2 (deposit_completed true), package.json pin and pnpm-lock.yaml stayed 0.119.0. Doctor printed Version reconciliation engine/content 0.119.2 pin 0.119.0 proceeding after content update, then Primary next action Next command: npx @deftai/directive update. Re-running that command cannot clear the warning.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/resolution/plan.ts default branch: if skew.requiresUpdateFirst or contentStale(facts) return makePlan update with renderEphemeral(pm, update). contentStale is content behind pin, not content-current pin-lag.\n- packages/core/src/resolution/skew-policy.ts engine>pin within window sets requiresUpdateFirst true (proceed-loud-update).\n- packages/core/src/doctor/main.ts runResolutionDecision calls resolvePlan(facts, {}, { linkedWorktree, platform, interactive: false }) with no packageManager, so plan defaults to npm / npx. detectPackageManager is used on the --network payload-staleness path only.\n- packages/core/src/resolution/package-manager.ts renderEphemeral(pnpm, update) is pnpm dlx; pin follow-through renderers exist from #2197.\n- Pin writer itself is leftover #4710. Beyond-window print honesty is #4692. This issue is doctor Next command after already-updated content.\n\nNo implement and no ingest from this parent.\n\n\n",
+          "id": 5718909992,
+          "html_url": "https://github.com/deftai/directive/issues/4718#issuecomment-5718909992",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:55:49Z",
+          "updated_at": "2026-09-17T17:55:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 refutation of: after content is already current, within-window engine>pin must not recommend another deposit update; Next command is pin follow-through via the detected package manager.\n\nThe first conjunct holds. The second holds only if `plan()` stops emitting `mode: \"update\"` for this fact combination. A doctor print swap on the existing update plan does not satisfy “must not recommend another deposit update.”\n\n## 1. Pin follow-through cannot ride mode=update (or silent proceed)\n\nclass: blocks-the-design\n\nEvidence (pin-read `edf1d698aafcf956cff08ad3ad14ff608505861a`):\n\n- `packages/core/src/resolution/plan.ts` default branch: `skew.requiresUpdateFirst || contentStale(facts)` returns `makePlan(\"update\", { command: renderEphemeral(pm, \"update\") })`. `evaluateSkew` sets `requiresUpdateFirst: true` for every within-window `engine>pin`. `contentStale` is content-behind-pin only, so content `0.119.2` / pin `0.119.0` is not stale and still takes this branch.\n- `packages/core/src/resolution/plan.test.ts` already locks that measured shape as intended: engine `0.67.0` + content `0.67.0` → `mode: \"update\"`; with `packageManager: \"pnpm\"` the command is `pnpm dlx @deftai/directive update`.\n- `packages/types/src/resolution.ts` documents `update` as “content behind the pin.” The public enum has no pin-align member (`proceed|init|migrate|update|install-global|install-sandbox|install-staged|blocked`).\n- `updateStateFromPlan` maps every initialized non-`proceed` mode to `\"updated\"` (deposit refresh). `decideInitDispatch` maps the same set to `delegate-update`.\n- Doctor `runResolutionDecision` sets `actionRequired = plan.mode !== \"proceed\"`. `proceed` never prints a primary Next command, and its rootCause string claims engine matches pin.\n\nFailure mode: implementers keep `mode: \"update\"` and only change `nextAction.command` to `pnpm add -D …`. Doctor then prints pin follow-through while `directive update` / `directive init` still classify a content refresh. That is a second classifier (#537), and the spine still recommends a deposit update. Falling through to `proceed` stops the loop but hides pin lag (`actionRequired` false) and lies that engine matches pin.\n\nDisposition: Bound-remedy must name a non-`update` `ResolutionMode` for content-already-at-engine + pin lag (new enum member + schema lockstep), map that mode so update/init do not deposit-refresh, and keep doctor’s primary Next command on a non-`proceed` mode. Command-string swap on `update` cannot bind.\n\n## 2. Current-content means content>=engine, not !contentStale\n\nclass: sharpens-framing\n\nEvidence: `contentStale` uses `reconcileVersions.contentBehindPin` (content vs pin). The pre-update tree is content `0.119.0` / pin `0.119.0` / engine `0.119.2`: not content-stale, `requiresUpdateFirst` true, and update is the right verb (migrate content first). After `directive update`, content `0.119.2` / pin `0.119.0` is the loop. `semverGte` already exists in `packages/core/src/resolution/pin.ts`. Null content is not >= engine.\n\nFailure mode: reading the issue’s “or otherwise not behind” as `!contentStale` would print pin follow-through before content has moved, then bump the committed pin while `.deft/core` is still at the old version.\n\nDisposition: Bound-remedy uses `semverGte(contentVersion, engineVersion)` (null content stays on update). Drop “or otherwise not behind.” Keep “content behind pin → still update.”\n\n## 3. Thread the existing packageManager option; threading alone does not close the loop\n\nclass: sharpens-framing\n\nEvidence: `PlanOptions.packageManager` already exists and defaults to `\"npm\"`. `runResolutionDecision` calls `resolvePlan(facts, {}, { linkedWorktree, platform, interactive: false })` with no packageManager. The same doctor file already calls `detectPackageManager` on the `--network` payload-staleness path with stripped env (no `npm_config_user_agent`). `packages/core/src/resolution/plan.test.ts` shows pnpm threaded into this branch still emits `pnpm dlx @deftai/directive update`.\n\nFailure mode: passing the detected manager without changing the default-branch verb leaves a pnpm-shaped no-op update. Using `resolveProjectPackageManager` with raw `process.env` would reintroduce user-agent, which doctor’s `--network` path deliberately dropped.\n\nDisposition: reuse that doctor detection (stripped env, field then lock, no user-agent) and pass it into `plan()`. Do not add `packageManager` to `ResolutionFacts`. Do not treat PM threading as the P1 closer.\n\n## 4. The Next command is renderProjectInstall at the engine spec, not lockfile-only and not another update\n\nclass: sharpens-framing\n\nEvidence: `renderProjectInstall(\"pnpm\", \"@deftai/directive@0.119.2\")` is `pnpm add -D @deftai/directive@0.119.2` (`packages/core/src/resolution/package-manager.ts`, #2197). `LOCKFILE_REFRESH_COMMANDS` (`pnpm install --lockfile-only` / `npm install --package-lock-only`) is the init refuse path when a lockfile does not already carry the new pin; it does not add the dep. `assertLockfileAllowsPinWrite` is why a future #4710 pin writer still cannot close a pnpm lockfile-backed tree by itself. Hygiene already knows pin+lock co-travel (#3193).\n\nFailure mode: printing lockfile-only leaves package.json unchanged. Printing unversioned `pnpm add -D @deftai/directive` floats latest. Printing another update continues the loop. Implementing `ensurePackageJsonPin` on this issue duplicates #4710 and still throws on lock mismatch.\n\nDisposition: Bound-remedy names `renderProjectInstall(pm, \"@deftai/directive@\" + engine)` as the single Next command. Remediation may say add updates the lock. Pin write inside `update` stays #4710. After that leftover lands, this path becomes proceed only when pin(+lock identity) matches.\n\n## Injection / swarm lens\n\nDoctor is read-only; SUPPORT.md / getting-started / grokbot tell agents to run the one `Next command:`. Swapping that command from a gitignored deposit copy to a committed `package.json` + lockfile write changes repo identity and shared state. Keep doctor print-only (do not spawn the package manager). Interpolate only the closed PM union plus an exact engine semver (this skew branch already fail-closes unparseable versions). Occupancy applies to the agent who runs the printed command, not to doctor.\n\n## Road not taken\n\nProceed + warning (same class as missing-pin #4429) would stop the loop without a schema change. Rejected: missing-pin is proceed so error would retro-fail pre-pin consumers; a present stale pin is reconstitutable-as-wrong, and a note is not executed. Flip if #4710 already writes pin+lock on update. It does not.\n\nCommand-only swap on `mode: \"update\"` was rejected in finding 1.\n\n## Inventory (existing, do not invent)\n\n`PlanOptions.packageManager`, `detectPackageManager` (doctor `--network`), `renderProjectInstall` / `renderEphemeral` / `renderGlobalInstall`, `semverGte`, `contentStale` (pin-relative), `evaluateSkew.requiresUpdateFirst`, `LOCKFILE_REFRESH_COMMANDS`, `assertLockfileAllowsPinWrite`, `ensurePackageJsonPin`, `updateStateFromPlan`, `decideInitDispatch`, pin-follow-through hygiene (#3193).\n\n## Anchor re-verification\n\nWalked `evaluateSkew(\"0.119.2\",\"0.119.0\")`: major 0, minor delta 0 ≤ window 3 → within-window, `requiresUpdateFirst` true. `contentStale` for content `0.119.2` vs pin `0.119.0` is false. Default branch → `npx @deftai/directive update`. `runResolutionDecision` confirmed not passing packageManager. Dest has no `node_modules`; vitest did not execute. Evidence is pin-read control flow plus tests that lock the current branch.\n\nDoctor `main.test.ts` “engine ahead within window” uses `makeDeposit` with no VERSION, so it does not encode the measured content==engine case. Desired fixtures must set content, pin, engine, and a lockfile.\n\nYarn stays outside `PACKAGE_MANAGERS` (npm|pnpm). Beyond-window escape hatch shares this default branch; a content>=engine predicate would also stop that no-op update. Print-honesty remainder stays #4692.\n\n",
+          "id": 5719118313,
+          "html_url": "https://github.com/deftai/directive/issues/4718#issuecomment-5719118313",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:13:14Z",
+          "updated_at": "2026-09-17T18:13:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter a successful deposit update, doctor still told the operator to run another npx update because within-window engine>pin maps to mode update even when content already matches the engine. The accepted harvest is a non-update resolution mode for content-at-engine plus pin lag, with Next command as the existing pin-install renderer at the engine spec, using the detected package manager. Pin write inside update stays on #4710.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Bound-remedy. Disposition: classified headings accept-into-contract. Residual: none on classified headings. Pain: relieves P1 (pain-audit after this lean).\nSpec-path: next-build contract is not this body.\n\n**Lean:** successor of Stop 1 5718909992 after critic 5719118313. Cites critic 5719118313. Supersedes write-back 5718909992.\n\nTarget-digest: sha256:2b820aebda03a95e6f78edb189af6078dd7799362fb793b4ab6fe01989df5ec4\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4718-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5719118313 1 Pin follow-through cannot ride mode=update (or silent proceed) -- accept-into-contract\n- 5719118313 2 Current-content means content>=engine, not !contentStale -- accept-into-contract\n- 5719118313 3 Thread the existing packageManager option; threading alone does not close the loop -- accept-into-contract\n- 5719118313 4 The Next command is renderProjectInstall at the engine spec -- accept-into-contract\n- remaining classified headings -- accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Name a non-update ResolutionMode for content already at engine plus pin lag (new enum member plus schema lockstep). Map that mode so update/init do not deposit-refresh. Keep doctor primary Next command on a non-proceed mode. Command-string swap on mode update cannot bind. Silent proceed cannot bind.\n- Current-content is semverGte(contentVersion, engineVersion); null content stays on update. Keep content-behind-pin still recommends update. Drop or-otherwise-not-behind.\n- Thread doctor detectPackageManager (stripped env, field then lock, no user-agent) into plan(). Do not add packageManager to ResolutionFacts. Threading alone does not close P1.\n- Next command is renderProjectInstall(pm, @deftai/directive@ + engine). Remediation may say add updates the lock. Pin write inside update stays #4710.\n\n\n",
+          "id": 5719231055,
+          "html_url": "https://github.com/deftai/directive/issues/4718#issuecomment-5719231055",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:22:27Z",
+          "updated_at": "2026-09-17T18:22:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of `relieves: P1` on successor lean 5719231055. Pin-read `edf1d698aafcf956cff08ad3ad14ff608505861a`. Ceiling 5719231055 inclusive.\n\nP1 (Stop 1 5718909992) is the notetechnic loop: engine 0.119.2, content 0.119.2 after a successful update, pin and `pnpm-lock.yaml` still 0.119.0, doctor Next command `npx @deftai/directive update`, re-running that command cannot clear the warning.\n\nBound-remedy covers that loop. `relieves: P1` is honest. Footnote-only. Bind map stays bindable.\n\nWalked the measured facts at the pin SHA:\n\n- `evaluateSkew(\"0.119.2\",\"0.119.0\")` is within-window, `requiresUpdateFirst` true (`packages/core/src/resolution/skew-policy.ts`).\n- `contentStale` is false: content is ahead of pin, not behind (`plan.ts` `contentStale` / `reconcileVersions.contentBehindPin`).\n- Default branch therefore returns `mode: \"update\"` and `renderEphemeral(pm, \"update\")`. `runResolutionDecision` does not pass `packageManager`, so `pm` defaults to npm and the printed command is `npx @deftai/directive update`.\n- Harvest item 2: `semverGte(\"0.119.2\",\"0.119.2\")` is true (`packages/core/src/resolution/pin.ts`). Null content stays on update; this P1 is not null content.\n- Harvest item 1: a non-`update` `ResolutionMode` for that fact combination, with doctor `actionRequired = plan.mode !== \"proceed\"` still printing a primary Next command. Public enum and schema lockstep today are `proceed|init|migrate|update|install-global|install-sandbox|install-staged|blocked` (`packages/types/src/resolution.ts`, `packages/types/schemas/resolution-plan-v1.schema.json`).\n- Harvest item 3: doctor `--network` already calls `detectPackageManager` with stripped env (only `DEFT_PACKAGE_MANAGER`), `packageManagerField`, `pnpmLockPresent`, no user-agent (`packages/core/src/doctor/main.ts`). P1 has `packageManager: \"pnpm@…\"` and `pnpm-lock.yaml`, so that detector returns pnpm.\n- Harvest item 4: `renderProjectInstall(\"pnpm\", \"@deftai/directive@0.119.2\")` is `pnpm add -D @deftai/directive@0.119.2` (`packages/core/src/resolution/package-manager.ts`). That command updates the committed pin and the lock. Next doctor: engine matches pin, content current, proceed.\n- `enforceDirectiveSurface` only rewrites a leading `task ` when Taskfile wiring is absent. It does not rewrite `pnpm add` / `npm install --save-dev`.\n\nCommand-string swap on `mode: \"update\"` still cannot bind: `updateStateFromPlan` maps every initialized non-`proceed` mode to `\"updated\"` (deposit refresh) and `decideInitDispatch` maps deposit-present modes to `delegate-update`. Harvest item 1 already requires mapping the new mode so those paths do not deposit-refresh. Silent `proceed` still cannot bind: doctor would hide pin lag.\n\n## 1. Unnamed update/init state tokens\n\nclass: footnote\n\nEvidence: `UpdateState` is the four-state lock (`migration-required|not-initialized|current|updated`). `decideInitDispatch` already maps `proceed` itself to `delegate-update`. Harvest says map the new mode so update/init do not deposit-refresh; it does not name `current` versus a fifth state.\n\nFailure mode if an implementer leaves the catch-all `\"updated\"` mapping: `directive update` still copies content. Doctor Next command is still pin-install, so the measured P1 (printed `npx` update) still clears when the operator runs that Next command.\n\nDisposition: do not recut Bound-remedy. Four-state catch-all is implementation of the already-harvested map.\n\n## 2. Doctor fixture \"engine ahead within window\" is null content, not P1\n\nclass: footnote\n\nEvidence: `packages/core/src/doctor/main.test.ts` `makeDeposit` creates `.deft/core` with no VERSION. `plan.test.ts` \"engine ahead within window -> update\" uses engine `0.67.0` + content `0.67.0` and is the P1 fact combination at plan(); the doctor fixture is not. Harvest item 2 keeps null content on update, so that doctor test stays on update.\n\nFailure mode: landing the mode change without a content==engine + pin-lag + lockfile doctor fixture leaves P1 unencoded on the doctor print path. Issue-body fixtures were not harvested.\n\nDisposition: does not uncover P1. Tests are not a harvest recut for this pain-audit.\n\n## 3. Skew warning still says proceeding after content update\n\nclass: footnote\n\nEvidence: `evaluateSkew` within-window message is `proceeding after content update` (`skew-policy.ts`). `plan()` pushes `skew.message` into warnings. Doctor's Version reconciliation line is separate from `plan.nextAction.command`.\n\nFailure mode: mixed prose next to a pin-install Next command. Agents that follow Next command still clear P1. Print-honesty remainder stays adjacent to #4692.\n\nDisposition: do not recut Bound-remedy. P1 is the Next command, not the skew warning.\n\n## Injection / swarm lens\n\nDoctor Next command moves from a gitignored deposit copy to a committed `package.json` plus lock write. Shared state. Harvest names a printed `renderProjectInstall` string, not a doctor spawn. Keep doctor print-only; occupancy sits on the agent who runs the printed command. Interpolate only the closed `PACKAGE_MANAGERS` union (`npm|pnpm`) plus an exact engine semver (this skew branch already fail-closes unparseable versions). Do not call `resolveProjectPackageManager` with raw `process.env` (user-agent). Yarn stays outside that union; P1 is pnpm.\n\n## Inventory (existing, do not invent)\n\n`PlanOptions.packageManager`, doctor `--network` `detectPackageManager`, `renderProjectInstall` / `renderEphemeral`, `ENGINE_PACKAGE`, `semverGte`, `contentStale`, `evaluateSkew.requiresUpdateFirst`, `enforceDirectiveSurface`, `updateStateFromPlan`, `decideInitDispatch`, `RESOLUTION_MODES` + schema enum, `LOCKFILE_REFRESH_COMMANDS` / `assertLockfileAllowsPinWrite` / `ensurePackageJsonPin` (leftover #4710).\n\nPin write inside update stays #4710. Beyond-window print honesty stays #4692.\n\n",
+          "id": 5719386233,
+          "html_url": "https://github.com/deftai/directive/issues/4718#issuecomment-5719386233",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:35:11Z",
+          "updated_at": "2026-09-17T18:35:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| After successful update, within-window engine>pin still prints npx update (P1) | covered: non-update ResolutionMode plus renderProjectInstall Next command | pin-read plan.ts requiresUpdateFirst vs contentStale; doctor runResolutionDecision omits packageManager; renderProjectInstall pnpm add -D; pain-audit 5719386233 footnote-only |\n| Pin follow-through cannot ride mode=update | harvest names new mode plus map so update/init do not deposit-refresh | round-1 critic 5719118313 heading 1 |\n| Current-content is semverGte content vs engine | harvest | heading 2 |\n| Pin writer inside update | leftover #4710 | heading 4 |\n\nCites successor lean 5719231055. Empty disagreement set. Pain-audit 5719386233 targeted audit-targets: pain-P1 and was footnote-only.\n\n\n",
+          "id": 5719411177,
+          "html_url": "https://github.com/deftai/directive/issues/4718#issuecomment-5719411177",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:37:13Z",
+          "updated_at": "2026-09-17T18:37:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter a successful deposit update, doctor still told the operator to run another npx update because within-window engine>pin maps to mode update even when content already matches the engine. The accepted harvest is a non-update resolution mode for content-at-engine plus pin lag, with Next command as the existing pin-install renderer at the engine spec, using the detected package manager. Pin write inside update stays on #4710.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the successor lean, and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites accepted successor lean 5719231055. Verified-claims table comment 5719411177. Pain-audit 5719386233 (audit-targets: pain-P1) footnote-only. Round-1 critic 5719118313. Stop 1 5718909992. dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a.\n\n\n",
+          "id": 5719421020,
+          "html_url": "https://github.com/deftai/directive/issues/4718#issuecomment-5719421020",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:38:02Z",
+          "updated_at": "2026-09-17T18:38:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Architectural supersession pointer\n\nFull local-first / triangle-elimination requirements are in **#4730**.\n\nThis issue (#4718) is called out there as a **compatible interim** (honest doctor Next command + package-manager-aware pin follow-through). End-state doctor/check must treat pin+local as SoT and stop modeling global engine as a peer clock inside pinned repos.\n\n",
+          "id": 5720316401,
+          "html_url": "https://github.com/deftai/directive/issues/4718#issuecomment-5720316401",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:52:25Z",
+          "updated_at": "2026-09-17T19:52:25Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5490635275,
+        "origin": "deftai/directive#4718",
+        "id": "github.issue.5490635275"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2b820aebda03a95e6f78edb189af6078dd7799362fb793b4ab6fe01989df5ec4"
+      },
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/types/src/resolution.ts",
+          "packages/types/src/resolution.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/resolution/skew-policy.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/types/src/resolution.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "content-at-engine plus pin lag is not mode update",
+          "Next command is renderProjectInstall at engine spec",
+          "CHANGELOG [Unreleased] #4718"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer-upgrade-pin",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5719231055; pin write stays #4710. plan.ts print honesty stays #4692."
+      },
+      "literal_acceptance_not_commands": [
+        "directive doctor --accept-engine-jump",
+        "directive doctor                     # Next command: npx @deftai/directive update"
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4734,
+        "prBase": null,
+        "mergeCommit": "94e6c1dd0aa96c60d855d9d48d6cae60e93ff538",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2936a72be62c35903a5f9a04d7869f69bf4cbb2b",
+        "verifiedAt": "2026-09-18T01:59:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T01:59:26Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T01:59:26Z"
+      }
+    },
+    "id": "github.issue.5490635275",
+    "updated": "2026-09-18T01:59:26Z"
+  }
+}
