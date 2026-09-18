@@ -15,7 +15,7 @@ const testEnvironment =
 // workers for headroom (same cap with or without coverage), widen teardown, and ignore
 // unhandled worker RPC flakes when the assertion suite is otherwise green. Refs #2546.
 const isWin32 = process.platform === "win32";
-const winMaxWorkers = Math.max(1, Math.min(12, cpus().length));
+const winMaxWorkers = Math.max(1, Math.min(12, Math.floor(cpus().length * 0.25)));
 
 // Coverage chunk writes land in coverage/.tmp. Vitest 4.x includes the upstream
 // mkdir fix (vitest-dev/vitest#10117 / #2634). Keep win32 globalSetup keepalive
