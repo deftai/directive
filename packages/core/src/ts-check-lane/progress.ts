@@ -215,6 +215,12 @@ export interface NamedCostClass {
  * ends before both projects (mixed-origin / stale sample).
  * Does not bind "spawn-heavy one-worker tail" without a 5-minute tail after unit.
  */
+/** Both args are elapsed-from-run-start. Returns 0 when coverage is not after projects. */
+function coverageTailFromRunStart(coverageFromRunStart: number, projectsDoneFromRunStart: number): number {
+  if (coverageFromRunStart < projectsDoneFromRunStart) return 0;
+  return coverageFromRunStart - projectsDoneFromRunStart;
+}
+
 export function nameNextCostClass(sample: TimelineCostSample): NamedCostClass {
   const unit = sample.unitCompleteMs;
   const spawn = sample.spawnHeavyCompleteMs;
@@ -234,8 +240,8 @@ export function nameNextCostClass(sample: TimelineCostSample): NamedCostClass {
     };
   }
   if (coverage !== null && unit !== null && spawn !== null) {
-    const projectsDone = Math.max(unit, spawn);
-    if (coverage >= projectsDone && coverage - projectsDone >= 60_000) {
+    const tail = coverageTailFromRunStart(coverage, Math.max(unit, spawn));
+    if (tail >= 60_000) {
       return {
         costClass: "coverage-merge-report",
         reason: "coverage merge/report continued after both projects",
