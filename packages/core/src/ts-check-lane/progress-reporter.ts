@@ -38,8 +38,6 @@ export interface ProgressReporterClock {
   readonly cold?: boolean;
 }
 
-const SLOW_FILE_MS = 5_000;
-
 function moduleFilePath(mod: unknown): string {
   if (typeof mod !== "object" || mod === null) return "";
   const rec = mod as Record<string, unknown>;
@@ -194,7 +192,7 @@ export class TsCheckLaneProgressReporter {
     this.lastModuleEndAt = endedAt;
     if (this.timeline && started !== undefined) {
       const elapsed = endedAt - started.startedAt;
-      if (elapsed >= SLOW_FILE_MS && lastFile.length > 0) {
+      if (elapsed >= PROGRESS_FILE_HEARTBEAT_MS && lastFile.length > 0) {
         this.emit(formatFileDurationLine(lastFile, elapsed, started.project));
       }
     }

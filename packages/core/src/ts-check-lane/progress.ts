@@ -149,7 +149,7 @@ export function resolveTestLaneCommand(
 export const TIMELINE_PREFIX = "ts:check-lane timeline";
 
 /** Spawn-heavy is the remaining class only when it finishes this far after unit. */
-export const SPAWN_HEAVY_TAIL_MS = 5 * 60 * 1000;
+export const SPAWN_HEAVY_TAIL_MS = PROGRESS_FILE_HEARTBEAT_EVERY * PROGRESS_FILE_HEARTBEAT_MS;
 
 export interface LaneTimelineConditions {
   readonly coverage: boolean;
@@ -244,7 +244,7 @@ export function nameNextCostClass(sample: TimelineCostSample): NamedCostClass {
   }
   if (coverage !== null && unit !== null && spawn !== null) {
     const tail = coverageTailFromRunStart(coverage, Math.max(unit, spawn));
-    if (tail >= 60_000) {
+    if (tail >= PROGRESS_FILE_HEARTBEAT_MS + PROGRESS_FILE_HEARTBEAT_MS) {
       return {
         costClass: "coverage-merge-report",
         reason: "coverage merge/report continued after both projects",
