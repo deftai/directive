@@ -216,7 +216,10 @@ export interface NamedCostClass {
  * Does not bind "spawn-heavy one-worker tail" without a 5-minute tail after unit.
  */
 /** Both args are elapsed-from-run-start. Returns 0 when coverage is not after projects. */
-function coverageTailFromRunStart(coverageFromRunStart: number, projectsDoneFromRunStart: number): number {
+function coverageTailFromRunStart(
+  coverageFromRunStart: number,
+  projectsDoneFromRunStart: number,
+): number {
   if (coverageFromRunStart < projectsDoneFromRunStart) return 0;
   return coverageFromRunStart - projectsDoneFromRunStart;
 }
