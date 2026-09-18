@@ -15,7 +15,7 @@ describe("vitest.config.ts Windows runner contract (#2546)", () => {
 
   it("caps fork parallelism on win32 for coordinator headroom", () => {
     expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
-    expect(source).toMatch(/cpus\(\)\.length\s*\*\s*0\.25/);
+    expect(source).toMatch(/Math\.min\(12,\s*cpus\(\)\.length\)/);
     expect(source).toMatch(/Math\.min\(12/);
     expect(source).not.toMatch(/winActiveMaxWorkers/);
     expect(source).not.toMatch(/poolOptions/);
