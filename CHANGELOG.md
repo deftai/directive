@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Bare `deft check` / `directive check` default omitted roots (#4722).** Omitted `--project-root` is cwd. Omitted `--framework-root` walks explicit / `DEFT_ROOT` / source checkout / `.deft/core` / legacy `deft/` and fail-closes instead of the npm-engine last-resort. Flags stay overrides. Tracking #4722.
+- **Bare `deft check` / `directive check` now defaults omitted roots (#4722).** The command uses the current directory as the project root and fails with remediation when it cannot find a framework root. Tracking #4722.
 
 - **Fresh worktrees can repair lagged agent-hook matchers without update or init (#4711).** `deft verify:hooks-installed --scope=agent --repair` wraps writeAgentHookDeposit on this project root, reports changedPaths, leaves tracked hook JSON dirty, rechecks `--live`, and keeps the denied action blocked until the host reloads matchers. Tracking #4711.
 

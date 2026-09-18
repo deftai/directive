@@ -71,6 +71,18 @@ export function resolveCheckFrameworkRoot(
   return null;
 }
 
+function takeRootOptionValue(
+  argv: readonly string[],
+  index: number,
+  flag: "--project-root" | "--framework-root",
+): { readonly value?: string; readonly error?: string; readonly next: number } {
+  const next = argv[index + 1];
+  if (next === undefined || next.length === 0 || next.startsWith("-")) {
+    return { error: `argument ${flag}: expected one argument`, next: index };
+  }
+  return { value: next, next: index + 1 };
+}
+
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   let projectRoot = process.cwd();
   let explicitFrameworkRoot: string | undefined;
@@ -81,29 +93,31 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (arg === "--no-cache") {
       noCache = true;
     } else if (arg === "--project-root") {
-      const value = argv[i + 1];
-      if (value === undefined) {
-        return {
-          projectRoot,
-          error: "argument --project-root: expected one argument",
-        };
+      const taken = takeRootOptionValue(argv, i, "--project-root");
+      if (taken.error !== undefined) {
+        return { projectRoot, error: taken.error };
+      }
+      projectRoot = taken.value ?? projectRoot;
+      i = taken.next;
+    } else if (arg.startsWith("--project-root=")) {
+      const value = arg.slice("--project-root=".length);
+      if (value.length === 0) {
+        return { projectRoot, error: "argument --project-root: expected one argument" };
       }
       projectRoot = value;
-      i += 1;
-    } else if (arg.startsWith("--project-root=")) {
-      projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--framework-root") {
-      const value = argv[i + 1];
-      if (value === undefined) {
-        return {
-          projectRoot,
-          error: "argument --framework-root: expected one argument",
-        };
+      const taken = takeRootOptionValue(argv, i, "--framework-root");
+      if (taken.error !== undefined) {
+        return { projectRoot, error: taken.error };
+      }
+      explicitFrameworkRoot = taken.value;
+      i = taken.next;
+    } else if (arg.startsWith("--framework-root=")) {
+      const value = arg.slice("--framework-root=".length);
+      if (value.length === 0) {
+        return { projectRoot, error: "argument --framework-root: expected one argument" };
       }
       explicitFrameworkRoot = value;
-      i += 1;
-    } else if (arg.startsWith("--framework-root=")) {
-      explicitFrameworkRoot = arg.slice("--framework-root=".length);
     } else {
       return {
         projectRoot,

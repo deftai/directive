@@ -66,6 +66,10 @@ describe("check CLI", () => {
   it("rejects --project-root and --framework-root without a value", () => {
     expect(parseArgs(["--project-root"]).error).toMatch(/expected one argument/);
     expect(parseArgs(["--framework-root"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--project-root", "--no-cache"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--framework-root", "--no-cache"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--project-root="]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--framework-root="]).error).toMatch(/expected one argument/);
   });
 
   it("parses --project-root= and --framework-root= attached forms", () => {
