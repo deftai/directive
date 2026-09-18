@@ -6,6 +6,7 @@ import {
   type AgentHookReadinessResult,
   type EvaluateResult,
   evaluate,
+  evaluateAgentHookReadiness,
   evaluateAgentHookReadinessSafely,
   evaluateAgentHooks,
   formatAgentHookRepairDisposition,
@@ -102,9 +103,15 @@ export function run(argv: string[], seams: VerifyHooksInstalledCliSeams = {}): n
     const repair = seams.repairRegistrations ?? repairAgentHookRegistrations;
     try {
       let live: AgentHookReadinessResult | undefined;
+      const evaluateRepairReadiness = seams.evaluateReadiness
+        ? (root: string) => evaluateAgentHookReadinessSafely(root, seams.evaluateReadiness)
+        : (root: string) =>
+            evaluateAgentHookReadinessSafely(root, (next) =>
+              evaluateAgentHookReadiness(next, { consumerContext: () => true }),
+            );
       const repaired = repair(projectRoot, {
         reevaluate: (root) => {
-          live = evaluateReadiness(root);
+          live = evaluateRepairReadiness(root);
           return live;
         },
       });
