@@ -25,7 +25,12 @@ import {
   type EvaluateVerifyAcOptions,
   evaluateVerifyAcFromPlan,
 } from "../product-first-done-gate/evaluate.js";
-import { readAcceptanceClauses } from "../verify-ac/clauses.js";
+import {
+  readAcceptanceClauses,
+  readDeclaredArtifactScope,
+  stripInlineMarkdownBold,
+} from "../verify-ac/clauses.js";
+import { utcNowIso } from "./vbrief-json.js";
 
 /** Canonical namespaced key for typed acceptance evidence (#3305 / #1620). */
 export const ACCEPTANCE_EVIDENCE_KEY = "x-directive/evidence" as const;
@@ -460,13 +465,164 @@ function isClauseBindingItem(
   return key !== null && clauseKeys.has(key);
 }
 
+function clauseMatchKey(text: string): string {
+  return stripInlineMarkdownBold(text).replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+export interface BindPlanItemIdsToClausesResult {
+  readonly boundIds: readonly string[];
+}
+
+/**
+ * Copy clause ids onto matching plan.items (title === clause text) as `clause:N`.
+ * Does not overwrite existing ids. Does not invent rows. Unmatched clauses stay unbound (#4732).
+ */
+export function bindPlanItemIdsToClauses(
+  plan: Record<string, unknown>,
+): BindPlanItemIdsToClausesResult {
+  const clauses = readAcceptanceClauses(plan.acceptance);
+  if (clauses.length === 0) {
+    return { boundIds: [] };
+  }
+  const items = Array.isArray(plan.items) ? plan.items : [];
+  const keys = new Set<string>();
+  collectItemIdKeys(items, keys);
+  const boundIds: string[] = [];
+  const claimedIndexes = new Set<number>();
+  for (const clause of clauses) {
+    if (clauseHasKeyedItem(clause.id, keys)) {
+      continue;
+    }
+    const wanted = clauseMatchKey(clause.text);
+    if (wanted.length === 0) {
+      continue;
+    }
+    for (let index = 0; index < items.length; index += 1) {
+      if (claimedIndexes.has(index)) {
+        continue;
+      }
+      const item = asRecord(items[index]);
+      if (item === null || itemIdKey(item) !== null) {
+        continue;
+      }
+      const title = typeof item.title === "string" ? item.title : "";
+      if (clauseMatchKey(title) !== wanted) {
+        continue;
+      }
+      const id = clauseKeyedItemId(clause.id);
+      item.id = id;
+      keys.add(id);
+      keys.add(String(clause.id));
+      claimedIndexes.add(index);
+      boundIds.push(id);
+      break;
+    }
+  }
+  return { boundIds };
+}
+
+function isExactDeclaredMember(pointer: string, declared: readonly string[]): boolean {
+  const normalized = posixPointer(pointer);
+  if (normalized.length === 0) {
+    return false;
+  }
+  return declared.some((entry) => posixPointer(entry) === normalized);
+}
+
+function resolveAllowedTestPointer(
+  artifactPath: string | null | undefined,
+  declared: readonly string[],
+): string | null {
+  if (declared.length === 0) {
+    return null;
+  }
+  if (typeof artifactPath !== "string" || artifactPath.trim().length === 0) {
+    return null;
+  }
+  const pointer = posixPointer(artifactPath);
+  return isExactDeclaredMember(pointer, declared) ? pointer : null;
+}
+
+export interface StampDeclaredTestEvidenceOptions {
+  readonly recorded_by: string;
+  readonly recorded_at?: string;
+}
+
+export interface StampDeclaredTestEvidenceSkip {
+  readonly clauseId: number;
+  readonly reason: string;
+}
+
+export interface StampDeclaredTestEvidenceResult {
+  readonly stampedIds: readonly string[];
+  readonly skipped: readonly StampDeclaredTestEvidenceSkip[];
+}
+
+/**
+ * Production stamp writer that is not scope:complete (#4732).
+ * Records kind:test only when the clause already has an exact declared file_scope
+ * member (or that member copied onto artifact_path by #4008). Does not read PR
+ * paths, verify_commands, or issue/comment prose (#3835).
+ */
+export function stampDeclaredTestEvidence(
+  plan: Record<string, unknown>,
+  options: StampDeclaredTestEvidenceOptions,
+): StampDeclaredTestEvidenceResult {
+  const recordedBy = typeof options.recorded_by === "string" ? options.recorded_by.trim() : "";
+  const recordedAt =
+    typeof options.recorded_at === "string" && options.recorded_at.trim().length > 0
+      ? options.recorded_at.trim()
+      : utcNowIso();
+  const declared = readDeclaredArtifactScope(plan);
+  const clauses = readAcceptanceClauses(plan.acceptance);
+  const stampedIds: string[] = [];
+  const skipped: StampDeclaredTestEvidenceSkip[] = [];
+  if (recordedBy.length === 0) {
+    for (const clause of clauses) {
+      skipped.push({ clauseId: clause.id, reason: "recorded_by-required" });
+    }
+    return { stampedIds, skipped };
+  }
+  for (const clause of clauses) {
+    const item =
+      findItemByKey(plan.items, clauseKeyedItemId(clause.id)) ??
+      findItemByKey(plan.items, String(clause.id));
+    if (item === null) {
+      skipped.push({ clauseId: clause.id, reason: "unbound" });
+      continue;
+    }
+    const fields = readNamespacedAcceptanceFields(item);
+    if (fields.hasEvidence || fields.hasDisposition) {
+      skipped.push({ clauseId: clause.id, reason: "already-stamped" });
+      continue;
+    }
+    if (inferRequiredStrictAxes(item).length > 0) {
+      skipped.push({ clauseId: clause.id, reason: "strict-axis" });
+      continue;
+    }
+    const pointer = resolveAllowedTestPointer(clause.artifact_path, declared);
+    if (pointer === null) {
+      skipped.push({ clauseId: clause.id, reason: "no-allowed-pointer" });
+      continue;
+    }
+    stampNamespacedEvidence(item, {
+      kind: "test",
+      pointer,
+      recorded_at: recordedAt,
+      recorded_by: recordedBy,
+    });
+    stampedIds.push(itemIdKey(item) ?? clauseKeyedItemId(clause.id));
+  }
+  return { stampedIds, skipped };
+}
+
 export interface PersistClauseKeyedPendingItemsResult {
   readonly addedIds: readonly string[];
 }
 
 /**
  * Complete-prep writer: add pending plan.items keyed to each acceptance clause id.
- * Does not stamp evidence. Does not run inside evaluateAcceptanceEvidenceGate (#4385).
+ * Does not stamp evidence. Does not run inside evaluateAcceptanceEvidenceGate (#4385 / #4732).
  */
 export function persistClauseKeyedPendingItems(
   plan: Record<string, unknown>,
@@ -892,6 +1048,7 @@ export function evaluateScopeCompleteAcceptanceWalk(
 
 /**
  * Fail closed when any non-terminal plan item lacks suitable evidence or a human-origin disposition.
+ * Read-only: does not stamp x-directive/evidence (#4732).
  */
 export function evaluateAcceptanceEvidenceGate(
   plan: Record<string, unknown>,

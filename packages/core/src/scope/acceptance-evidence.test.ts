@@ -6,6 +6,7 @@ import { ITEM_CORE, scanVbrief } from "../vbrief-validate/conformance.js";
 import {
   ACCEPTANCE_DISPOSITION_KEY,
   ACCEPTANCE_EVIDENCE_KEY,
+  bindPlanItemIdsToClauses,
   clauseKeyedItemId,
   evaluateAcceptanceEvidenceGate,
   evaluateScopeCompleteAcceptanceWalk,
@@ -18,10 +19,12 @@ import {
   persistClauseKeyedPendingItems,
   readNamespacedAcceptanceFields,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
+  stampDeclaredTestEvidence,
   stampNamespacedDisposition,
   stampNamespacedEvidence,
   UAT_POINTER_SHAPE_REMEDIATION,
 } from "./acceptance-evidence.js";
+import { promotePath } from "./promote-path.js";
 import { runTransition } from "./transition.js";
 
 function makeRepo(): string {
@@ -1347,5 +1350,334 @@ describe("#4385 clause-keyed complete persist and scope:status", () => {
     expect(idOnly.reports.some((r) => r.title === "only-id")).toBe(true);
     expect(idOnly.reports.some((r) => r.outcome === "disposition")).toBe(true);
     expect(idOnly.ok).toBe(false);
+  });
+});
+
+describe("#4732 ingest/promote clause-id bind and declared test stamp", () => {
+  let root: string | undefined;
+  afterEach(() => {
+    if (root !== undefined && existsSync(root)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+    root = undefined;
+  });
+
+  const declaredPath = "packages/core/src/scope/acceptance-evidence.test.ts";
+
+  function clause(id: number, text: string, artifactPath: string | null = null) {
+    return { id, text, artifact_path: artifactPath, ambiguous: false };
+  }
+
+  it("binds item ids by title match and persist does not invent empty clause rows", () => {
+    const plan: Record<string, unknown> = {
+      items: [
+        { title: "Bind harvest ids at ingest", status: "proposed" },
+        { title: "Keep complete a pure check", status: "proposed" },
+      ],
+      acceptance: {
+        clauses: [
+          clause(1, "Bind harvest ids at ingest", declaredPath),
+          clause(2, "Keep complete a pure check", declaredPath),
+        ],
+      },
+    };
+    expect(bindPlanItemIdsToClauses(plan).boundIds).toEqual(["clause:1", "clause:2"]);
+    expect((plan.items as Array<{ id?: string }>).map((item) => item.id)).toEqual([
+      "clause:1",
+      "clause:2",
+    ]);
+    expect(persistClauseKeyedPendingItems(plan).addedIds).toEqual([]);
+    expect(plan.items).toHaveLength(2);
+    const before = JSON.stringify(plan.items);
+    evaluateAcceptanceEvidenceGate(plan);
+    expect(JSON.stringify(plan.items)).toBe(before);
+    expect(
+      (plan.items as Array<Record<string, unknown>>).every(
+        (item) => item[ACCEPTANCE_EVIDENCE_KEY] === undefined,
+      ),
+    ).toBe(true);
+  });
+
+  it("does not bind by ingest order when titles do not match", () => {
+    const plan: Record<string, unknown> = {
+      items: [{ title: "unrelated harvest row", status: "proposed" }],
+      acceptance: { clauses: [clause(1, "A different clause text", declaredPath)] },
+    };
+    expect(bindPlanItemIdsToClauses(plan).boundIds).toEqual([]);
+    expect(persistClauseKeyedPendingItems(plan).addedIds).toEqual([clauseKeyedItemId(1)]);
+    const after = evaluateAcceptanceEvidenceGate(plan);
+    expect(after.ok).toBe(false);
+    expect((plan.items as Array<Record<string, unknown>>)[1]?.[ACCEPTANCE_EVIDENCE_KEY]).toBe(
+      undefined,
+    );
+  });
+
+  it("does not overwrite an existing item id", () => {
+    const plan: Record<string, unknown> = {
+      items: [{ id: "t1", title: "Bind harvest ids at ingest", status: "proposed" }],
+      acceptance: { clauses: [clause(1, "Bind harvest ids at ingest")] },
+    };
+    expect(bindPlanItemIdsToClauses(plan).boundIds).toEqual([]);
+    expect((plan.items as Array<{ id?: string }>)[0]?.id).toBe("t1");
+  });
+
+  it("stamps kind:test only from exact declared file_scope / artifact_path", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Keep complete a pure check",
+      status: "pending",
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: { clauses: [clause(1, "Keep complete a pure check", declaredPath)] },
+      metadata: {
+        swarm: {
+          file_scope: [declaredPath, "packages/core/src/scope/acceptance-evidence.ts"],
+          verify_commands: ["npx vitest run packages/core/src/other.test.ts"],
+        },
+      },
+    };
+    const stamped = stampDeclaredTestEvidence(plan, {
+      recorded_by: "leftover",
+      recorded_at: "2026-09-17T12:00:00Z",
+    });
+    expect(stamped.stampedIds).toEqual([clauseKeyedItemId(1)]);
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toEqual({
+      kind: "test",
+      pointer: declaredPath,
+      recorded_at: "2026-09-17T12:00:00Z",
+      recorded_by: "leftover",
+    });
+    expect(evaluateAcceptanceEvidenceGate(plan).ok).toBe(true);
+  });
+
+  it("does not take pointers from verify_commands, basename, PR paths, or empty file_scope", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Keep complete a pure check",
+      status: "pending",
+    };
+    const emptyScope: Record<string, unknown> = {
+      items: [{ ...item }],
+      acceptance: { clauses: [clause(1, "Keep complete a pure check", declaredPath)] },
+      metadata: { swarm: { file_scope: [], verify_commands: [`vitest run ${declaredPath}`] } },
+    };
+    expect(
+      stampDeclaredTestEvidence(emptyScope, {
+        recorded_by: "leftover",
+        recorded_at: "2026-09-17T12:00:00Z",
+      }).stampedIds,
+    ).toEqual([]);
+    expect(
+      (emptyScope.items as Array<Record<string, unknown>>)[0]?.[ACCEPTANCE_EVIDENCE_KEY],
+    ).toBeUndefined();
+
+    const basenamePlan: Record<string, unknown> = {
+      items: [{ ...item }],
+      acceptance: {
+        clauses: [clause(1, "Keep complete a pure check", "acceptance-evidence.test.ts")],
+      },
+      metadata: { swarm: { file_scope: [declaredPath] } },
+    };
+    expect(
+      stampDeclaredTestEvidence(basenamePlan, {
+        recorded_by: "leftover",
+        recorded_at: "2026-09-17T12:00:00Z",
+      }).skipped[0]?.reason,
+    ).toBe("no-allowed-pointer");
+
+    const noPath: Record<string, unknown> = {
+      items: [{ ...item }],
+      acceptance: { clauses: [clause(1, "Keep complete a pure check", null)] },
+      metadata: {
+        swarm: {
+          file_scope: [declaredPath],
+          verify_commands: [`npx vitest run ${declaredPath}`],
+        },
+      },
+    };
+    expect(
+      stampDeclaredTestEvidence(noPath, {
+        recorded_by: "leftover",
+        recorded_at: "2026-09-17T12:00:00Z",
+      }).stampedIds,
+    ).toEqual([]);
+  });
+
+  it("skips unbound, already-stamped, and empty recorded_by without writing", () => {
+    const declaredPath = "packages/core/src/scope/acceptance-evidence.test.ts";
+    expect(
+      stampDeclaredTestEvidence(
+        {
+          items: [],
+          acceptance: {
+            clauses: [
+              { id: 1, text: "unbound leftover", artifact_path: declaredPath, ambiguous: false },
+            ],
+          },
+          metadata: { swarm: { file_scope: [declaredPath] } },
+        },
+        { recorded_by: "leftover", recorded_at: "2026-09-17T12:00:00Z" },
+      ).skipped,
+    ).toEqual([{ clauseId: 1, reason: "unbound" }]);
+    const stamped: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Keep complete a pure check",
+      status: "pending",
+      [ACCEPTANCE_EVIDENCE_KEY]: testEvidence,
+    };
+    expect(
+      stampDeclaredTestEvidence(
+        {
+          items: [stamped],
+          acceptance: {
+            clauses: [
+              {
+                id: 1,
+                text: "Keep complete a pure check",
+                artifact_path: declaredPath,
+                ambiguous: false,
+              },
+            ],
+          },
+          metadata: { swarm: { file_scope: [declaredPath] } },
+        },
+        { recorded_by: "leftover", recorded_at: "2026-09-17T12:00:00Z" },
+      ).skipped[0]?.reason,
+    ).toBe("already-stamped");
+    expect(stamped[ACCEPTANCE_EVIDENCE_KEY]).toEqual(testEvidence);
+    expect(
+      stampDeclaredTestEvidence(
+        {
+          items: [
+            { id: clauseKeyedItemId(1), title: "Keep complete a pure check", status: "pending" },
+          ],
+          acceptance: {
+            clauses: [
+              {
+                id: 1,
+                text: "Keep complete a pure check",
+                artifact_path: declaredPath,
+                ambiguous: false,
+              },
+            ],
+          },
+          metadata: { swarm: { file_scope: [declaredPath] } },
+        },
+        { recorded_by: "  ", recorded_at: "2026-09-17T12:00:00Z" },
+      ).skipped[0]?.reason,
+    ).toBe("recorded_by-required");
+  });
+
+  it("does not stamp kind:test onto smoke/UAT/deploy/observed_behavior", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Runtime smoke criterion",
+      status: "pending",
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: { clauses: [clause(1, "Runtime smoke criterion", declaredPath)] },
+      metadata: { swarm: { file_scope: [declaredPath] } },
+    };
+    expect(
+      stampDeclaredTestEvidence(plan, {
+        recorded_by: "leftover",
+        recorded_at: "2026-09-17T12:00:00Z",
+      }).skipped[0]?.reason,
+    ).toBe("strict-axis");
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("merge/review/kind:merge still cannot complete smoke UAT deploy or observed_behavior", () => {
+    expect(isEvidenceKindSuitable("merge", ["smoke"])).toBe(false);
+    expect(isEvidenceKindSuitable("review", ["uat"])).toBe(false);
+    expect(isEvidenceKindSuitable("merge", ["deploy"])).toBe(false);
+    expect(isEvidenceKindSuitable("review", ["observed_behavior"])).toBe(false);
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "UAT sign-off", status: "pending" },
+          {
+            kind: "merge",
+            pointer: "merge:abc",
+            recorded_at: "2026-09-17T12:00:00Z",
+            recorded_by: "ci",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("invalid");
+  });
+
+  it("persist still does not stamp evidence (#4385)", () => {
+    const plan: Record<string, unknown> = {
+      items: [],
+      acceptance: { clauses: [clause(1, "unbound leftover")] },
+    };
+    persistClauseKeyedPendingItems(plan);
+    const row = (plan.items as Array<Record<string, unknown>>)[0];
+    expect(row?.id).toBe(clauseKeyedItemId(1));
+    expect(row?.[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+    expect(evaluateAcceptanceEvidenceGate(plan).ok).toBe(false);
+  });
+
+  it("complete does not stamp evidence when leftover items are bound but unstamped", () => {
+    root = makeRepo();
+    const file = writeActive(
+      root,
+      "bound-unstamped.xbrief.json",
+      [{ id: clauseKeyedItemId(1), title: "Keep complete a pure check", status: "pending" }],
+      {
+        acceptance: { clauses: [clause(1, "Keep complete a pure check", declaredPath)] },
+        metadata: { swarm: { file_scope: [declaredPath] } },
+      },
+    );
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    const parsed = JSON.parse(readFileSync(file, "utf8")) as {
+      plan: { items: Array<Record<string, unknown>> };
+    };
+    expect(parsed.plan.items).toHaveLength(1);
+    expect(parsed.plan.items[0]?.[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("promotePath binds harvest item ids to clause ids", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "2026-09-17-bind-at-promote.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "bind at promote",
+          status: "proposed",
+          items: [
+            { title: "Bind harvest ids at ingest", status: "proposed" },
+            { title: "Keep complete a pure check", status: "proposed" },
+          ],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            clauses: [
+              clause(1, "Bind harvest ids at ingest"),
+              clause(2, "Keep complete a pure check"),
+            ],
+            ambiguity_attestation: "none_found",
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = promotePath(path, { projectRoot: root });
+    expect(result.ok).toBe(true);
+    const dest =
+      result.destPath ?? join(root, "xbrief", "pending", "2026-09-17-bind-at-promote.xbrief.json");
+    const parsed = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { items: Array<{ id?: string; title: string }> };
+    };
+    expect(parsed.plan.items.map((item) => item.id)).toEqual(["clause:1", "clause:2"]);
   });
 });

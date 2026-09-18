@@ -24,6 +24,7 @@ import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.j
 import { stampIntendedPlacement } from "../preflight/intended-placement.js";
 import { stampAcceptanceFromLiteralCapture } from "../product-first-done-gate/index.js";
 import { type CompletedProcess, call } from "../scm/call.js";
+import { bindPlanItemIdsToClauses } from "../scope/acceptance-evidence.js";
 import { extractPlanId, findParentsByPlanId } from "../scope/parent-lineage.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { withAppendLock } from "../slice/lock.js";
@@ -1620,6 +1621,7 @@ export function buildIssueVbrief(
     // No body: still record none_stated acceptance so absence is a decision.
     Object.assign(plan, stampAcceptanceFromLiteralCapture(plan));
   }
+  bindPlanItemIdsToClauses(plan);
 
   stampIntendedPlacement(plan);
   persistIssueCommentThreadOnPlan(plan, commentThread, number);

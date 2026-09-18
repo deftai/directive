@@ -4,7 +4,9 @@
 
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { bindPlanItemIdsToClauses } from "./acceptance-evidence.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
+import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { recordWipCapOverride, runTransition } from "./transition.js";
 import { utcNowIso } from "./vbrief-json.js";
@@ -137,6 +139,18 @@ export function promotePath(filePath: string, options: PromotePathOptions = {}):
     recordWipCapOverride(destPath, root, capCheck, now);
   }
 
+  const bindWrite = bindClauseIdsOnPromotedBrief(destPath, root, lifecycleRoot);
+  if (!bindWrite.ok) {
+    return {
+      ok: false,
+      message: bindWrite.message,
+      exitCode: 1,
+      destPath,
+      auditEntry,
+      wipCapOverride: capCheck.forceOverride,
+    };
+  }
+
   return {
     ok: true,
     message: result.message,
@@ -145,4 +159,44 @@ export function promotePath(filePath: string, options: PromotePathOptions = {}):
     auditEntry,
     wipCapOverride: capCheck.forceOverride,
   };
+}
+
+function asPlanRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function bindClauseIdsOnPromotedBrief(
+  destPath: string,
+  projectRoot: string,
+  lifecycleRoot: string,
+): { readonly ok: boolean; readonly message: string } {
+  if (!existsSync(destPath)) {
+    return { ok: true, message: "" };
+  }
+  const loaded = readBriefForMutation(destPath);
+  if (!loaded.ok) {
+    return {
+      ok: false,
+      message: `Promoted to pending/ but clause-id bind failed: ${loaded.message}`,
+    };
+  }
+  const plan = asPlanRecord(loaded.data.plan);
+  if (plan === null) {
+    return { ok: true, message: "" };
+  }
+  const bind = bindPlanItemIdsToClauses(plan);
+  if (bind.boundIds.length === 0) {
+    return { ok: true, message: "" };
+  }
+  const write = atomicWriteBrief(destPath, loaded.data, lifecycleRoot, { projectRoot });
+  if (!write.ok) {
+    return {
+      ok: false,
+      message: `Promoted to pending/ but clause-id bind write failed: ${write.message}`,
+    };
+  }
+  return { ok: true, message: "" };
 }

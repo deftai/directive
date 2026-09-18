@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Ingest and promote bind harvest item ids to clause ids so complete does not invent empty clause:N rows (#4732).** A stamp writer that is not scope:complete may record kind:test from a declared file_scope member or existing artifact_path. Complete stays a pure check. Unbound clauses still persist-and-refuse. Merge/review cannot complete smoke, UAT, deploy, or observed_behavior. Does not recut #3240 or #4385. Refs #4732.
+
 - **Release-input census keeps POSIX backslash filenames (#4317).** A committed filename with a backslash is no longer treated as a nested path; invalid UTF-8 names print as byte escapes.
 
 - **Update writes the consumer pin and lockfile follow-through on skip-copy pin-lag (#4710).** `runRefreshDeposit` calls `ensurePackageJsonPin` when the pin lags the reconstituted content version, then `containedDestExec` with closed lockfile-only argv from `LOCKFILE_REFRESH_COMMANDS`. Spawn failure reverts the pin and fails the update verb. yarn.lock uses `yarn install`. Doctor Next command stays #4718. Hook one-schema stays #4692. Refs #4710.

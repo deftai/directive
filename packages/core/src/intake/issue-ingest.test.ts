@@ -20,6 +20,7 @@ import {
 import { INTENDED_PLACEMENT_SCHEMA } from "../preflight/intended-placement.js";
 import type { CompletedProcess } from "../scm/call.js";
 import * as scm from "../scm/call.js";
+import { clauseKeyedItemId, persistClauseKeyedPendingItems } from "../scope/acceptance-evidence.js";
 import { runTransition } from "../scope/transition.js";
 import {
   ADMITTED_TARGET_DIGEST_META_KEY,
@@ -152,8 +153,8 @@ describe("buildIssueVbrief", () => {
     );
     const plan = vbrief.plan as Record<string, unknown>;
     expect(plan.items).toEqual([
-      { title: "Widget renders", status: "proposed" },
-      { title: "Spec updated", status: "completed" },
+      { id: "clause:1", title: "Widget renders", status: "proposed" },
+      { id: "clause:2", title: "Spec updated", status: "completed" },
     ]);
     expect((plan.narratives as Record<string, string>).Overview).toContain("Acceptance Criteria");
     const metadata = plan.metadata as {
@@ -1295,7 +1296,7 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
       expect(path).toBeTruthy();
       const data = JSON.parse(readFileSync(path as string, "utf8")) as {
         plan: {
-          items: { title: string }[];
+          items: { title: string; id?: string }[];
           acceptance: {
             none_stated: boolean;
             commands: unknown[];
@@ -1312,6 +1313,13 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
         "If retry-allow is the fix, the key must be narrower than dest+parent.",
         "Logging of persist incarnation vs EXISTS does not change disposition.",
       ]);
+      expect(data.plan.items.map((item) => item.id)).toEqual([
+        "clause:1",
+        "clause:2",
+        "clause:3",
+        "clause:4",
+        "clause:5",
+      ]);
       expect(data.plan.items.map((item) => item.title)).not.toContain(
         "withdrawn body checkbox that must not win",
       );
@@ -1319,6 +1327,9 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
       expect(data.plan.acceptance.commands).toEqual([]);
       expect(data.plan.acceptance.clauses.map((clause) => clause.text)).toEqual(
         data.plan.items.map((item) => item.title),
+      );
+      expect(persistClauseKeyedPendingItems(data.plan as Record<string, unknown>).addedIds).toEqual(
+        [],
       );
       expect(data.plan.narratives.Overview).toContain("withdrawn body checkbox that must not win");
       const captured = data.plan.metadata?.literal_acceptance_commands ?? [];
@@ -1406,7 +1417,7 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
       );
       expect(result).toBe("created");
       const data = JSON.parse(readFileSync(path as string, "utf8")) as {
-        plan: { items: { title: string }[] };
+        plan: { items: { title: string; id?: string }[] };
       };
       expect(data.plan.items.map((item) => item.title)).toEqual([
         "pnpm exec vitest run packages/core/src/intake",
@@ -1445,7 +1456,7 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
       );
       expect(result).toBe("created");
       const data = JSON.parse(readFileSync(path as string, "utf8")) as {
-        plan: { items: { title: string }[] };
+        plan: { items: { title: string; id?: string }[] };
       };
       expect(data.plan.items.map((item) => item.title)).toEqual([
         "Do not bind issue remedy 1 (same-incarnation second persist is idempotent allow) as the AC.",
@@ -1453,6 +1464,13 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
         "Keep occupied rollback. Do not add EXISTS rollback (that would delete the winner).",
         "If retry-allow is the fix, the key must be narrower than dest+parent.",
         "Logging of persist incarnation vs EXISTS does not change disposition.",
+      ]);
+      expect(data.plan.items.map((item) => item.id)).toEqual([
+        "clause:1",
+        "clause:2",
+        "clause:3",
+        "clause:4",
+        "clause:5",
       ]);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -1500,12 +1518,16 @@ describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
         );
         expect(result, stem).toBe("created");
         const data = JSON.parse(readFileSync(path as string, "utf8")) as {
-          plan: { items: { title: string }[] };
+          plan: { items: { title: string; id?: string }[] };
         };
         expect(
           data.plan.items.map((item) => item.title),
           stem,
         ).toEqual(expected);
+        expect(
+          data.plan.items.map((item) => item.id),
+          stem,
+        ).toEqual(expected.map((_, index) => clauseKeyedItemId(index + 1)));
         expect(
           data.plan.items.map((item) => item.title),
           stem,
