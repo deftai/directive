@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows Step 5 leftover records a release-host timeline before naming the next cost class (#4744).** `ts:check-lane` emits unit-project complete, spawn-heavy-project complete, and coverage merge/report under named conditions (cold lane, `--coverage`, supervised `ts:check-lane`, host state). The bind clock is that supervised lane wall (lint + build + coverage inside `RELEASE_CHECK_TIMEOUT_MS`), not vitest-only and not Ubuntu `timeout-minutes: 20`. Retracts the #4591 439s Windows `task check` reading as a Step 5 close: that number was not a cold supervised `--coverage` `ts:check-lane` wall. Dest after PR 4745 measured 25.52 min / 124 on this clock. Occupancy-stress stays spawn-heavy. Do not raise `RELEASE_CHECK_TIMEOUT_MS`. Do not use `--skip-ci`. Tracking #4744.
+
 ### Removed
 
 ## [0.119.3] - 2026-09-18

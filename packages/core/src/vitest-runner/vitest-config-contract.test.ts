@@ -1,6 +1,14 @@
-import { readFileSync } from "node:fs";
+import { globSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  formatCoverageReportLine,
+  formatLanePhaseLine,
+  formatProjectCompleteLine,
+  formatTimelineConditionsLine,
+  nameNextCostClass,
+} from "../ts-check-lane/progress.js";
+import { TsCheckLaneProgressReporter } from "../ts-check-lane/progress-reporter.js";
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
 const configPath = join(repoRoot, "vitest.config.ts");
@@ -229,5 +237,135 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(child).toMatch(/beforeAll/);
     expect(branches).toMatch(/resetSharedRepo/);
     expect(branches).toMatch(/beforeAll/);
+  });
+});
+
+describe("ts:check-lane release-host timeline (#4744 leftover)", () => {
+  it("formats conditions, project complete, coverage-merge-report, and lane phases", () => {
+    expect(
+      formatTimelineConditionsLine({
+        coverage: true,
+        supervised: true,
+        host: "win32",
+        cpus: 32,
+        cold: true,
+      }),
+    ).toBe(
+      "ts:check-lane timeline conditions coverage=true supervised=true host=win32 cpus=32 cold=true",
+    );
+    expect(formatProjectCompleteLine("unit", 1_200_000, 1222)).toBe(
+      "ts:check-lane timeline project unit complete 1200000ms files=1222",
+    );
+    expect(formatProjectCompleteLine("spawn-heavy", 22_000, 10)).toBe(
+      "ts:check-lane timeline project spawn-heavy complete 22000ms files=10",
+    );
+    expect(formatCoverageReportLine(90_000)).toBe(
+      "ts:check-lane timeline coverage-merge-report 90000ms",
+    );
+    expect(formatLanePhaseLine("lint", 12_000)).toBe("ts:check-lane timeline lint 12000ms");
+    expect(formatLanePhaseLine("build", 45_000)).toBe("ts:check-lane timeline build 45000ms");
+    expect(formatLanePhaseLine("test", 1_400_000)).toBe("ts:check-lane timeline test 1400000ms");
+    expect(formatLanePhaseLine("lane", 1_457_000)).toBe("ts:check-lane timeline lane 1457000ms");
+  });
+
+  it("does not bind spawn-heavy one-worker tail without a 5-minute tail after unit", () => {
+    expect(
+      nameNextCostClass({
+        unitCompleteMs: null,
+        spawnHeavyCompleteMs: null,
+        coverageMergeReportMs: null,
+      }).costClass,
+    ).toBe("unmeasured");
+    expect(
+      nameNextCostClass({
+        unitCompleteMs: 1_500_000,
+        spawnHeavyCompleteMs: 22_000,
+        coverageMergeReportMs: 90_000,
+      }).costClass,
+    ).toBe("unit-project");
+    expect(
+      nameNextCostClass({
+        unitCompleteMs: 1_100_000,
+        spawnHeavyCompleteMs: 1_450_000,
+        coverageMergeReportMs: 1_200_000,
+      }).costClass,
+    ).toBe("spawn-heavy-project");
+    expect(
+      nameNextCostClass({
+        unitCompleteMs: 1_100_000,
+        spawnHeavyCompleteMs: 1_120_000,
+        coverageMergeReportMs: 1_400_000,
+      }).costClass,
+    ).toBe("coverage-merge-report");
+  });
+
+  it("emits project and coverage timeline without changing last-file format", () => {
+    const writes: string[] = [];
+    let now = 1_000;
+    const reporter = new TsCheckLaneProgressReporter(
+      {
+        write: (chunk: string) => {
+          writes.push(chunk);
+        },
+      },
+      {
+        now: () => now,
+        timeline: true,
+        coverage: true,
+        supervised: true,
+        host: "win32",
+        cpus: 32,
+        cold: true,
+      },
+    );
+    reporter.onTestRunStart([
+      { projectName: "unit", moduleId: "a.test.ts" },
+      { projectName: "spawn-heavy", moduleId: "b.test.ts" },
+    ]);
+    reporter.onTestModuleStart({ project: { name: "unit" }, moduleId: "a.test.ts" });
+    now = 6_500;
+    reporter.onTestModuleEnd({ project: { name: "unit" }, moduleId: "a.test.ts" });
+    reporter.onTestModuleStart({ project: { name: "spawn-heavy" }, moduleId: "b.test.ts" });
+    now = 8_000;
+    reporter.onTestModuleEnd({ project: { name: "spawn-heavy" }, moduleId: "b.test.ts" });
+    now = 9_500;
+    reporter.onCoverage({});
+    expect(writes.some((line) => line.startsWith("ts:check-lane last-file "))).toBe(true);
+    expect(writes.some((line) => /last-file .+ \(\d+\/\d+ files\)\n$/.test(line))).toBe(true);
+    expect(writes.some((line) => line.includes("timeline conditions coverage=true"))).toBe(true);
+    expect(writes.some((line) => line.includes("timeline project unit complete"))).toBe(true);
+    expect(writes.some((line) => line.includes("timeline project spawn-heavy complete"))).toBe(
+      true,
+    );
+    expect(writes.some((line) => line.includes("timeline coverage-merge-report"))).toBe(true);
+  });
+});
+
+describe("ts:check-lane corpus and coverage-floor census (#4744 leftover)", () => {
+  it("keeps unique packages test files as unit plus spawn-heavy with four 75 floors", () => {
+    const source = readFileSync(configPath, "utf8");
+    const all = globSync("packages/*/src/**/*.test.ts", { cwd: repoRoot }).map((rel) =>
+      rel.replaceAll("\\", "/"),
+    );
+    const unique = new Set(all);
+    expect(unique.size).toBe(all.length);
+    const globBlock = /const spawnHeavyGlobs = \[([\s\S]*?)\] as const;/.exec(source)?.[1] ?? "";
+    const spawnHeavy = [...globBlock.matchAll(/"([^"]+\.test\.ts)"/g)].map((match) => match[1]);
+    expect(spawnHeavy.length).toBeGreaterThan(0);
+    for (const file of spawnHeavy) {
+      expect(unique.has(file)).toBe(true);
+    }
+    expect(source).toMatch(/name:\s*"unit"/);
+    expect(source).toMatch(/exclude:\s*\[\.\.\.spawnHeavyGlobs\]/);
+    expect(source).toMatch(/name:\s*"spawn-heavy"/);
+    expect(source).toMatch(/include:\s*\[\.\.\.spawnHeavyGlobs\]/);
+    const block = /const coverageThresholds\s*=\s*\{([\s\S]*?)\}\s*as const;/.exec(source)?.[1];
+    expect(block).toBeDefined();
+    const values = [...(block ?? "").matchAll(/(\w+):\s*(\d+(?:\.\d+)?)/g)].map(([, k, v]) => [
+      k,
+      Number(v),
+    ]);
+    expect(values.map(([k]) => k).sort()).toEqual(["branches", "functions", "lines", "statements"]);
+    expect(values.map(([, v]) => v)).toEqual([75, 75, 75, 75]);
   });
 });

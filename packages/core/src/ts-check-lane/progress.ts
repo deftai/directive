@@ -144,3 +144,107 @@ export function resolveTestLaneCommand(
   }
   return buildTestLaneCommand();
 }
+
+/** Release-host timeline prefix. Last-file lines stay on the hang-detector regex. */
+export const TIMELINE_PREFIX = "ts:check-lane timeline";
+
+/** Spawn-heavy is the remaining class only when it finishes this far after unit. */
+export const SPAWN_HEAVY_TAIL_MS = 5 * 60 * 1000;
+
+export interface LaneTimelineConditions {
+  readonly coverage: boolean;
+  readonly supervised: boolean;
+  readonly host: string;
+  readonly cpus: number;
+  readonly cold: boolean;
+}
+
+export function formatTimelineConditionsLine(conditions: LaneTimelineConditions): string {
+  const coverage = conditions.coverage ? "true" : "false";
+  const supervised = conditions.supervised ? "true" : "false";
+  const cold = conditions.cold ? "true" : "false";
+  return `${TIMELINE_PREFIX} conditions coverage=${coverage} supervised=${supervised} host=${conditions.host} cpus=${String(conditions.cpus)} cold=${cold}`;
+}
+
+export function formatLanePhaseLine(phase: string, elapsedMs: number): string {
+  return `${TIMELINE_PREFIX} ${phase} ${String(elapsedMs)}ms`;
+}
+
+export function formatProjectCompleteLine(
+  project: string,
+  elapsedMs: number,
+  files: number,
+): string {
+  return `${TIMELINE_PREFIX} project ${project} complete ${String(elapsedMs)}ms files=${String(files)}`;
+}
+
+export function formatCoverageReportLine(elapsedMs: number): string {
+  return `${TIMELINE_PREFIX} coverage-merge-report ${String(elapsedMs)}ms`;
+}
+
+export function formatInFlightLine(paths: readonly string[]): string {
+  const listed = paths.length > 0 ? paths.join(",") : "(none)";
+  return `${TIMELINE_PREFIX} in-flight ${listed}`;
+}
+
+export function formatFileDurationLine(file: string, elapsedMs: number, project: string): string {
+  return `${TIMELINE_PREFIX} file ${file} ${String(elapsedMs)}ms project=${project}`;
+}
+
+export interface TimelineCostSample {
+  readonly unitCompleteMs: number | null;
+  readonly spawnHeavyCompleteMs: number | null;
+  readonly coverageMergeReportMs: number | null;
+}
+
+export interface NamedCostClass {
+  readonly costClass:
+    | "unmeasured"
+    | "spawn-heavy-project"
+    | "coverage-merge-report"
+    | "unit-project";
+  readonly reason: string;
+}
+
+/**
+ * Name the next cost class from a release-host timeline.
+ * Does not bind "spawn-heavy one-worker tail" without a 5-minute tail after unit.
+ */
+export function nameNextCostClass(sample: TimelineCostSample): NamedCostClass {
+  const unit = sample.unitCompleteMs;
+  const spawn = sample.spawnHeavyCompleteMs;
+  const coverage = sample.coverageMergeReportMs;
+  if (unit === null && spawn === null && coverage === null) {
+    return { costClass: "unmeasured", reason: "no project or coverage-merge timestamps" };
+  }
+  if (
+    spawn !== null &&
+    unit !== null &&
+    spawn - unit >= SPAWN_HEAVY_TAIL_MS &&
+    (coverage === null || spawn >= coverage)
+  ) {
+    return {
+      costClass: "spawn-heavy-project",
+      reason: "spawn-heavy finished 5+ min after unit and was still the tail",
+    };
+  }
+  if (coverage !== null && unit !== null && spawn !== null) {
+    const projectsDone = Math.max(unit, spawn);
+    if (coverage - projectsDone >= 60_000) {
+      return {
+        costClass: "coverage-merge-report",
+        reason: "coverage merge/report continued after both projects",
+      };
+    }
+  }
+  if (spawn !== null && unit !== null && spawn > unit && spawn - unit < SPAWN_HEAVY_TAIL_MS) {
+    return {
+      costClass: "unit-project",
+      reason: "spawn-heavy tail is shorter than 5 min; do not bind spawn-heavy one-worker tail",
+    };
+  }
+  return {
+    costClass: "unit-project",
+    reason: "unit-project completion is the remaining critical path",
+  };
+}
