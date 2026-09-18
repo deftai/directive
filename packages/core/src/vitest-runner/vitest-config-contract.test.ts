@@ -183,6 +183,9 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).toContain("occupancy-stress.test.ts");
     expect(source).toContain("ts-build-fresh.test.ts");
     expect(source).toContain("run-stage-content-pack.test.ts");
+    expect(source).toContain("pack-smoke.test.ts");
+    expect(source).toContain("cursor-managed-runtime.test.ts");
+    expect(source).toContain("ci_lifecycle_lane.test.ts");
     expect(source).not.toContain("install-upgrade.test.ts");
     expect(source).not.toMatch(/fileParallelism:\s*false/);
     expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);

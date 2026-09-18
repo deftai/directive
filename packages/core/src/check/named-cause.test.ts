@@ -175,6 +175,41 @@ describe("named-cause gate failures (#3282)", () => {
     expect(msg.cause).not.toContain("deliberately-bad");
   });
 
+  it("does not treat every exit 124 as hang detector (#4744 P2)", () => {
+    const cause = extractGateCause(
+      "",
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      124,
+      undefined,
+      "verify:branch",
+    );
+    expect(cause).not.toMatch(/hang detector timeout/i);
+    expect(cause).toContain("deliberately-bad");
+  });
+
+  it("does not name hang detector on exit 124 without suite gate, last-file, or hangTimeout (#4744 P2)", () => {
+    const cause = extractGateCause(
+      "",
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      124,
+    );
+    expect(cause).not.toMatch(/hang detector timeout/i);
+    expect(cause).toContain("FAIL:");
+  });
+
+  it("names hang detector on exit 124 when hangTimeout context is explicit (#4744 P2)", () => {
+    const cause = extractGateCause(
+      "",
+      "FAIL: xbrief/completed/2026-09-07-deliberately-bad-1.2.3.xbrief.json\n",
+      124,
+      undefined,
+      "verify:branch",
+      true,
+    );
+    expect(cause).toMatch(/hang detector timeout/i);
+    expect(cause).not.toContain("deliberately-bad");
+  });
+
   it("prefers ANSI-colored Tests N failed over a colon FAIL: path print (#4506)", () => {
     const red = "\u001b[31m";
     const reset = "\u001b[0m";
