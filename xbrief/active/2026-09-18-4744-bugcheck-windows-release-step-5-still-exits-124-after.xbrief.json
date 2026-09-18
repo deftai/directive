@@ -4,22 +4,22 @@
     "author": "agent:release-cut",
     "description": "Scope xBRIEF for GitHub issue #4744",
     "created": "2026-09-18T03:13:03.884Z",
-    "updated": "2026-09-18T03:13:43Z"
+    "updated": "2026-09-18T11:37:19.107Z"
   },
   "plan": {
     "title": "bug(check): Windows release Step 5 still exits 124 after #4591 cheapening",
     "status": "running",
     "id": "github.issue.5495206751",
     "narratives": {
-      "Overview": "v0.119.3 Step 5 ts:check-lane died at the 20-minute hang detector (exit 124) on HEAD 19521dc64. Named-cause cited the #4506 D7 negative fixture because a killed suite has no Tests N failed summary. Last-file ticks did not appear in the captured log. Recurrence of #4567/#4591; do not raise RELEASE_CHECK_TIMEOUT_MS.",
-      "AcceptanceCriteria": "- When Windows release Step 5 / ts:check-lane runs vitest --coverage at this lineage, the suite completes under 20 minutes (measured wall clock on this host).\n- When the hang detector fires, named-cause for exit 124 names timeout/hang and the last completed test file when known, and does not cite the D7 negative fixture as the product fail.\n- When the hang detector fires, last-file progress ticks appear in the same capture that records the 124.\n- Rank remaining cost (CLI boots, occupancy filesystem, leftover git-worktree, new files since #4591) and cheapen via existing seams: spawn-heavy project, in-process routeAndDispatch, share-plus-reset. Occupancy stays per-it unless a reset is proven.\n- Do not raise RELEASE_CHECK_TIMEOUT_MS.",
+      "Overview": "v0.119.3 Step 5 ts:check-lane died at the 20-minute hang detector (exit 124) on HEAD 19521dc64. Named-cause cited the #4506 D7 negative fixture because a killed suite has no Tests N failed summary. Last-file ticks did not appear in the captured log. Recurrence of #4567/#4591; do not raise RELEASE_CHECK_TIMEOUT_MS.\n\nPR 4745 ships diagnostics and ranked cheapening only. Dest ts:check-lane measured 25.52 min at 8 workers, still over 20 minutes. The 20-minute Step 5 close stays leftover on this issue (spawn-heavy one-worker tail: pack-smoke tsc, occupancy-stress children, ci_lifecycle_lane, leftover execPath boots).",
+      "AcceptanceCriteria": "- Leftover (not this PR): When Windows release Step 5 / ts:check-lane runs vitest --coverage at this lineage, the suite completes under 20 minutes (measured wall clock on this host).\n- When the hang detector fires, named-cause for exit 124 names timeout/hang and the last completed test file when known, and does not cite the D7 negative fixture as the product fail.\n- When the hang detector fires, last-file progress ticks appear in the same capture that records the 124.\n- Rank remaining cost (CLI boots, occupancy filesystem, leftover git-worktree, new files since #4591) and cheapen via existing seams: spawn-heavy project, in-process routeAndDispatch, share-plus-reset. Occupancy stays per-it unless a reset is proven.\n- Do not raise RELEASE_CHECK_TIMEOUT_MS.",
       "Test": "- When named-cause is given a 124 with the D7 FAIL: fixture line and no Tests N failed summary, it names timeout/hang rather than the fixture.\n- When the progress reporter completes files, last-file lines are written with writeFlushedLine.",
-      "ImplementationPlan": "Rank remaining Windows coverage cost. Cheapen via existing seams. Fix named-cause on exit 124. Keep last-file ticks in the same capture as the 124. CHANGELOG Unreleased. Tracking #4744, not Closes."
+      "ImplementationPlan": "PR 4745 ships named-cause, last-file ticks, occupancy share-plus-reset, spawn-heavy partition, and evaluator-surface disclosure. Tracking #4744, not Closes. 20-minute wall is leftover on #4744."
     },
     "items": [
       {
         "id": "1",
-        "title": "When Windows release Step 5 / ts:check-lane runs vitest --coverage at this lineage, the suite completes under 20 minutes (measured wall clock on this host).",
+        "title": "Leftover (not PR 4745): When Windows release Step 5 / ts:check-lane runs vitest --coverage at this lineage, the suite completes under 20 minutes (measured wall clock on this host).",
         "status": "proposed"
       },
       {
@@ -72,10 +72,10 @@
           "task check"
         ],
         "expected_outputs": [
-          "Windows Step 5 under 20m",
           "named-cause 124 not D7 fixture",
           "last-file ticks in capture",
-          "CHANGELOG [Unreleased] #4744"
+          "CHANGELOG [Unreleased] #4744",
+          "leftover 20-minute Step 5 close on #4744"
         ],
         "depends_on": [],
         "conflict_group": "windows-coverage-wall",
