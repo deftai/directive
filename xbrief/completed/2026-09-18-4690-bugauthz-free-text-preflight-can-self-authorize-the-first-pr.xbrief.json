@@ -1,0 +1,473 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4690",
+    "updated": "2026-09-18T17:31:29Z"
+  },
+  "plan": {
+    "title": "bug(authz): free-text preflight can self-authorize the first product write outside UAT",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(authz): free-text preflight can self-authorize the first product write outside UAT",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4690",
+      "Overview": "## Summary\n\nIn an ordinary free-text session with no active UAT lease, an aligned agent can misread investigation or requirements language as implementation authorization, create/promote/activate an xBRIEF itself, and then pass `xbrief:preflight` because the deterministic gate proves only `active/` placement plus `plan.status == \"running\"`.\n\nThat is a first-write authorization gap. It violates the shipped prose contracts from #810 and #2944:\n\n- a live human implementation action verb is required;\n- agent-authored lifecycle state must not independently satisfy implementation approval; and\n- the first unauthorized edit should be blocked.\n\nThe current stack can catch the missing human approval later through scope-provenance or merge checks, but only after local code and test edits have already happened. Directive therefore does not grant permission, but its gate can report success without proof that permission exists.\n\n## Dogfood incident\n\nObserved on 2026-09-16 in a Deft-enabled consumer repository using:\n\n- Codex desktop host;\n- consumer baseline `fc868de32dc0fc4ca1cc6429281aa9d212638efa`;\n- vendored Deft deposit `0.119.0`; and\n- a normal free-text conversation, not a slash-command session.\n\nSanitized operator sequence:\n\n1. The operator requested a detailed forensic audit of a classification-quality regression.\n2. The operator clarified the required product behavior: quality should be a presence pre-check and should not reduce successfully classified tickets.\n3. The operator later said `resume`.\n4. No turn said `build`, `implement`, `ship`, `swarm`, `run agents`, or `start agent`. The active request remained investigation.\n5. The agent incorrectly treated the behavioral clarification as authorization to fix the product.\n6. The agent created a product issue and scope xBRIEF, promoted and activated the xBRIEF, and ran `deft xbrief:preflight`.\n7. Preflight passed because the agent-authored xBRIEF was now under `xbrief/active/` with `plan.status == \"running\"`.\n8. The agent edited product code and tests in an isolated worktree.\n9. A later scope-provenance/check gate rejected the missing base-committed human approval, preventing commit and push.\n10. The operator noticed the overreach, stated that implementation had never been authorized, and required the implementation to be abandoned. The local branch/worktree was deleted and the edits were discarded.\n\nNo unauthorized commit, push, PR, merge, deployment, or production mutation occurred in this incident. The defect is that the **first unauthorized local product edit was allowed**.\n\n## Expected behavior\n\nBefore the first product/code write in a normal free-text session:\n\n1. Directive must require independently attributable human-origin implementation authority for the current story and operation.\n2. An agent-created issue, xBRIEF, lifecycle transition, session-start record, dispatch envelope, environment assertion, or summary must not establish that authority.\n3. `active/` plus `plan.status == \"running\"` may prove lifecycle readiness, but must not prove user intent.\n4. Investigation, diagnosis, requirements clarification, desired-behavior statements, and bare continuation language such as `resume`, `continue`, `proceed`, or `go` must remain non-authorizing unless a prior human turn explicitly proposed implementation.\n5. If the host cannot provide trustworthy human-turn provenance, the gate must fail closed with one concrete operator action that can create a human-origin grant.\n\nIssue filing, evidence capture, read-only diagnostics, and non-mutating test execution should remain available without implementation authority.\n\n## Actual behavior and enforcement gap\n\nThe prose layer is correct:\n\n- `content/templates/agents-entry.md` says the current build contract is an active xBRIEF **plus a live human operator instruction**.\n- `content/templates/agents-entry.md` and `content/skills/deft-directive-build/SKILL.md` require an explicit action verb and forbid inference from lifecycle/workflow language or bare continuation.\n- `content/contracts/human-origin-authz.md` names the exact threat model: an aligned agent mistakes self-authored xBRIEF/lifecycle/dispatch state for permission.\n\nThe deterministic layer does not enforce that contract in a normal free-text session:\n\n- `content/tasks/xbrief.yml` describes `xbrief:preflight` as an implementation-intent gate, but its stated success condition is only active-path placement plus `plan.status == \"running\"`.\n- `content/contracts/intent-ceiling.md` mechanically contains slash-command sessions through `DEFT_SESSION_SLASH_VERB`, but this incident had no slash-command provenance.\n- The free-text action-verb requirement is therefore evaluated by the same agent whose intent classification may be wrong.\n- Human-origin edit denial in `content/contracts/human-origin-authz.md` is active only while a human-origin UAT lease is active. The default is inactive, so no Wave 1 denial fires in an ordinary session.\n- `verify:scope-provenance` is valuable defense in depth, but it is evaluated at check/commit/merge boundaries. It does not block the first local write.\n\nThis leaves a circular authorization path:\n\n```text\nagent misclassifies operator intent\n  -> agent creates/promotes/activates scope\n  -> lifecycle-only preflight passes\n  -> product write is allowed\n  -> later provenance gate may reject commit\n```\n\n## Reproduction\n\nPreconditions:\n\n- normal free-text session;\n- UAT lease inactive;\n- no human-origin implementation grant;\n- no slash-command provenance;\n- fresh mutation ritual/occupancy state; and\n- no existing human-approved active story for the proposed fix.\n\nSteps:\n\n1. Ask the agent to investigate and report a defect.\n2. State the desired behavior without an implementation action verb.\n3. Have the agent incorrectly infer implementation intent.\n4. Let the agent create an xBRIEF under `xbrief/proposed/`.\n5. Let the same agent run the canonical promote and activate verbs.\n6. Run `deft xbrief:preflight -- xbrief/active/<story>.xbrief.json`.\n7. Attempt a product-source edit through a supported write surface.\n\nCurrent result:\n\n- preflight exits 0 after step 6; and\n- the first write is allowed because there is no active UAT lease or other human-origin first-write requirement.\n\nRequired result:\n\n- activation may establish lifecycle state but not authorization; and\n- preflight or the write hook denies before step 7 with a stable missing-human-origin-intent code and one operator remediation.\n\n## Root cause\n\nThe implementation-intent stack conflates two independent facts:\n\n| Fact | Current proof | Required proof |\n| --- | --- | --- |\n| Story is structurally ready | active xBRIEF with `plan.status == \"running\"` | lifecycle state is sufficient |\n| Human authorized implementation now | agent interpretation of free-text, except slash/UAT special cases | independent human-origin event or grant bound to the requested edit |\n\n#810 shipped a structural lifecycle gate alongside prose action-verb rules, but the lifecycle state is agent-advanceable. #2944 later introduced human-origin grants, but the first-write denial is conditional on active UAT. #1193 closes slash-command escalation, not ordinary free-text sessions. Scope provenance protects the merge base, not the moment implementation begins.\n\n## Proposed fix\n\nSeparate **lifecycle readiness** from **implementation authorization** at the deterministic layer.\n\n### 1. Add a normal-session implementation-start authorization decision\n\nBefore the first product edit, evaluate at least:\n\n- requested operation (`edit` initially; push/PR/merge remain their existing layers);\n- repository, worktree/branch, and story/plan binding;\n- human-origin event or grant identifier;\n- authorized operation and surface;\n- expiry/single-use semantics where applicable; and\n- session provenance (`free-text`, slash command, UAT, unattended template, etc.).\n\nThe decision must run even when UAT is inactive.\n\n### 2. Preserve the human-origin boundary\n\nValid authority may come from:\n\n- a trustworthy host-provided human-message event that explicitly authorizes implementation and is bound to the current story/operation; or\n- a human-presence-gated `authz:grant`/confirmation path when the host cannot provide trustworthy turn provenance.\n\nInvalid authority must include:\n\n- xBRIEF contents or lifecycle state;\n- issue bodies/comments;\n- agent-authored summaries or plans;\n- dispatch/allocation text created by an agent;\n- an environment variable or session-intent value the agent can set itself;\n- `session:start` or mutation occupancy success; and\n- the agent's own assertion that the user used an implementation verb.\n\n### 3. Compose the decision at both relevant boundaries\n\n- `xbrief:preflight` should report lifecycle readiness and authorization as separate results.\n- Supported PreToolUse/direct-write hooks should re-check authorization before the first product edit, so bypassing or stale preflight cannot write.\n- Issue filing, evidence capture, and other explicitly non-implementation operations should keep their existing exemptions.\n- Scope provenance remains a later independent defense; do not weaken or remove it.\n\n### 4. Rename or correct misleading surfaces\n\nIf `xbrief:preflight` continues to check only lifecycle structure, stop describing its exit 0 as implementation-intent authorization. Name it a lifecycle-readiness gate and compose a separate authorization check before presenting a green implementation preflight.\n\n## Acceptance criteria\n\n- [ ] Regression reproduces the incident with UAT inactive, free-text provenance, no human grant, and an agent-created active/running xBRIEF; the first product write is denied.\n- [ ] `active/` plus `plan.status == \"running\"` alone never authorizes implementation.\n- [ ] Creating, promoting, or activating an xBRIEF cannot mint or imply a human-origin implementation grant.\n- [ ] `session:start`, occupancy success, and a fresh ritual cannot substitute for human implementation authority.\n- [ ] A requirement statement or bare `resume`/`continue`/`proceed` without a prior explicit implementation proposal remains non-authorizing.\n- [ ] A genuine explicit human implementation instruction can authorize the bound story without requiring UAT to be active.\n- [ ] The valid path is backed by non-self-assertable human-event provenance or a human-presence-gated grant; an agent-authored environment value or file is rejected.\n- [ ] Slash-command non-implementation ceilings from #1193 remain fail-closed.\n- [ ] Active-UAT behavior from #2944 remains at least as strict as today.\n- [ ] Issue/evidence capture remains available when implementation is denied.\n- [ ] Scope-provenance remains an independent check/commit/merge defense.\n- [ ] Unit coverage includes a decision matrix for UAT active/inactive, free-text/slash provenance, human grant present/absent, agent-authored lifecycle state, and edit/non-edit operations.\n- [ ] Integration coverage proves denial occurs before the first supported source write, not only at `task check`, commit, push, or merge.\n- [ ] User-facing denial names one stable error code and one concrete operator remediation.\n- [ ] Documentation and task descriptions distinguish lifecycle readiness from authorization.\n\n## Safety properties\n\n- Fail closed when human-turn provenance is missing, malformed, stale, mismatched, or self-asserted.\n- Do not add an LLM semantic-intent judge as the authority source; the same model made the original classification error.\n- Do not let an agent create an approval token by copying operator text into a file or environment variable.\n- Do not broaden an authorization from one story, surface, or operation to adjacent work.\n- Do not require an active UAT campaign merely to obtain normal implementation authorization.\n\n## Impact\n\nThis is an aligned-agent authorization-confusion defect, not a claim of malicious credential compromise. It can:\n\n- cause unauthorized code or UI edits;\n- contaminate forensic/UAT evidence by changing the system while it is being investigated;\n- consume substantial time and compute on work the operator did not request;\n- create plausible-looking lifecycle artifacts that obscure the original lack of authority; and\n- progress farther on hosts where later commit/push/merge gates are absent or bypassed.\n\nThe observed consumer incident was contained before commit, but containment depended on a later scope gate and operator detection rather than the implementation-intent gate.\n\n## Deduplication and relationships\n\n- #810 defines the explicit free-text action-verb rule and the lifecycle preflight. This issue is the residual: the deterministic half can be self-satisfied and does not prove the prose half.\n- #2944 defines human-origin grants and explicitly says self-authored lifecycle state cannot approve implementation. Its shipped denial is conditioned on active UAT; this issue covers ordinary sessions with UAT inactive.\n- #1193 contains slash-command intent and merge policy. This incident used normal free text.\n- #3383 covers live operator intent conflicting with a completed xBRIEF. This incident had no completed-story conflict; the agent created the active story itself.\n- #3145 scope provenance prevents self-authorizing file-scope changes at the merge base. It fired too late to prevent the first edit.\n- #2948 is the layered-authorization umbrella and is the likely parent/program home.\n\nThis should remain a distinct defect unless an existing open issue already requires a normal-session, human-origin authorization check **before the first product write**.\n\n",
+      "Labels": "bug, security, agent-experience, area:cli, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- preflight OK is lifecycle-ready not implementation authorization\n- no DEFT_SESSION_SLASH_VERB still lifecycle-ready\n- CHANGELOG [Unreleased] #4690"
+    },
+    "items": [
+      {
+        "title": "Split preflight from authorization. xbrief:preflight exit 0 remains lifecycle-ready (active/ plus running plus the structural checks already on evaluate). It is not implementation authorization. Report authorization as a separate result. Do not treat the two layers as equivalent.",
+        "status": "completed",
+        "id": "clause:1",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Split preflight from authorization. xbrief:preflight exit 0 remains lifecycle-ready (active/ plus running plus the structural checks already on evaluate). It is not implementation authorization. Report authorization as a separate result. Do not treat the two layers as equivalent."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/evaluate.ts",
+          "recorded_at": "2026-09-18T17:31:09.026Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Do not claim ordinary-session first-write closed on this number. That remainder is #4709.",
+        "status": "completed",
+        "id": "clause:2",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not claim ordinary-session first-write closed on this number. That remainder is #4709."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/evaluate.ts",
+          "recorded_at": "2026-09-18T17:31:09.026Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Tests: preflight OK is not an authz allow. A session with no DEFT_SESSION_SLASH_VERB still reaches the lifecycle-ready message without that message naming implementation authorization.",
+        "status": "completed",
+        "id": "clause:3",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Tests: preflight OK is not an authz allow. A session with no DEFT_SESSION_SLASH_VERB still reaches the lifecycle-ready message without that message naming implementation authorization."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/evaluate.ts",
+          "recorded_at": "2026-09-18T17:31:09.026Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "agent-experience",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4690",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4690: bug(authz): free-text preflight can self-authorize the first product write outside UAT"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, Split preflight from authorization. xbrief:preflight exit 0 remains lifecycle-ready (active/ plus running plus the structural checks already on evaluate). It is not implementation authorization. Report authorization as a separate result. Do not treat the two layers as equivalent.",
+          "artifact_path": "packages/core/src/preflight/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, Do not claim ordinary-session first-write closed on this number. That remainder is #4709.",
+          "artifact_path": "packages/core/src/preflight/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, Tests: preflight OK is not an authz allow. A session with no DEFT_SESSION_SLASH_VERB still reaches the lifecycle-ready message without that message naming implementation authorization.",
+          "artifact_path": "packages/core/src/preflight/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/preflight/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because xbrief:preflight still exits 0 on active/ plus plan.status running, and evaluateAuthzMutation returns allow/authz-inactive when UAT is inactive, so the first product write in an ordinary free-text session has no human-origin proof.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4690-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: default motion. Fork is lifecycle-ready vs human-origin first-write, not panel spend.\n\nrefutation-target: active/ plus plan.status running is implementation authorization; equivalently, first-write human-origin proof is required only while a UAT lease is active.\n\ntarget: #4690\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the 2026-09-16 consumer incident: free-text forensic session, UAT inactive, no build/implement/ship/swarm/run agents/start agent, agent created and activated an xBRIEF, xbrief:preflight passed, first product/test write happened, later scope-provenance blocked commit. No unauthorized commit or PR. The first unauthorized local product edit was allowed.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- tasks/xbrief.yml describes xbrief:preflight as the #810 implementation-intent gate and states exit 0 only when the xBRIEF is in xbrief/active/ AND plan.status == running.\n- packages/core/src/preflight/evaluate.ts evaluate() fails closed on folder != active and status != running, then evaluateIntentCeilingFromEnv(\"implement\") (#1193 slash-command ceiling). It does not call evaluateAuthzMutation. A free-text session with no DEFT_SESSION_SLASH_VERB therefore passes the structural half.\n- packages/core/src/authz/evaluate.ts evaluateAuthzMutation: when UAT is inactive, product mutations return allow/authz-inactive. Wave 1 first-write denial is the active UAT lease. Comment in that function says outside-UAT grants for every edit would break normal implement sessions.\n- content/contracts/human-origin-authz.md names the threat (aligned agent mistakes self-authored lifecycle for permission). The shipped denial is UAT-conditioned.\n\nInventory already on the tree: intent-ceiling.ts (slash only), scope-provenance (check/commit/merge, not first write), authz:grant (human-presence mint). Do not invent a second LLM intent judge. No implement and no ingest from this parent.\r\n\n",
+          "id": 5716435824,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5716435824",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T14:53:31Z",
+          "updated_at": "2026-09-17T14:53:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation charter. Pin-read and tests at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Input ceiling 5716435824 inclusive (Stop 1 write-back in envelope). audit-targets none.\n\nThe two measured facts in the recorded refutation-target survive. The packaging that they are equivalent, and the proposed ordinary-session mint, do not bind.\n\nRe-verified (vitest, 56 passed / 1 skipped):\n- evaluateAuthzMutation allows product edit when UAT is inactive (authz-inactive) — packages/core/src/authz/evaluate.test.ts \"allows product edits when UAT inactive (Wave 1 gate off)\".\n- evaluate() exit 0 on active/ + plan.status == running with message ready for implementation — packages/core/src/preflight/evaluate.test.ts.\n- evaluateIntentCeiling with no slash verb is intent-allow-no-slash — packages/core/src/policy/intent-ceiling.test.ts.\n- evidenceSatisfiesImplementationApproval rejects xbriefStatus, allocationContext, dispatch-envelope — packages/core/src/authz/origin.test.ts.\n\nevaluate() does not call evaluateAuthzMutation. FREE_TEXT_IMPLEMENT_VERBS is defined and unused as a gate.\n\n## 1. Ordinary-session first-write human-origin proof has an empty mint set\n\nblocks-the-design\n\nEvidence. Shipped Wave 1 (content/contracts/human-origin-authz.md at this SHA) defaults UAT inactive to \"No Wave 1 denials until operator starts UAT\". evaluateAuthzMutation returns allow/authz-inactive on that path; the function comment records that requiring grants for every edit would break normal implement sessions. The only production mint is mintHumanOriginGrant then mintOperatorOrigin, which always stamps origin.kind=operator-cli. operator-session is labeled future interactive approval. human-event is an accepted kind in HUMAN_ORIGIN_KINDS with no mint path from a host message. Human-presence mint (packages/cli/src/human-presence-mint.ts) needs TTY plus controlling terminal plus --confirm plus typed phrase mint and refuses agent/CI shells. Swarm/solo implement workers are instructed to set DEFT_SESSION_RITUAL_SKIP=1 (content/templates/agent-prompt-preamble.md) and evidenceSatisfiesImplementationApproval already fails closed on allocation_context and dispatch-envelope. inspectMutationGates already runs first-write: ritual, occupancy, active-scope, then Wave 1 authz. Ritual and scope:activate are agent-satisfiable; this dest denied a scratch write as ritual-not-ready with recovery session:start, which the issue AC itself rejects as authorization.\n\nFailure mode. Binding the proposed fix as written leaves implementers three exits, all forbidden or empty: (a) require TTY authz:grant on every ordinary edit — the Wave 1 tradeoff the evaluator and contract default refused, and dest workers have no TTY; (b) treat a host user-turn / env / file as human-event — the issue's own invalid-authority list, and the same aligned-agent self-assert the threat model names; (c) let the worker envelope or active xBRIEF count — rejected origin kinds already on the tree. A parent that said swarm cannot currently propagate a human-origin edit grant onto dest-placed children without inventing a new kind the origin predicates exist to refuse.\n\nDisposition. The lean cannot bind until Bound remedy names one closed mint that is not a rejected origin kind, plus how dest-placed implement workers obtain it without TTY and without dispatch-envelope evidence. That choice is a Wave 1 recut or a new host-attested event contract, not a preflight rename.\n\nInjection / swarm lens. Authority and identity are the target. Untrusted issue text, skill prose, and parent-authored worker prompts all contain implement verbs (this body includes implement, swarm, start agent, and reproduction steps that tell an agent to promote/activate). A host-text human-event parser cannot tell those apart from an operator action verb. Worker identity is host-derived (host:codex:v1:… / DEFT_SESSION_ID) and already rewritten on some seats; it is occupancy, not implementation approval. Grant files under .deft/authz/grants/ are local JSON; credential-compromised forgery is #983 out of Wave 1 scope, so a new always-on first-write grant becomes a new local-file approval token unless mint stays human-presence. Do not close this with reviewer attention: the deterministic controls are origin-kind rejection and the mint gate, and neither currently covers ordinary-session first write.\n\n## 2. Equivalently joins two non-equivalent layers\n\nsharpens-framing\n\nEvidence. Layer A is preflight: tasks/xbrief.yml still titles xbrief:preflight the #810 implementation-intent gate and documents exit 0 as active/ + running; evaluate() then slash-ceiling, lineage, freshness, invariants, placement — never authz — and prints OK … ready for implementation. Layer B is Wave 1 write-hook authz: inspectMutationGates calls evaluateAuthzMutation after ritual + active-scope; inactive UAT is allow by published default, pinned by test. Intent-ceiling source says the free-text #810 action-verb remains agent/AGENTS gate when there is no slash verb. Those are two decision functions and two published defaults.\n\nFailure mode. Treating A as equivalent to B lets a rename of preflight (issue section 4) look like P1 relief while the write hook still returns authz-inactive. Conversely, flipping Wave 1 without correcting the preflight OK line keeps the agent-facing false authorization signal the incident used.\n\nDisposition. Split the lean: misleading lifecycle-success copy vs a deliberate Wave 1 default recut. A can bind as docs/message plus a separate authz field on preflight. B cannot hide inside A.\n\n## 3. Codex P1 deny-delivery is not evaluateAuthzMutation\n\nsharpens-framing\n\nEvidence. P1 is a Codex desktop consumer. Nested Claude/Grok/Codex PreToolUse deposits use NESTED_HOOK_TIMEOUT_SECONDS = 5; Cursor tool.before is 30s because the same file says 5s is below the work. renderHostDecision allow on codex is the empty string (pinned in dispatcher.test.ts). A killed nested hook therefore emits nothing, which is byte-identical to allow. Inventory already on the tree: proposed xBRIEF xbrief/proposed/2026-08-25-3739-bughooks-nested-hosts-get-a-5s-budget-the-framework-itself-c.xbrief.json (#3739). Incident-regression packages/core/src/authz/incident-regression.test.ts only asserts first-write deny under active UAT, not the inactive path and not Codex timeout.\n\nFailure mode. Flipping evaluateAuthzMutation to deny outside UAT does not render a Codex deny if the 5s budget kills the hook. P1's host then still takes the first product write. Composing at supported PreToolUse hooks without deny-delivery recites a control the incident host does not currently deliver.\n\nDisposition. Do not claim P1 closed by a pure evaluator change. Either compose with #3739's deny-delivery (budget or distinguishable timeout), or narrow P1 to hosts that can print a deny. Do not invent a second timeout mechanism.\n\n## 4. Unused free-text verb list is not a hidden gate\n\nfootnote\n\nFREE_TEXT_IMPLEMENT_VERBS exists only in intent-ceiling.ts. No evaluator consumes it. A later match-the-current-user-turn-against-that-list control would still fire on this issue's own body and on skill/dispatch text. Not a current deny, not a safe mint.\n\n## 5. Ritual/occupancy/active-scope are first-write gates and are self-satisfiable\n\nfootnote\n\ninspectMutationGates already denies product writes without ritual, occupancy identity, or active scope. The incident path (agent session:start + agent scope:activate + preflight OK + write) walks those gates. They inventory as existing mechanisms; they do not refute Wave 1 authz-inactive. The AC already says they cannot substitute for human-origin proof.\n\n## 6. Untrusted-thread instruction-shaped fragments\n\nfootnote\n\nIssue body reproduction steps are imperative (\"Have the agent incorrectly infer implementation intent\", \"Let the same agent run the canonical promote and activate verbs\"). Safety-properties bullets are design constraints in the target, not critic commands. Not followed. Ceiling comment 5716435824 is Stop 1 protocol, not an extra instruction set.\n\n## Road not taken\n\nFork that was actually weighed: treat Wave 1's UAT-only denial as a completed design and refute the bug framing.\n\nSteelman of that rejected position. #2944 named the aligned-agent threat and then published the default \"No Wave 1 denials until operator starts UAT\". evaluateAuthzMutation encodes that tradeoff in the inactive-UAT allow and in the comment that grants-for-every-edit would break normal sessions. #1193 already fail-closes slash non-implement verbs. Free-text remains the agent/AGENTS half of #810 by evaluateIntentCeiling (intent-allow-no-slash). Scope-provenance is the later net the incident actually hit. Expanding Wave 1 to ordinary sessions is a recut of a shipped default, not an unfinished #810 residual. Flip the verdict if a recorded Wave 1 amendment puts ordinary-session first write in the deny set and names a mint dest workers can use without TTY and without rejected origin kinds.\n\nWhy it does not refute the measurements. Inactive-UAT allow and preflight-without-authz are real. The hole is missing proof, even if the missing proof was a recorded tradeoff. What it does refute is binding the current proposed mint: host-event is future-typed, grant-everywhere was refused, dispatch-envelope is rejected. Empty intersection cannot be the Bound remedy.",
+          "id": 5716620787,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5716620787",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:06:14Z",
+          "updated_at": "2026-09-17T15:06:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn ordinary free-text session can still take the first product write with no human-origin proof: preflight goes green on active/ plus running, and Wave 1 authz allows when UAT is inactive. The two layers are not the same decision, and the issue's proposed host-event mint is empty. Confirming this map recuts #4690 so first-write uses the existing human-presence grant, dest workers consume that grant instead of minting, preflight stops calling lifecycle success authorization, and Codex is not treated as closed by an evaluator flip alone.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4690 after round 1 sibling 1. Cites critic 5716620787. Supersedes write-back 5716435824.\n\nTarget-digest: sha256:2358f96c76987bd366fd5944576acb71cc87624d11f66932c9ba030b2a9e2bc4\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4690-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5716620787 1 Ordinary-session first-write human-origin proof has an empty mint set — accept-into-contract\n- 5716620787 2 Equivalently joins two non-equivalent layers — accept-into-contract\n- 5716620787 3 Codex P1 deny-delivery is not evaluateAuthzMutation — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716620787 reading=measured\n\n## Bound remedy\n\n- Recut Wave 1 so a product first-write requires a live human-origin grant even when UAT is inactive. The mint is the existing human-presence authz:grant path (origin.kind operator-cli). Dest-placed implement workers consume a grant already on the dest tree; they do not mint. Do not add host-event, env, file copy, dispatch-envelope, xBRIEF lifecycle, or session:start as authority.\n- Split preflight from authorization. xbrief:preflight exit 0 remains lifecycle-ready (active/ plus running plus the structural checks already on evaluate). It is not implementation authorization. Report authorization as a separate result. Do not treat the two layers as equivalent.\n- Do not claim the Codex desktop incident closed by flipping evaluateAuthzMutation alone. Nested PreToolUse at NESTED_HOOK_TIMEOUT_SECONDS = 5 that dies emits the same empty string Codex treats as allow. Compose with #3739 deny-delivery (budget or a distinguishable timeout), or narrow the close to hosts that can print a deny.\n- Tests: UAT inactive with no grant denies product edit before the first supported source write; UAT inactive with a live human-origin grant allows; a dest worker without TTY consumes an existing grant and cannot mint; preflight OK is not an authz allow; Codex timeout-as-allow is not treated as closed P1.\r\n\n",
+          "id": 5716686650,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5716686650",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:10:15Z",
+          "updated_at": "2026-09-17T15:10:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit after bind lean 5716686650. Charter refutation, spend N=1. Pin-read git show edf1d698aafcf956cff08ad3ad14ff608505861a. Input ceiling 5716686650 inclusive. Round-1 critic 5716620787 in envelope. This post targets asserted relieves of P1 (ordinary-session first product write without human-origin proof).\n\nRe-verified at that SHA (vitest, 56 passed / 1 skipped on evaluate / preflight / intent-ceiling / origin). Dispatcher pin: renderHostDecision(\"codex\", allow) is empty string (packages/core/src/hooks/dispatcher.test.ts). NESTED_HOOK_TIMEOUT_SECONDS = 5 still deposits for Codex (packages/core/src/init-deposit/agent-hooks.ts). evaluateAuthzMutation still returns allow/authz-inactive for product edit when UAT is inactive.\n\nBound-remedy bullet 1 recuts that inactive allow to require a live origin.kind=operator-cli grant, dest workers consume a grant already on the dest tree, mint stays human-presence authz:grant. That recut covers the missing-proof deny at the decision function only if the same agent cannot plant the token the function will then trust.\n\n## 1. Inactive-path grant-store Write plants operator-cli and reopens P1\n\nblocks-the-design\n\nEvidence. classifyHookAuthzOps returns [\"edit\"] for every direct Write/Edit (packages/core/src/authz/classify.ts: if (isDirectWrite) return [\"edit\"]). authzForMutation then calls evaluateAuthzMutation with that op. Direct Write of .deft/authz/grants/*.json is already a dest-bearing mutation through inspectMutationGates (dispatcher test with path .deft/authz/grants/evil.json). Shell plants of that dir classify as settings. Both ops, when UAT is inactive, currently take the authz-inactive allow. isHumanOriginGrant / evidenceSatisfiesImplementationApproval accept any record whose origin.kind is in HUMAN_ORIGIN_KINDS and whose actor is not agent / agent:* / self. They do not check that mintHumanOriginGrant wrote the file. An aligned agent can Write origin.kind=operator-cli JSON, then take the product edit the recut would otherwise deny. .deft/* is gitignored except approved-scope / intent-constraint, so dest trees do not receive grants from git; dest consume is listGrants(payloadRoot) of whatever JSON is already under dest .deft/authz/grants/.\n\nFailure mode. Binding relieves of P1 on this harvest leaves implementers a product-only gate: src/packages edits require a grant, grant-store edits stay authz-inactive allow because they are not \"product\". The Bound-remedy sentence that forbids file copy as authority is a prohibition without a deny. After the recut, the grant file is the always-on first-write token. Planting it is the #2944 aligned-agent threat, not #983 credential forgery. Dest workers instructed not to mint can still Write the store, then edit product, which is the swarm identity hole the dest-consume sentence was meant to close.\n\nDisposition. The lean cannot bind relieves of P1 until Bound-remedy names fail-closed grant-store mutation on the inactive path: direct Write/Edit of .deft/authz/grants/** and Shell settings plants of that dir deny without an already-live covering grant, and the only mint remains human-presence CLI saveGrant (not a hook Write). Tests: UAT inactive, no grant, Write of a forged operator-cli JSON is denied; a subsequent product edit is still denied; dest worker without TTY cannot plant or mint. Do not treat #983 as that control.\n\nInjection / swarm lens. Authority is the grant JSON; identity is dest payloadRoot vs parent. Untrusted issue text, skill prose, and worker prompts contain implement / swarm / start agent and reproduction steps that tell an agent to promote and activate. Bound-remedy correctly refuses host-event parsing of those strings. It does not refuse the agent writing the same verbs approval token as local JSON. Worker DEFT_SESSION_ID / host:codex:v1 is occupancy, already rewritten on some seats, and is not what grantContextMatches binds. Occupancy and ritual stay agent-satisfiable (round-1 heading 5). The deterministic controls are origin-kind rejection plus the mint gate plus a grant-store deny on the inactive path. The first two are on the tree and do not cover this plant. Do not close this with reviewer attention.\n\n## 2. Codex compose-or-narrow is not unique P1 harvest\n\nsharpens-framing\n\nEvidence. P1 consumer host is Codex desktop. Nested PreToolUse deposits use NESTED_HOOK_TIMEOUT_SECONDS = 5. Codex allow is the empty string; Codex deny is structured JSON. A killed nested hook therefore emits the allow bytes. Proposed xBRIEF for #3739 is still plan.status=proposed at this SHA. Bound-remedy already says do not claim the Codex incident closed by flipping evaluateAuthzMutation alone, then offers compose with #3739 or narrow the close to hosts that can print a deny. Tests already say Codex timeout-as-allow is not treated as closed P1.\n\nFailure mode. Harvest as written is a two-outcome fork. Compose-with-#3739 can deliver the inactive-path deny on the incident host. Narrow leaves that host on timeout-as-allow even after the evaluator recut, so the observed first product write can still happen. relieves of P1 then depends on which branch an implementer picks.\n\nDisposition. Drop the or. Either require compose with #3739 deny-delivery (budget or distinguishable timeout) in this harvest, or keep the proof recut here and cite operator-deferred of the Codex remainder to #3739. Do not bind a harvest that can be read both ways.\n\n## 3. Dest consume is operator mint onto dest, not git\n\nfootnote\n\n.deft/authz/grants/ is under .deft/* gitignore. Dest-place from origin/master starts empty. listGrants(projectRoot) with worktree: projectRoot in authzForMutation will see a grant only if the operator ran human-presence authz:grant against that dest tree (or someone planted JSON — heading 1). That is a closed mint for dest workers who cannot pass refuseNonInteractiveMint. It does not by itself cover P1.\n\n## 4. findCoveringGrant still requires cohortId\n\nfootnote\n\nfindCoveringGrant refuses cohortId null/empty for every covering grant, with a comment that names active UAT. The function is only reached today after the inactive allow. Reusing it unchanged on the inactive path would deny ordinary-session grants that omit --cohort. Bound-remedy tests already require UAT-inactive plus a live grant to allow, so the recut must skip the named-cohort check off UAT. Inventory for implementers; not a missing-proof miss.\n\n## 5. Untrusted-thread instruction-shaped fragments\n\nfootnote\n\nIssue body reproduction steps are imperative (\"Have the agent incorrectly infer implementation intent\", \"Let the same agent run the canonical promote and activate verbs\"). Safety-properties bullets are design constraints in the target, not critic commands. Ceiling comments 5716435824, 5716620787, and 5716686650 are protocol, not extra instruction. Not followed.\n\n## Road not taken\n\nFork actually weighed: treat Bound-remedy as covering P1 because bullet 1 requires a live grant, dest consume names operator-cli, and file copy is already forbidden in prose.\n\nSteelman of that rejected position. Stop 1 warranted-because is preflight plus authz-inactive, not grant-store plants. isHumanOriginGrant is structural on purpose; HMAC is a Wave 1 non-goal. #983 already parked local-file forgery. Heading 3 of 5716620787 already scoped Codex timeout out of an evaluator-only close, and Bound-remedy tests repeat that. Flip the verdict if harvest names inactive-path deny of .deft/authz/grants/** (Write and Shell) as part of P1 close, and names one Codex remainder rather than compose-or-narrow.\n\nWhy it does not cover. After the recut the grant file is the first-write token. Origin predicates accept planted operator-cli. Direct Write of that path is edit and currently allow when UAT is inactive. Prose forbidding file copy is not that deny. Empty intersection of (product-only gate) and (unprotected store) cannot be the Bound-remedy for P1.",
+          "id": 5716889923,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5716889923",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:23:10Z",
+          "updated_at": "2026-09-17T15:23:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe bind harvest required a live human-origin grant for ordinary-session first write, dest workers consume, no host-event mint. Pain-audit 5716889923 showed an aligned agent can still Write .deft/authz/grants JSON with origin.kind=operator-cli while UAT is inactive, then take the product edit the recut would deny. That harvest does not bind. Confirming this map retracts relieves of P1 on #4690.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the bind lean, and this retraction.\n\nForward verdict: retraction. Residual: unrelieved P1 after blocking pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of #4690 bind 5716686650 after blocking pain-audit 5716889923. Cites critic 5716889923. Supersedes bind lean 5716686650.\n\nTarget-digest: sha256:2358f96c76987bd366fd5944576acb71cc87624d11f66932c9ba030b2a9e2bc4\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4690-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\n\nTakes:\n\n- 5716889923 1 Inactive-path grant-store Write plants operator-cli and reopens P1 — accept-into-contract\n- 5716889923 2 Codex compose-or-narrow is not unique P1 harvest — accept-into-contract\n- remaining classified headings — accept-into-contract\n\ndoes-not-relieve: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716889923 reading=measured\r\n\n",
+          "id": 5717045005,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5717045005",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:33:34Z",
+          "updated_at": "2026-09-17T15:33:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nopen-question: how does ordinary-session first-write deny a dest Write of .deft/authz/grants operator-cli JSON without a TTY mint?\n\nHandoff after blocking pain-audit 5716889923. Unrelieved P1 plus recut. Yolo standing does not carry past a blocking audit. Do not dest-place. Do not ingest.\n\nLeftover path: file a new issue for grant-store deny on the inactive path plus one Codex remainder, or halt. Yolo does not confirm that split.\r\n\n",
+          "id": 5717045288,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5717045288",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:33:35Z",
+          "updated_at": "2026-09-17T15:33:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOrdinary-session first-write without human-origin proof stays unmet on this number. Operator confirmed the leftover split: that remainder is #4709 (grant-store deny on the inactive path, dest consume, Codex compose with #3739 or defer to it). This map recuts #4690 so preflight exit 0 is lifecycle-ready, not implementation authorization. It does not close first-write.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4709.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4690 after leftover #4709. Cites critic 5716889923. Supersedes retraction 5717045005.\n\nTarget-digest: sha256:2358f96c76987bd366fd5944576acb71cc87624d11f66932c9ba030b2a9e2bc4\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4709\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4690-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\n\nTakes:\n\n- 5716889923 1 Inactive-path grant-store Write plants operator-cli and reopens P1 — accept-into-contract\n- 5716889923 2 Codex compose-or-narrow is not unique P1 harvest — accept-into-contract\n- remaining classified headings — accept-into-contract\n\noperator-deferred: P1 #4709\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5716889923 leftover=4709 reading=measured\n\n## Bound remedy\n\n- Split preflight from authorization. xbrief:preflight exit 0 remains lifecycle-ready (active/ plus running plus the structural checks already on evaluate). It is not implementation authorization. Report authorization as a separate result. Do not treat the two layers as equivalent.\n- Do not claim ordinary-session first-write closed on this number. That remainder is #4709.\n- Tests: preflight OK is not an authz allow. A session with no DEFT_SESSION_SLASH_VERB still reaches the lifecycle-ready message without that message naming implementation authorization.\r\n\n",
+          "id": 5717718359,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5717718359",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:21:09Z",
+          "updated_at": "2026-09-17T16:21:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit after bind lean 5717718359. Charter remainder after leftover split, spend N=1. Pin-read git show edf1d698aafcf956cff08ad3ad14ff608505861a. Input ceiling 5717718359 inclusive. Leftover issue #4709 in envelope. This post targets asserted operator-deferred: P1 #4709 on that successor lean. English Pain-audit headings are not targeting.\n\nRe-verified at that SHA (vitest, 56 passed / 1 skipped on evaluate / preflight / intent-ceiling / origin):\n- evaluateAuthzMutation allows product edit when UAT is inactive (authz-inactive) — packages/core/src/authz/evaluate.test.ts \"allows product edits when UAT inactive (Wave 1 gate off)\".\n- evaluate() exit 0 on active/ + plan.status == running with message OK … ready for implementation — packages/core/src/preflight/evaluate.test.ts. packages/core/src/preflight/evaluate.ts does not import or call evaluateAuthzMutation.\n- evaluateIntentCeiling with no slash verb is intent-allow-no-slash — packages/core/src/policy/intent-ceiling.test.ts.\n- evidenceSatisfiesImplementationApproval rejects xbriefStatus, allocationContext, dispatch-envelope — packages/core/src/authz/origin.test.ts.\n- classifyHookAuthzOps: if (isDirectWrite) return [\"edit\"] — packages/core/src/authz/classify.ts:4874.\n- HUMAN_ORIGIN_KINDS is operator-cli / operator-session / human-event. isHumanOriginGrant is structural (kind + actor). No HMAC. saveGrant writes .deft/authz/grants/<id>.json — packages/core/src/authz/store.ts.\n- content/contracts/human-origin-authz.md default: UAT inactive → \"No Wave 1 denials until operator starts UAT\".\n- tasks/xbrief.yml still titles xbrief:preflight the #810 implementation-intent gate and documents exit 0 as active/ plus running.\n\nBound-remedy on 5717718359 (operative list only):\n- Split preflight from authorization. Exit 0 remains lifecycle-ready (active/ plus running plus structural checks already on evaluate). It is not implementation authorization. Report authorization as a separate result. Do not treat the two layers as equivalent.\n- Do not claim ordinary-session first-write closed on this number. That remainder is #4709.\n- Tests: preflight OK is not an authz allow. A session with no DEFT_SESSION_SLASH_VERB still reaches the lifecycle-ready message without that message naming implementation authorization.\n\nNo relieves: P1 on this lean. operator-deferred: P1 #4709 is the closed different-issue form. #4709 is open (REST 2026-09-17T16:20:19Z, comments 0). Its body is inactive-path grant-store Write plants operator-cli, dest consume, Codex compose with #3739 or defer to it. Out of scope on #4709 includes recutting this number's preflight vs authorization naming.\n\nPredecessor 5716686650 claimed relieves: P1 and harvested grant-everywhere first-write. Retraction 5717045005 recorded does-not-relieve: P1 after blocking pain-audit 5716889923. This map supersedes that retraction and does not restore relieves.\n\n## 1. operator-deferred: P1 #4709 holds; this harvest does not relieves P1\n\nfootnote\n\nEvidence. Stop 1 pain is P1: first unauthorized local product write in an ordinary free-text session (UAT inactive, no human-origin proof). Lean 5717718359 cites operator-deferred: P1 #4709 and Bound-remedy bullet 2 forbids claiming that first-write closed here. The harvested list does not require a live grant for product edit, does not deny Write of .deft/authz/grants/**, and does not name dest-consume mint. Those sentences lived on retracted bind 5716686650 and now live on #4709. Measurements at this SHA still show the unmet write: authz-inactive allow, direct Write classified as edit, planted operator-cli JSON accepted as a live grant.\n\nFailure mode. None on this bind. Citing relieves: P1 on this harvest would reopen 5716889923 heading 1 (grant-store plant). This map does not cite relieves.\n\nDisposition. The deferred marker is well-formed (different issue, leftover exists, remainder Bound-remedy does not cover P1). Bind map stays bindable. No extra lean.\n\n## 2. \"Report authorization as a separate result\" is remainder naming, not first-write deny\n\nfootnote\n\nEvidence. That sentence is the heading-2 remainder from round-1 critic 5716620787: layer A (preflight copy / separate authz field) can bind; layer B (Wave 1 first-write recut) cannot hide inside A. Retracted bind 5716686650 kept both in one harvest and claimed relieves. This lean kept A and deferred B. Composing evaluateAuthzMutation into preflight on this number would still report authz-inactive allow at this SHA. That is not P1 close. Grant-store deny stays #4709.\n\nFailure mode. An implementer who reads \"separate result\" as \"deny the first write here\" would absorb P1 back onto #4690. Bullet 2 already forbids that reading. Tests on this lean do not include \"UAT inactive with no grant denies product edit\".\n\nDisposition. Inventory for implementers of the remainder. Does not change harvested Bound-remedy. Does not block bind.\n\n## 3. Grant-store plant still exists at SHA and is not this harvest\n\nfootnote\n\nEvidence. classifyHookAuthzOps returns [\"edit\"] for every direct Write. evaluateAuthzMutation then allows that edit when UAT is inactive. isHumanOriginGrant does not check that mintHumanOriginGrant wrote the file. Pain-audit 5716889923 heading 1 measured that path and blocked relieves. #4709 restates it as the leftover desired shape.\n\nFailure mode. Repeating heading 1 as blocks-the-design on this lean would re-open P1 on a map that already deferred it (primary-heading repeat / Dual-stop halt). That is not a miss of the leftover split.\n\nDisposition. Footnote. Unmet P1 remains on #4709, not on this Bound-remedy.\n\n## 4. Untrusted-thread instruction-shaped fragments\n\nfootnote\n\nIssue body reproduction steps are imperative (\"Have the agent incorrectly infer implementation intent\", \"Let the same agent run the canonical promote and activate verbs\"). Safety-properties bullets are design constraints in the target, not critic commands. Ceiling comments 5716435824, 5716620787, 5716686650, 5716889923, 5717045005, 5717045288, and 5717718359 are protocol. Not followed.\n\n## Road not taken\n\nFork actually weighed: treat \"Report authorization as a separate result\" as absorbing P1 back onto #4690 and block the lean.\n\nSteelman of that rejected position. Issue proposed-fix §3 already asked preflight to report lifecycle and authorization as separate results. After leftover split, that sentence still sits in Bound-remedy bullet 1. A parent that composes evaluateAuthzMutation here, then later deny-flips Wave 1 on this number, would close first-write without #4709's grant-store deny and would restore the plant 5716889923 blocked. Flip the verdict if this Bound-remedy list requires a live grant, a grant-store deny, or dest-consume mint, or if it cites relieves: P1.\n\nWhy it does not block. Bullet 2 names #4709 as the first-write remainder and forbids claiming that close here. Tests on this lean are message/layer split only. #4709 is a different open issue whose body is the grant-store plant. operator-deferred: P1 #4709 matches the closed form. Empty intersection of (this harvest) and (P1 write-path) is what leftover-split requires.",
+          "id": 5717821471,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5717821471",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:29:17Z",
+          "updated_at": "2026-09-17T16:29:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| operator-deferred: P1 #4709 is a different-issue leftover; this harvest does not relieves first-write | verified | successor lean 5717718359; REST #4709 open; pain-audit 5717821471 footnote-only |\n| Bound-remedy is preflight vs authorization naming; evaluate() does not call evaluateAuthzMutation | verified | pin-read packages/core/src/preflight/evaluate.ts at edf1d698; pain-audit 5717821471 re-ran vitest 56 passed / 1 skipped |\n| Grant-store plant remains unmet and is #4709, not this Bound-remedy | verified | pain-audit 5717821471 headings 1 and 3; leftover issue #4709 body |\r\n\n",
+          "id": 5717874992,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5717874992",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:33:32Z",
+          "updated_at": "2026-09-17T16:33:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOrdinary-session first-write without human-origin proof is leftover #4709. Agents agreed this number recuts only the preflight message: exit 0 is lifecycle-ready, not implementation authorization.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5717718359.\r\n\n",
+          "id": 5717875307,
+          "html_url": "https://github.com/deftai/directive/issues/4690#issuecomment-5717875307",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:33:33Z",
+          "updated_at": "2026-09-17T16:33:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5482368930,
+        "origin": "deftai/directive#4690",
+        "id": "github.issue.5482368930"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2358f96c76987bd366fd5944576acb71cc87624d11f66932c9ba030b2a9e2bc4"
+      },
+      "kind": "story",
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/preflight/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/preflight/evaluate.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "preflight OK is lifecycle-ready not implementation authorization",
+          "no DEFT_SESSION_SLASH_VERB still lifecycle-ready",
+          "CHANGELOG [Unreleased] #4690"
+        ],
+        "depends_on": [],
+        "conflict_group": "preflight-not-authorization",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5717718359; ordinary-session first-write remainder is #4709."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4757,
+        "prBase": null,
+        "mergeCommit": "58dd1c7db023a065659568365cd3680b9985cca1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "58dd1c7db023a065659568365cd3680b9985cca1",
+        "verifiedAt": "2026-09-18T17:31:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T17:31:29Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T17:31:29Z"
+      }
+    },
+    "id": "github.issue.5482368930",
+    "updated": "2026-09-18T17:31:29Z"
+  }
+}
