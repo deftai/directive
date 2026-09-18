@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Records #4722 complete after bare deft check omitted-root defaults landed.** Completes the tracked brief for the merged product PR. Refs #4722.
+
 - **Records #4716 complete after no-swap hook recovery landed.** Completes the tracked brief for the merged product PR. Refs #4716.
 
 - **Records #4706 complete after deposit hygiene compares to the engine content tree.** Completes the tracked brief for the merged product PR. Refs #4706.
