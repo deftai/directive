@@ -192,8 +192,11 @@ export function formatFileDurationLine(file: string, elapsedMs: number, project:
 }
 
 export interface TimelineCostSample {
+  /** Elapsed ms from the same run start as formatProjectCompleteLine. */
   readonly unitCompleteMs: number | null;
+  /** Elapsed ms from the same run start as formatProjectCompleteLine. */
   readonly spawnHeavyCompleteMs: number | null;
+  /** Elapsed ms from the same run start as formatCoverageReportLine. */
   readonly coverageMergeReportMs: number | null;
 }
 
@@ -208,6 +211,8 @@ export interface NamedCostClass {
 
 /**
  * Name the next cost class from a release-host timeline.
+ * unit/spawn/coverage are all elapsed-from-run-start. Ignore coverage that
+ * ends before both projects (mixed-origin / stale sample).
  * Does not bind "spawn-heavy one-worker tail" without a 5-minute tail after unit.
  */
 export function nameNextCostClass(sample: TimelineCostSample): NamedCostClass {
@@ -230,7 +235,7 @@ export function nameNextCostClass(sample: TimelineCostSample): NamedCostClass {
   }
   if (coverage !== null && unit !== null && spawn !== null) {
     const projectsDone = Math.max(unit, spawn);
-    if (coverage - projectsDone >= 60_000) {
+    if (coverage >= projectsDone && coverage - projectsDone >= 60_000) {
       return {
         costClass: "coverage-merge-report",
         reason: "coverage merge/report continued after both projects",

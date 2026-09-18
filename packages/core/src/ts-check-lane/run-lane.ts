@@ -210,6 +210,7 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   const laneStartedAt = now();
   const prevSupervised = process.env.DEFT_TS_LANE_SUPERVISED;
   const prevCold = process.env.DEFT_TS_LANE_COLD;
+  const prevCpus = process.env.DEFT_TS_LANE_CPUS;
   process.env.DEFT_TS_LANE_SUPERVISED = "1";
   process.env.DEFT_TS_LANE_CPUS = String(cpuCount);
   if (cold) process.env.DEFT_TS_LANE_COLD = "1";
@@ -218,62 +219,65 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
     else process.env.DEFT_TS_LANE_SUPERVISED = prevSupervised;
     if (prevCold === undefined) delete process.env.DEFT_TS_LANE_COLD;
     else process.env.DEFT_TS_LANE_COLD = prevCold;
-    delete process.env.DEFT_TS_LANE_CPUS;
+    if (prevCpus === undefined) delete process.env.DEFT_TS_LANE_CPUS;
+    else process.env.DEFT_TS_LANE_CPUS = prevCpus;
   };
 
-  for (const command of LANE_COMMANDS) {
-    const resolved =
-      command[1] === "test" ? resolveTestLaneCommand(projectRoot, options.reporterExists) : command;
-    const argv = [pnpm, ...resolved];
-    // Soft-pass via lane-private env (vitest CAC rejects unknown CLI debt tokens).
-    // vitest.config reads DEFT_TS_LANE_COVERAGE_DEBT without DEFT_RELEASE_PREFLIGHT
-    // (sanitizeTsLaneEnv strips preflight). Refs #2573 / #2618.
-    const prevDebt = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
-    if (debtIssue !== null && command[1] === "test") {
-      process.env.DEFT_TS_LANE_COVERAGE_DEBT = String(debtIssue);
-    }
-    let result: RunnerResult;
-    const phaseStartedAt = now();
-    try {
-      result = runner(argv, projectRoot);
-    } finally {
+  try {
+    for (const command of LANE_COMMANDS) {
+      const resolved =
+        command[1] === "test"
+          ? resolveTestLaneCommand(projectRoot, options.reporterExists)
+          : command;
+      const argv = [pnpm, ...resolved];
+      // Soft-pass via lane-private env (vitest CAC rejects unknown CLI debt tokens).
+      // vitest.config reads DEFT_TS_LANE_COVERAGE_DEBT without DEFT_RELEASE_PREFLIGHT
+      // (sanitizeTsLaneEnv strips preflight). Refs #2573 / #2618.
+      const prevDebt = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
       if (debtIssue !== null && command[1] === "test") {
-        if (prevDebt === undefined) {
-          delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
-        } else {
-          process.env.DEFT_TS_LANE_COVERAGE_DEBT = prevDebt;
+        process.env.DEFT_TS_LANE_COVERAGE_DEBT = String(debtIssue);
+      }
+      let result: RunnerResult;
+      const phaseStartedAt = now();
+      try {
+        result = runner(argv, projectRoot);
+      } finally {
+        if (debtIssue !== null && command[1] === "test") {
+          if (prevDebt === undefined) {
+            delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+          } else {
+            process.env.DEFT_TS_LANE_COVERAGE_DEBT = prevDebt;
+          }
         }
       }
-    }
-    const phaseName = command[1] ?? "step";
-    out(formatLanePhaseLine(phaseName, now() - phaseStartedAt));
-    const code = result.status;
-    // A null status means the child was terminated by a signal (SIGKILL / OOM /
-    // SIGTERM) before it could exit. Mapping that to 0 would silently pass a
-    // half-run lint/test on a memory-constrained machine, so treat it as a hard
-    // failure -- this mirrors the Python oracle, whose returncode is negative
-    // (non-zero) for a signal-killed process.
-    if (code === null) {
-      if (result.error) {
+      const phaseName = command[1] ?? "step";
+      out(formatLanePhaseLine(phaseName, now() - phaseStartedAt));
+      const code = result.status;
+      // A null status means the child was terminated by a signal (SIGKILL / OOM /
+      // SIGTERM) before it could exit. Mapping that to 0 would silently pass a
+      // half-run lint/test on a memory-constrained machine, so treat it as a hard
+      // failure -- this mirrors the Python oracle, whose returncode is negative
+      // (non-zero) for a signal-killed process.
+      if (code === null) {
+        if (result.error) {
+          out(
+            `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed to start: ${result.error.message}`,
+          );
+          return 1;
+        }
         out(
-          `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed to start: ${result.error.message}`,
+          `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` was killed by ${result.signal ?? "a signal"} before exit -- treating as failure.`,
         );
-        restoreLaneEnv();
         return 1;
       }
-      out(
-        `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` was killed by ${result.signal ?? "a signal"} before exit -- treating as failure.`,
-      );
-      restoreLaneEnv();
-      return 1;
+      if (code !== 0) {
+        out(`[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed (exit ${code}).`);
+        return code;
+      }
     }
-    if (code !== 0) {
-      out(`[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed (exit ${code}).`);
-      restoreLaneEnv();
-      return code;
-    }
+    out(formatLanePhaseLine("lane", now() - laneStartedAt));
+    return 0;
+  } finally {
+    restoreLaneEnv();
   }
-  out(formatLanePhaseLine("lane", now() - laneStartedAt));
-  restoreLaneEnv();
-  return 0;
 }

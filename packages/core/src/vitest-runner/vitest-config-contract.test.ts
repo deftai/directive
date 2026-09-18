@@ -297,6 +297,13 @@ describe("ts:check-lane release-host timeline (#4744 leftover)", () => {
         coverageMergeReportMs: 1_400_000,
       }).costClass,
     ).toBe("coverage-merge-report");
+    expect(
+      nameNextCostClass({
+        unitCompleteMs: 1_200_000,
+        spawnHeavyCompleteMs: 1_200_000,
+        coverageMergeReportMs: 1_320_000,
+      }).costClass,
+    ).toBe("coverage-merge-report");
   });
 
   it("emits project and coverage timeline without changing last-file format", () => {
