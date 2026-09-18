@@ -21,6 +21,10 @@ import {
   resolveOccupancySessionId,
 } from "../session/occupancy.js";
 import {
+  hostIdentityFallsBackToExplicitOwner,
+  resolveHookHostIdentity,
+} from "./classify/host-session-identity.js";
+import {
   decideHook,
   formatHookHostArgv,
   type HookPolicySeams,
@@ -383,5 +387,199 @@ describe("Grok child argv --host remainder (#4409)", () => {
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-unavailable" });
     expect(decision.message).toContain("hook --host claude");
+  });
+});
+
+describe("Grok vendor-compat occupancy owner (#4708)", () => {
+  const PAYLOAD_RAW = "01a0b008-c21f-79e1-b6fd-9ade8fd67bef";
+  const GROK_FROM_PAYLOAD = canonicalHostSessionId("grok", PAYLOAD_RAW);
+  const CLAUDE_FROM_PAYLOAD = canonicalHostSessionId("claude", PAYLOAD_RAW);
+
+  function claudeWriteDecision(root: string, environ: NodeJS.ProcessEnv, occupancyOwner: string) {
+    return decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, "src", "app.ts") },
+          session_id: PAYLOAD_RAW,
+        },
+        environ,
+      },
+      seams({ verifyRitual: readyRitual(occupancyOwner) }),
+    );
+  }
+
+  it("maps --host claude plus GROK_HOOK_EVENT plus payload session_id to host:grok:v1 of those bytes", () => {
+    expect(
+      resolveHookHostIdentity(
+        "claude",
+        { session_id: PAYLOAD_RAW },
+        { GROK_HOOK_EVENT: "PreToolUse" },
+      ),
+    ).toEqual({
+      status: "ok",
+      provider: "grok",
+      rawSessionId: PAYLOAD_RAW,
+      sessionId: GROK_FROM_PAYLOAD,
+      message: null,
+    });
+    expect(GROK_FROM_PAYLOAD).toBe("host:grok:v1:MDFhMGIwMDgtYzIxZi03OWUxLWI2ZmQtOWFkZThmZDY3YmVm");
+  });
+
+  it("does not read GROK_SESSION_ID when GROK_HOOK_EVENT remaps the Claude payload", () => {
+    expect(
+      resolveHookHostIdentity(
+        "claude",
+        { session_id: PAYLOAD_RAW },
+        { GROK_HOOK_EVENT: "PreToolUse", GROK_SESSION_ID: "other-grok-env" },
+      ),
+    ).toMatchObject({ status: "ok", provider: "grok", sessionId: GROK_FROM_PAYLOAD });
+  });
+
+  it("keeps leftover GROK_SESSION_ID without GROK_HOOK_EVENT as host:claude:v1 of payload session_id", () => {
+    expect(
+      resolveHookHostIdentity(
+        "claude",
+        { session_id: PAYLOAD_RAW },
+        { GROK_SESSION_ID: "leftover-env" },
+      ),
+    ).toEqual({
+      status: "ok",
+      provider: "claude",
+      rawSessionId: PAYLOAD_RAW,
+      sessionId: CLAUDE_FROM_PAYLOAD,
+      message: null,
+    });
+  });
+
+  it("does not treat argv claude as a host-env fallback when GROK_HOOK_EVENT is set", () => {
+    const missing = resolveHookHostIdentity("claude", {}, { GROK_HOOK_EVENT: "PreToolUse" });
+    expect(missing).toMatchObject({ status: "missing", provider: "claude", sessionId: null });
+    expect(hostIdentityFallsBackToExplicitOwner("claude", missing)).toBe(false);
+  });
+
+  it("presents the Claude-payload grok owner on vendor-compat --host claude Write", () => {
+    const root = leasedRoot(GROK_FROM_PAYLOAD);
+    const decision = claudeWriteDecision(
+      root,
+      { GROK_HOOK_EVENT: "PreToolUse" },
+      GROK_FROM_PAYLOAD,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(decision.message ?? "").not.toContain("host:claude:");
+    expect(decision.message ?? "").not.toContain("presented no session identity");
+  });
+
+  it("fail-closes when occupancy records the grok owner and --host claude Write would present Claude", () => {
+    const root = leasedRoot(GROK_FROM_PAYLOAD);
+    const leftover = claudeWriteDecision(
+      root,
+      { GROK_SESSION_ID: "leftover-env" },
+      GROK_FROM_PAYLOAD,
+    );
+    expect(leftover).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(leftover.message).toContain(GROK_FROM_PAYLOAD);
+    expect(leftover.message).toContain(CLAUDE_FROM_PAYLOAD);
+    const remapped = claudeWriteDecision(
+      root,
+      { GROK_HOOK_EVENT: "PreToolUse" },
+      GROK_FROM_PAYLOAD,
+    );
+    expect(remapped).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("keeps same-tree two-session refuse when leftover GROK_SESSION_ID has no GROK_HOOK_EVENT", () => {
+    const leftoverGrok = canonicalHostSessionId("grok", "leftover-env");
+    const root = leasedRoot(leftoverGrok);
+    const decision = claudeWriteDecision(root, { GROK_SESSION_ID: "leftover-env" }, leftoverGrok);
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(decision.message).toContain(leftoverGrok);
+    expect(decision.message).toContain(CLAUDE_FROM_PAYLOAD);
+  });
+
+  it("rewrites --host claude session:start to the payload grok owner when GROK_HOOK_EVENT is set", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-4708-lifecycle-"));
+    temps.push(root);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          session_id: PAYLOAD_RAW,
+          tool_input: { command: "deft session:start", cwd: root },
+        },
+        environ: { GROK_HOOK_EVENT: "PreToolUse" },
+      },
+      seams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.updatedInput).toMatchObject({
+      command: `deft session:start --session-id=${GROK_FROM_PAYLOAD}`,
+    });
+  });
+
+  it("does not attach --host cursor lifecycle rewrite when GROK_HOOK_EVENT is set", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-4708-cursor-"));
+    temps.push(root);
+    const skipped = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          conversation_id: "cursor-conversation",
+          tool_input: { command: "deft session:start", cwd: root },
+        },
+        environ: { GROK_HOOK_EVENT: "PreToolUse" },
+      },
+      seams(),
+    );
+    expect(skipped.verdict).toBe("allow");
+    expect(skipped.updatedInput).toBeUndefined();
+    const rewritten = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Bash",
+          conversation_id: "cursor-conversation",
+          tool_input: { command: "deft session:start", cwd: root },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(rewritten.verdict).toBe("allow");
+    expect(rewritten.updatedInput).toMatchObject({
+      command: `deft session:start --session-id=${canonicalHostSessionId("cursor", "cursor-conversation")}`,
+    });
+  });
+
+  it("names hook --host claude on identity denials after the grok remap", () => {
+    const root = leasedRoot(GROK_FROM_PAYLOAD);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, "src", "app.ts") },
+          session_id: PAYLOAD_RAW,
+        },
+        environ: { GROK_HOOK_EVENT: "PreToolUse", DEFT_SESSION_ID: "some-other-session" },
+      },
+      seams({ verifyRitual: readyRitual(GROK_FROM_PAYLOAD) }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
+    expect(decision.message).toContain("hook --host claude");
+    expect(decision.message).toContain(GROK_FROM_PAYLOAD);
   });
 });

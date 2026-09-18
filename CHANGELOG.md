@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Grok vendor-compat `--host claude` occupancy owner is `host:grok:v1` of payload `session_id` when `GROK_HOOK_EVENT` is set (#4708).** Write presents that grok owner. Leftover `GROK_SESSION_ID` without `GROK_HOOK_EVENT` stays Claude. `--host cursor` does not attach lifecycle rewrite on `GROK_HOOK_EVENT`. Native `--host grok` missing `GROK_SESSION_ID` stays #4125. Tracking #4708.
+
 ### Removed
 
 ## [0.119.3] - 2026-09-18

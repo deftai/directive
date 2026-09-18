@@ -2496,6 +2496,9 @@ function attachLifecycleIdentityRewrite(
 ): HookDecision {
   if (decision.verdict !== "allow") return decision;
   if (!hostAcceptsUpdatedInput(input.host)) return decision;
+  if (input.host === "cursor" && (input.environ ?? process.env).GROK_HOOK_EVENT?.trim()) {
+    return decision;
+  }
   const lifecycle = inspectExactLifecycleCommand(input.payload);
   if (lifecycle === null) {
     const hinted = hintUninspectableLifecycleCommand(input.payload);

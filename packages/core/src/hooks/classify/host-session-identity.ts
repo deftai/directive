@@ -103,6 +103,7 @@ function resolvedHostIdentity(
  *
  * - Codex: payload `session_id` (parent and subagents share it).
  * - Claude Code: payload `session_id` (`agent_id` is not the owner key).
+ *   When GROK_HOOK_EVENT is set, that field is canonicalized as grok (#4708).
  * - Cursor: payload `conversation_id`; simultaneous `session_id` must agree.
  * - Grok: hook process `GROK_SESSION_ID` (#3873). The payload `session_id` is
  *   deliberately not read -- that contract is unverified.
@@ -153,6 +154,9 @@ export function resolveHookHostIdentity(
         provider,
         `${provider} hook payload ${session.status === "missing" ? "omits" : "has invalid"} ${source.field}.`,
       );
+    }
+    if (provider === "claude" && environ.GROK_HOOK_EVENT?.trim()) {
+      return resolvedHostIdentity("grok", session.value);
     }
     return resolvedHostIdentity(provider, session.value);
   }
