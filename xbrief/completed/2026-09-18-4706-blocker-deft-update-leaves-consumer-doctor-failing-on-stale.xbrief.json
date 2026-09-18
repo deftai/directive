@@ -1,0 +1,488 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4706",
+    "updated": "2026-09-18T18:13:32Z"
+  },
+  "plan": {
+    "title": "BLOCKER: deft update leaves consumer doctor failing on stale deposit files and AGENTS.md",
+    "status": "completed",
+    "narratives": {
+      "Description": "BLOCKER: deft update leaves consumer doctor failing on stale deposit files and AGENTS.md",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4706",
+      "Overview": "## Summary\nThe prescribed consumer repair, `deft update`, restored missing validator tasks but did not produce a healthy deposit. Immediately afterward, `deft doctor --full` still exited 1, reporting 23 package-absent files and a stale managed AGENTS.md section. Doctor recommends running the same update command again.\n\nObserved in one existing consumer checkout on 2026-09-17. A clean-install reproduction has not been attempted; the root cause is not established.\n\n## Environment\n- macOS, zsh 5.9; npm-managed consumer with a namespaced Deft Taskfile include.\n- CLI engine before repair: `@deftai/directive-core@0.119.1`.\n- Deposited `@deftai/directive-content` before repair: `0.104.0`.\n- Root package.json devDependency: `@deftai/directive: ^0.104.0`.\n- Working tree contained existing framework policy/managed-file changes, with no staged files or product-code edits. The update used the documented dirty-tree/no-stage option; existing files were backed up first.\n\n## Affected flow and reproduction\n1. Start a mutation session in the existing consumer with `deft session:start`.\n2. Run `deft verify:session-ritual -- --tier=gated`. The doctor step blocks code-writing.\n3. Run `deft doctor --full`. The initial error is consumer gate integrity: these tasks are not defined in `tasks/verify.yml`:\n   - `verify:evaluator-surface`\n   - `verify:observable-scope`\n   - `verify:intent-constraint`\n   - `verify:consumer-test-lane`\n4. Follow the printed recovery using `deft update --allow-dirty-no-stage --yes`.\n5. Immediately run `deft doctor --full` again.\n\n## Actual result after update\n- Engine and deposited content both report `0.119.1`.\n- All four previously missing validators are now present in `.deft/core/tasks/verify.yml`.\n- Doctor still exits **1** and prints:\n\n```text\nDeposit hygiene: fail -- 23 package-absent file(s) in .deft/core (not shipped by @deftai/directive-content). Examples: contracts/deposit-required-paths.json, contracts/design-critique.md, contracts/issue-eval.md, docs/SUPPORT.md, docs/capabilities.md (+18 more). Run `directive update` to auto-prune these stale deposit files (#2804).\n```\n\nIt also warns:\n\n```text\nAGENTS.md managed section is stale -- Run `deft agents:refresh`.\n```\n\nAdditional version evidence: root package.json and package-lock.json remained byte-identical to their backups, including the `^0.104.0` devDependency. Doctor reports `Version reconciliation: engine 0.119.1, content 0.119.1, pin none -- no committed package.json pin to reconcile against`. This is an observation, not a claim that a caret range must count as an exact pin.\n\n## Expected result\nThe documented repair should leave the package-managed deposit consistent with the installed content and refresh the managed AGENTS section, or explain why specific files cannot be pruned and give a distinct actionable recovery. A post-update doctor should not immediately send the operator back to the same apparently successful repair without explaining the remaining condition.\n\n## Related updater policy observation\nThe update also appended an audit entry with `actor=directive-update org-force-on-v2822` and enabled:\n- `valueFeedback`: enabled, emitEvents, sessionLine = true; upstreamPrompt = false.\n- `productSignal`: enabled = true; sinkRepo = `deftai/product-signal`.\n\nThese settings were absent before the repair. The command used `--yes`; no separate decision was presented for these reporting settings. This may be an intentional organization migration rather than the cause of the deposit failure; please clarify the intended behavior and disclosure. Existing disabled host-hook settings and branch-protection policy were preserved. No claim is made that enabling the settings transmitted data.\n\n## Alternatives attempted and recovery cost\n- Read-only diagnosis and the documented update repair were attempted.\n- The update required backups and manual inspection because the consumer had existing framework changes.\n- A second post-update doctor probe reproduced the same hygiene failure.\n- We stopped rather than repeatedly updating, deleting unclassified files, or weakening gates.\n- Consumer implementation remains paused pending a healthy preflight. No product code was changed, and nothing was staged, committed, or pushed by this repair.\n\nRefs #1709.\n\n",
+      "Labels": "bug, doctor, agent-experience, Upgrade Blocker, vendored-deposit, area:installer, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- post-update hygiene uses resolveInstalledContentRoot\n- print both roots when they differ\n- CHANGELOG [Unreleased] #4706"
+    },
+    "items": [
+      {
+        "title": "Post-update deft doctor --full deposit hygiene compares .deft/core against resolveInstalledContentRoot (the engine content tree runRefreshDeposit already reconciled), not resolveContentPackageRoot (project ancestor walk).",
+        "status": "completed",
+        "id": "clause:1",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Post-update deft doctor --full deposit hygiene compares .deft/core against resolveInstalledContentRoot (the engine content tree runRefreshDeposit already reconciled), not resolveContentPackageRoot (project ancestor walk)."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/doctor.ts",
+          "recorded_at": "2026-09-18T18:13:16.306Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "When those two roots diverge, print both; do not name directive update as the prune recovery for extras vs the walk-root.",
+        "status": "completed",
+        "id": "clause:2",
+        "effort": "S",
+        "narrative": {},
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/doctor.ts",
+          "recorded_at": "2026-09-18T18:13:16.306Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Do not add a third resolver. Do not recut contentRoot() prefer-package.",
+        "status": "completed",
+        "id": "clause:3",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not add a third resolver. Do not recut contentRoot() prefer-package."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/doctor.ts",
+          "recorded_at": "2026-09-18T18:13:16.306Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Choosing the walk-root as canonical is leftover #4710 and is out of this P1.",
+        "status": "completed",
+        "id": "clause:4",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Choosing the walk-root as canonical is leftover #4710 and is out of this P1."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/doctor.ts",
+          "recorded_at": "2026-09-18T18:13:16.306Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "AGENTS managed-section freshness stays a warning. If included, pass agentsRefreshPlan an explicit template root equal to the tree update just wrote. Primary recovery remains deft agents:refresh.",
+        "status": "completed",
+        "id": "clause:5",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, AGENTS managed-section freshness stays a warning. If included, pass agentsRefreshPlan an explicit template root equal to the tree update just wrote. Primary recovery remains deft agents:refresh."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/doctor.ts",
+          "recorded_at": "2026-09-18T18:13:16.306Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Do not widen to any-clean-worktree, tool-path vs commit-path, or org-force-on.",
+        "status": "completed",
+        "id": "clause:6",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not widen to any-clean-worktree, tool-path vs commit-path, or org-force-on."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/doctor.ts",
+          "recorded_at": "2026-09-18T18:13:16.306Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "Upgrade Blocker",
+      "vendored-deposit",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4706",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4706: BLOCKER: deft update leaves consumer doctor failing on stale deposit files and AGENTS.md"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, Post-update deft doctor --full deposit hygiene compares .deft/core against resolveInstalledContentRoot (the engine content tree runRefreshDeposit already reconciled), not resolveContentPackageRoot (project ancestor walk).",
+          "artifact_path": "packages/cli/src/doctor.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When those two roots diverge, print both; do not name directive update as the prune recovery for extras vs the walk-root.",
+          "artifact_path": "packages/cli/src/doctor.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, Do not add a third resolver. Do not recut contentRoot() prefer-package.",
+          "artifact_path": "packages/cli/src/doctor.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When this slice ships, Choosing the walk-root as canonical is leftover #4710 and is out of this P1.",
+          "artifact_path": "packages/cli/src/doctor.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, AGENTS managed-section freshness stays a warning. If included, pass agentsRefreshPlan an explicit template root equal to the tree update just wrote. Primary recovery remains deft agents:refresh.",
+          "artifact_path": "packages/cli/src/doctor.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "When this slice ships, Do not widen to any-clean-worktree, tool-path vs commit-path, or org-force-on.",
+          "artifact_path": "packages/cli/src/doctor.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/doctor.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/agents-md.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "Corroborating data point from another consumer (deftai/BestiMax) on 2026-09-17 — same failure, reached from a different starting state.\n\n**Reproduced from a fresh `git worktree`, not from a `deft update`.** I branched a linked worktree from the delivery branch (`origin/develop`), then `deft session:ready` failed the `doctor` gated step with the identical four missing validators (`evaluator-surface`, `observable-scope`, `intent-constraint`, `consumer-test-lane`). Engine `@deftai/directive-core@0.119.1`; the worktree's committed `.deft/core` content was `0.117.0`. So this isn't specific to a post-update state — *any* clean worktree whose committed deposit predates the engine is blocked on its first gated write. That matters because worktree-per-implementation is effectively mandatory for us (Directive refuses a mutation claim on the primary checkout), so the first gated write in a fresh worktree hits this.\n\n**The block is on the Write/Edit tool path, not the commit path.** `.githooks/pre-commit` runs only `verify:branch`, `verify:encoding`, `verify:forward-coverage`, `verify:vbrief-conformance`, `verify:xbrief-drift` — it does *not* run the consumer-gate-integrity check. So a shell `git commit` succeeds (those gates pass) while the session-ritual PreToolUse gate blocks Edit/Write. I authored the files via shell (`printf`/`python`) and committed with shell `git`, and merged the PR, without ever running `deft update`. Two takeaways: (a) the gate is inconsistent between the tool path and the commit path; (b) `deft update` was avoidable here — which matters because it's repo-wide destructive for consumers (cf. #3437) and, per this issue, doesn't heal anyway.\n\n**Companion symptom in the same worktree: `agent_hooks` drift.** Before `doctor`, `session:ready` first failed `agent_hooks` — the worktree's committed `.claude/settings.json` / `.cursor/hooks.json` matcher regexes lagged the live deposit by two tokens (`EditNotebook|edit_notebook`, `CallMcpTool|use_tool`). Same \"committed deposit artifacts lag the engine\" root; cleared by copying the primary checkout's current hook files in. Filing that facet separately.\n\nWe did not run `deft update` and did not weaken any gate. Environment: macOS, npm-managed consumer, local `core.hooksPath=.githooks`.\n\n",
+          "id": 5717745153,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5717745153",
+          "user": {
+            "login": "rockbox37",
+            "id": 32502675,
+            "node_id": "MDQ6VXNlcjMyNTAyNjc1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/32502675?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/rockbox37",
+            "html_url": "https://github.com/rockbox37",
+            "followers_url": "https://api.github.com/users/rockbox37/followers",
+            "following_url": "https://api.github.com/users/rockbox37/following{/other_user}",
+            "gists_url": "https://api.github.com/users/rockbox37/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/rockbox37/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/rockbox37/subscriptions",
+            "organizations_url": "https://api.github.com/users/rockbox37/orgs",
+            "repos_url": "https://api.github.com/users/rockbox37/repos",
+            "events_url": "https://api.github.com/users/rockbox37/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/rockbox37/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:23:14Z",
+          "updated_at": "2026-09-17T16:23:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Retested on the upgraded engine — still reproduces on **0.119.2**.\n\n- Engine: `@deftai/directive-core@0.119.2` (upgraded via `npm i -g @deftai/directive@latest`). The engine package bundles `@deftai/directive-content@0.119.2`.\n- Consumer: deftai/BestiMax, fresh `git worktree` off the delivery branch (`origin/develop`), committed deposit content 0.117.0.\n\nAfter the prescribed `deft update` (there's no `--with-network`/content flag on `update`), `deft doctor --full` still exits 1 with the identical error:\n\n```\n✗ check: consumer gate integrity failed (#3070)\n  - verify:evaluator-surface: Task \"evaluator-surface\" not defined in tasks/verify.yml\n  - verify:observable-scope:   Task \"observable-scope\" not defined in tasks/verify.yml\n  - verify:intent-constraint:  Task \"intent-constraint\" not defined in tasks/verify.yml\n  - verify:consumer-test-lane: Task \"consumer-test-lane\" not defined in tasks/verify.yml\n  recovery: ... Run `deft update` ...\n```\n\n**Why it can't heal:** `deft update` re-deposited content **0.117.0**, not the engine's bundled 0.119.2. Post-update evidence:\n- `.deft/GENERATION.json` → `\"contentVersion\": \"0.117.0\"`, `\"version\": \"v0.117.0\"`\n- `.deft/core/VERSION` → `tag: 'v0.117.0'`\n- `.deft/core/tasks/verify.yml` → **0** of the 4 required validators defined\n\nSo on 0.119.2 the doctor gate requires validators that `deft update` never deposits, because `update` doesn't advance the deposit to the engine's own bundled content (cf. #4692). The recovery instruction (`deft update`) is a no-op loop for this consumer. Reproducible; nothing was staged or committed and the test worktree was discarded afterward.\n\n",
+          "id": 5717910817,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5717910817",
+          "user": {
+            "login": "rockbox37",
+            "id": 32502675,
+            "node_id": "MDQ6VXNlcjMyNTAyNjc1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/32502675?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/rockbox37",
+            "html_url": "https://github.com/rockbox37",
+            "followers_url": "https://api.github.com/users/rockbox37/followers",
+            "following_url": "https://api.github.com/users/rockbox37/following{/other_user}",
+            "gists_url": "https://api.github.com/users/rockbox37/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/rockbox37/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/rockbox37/subscriptions",
+            "organizations_url": "https://api.github.com/users/rockbox37/orgs",
+            "repos_url": "https://api.github.com/users/rockbox37/repos",
+            "events_url": "https://api.github.com/users/rockbox37/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/rockbox37/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:36:17Z",
+          "updated_at": "2026-09-17T16:36:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because after the prescribed deft update, doctor --full still fails with 23 package-absent deposit files and a stale managed AGENTS section, and recovery names the same update command.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4706-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: issue names a defensible post-update healthy-deposit presumption; N>=3 is permitted by blast radius (Upgrade Blocker) and not selected.\n\nrefutation-target: the documented repair deft update leaves .deft/core matching the @deftai/directive-content tree that doctor compares, and refreshes the managed AGENTS section, so a post-update deft doctor --full is not a same-command recovery loop.\n\ntarget: #4706\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the 2026-09-17 consumer measurement: mutation session:start then verify:session-ritual gated doctor blocked; doctor --full missing four validators; deft update --allow-dirty-no-stage --yes; engine and deposited content then report 0.119.1 and the four validators are present; doctor --full still exits 1 with 23 package-absent files (examples: contracts/deposit-required-paths.json, contracts/design-critique.md, contracts/issue-eval.md, docs/SUPPORT.md, docs/capabilities.md) and AGENTS.md managed section stale; recovery is the same update. package.json stayed ^0.104.0; doctor pin none. Working tree had existing framework changes; files were backed up first.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/cli/src/doctor.ts evaluateDepositFileSetHygiene compares .deft/core against resolveContentPackageRoot(projectRoot) (ancestor walk for node_modules/@deftai/directive-content). Recovery line names directive update to auto-prune (#2804). --full with absent.length > 0 is exit 1.\n- packages/core/src/init-deposit/refresh.ts runRefreshDeposit resolves content via resolveInstalledContentRoot (import.meta.resolve of the engine content package), replaceTree plus reconcileDepositToContentPackage before VERSION stamp; already-current still reconciles without re-stamp. writeAgentsMd always runs after that, including already-current.\n- packages/core/src/deposit/resolve-content.ts resolveInstalledContentRoot is engine-module resolution, not the doctor ancestor walk.\n- packages/core/src/init-deposit/scaffold.ts writeAgentsMd skips when agentsRefreshPlan state is current (managed-section match against frameworkRoot=deftDir on live).\n- packages/core/src/doctor/main.ts runAgentsMdFreshnessCheck uses agentsRefreshPlan(projectRoot) with default frameworkRoot; stale/missing/absent warns AGENTS.md managed section is that state and names deft agents:refresh (warning, not the hygiene exit).\n- packages/core/src/init-deposit/hygiene.ts reconcile throws if package-absent remains after prune (refuse VERSION). Doctor can still fail later if its content root is a different tree than the one update reconciled against.\n\nRelated open: #4692 ingest-ready (update pin / printed recovery flag); leftover #4710 pin reconstitution. Comment 5717910817 (update re-deposited 0.117.0 on 0.119.2) is that leftover class, not this P1. #3437 is closed dry-run rewrite. Org-force-on valueFeedback/productSignal is a separate observation (#2822 / #1709), not P1.\n\nNo implement and no ingest from this parent.\n\n\n",
+          "id": 5718256057,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5718256057",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:03:41Z",
+          "updated_at": "2026-09-17T17:03:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation of the named target: that `deft update` leaves `.deft/core` matching the `@deftai/directive-content` tree doctor compares, and refreshes the managed AGENTS section, so a post-update `deft doctor --full` is not a same-command recovery loop.\n\nPin-read at dispatch-sha `edf1d698aafcf956cff08ad3ad14ff608505861a`. Dest has no `node_modules`; vitest did not execute. Checks below are function bodies plus the tests that lock them.\n\n## 1. blocks-the-design — \"the tree doctor compares\" is the wrong match identity\n\n**Evidence.** Hygiene and update do not share a content root.\n\n- `evaluateDepositFileSetHygiene` (`packages/cli/src/doctor.ts`) sets `contentRoot` from `resolveContentPackageRoot(projectRoot)`: ancestor walk for `node_modules/@deftai/directive-content`. `--full` with `absent.length > 0` is exit 1 in the CLI wrapper, outside `cmdDoctor`. Recovery copy is `Run \\`directive update\\` to auto-prune these stale deposit files (#2804).` The renderer does not print the compared root, even though the result object carries `contentRoot`.\n- `runRefreshDeposit` (`packages/core/src/init-deposit/refresh.ts`) sets `contentRoot` from `resolveInstalledContentRoot()`: `import.meta.resolve` of the engine's `@deftai/directive-content/package.json` (`packages/core/src/deposit/resolve-content.ts`). No `projectRoot` argument. `reconcileDepositToContentPackage(deftDir, contentRoot)` then `prunePackageAbsentDepositPaths` against that same root (`packages/core/src/init-deposit/hygiene.ts`). Remaining absent throws and refuses the VERSION stamp (#2913). `replaceTree` is full-swap against that same root.\n- Default doctor hygiene tests inject `options.contentRoot` (`packages/cli/src/doctor.test.ts`). Refresh tests inject `seams.resolveContentRoot`. No test asserts the two default resolvers return the same path.\n- Measured P1: engine and deposited content both report 0.119.1; four validators are present in `.deft/core/tasks/verify.yml`; then 23 package-absent files, examples `contracts/deposit-required-paths.json`, `contracts/design-critique.md`. Consumer-gate-integrity reads the deposit Taskfile (`runConsumerCheckGraphIntegrity` → `evaluateConsumerGateIntegrity(depositRoot)`), which is why the validators healed. Reconcile cannot have classified those 23 as absent against the engine tree it just stamped. Doctor found a different tree.\n\n**Failure mode.** Binding the sentence as written feeds doctor's ancestor-walk root into the existing #2804 prune. On the measured consumer that root is the older local package (caret `^0.104.0` still in package.json; doctor pin none), not the engine tree update just wrote. Update then deletes the 0.119.1 files doctor labeled package-absent, leaves VERSION at 0.119.1 over a file-set that matches the older package, and the next gated doctor can lose the validators this update restored. That is leftover #4710 / comment 5717910817 (update re-deposits 0.117.0 on 0.119.2), which this envelope already split off this P1.\n\n**Injection / swarm.** Content-root identity is process-module-graph vs project ancestor-walk vs `DEFT_ROOT` / `frameworkRoot()`. `.deft/core` is shared deposit state; prune is destructive. A dest worktree's ancestor walk can hit the primary checkout's `node_modules` (comment 5717745153: fresh worktree, committed deposit 0.117.0, engine 0.119.1). N dests / PATH / `npx` vs global CLI can prune different sets of the same deposit. Unifying by recutting `contentRoot()` is not available: `packages/core/src/content-root.test.ts` locks prefer-package over a flattened `.deft/core` for hybrid npm-engine (#11 / C4).\n\n**Disposition.** The presumption cannot bind as written. Bound-remedy must pick one existing resolver as canonical for the post-update `--full` hygiene gate — `resolveInstalledContentRoot` (engine, what update already reconciled) or `resolveContentPackageRoot` (project walk, what doctor uses today). The second winner absorbs #4710 and is out of this P1. Do not add a third resolver. Do not keep `directive update` as the prune recovery when the compared root is not the root reconcile just accepted. Existing diagnostic: `evaluateDepositFileSetHygiene` already returns `contentRoot`; print it, and print update's root, when they diverge.\n\nThe issue body already allowed an OR (healthy match, or distinct recovery that explains why prune cannot run). The named target dropped the OR and made doctor's tree the match identity. Keep the OR only if the distinct recovery is not `update` against the other tree.\n\n## 2. sharpens-framing — AGENTS is the same identity split, not the `--full` loop\n\n**Evidence.**\n\n- `cmdDoctor` exit is `errorCount > 0` (`packages/core/src/doctor/main.ts`). `runAgentsMdFreshnessCheck` emits `severity: \"warning\"` and names `recoveryLadderProse(\"agents-refresh\")`: primary `deft agents:refresh`, alt `deft update` for payload drift (`packages/core/src/doctor/constants.ts`). The `--full` exit 1 on this thread is the CLI hygiene wrapper, not this warning.\n- `writeAgentsMd` already runs after every refresh, including already-current (`refresh.ts`). It skips when `agentsRefreshPlan(projectDir, { frameworkRoot: deftDir })` is `current` (`packages/core/src/init-deposit/scaffold.ts`). `current` is body equality after stripping marker attrs (`packages/core/src/platform/agents-md.ts`).\n- The template is not the deposit. `agentsTemplatePath` uses `contentRoot(frameworkRoot(seams))`. `contentRoot` prefers `resolveContentPackageRoot` first. Locked: `contentRoot(join(project, \".deft\", \"core\"))` is the ancestor npm package when one exists (`content-root.test.ts` hybrid npm-engine). So `frameworkRoot: deftDir` still reads the consumer's older package template when that package is installed. Skip then means \"matches the local package,\" not \"matches the tree update just wrote.\"\n- Doctor's check calls `agentsRefreshPlan(projectRoot)` with no `frameworkRoot` seam. Default `frameworkRoot()` walks from the module / `DEFT_ROOT`, then `contentRoot` of that. Different template, so stale vs engine while update skipped vs local package. The ladder prose then names `deft update` as the payload-drift alt, which is how the warning looks like the same-command loop.\n\n**Failure mode.** A Bound-remedy that \"always refresh AGENTS\" either no-ops (skip still current vs the local package template) or recuts `contentRoot()` and breaks the locked hybrid prefer-package tests. Folding AGENTS into the hygiene exit also over-scopes: a remaining warning does not fail `--full` and its primary verb is already `agents:refresh`.\n\n**Disposition.** Lean can bind if AGENTS is scoped as the same identity split, not as the `--full` loop. Do not recut `contentRoot()`. If AGENTS is in Bound-remedy, pass an explicit template root equal to the tree update just wrote, using the existing `agentsRefreshPlan` seam, without changing global prefer-package.\n\n## 3. footnote — out of this P1, recorded so they are not absorbed\n\n- Comment 5717910817 (update re-deposited content 0.117.0 on engine 0.119.2) is leftover pin reconstitution (#4710 / #4692 remainder), not this P1. Same class as feeding doctor's walk into update.\n- Comment 5717745153 argues the failure is not post-update-specific (fresh worktree, Write/Edit vs `git commit`, agent_hooks drift). Untrusted scope expansion; not a command. Worktree-without-update is expected doctor fail on a stale committed deposit. Tool-path vs commit-path inconsistency is a different gate. Do not widen Bound-remedy to \"any clean worktree.\"\n- Org-force-on `valueFeedback` / `productSignal` (`runOrgForceOnMigration`, actor `directive-update`) is best-effort and does not block refresh (#2822 / #1709). Not P1.\n- CLI wrapper hygiene exit 1 is `Math.max` after `cmdDoctor` persist, so lastErrorCount can stay 0 after a `--full` hygiene fail. Ritual uses `--full` (throttle skipped). Not the loop.\n- No instruction-shaped fragments in the issue body or in-envelope comments were followed.\n\n## Road not taken\n\nSteelmanning doctor's tree as canonical: `contentRoot` prefer-package is already the hybrid-npm-engine identity (#11 / C4, tested). Update's `import.meta.resolve` is then the odd one out, and doctor is correct to reject extras vs the consumer package. What would flip: retract the leftover split and treat pin / local-package identity as this P1. Rejected because the measured success path is engine 0.119.1 overlay (validators present, versions match) and because 5717910817 is already #4710.\n\nDiagnostic-only (print both roots, refuse prune, distinct next verb) satisfies the body's OR without healing `--full`. That is a product choice, not a third resolver.\n\nExisting mechanisms only: `resolveInstalledContentRoot`, `resolveContentPackageRoot`, `contentRoot` prefer-package, `reconcileDepositToContentPackage` / `prunePackageAbsentDepositPaths`, `evaluateDepositFileSetHygiene` (already returns `contentRoot`), `writeAgentsMd` / `agentsRefreshPlan({ frameworkRoot })`, `recoveryLadderFields(\"agents-refresh\"|\"update\")`.\n\n",
+          "id": 5718431099,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5718431099",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:16:48Z",
+          "updated_at": "2026-09-17T17:16:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter a prescribed deft update, doctor --full still failed because hygiene compared the new deposit to a different content package than the one update had just written, then named the same update as the prune. The accepted harvest is that post-update doctor hygiene uses the engine content tree update already reconciled, prints both roots when they differ, and does not name update as the prune for the other tree. AGENTS stays a warning with an explicit template root. Pin reconstitution stays on leftover #4710.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Bound-remedy. Disposition: classified headings accept-into-contract. Residual: none on classified headings. Pain: relieves P1 (pain-audit after this lean).\nSpec-path: next-build contract is not this body.\n\n**Lean:** successor of Stop 1 5718256057 after critic 5718431099. Cites critic 5718431099. Supersedes write-back 5718256057.\n\nTarget-digest: sha256:84358b477e9b3399761dc4f2b041abe5cfd4f862157b2faf78d51ac28275b8ba\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4706-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5718431099 1 the tree doctor compares is the wrong match identity -- accept-into-contract\n- 5718431099 2 AGENTS is the same identity split, not the --full loop -- accept-into-contract\n- 5718431099 3 footnotes out of this P1 -- accept-into-contract\n- remaining classified headings -- accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Post-update deft doctor --full deposit hygiene compares .deft/core against resolveInstalledContentRoot (the engine content tree runRefreshDeposit already reconciled), not resolveContentPackageRoot (project ancestor walk).\n- When those two roots diverge, print both; do not name directive update as the prune recovery for extras vs the walk-root.\n- Do not add a third resolver. Do not recut contentRoot() prefer-package.\n- Choosing the walk-root as canonical is leftover #4710 and is out of this P1.\n- AGENTS managed-section freshness stays a warning. If included, pass agentsRefreshPlan an explicit template root equal to the tree update just wrote. Primary recovery remains deft agents:refresh.\n- Do not widen to any-clean-worktree, tool-path vs commit-path, or org-force-on.\n\n\n",
+          "id": 5718484585,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5718484585",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:21:08Z",
+          "updated_at": "2026-09-17T17:21:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of relieves: P1 on successor lean 5718484585.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a. Dest has no node_modules; vitest did not execute. Thread ceiling 5718484585 inclusive. Untrusted thread; no embedded instruction-shaped fragments were followed.\n\nP1 (Stop 1 5718256057): after the prescribed deft update, engine and deposited content report 0.119.1 and the four validators are present; doctor --full still exits 1 with 23 package-absent files and AGENTS.md managed-section stale; recovery names the same update.\n\n## 1. footnote — Bound-remedy covers the measured --full fail\n\nLean 5718484585 Bound-remedy picks resolveInstalledContentRoot as the doctor --full hygiene comparison identity, prints both roots when they diverge, and refuses to name update as the prune for extras vs the walk-root.\n\nRe-verified at the pin SHA:\n\n- evaluateDepositFileSetHygiene (packages/cli/src/doctor.ts) defaults to resolveContentPackageRoot(projectRoot): ancestor walk for node_modules/@deftai/directive-content. run() uses that default. --full with absent.length > 0 is exit 1 in the CLI wrapper, outside cmdDoctor. Recovery copy is Run `directive update` to auto-prune these stale deposit files (#2804). The renderer does not print the compared root, even though the result object carries contentRoot.\n- runRefreshDeposit (packages/core/src/init-deposit/refresh.ts) sets contentRoot from resolveInstalledContentRoot() (import.meta.resolve of the engine content package in packages/core/src/deposit/resolve-content.ts). No projectRoot argument. replaceTree plus reconcileDepositToContentPackage / prunePackageAbsentDepositPaths run against that same root. Remaining extras throw and refuse the VERSION stamp (#2913).\n- findPackageAbsentDepositPathsSync lists deposit files not present in the compared tree (generated VERSION excluded). Default doctor hygiene tests inject options.contentRoot; refresh tests inject seams.resolveContentRoot. No test asserts the two default resolvers return the same path.\n\nOn the measured consumer those roots diverged. Update stamped 0.119.1 against the engine tree, so extras vs that tree cannot remain after reconcile. Doctor then classified 23 extras vs the walk-root (examples: contracts/deposit-required-paths.json, contracts/design-critique.md). Switching the --full comparison to the engine tree makes those 23 in-package. evaluateInstalledDepositClosure compares declared C1 paths against .deft/core itself, not the walk-root, so it is not the remaining --full fail.\n\nExisting seam: EvaluateDepositFileSetOptions.contentRoot. Do not add a third resolver. Do not recut contentRoot() prefer-package.\n\n## 2. footnote — AGENTS stays a warning; the explicit template root is already in the harvest\n\ncmdDoctor exit is errorCount (severity === \"error\") only (packages/core/src/doctor/main.ts). runAgentsMdFreshnessCheck emits severity: \"warning\" and recoveryLadderProse(\"agents-refresh\"): primary deft agents:refresh, update as the payload-drift alt. A remaining warning does not keep --full at exit 1.\n\nwriteAgentsMd already runs after every refresh, including already-current, and skips when agentsRefreshPlan({ frameworkRoot: deftDir }) is current. That deftDir path still prefer-packages to the local tree (agentsTemplatePath -> contentRoot(frameworkRoot)). Bound-remedy already requires passing agentsRefreshPlan an explicit template root equal to the tree update just wrote (existing AgentsMdSeams.frameworkRoot or readTemplate). \"If included\" is not a skip: AGENTS is in this harvest. Primary recovery remains deft agents:refresh.\n\n## 3. footnote — leftover pin reconstitution stays out\n\nComment 5717910817 (update re-deposited content 0.117.0 on engine 0.119.2) remains leftover #4710 / #4692 remainder. Aligning doctor to resolveInstalledContentRoot does not make update deposit the engine bundled 0.119.2 when that resolver itself returns the older local package. Not this P1.\n\nComment 5717745153 (fresh worktree without update, Write/Edit vs git commit, agent_hooks drift) stays out. Org-force-on valueFeedback / productSignal stays out.\n\n## 4. footnote — implementation notes that do not recut harvest\n\nresolveInstalledContentRoot is async; evaluateDepositFileSetHygiene and CLI run() are sync. Await the existing function at the CLI entry and pass options.contentRoot; do not invent a sync twin.\n\n\"Post-update\" on the first harvest bullet is the measured scenario, not a new doctor flag. The comparison identity change is the --full hygiene default (or that run() call site), not a post-update-only branch.\n\n## Injection / swarm\n\nContent-root identity is process-module-graph vs project ancestor-walk vs DEFT_ROOT / frameworkRoot(). .deft/core is shared deposit state; #2804 prune is destructive. A dest worktree ancestor walk can hit a primary checkout node_modules (5717745153). Bound-remedy keeps prune identity on the engine tree update already reconciled and prints the walk-root when it diverges, so dest PATH / npx / global CLI cannot name update as prune-against-the-other-tree. Unifying by recutting contentRoot() remains forbidden (hybrid npm-engine lock, packages/core/src/content-root.test.ts).\n\n## Road not taken\n\nSteelmanning \"P1 unrelieved because AGENTS can still warn\": rejected. The --full exit 1 is the CLI hygiene wrapper, not that warning. The issue body already allowed a distinct recovery; harvest keeps agents:refresh as primary and already names the explicit template root on the existing write path.\n\nSteelmanning doctor walk-root as canonical: retract the leftover split and absorb #4710. Rejected; 5717910817 is already that leftover.\n\nNo blocks-the-design. No sharpens-framing that changes the harvested Bound-remedy. Bind map 5718484585 stays bindable.\n\n",
+          "id": 5718661757,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5718661757",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:35:33Z",
+          "updated_at": "2026-09-17T17:35:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Post-update doctor --full package-absent loop (P1) | covered: hygiene compares .deft/core to resolveInstalledContentRoot | pin-read packages/cli/src/doctor.ts evaluateDepositFileSetHygiene vs packages/core/src/init-deposit/refresh.ts resolveInstalledContentRoot at edf1d698; pain-audit 5718661757 heading 1 footnote-only |\n| AGENTS managed-section stale is not the --full exit | covered: warning plus explicit template root on writeAgentsMd | pin-read packages/core/src/doctor/main.ts runAgentsMdFreshnessCheck severity warning; scaffold.ts writeAgentsMd; pain-audit 5718661757 heading 2 |\n| Pin reconstitution / 0.117.0 re-deposit | out of this harvest (leftover #4710) | pain-audit 5718661757 heading 3; #4692 remainder |\n\nCites successor lean 5718484585. Empty disagreement set. Pain-audit 5718661757 targeted audit-targets: pain-P1 and was footnote-only.\n\n\n",
+          "id": 5718702902,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5718702902",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:38:40Z",
+          "updated_at": "2026-09-17T17:38:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter a prescribed deft update, doctor --full still failed because hygiene compared the new deposit to a different content package than the one update had just written, then named the same update as the prune. The accepted harvest is that post-update doctor hygiene uses the engine content tree update already reconciled, prints both roots when they differ, and does not name update as the prune for the other tree. AGENTS stays a warning with an explicit template root. Pin reconstitution stays on leftover #4710.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the successor lean, and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites accepted successor lean 5718484585. Verified-claims table comment 5718702902. Pain-audit 5718661757 (audit-targets: pain-P1) footnote-only. Round-1 critic 5718431099. Stop 1 5718256057. dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a.\n\n\n",
+          "id": 5718708614,
+          "html_url": "https://github.com/deftai/directive/issues/4706#issuecomment-5718708614",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:39:08Z",
+          "updated_at": "2026-09-17T17:39:08Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5489720673,
+        "origin": "deftai/directive#4706",
+        "id": "github.issue.5489720673"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "84358b477e9b3399761dc4f2b041abe5cfd4f862157b2faf78d51ac28275b8ba"
+      },
+      "kind": "story",
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/cli/src/doctor.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/agents-md.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/doctor --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "post-update hygiene uses resolveInstalledContentRoot",
+          "print both roots when they differ",
+          "CHANGELOG [Unreleased] #4706"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-post-update-hygiene",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5718484585; pin reconstitution stays #4710; do not recut contentRoot prefer-package."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4747,
+        "prBase": null,
+        "mergeCommit": "f33b8b8e24c9746d02f66532bd1815271771e969",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f33b8b8e24c9746d02f66532bd1815271771e969",
+        "verifiedAt": "2026-09-18T18:13:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T18:13:32Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T18:13:32Z"
+      }
+    },
+    "id": "github.issue.5489720673",
+    "updated": "2026-09-18T18:13:32Z"
+  }
+}
