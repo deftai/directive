@@ -1,0 +1,362 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4723",
+    "updated": "2026-09-18T16:35:32Z"
+  },
+  "plan": {
+    "title": "bug(doctor): throttle-skip stays clean after .deft/core is gone",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(doctor): throttle-skip stays clean after .deft/core is gone",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4723",
+      "Overview": "# Parent\n\nLeftover P1 from tracker #4679. Do not park on #4673. #4673 owns the warning-count skip line (lastFindingCount billed as clean), not missing-core invalidation. That arc already refused this remainder.\n\n# Summary\n\nDefault doctor throttle-skip does not call `classify().hasDeftCore`. After a remembered-clean 24h window, `rm -rf .deft/core` still prints `clean` and exits 0 until `directive doctor --full`. Full doctor already maps missing core to next-command `directive init`.\n\n# Field instance\n\nUAT Tester 5 C15 on #4679, @deftai/directive@0.119.1 Claude Code. After `rm -rf .deft/core`, default doctor printed `ran 1h ago, clean; --full forces`. `--full` then failed with Next command init.\n\n# Bound remedy\n\n- On the skip path (`packages/core/src/doctor/main.ts` `if (!fullMode)` then `decideThrottle` then `runLocalSignpostChecks`), invalidate when `classify().hasDeftCore` is false. Then a real probe / fail / Next command init (`plan.ts` already maps `!hasDeftCore` to init).\n- Existing extension point: `runLocalSignpostChecks` (#1997). `classify().hasDeftCore` already exists. Signpost checks today skip as canonical `.deft/core/` or greenfield and do not treat missing core as skip invalidation.\n- Do not bind always `--full`. Do not recut `CLEAN_WINDOW_HOURS`. Do not recut `isDirty` / `decideThrottle` to `lastFindingCount > 0` (that is #4673).\n- Do not harvest this with #4679 P2 (SessionStart kill-switch recovery) or P3 (bare `deft check` flags).\n\n# Related\n\n#4679 (tracker, leftover parent). #4673 (warning-count skip + README `--full`; not this). Lean 5716993446. Pain-audit 5716945735.\n\n",
+      "Labels": "bug, doctor, agent-experience, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "After `decision.skip`, if `classify(projectRoot).hasDeftCore` is false, do not take the skip return. Fall through into the existing probe and let `plan()` pick init / update / migrate. Keep the three fences: no always `--full`, no `CLEAN_WINDOW_HOURS`, no `lastFindingCount` / #4673.",
+        "status": "completed",
+        "id": "clause:1",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, After `decision.skip`, if `classify(projectRoot).hasDeftCore` is false, do not take the skip return. Fall through into the existing probe and let `plan()` pick init / update / migrate. Keep the three fences: no always `--full`, no `CLEAN_WINDOW_HOURS`, no `lastFindingCount` / #4673."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/main.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Keep signpost cites as the measured miss. Do not treat `runLocalSignpostChecks` / #1997 as the implementation site. Do not add a missing-core signpost warning as the fix.",
+        "status": "completed",
+        "id": "clause:2",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Keep signpost cites as the measured miss. Do not treat `runLocalSignpostChecks` / #1997 as the implementation site. Do not add a missing-core signpost warning as the fix."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/main.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Do not widen to empty leftover directories. Do not harvest with #4679 P2 or P3.",
+        "status": "completed",
+        "id": "clause:3",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not widen to empty leftover directories. Do not harvest with #4679 P2 or P3."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/main.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4723",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4723: bug(doctor): throttle-skip stays clean after .deft/core is gone"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4679",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4679"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When this slice ships, After `decision.skip`, if `classify(projectRoot).hasDeftCore` is false, do not take the skip return. Fall through into the existing probe and let `plan()` pick init / update / migrate. Keep the three fences: no always `--full`, no `CLEAN_WINDOW_HOURS`, no `lastFindingCount` / #4673.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, Keep signpost cites as the measured miss. Do not treat `runLocalSignpostChecks` / #1997 as the implementation site. Do not add a missing-core signpost warning as the fix.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, Do not widen to empty leftover directories. Do not harvest with #4679 P2 or P3.",
+          "artifact_path": "packages/core/src/doctor/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/doctor-state.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because default doctor throttle-skip still prints clean and exits 0 after rm -rf .deft/core until --full, because the skip path never asks classify().hasDeftCore.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4723-dc\norigin-ref: origin/master\ndispatch-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answer after missing-token ask: n>=3 on 4744 4709 4711, rest n=1. Specified leftover P1 from #4679; not panel spend. Do not recut #4673.\n\nrefutation-target: On the skip path (packages/core/src/doctor/main.ts if (!fullMode) then decideThrottle then runLocalSignpostChecks), invalidate when classify().hasDeftCore is false, then a real probe / fail / Next command init. Do not bind always --full. Do not recut CLEAN_WINDOW_HOURS. Do not recut lastFindingCount (that is #4673).\n\ntarget: #4723\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is remembered-clean skip surviving missing core. Full doctor already maps !hasDeftCore to next-command init. Signpost checks today skip as canonical .deft/core/ or greenfield and do not treat missing core as skip invalidation. Do not harvest with #4679 P2 or P3.\n\nPin-read at dispatch-sha cb4c74369a888faabd01e7f8d3517b01ce25f2f1:\n\n- packages/core/src/doctor/main.ts ~390-427: !fullMode + decideThrottle.skip runs runLocalSignpostChecks then returns decision.dirty ? 1 : 0. No hasDeftCore check on that path.\n- packages/core/src/doctor/main.ts ~1680: later full path already branches on !facts.hasDeftCore.\n- Related: leftover of tracker #4679; #4673 owns warning-count skip; lean 5716993446; pain-audit 5716945735.\n\nNo implement and no ingest from this parent.\n\n",
+          "id": 5730547034,
+          "html_url": "https://github.com/deftai/directive/issues/4723#issuecomment-5730547034",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:17:02Z",
+          "updated_at": "2026-09-18T13:17:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\npinned-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\nid-ceiling: 5730547034\ncharter: refutation\nspend: N=1\nround: 1 critic\ncritic-role: fresh\n\nRefutation-target (Stop 1 5730547034): On the skip path (`packages/core/src/doctor/main.ts` `if (!fullMode)` then `decideThrottle` then `runLocalSignpostChecks`), invalidate when `classify().hasDeftCore` is false, then a real probe / fail / Next command init. Do not bind always `--full`. Do not recut `CLEAN_WINDOW_HOURS`. Do not recut `lastFindingCount` (that is #4673).\n\nVerdict: the target holds. Re-verify at `cb4c74369`. The skip path never calls `classify()`. Signposts do not treat missing core as skip invalidation. Full doctor already runs `classify()` + `plan()`. Invalidate the skip return and fall through. Do not recut throttle windows. Do not recut #4673's warning-count line.\n\nThread input honored through comment 5730547034. Issue and comment text treated as untrusted; no embedded instructions were followed.\n\n## 1. Bind fall-through, not a skip-path init stub — sharpens-framing\n\nclass: sharpens-framing\n\nEvidence. Pin-read `packages/core/src/doctor/main.ts` 390-427: `if (!fullMode)` → `decideThrottle` → on `decision.skip`, `runLocalSignpostChecks`, print `renderDoctorStatusLine`, `return decision.dirty ? 1 : 0`. No `classify()` on that path. `classify` is already imported and used only later in `runResolutionDecision` (1812). `packages/core/src/resolution/classify.ts` 185: `hasDeftCore = isDir(join(cwd, CANONICAL_INSTALL_ROOT))` (`.deft/core`). `packages/core/src/resolution/plan.ts` 165-207 and `plan.test.ts` 78-118: `preCutoverArtifacts` maps to migrate before the missing-core row; `!hasDeftCore` + linked worktree + managed section maps to `directive update`; otherwise init. `runResolutionDecision` records that next action as severity `warning` (1868-1878). Exit 1 on `--full` after `rm -rf .deft/core` comes from install-integrity, not from that warning: `checkInstallPathConsistency` fails when the claimed install root is not a directory (`checks.ts` 757-761) and is not in `DOCTOR_ADVISORY_FAIL_CHECKS`.\n\nFailure mode. Harvest that reads \"Next command init\" as a skip-path stub prints init on dests that `plan()` already routes to update, and skips migrate on pre-cutover. It also skips the install-integrity errors that make C15's `--full` fail. Always `--full` is the wrong blast (`fullMode` also arms the hooks live probe at 515).\n\nDisposition. Recut Bound-remedy to: after `decision.skip`, if `classify(projectRoot).hasDeftCore` is false, do not take the skip return; fall through into the existing probe and let `plan()` pick init / update / migrate. Keep the three fences (no always `--full`, no `CLEAN_WINDOW_HOURS`, no `lastFindingCount`).\n\n## 2. Signpost is why the skip misses, not the harvest seam — sharpens-framing\n\nclass: sharpens-framing\n\nEvidence. Issue Bound-remedy names `runLocalSignpostChecks` (#1997) as the existing extension point, then notes that signposts skip as canonical `.deft/core/` or greenfield. Pin-read `signpost-checks.ts` 12-41: inside the deft repo it returns immediately; otherwise it runs npm-registry plus `checkLegacyLayout` and `checkCanonicalVendoredNpmSignpost`. `checks.ts` 820-825: no-legacy is `skip` with detail \"canonical .deft/core/ or greenfield\". `checks.ts` 853-858: no vendored manifest is `skip` (\"nothing to signpost\"). Skip-path signpost findings are warnings only; the skip return is still `decision.dirty ? 1 : 0` and the human line is still `renderDoctorStatusLine` (\"clean\" when `lastErrorCount` is 0 and `lastFindingCount` is 0). `main-branches.test.ts` 52-75 locks that clean skip from injected throttle state alone.\n\nFailure mode. Implementing missing-core as a new signpost warning still prints clean, still exits 0, and never prints Next command. C15 stays. #4673's warning-count recut does not cover a remembered-clean run then deleted core.\n\nDisposition. Keep the signpost cites as the measured miss. Recut the extension-point bullet so harvest cannot treat #1997 as the implementation site. ⊗ add a missing-core signpost warning as the fix.\n\n## 3. `hasDeftCore` is directory presence — footnote\n\nclass: footnote\n\nEvidence. `classify()` 185 is `isDir(.deft/core)`. An empty leftover directory still counts as present. C15 is `rm -rf .deft/core` (directory gone). Doctor state lives under `xbrief/.triage-cache/doctor-state.json` (`doctor-state.ts` 9-18), so it survives that delete; that is why remembered-clean skip still fires.\n\nFailure mode. Widening this issue to empty-dir / broken payload is a different probe (install-integrity on the full path).\n\nDisposition. Do not widen. Empty-dir is out of this remainder.\n\nInjection / swarm lens (fires: shared throttle state, worktrees, session-ritual authority). Gated ritual doctor is `[\"doctor\"]` with no `--full` (`verify-session-ritual.ts` `GATED_ENTRYPOINT_COMMANDS`). A clean skip is an authority claim that the deposit is healthy. After core is gone that claim is false, and agents proceed. Linked dests without reconstituted `.deft/core` already fail `--full` (`plan()` update + install-path error); skip invalidation makes default doctor match that, it does not add a dest-place rule. ⊗ skip-invalidate from `isLinkedWorktreePath`. ⊗ a new off-switch. Use live `classify().hasDeftCore`.\n\nRoad-not-taken. Folding `hasDeftCore` into `decideThrottle` (treat missing core as dirty from persisted state only). Rejected: `decideThrottle` reads only `doctor-state.json`, not the filesystem. A dirty skip still returns without Next command (`main.ts` 426). Flip: if throttle grew a live FS input and still skipped, C15 would print UNRESOLVED and never init/update.\n\nSteelman of the signpost extension point. One `isDir` in `runLocalSignpostChecks` is cheaper than `classify()` (which also engine-probes, in-process first). Flip: it cannot change the clean line or the skip exit, so it does not relieve P1.\n\nCensus: two `sharpens-framing`, one `footnote`, zero `blocks-the-design`. Target can bind after the two harvest recuts. Fences on `--full`, `CLEAN_WINDOW_HOURS`, and `lastFindingCount` / #4673 stand.",
+          "id": 5730710024,
+          "html_url": "https://github.com/deftai/directive/issues/4723#issuecomment-5730710024",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:30:37Z",
+          "updated_at": "2026-09-18T13:30:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDefault doctor still prints clean after `.deft/core` is gone because the skip path never classifies. The target holds if harvest falls through into the existing probe instead of stubbing init on the skip path, and if signpost is not treated as the implementation site. Confirming this map recuts those two harvest lines. It does not recut #4673, throttle windows, or always `--full`.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4723 after round 1 sibling 1. Cites critic 5730710024. Supersedes write-back 5730547034.\n\nTarget-digest: sha256:5540087124c6df2eb7e09f69e5ffe81bef95f97b8b1266dfe6a6baa7e6bb8ee1\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4723-dc\norigin-ref: origin/master\ndispatch-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\nspend: N=1\nsiblings: 1\n\n## Takes\n\n- 1. Bind fall-through, not a skip-path init stub (critic 5730710024): accept-into-contract\n- 2. Signpost is why the skip misses, not the harvest seam (critic 5730710024): accept-into-contract\n\n## Bound remedy\n\n- After `decision.skip`, if `classify(projectRoot).hasDeftCore` is false, do not take the skip return. Fall through into the existing probe and let `plan()` pick init / update / migrate. Keep the three fences: no always `--full`, no `CLEAN_WINDOW_HOURS`, no `lastFindingCount` / #4673.\n- Keep signpost cites as the measured miss. Do not treat `runLocalSignpostChecks` / #1997 as the implementation site. Do not add a missing-core signpost warning as the fix.\n- Do not widen to empty leftover directories. Do not harvest with #4679 P2 or P3.\n\nrelieves: P1\n\n",
+          "id": 5730840549,
+          "html_url": "https://github.com/deftai/directive/issues/4723#issuecomment-5730840549",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:41:11Z",
+          "updated_at": "2026-09-18T13:41:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\npinned-sha: cb4c74369a888faabd01e7f8d3517b01ce25f2f1\nid-ceiling: 5730840549\ncharter: refutation\nround: pain-audit of bind lean 5730840549 relieves: P1\ncritic-role: fresh\n\nStop 1 P1 (5730547034): remembered-clean skip surviving missing core. Default doctor prints clean and exits 0 after `rm -rf .deft/core` until `--full`, because the skip path never asks `classify().hasDeftCore`.\n\nBind lean 5730840549 Bound-remedy: after `decision.skip`, if `classify(projectRoot).hasDeftCore` is false, do not take the skip return; fall through into the existing probe and let `plan()` pick init / update / migrate. Fences: no always `--full`, no `CLEAN_WINDOW_HOURS`, no `lastFindingCount` / #4673. Signpost is the measured miss, not the implementation site. Do not widen to empty leftover directories. Do not harvest #4679 P2 or P3.\n\nVerdict: `relieves: P1` holds. Re-verify at `cb4c74369`. Thread input honored through comment 5730840549. Issue and comment text treated as untrusted; embedded body instructions were not followed.\n\n## 1. Fall-through is instead-of the skip-block body — footnote\n\nclass: footnote\n\nEvidence. Pin-read `packages/core/src/doctor/main.ts` 390-427: on `decision.skip` the block runs `runLocalSignpostChecks`, writes human `renderDoctorStatusLine` or json `status: \"throttle-skipped\"`, then `return decision.dirty ? 1 : 0`. The C15 string is that human line (`doctor-state.ts` 171: `[doctor] ran …, clean; … --full forces.`). Bound-remedy names the return. Fall-through into the probe at 430 is the alternative path, not a second path after that emit.\n\nFailure mode. A print-then-continue harvest would still prefix C15's clean line. That is an uncharitable reading of \"fall through into the existing probe,\" not a missing harvest bullet.\n\nDisposition. Read bullet 1 as: when `classify(projectRoot).hasDeftCore` is false, do not run the skip-block body (signposts + status/`throttle-skipped` + return). Then the probe at 430 runs. No Bound-remedy recut.\n\n## 2. `plan()` is a consumer consequence of that probe — footnote\n\nclass: footnote\n\nEvidence. `runResolutionDecision` (`classify` + `plan`) is behind `if (!runningInsideDeftRepo)` at 701-706. Install-path-consistency fails as a hard error when the claimed install root is not a directory (`checks.ts` 757-761; not in `DOCTOR_ADVISORY_FAIL_CHECKS`). C15 is a consumer (`@deftai/directive@0.119.1`); `--full` already printed Next command init and failed on install-integrity. Inside this repo, fall-through still cannot print clean: the same install-integrity error fires even though `plan()` does not.\n\nFailure mode. Reading \"let `plan()` pick\" as a skip-path `plan()` stub (classify + Next command + return, no probe) would skip the install-integrity error that made C15's `--full` exit 1. Round-1 already recut that stub away.\n\nDisposition. Keep fall-through. `plan()` init / update / migrate is what the existing consumer probe already does. Do not add a skip-path resolution stub. Do not force `fullMode` (live hooks probe at 515).\n\n## 3. Orientation skip is a sibling, not this remainder — footnote\n\nclass: footnote\n\nEvidence. `packages/core/src/session/orientation-compression.ts` 181-195: `decideThrottle` then `renderDoctorStatusLine` and `ok: !dirty` with no `classify().hasDeftCore`. Same clean string, different entry. Stop 1 field instance is default `cmdDoctor`. Gated ritual is `[\"doctor\"]` with no `--full` (`verify-session-ritual.ts` `GATED_ENTRYPOINT_COMMANDS`), which is the cmdDoctor path this lean recuts.\n\nFailure mode. Widening P1 onto orientation is a second skip consumer. Empty leftover directories are already out of remainder.\n\nDisposition. Do not widen. C15 is cmdDoctor.\n\n## 4. Inverse-oracle fixture will fight a weak harvest — footnote\n\nclass: footnote\n\nEvidence. `main-branches.test.ts` 78-108: temp `--project-root` with no `.deft/core`, injected remembered-clean state, default `cmdDoctor`, expect exit 0 and throttle-skipped signpost advisory. That is C15 with the skip still taken.\n\nFailure mode. Keeping that assertion green re-learns skip-on-missing-core. Product fall-through will fail the test; that is the lock, not a reason to keep the skip return.\n\nDisposition. Recut the fixture with the product. Do not name the test file in Bound-remedy.\n\n## 5. `hasDeftCore` stays directory presence — footnote\n\nclass: footnote\n\nEvidence. `classify.ts` 185: `hasDeftCore = isDir(join(cwd, CANONICAL_INSTALL_ROOT))` (`.deft/core`). `classify` also engine-probes, reads pin, and detects app code. Doctor state lives under the triage-cache path (`doctor-state.ts` 9-18), so it survives `rm -rf .deft/core`. That is why remembered-clean skip still fires. `classify` is already imported in `main.ts` 32.\n\nFailure mode. Folding the boolean into `decideThrottle` still returns without Next command (`main.ts` 426). Calling seam-less `classify(projectRoot)` on the keep-skip path pays an engine probe the skip does not need; live C15 still classifies correctly because C15 is live FS. Empty leftover directory still counts as present; out of remainder.\n\nDisposition. Use `classify(projectRoot, seams).hasDeftCore` for the invalidate boolean (same `isDir` as later `runResolutionDecision`). Do not recut `decideThrottle`. Do not widen to empty-dir / broken payload.\n\nInjection / swarm lens (fires: skip-clean authority, shared throttle state, dest worktrees). Gated ritual doctor is `[\"doctor\"]` with no `--full`. A clean skip is an authority claim that the deposit is healthy. After core is gone that claim is false, and agents proceed. Bound-remedy invalidates from live `classify().hasDeftCore`, not from persisted throttle fields and not from `isLinkedWorktreePath`. Linked dests without reconstituted `.deft/core` already fail `--full` (`plan()` update + install-path error); skip invalidation makes default doctor match that. Shared state is `doctor-state.json` in the triage cache, which outlives the core delete; that is the skip's input, not the invalidate input. Critic-spawn / parent Job Object is not this target.\n\nRoad-not-taken. Skip-path `plan()` + return (print Next command, keep throttle). Rejected: it skips install-integrity, which is the C15 `--full` fail, and reopens the stub round-1 already recut. Flip: if the probe grew a missing-core-only short-circuit that still printed Next command and failed closed on claimed-root-not-a-dir, P1 would still relieve; that is an implementation cheapening, not a harvest change.\n\nSteelman of the signpost extension point. One `isDir` inside `runLocalSignpostChecks` is cheaper than `classify()`. Flip: skip-path signpost findings are warnings; the return is still `decision.dirty ? 1 : 0` and the human line is still `renderDoctorStatusLine`. It cannot relieve P1. Bound-remedy already keeps signpost as the measured miss.\n\nCensus: five `footnote`, zero `sharpens-framing`, zero `blocks-the-design`. `relieves: P1` stands. Bind map stays bindable. Fences on `--full`, `CLEAN_WINDOW_HOURS`, `lastFindingCount` / #4673, empty-dir, and #4679 P2/P3 stand.",
+          "id": 5730954965,
+          "html_url": "https://github.com/deftai/directive/issues/4723#issuecomment-5730954965",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:50:27Z",
+          "updated_at": "2026-09-18T13:50:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Method | Status |\n|---|---|---|\n| Default doctor skip path never calls classify() | pin-read doctor/main.ts 390-427 | verified |\n| Bound-remedy fall-through when hasDeftCore is false reaches plan() | pin-read classify.ts; plan.ts; pain-audit 5730954965 | verified |\n| Signpost is the measured miss, not the harvest seam | pin-read signpost-checks.ts; pain-audit 5730954965 | verified |\n| Pain-audit of relieves: P1 is footnote-only | critic 5730954965 audit-targets: pain-P1 | verified |\n| Round-1 classified headings accepted on successor lean 5730840549 | REST comment 5730840549 takes | verified |\n\nMethod: pin-read at cb4c74369 plus REST of in-envelope comments. Same-family agreement is not confirmatory.\n\n",
+          "id": 5731018441,
+          "html_url": "https://github.com/deftai/directive/issues/4723#issuecomment-5731018441",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:55:33Z",
+          "updated_at": "2026-09-18T13:55:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDefault doctor skip must fall through when .deft/core is gone, and signpost is not the fix. Pain-audit of that relief was footnote-only.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5730840549\nverified-claims table 5731018441\n\n",
+          "id": 5731018643,
+          "html_url": "https://github.com/deftai/directive/issues/4723#issuecomment-5731018643",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T13:55:34Z",
+          "updated_at": "2026-09-18T13:55:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5490854279,
+        "origin": "deftai/directive#4723",
+        "id": "github.issue.5490854279"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5540087124c6df2eb7e09f69e5ffe81bef95f97b8b1266dfe6a6baa7e6bb8ee1"
+      },
+      "kind": "story",
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/doctor-state.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/doctor/doctor-state.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "skip path falls through when hasDeftCore is false",
+          "signpost is not the implementation site",
+          "CHANGELOG [Unreleased] #4723"
+        ],
+        "depends_on": [
+          "github.issue.5489720673"
+        ],
+        "conflict_group": "doctor-skip-missing-core",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5730840549; no always --full, no CLEAN_WINDOW_HOURS, no lastFindingCount / #4673."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4764,
+        "prBase": null,
+        "mergeCommit": "40f79397c807962a70aff39e374b856d891f0ace",
+        "deliveryBranch": "master",
+        "deliveryCommit": "40f79397c807962a70aff39e374b856d891f0ace",
+        "verifiedAt": "2026-09-18T16:35:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T16:35:32Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T16:35:32Z"
+      }
+    },
+    "id": "github.issue.5490854279",
+    "updated": "2026-09-18T16:35:32Z"
+  }
+}

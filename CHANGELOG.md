@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Leftover-complete #4723 after PR 4764.** Moves the brief to `xbrief/completed/` with `kind: test` evidence on bound clause ids. Refs #4723.
+
+- **Leftover-complete #4708 after PR 4763.** Moves the brief to `xbrief/completed/` with `kind: test` evidence on bound clause ids. Refs #4708.
 - **Leftover-complete #4628 after PR 4681.** Moves the brief to `xbrief/completed/` with `kind: test` evidence on bound clause ids. Refs #4628.
 
 ### Fixed

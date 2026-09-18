@@ -1,0 +1,611 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4708",
+    "updated": "2026-09-18T16:36:43Z"
+  },
+  "plan": {
+    "title": "bug(occupancy,hooks): Grok vendor-compat --host claude claims occupancy as host:claude:v1",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(occupancy,hooks): Grok vendor-compat --host claude claims occupancy as host:claude:v1",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4708",
+      "Overview": "## Parent\n\n#4028 (occupancy reliability tracker). This is not a recut of #4125 and not a reopen of #4565.\n\n## Summary\n\nOn Grok Build, vendor-compat runs the deposited Claude hook (`deft-hook --host claude`) inside a Grok hook process. Occupancy owner is still `argv --host` plus that host's identity source (#4409), so a Grok session claims `host:claude:v1:<base64url(GROK_SESSION_ID)>`. Spawn dest already uses handler-runtime identity (#4272). Occupancy does not. #4565 shipped only refuse-mint copy (`uniquePrintCompanion`) and left this namespace on the floor.\n\n## Measured (2026-09-17, Grok Build, win32, `deftai/directive` primary)\n\n- Agent shell: `GROK_SESSION_ID=01a0b008-c21f-79e1-b6fd-9ade8fd67bef`. `DEFT_SESSION_ID` unset.\n- Grok-shaped owner would be `host:grok:v1:MDFhMGIwMDgtYzIxZi03OWUxLWI2ZmQtOWFkZThmZDY3YmVm`.\n- Bare `task session:start --steal …` denied: `hook --host claude`, re-run with `--session-id=host:claude:v1:MDFhMGIwMDgtYzIxZi03OWUxLWI2ZmQtOWFkZThmZDY3YmVm` (same raw id, Claude namespace).\n- Steal with that id succeeded. `.deft/occupancy.json` and `.deft/ritual-state.json` both recorded that Claude owner. `identity_provenance=explicit`. occupancy `host=none`.\n\nThe raw id reached the hook. The provider label did not.\n\n## Mechanism\n\n`resolveHookHostIdentity` keys on argv `--host`. `--host claude` reads payload `session_id` and canonicalizes as `host:claude:v1:…`. Grok vendor-compat stuffs this session's id into that Claude field. Explicit `--session-id` then wins occupancy claim, so the CLI grok bind (`GROK_SESSION_ID` present on a dual-host tree, #4565 test) never speaks.\n\n`isGrokHookProcess` (`GROK_HOOK_EVENT` or `GROK_SESSION_ID`) already flips spawn dest to the Grok contract when argv `--host` is claude or cursor (#4272). Occupancy owner resolution does not call it.\n\nSetting `DEFT_SESSION_ID` in the agent shell cannot fix this: the hook is a sibling, a prefixed env-assign is uninspectable, and inherited `DEFT_SESSION_ID` must not beat a derived host owner (#4409 / #4066). `--session-id=host:grok:v1:…` against `--host claude` is identity-conflict, not a relabel. `[compat.claude] hooks = false` was dropped as a #4565 leftover.\n\n## Bound remedy\n\nWhen this hook process has `GROK_HOOK_EVENT`, resolve the occupancy owner as grok (`GROK_SESSION_ID` → `host:grok:v1:…`) even if argv `--host` is `claude` or `cursor`. Keep `hook --host <flag>` on identity denials (#4409). Dual-handler last-rewrite on one Grok spawn must agree grok, not Claude.\n\n## Dual-host constraint (do not recut later)\n\nOccupancy must not treat leftover `GROK_SESSION_ID` as proof of Grok. Spawn dest ORs that variable; occupancy cannot. `GROK_SESSION_ID` is visible in the Grok agent shell, so a Claude Code window or a Grok-spawned `claude` critic can inherit it (#4431 class). `GROK_HOOK_EVENT` is runner-injected and reserved.\n\nA real Claude Code session on the same machine, same deposit files, has no `GROK_HOOK_EVENT` and must keep payload `session_id` → `host:claude:v1`. Same-tree two-session refuse stays (#3433 / #4066). Do not disable Claude hook scan to make Grok work.\n\n## Out of scope\n\n- #4125 (sibling missing `GROK_SESSION_ID`; host contract; do not implement here; do not close from this issue).\n- Reopening #4565 (refuse-mint copy shipped).\n- Honouring `DEFT_SESSION_ID` over a derived host owner.\n- `[compat.claude] hooks = false` as the product fix.\n- UUID mint. Spawn dest recut. Cross-host grant on the primary.\n\n## Acceptance\n\n- Grok Build vendor-compat on, mutation `session:start` / steal on a Grok process records `host:grok:v1:<base64url(GROK_SESSION_ID)>` in occupancy and ritual, not `host:claude:v1:…` of the same bytes.\n- A Claude Code hook process without `GROK_HOOK_EVENT` still claims `host:claude:v1:<payload session_id>`.\n- Inherited `GROK_SESSION_ID` without `GROK_HOOK_EVENT` does not flip a Claude process to a grok owner.\n- Identity denials still name `hook --host <flag>`.\n- Conditional close this number only. Do not close #4125 or #4565.\n\n## Related\n\nRefs #4272, #4409, #4565, #4125, #4431, #3873, #4028.\r\n\n",
+      "Labels": "bug, agent-experience, grok-build, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- GROK_HOOK_EVENT plus --host claude owner is host:grok:v1 of payload session_id\n- Write presents that grok owner\n- CHANGELOG [Unreleased] #4708"
+    },
+    "items": [
+      {
+        "title": "When GROK_HOOK_EVENT is set, argv --host claude occupancy owner is canonicalHostSessionId of grok plus payload session_id, not readHostEnvIdentity of GROK_SESSION_ID. Do not call isGrokHookProcess. Do not read grok payload session_id. Do not treat argv claude as a host-env fallback.",
+        "status": "completed",
+        "id": "clause:1",
+        "effort": "S",
+        "narrative": {},
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Fixture: --host claude plus GROK_HOOK_EVENT plus payload session_id plus no GROK_SESSION_ID yields host:grok:v1 of those payload bytes. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1. Same-tree two-session refuse stays.",
+        "status": "completed",
+        "id": "clause:2",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Fixture: --host claude plus GROK_HOOK_EVENT plus payload session_id plus no GROK_SESSION_ID yields host:grok:v1 of those payload bytes. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1. Same-tree two-session refuse stays."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "P1 owner is that Claude-payload grok owner. Vendor-compat --host claude Write/Edit must present it. Fail-closed if occupancy.json records that grok owner and --host claude Write still presents Claude, nothing, or unavailable. Native --host grok missing GROK_SESSION_ID stays leftover on #4125. Do not close #4125 or #4565.",
+        "status": "completed",
+        "id": "clause:3",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, P1 owner is that Claude-payload grok owner. Vendor-compat --host claude Write/Edit must present it. Fail-closed if occupancy.json records that grok owner and --host claude Write still presents Claude, nothing, or unavailable. Native --host grok missing GROK_SESSION_ID stays leftover on #4125. Do not close #4125 or #4565."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "When GROK_HOOK_EVENT is set, --host cursor does not attach lifecycle rewrite. Drop the P1-bytes comparison. Cursor Write stranger-deny stays leftover, not this AC. Do not require the cursor handler to present P1 bytes it cannot see.",
+        "status": "completed",
+        "id": "clause:4",
+        "effort": "S",
+        "narrative": {},
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "title": "Identity denials still name hook --host flag. Do not honour DEFT_SESSION_ID over a derived host owner. Do not disable Claude hook scan. Spawn dest recut stays out of scope.",
+        "status": "completed",
+        "id": "clause:5",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When this slice ships, Identity denials still name hook --host flag. Do not honour DEFT_SESSION_ID over a derived host owner. Do not disable Claude hook scan. Spawn dest recut stays out of scope."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-18T16:32:49.962Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "grok-build",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4708",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4708: bug(occupancy,hooks): Grok vendor-compat --host claude claims occupancy as host:claude:v1"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4125",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4125"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4272",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4272"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When GROK_HOOK_EVENT is set, argv --host claude occupancy owner is canonicalHostSessionId of grok plus payload session_id, not readHostEnvIdentity of GROK_SESSION_ID. Do not call isGrokHookProcess. Do not read grok payload session_id. Do not treat argv claude as a host-env fallback.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When this slice ships, Fixture: --host claude plus GROK_HOOK_EVENT plus payload session_id plus no GROK_SESSION_ID yields host:grok:v1 of those payload bytes. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1. Same-tree two-session refuse stays.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When this slice ships, P1 owner is that Claude-payload grok owner. Vendor-compat --host claude Write/Edit must present it. Fail-closed if occupancy.json records that grok owner and --host claude Write still presents Claude, nothing, or unavailable. Native --host grok missing GROK_SESSION_ID stays leftover on #4125. Do not close #4125 or #4565.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When GROK_HOOK_EVENT is set, --host cursor does not attach lifecycle rewrite. Drop the P1-bytes comparison. Cursor Write stranger-deny stays leftover, not this AC. Do not require the cursor handler to present P1 bytes it cannot see.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When this slice ships, Identity denials still name hook --host flag. Do not honour DEFT_SESSION_ID over a derived host owner. Do not disable Claude hook scan. Spawn dest recut stays out of scope.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is shared append-only; this slice adds one [Unreleased] entry."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Grok vendor-compat runs deft-hook --host claude, occupancy owner is still argv --host plus that host's identity source, so a Grok session claims host:claude:v1 of GROK_SESSION_ID bytes. Spawn dest already uses handler-runtime identity. Occupancy does not.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4708-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\n\ncharter: refutation\nspend: N=1\nspend-why: operator add 4708 onto each separately; independent single-seat Grok critic arc, not panel spend.\n\nrefutation-target: when this hook process has GROK_HOOK_EVENT, occupancy owner is grok (GROK_SESSION_ID to host:grok:v1) even if argv --host is claude or cursor; occupancy must not treat leftover GROK_SESSION_ID without GROK_HOOK_EVENT as proof of Grok.\n\ntarget: #4708\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the 2026-09-17 Grok Build win32 measurement: GROK_SESSION_ID present, DEFT_SESSION_ID unset. Bare task session:start --steal denied with hook --host claude and re-run --session-id=host:claude:v1 of the same raw id. Steal with that id succeeded. occupancy.json and ritual-state.json recorded the Claude owner. identity_provenance=explicit. occupancy host=none. The raw id reached the hook. The provider label did not.\n\nPin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- packages/core/src/hooks/classify/host-session-identity.ts resolveHookHostIdentity keys on argv host. --host claude reads payload session_id and canonicalizes host:claude:v1. Grok source is host-env GROK_SESSION_ID only when host is grok.\n- packages/core/src/hooks/readonly.ts isGrokHookProcess is GROK_HOOK_EVENT or GROK_SESSION_ID. appliesGrokSpawnDestContract uses it for dest occupancy (#4272). Occupancy owner resolution does not call it.\n- packages/core/src/session/occupancy.ts uniquePrintCompanion is refuse-mint copy (#4565). It does not relabel a Claude argv owner to grok.\n\nParent #4028. Not a recut of #4125. Not a reopen of #4565. No implement and no ingest from this parent.\r\n\n",
+          "id": 5717654730,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5717654730",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:17:39Z",
+          "updated_at": "2026-09-17T16:17:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation target (Stop 1 5717654730): when this hook process has GROK_HOOK_EVENT, occupancy owner is grok (GROK_SESSION_ID to host:grok:v1) even if argv --host is claude or cursor; occupancy must not treat leftover GROK_SESSION_ID without GROK_HOOK_EVENT as proof of Grok.\n\nThe leftover-GROK_SESSION_ID half survives. The GROK_HOOK_EVENT to GROK_SESSION_ID to host:grok:v1 half does not bind as written.\n\n## 1. GROK_HOOK_EVENT cannot mint a grok occupancy owner from hook env the sibling may not have\n\nblocks-the-design\n\nEvidence. Pin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- resolveHookHostIdentity (packages/core/src/hooks/classify/host-session-identity.ts) keys on argv --host. --host claude / --host cursor are payload sources. GROK_HOOK_EVENT is not read. GROK_SESSION_ID is read only when argv host is grok.\n- hostIdentityFallsBackToExplicitOwner uses that same argv host. A payload host that omits or is remapped away from its field is not the grok host-env missing path; the existing test pins that a payload provider must not fall back to the ambient owner.\n- attachLifecycleIdentityRewrite still runs for argv claude/cursor (UPDATED_INPUT_WIRE_HOSTS; grok argv does not rewrite). It binds --session-id from resolveHookHostIdentity. Explicit --session-id then wins resolvePresentedIdentity / resolveOccupancySessionClaim.\n- isGrokHookProcess ORs GROK_HOOK_EVENT or GROK_SESSION_ID. Spawn dest (appliesGrokSpawnDestContract) uses that OR. Occupancy owner resolution does not call it. Re-ran host-session-identity, dispatcher-grok-identity, readonly, occupancy-mint-refusal: 4 files, 164 passed.\n- Open #4125 remains blocked(grok-build,hooks): deft-hook sibling does not receive GROK_SESSION_ID. Closed #4565 was the claim-grok / Write-cannot-present deadlock on that miss.\n- Live this critic process (Grok agent shell, not the hook sibling): GROK_HOOK_EVENT empty, GROK_SESSION_ID=01a0b029-759d-7060-8e6c-243ba772fd46, GROK_AGENT=1, DEFT_SESSION_ID unset. That is leftover GROK_SESSION_ID without GROK_HOOK_EVENT on the shell side.\n\nThe 2026-09-17 measurement proves the raw id reached the hook as a Claude-namespace owner (host:claude:v1: of those bytes). --host claude produces that owner from payload session_id. It does not prove GROK_SESSION_ID was in the hook environ: argv claude never consults that variable, so env-present-and-ignored and env-absent-payload-stuffed are observationally identical.\n\nFailure mode. Implement the target as written: on GROK_HOOK_EVENT, switch occupancy source to grok host-env.\n\nIf the vendor-compat hook has GROK_HOOK_EVENT and lacks GROK_SESSION_ID (the #4125 sibling contract, and the only transport the measurement actually exercised is the Claude payload field):\n\n- Write-gate identity becomes grok-missing. Callers still pass argv --host claude into hostIdentityFallsBackToExplicitOwner, which is false for a payload host, so the actor is occupancy-identity-unavailable rather than the Claude payload owner that steal used.\n- Lifecycle rewrite either denies session:start or skips bind. The CLI shell still has GROK_SESSION_ID, so ambientHostSessionOwner / resolveOccupancySessionClaim can still record host:grok:v1 in occupancy.json. The write gate cannot present it. That is the #3873 / #4565 self-deadlock, now on the vendor-compat handler.\n- Dual-handler last-rewrite on one Grok spawn (claude + cursor deposits, grok argv does not rewrite) stops agreeing on a presentable owner and agrees on unavailable.\n\nIf the hook does have GROK_SESSION_ID, the target works. The lean has no fixture that distinguishes those two hook environs, and it tells implementers not to recut #4125.\n\nInjection / swarm. Occupancy owner is shared state: steal, grant, ritual bind, dest leases. Changing the namespace without a presentable write-gate owner splits claimer and presenter across every tool-call write. Copying isGrokHookProcess to occupancy would also collapse a Grok-spawned claude critic that inherited leftover GROK_SESSION_ID (this shell has that variable; it does not have GROK_HOOK_EVENT) onto the parent grok owner — steal-from-self / same-tree two-session refuse (#3433 / #4066), not a relabel.\n\nDisposition. Do not bind. Recut Bound remedy so occupancy presentation (write gate) and claim (lifecycle rewrite / CLI) agree on one grok-shaped owner for GROK_HOOK_EVENT, including the GROK_HOOK_EVENT-without-GROK_SESSION_ID hook environ, without calling isGrokHookProcess. Acceptance must fail closed if occupancy.json records grok and Write still presents Claude, nothing, or unavailable.\n\n## 2. Acceptance records the lease, not the presenter\n\nsharpens-framing\n\nEvidence. Issue Acceptance: mutation session:start / steal records host:grok:v1 in occupancy and ritual. dispatcher-grok-identity.test.ts already warns that occupancy admission is not Write success. resolveOccupancySessionClaim on a shell with GROK_SESSION_ID already returns the grok owner (occupancy-mint-refusal dual-host bind test). uniquePrintCompanion is refuse-mint copy (#4565); it does not relabel a Claude argv owner.\n\nFailure mode. A PR can satisfy the recorded AC by stopping the Claude --session-id rewrite and letting CLI ambient grok bind, while vendor-compat --host claude Write still presents host:claude:v1 from payload or presents nothing. Operators see a grok lease and a stranger denial. Swarm children grant/steal the grok id and still cannot write.\n\nDisposition. Bind only if Acceptance also requires: vendor-compat --host claude / --host cursor Write/Edit on that Grok process presents the same grok owner the lease holds; identity denials still name hook --host <flag> (already formatHookHostArgv(input.host)). Keep #4125 / #4565 unclosed.\n\n## 3. Two Grok predicates already exist; occupancy is the missing third, not a clone\n\nsharpens-framing\n\nEvidence. Inventory, do not add a new identity concept:\n\n- Occupancy owner: resolveHookHostIdentity + argv host + payload / GROK_SESSION_ID.\n- Grok dest: isGrokHookProcess OR GROK_HOOK_EVENT/GROK_SESSION_ID, plus spawn_subagent tool name (appliesGrokSpawnDestContract, #4272).\n- CLI claim: ambientHostSessionOwner reads only HOST_ENV_IDENTITY_VARIABLES = GROK_SESSION_ID. GROK_HOOK_EVENT is not a claim source and is not a declared-host marker (GROK_AGENT, GROK_SESSION_ID).\n- Deny text: formatHookHostArgv is argv --host, independent of resolved provider.\n\nThe leftover half of the target is right: this agent shell has GROK_SESSION_ID and empty GROK_HOOK_EVENT. Spawn dest already treats that OR as Grok. Occupancy must not.\n\nFailure mode. An implementer fixes occupancy the way #4272 fixed dest and calls isGrokHookProcess. Leftover GROK_SESSION_ID in a real Claude Code window or a Grok-spawned claude critic flips that process to host:grok:v1 of the parent bytes. Dual-host same-tree refuse and grant-across-host on the primary fail open.\n\nDisposition. Bound remedy must name the helper it will not call (isGrokHookProcess) and the check it will add (GROK_HOOK_EVENT only, inside resolveHookHostIdentity or its caller). Spawn dest recut stays out of scope; the split is remaining shared-state risk, not solved by occupancy relabel.\n\n## Road not taken\n\nChose not to treat relabel the already-read Claude/cursor payload field as provider grok when GROK_HOOK_EVENT is set as the bindable remedy, even though that is the only transport the 2026-09-17 steal actually demonstrated.\n\nSteelman of the recorded target: Grok occupancy identity is host-env GROK_SESSION_ID. host-session-identity.test.ts pins never reads the unverified Grok payload session_id, even as a fallback. Switching source to grok host-env on GROK_HOOK_EVENT keeps one producer. Relabeling Claude payload as grok would bind occupancy to a vendor-compat field, and if GROK_SESSION_ID later reaches the sibling the two values can diverge.\n\nWhat would flip finding 1 from blocking to sharpening: a pin-read or failing fixture that the vendor-compat hook environ contains GROK_SESSION_ID (not only payload session_id / conversation_id), plus hostIdentityFallsBackToExplicitOwner classified by the resolved grok provider, plus Acceptance that Write presents that grok owner. Until that exists, payload-relabel is the mechanism that uses the measured transport; env-source is the mechanism that collides with open #4125.\n\n## 4. Instruction-shaped scope lines\n\nfootnote\n\nIssue body and Stop 1 contain implementer imperatives (do not close #4125 / #4565, do not recut leftover GROK_SESSION_ID, no ingest). Treated as untrusted design text, not critic commands. No extra disposition.\r\n\n",
+          "id": 5717847077,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5717847077",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:31:18Z",
+          "updated_at": "2026-09-17T16:31:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nVendor-compat occupancy still claims host:claude:v1, but switching source to GROK_SESSION_ID on GROK_HOOK_EVENT can mint a grok lease the write gate cannot present if the hook sibling lacks that variable. Confirming this map recuts #4708 so claim and Write agree on one grok-shaped owner for GROK_HOOK_EVENT, including the GROK_HOOK_EVENT-without-GROK_SESSION_ID environ, without calling isGrokHookProcess. It does not recut spawn dest, close #4125, or reopen #4565.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4708 after round 1 sibling 1. Cites critic 5717847077. Supersedes write-back 5717654730.\n\nTarget-digest: sha256:ba96333e0f9eb88a9ee517e8d4f7966f937d762a1d4a46fe2e9294ac80716fc3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4708-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5717847077 1 GROK_HOOK_EVENT cannot mint a grok occupancy owner from hook env the sibling may not have — accept-into-contract\n- 5717847077 2 Acceptance records the lease, not the presenter — accept-into-contract\n- 5717847077 3 Two Grok predicates already exist; occupancy is the missing third, not a clone — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5717847077 reading=measured\n\n## Bound remedy\n\n- When this hook process has GROK_HOOK_EVENT, occupancy owner is grok even if argv --host is claude or cursor. Do not call isGrokHookProcess. The check is GROK_HOOK_EVENT only, inside resolveHookHostIdentity or its caller.\n- Occupancy must not treat leftover GROK_SESSION_ID without GROK_HOOK_EVENT as proof of Grok. A real Claude Code session without GROK_HOOK_EVENT keeps payload session_id to host:claude:v1. Same-tree two-session refuse stays.\n- Claim (lifecycle rewrite / CLI occupancy.json) and presentation (write gate) agree on one grok-shaped owner for GROK_HOOK_EVENT, including the GROK_HOOK_EVENT-without-GROK_SESSION_ID hook environ. Acceptance fail-closes if occupancy.json records grok and Write still presents Claude, nothing, or unavailable.\n- Vendor-compat --host claude / --host cursor Write/Edit on that Grok process presents the same grok owner the lease holds. Identity denials still name hook --host <flag>.\n- Dual-handler last-rewrite on one Grok spawn must agree grok, not Claude.\n- Keep hook --host <flag> on identity denials (#4409). Do not honour DEFT_SESSION_ID over a derived host owner. Do not disable Claude hook scan. Do not close #4125 or #4565. Spawn dest recut stays out of scope.\r\n\n",
+          "id": 5717858911,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5717858911",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:32:14Z",
+          "updated_at": "2026-09-17T16:32:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5717858911 relieves: P1 against Bound-remedy. Pin SHA edf1d698aafcf956cff08ad3ad14ff608505861a. Re-ran host-session-identity, dispatcher-grok-identity, readonly, occupancy-mint-refusal: 4 files, 164 passed.\n\nP1 (Stop 1 5717654730) is the measured steal: argv --host claude rewrote --session-id=host:claude:v1 of the GROK_SESSION_ID bytes; occupancy.json and ritual recorded that Claude owner. The raw id reached the hook. The provider label did not.\n\n## 1. Bound-remedy has no producer for a grok owner when the hook sibling omits GROK_SESSION_ID\n\nblocks-the-design\n\nEvidence. Pin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- resolveHookHostIdentity keys on argv --host. --host claude / cursor read payload session_id / conversation_id. GROK_HOOK_EVENT is not read. GROK_SESSION_ID is read only when argv host is grok (packages/core/src/hooks/classify/host-session-identity.ts; HOST_IDENTITY_SOURCES.grok is host-env GROK_SESSION_ID).\n- host-session-identity.test.ts pins: grok never reads the unverified payload session_id, even as a fallback. hostIdentityFallsBackToExplicitOwner is argv-host: missing grok env falls back; missing payload field on claude/cursor does not.\n- attachLifecycleIdentityRewrite still runs for argv claude/cursor (UPDATED_INPUT_WIRE_HOSTS). argv grok does not rewrite. Explicit --session-id then wins resolvePresentedIdentity / resolveOccupancySessionClaim. That is the P1 steal path.\n- isGrokHookProcess ORs GROK_HOOK_EVENT or GROK_SESSION_ID. Occupancy owner resolution does not call it. GROK_HOOK_EVENT has no assignment site in this tree; Directive only reads it.\n- dispatcher-grok-identity.test.ts reproduces the observed owner from --host claude plus payload session_id, and denies Write when the lease is live and no identity resolves.\n- Live this critic process (agent shell, not the hook sibling): GROK_HOOK_EVENT empty, GROK_SESSION_ID=01a0b036-4392-7503-91ef-df1abd0343e0, GROK_AGENT=1, DEFT_SESSION_ID unset.\n\nBound-remedy says: on GROK_HOOK_EVENT, occupancy owner is grok even if argv is claude or cursor; check inside resolveHookHostIdentity or its caller; claim and Write agree on one grok-shaped owner including the GROK_HOOK_EVENT-without-GROK_SESSION_ID environ; do not call isGrokHookProcess; do not close #4125.\n\nThe grok resolver cannot mint that no-env owner. Delegating to host grok reads GROK_SESSION_ID and, when the sibling omits it, returns missing. Callers then deny occupancy-identity-unavailable because hostIdentityFallsBackToExplicitOwner(argv claude, missing) is false. That turns P1's successful steal into a failed steal. It is not a grok label on the bytes that already arrived as Claude payload session_id.\n\nFailure mode. Implement Bound-remedy as written by switching source to grok host-env on GROK_HOOK_EVENT.\n\n- Vendor-compat --host claude steal (the P1 path) denies unavailable when the sibling lacks GROK_SESSION_ID. occupancy.json never records host:grok:v1 of the measured bytes.\n- If rewrite is skipped and the CLI shell still has GROK_SESSION_ID, resolveOccupancySessionClaim records host:grok:v1 while vendor-compat Write presents Claude payload or nothing. Steal/grant/ritual bind the grok lease; Write cannot present it. Occupancy owner is shared state: that split is steal-from-self / grant-across-a-stranger on every tool-call write.\n- Reading grok payload session_id to fill the hole recuts the never-read pin. Calling isGrokHookProcess recuts leftover GROK_SESSION_ID without GROK_HOOK_EVENT into a grok owner (this shell is that leftover). Treating unqualified Write-presents-nothing as native --host grok recuts #4125.\n\nInjection / swarm. Occupancy owner is identity and shared state (steal, grant, ritual, dest leases). A grok lease the vendor-compat presenter cannot show splits every mutation gate. Leftover GROK_SESSION_ID on a real Claude Code window or a Grok-spawned claude critic without GROK_HOOK_EVENT must stay payload host:claude:v1; collapsing that onto the parent grok owner fails same-tree two-session refuse open.\n\nDisposition. Do not bind relieves: P1. Recut Bound-remedy to name the producer that P1 already demonstrated: when GROK_HOOK_EVENT is set, argv --host claude|cursor occupancy owner is canonicalHostSessionId(\"grok\", payload field), not readHostEnvIdentity(GROK_SESSION_ID). Do not call isGrokHookProcess. Do not read grok payload session_id. Do not treat argv claude as a host-env fallback. Fail-closed AC is vendor-compat --host claude|cursor Write/Edit presents that same grok owner. Native --host grok missing GROK_SESSION_ID stays #4125. Identity denials still name hook --host <flag>.\n\n## 2. Dual-handler last-rewrite \"agree grok\" is provider-only\n\nsharpens-framing\n\nEvidence. rewriteExactLifecycleCommand returns conflict when an existing --session-id differs from the requested owner. Claude payload session_id and cursor conversation_id are different fields. Canonicalizing both as grok with different raw ids is still two owners. P1 steal succeeded with a Claude owner, so the cursor handler did not win that command; after both stamp grok they can start conflicting.\n\nFailure mode. One Grok spawn runs vendor-compat claude then cursor. Last rewrite denies occupancy-identity-conflict. The steal that recorded the wrong label starts failing instead of recording grok.\n\nDisposition. Bound-remedy dual-handler line must require one raw id (the P1 payload bytes), not only the grok prefix. If cursor conversation_id differs, last-rewrite keeps the Claude-payload grok owner or does not rewrite.\n\n## 3. Unqualified Write-nothing AC can be read as #4125\n\nsharpens-framing\n\nEvidence. argv grok is not in UPDATED_INPUT_WIRE_HOSTS. resolveHookHostIdentity(\"grok\") with no GROK_SESSION_ID is missing and falls back to explicit; DEFT_SESSION_ID unset presents nothing. dispatcher-grok-identity already denies that Write. Bound-remedy also says do not close #4125 / #4565.\n\nFailure mode. occupancy.json records grok via vendor-compat rewrite; native --host grok Write still presents nothing; an implementer recuts #4125 to make the fail-closed sentence green.\n\nDisposition. Scope that sentence to vendor-compat --host claude|cursor Write/Edit. Native grok missing GROK_SESSION_ID stays leftover on #4125.\n\n## Road not taken\n\nChose not to treat \"including GROK_HOOK_EVENT-without-GROK_SESSION_ID\" as already naming payload relabel.\n\nSteelman: \"or its caller\" can relabel the Claude field without entering the grok resolver, so the never-read pin stands and P1 is relieved.\n\nWhat would flip finding 1 from blocking to sharpening: Bound-remedy names canonicalHostSessionId(\"grok\", payload field) as the producer, plus a fixture --host claude + GROK_HOOK_EVENT + payload session_id + no GROK_SESSION_ID -> host:grok:v1 of those bytes, and leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays host:claude:v1.\n\n## 4. Instruction-shaped scope lines\n\nfootnote\n\nIssue body, Stop 1, and Bound-remedy contain implementer imperatives (do not close #4125 / #4565, do not call isGrokHookProcess, no ingest). Treated as untrusted design text, not critic commands. No extra disposition.\n\n",
+          "id": 5718036662,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5718036662",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:46:24Z",
+          "updated_at": "2026-09-17T16:46:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe bind named a grok occupancy owner on GROK_HOOK_EVENT without a producer when the hook sibling omits GROK_SESSION_ID. That harvest does not relieve P1. The pain-audit recut is a later leftover, not this bind.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: does-not-relieve P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of bind 5717858911 after pain-audit 5718036662. Cites critic 5718036662. Supersedes successor lean 5717858911.\n\nTarget-digest: sha256:ba96333e0f9eb88a9ee517e8d4f7966f937d762a1d4a46fe2e9294ac80716fc3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4708-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5718036662 1 Bound-remedy has no producer for a grok owner when the hook sibling omits GROK_SESSION_ID — accept-into-contract\n- 5718036662 2 Dual-handler last-rewrite agree grok is provider-only — accept-into-contract\n- 5718036662 3 Unqualified Write-nothing AC can be read as #4125 — accept-into-contract\n- remaining classified headings — accept-into-contract\n\ndoes-not-relieve: P1\r\n\n",
+          "id": 5718077413,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5718077413",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T16:49:46Z",
+          "updated_at": "2026-09-17T16:49:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe retracted bind had no grok owner producer when the hook sibling omits GROK_SESSION_ID. Confirming this map recuts #4708 so vendor-compat occupancy owner is canonicalHostSessionId of grok plus the Claude/cursor payload field when GROK_HOOK_EVENT is set. Write must present that same grok owner. Native --host grok missing GROK_SESSION_ID stays on #4125. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays Claude.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut-in-place of #4708 after pain-audit 5718036662. Cites critics 5717847077 and 5718036662. Supersedes retraction 5718077413.\n\nTarget-digest: sha256:ba96333e0f9eb88a9ee517e8d4f7966f937d762a1d4a46fe2e9294ac80716fc3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4708-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5717847077 1 GROK_HOOK_EVENT cannot mint a grok occupancy owner from hook env the sibling may not have — accept-into-contract\n- 5717847077 2 Acceptance records the lease, not the presenter — accept-into-contract\n- 5717847077 3 Two Grok predicates already exist; occupancy is the missing third, not a clone — accept-into-contract\n- 5718036662 1 Bound-remedy has no producer for a grok owner when the hook sibling omits GROK_SESSION_ID — accept-into-contract\n- 5718036662 2 Dual-handler last-rewrite agree grok is provider-only — accept-into-contract\n- 5718036662 3 Unqualified Write-nothing AC can be read as #4125 — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5718036662 reading=measured\n\n## Bound remedy\n\n- When GROK_HOOK_EVENT is set, argv --host claude or cursor occupancy owner is canonicalHostSessionId of grok plus the payload field (claude session_id, cursor conversation_id), not readHostEnvIdentity of GROK_SESSION_ID. Do not call isGrokHookProcess. Do not read grok payload session_id. Do not treat argv claude as a host-env fallback.\n- Fixture: --host claude plus GROK_HOOK_EVENT plus payload session_id plus no GROK_SESSION_ID yields host:grok:v1 of those payload bytes. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1. Same-tree two-session refuse stays.\n- Claim (lifecycle rewrite / occupancy.json) and vendor-compat --host claude or cursor Write/Edit present that same grok owner. Fail-closed if occupancy.json records grok and that Write still presents Claude, nothing, or unavailable. Scope that sentence to vendor-compat. Native --host grok missing GROK_SESSION_ID stays leftover on #4125. Do not close #4125 or #4565.\n- Dual-handler last-rewrite requires one raw id (the P1 payload bytes), not only the grok prefix. If cursor conversation_id differs, last-rewrite keeps the Claude-payload grok owner or does not rewrite.\n- Identity denials still name hook --host flag. Do not honour DEFT_SESSION_ID over a derived host owner. Do not disable Claude hook scan. Spawn dest recut stays out of scope.\r\n\n",
+          "id": 5718925266,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5718925266",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T17:57:07Z",
+          "updated_at": "2026-09-17T17:57:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of recut-in-place bind comment 5718925266 `relieves: P1` against Bound-remedy. Pin SHA edf1d698aafcf956cff08ad3ad14ff608505861a.\n\nP1 (Stop 1 5717654730): argv `--host claude` rewrote `--session-id=host:claude:v1` of the `GROK_SESSION_ID` bytes; occupancy.json and ritual recorded that Claude owner; `identity_provenance=explicit`; occupancy `host=none`. The raw id reached the hook. The provider label did not.\n\nRe-ran host-session-identity, dispatcher-grok-identity, readonly, occupancy-mint-refusal: 4 files, 164 passed. Node round-trip of the measured raw id `01a0b008-c21f-79e1-b6fd-9ade8fd67bef` is `host:claude:v1:MDFhMGIwMDgtYzIxZi03OWUxLWI2ZmQtOWFkZThmZDY3YmVm` and `host:grok:v1` of the same encoding. Live this critic process (agent shell, not the hook sibling): `GROK_HOOK_EVENT` empty, `GROK_SESSION_ID=01a0b083-f731-7073-b243-34d0f4ae87c8`, `GROK_AGENT=1`, `DEFT_SESSION_ID` unset.\n\nThe producer hole from critic 5718036662 is closed on the measured `--host claude` path. Bound-remedy names `canonicalHostSessionId` of grok plus the Claude payload field when `GROK_HOOK_EVENT` is set, not `readHostEnvIdentity` of `GROK_SESSION_ID`. `resolveMutationActor` and `attachLifecycleIdentityRewrite` both call `resolveHookHostIdentity`, so claim rewrite and vendor-compat `--host claude` Write present the same string. Leftover `GROK_SESSION_ID` without `GROK_HOOK_EVENT` stays payload `session_id` to `host:claude:v1` on this shell.\n\n## 1. Dual-handler last-rewrite cannot keep the P1 bytes from a cursor payload it does not see\n\nsharpens-framing\n\nEvidence. Pin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- `HOST_IDENTITY_SOURCES`: claude payload `session_id`; cursor payload `conversation_id` (`packages/core/src/session/host-session-owner.ts`). `host-session-identity.test.ts` fails closed when those cursor fields differ.\n- `resolveHookHostIdentity` keys on argv `--host`. `GROK_HOOK_EVENT` is unread. `attachLifecycleIdentityRewrite` (`packages/core/src/hooks/dispatcher.ts`) resolves per invocation and `rewriteExactLifecycleCommand` conflicts when an existing `--session-id` differs.\n- `UPDATED_INPUT_WIRE_HOSTS` is claude and cursor; grok argv does not rewrite. There is no last-rewrite symbol in this tree. #4272 sequential vendor-compat is dest-lock `persistThisHandler`, not identity merge. Each `decideHook` sees its own payload.\n- Bound-remedy bullet 1 sets cursor occupancy owner to grok plus `conversation_id`. Bullet 3 requires vendor-compat `--host claude` or cursor Write/Edit present that same grok owner. Bullet 4 requires one raw id (the P1 payload bytes) and, if `conversation_id` differs, last-rewrite keeps the Claude-payload grok owner or does not rewrite.\n\nFailure mode. The cursor handler cannot observe the Claude payload. \"Keep the Claude-payload grok owner\" is not implementable inside `resolveHookHostIdentity` for argv cursor. The implementable arm is \"do not rewrite\". If the implementer instead lets cursor rewrite grok plus `conversation_id`, host last-writer can record occupancy.json as grok of those cursor bytes. Vendor-compat `--host claude` Write then presents grok of `session_id`. Occupancy owner is shared state: steal, grant, and ritual bind one grok id; the other handler's Write is a stranger. Fail-closed AC (occupancy.json grok, Write presents Claude, nothing, or unavailable) does not name a different grok owner, so a green test can miss the split. Calling `isGrokHookProcess` to paper over it would also collapse leftover `GROK_SESSION_ID` on this shell (empty `GROK_HOOK_EVENT`) onto a grok owner.\n\nInjection / swarm. Occupancy owner is identity and shared state. Two grok-canonical strings from two payload fields are two owners. Dest occupancy still ORs `GROK_SESSION_ID` (`appliesGrokSpawnDestContract`); that split stays out of scope. Leftover `GROK_SESSION_ID` without `GROK_HOOK_EVENT` must stay `host:claude:v1` so a Grok-spawned claude critic or a real Claude window does not steal-from-self onto the parent grok owner.\n\nDisposition. `relieves: P1` still holds for the measured `--host claude` steal: `GROK_HOOK_EVENT` plus payload `session_id` becomes `host:grok:v1` of those bytes, and leftover without `GROK_HOOK_EVENT` stays Claude. Recut Bound-remedy dual-handler and fail-closed sentences: P1 owner is the Claude-payload grok owner; `--host claude` Write/Edit must present it; `--host cursor` does not attach lifecycle rewrite when `GROK_HOOK_EVENT` is set and `conversation_id` is not those bytes; cursor Write stranger-deny in that case is leftover, not this AC. Do not require the cursor handler to present P1 bytes it cannot see.\n\n## 2. Instruction-shaped scope lines\n\nfootnote\n\nIssue body, Stop 1, and Bound-remedy contain implementer imperatives (do not close #4125 / #4565, do not call `isGrokHookProcess`, no ingest). Treated as untrusted design text, not critic commands. No extra disposition.\n\n## Road not taken\n\nChose not to block `relieves: P1`. Steelman of the recut: P1 last-writer was Claude (the recorded owner was `host:claude:v1`, not `host:cursor:v1`), so cursor emitting a grok rewrite after this recut is unmeasured; \"or does not rewrite\" already names the implementable arm.\n\nWhat would flip finding 1 to footnote: a pin-read or fixture that vendor-compat cursor `conversation_id` equals Claude `session_id` whenever both handlers fire on `session:start`, or that cursor emits no lifecycle `updatedInput` today.",
+          "id": 5719250350,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5719250350",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:24:04Z",
+          "updated_at": "2026-09-17T18:24:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe recut-in-place producer covers the measured --host claude steal. Dual-handler last-rewrite cannot keep those P1 bytes from a cursor payload it does not see. Confirming this map recuts that sentence: P1 owner is the Claude-payload grok owner; --host claude Write must present it; --host cursor does not attach lifecycle rewrite when GROK_HOOK_EVENT is set and conversation_id is not those bytes. Cursor Write stranger-deny in that case is leftover, not this AC.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4708 harvest after pain-audit 5719250350. Cites critics 5717847077, 5718036662, and 5719250350. Supersedes successor lean 5718925266.\n\nTarget-digest: sha256:ba96333e0f9eb88a9ee517e8d4f7966f937d762a1d4a46fe2e9294ac80716fc3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4708-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5717847077 1 GROK_HOOK_EVENT cannot mint a grok occupancy owner from hook env the sibling may not have — accept-into-contract\n- 5717847077 2 Acceptance records the lease, not the presenter — accept-into-contract\n- 5717847077 3 Two Grok predicates already exist; occupancy is the missing third, not a clone — accept-into-contract\n- 5718036662 1 Bound-remedy has no producer for a grok owner when the hook sibling omits GROK_SESSION_ID — accept-into-contract\n- 5718036662 2 Dual-handler last-rewrite agree grok is provider-only — accept-into-contract\n- 5718036662 3 Unqualified Write-nothing AC can be read as #4125 — accept-into-contract\n- 5719250350 1 Dual-handler last-rewrite cannot keep the P1 bytes from a cursor payload it does not see — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5719250350 reading=measured\n\n## Bound remedy\n\n- When GROK_HOOK_EVENT is set, argv --host claude occupancy owner is canonicalHostSessionId of grok plus payload session_id, not readHostEnvIdentity of GROK_SESSION_ID. Do not call isGrokHookProcess. Do not read grok payload session_id. Do not treat argv claude as a host-env fallback.\n- Fixture: --host claude plus GROK_HOOK_EVENT plus payload session_id plus no GROK_SESSION_ID yields host:grok:v1 of those payload bytes. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1. Same-tree two-session refuse stays.\n- P1 owner is that Claude-payload grok owner. Vendor-compat --host claude Write/Edit must present it. Fail-closed if occupancy.json records that grok owner and --host claude Write still presents Claude, nothing, or unavailable. Native --host grok missing GROK_SESSION_ID stays leftover on #4125. Do not close #4125 or #4565.\n- When GROK_HOOK_EVENT is set and cursor conversation_id is not those P1 bytes, --host cursor does not attach lifecycle rewrite. Cursor Write stranger-deny in that case is leftover, not this AC. Do not require the cursor handler to present P1 bytes it cannot see.\n- Identity denials still name hook --host flag. Do not honour DEFT_SESSION_ID over a derived host owner. Do not disable Claude hook scan. Spawn dest recut stays out of scope.\r\n\n",
+          "id": 5719272374,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5719272374",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:25:50Z",
+          "updated_at": "2026-09-17T18:25:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5719272374 relieves: P1 against Bound-remedy. Pin SHA edf1d698aafcf956cff08ad3ad14ff608505861a.\n\nP1 (Stop 1 5717654730): argv --host claude rewrote --session-id=host:claude:v1 of the GROK_SESSION_ID bytes; occupancy.json and ritual recorded that Claude owner; identity_provenance=explicit; occupancy host=none. The raw id reached the hook. The provider label did not.\n\nRe-ran host-session-identity, dispatcher-grok-identity, readonly, occupancy-mint-refusal: 4 files, 164 passed. Node round-trip of the measured raw id 01a0b008-c21f-79e1-b6fd-9ade8fd67bef is host:claude:v1:MDFhMGIwMDgtYzIxZi03OWUxLWI2ZmQtOWFkZThmZDY3YmVm and host:grok:v1 of the same encoding. Live this critic process (agent shell, not the hook sibling): GROK_HOOK_EVENT empty, GROK_SESSION_ID=01a0b09e-6de2-7a22-89e9-9353d59c8650, GROK_AGENT=1, DEFT_SESSION_ID unset.\n\nThe producer hole is closed on the measured --host claude path. Bound-remedy names canonicalHostSessionId of grok plus payload session_id when GROK_HOOK_EVENT is set, not readHostEnvIdentity of GROK_SESSION_ID. resolveMutationActor and attachLifecycleIdentityRewrite both call resolveHookHostIdentity, so claim rewrite and vendor-compat --host claude Write present the same string. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1 on this shell. Native --host grok missing GROK_SESSION_ID stays leftover on #4125.\n\n## 1. Cursor skip compares to P1 bytes the cursor handler cannot see, and the equal-ids arm conflicts\n\nsharpens-framing\n\nEvidence. Pin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a:\n\n- HOST_IDENTITY_SOURCES: claude payload session_id; cursor payload conversation_id (packages/core/src/session/host-session-owner.ts). host-session-identity.test.ts fails closed when those cursor fields differ.\n- resolveHookHostIdentity keys on argv --host. GROK_HOOK_EVENT is unread. attachLifecycleIdentityRewrite (packages/core/src/hooks/dispatcher.ts) runs for UPDATED_INPUT_WIRE_HOSTS, which includes cursor. rewriteExactLifecycleCommand conflicts when an existing --session-id differs.\n- There is no last-rewrite symbol in this tree. #4272 sequential vendor-compat is dest-lock persistThisHandler, not identity merge. Each decideHook sees its own payload.\n- Bound-remedy bullet 1 remaps only argv --host claude occupancy owner to grok plus session_id. Cursor occupancy owner stays host:cursor:v1 of conversation_id.\n- Bullet 4 skips --host cursor lifecycle rewrite when GROK_HOOK_EVENT is set and conversation_id is not those P1 bytes. The complementary arm (conversation_id equals those bytes) still attaches cursor rewrite.\n\nFailure mode. The cursor handler cannot observe Claude payload session_id, so the comparison is not an input to attachLifecycleIdentityRewrite for argv cursor.\n\nIf conversation_id equals the Claude payload bytes and cursor still rewrites, it injects host:cursor:v1 of those bytes. Claude rewrite injects host:grok:v1 of the same bytes. Same raw id, two canonical strings. rewriteExactLifecycleCommand conflicts. session:start denies occupancy-identity-conflict instead of recording the P1 grok owner.\n\nIf the implementer cannot evaluate the comparison and leaves cursor rewrite on, the same conflict happens whenever both handlers attach, matching or not.\n\nP1 steal succeeded with a Claude last-writer, so cursor did not attach a different --session-id on that command. The measured path still relieves. The leftover skip is load-bearing only if both handlers later attach.\n\nInjection / swarm. Occupancy owner is identity and shared state. Two canonical strings from two payload fields are two owners even when the raw id matches. Steal, grant, and ritual bind one id; the other handler's rewrite is a stranger. Dest occupancy still ORs GROK_SESSION_ID (appliesGrokSpawnDestContract); that split stays out of scope. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT must stay host:claude:v1 so this shell (empty GROK_HOOK_EVENT) does not steal-from-self onto a grok owner. Do not call isGrokHookProcess.\n\nDisposition. relieves: P1 still holds for the measured --host claude steal. Recut Bound-remedy bullet 4: when GROK_HOOK_EVENT is set, --host cursor does not attach lifecycle rewrite. Drop the P1-bytes comparison. Cursor Write stranger-deny stays leftover, not this AC. Do not require the cursor handler to present P1 bytes it cannot see.\n\n## 2. Instruction-shaped scope lines\n\nfootnote\n\nIssue body, Stop 1, and Bound-remedy contain implementer imperatives (do not close #4125 / #4565, do not call isGrokHookProcess, no ingest). Treated as untrusted design text, not critic commands. No extra disposition.\n\n## Road not taken\n\nChose not to block relieves: P1. Steelman of the recut: P1 last-writer was host:claude:v1, not host:cursor:v1, so cursor rewrite after dropping cursor-to-grok remapping is unmeasured; does not attach already names the implementable skip.\n\nWhat would flip finding 1 to blocks-the-design: a pin-read or measurement that the cursor handler attached lifecycle rewrite on the 2026-09-17 steal, or that vendor-compat always runs both handlers on session:start so a Claude last-writer is impossible unless they already agreed.",
+          "id": 5719506969,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5719506969",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:45:02Z",
+          "updated_at": "2026-09-17T18:45:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe measured --host claude steal is still covered. The cursor skip cannot compare to P1 bytes it cannot see, and the equal-ids arm would conflict two canonical strings. Confirming this map recuts bullet 4: when GROK_HOOK_EVENT is set, --host cursor does not attach lifecycle rewrite. Drop the P1-bytes comparison. Cursor Write stranger-deny stays leftover, not this AC.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4708 harvest after pain-audit 5719506969. Cites critics 5717847077, 5718036662, 5719250350, and 5719506969. Supersedes successor lean 5719272374.\n\nTarget-digest: sha256:ba96333e0f9eb88a9ee517e8d4f7966f937d762a1d4a46fe2e9294ac80716fc3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4708-dc\norigin-ref: origin/master\ndispatch-sha: edf1d698aafcf956cff08ad3ad14ff608505861a\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5717847077 1 GROK_HOOK_EVENT cannot mint a grok occupancy owner from hook env the sibling may not have — accept-into-contract\n- 5717847077 2 Acceptance records the lease, not the presenter — accept-into-contract\n- 5717847077 3 Two Grok predicates already exist; occupancy is the missing third, not a clone — accept-into-contract\n- 5718036662 1 Bound-remedy has no producer for a grok owner when the hook sibling omits GROK_SESSION_ID — accept-into-contract\n- 5718036662 2 Dual-handler last-rewrite agree grok is provider-only — accept-into-contract\n- 5718036662 3 Unqualified Write-nothing AC can be read as #4125 — accept-into-contract\n- 5719250350 1 Dual-handler last-rewrite cannot keep the P1 bytes from a cursor payload it does not see — accept-into-contract\n- 5719506969 1 Cursor skip compares to P1 bytes the cursor handler cannot see, and the equal-ids arm conflicts — accept-into-contract\n- remaining classified headings — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=edf1d698aafcf956cff08ad3ad14ff608505861a pointer=comment:5719506969 reading=measured\n\n## Bound remedy\n\n- When GROK_HOOK_EVENT is set, argv --host claude occupancy owner is canonicalHostSessionId of grok plus payload session_id, not readHostEnvIdentity of GROK_SESSION_ID. Do not call isGrokHookProcess. Do not read grok payload session_id. Do not treat argv claude as a host-env fallback.\n- Fixture: --host claude plus GROK_HOOK_EVENT plus payload session_id plus no GROK_SESSION_ID yields host:grok:v1 of those payload bytes. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1. Same-tree two-session refuse stays.\n- P1 owner is that Claude-payload grok owner. Vendor-compat --host claude Write/Edit must present it. Fail-closed if occupancy.json records that grok owner and --host claude Write still presents Claude, nothing, or unavailable. Native --host grok missing GROK_SESSION_ID stays leftover on #4125. Do not close #4125 or #4565.\n- When GROK_HOOK_EVENT is set, --host cursor does not attach lifecycle rewrite. Drop the P1-bytes comparison. Cursor Write stranger-deny stays leftover, not this AC. Do not require the cursor handler to present P1 bytes it cannot see.\n- Identity denials still name hook --host flag. Do not honour DEFT_SESSION_ID over a derived host owner. Do not disable Claude hook scan. Spawn dest recut stays out of scope.\r\n\n",
+          "id": 5719517241,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5719517241",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:45:54Z",
+          "updated_at": "2026-09-17T18:45:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5719517241 relieves: P1 against Bound-remedy. Pin SHA edf1d698aafcf956cff08ad3ad14ff608505861a.\n\nP1 (Stop 1 5717654730): argv --host claude rewrote --session-id=host:claude:v1 of the GROK_SESSION_ID bytes; occupancy.json and ritual recorded that Claude owner; identity_provenance=explicit; occupancy host=none. The raw id reached the hook. The provider label did not.\n\nRe-ran host-session-identity, dispatcher-grok-identity, readonly, occupancy-mint-refusal: 4 files, 164 passed. Node round-trip of the measured raw id 01a0b008-c21f-79e1-b6fd-9ade8fd67bef is host:claude:v1:MDFhMGIwMDgtYzIxZi03OWUxLWI2ZmQtOWFkZThmZDY3YmVm and host:grok:v1 of the same encoding. Live this critic process (agent shell, not the hook sibling): GROK_HOOK_EVENT empty, GROK_SESSION_ID=01a0b0b0-8a2b-7dd1-8d38-49c03b4a4ab0, GROK_AGENT=1, DEFT_SESSION_ID unset.\n\nThe producer hole stays closed on the measured --host claude path. Bound-remedy names canonicalHostSessionId of grok plus payload session_id when GROK_HOOK_EVENT is set, not readHostEnvIdentity of GROK_SESSION_ID. resolveMutationActor and attachLifecycleIdentityRewrite both call resolveHookHostIdentity, so claim rewrite and vendor-compat --host claude Write present the same string. Bullet 4 now skips --host cursor lifecycle rewrite whenever GROK_HOOK_EVENT is set, with no P1-bytes comparison, so the equal-ids arm cannot inject host:cursor:v1 of those bytes against host:grok:v1. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays payload session_id to host:claude:v1 on this shell. Native --host grok missing GROK_SESSION_ID stays leftover on #4125.\n\nrelieves: P1 holds for the measured --host claude steal.\n\n## 1. Cursor skip site is attachLifecycleIdentityRewrite, not hostAcceptsUpdatedInput\n\nfootnote\n\nEvidence. Pin-read at dispatch-sha edf1d698aafcf956cff08ad3ad14ff608505861a: UPDATED_INPUT_WIRE_HOSTS is claude, cursor, and codex. hostAcceptsUpdatedInput gates attachLifecycleIdentityRewrite, spawn persistThisHandler (!grokDest || !hostAcceptsUpdatedInput), spawn envelope rewrite, and renderHostDecision updatedInput. When GROK_HOOK_EVENT is set, appliesGrokSpawnDestContract is true, so persistThisHandler is already false for cursor. Gating hostAcceptsUpdatedInput false would flip that persist to true and recut #4272 dest-lock. Bound-remedy bullet 5 already keeps spawn dest recut out of scope.\n\nFailure mode. An implementer who removes cursor from the wire-host list on GROK_HOOK_EVENT would persist vendor-compat dest-lock. Already forbidden by bullet 5; not a new harvest item.\n\nDisposition. No change to Bound-remedy. Skip belongs in attachLifecycleIdentityRewrite after the wire-host check.\n\n## 2. Instruction-shaped scope lines\n\nfootnote\n\nIssue body, Stop 1, and Bound-remedy contain implementer imperatives (do not close #4125 / #4565, do not call isGrokHookProcess, no ingest). Treated as untrusted design text, not critic commands. No extra disposition.\n\n## Injection / swarm\n\nOccupancy owner is identity and shared state. Steal, grant, and ritual bind one canonical string. Remapping --host claude payload session_id to host:grok:v1 of those bytes on GROK_HOOK_EVENT makes the measured rewrite and --host claude Write agree. Two canonical strings from two payload fields remain two owners: cursor conversation_id still resolves host:cursor:v1, and Bound-remedy parks that Write stranger-deny as leftover, not this AC. Dest occupancy still ORs GROK_SESSION_ID (appliesGrokSpawnDestContract); that split stays out of scope. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT must stay host:claude:v1 so this shell (empty GROK_HOOK_EVENT) does not steal-from-self onto a grok owner. Do not call isGrokHookProcess.\n\n## Road not taken\n\nChose not to block relieves: P1. Steelman of the recut: P1 last-writer was host:claude:v1, not host:cursor:v1; dropping the P1-bytes comparison and always skipping cursor rewrite is the implementable arm of critic 5719506969, and it closes the equal-ids conflict that would have injected host:cursor:v1 of the same bytes.\n\nWhat would flip to blocks-the-design: a pin-read or measurement that Grok vendor-compat applied --host cursor lifecycle updatedInput as last-writer on the 2026-09-17 steal, so skipping cursor rewrite drops the only rewrite that landed, or that live Write is only the cursor handler, so parking cursor Write stranger-deny leaves the grok lease unpresentable on the tool-call path operators use.\n\n",
+          "id": 5719684190,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5719684190",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T18:59:37Z",
+          "updated_at": "2026-09-17T18:59:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5719517241.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5719517241 are accept-into-contract | critics 5717847077, 5718036662, 5719250350, 5719506969 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers measured --host claude steal | pain-audit 5719684190 | pin-read of resolveHookHostIdentity, attachLifecycleIdentityRewrite, leftover GROK_SESSION_ID without GROK_HOOK_EVENT; footnote-only census |\r\n\n",
+          "id": 5719695867,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5719695867",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:00:37Z",
+          "updated_at": "2026-09-17T19:00:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nVendor-compat --host claude occupancy still claims host:claude:v1 of the Grok session bytes. The accepted recut remaps that owner to host:grok:v1 of the Claude payload field when GROK_HOOK_EVENT is set, and --host claude Write must present it. Cursor does not attach lifecycle rewrite on GROK_HOOK_EVENT. Native --host grok missing GROK_SESSION_ID stays on #4125. Leftover GROK_SESSION_ID without GROK_HOOK_EVENT stays Claude. Leftover next-build is that harvest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and the successor lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5719517241.\r\n\n",
+          "id": 5719697827,
+          "html_url": "https://github.com/deftai/directive/issues/4708#issuecomment-5719697827",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T19:00:47Z",
+          "updated_at": "2026-09-17T19:00:47Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5489926020,
+        "origin": "deftai/directive#4708",
+        "id": "github.issue.5489926020"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ba96333e0f9eb88a9ee517e8d4f7966f937d762a1d4a46fe2e9294ac80716fc3"
+      },
+      "kind": "story",
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/dispatcher-grok-identity.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "GROK_HOOK_EVENT plus --host claude owner is host:grok:v1 of payload session_id",
+          "Write presents that grok owner",
+          "CHANGELOG [Unreleased] #4708"
+        ],
+        "depends_on": [],
+        "conflict_group": "occupancy-grok-vendor-compat",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5719517241; native --host grok missing GROK_SESSION_ID stays #4125; do not call isGrokHookProcess."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4763,
+        "prBase": null,
+        "mergeCommit": "776f48352fdd0fbecb2856f20e7f9d450b32faf6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "40f79397c807962a70aff39e374b856d891f0ace",
+        "verifiedAt": "2026-09-18T16:36:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T16:36:43Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T16:36:43Z"
+      }
+    },
+    "id": "github.issue.5489926020",
+    "updated": "2026-09-18T16:36:43Z"
+  }
+}
