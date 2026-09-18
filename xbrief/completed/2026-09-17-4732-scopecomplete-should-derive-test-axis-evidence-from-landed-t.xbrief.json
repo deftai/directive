@@ -1,0 +1,416 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4732",
+    "updated": "2026-09-18T01:20:49Z"
+  },
+  "plan": {
+    "title": "scope:complete should derive test-axis evidence from landed tests on bound clauses",
+    "status": "completed",
+    "narratives": {
+      "Description": "scope:complete should derive test-axis evidence from landed tests on bound clauses",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4732",
+      "Overview": "## Summary\n\n`scope:complete` still requires a second manual stamp pass of `x-directive/evidence` on every harvest item and every `clause:N` row after a through-merge that already landed tests, Greptile, CI, and a squash SHA. Merge ancestry is not complete (#3240). Unbound clauses still refuse (#4385). The missing slice is deriving `kind: test` evidence from the PR landed tests onto bound clause ids so leftover complete is not a second judgment.\n\n## What this is not\n\n- Not a reopen of #3240. Merge SHA alone must not complete smoke, UAT, deploy, or observed_behavior.\n- Not a reopen of #4385. Unbound clauses must still refuse. `scope:status` stays. Empty `verify:ac` (0/N verified) must still fail.\n\n## Desired\n\nWhen a merged PR has landed tests and harvest items can be bound to `plan.acceptance.clauses[]` ids:\n\n1. Bind harvest `plan.items[]` to clause ids (`1` / `clause:1`) so complete does not invent empty pending rows.\n2. Derive `x-directive/evidence` `{ kind: test, pointer, recorded_at, recorded_by }` from the landed test files (`file_scope` / `verify_commands` / PR paths).\n3. Then `scope:complete -- --merge-commit --pr` can proceed for test-axis items.\n\nSmoke / UAT / deploy / observed-behavior stay on matching kind or a human-origin disposition.\n\n## Why now\n\nThrough-merge-4576 leftover: seven briefs still `running` after squash-merge because ingest wrote non-terminal harvest items with no stamps, Tracking/Refs did not close the issues, and #4385 added empty `clause:N` rows at complete. Prior leftover lands pre-terminalized items and skipped the typed gate.\n\n## Refs\n\nRefs #3240, #4385, #3305, #3781, #3041.\r\n\n",
+      "Labels": "bug, design-critique:ingest-ready, framework-gap",
+      "ImplementationPlan": "1. Bind harvest plan.items ids to clause ids at ingest and promote. 2. Stamp writer outside complete using declared file_scope or existing artifact_path only. 3. Complete stays a pure check. CHANGELOG [Unreleased] append-only.",
+      "Traces": "Bound contract is successor lean 5721485535. Synthesis 5721587173. Do not reopen #3240 or #4385."
+    },
+    "items": [
+      {
+        "title": "Do not derive or stamp x-directive/evidence inside scope:complete or evaluateAcceptanceEvidenceGate. Complete stays a pure check. persistClauseKeyedPendingItems still does not stamp evidence.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not derive or stamp x-directive/evidence inside scope:complete or evaluateAcceptanceEvidenceGate. Complete stays a pure check. persistClauseKeyedPendingItems still does not stamp evidence."
+        },
+        "effort": "M",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.ts",
+          "recorded_at": "2026-09-18T01:20:16Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Bind harvest plan.items ids to clause ids (1 / clause:1) at ingest/promote so complete does not invent empty pending rows from missing keys. Unbound clauses still persist-and-refuse. Empty verify:ac still fails.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Bind harvest plan.items ids to clause ids (1 / clause:1) at ingest/promote so complete does not invent empty pending rows from missing keys. Unbound clauses still persist-and-refuse. Empty verify:ac still fails."
+        },
+        "effort": "M",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/issue-ingest.ts",
+          "recorded_at": "2026-09-18T01:20:16Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "A stamp writer that is not the complete gate may record kind:test with pointer already a declared file_scope member or existing artifact_path from #4008. Do not take pointers from a PR path listing, verify_commands basename, or issue/comment prose (#3835).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, A stamp writer that is not the complete gate may record kind:test with pointer already a declared file_scope member or existing artifact_path from #4008. Do not take pointers from a PR path listing, verify_commands basename, or issue/comment prose (#3835)."
+        },
+        "effort": "M",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.ts",
+          "recorded_at": "2026-09-18T01:20:16Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Merge SHA and review still cannot complete the four strict evidence axes.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, merge SHA and review still cannot complete the four strict evidence axes."
+        },
+        "effort": "M",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.ts",
+          "recorded_at": "2026-09-18T01:20:16Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      },
+      {
+        "title": "Do not reopen #3240 or #4385.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this slice ships, Do not reopen #3240 or #4385."
+        },
+        "effort": "M",
+        "id": "clause:5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "recorded_at": "2026-09-18T01:20:16Z",
+          "recorded_by": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4732",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4732: scope:complete should derive test-axis evidence from landed tests on bound clauses"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3240",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3240"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not derive or stamp x-directive/evidence inside scope:complete or evaluateAcceptanceEvidenceGate. Complete stays a pure check. persistClauseKeyedPendingItems still does not stamp evidence.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Bind harvest plan.items ids to clause ids (1 / clause:1) at ingest/promote so complete does not invent empty pending rows from missing keys. Unbound clauses still persist-and-refuse. Empty verify:ac still fails.",
+          "artifact_path": "packages/core/src/intake/issue-ingest.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A stamp writer that is not the complete gate may record kind:test with pointer already a declared file_scope member or existing artifact_path from #4008. Do not take pointers from a PR path listing, verify_commands basename, or issue/comment prose (#3835).",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Merge SHA, review, and kind:merge still cannot complete smoke, UAT, deploy, or observed_behavior.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not reopen #3240 or #4385.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/scope/promote-path.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/scope",
+        "cohesion_exemption": [
+          "CHANGELOG.md"
+        ],
+        "split_plan": "Existing files already over review-trigger stay in place this slice. CHANGELOG is append-only cohesion. Do not split those files."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because scope:complete still requires a second manual evidence stamp after through-merge already landed tests, Greptile, CI, and a squash SHA; leftover complete is a second judgment.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4732-dc\norigin-ref: origin/master\ndispatch-sha: febaa32e6ed8b4b03e5373200ebd1f9f05882f27\n\ncharter: refutation\nspend: N=1\nspend-why: operator add onto each separately; independent single-seat Grok critic arc, not panel spend.\n\nrefutation-target: when a merged PR has landed tests and harvest items can be bound to plan.acceptance.clauses ids, scope:complete derives kind:test evidence from those landed tests onto bound clause ids so leftover complete is not a second judgment. Merge SHA alone must not complete smoke, UAT, deploy, or observed_behavior. Unbound clauses still refuse.\n\ntarget: #4732\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the through-merge leftover: seven briefs still running after squash-merge because ingest wrote non-terminal harvest items with no stamps, Tracking/Refs did not close the issues, and #4385 added empty clause:N rows at complete. Prior leftover lands pre-terminalized items and skipped the typed gate.\n\nPin-read at dispatch-sha febaa32e6ed8b4b03e5373200ebd1f9f05882f27:\n\n- packages/core/src/scope/acceptance-evidence.ts: merge ancestry alone must not auto-complete; each non-terminal plan item needs typed evidence or human-origin disposition. kind test is in ACCEPTANCE_EVIDENCE_KINDS. STRICT_ACCEPTANCE_AXES are deploy, smoke, uat, observed_behavior (merge/review cannot satisfy those). Canonical keys x-directive/evidence and x-directive/disposition.\n- CHANGELOG #4385: scope:complete refuses unbound acceptance clauses; persist clause-keyed pending items at complete even when the evidence gate then refuses. Empty verify:ac (0/N verified) still fails.\n- packages/core/src/scope/main.ts: complete --merge-commit / --pr are required for code-bearing delivery evidence (#3041 / #3721).\n- Not a reopen of #3240 or #4385. Related #3305 namespaced keys, #3781, #3041.\n\nNo implement and no ingest from this parent.\n\n\n",
+          "id": 5721352539,
+          "html_url": "https://github.com/deftai/directive/issues/4732#issuecomment-5721352539",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T21:18:02Z",
+          "updated_at": "2026-09-17T21:18:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, fresh, charter refutation. Pin SHA `febaa32e6ed8b4b03e5373200ebd1f9f05882f27`. Ceiling 5721352539 inclusive. Input: issue body plus that Stop 1 write-back only.\n\nNamed target: when a merged PR has landed tests and harvest items can be bound to `plan.acceptance.clauses` ids, `scope:complete` derives `kind:test` evidence from those landed tests onto bound clause ids so leftover complete is not a second judgment. Merge SHA alone must not complete smoke, UAT, deploy, or observed_behavior. Unbound clauses still refuse.\n\n## Complete cannot author the evidence it then checks (blocks-the-design)\n\nEvidence. At this SHA, `evaluateAcceptanceEvidenceGate` only reads already-stamped `x-directive/evidence` / `x-directive/disposition`. `persistClauseKeyedPendingItems` is the complete-prep writer and its contract is: does not stamp evidence; does not run inside that gate. `transition.ts` persist-then-evaluate is fail-closed: new `clause:N` rows have no stamps, so the gate refuses (CHANGELOG #4385: persist even when the evidence gate then refuses; refuse persist does not write a complete `lifecycleWrite`). `SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION` records that `verify:ac` never writes the brief because a verifier that authors the acceptance it then checks is not a gate; stamping is intake/promote clause derivation (#3323). `stampNamespacedEvidence` is a helper used from tests, not a production complete writer.\n\nFailure mode. Derivation inside `scope:complete` makes one command write `kind:test` and then pass the gate on that write. Leftover complete stops being a check. Prior leftover lands that pre-terminalized items already skip typed re-check (`already_terminal` in `evaluateOneItem`). This recut skips the other way: the checker mints the stamps. Phase 6 `swarm:finalize-cohort` on a dest would then attest every test-axis harvest brief by running the verb after squash-merge.\n\nDisposition. The lean cannot bind while the derivation site is `scope:complete`. A stamp that is not the gate can still exist; this target names the gate as the author.\n\n## \"Landed tests onto bound clause ids\" from file_scope / verify_commands / PR paths is merge-SHA in kind:test clothing (blocks-the-design)\n\nEvidence. `parseEvidence` accepts any non-empty `pointer` for `kind:test`; only `kind:uat` has a path shape (#4563). `isEvidenceKindSuitable(\"test\", [])` is true. There is no production mapper from a PR file list, `verify_commands`, or `file_scope` onto a per-clause pointer. Promote-time #4008 `bindClausesToDeclaredScope` copies an exact declared `file_scope` member onto the clause for the AC walk and refuses basename matching (#3835). The issue body lists `file_scope` / `verify_commands` / PR paths as derivation inputs without a 1:1 rule.\n\nFailure mode. One test file anywhere in the PR, in `file_scope`, or named by `verify_commands` would stamp every bound test-axis item. That is merge ancestry wearing a `kind:test` record. Strict axes stay refused only when `inferRequiredStrictAxes` sees smoke/uat/deploy/observed_behavior in title/Acceptance; harvest titles without those words are test-axis by default. Unbound-clause refuse can still hold (empty `clause:N` rows) while every bound clause completes from a single unrelated test path. Harvest items are issue-thread text; #3835 closed taking an artifact path out of issue or comment prose. Deriving pointers from GitHub PR paths reopens that: an extra test file in the PR becomes the completeness attestor. `recorded_by` on those stamps would be the complete actor (delivery provenance already uses verifier `scope:complete` for a different field). `#3781` `verify:pr-closeout-attestable` reuses the same evidence gate on closing references, not the diff; leaving derivation inside complete would not auto-pass closeout at merge, but a follow-on that also derives at closeout would.\n\nDisposition. The lean cannot bind without a per-clause pointer that is already a declared `file_scope` member (or `artifact_path` from #4008) and that is not taken from a PR path listing. \"The PR landed tests\" is not that pointer.\n\n## Bind harvest item ids at ingest, not as a complete-time invention (sharpens-framing)\n\nEvidence. `clauseHasKeyedItem` already treats item id `1` or `clause:1` as bound. Complete persist only adds empty `clause:N` rows when those keys are missing. Ingest copying harvest into `plan.items[]` and `plan.acceptance.clauses[]` without those ids is what creates the empty rows the leftover then has to stamp.\n\nFailure mode. A complete-time bind by title overlap, PR path, or ingest order can attach the wrong harvest row to a clause; the stamp in the previous finding would then complete the wrong criterion. Copying the clause id onto the harvest item at ingest is the existing keying rule.\n\nDisposition. The bind half can stay if it is ingest/promote id alignment. Unbound clauses still persist-and-refuse. That is a scope change, not a new complete mechanism.\n\n## Injection / swarm\n\nThe target changes completeness authority, attestor identity, and xBRIEF shared state. The two blocking findings above are that change: the gate writes the attestation it checks, and untrusted/PR-path inputs become the pointer. Leftover complete is dest/Phase 6 shared-state write; self-stamp lets the closer attest without a leftover mapping. `fenceUntrustedAcceptanceText` already treats criterion titles as untrusted; using those titles plus PR paths as stamp inputs is the same class.\n\n## Road-not-taken\n\nRejected: merge-SHA auto-complete (the target already refuses it; it reopens #3240).\n\nRejected: a complete-prep stamp writer next to `persistClauseKeyedPendingItems`. Persist is fail-closed (adds rows that refuse). A stamp writer is fail-open (adds fields that pass). They are not the same polarity.\n\nSteelman of the pain: leftover complete is toil because there is no production stamp verb. A stamp that is not `scope:complete`, keyed by ingest-aligned clause ids, with pointers only from declared `file_scope` / existing `artifact_path`, and with complete still a pure check, would remove the hand-edit without collapsing the gate. That design, not this target, would flip the first two findings.\n\n## footnote\n\n`evaluateDeliveryGate` already refuses to infer deploy/UAT from Git (#3041). `evaluateScopeCompleteAcceptanceWalk` is a separate complete precondition; empty `verify:ac` already fails without this issue. Those sentences in the target are already holding and are not the missing slice.\n\n",
+          "id": 5721472807,
+          "html_url": "https://github.com/deftai/directive/issues/4732#issuecomment-5721472807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T21:27:07Z",
+          "updated_at": "2026-09-17T21:27:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover complete after through-merge still asks a second judgment because harvest items have no test stamps and complete itself cannot mint the evidence it then checks. The accepted harvest is ingest/promote clause-id alignment plus a stamp writer that is not the complete gate, with per-clause pointers only from declared file_scope or existing artifact_path. Merge SHA and PR path listings do not stamp. Unbound clauses still persist-and-refuse. Smoke, UAT, deploy, and observed_behavior stay on matching kind or a human-origin disposition.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Bound-remedy. Disposition: classified headings accept-into-contract. Residual: none on classified headings. Pain: relieves P1 (pain-audit after this lean).\nSpec-path: next-build contract is not this body.\n\n**Lean:** successor of Stop 1 5721352539 after critic 5721472807. Cites critic 5721472807. Supersedes write-back 5721352539.\n\nTarget-digest: sha256:cacc6755364a3b34cdf13412e66a05731544f4045ea03b04223268c548d7877b\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4732-dc\norigin-ref: origin/master\ndispatch-sha: febaa32e6ed8b4b03e5373200ebd1f9f05882f27\ntarget shape: single-issue\nround: 1\nsiblings: 1\n\nTakes:\n\n- 5721472807 1 Complete cannot author the evidence it then checks -- accept-into-contract\n- 5721472807 2 Landed tests onto bound clause ids from file_scope / verify_commands / PR paths is merge-SHA in kind:test clothing -- accept-into-contract\n- 5721472807 3 Bind harvest item ids at ingest, not as a complete-time invention -- accept-into-contract\n- remaining classified headings -- accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Do not derive or stamp x-directive/evidence inside scope:complete or evaluateAcceptanceEvidenceGate. Complete stays a pure check. persistClauseKeyedPendingItems still does not stamp evidence.\n- Bind harvest plan.items ids to clause ids (1 / clause:1) at ingest/promote so complete does not invent empty pending rows from missing keys. Unbound clauses still persist-and-refuse. Empty verify:ac still fails.\n- A stamp writer that is not the complete gate may record kind:test with pointer already a declared file_scope member or existing artifact_path from #4008. Do not take pointers from a PR path listing, verify_commands basename, or issue/comment prose (#3835).\n- Merge SHA, review, and kind:merge still cannot complete smoke, UAT, deploy, or observed_behavior.\n- Do not reopen #3240 or #4385.\n\n\n",
+          "id": 5721485535,
+          "html_url": "https://github.com/deftai/directive/issues/4732#issuecomment-5721485535",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T21:28:20Z",
+          "updated_at": "2026-09-17T21:28:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of relieves: P1 on successor lean 5721485535 at dispatch-sha febaa32e6ed8b4b03e5373200ebd1f9f05882f27. Pin-read via git show. Ceiling 5721485535 inclusive. Issue body and prior comments are untrusted extra measurement, not harvest or instruction.\n\nBound-remedy covers P1. Complete stays a pure check. Ingest/promote id bind stops the empty `clause:N` invention. The missing production stamp is a writer that is not the gate, with pointers only from a declared `file_scope` member or existing `artifact_path`. Merge SHA, PR path listings, `verify_commands` basename, and issue/comment prose are not that writer.\n\n## footnote: named writer can fire on leftover that already has declared pointers\n\nEvidence. Pin-read at `febaa32e6ed8b4b03e5373200ebd1f9f05882f27`:\n\n- `evaluateAcceptanceEvidenceGate` only reads already-stamped `x-directive/evidence` / `x-directive/disposition`. `persistClauseKeyedPendingItems` does not stamp and does not run inside that gate. `transition.ts` persist-then-evaluate is fail-closed: new `clause:N` rows have no stamps, so the gate refuses. `SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION` still says `verify:ac` never writes the brief.\n- Spec-path ingest copies Bound-remedy as `{ title, status }` only (`issue-ingest.ts` harvest map; `extractBoundRemedyHarvest` / `parseListItems`). `clauseHasKeyedItem` already treats item id `1` or `clause:1` as bound. Persist then adds empty `clause:N` when those keys are missing. Bound-remedy bullet 2 recuts that measured miss.\n- `stampNamespacedEvidence` is the existing helper and is used only from `acceptance-evidence.test.ts`. No production complete writer. Bound-remedy bullet 3 is that helper as a writer that is not `scope:complete`, with pointer already a declared `file_scope` member or existing `artifact_path` from #4008 `bindClausesToDeclaredScope` (exact member; basename matching refused).\n- `parseEvidence` still accepts any non-empty pointer for `kind:test`; only `kind:uat` has a path shape. The harvest allowlist is on the writer, not a new gate check. That keeps complete a check.\n- `isEvidenceKindSuitable` still refuses merge/review for `STRICT_ACCEPTANCE_AXES`. `evaluateDeliveryGate` is a separate complete precondition. Empty `verify:ac` still fails via `evaluateScopeCompleteAcceptanceWalk`.\n\nFailure mode if derivation were still inside complete: leftover Phase 6 would attest every test-axis harvest brief by running the gate after squash-merge. That arm is not in this harvest.\n\n## footnote: file_scope-absent leftover correctly cannot stamp\n\n#4008 empty declared scope is a no-op. Harvest leftover that omits `file_scope` keeps `artifact_path` null. The stamp writer then has no allowed pointer. Complete still refuses. That is the accepted clothing refuse from critic 5721472807, not unrelieved P1. P1's \"when items can be bound\" is ingest id bind plus a declared pointer, not PR-path invention.\n\n## Injection / swarm\n\nThe harvest changes completeness authority, attestor identity, and dest xBRIEF shared state. Deterministic controls already named: complete / `evaluateAcceptanceEvidenceGate` stay read-only; persist polarity stays fail-closed; pointers only from declared `file_scope` or existing `artifact_path`; do not take PR listings, `verify_commands` basename, or issue/comment prose (#3835); #4589 still fail-closes post-mint `file_scope` expansion. `stampNamespacedEvidence` `recorded_by` is an unconstrained string (disposition stays human-origin). Leftover closer may invoke the writer then complete as two verbs; that is not the gate writing the attestation it checks.\n\n## footnote: measured anchors that hold\n\nDo not reopen #3240 or #4385. Unbound clauses still persist-and-refuse. Empty `verify:ac` still fails. This audit does not reconstitute already-ingested leftover files; ingest-time id bind is the next harvest, not a retroactive rewrite.",
+          "id": 5721573192,
+          "html_url": "https://github.com/deftai/directive/issues/4732#issuecomment-5721573192",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T21:36:44Z",
+          "updated_at": "2026-09-17T21:36:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Leftover complete is a second judgment after landed tests (P1) | covered: ingest/promote clause-id bind plus stamp writer that is not the complete gate | pin-read evaluateAcceptanceEvidenceGate read-only; persistClauseKeyedPendingItems no stamp; stampNamespacedEvidence test-only helper; pain-audit 5721573192 footnote-only |\n| Complete cannot author the evidence it then checks | harvest forbids stamp inside complete | round-1 critic 5721472807 heading 1 |\n| PR paths / verify_commands as pointers | refused; declared file_scope or artifact_path only | heading 2 |\n\nCites successor lean 5721485535. Empty disagreement set. Pain-audit 5721573192 targeted audit-targets: pain-P1 and was footnote-only.\n\n\n",
+          "id": 5721584202,
+          "html_url": "https://github.com/deftai/directive/issues/4732#issuecomment-5721584202",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T21:37:49Z",
+          "updated_at": "2026-09-17T21:37:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover complete after through-merge still asks a second judgment because harvest items have no test stamps and complete itself cannot mint the evidence it then checks. The accepted harvest is ingest/promote clause-id alignment plus a stamp writer that is not the complete gate, with per-clause pointers only from declared file_scope or existing artifact_path. Merge SHA and PR path listings do not stamp. Unbound clauses still persist-and-refuse. Smoke, UAT, deploy, and observed_behavior stay on matching kind or a human-origin disposition.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the successor lean, and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites accepted successor lean 5721485535. Verified-claims table comment 5721584202. Pain-audit 5721573192 (audit-targets: pain-P1) footnote-only. Round-1 critic 5721472807. Stop 1 5721352539. dispatch-sha febaa32e6ed8b4b03e5373200ebd1f9f05882f27.\n\n\n",
+          "id": 5721587173,
+          "html_url": "https://github.com/deftai/directive/issues/4732#issuecomment-5721587173",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T21:38:07Z",
+          "updated_at": "2026-09-17T21:38:07Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5492708866,
+        "origin": "deftai/directive#4732",
+        "id": "github.issue.5492708866"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "cacc6755364a3b34cdf13412e66a05731544f4045ea03b04223268c548d7877b"
+      },
+      "swarm": {
+        "kind": "story",
+        "file_scope": [
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/scope/promote-path.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/intake/issue-ingest.test.ts packages/core/src/scope/acceptance-evidence.test.ts --coverage.enabled=false"
+        ],
+        "expected_outputs": [
+          "complete does not stamp evidence",
+          "ingest/promote bind item ids to clause ids",
+          "stamp writer uses file_scope or artifact_path only",
+          "CHANGELOG [Unreleased] #4732"
+        ],
+        "depends_on": [],
+        "conflict_group": "scope-complete-evidence",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5721485535."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4739,
+        "prBase": null,
+        "mergeCommit": "03c846c183297b3a25af1bf3c6af37452fb3fa26",
+        "deliveryBranch": "master",
+        "deliveryCommit": "045ab42fd465dd4c36dce73a948632cfbf5dae60",
+        "verifiedAt": "2026-09-18T01:20:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T01:20:49Z",
+      "completedSessionId": "host:claude:v1:MDFhMGIwMGMtMzYwZi03OTUzLTlmNzYtYjVjMTc4MTFkMzgw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T01:20:49Z"
+      }
+    },
+    "id": "github.issue.5492708866",
+    "updated": "2026-09-18T01:20:49Z"
+  }
+}
