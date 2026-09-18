@@ -211,12 +211,14 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   const prevSupervised = process.env.DEFT_TS_LANE_SUPERVISED;
   const prevCold = process.env.DEFT_TS_LANE_COLD;
   process.env.DEFT_TS_LANE_SUPERVISED = "1";
+  process.env.DEFT_TS_LANE_CPUS = String(cpuCount);
   if (cold) process.env.DEFT_TS_LANE_COLD = "1";
   const restoreLaneEnv = (): void => {
     if (prevSupervised === undefined) delete process.env.DEFT_TS_LANE_SUPERVISED;
     else process.env.DEFT_TS_LANE_SUPERVISED = prevSupervised;
     if (prevCold === undefined) delete process.env.DEFT_TS_LANE_COLD;
     else process.env.DEFT_TS_LANE_COLD = prevCold;
+    delete process.env.DEFT_TS_LANE_CPUS;
   };
 
   for (const command of LANE_COMMANDS) {

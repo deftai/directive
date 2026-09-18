@@ -9,6 +9,7 @@
  * change last-file format used by named-cause.
  */
 
+import { cpus } from "node:os";
 import {
   formatCoverageReportLine,
   formatFileDurationLine,
@@ -109,7 +110,7 @@ export class TsCheckLaneProgressReporter {
       process.argv.some((arg) => arg === "--coverage" || arg.startsWith("--coverage."));
     this.supervised = clock.supervised ?? process.env.DEFT_TS_LANE_SUPERVISED === "1";
     this.host = clock.host ?? process.platform;
-    this.cpus = clock.cpus ?? 0;
+    this.cpus = clock.cpus ?? Number(process.env.DEFT_TS_LANE_CPUS || cpus().length);
     this.cold = clock.cold ?? process.env.DEFT_TS_LANE_COLD === "1";
   }
 
