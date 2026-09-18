@@ -5,6 +5,10 @@
 
 # Roadmap
 
+## Active
+
+- **#4744** -- bug(check): Windows release Step 5 still exits 124 after #4591 cheapening -- `[running]`
+
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -40,8 +44,22 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1546 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1560 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4718** -- bug(doctor): after successful update, within-window engine>pin still recommends npx update (ignores pnpm; pin/lock is the real gap) -- `[completed]`
+- **#4710** -- bug(update): update must write the consumer pin; doctor-names-file is not reconstitution -- `[completed]`
+- **#4692** -- 0.114.0 to 0.118.1 upgrade deadlocks: update does not bump its own pin, and the printed recovery flag does not exist -- `[completed]`
+- **#4732** -- scope:complete should derive test-axis evidence from landed tests on bound clauses -- `[completed]`
+- **#4318** -- feat(release): write ROADMAP then CHANGELOG through retained descriptors (#4164) -- `[completed]`
+- **#4317** -- feat(release): validate committed lifecycle inputs before native scanner and ROADMAP render (#4164) -- `[completed]`
+- **#4672** -- Swarm deadlock: cannot edit xbrief/active in requirements posture; mutation requires uv -- `[completed]`
+- **#4674** -- Uninstall + delete .deft/ does not fully remove Directive -- `[completed]`
+- **#4673** -- doctor throttles full probe for 22h; README does not mention --full -- `[completed]`
+- **#4697** -- bug(verify): verify:orphan-active silently skips briefs whose forge origin it cannot resolve -- `[completed]`
+- **#4700** -- [framework-gap] design-critique ingest-ready writer does not prove completed-arc readiness -- `[completed]`
+- **#4705** -- bug(design-critique): missing spend token silently selects N=1; launchable panels never ask -- `[completed]`
+- **#4698** -- bug(types,schema): x-xbrief/ validates by pattern but is consumed as a closed set — unknown subtypes are silently ignored -- `[completed]`
+- **#4316** -- test(release): lock ROADMAP out of merge-lane freshness and lifecycle writes (#4164) -- `[completed]`
 - **#4636** -- test(session): CODEX_CI leaks host identity into session, occupancy, and swarm suites -- `[completed]`
 - **#3804** -- AppSec: 2 HIGH + 1 MEDIUM — post-#3545 UAT Shell residuals (inkscape/babel/sass/ar/emacs --batch/pdf/makeself/restic/borg plant authz + kill-switch; approved-scope mint) -- `[completed]`
 - **#4630** -- bug(ts-check-lane): release Step 5 poisons vitest with DEFT_ALLOW_DESTRUCTIVE_GH_VERBS -- `[completed]`
@@ -53,18 +71,4 @@ _Showing 25 of 1546 completed scopes (newest first). Full history: lifecycle `co
 - **#4590** -- [framework-gap] evaluateCompletedArcRecord never consults isInFlightCritiqueThread on a later arc, so a thread mid-critique stays ingestable -- `[completed]`
 - **#4591** -- bugcheck: Windows ts:check-lane 20m kill is spawn-heavy coverage wall clock, not git-worktree fixtures -- `[completed]`
 - **#4588** -- design(setup,scope): observable-scope mint still lands mid-build after setup-created scopes park in pending -- `[completed]`
-- **#4589** -- design(setup,scope): file_scope expansion re-demands approved-scope mint after the operator has left -- `[completed]`
-- **#4565** -- blocked(grok-build,hooks): occupancy self-deadlock on Grok Write (FairMark 2026-09-15, residue of #4125) -- `[completed]`
-- **#4592** -- bug(design-critique): yolo auto-stamp still posts synthesis-accepted and ingest-ready when pain coverage would refuse complete -- `[completed]`
-- **#4563** -- gate(scope,verify): evidence kind is self-attested — closeout accepted kind: uat stamps pointing at unit tests and source symbols with uatVerified null (#4516); add one fail-closed pointer-shape check at scope:complete / verify:completed-tracked -- `[completed]`
-- **#4561** -- uat(hooks,security): #3764 dest-of-write leftover — run the five UAT-mode probes (dest-flag values, trailing operand, TEST_BINS skip, interpreter payload literals, payload-root scope) and record kind: uat evidence so the brief completes without a waiver -- `[completed]`
-- **#4507** -- bug(release): npm-publish post-publish fixture still fails the job after all four packages publish -- `[completed]`
-- **#4506** -- bug(check,release): DEFT_ACTIVE_SCOPE leaks into ts:check-lane and misnames Step 5 cause -- `[completed]`
-- **#4508** -- bug(lifecycle,release): reconcile apply-lifecycle-fixes moves to completed/ without a runTransition stamp -- `[completed]`
-- **#4567** -- bug(check): ts:check-lane 20m kill is git-worktree coverage wall clock, not a stuck test -- `[completed]`
-- **#4529** -- rfc(swarm,grok-build): implement leaf stop-at pr-open -- `[completed]`
-- **#3626** -- AppSec: 2 HIGH + 1 MEDIUM — post-#3545 UAT Shell residuals (ffmpeg/sox/Lisp/build dest writers plant authz + kill-switch; approved-scope mint) -- `[completed]`
-- **#4494** -- feat(swarm): make multi-origin PR batching explicit consent, not overlap inference -- `[completed]`
-- **#4541** -- Fail closed when implementation introduces semantic constraints absent from approved intent -- `[completed]`
-- **#4554** -- leftover(#4531): Handoff does not stop relieves+sharpening recut loop; constraint-brief and routing seat still dropped -- `[completed]`
 

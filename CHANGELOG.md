@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+## [0.119.3] - 2026-09-18
+
+> Release ROADMAP-then-CHANGELOG retained writes, leftover-complete harvest bind, doctor pin/engine follow-through, design-critique spend/ingest-ready gates, and named hang-timeout diagnostics.
+
+### Added
+
+### Changed
+
 - **Leftover-complete #4317.** Completes the Wave 2 brief after #4727. Refs #4164.
 
 - **Release writes ROADMAP then CHANGELOG through retained descriptors (#4318).** Step 5 refuses unsafe CHANGELOG node types before any release-owned read (including `--skip-ci` and dry-run). Step 6 prepares both artifacts without writing. Step 7 completes ROADMAP before CHANGELOG. Refs #4164.
@@ -6293,7 +6305,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.119.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.119.3...HEAD
+[0.119.3]: https://github.com/deftai/directive/compare/v0.119.2...v0.119.3
 [0.119.2]: https://github.com/deftai/directive/compare/v0.119.1...v0.119.2
 [0.119.1]: https://github.com/deftai/directive/compare/v0.119.0...v0.119.1
 [0.119.0]: https://github.com/deftai/directive/compare/v0.118.1...v0.119.0
