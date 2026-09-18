@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Agent-hook recovery writes registrations without swapping `.deft/core` (#4716).** `writeAgentHookDeposit` is the no-swap recovery for missing/drifted enabled hosts; structural inspect stays fail-closed. `deft update` remains a repo-wide payload file-swap when VERSION differs. Pin reconstitution stays #4710. Doctor execute-steps remainder stays #4692. Tracking #4716.
+
 - **Doctor --full deposit hygiene compares .deft/core to the engine content tree update already reconciled (#4706).** Uses `resolveInstalledContentRoot`, not the project ancestor walk. When those roots diverge, doctor prints both and does not name `directive update` as the prune for extras versus the walk-root. AGENTS managed-section freshness stays a warning with an explicit template root; primary recovery remains `deft agents:refresh`. Does not recut `contentRoot()` prefer-package. Walk-root as canonical stays leftover #4710. Tracking #4706.
 
 - **Throttle-skip after `.deft/core` is gone is not billed as clean (#4723).** Default doctor falls through into the existing probe when `classify().hasDeftCore` is false. Signpost is not the implementation site. Does not recut `--full`, `CLEAN_WINDOW_HOURS`, or `lastFindingCount`. Tracking #4723.

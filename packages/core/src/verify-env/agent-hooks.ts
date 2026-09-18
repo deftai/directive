@@ -1,7 +1,13 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
-import { type AgentHookInspection, inspectAgentHookDeposit } from "../init-deposit/agent-hooks.js";
+import {
+  type AgentHookDepositResult,
+  type AgentHookInspection,
+  inspectAgentHookDeposit,
+  writeAgentHookDeposit,
+} from "../init-deposit/agent-hooks.js";
+import type { InitDepositIo } from "../init-deposit/constants.js";
 import {
   HOST_TOOL_COVERAGE_RECOVERY,
   type HostToolCoverageFinding,
@@ -14,6 +20,38 @@ import {
 } from "../policy/host-hooks.js";
 import { compareSemver, readPin } from "../resolution/pin.js";
 import type { OutputStream } from "./verify-hooks-installed.js";
+
+/** #4716 no-swap recovery copy. Disclosure on `deft update` is not P1 relief. */
+export const AGENT_HOOK_NO_SWAP_RECOVERY =
+  "Recovery: rewrite still-enabled host hook registrations with writeAgentHookDeposit " +
+  "(does not swap `.deft/core`). Then re-run `deft verify:hooks-installed --scope=agent --live`. " +
+  "`deft update` (or `directive init`) is a repo-wide payload file-swap when VERSION differs " +
+  "and is not required to clear this gate. ";
+
+export interface RepairAgentHookRegistrationsOptions {
+  readonly io?: InitDepositIo;
+  readonly hostHooksPolicy?: HostHooksPolicy;
+  /** Defaults to evaluateAgentHooks. Pass the live readiness wrapper to re-run that probe. */
+  readonly reevaluate?: (projectRoot: string) => { readonly code: 0 | 1 | 2 };
+}
+
+/**
+ * #4716: write still-enabled host hook files without `runRefreshDeposit` file-swap,
+ * then re-evaluate (structural by default; live probe when the caller passes it).
+ */
+export function repairAgentHookRegistrations(
+  projectRoot: string,
+  options: RepairAgentHookRegistrationsOptions = {},
+): {
+  readonly written: AgentHookDepositResult;
+  readonly after: { readonly code: 0 | 1 | 2 };
+} {
+  const written = writeAgentHookDeposit(projectRoot, options.io, options.hostHooksPolicy);
+  const after = options.reevaluate
+    ? options.reevaluate(projectRoot)
+    : evaluateAgentHooks(projectRoot, options.hostHooksPolicy);
+  return { written, after };
+}
 
 export interface AgentHookHealthResult {
   readonly code: 0 | 1 | 2;
@@ -70,10 +108,7 @@ export function evaluateAgentHooks(
   );
   if (unhealthy.length > 0) {
     const skewNote = formatPinEngineSkewVisibility(root);
-    const recovery =
-      skewNote === null
-        ? "\n  Recovery: run `deft update` (or `directive init`) to refresh project hooks. "
-        : `\n  Recovery: run \`deft update\` (or \`directive init\`) to refresh project hooks. ${skewNote} `;
+    const recovery = `\n  ${AGENT_HOOK_NO_SWAP_RECOVERY}${skewNote === null ? "" : `${skewNote} `}`;
     return {
       code: 1,
       message:

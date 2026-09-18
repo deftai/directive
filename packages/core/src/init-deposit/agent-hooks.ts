@@ -336,7 +336,11 @@ function writeJsonIfChanged(
   return true;
 }
 
-/** Merge Directive-owned project hook entries without replacing user configuration. */
+/**
+ * Merge Directive-owned project hook entries without replacing user configuration.
+ * #4716: this is the no-swap recovery for missing/drifted registrations. It does
+ * not call `runRefreshDeposit` and does not swap `.deft/core`.
+ */
 export function writeAgentHookDeposit(
   projectRoot: string,
   io: InitDepositIo = { printf: () => undefined },
