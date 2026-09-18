@@ -19,6 +19,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { cpus } from "node:os";
 import { posix, win32 } from "node:path";
 import { ACTIVE_SCOPE_PIN_ENV } from "../hooks/scope.js";
 import {
@@ -32,7 +33,12 @@ import {
   RELEASE_PREFLIGHT_ENV,
 } from "../release/constants.js";
 import { resolveCoverageDebtIssue } from "../vitest-runner/coverage-debt.js";
-import { buildTestLaneCommand, resolveTestLaneCommand } from "./progress.js";
+import {
+  buildTestLaneCommand,
+  formatLanePhaseLine,
+  formatTimelineConditionsLine,
+  resolveTestLaneCommand,
+} from "./progress.js";
 
 /** Release Step-5 / session-pin vars that must not leak into vitest (#2434 / #4230 / #4506 / #4630). */
 const TS_LANE_POISON_ENV_KEYS = [
@@ -97,6 +103,9 @@ export interface RunTsLaneOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Injected reporter-file probe (defaults to existsSync). */
   readonly reporterExists?: (path: string) => boolean;
+  readonly now?: () => number;
+  readonly cpus?: number;
+  readonly tsbuildinfoExists?: (path: string) => boolean;
 }
 
 /** Windows command shims (.cmd/.bat) need a shell; native executables do not. */
@@ -178,6 +187,38 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
     return 0;
   }
 
+  const now = options.now ?? Date.now;
+  const cpuCount = options.cpus ?? cpus().length;
+  const tsbuildinfoExists = options.tsbuildinfoExists ?? existsSync;
+  const tsbuildinfoRels = [
+    "packages/core/dist/.tsbuildinfo",
+    "packages/cli/dist/.tsbuildinfo",
+    "packages/types/dist/.tsbuildinfo",
+  ] as const;
+  const cold = !tsbuildinfoRels.every((rel) =>
+    tsbuildinfoExists(posix.join(projectRoot.replaceAll("\\", "/"), rel)),
+  );
+  out(
+    formatTimelineConditionsLine({
+      coverage: true,
+      supervised: true,
+      host: process.platform,
+      cpus: cpuCount,
+      cold,
+    }),
+  );
+  const laneStartedAt = now();
+  const prevSupervised = process.env.DEFT_TS_LANE_SUPERVISED;
+  const prevCold = process.env.DEFT_TS_LANE_COLD;
+  process.env.DEFT_TS_LANE_SUPERVISED = "1";
+  if (cold) process.env.DEFT_TS_LANE_COLD = "1";
+  const restoreLaneEnv = (): void => {
+    if (prevSupervised === undefined) delete process.env.DEFT_TS_LANE_SUPERVISED;
+    else process.env.DEFT_TS_LANE_SUPERVISED = prevSupervised;
+    if (prevCold === undefined) delete process.env.DEFT_TS_LANE_COLD;
+    else process.env.DEFT_TS_LANE_COLD = prevCold;
+  };
+
   for (const command of LANE_COMMANDS) {
     const resolved =
       command[1] === "test" ? resolveTestLaneCommand(projectRoot, options.reporterExists) : command;
@@ -190,6 +231,7 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
       process.env.DEFT_TS_LANE_COVERAGE_DEBT = String(debtIssue);
     }
     let result: RunnerResult;
+    const phaseStartedAt = now();
     try {
       result = runner(argv, projectRoot);
     } finally {
@@ -201,6 +243,8 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
         }
       }
     }
+    const phaseName = command[1] ?? "step";
+    out(formatLanePhaseLine(phaseName, now() - phaseStartedAt));
     const code = result.status;
     // A null status means the child was terminated by a signal (SIGKILL / OOM /
     // SIGTERM) before it could exit. Mapping that to 0 would silently pass a
@@ -212,17 +256,22 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
         out(
           `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed to start: ${result.error.message}`,
         );
+        restoreLaneEnv();
         return 1;
       }
       out(
         `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` was killed by ${result.signal ?? "a signal"} before exit -- treating as failure.`,
       );
+      restoreLaneEnv();
       return 1;
     }
     if (code !== 0) {
       out(`[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed (exit ${code}).`);
+      restoreLaneEnv();
       return code;
     }
   }
+  out(formatLanePhaseLine("lane", now() - laneStartedAt));
+  restoreLaneEnv();
   return 0;
 }

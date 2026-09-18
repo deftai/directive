@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows Step 5 leftover records a release-host timeline before naming the next cost class (#4744).** `ts:check-lane` emits unit-project complete, spawn-heavy-project complete, and coverage merge/report under named conditions (cold lane, `--coverage`, supervised `ts:check-lane`, host state). The bind clock is that supervised lane wall (lint + build + coverage inside `RELEASE_CHECK_TIMEOUT_MS`), not vitest-only and not Ubuntu `timeout-minutes: 20`. Retracts the #4591 439s Windows `task check` reading as a Step 5 close: that number was not a cold supervised `--coverage` `ts:check-lane` wall. Dest after PR 4745 measured 25.52 min / 124 on this clock. Occupancy-stress stays spawn-heavy. Do not raise `RELEASE_CHECK_TIMEOUT_MS`. Do not use `--skip-ci`. Tracking #4744.
+
 - **Class B reserved-prefix xBRIEF subtypes warn instead of fail-closed (#4746).** `depends-on`, `supersedes`, `source-document`, `user-approval`, `revisit-condition`, and `superseded-by` under `x-vbrief/` and `x-xbrief/` report as warnings. Aliases `pull-request` / `github-pull-request` and untabled typos stay errors. `validateVbriefSchema` remains fatal-errors only. Default `xbrief:validate` / `vbrief:validate` exit 0 on those twelve spellings; `--warnings-as-errors` exits 1. Does not recut #4698, add a fifth type registry, or add these six to `ENGINE_WRITTEN_BARE_TYPES`. Leftover Class A remainder is #4749. Tracking #4746.
 
 - **Bare `deft check` / `directive check` now defaults omitted roots (#4722).** The command uses the current directory as the project root and fails with remediation when it cannot find a framework root. Tracking #4722.
