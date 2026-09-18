@@ -18,9 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Leftover-complete #4723 after PR 4764.** Moves the brief to `xbrief/completed/` with `kind: test` evidence on bound clause ids. Refs #4723.
+- **Records #4723 complete after the doctor skip-path fix landed.** Completes the tracked brief for the merged product PR. Refs #4723.
 
-- **Leftover-complete #4708 after PR 4763.** Moves the brief to `xbrief/completed/` with `kind: test` evidence on bound clause ids. Refs #4708.
+- **Records #4708 complete after the Grok occupancy owner remap landed.** Completes the tracked brief for the merged product PR. Does not close leftover #4125. Refs #4708.
 - **Leftover-complete #4628 after PR 4681.** Moves the brief to `xbrief/completed/` with `kind: test` evidence on bound clause ids. Refs #4628.
 
 ### Fixed

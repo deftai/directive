@@ -101,7 +101,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/issues/4125",
-        "type": "x-xbrief/closes",
+        "type": "x-xbrief/refs",
         "title": "Issue #4125"
       },
       {
