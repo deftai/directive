@@ -194,21 +194,18 @@ const subpathAliases: Record<string, string> = {
 // #4591 / #4744: spawn leftovers that must stay out of process. CLI parity tests
 // use in-process routeAndDispatch. Leftover git-worktree clones use share-plus-reset.
 // Occupancy suites stay per-it (no proven independent reset). Remaining Windows
-// --coverage cost after #4591: leftover execPath boots, occupancy-stress children,
-// and 240s-timeout filesystem suites. Hang-detector timeout stays last
+// --coverage cost after #4591: leftover execPath boots and occupancy-stress
+// children. In-process 240s suites stay in unit (second-pool overlap is slower).
+// Hang-detector timeout stays last
 // (operator lock 5685476402). Do not raise RELEASE_CHECK_TIMEOUT_MS.
 const spawnHeavyGlobs = [
   "packages/cli/src/cli-bin-symlink-entrypoint.test.ts",
   "packages/cli/src/hook-host-identity-lifetime.test.ts",
-  "packages/cli/src/slice.test.ts",
-  "packages/cli/src/install-upgrade.test.ts",
   "packages/core/src/session/occupancy-stress.test.ts",
   "packages/core/src/platform/ts-build-fresh.test.ts",
   "packages/core/src/deposit/run-stage-content-pack.test.ts",
   "packages/core/src/content-contracts/standards/taskfile_engine_dispatch.test.ts",
   "packages/core/src/one-pr-unit/store.test.ts",
-  "packages/core/src/scope/scope-branch-coverage.test.ts",
-  "packages/core/src/integration-e2e/triage-bootstrap-at-scale.test.ts",
 ] as const;
 
 export default defineConfig({

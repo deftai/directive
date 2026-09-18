@@ -181,9 +181,9 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).toContain("cli-bin-symlink-entrypoint.test.ts");
     expect(source).toContain("hook-host-identity-lifetime.test.ts");
     expect(source).toContain("occupancy-stress.test.ts");
-    expect(source).toContain("install-upgrade.test.ts");
-    expect(source).toContain("triage-bootstrap-at-scale.test.ts");
     expect(source).toContain("ts-build-fresh.test.ts");
+    expect(source).toContain("run-stage-content-pack.test.ts");
+    expect(source).not.toContain("install-upgrade.test.ts");
     expect(source).not.toMatch(/fileParallelism:\s*false/);
     expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
   });
