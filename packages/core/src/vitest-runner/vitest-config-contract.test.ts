@@ -170,6 +170,8 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).toMatch(/git-worktree/);
     expect(source).toMatch(/Hang-detector timeout stays last/);
     expect(source).toMatch(/RELEASE_CHECK_TIMEOUT_MS/);
+    expect(source).toContain("#4744");
+    expect(source).toMatch(/progress-reporter\.ts/);
     expect(constants).toMatch(/RELEASE_CHECK_TIMEOUT_MS = 20 \* 60 \* 1000/);
   });
 
@@ -178,6 +180,10 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).toMatch(/name:\s*"unit"/);
     expect(source).toContain("cli-bin-symlink-entrypoint.test.ts");
     expect(source).toContain("hook-host-identity-lifetime.test.ts");
+    expect(source).toContain("occupancy-stress.test.ts");
+    expect(source).toContain("install-upgrade.test.ts");
+    expect(source).toContain("triage-bootstrap-at-scale.test.ts");
+    expect(source).toContain("ts-build-fresh.test.ts");
     expect(source).not.toMatch(/fileParallelism:\s*false/);
     expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
   });

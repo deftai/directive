@@ -90,6 +90,10 @@ export function extractGateCause(
     if (isGoTaskWrapperNoise(line)) continue;
     useful.push(line);
   }
+  const hangCause = extractHangDetectorCause(useful, exitCode);
+  if (hangCause !== null) {
+    return hangCause;
+  }
   const gateHint = gateId?.trim() ?? "";
   if (gateHint === "toolchain:check" || gateHint === "toolchain:check-consumer") {
     const toolFailure = useful.find((line) =>
@@ -175,7 +179,34 @@ function sanitizeCauseLine(line: string): string {
   return out;
 }
 
+/** Last ts:check-lane last-file tick in captured output, if any (#4744). */
+function lastCompletedTestFile(useful: readonly string[]): string | null {
+  for (let i = useful.length - 1; i >= 0; i -= 1) {
+    const line = useful[i] as string;
+    const match = /^ts:check-lane last-file (.+) \((\d+)\/(\d+) files\)$/.exec(line);
+    const file = match?.[1]?.trim() ?? "";
+    if (file.length > 0) return file;
+  }
+  return null;
+}
+
+/**
+ * Exit 124 is the hang detector, not a product FAIL. A killed suite has no
+ * Tests N failed summary, so a later FAIL: fixture print must not win.
+ */
+function extractHangDetectorCause(useful: readonly string[], exitCode: number): string | null {
+  if (exitCode !== 124) return null;
+  const lastFile = lastCompletedTestFile(useful);
+  if (lastFile !== null) {
+    return `hang detector timeout (exit 124); last completed test file: ${lastFile}`;
+  }
+  return "hang detector timeout (exit 124); last completed test file unknown";
+}
+
 export function remedyForGate(gateId: string, cause: string): string {
+  if (/hang detector timeout/i.test(cause)) {
+    return "Cheapen remaining Windows vitest --coverage cost; do not raise RELEASE_CHECK_TIMEOUT_MS";
+  }
   if (/global deft\/directive CLI not found/i.test(cause)) {
     return CLI_SPAWN_ERROR_REMEDY;
   }

@@ -119,6 +119,10 @@ export function writeFlushedLine(
   }
   const syncWrite = options.syncWrite ?? writeSync;
   syncWrite(options.fd ?? 1, payload);
+  // Hang-detector tees stderr separately from the 256KB stdout coverage dump (#4744).
+  if (options.fd === undefined && options.syncWrite === undefined) {
+    process.stderr.write(payload);
+  }
 }
 
 export function buildTestLaneCommand(
