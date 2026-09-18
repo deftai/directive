@@ -1,0 +1,222 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:release-cut",
+    "description": "Scope xBRIEF for GitHub issue #4744",
+    "created": "2026-09-18T03:13:03.884Z",
+    "updated": "2026-09-18T21:30:38Z"
+  },
+  "plan": {
+    "title": "bug(check): Windows release Step 5 still exits 124 after #4591 cheapening",
+    "status": "completed",
+    "id": "github.issue.5495206751",
+    "narratives": {
+      "Overview": "v0.119.3 Step 5 ts:check-lane died at the 20-minute hang detector (exit 124) on HEAD 19521dc64. Named-cause cited the #4506 D7 negative fixture because a killed suite has no Tests N failed summary. Last-file ticks did not appear in the captured log. Recurrence of #4567/#4591; do not raise RELEASE_CHECK_TIMEOUT_MS.\n\nPR 4745 ships diagnostics and ranked cheapening only. Dest ts:check-lane measured 25.52 min at 8 workers, still over 20 minutes. The 20-minute Step 5 close stays leftover on this issue (spawn-heavy one-worker tail: pack-smoke tsc, occupancy-stress children, ci_lifecycle_lane, leftover execPath boots).",
+      "AcceptanceCriteria": "- Leftover (not this PR): When Windows release Step 5 / ts:check-lane runs vitest --coverage at this lineage, the suite completes under 20 minutes (measured wall clock on this host).\n- When the hang detector fires, named-cause for exit 124 names timeout/hang and the last completed test file when known, and does not cite the D7 negative fixture as the product fail.\n- When the hang detector fires, last-file progress ticks appear in the same capture that records the 124.\n- Rank remaining cost (CLI boots, occupancy filesystem, leftover git-worktree, new files since #4591) and cheapen via existing seams: spawn-heavy project, in-process routeAndDispatch, share-plus-reset. Occupancy stays per-it unless a reset is proven.\n- Do not raise RELEASE_CHECK_TIMEOUT_MS.",
+      "Test": "- When named-cause is given a 124 with the D7 FAIL: fixture line and no Tests N failed summary, it names timeout/hang rather than the fixture.\n- When the progress reporter completes files, last-file lines are written with writeFlushedLine.",
+      "ImplementationPlan": "PR 4745 ships named-cause, last-file ticks, occupancy share-plus-reset, spawn-heavy partition, and evaluator-surface disclosure. Tracking #4744, not Closes. 20-minute wall is leftover on #4744."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Leftover (not PR 4745): When Windows release Step 5 / ts:check-lane runs vitest --coverage at this lineage, the suite completes under 20 minutes (measured wall clock on this host).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/progress.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "id": "2",
+        "title": "When the hang detector fires, named-cause for exit 124 names timeout/hang and the last completed test file when known, and does not cite the D7 negative fixture as the product fail.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "id": "3",
+        "title": "When the hang detector fires, last-file progress ticks appear in the same capture that records the 124.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/progress-reporter.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "id": "4",
+        "title": "Rank remaining cost (CLI boots, occupancy filesystem, leftover git-worktree, new files since #4591) and cheapen via existing seams: spawn-heavy project, in-process routeAndDispatch, share-plus-reset. Occupancy stays per-it unless a reset is proven.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/progress.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "id": "5",
+        "title": "Do not raise RELEASE_CHECK_TIMEOUT_MS.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/progress.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "packages/core/src/ts-check-lane/progress.ts",
+          "packages/core/src/ts-check-lane/progress-reporter.ts",
+          "packages/core/src/ts-check-lane/run-lane.ts",
+          "packages/core/src/vitest-runner/vitest-config-contract.test.ts",
+          "vitest.config.ts",
+          "CHANGELOG.md",
+          "packages/cli/src/occupancy-grant.test.ts",
+          "packages/cli/src/occupancy-heartbeat.test.ts",
+          "packages/cli/src/occupancy-release.test.ts",
+          "packages/cli/src/occupancy-steal.test.ts",
+          "packages/core/src/session/child-occupancy.test.ts",
+          "packages/core/src/session/occupancy-mint-refusal.test.ts",
+          "packages/core/src/session/occupancy-stress.test.ts",
+          "packages/cli/src/install-upgrade.test.ts",
+          "packages/core/src/integration-e2e/triage-bootstrap-at-scale.test.ts",
+          "packages/core/src/session/branches.test.ts"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "named-cause 124 not D7 fixture",
+          "last-file ticks in capture",
+          "CHANGELOG [Unreleased] #4744",
+          "leftover 20-minute Step 5 close on #4744"
+        ],
+        "depends_on": [],
+        "conflict_group": "windows-coverage-wall",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Release-cut file-and-merge from measured Step 5 hang; no spec-section trace."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5495206751,
+        "origin": "deftai/directive#4744",
+        "id": "github.issue.5495206751"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4775,
+        "prBase": null,
+        "mergeCommit": "8c92acde886900e2f656a356b6d58cab26b5e029",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8c92acde886900e2f656a356b6d58cab26b5e029",
+        "verifiedAt": "2026-09-18T21:30:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T21:30:38Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T21:30:38Z"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4744",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4744: bug(check): Windows release Step 5 still exits 124 after #4591 cheapening"
+      }
+    ],
+    "x-directive/intended_placement": {
+      "files": [
+        "packages/core/src/check/named-cause.ts",
+        "packages/core/src/check/named-cause.test.ts",
+        "packages/core/src/ts-check-lane/progress.ts",
+        "packages/core/src/ts-check-lane/progress-reporter.ts",
+        "packages/core/src/ts-check-lane/run-lane.ts",
+        "packages/core/src/vitest-runner/vitest-config-contract.test.ts",
+        "vitest.config.ts",
+        "CHANGELOG.md",
+        "packages/cli/src/occupancy-grant.test.ts",
+        "packages/cli/src/occupancy-heartbeat.test.ts",
+        "packages/cli/src/occupancy-release.test.ts",
+        "packages/cli/src/occupancy-steal.test.ts",
+        "packages/core/src/session/child-occupancy.test.ts",
+        "packages/core/src/session/occupancy-mint-refusal.test.ts",
+        "packages/core/src/session/occupancy-stress.test.ts",
+        "packages/cli/src/install-upgrade.test.ts",
+        "packages/core/src/integration-e2e/triage-bootstrap-at-scale.test.ts",
+        "packages/core/src/session/branches.test.ts"
+      ],
+      "cohesion_exemption": "split_plan"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When Windows release Step 5 / ts:check-lane runs vitest --coverage at this lineage, the suite completes under 20 minutes (measured wall clock on this host).",
+          "artifact_path": "packages/core/src/ts-check-lane/progress.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When the hang detector fires, named-cause for exit 124 names timeout/hang and the last completed test file when known, and does not cite the D7 negative fixture as the product fail.",
+          "artifact_path": "packages/core/src/check/named-cause.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the hang detector fires, last-file progress ticks appear in the same capture that records the 124.",
+          "artifact_path": "packages/core/src/ts-check-lane/progress-reporter.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Rank remaining cost (CLI boots, occupancy filesystem, leftover git-worktree, new files since #4591) and cheapen via existing seams: spawn-heavy project, in-process routeAndDispatch, share-plus-reset. Occupancy stays per-it unless a reset is proven.",
+          "artifact_path": "packages/core/src/ts-check-lane/progress.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not raise RELEASE_CHECK_TIMEOUT_MS.",
+          "artifact_path": "packages/core/src/ts-check-lane/progress.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-18T21:30:38Z"
+  }
+}

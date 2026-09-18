@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Records #4744 complete after ts:check-lane timeline and hang named-cause landed.** Completes the tracked brief for the merged product PR. Refs #4744.
+
+- **Records #4746 complete after Class B reserved-prefix warnings landed.** Completes the tracked brief for the merged product PR. Leftover Class A remainder stays #4749. Refs #4746.
+
 - **Records #4722 complete after bare deft check omitted-root defaults landed.** Completes the tracked brief for the merged product PR. Refs #4722.
 
 - **Records #4716 complete after no-swap hook recovery landed.** Completes the tracked brief for the merged product PR. Refs #4716.

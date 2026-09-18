@@ -1,0 +1,145 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "author": "agent:leftover-complete",
+    "description": "Leftover-complete record for GitHub issue #4746 (dest brief was gitignored and not recovered).",
+    "created": "2026-09-18T21:30:06.519Z",
+    "updated": "2026-09-18T21:31:10Z"
+  },
+  "plan": {
+    "title": "framework-gap: 0.119.3 rejects previously valid reserved-prefix xBRIEF subtypes",
+    "status": "completed",
+    "id": "github.issue.5500447083",
+    "narratives": {
+      "Overview": "Class B MAY-extend bares under reserved-prefix vbrief/ and reserved-prefix xbrief/ warn. Class A aliases stay errors. Leftover Class A remainder is #4749.",
+      "AcceptanceCriteria": "Six Class B bares under both prefixes warn; aliases stay errors; validateAll splits errors and warnings.",
+      "Test": "schema-v08 tests cover the twelve spellings as warnings.",
+      "ImplementationPlan": "Shipped in PR 4785. This leftover-complete record is lifecycle only."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Class B six bares under reserved-prefix vbrief/ and reserved-prefix xbrief/ report as warnings.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/schema.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "id": "2",
+        "title": "Class A aliases pull-request and github-pull-request stay errors.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/schema.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      },
+      {
+        "id": "3",
+        "title": "validateVbriefSchema stays fatal-errors public API; validateAll routes errors and warnings.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "recorded_at": "2026-09-18T21:30:06.519Z",
+          "recorded_by": "host:claude:v1:MDFhMGI0OWItZmUyNy03MjMyLWIzYzktZDAwMjAzNmIzYTY5"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "content/conventions/references.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": []
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5500447083,
+        "origin": "deftai/directive#4746",
+        "id": "github.issue.5500447083"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4785,
+        "prBase": null,
+        "mergeCommit": "0085ddb645382a8142cffccc47dd91344df44292",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8c92acde886900e2f656a356b6d58cab26b5e029",
+        "verifiedAt": "2026-09-18T21:31:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-18T21:31:10Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-18T21:31:10Z"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4746",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4746"
+      }
+    ],
+    "x-directive/intended_placement": {
+      "files": [
+        "packages/core/src/vbrief-validate/schema.ts",
+        "packages/core/src/vbrief-validate/schema-v08.test.ts",
+        "content/conventions/references.md",
+        "CHANGELOG.md"
+      ]
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "leftover-complete reconstruction; dest active brief was gitignored",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Class B six bares under both prefixes warn.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Class A aliases stay errors.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "validateAll routes errors and warnings.",
+          "artifact_path": "packages/core/src/vbrief-validate/schema-v08.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-18T21:31:10Z"
+  }
+}
