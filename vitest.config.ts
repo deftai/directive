@@ -16,6 +16,9 @@ const testEnvironment =
 // unhandled worker RPC flakes when the assertion suite is otherwise green. Refs #2546.
 const isWin32 = process.platform === "win32";
 const winMaxWorkers = Math.max(1, Math.min(12, Math.floor(cpus().length * 0.25)));
+// Two projects each at winMaxWorkers double the fork cap and contend with
+// occupancy-stress children. Spawn-heavy stays at 1 so unit keeps the timing cap.
+const spawnHeavyWinMaxWorkers = 1;
 
 // Coverage chunk writes land in coverage/.tmp. Vitest 4.x includes the upstream
 // mkdir fix (vitest-dev/vitest#10117 / #2634). Keep win32 globalSetup keepalive
@@ -197,8 +200,9 @@ const subpathAliases: Record<string, string> = {
 // (afterEach deletes occupancy.json / child-occupancy; cases stay independent).
 // Occupancy-stress stays spawn-heavy. Remaining Windows --coverage cost after #4591:
 // leftover execPath boots (pack-smoke tsc, cursor-managed-runtime, ci_lifecycle_lane)
-// and occupancy-stress children. In-process 240s suites stay in unit (second-pool
-// overlap is slower).
+// and occupancy-stress children. Spawn-heavy uses one Windows worker so it does not
+// double the unit fork cap. In-process 240s suites stay in unit (second-pool overlap
+// is slower).
 // Hang-detector timeout stays last
 // (operator lock 5685476402). Do not raise RELEASE_CHECK_TIMEOUT_MS.
 const spawnHeavyGlobs = [
@@ -255,7 +259,7 @@ export default defineConfig({
           name: "spawn-heavy",
           include: [...spawnHeavyGlobs],
           testTimeout: isWin32 ? 240_000 : 5_000,
-          ...(isWin32 ? { maxWorkers: winMaxWorkers } : {}),
+          ...(isWin32 ? { maxWorkers: spawnHeavyWinMaxWorkers } : {}),
         },
       },
     ],

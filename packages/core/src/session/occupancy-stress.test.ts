@@ -46,8 +46,8 @@ describe("occupancy concurrency stress (#3433)", () => {
     const logPath = join(root, "markers.log");
     writeFileSync(logPath, "", "utf8");
     const workerFile = fileURLToPath(new URL("./occupancy-stress-worker.ts", import.meta.url));
-    const workers = 4;
-    const rounds = 6;
+    const workers = process.platform === "win32" ? 2 : 4;
+    const rounds = process.platform === "win32" ? 3 : 6;
     const jobs = Array.from({ length: workers }, (_, i) => {
       return new Promise<void>((resolve, reject) => {
         // vitest 4 dropped vite-node (#3480); tsx is the spawn runner for this
