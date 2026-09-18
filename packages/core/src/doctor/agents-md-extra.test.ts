@@ -1,9 +1,17 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readCorePackageVersion } from "../engine-version.js";
-import { agentsRefreshPlan, hasManagedSectionMarker, hasV3ManagedMarker } from "./agents-md.js";
+import {
+  agentsRefreshPlan,
+  agentsRefreshPlanWithInstalledTemplate,
+  hasManagedSectionMarker,
+  hasV3ManagedMarker,
+  peekDoctorAgentsTemplateRoot,
+  readAgentsTemplateFromContentTree,
+  setDoctorAgentsTemplateRoot,
+} from "./agents-md.js";
 
 const MANAGED = "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->";
 
@@ -156,5 +164,59 @@ describe("agents-md extra branches", () => {
     expect(plan.state).toBe("unreadable");
     expect(plan.reason).toBe("truncated-close");
     expect(plan.new_content).toBeNull();
+  });
+
+  it("reads an explicit content-tree AGENTS template without prefer-package (#4706)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-tpl-"));
+    try {
+      expect(readAgentsTemplateFromContentTree(root)).toBeNull();
+      mkdirSync(join(root, "templates"), { recursive: true });
+      writeFileSync(join(root, "templates", "agents-entry.md"), MANAGED, "utf8");
+      expect(readAgentsTemplateFromContentTree(root)).toBe(MANAGED);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("agentsRefreshPlanWithInstalledTemplate uses the explicit template root (#4706)", () => {
+    const project = mkdtempSync(join(tmpdir(), "deft-doc-inst-proj-"));
+    const installed = mkdtempSync(join(tmpdir(), "deft-doc-inst-tpl-"));
+    try {
+      mkdirSync(join(installed, "templates"), { recursive: true });
+      writeFileSync(join(installed, "templates", "agents-entry.md"), MANAGED, "utf8");
+      const plan = agentsRefreshPlanWithInstalledTemplate(project, installed, {
+        readAgents: () => null,
+        resolveSha: () => "installedsha",
+      });
+      expect(plan.state).toBe("absent");
+      expect(plan.sha).toBe("installedsha");
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+      rmSync(installed, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back when the installed content tree has no agents template (#4706)", () => {
+    const project = mkdtempSync(join(tmpdir(), "deft-doc-inst-miss-"));
+    const installed = mkdtempSync(join(tmpdir(), "deft-doc-inst-empty-"));
+    try {
+      const plan = agentsRefreshPlanWithInstalledTemplate(project, installed, {
+        readAgents: () => null,
+        resolveSha: () => "fallbacksha",
+      });
+      expect(plan.state).toBe("absent");
+      expect(plan.sha).toBe("fallbacksha");
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+      rmSync(installed, { recursive: true, force: true });
+    }
+  });
+
+  it("set/peek doctor agents template root (#4706)", () => {
+    expect(peekDoctorAgentsTemplateRoot()).toBeUndefined();
+    setDoctorAgentsTemplateRoot("/engine/content");
+    expect(peekDoctorAgentsTemplateRoot()).toBe("/engine/content");
+    setDoctorAgentsTemplateRoot(undefined);
+    expect(peekDoctorAgentsTemplateRoot()).toBeUndefined();
   });
 });

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveContentPackageRoot } from "@deftai/directive-core/dist/content-root.js";
+import { resolveInstalledContentRoot } from "@deftai/directive-core/dist/deposit/resolve-content.js";
+import { setDoctorAgentsTemplateRoot } from "@deftai/directive-core/dist/doctor/agents-md.js";
 import { parseDoctorFlags } from "@deftai/directive-core/dist/doctor/flags.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 import { findPackageAbsentDepositPathsSync } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
@@ -19,31 +21,70 @@ import {
 export interface DepositFileSetHygieneResult {
   readonly absent: readonly string[];
   readonly contentRoot: string | null;
+  readonly walkRoot: string | null;
+  readonly installedRoot: string | null;
   readonly skipped: boolean;
 }
 
 export interface EvaluateDepositFileSetOptions {
   readonly contentRoot?: string;
+  readonly walkRoot?: string | null;
+  readonly installedRoot?: string | null;
 }
 
-/** Compare `.deft/core/` against `@deftai/directive-content` (#2804). */
+function samePath(left: string, right: string): boolean {
+  return resolve(left) === resolve(right);
+}
+
+function rootsDiverge(walkRoot: string | null, installedRoot: string | null): boolean {
+  return walkRoot !== null && installedRoot !== null && !samePath(walkRoot, installedRoot);
+}
+
+/** Compare `.deft/core/` against `@deftai/directive-content` (#2804 / #4706). */
 export function evaluateDepositFileSetHygiene(
   projectRoot: string,
   options: EvaluateDepositFileSetOptions = {},
 ): DepositFileSetHygieneResult {
   const deftDir = join(projectRoot, ".deft", "core");
+  const walkRoot =
+    options.walkRoot !== undefined ? options.walkRoot : resolveContentPackageRoot(projectRoot);
+  const installedRoot = options.installedRoot ?? null;
   if (!existsSync(deftDir)) {
-    return { absent: [], contentRoot: null, skipped: true };
+    return { absent: [], contentRoot: null, walkRoot, installedRoot, skipped: true };
   }
-  const contentRoot = options.contentRoot ?? resolveContentPackageRoot(projectRoot);
+  const contentRoot = options.contentRoot ?? installedRoot ?? walkRoot;
   if (contentRoot === null || !existsSync(contentRoot)) {
-    return { absent: [], contentRoot: null, skipped: true };
+    return { absent: [], contentRoot: null, walkRoot, installedRoot, skipped: true };
   }
   return {
     absent: findPackageAbsentDepositPathsSync(deftDir, contentRoot),
     contentRoot,
+    walkRoot,
+    installedRoot,
     skipped: false,
   };
+}
+
+function hygieneRootDivergenceNote(result: DepositFileSetHygieneResult): string {
+  if (!rootsDiverge(result.walkRoot, result.installedRoot ?? result.contentRoot)) {
+    return "";
+  }
+  const compared = result.contentRoot ?? "";
+  const walk = result.walkRoot ?? "";
+  const installed = result.installedRoot ?? compared;
+  return ` Compared content root: ${compared}. Project walk-root: ${walk}. Engine content root: ${installed}.`;
+}
+
+function namesUpdatePruneRecovery(result: DepositFileSetHygieneResult): boolean {
+  const compared = result.contentRoot;
+  const walkRoot = result.walkRoot;
+  if (compared === null || walkRoot === null) {
+    return true;
+  }
+  if (!rootsDiverge(walkRoot, result.installedRoot)) {
+    return true;
+  }
+  return !samePath(compared, walkRoot);
 }
 
 export function renderDepositFileSetHygieneLine(
@@ -65,40 +106,78 @@ export function renderDepositFileSetHygieneLine(
   }
   const sample = result.absent.slice(0, 5).join(", ");
   const suffix = result.absent.length > 5 ? ` (+${result.absent.length - 5} more)` : "";
+  const divergence = hygieneRootDivergenceNote(result);
+  const recovery = namesUpdatePruneRecovery(result)
+    ? "Run `directive update` to auto-prune these stale deposit files (#2804)."
+    : "Do not run `directive update` to prune extras versus the project walk-root; that tree is not the engine content update reconciled (#4706). Leftover pin reconstitution is #4710.";
   return (
     `Deposit hygiene: fail -- ${result.absent.length} package-absent file(s) in .deft/core ` +
-    `(not shipped by @deftai/directive-content). Examples: ${sample}${suffix}. ` +
-    "Run `directive update` to auto-prune these stale deposit files (#2804)."
+    `(not shipped by @deftai/directive-content). Examples: ${sample}${suffix}.${divergence} ` +
+    recovery
   );
 }
 
-export function run(argv: string[]): number {
+async function resolveEngineContentRoot(): Promise<string | null> {
+  try {
+    const installed = await resolveInstalledContentRoot();
+    return typeof installed === "string" && installed.length > 0 ? installed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function run(argv: string[]): Promise<number> {
   // #2022: surface pre-cutover (pre-v0.20 document model) migration state alongside the
   // core doctor report. Only emit on a valid, human-readable invocation: suppressed under
   // --json (so the machine-readable report stays valid), on --help, and when unknown flags
   // are present (so an invalid invocation still mirrors the core error path exactly).
   const flags = parseDoctorFlags(argv);
   let depositHygieneExit = 0;
-  if (!flags.json && !flags.help && flags.unknown.length === 0) {
-    const projectRoot = flags.projectRoot ?? process.cwd();
-    const depositResult = evaluateDepositFileSetHygiene(projectRoot);
-    process.stdout.write(`${renderPrecutoverLine(projectRoot)}\n`);
-    process.stdout.write(`${renderXbriefMigrationLine(projectRoot)}\n`);
-    process.stdout.write(`${renderStaleHeaderLine(projectRoot)}\n`);
-    process.stdout.write(`${renderDepositFileSetHygieneLine(projectRoot, depositResult)}\n`);
-    const closure = evaluateInstalledDepositClosure(projectRoot);
-    process.stdout.write(`${renderDeclaredDepositClosureLine(closure)}\n`);
-    if (flags.full && !depositResult.skipped && depositResult.absent.length > 0) {
-      depositHygieneExit = 1;
-    }
-    if (flags.full && !closure.skipped && (closure.missing.length > 0 || closure.error !== null)) {
-      depositHygieneExit = 1;
-    }
+  const installedRoot = await resolveEngineContentRoot();
+  if (installedRoot !== null) {
+    setDoctorAgentsTemplateRoot(installedRoot);
   }
-  const doctorExit = cmdDoctor(argv);
-  return Math.max(depositHygieneExit, doctorExit);
+  try {
+    if (!flags.json && !flags.help && flags.unknown.length === 0) {
+      const projectRoot = flags.projectRoot ?? process.cwd();
+      const walkRoot = resolveContentPackageRoot(projectRoot);
+      const depositResult = evaluateDepositFileSetHygiene(projectRoot, {
+        contentRoot: installedRoot ?? undefined,
+        walkRoot,
+        installedRoot,
+      });
+      process.stdout.write(`${renderPrecutoverLine(projectRoot)}\n`);
+      process.stdout.write(`${renderXbriefMigrationLine(projectRoot)}\n`);
+      process.stdout.write(`${renderStaleHeaderLine(projectRoot)}\n`);
+      process.stdout.write(`${renderDepositFileSetHygieneLine(projectRoot, depositResult)}\n`);
+      const closure = evaluateInstalledDepositClosure(projectRoot);
+      process.stdout.write(`${renderDeclaredDepositClosureLine(closure)}\n`);
+      if (flags.full && !depositResult.skipped && depositResult.absent.length > 0) {
+        depositHygieneExit = 1;
+      }
+      if (
+        flags.full &&
+        !closure.skipped &&
+        (closure.missing.length > 0 || closure.error !== null)
+      ) {
+        depositHygieneExit = 1;
+      }
+    }
+    const doctorExit = cmdDoctor(argv);
+    return Math.max(depositHygieneExit, doctorExit);
+  } finally {
+    setDoctorAgentsTemplateRoot(undefined);
+  }
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  process.exit(run(process.argv.slice(2)));
+  void run(process.argv.slice(2)).then(
+    (code) => {
+      process.exit(code);
+    },
+    (err: unknown) => {
+      process.stderr.write(`${err instanceof Error ? (err.stack ?? err.message) : String(err)}\n`);
+      process.exit(1);
+    },
+  );
 }

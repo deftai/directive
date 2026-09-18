@@ -7,6 +7,17 @@ vi.mock("@deftai/directive-core/dist/doctor/main.js", () => ({
   cmdDoctor: vi.fn(() => 0),
 }));
 
+vi.mock("@deftai/directive-core/dist/deposit/resolve-content.js", () => ({
+  resolveInstalledContentRoot: vi.fn(async () => {
+    throw new Error("not installed in doctor CLI unit tests");
+  }),
+}));
+
+vi.mock("@deftai/directive-core/dist/doctor/agents-md.js", () => ({
+  setDoctorAgentsTemplateRoot: vi.fn(),
+}));
+
+import { resolveInstalledContentRoot } from "@deftai/directive-core/dist/deposit/resolve-content.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 import { evaluateDepositFileSetHygiene, renderDepositFileSetHygieneLine, run } from "./doctor.js";
 
@@ -57,7 +68,7 @@ function seedContentPackage(
   return contentRoot;
 }
 
-function captureStdout(fn: () => void): string {
+async function captureStdout(fn: () => void | Promise<void>): Promise<string> {
   let captured = "";
   const spy = vi
     .spyOn(process.stdout, "write")
@@ -66,7 +77,7 @@ function captureStdout(fn: () => void): string {
       return true;
     });
   try {
-    fn();
+    await fn();
   } finally {
     spy.mockRestore();
   }
@@ -75,6 +86,9 @@ function captureStdout(fn: () => void): string {
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.mocked(resolveInstalledContentRoot).mockRejectedValue(
+    new Error("not installed in doctor CLI unit tests"),
+  );
   while (createdRoots.length > 0) {
     const root = createdRoots.pop();
     if (root) {
@@ -84,40 +98,40 @@ afterEach(() => {
 });
 
 describe("doctor CLI", () => {
-  it("delegates argv to cmdDoctor", () => {
-    captureStdout(() => {
-      expect(run(["--full", "--json"])).toBe(0);
+  it("delegates argv to cmdDoctor", async () => {
+    await captureStdout(async () => {
+      expect(await run(["--full", "--json"])).toBe(0);
     });
     expect(cmdDoctor).toHaveBeenCalledWith(["--full", "--json"]);
   });
 
-  it("suppresses the precutover line under --json so JSON output stays valid", () => {
+  it("suppresses the precutover line under --json so JSON output stays valid", async () => {
     const root = makeRoot("doctor-json-");
     makeLifecycleDirs(root);
-    const out = captureStdout(() => {
-      expect(run(["--json", "--project-root", root])).toBe(0);
+    const out = await captureStdout(async () => {
+      expect(await run(["--json", "--project-root", root])).toBe(0);
     });
     expect(out).toBe("");
     expect(cmdDoctor).toHaveBeenCalledWith(["--json", "--project-root", root]);
   });
 
-  it("suppresses the precutover line for an invalid invocation (unknown flag)", () => {
-    const out = captureStdout(() => {
-      run(["--not-a-real-flag"]);
+  it("suppresses the precutover line for an invalid invocation (unknown flag)", async () => {
+    const out = await captureStdout(async () => {
+      await run(["--not-a-real-flag"]);
     });
     expect(out).toBe("");
     expect(cmdDoctor).toHaveBeenCalledWith(["--not-a-real-flag"]);
   });
 
-  it("suppresses the precutover line for --help", () => {
-    const out = captureStdout(() => {
-      run(["--help"]);
+  it("suppresses the precutover line for --help", async () => {
+    const out = await captureStdout(async () => {
+      await run(["--help"]);
     });
     expect(out).toBe("");
     expect(cmdDoctor).toHaveBeenCalledWith(["--help"]);
   });
 
-  it("flags the migration-needed state for a pre-cutover project fixture", () => {
+  it("flags the migration-needed state for a pre-cutover project fixture", async () => {
     const root = makeRoot("doctor-precut-");
     makeLifecycleDirs(root);
     writeFileSync(
@@ -125,15 +139,15 @@ describe("doctor CLI", () => {
       "# Project Specification\n\nHand-authored legacy spec.\n",
       "utf8",
     );
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Pre-cutover: migration needed");
     expect(out).toContain("SPECIFICATION.md");
     expect(out).toContain("v0.59.0");
   });
 
-  it("reports a clean non-pre-cutover state for a current-layout project fixture", () => {
+  it("reports a clean non-pre-cutover state for a current-layout project fixture", async () => {
     const root = makeRoot("doctor-current-");
     for (const folder of LIFECYCLE_FOLDERS) {
       mkdirSync(join(root, "xbrief", folder), { recursive: true });
@@ -146,8 +160,8 @@ describe("doctor CLI", () => {
       }),
       "utf8",
     );
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Pre-cutover: none");
     expect(out).toContain("current vBRIEF document model");
@@ -155,33 +169,33 @@ describe("doctor CLI", () => {
     expect(out).toContain("xBrief migration: none");
   });
 
-  it("flags a pre-cutover PROJECT.md and missing lifecycle folders", () => {
+  it("flags a pre-cutover PROJECT.md and missing lifecycle folders", async () => {
     const root = makeRoot("doctor-project-md-");
     // Only vbrief dirs, no xbrief layout -- resolver throws, doctor reports layout missing.
     mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(join(root, "PROJECT.md"), "# Project\n\nLegacy project doc.\n", "utf8");
-    const out = captureStdout(() => {
-      run([`--project-root=${root}`]);
+    const out = await captureStdout(async () => {
+      await run([`--project-root=${root}`]);
     });
     expect(out).toContain("Pre-cutover: migration needed");
     expect(out).toContain("PROJECT.md");
     expect(out).toContain("xbrief/ lifecycle layout not found");
   });
 
-  it("treats deprecation-redirect root docs as already migrated", () => {
+  it("treats deprecation-redirect root docs as already migrated", async () => {
     const root = makeRoot("doctor-redirect-");
     makeLifecycleDirs(root);
     const redirect = "<!-- deft:deprecated-redirect -->\n# Deprecated\n";
     writeFileSync(join(root, "SPECIFICATION.md"), redirect, "utf8");
     writeFileSync(join(root, "PROJECT.md"), redirect, "utf8");
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Pre-cutover: none");
   });
 
-  it("treats a current generated xbrief SPECIFICATION export as already migrated (#2112)", () => {
+  it("treats a current generated xbrief SPECIFICATION export as already migrated (#2112)", async () => {
     const root = makeRoot("doctor-generated-");
     for (const folder of LIFECYCLE_FOLDERS) {
       mkdirSync(join(root, "xbrief", folder), { recursive: true });
@@ -199,13 +213,13 @@ describe("doctor CLI", () => {
       "<!-- Purpose: rendered specification -->\n<!-- Source of truth: xbrief/specification.xbrief.json -->\n# Spec\n",
       "utf8",
     );
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Pre-cutover: none");
   });
 
-  it("treats an xbrief generated SPECIFICATION export as already migrated (#2205)", () => {
+  it("treats an xbrief generated SPECIFICATION export as already migrated (#2205)", async () => {
     const root = makeRoot("doctor-xbrief-generated-");
     for (const folder of LIFECYCLE_FOLDERS) {
       mkdirSync(join(root, "xbrief", folder), { recursive: true });
@@ -233,15 +247,15 @@ describe("doctor CLI", () => {
         "<!-- Source of truth: xbrief/specification.xbrief.json -->\n# Spec\n",
       "utf8",
     );
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Pre-cutover: none");
     expect(out).not.toContain("migration needed");
     expect(out).toContain("xBrief migration: none");
   });
 
-  it("flags legacy vbrief layout with migrate:xbrief guidance (#2110)", () => {
+  it("flags legacy vbrief layout with migrate:xbrief guidance (#2110)", async () => {
     const root = makeRoot("doctor-xbrief-legacy-");
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(
@@ -252,15 +266,15 @@ describe("doctor CLI", () => {
       }),
       "utf8",
     );
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("xBrief migration: migrate required");
     expect(out).toContain("only vbrief/ found");
     expect(out).toContain("migrate:xbrief");
   });
 
-  it("signposts a half-migrated AGENTS.md header (xbrief tree + vbrief header) (#2154)", () => {
+  it("signposts a half-migrated AGENTS.md header (xbrief tree + vbrief header) (#2154)", async () => {
     const root = makeRoot("doctor-header-drift-");
     makeLifecycleDirs(root);
     writeFileSync(
@@ -277,8 +291,8 @@ describe("doctor CLI", () => {
       ].join("\n"),
       "utf8",
     );
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("AGENTS.md header drift:");
     expect(out).toMatch(/hand-edit/i);
@@ -286,7 +300,7 @@ describe("doctor CLI", () => {
     expect(out).toContain("vbrief/");
   });
 
-  it("allows unmanaged prose `vbrief/` on an already-xbrief tree (#3637)", () => {
+  it("allows unmanaged prose `vbrief/` on an already-xbrief tree (#3637)", async () => {
     const root = makeRoot("doctor-header-bare-vbrief-");
     makeLifecycleDirs(root);
     writeFileSync(
@@ -294,23 +308,23 @@ describe("doctor CLI", () => {
       ["# Consumer", "Scoped work items live in `vbrief/`.", ""].join("\n"),
       "utf8",
     );
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("AGENTS.md header drift: none");
   });
 
-  it("reports no AGENTS.md header drift for a clean xbrief header (#2154)", () => {
+  it("reports no AGENTS.md header drift for a clean xbrief header (#2154)", async () => {
     const root = makeRoot("doctor-header-clean-");
     makeLifecycleDirs(root);
     writeFileSync(join(root, "AGENTS.md"), "# Consumer\nAll on xbrief/ now.\n", "utf8");
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("AGENTS.md header drift: none");
   });
 
-  it("reports clean deposit hygiene when .deft/core matches the content package (#2804)", () => {
+  it("reports clean deposit hygiene when .deft/core matches the content package (#2804)", async () => {
     const root = makeRoot("doctor-deposit-clean-");
     makeLifecycleDirs(root);
     seedContentPackage(root);
@@ -318,15 +332,15 @@ describe("doctor CLI", () => {
     mkdirSync(deftDir, { recursive: true });
     writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
     writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Deposit hygiene: none");
     expect(out).toContain("matches @deftai/directive-content");
     expect(renderDepositFileSetHygieneLine(root)).toContain("Deposit hygiene: none");
   });
 
-  it("flags package-absent bridge leftovers under .deft/core (#2804)", () => {
+  it("flags package-absent bridge leftovers under .deft/core (#2804)", async () => {
     const root = makeRoot("doctor-package-absent-");
     makeLifecycleDirs(root);
     seedContentPackage(root);
@@ -337,8 +351,8 @@ describe("doctor CLI", () => {
       "utf8",
     );
     writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Deposit hygiene: fail");
     expect(out).toContain("cmd/deft-install/main.go");
@@ -346,7 +360,7 @@ describe("doctor CLI", () => {
     expect(renderDepositFileSetHygieneLine(root)).toContain("#2804");
   });
 
-  it("returns exit 1 on --full when package-absent deposit files remain (#2804)", () => {
+  it("returns exit 1 on --full when package-absent deposit files remain (#2804)", async () => {
     const root = makeRoot("doctor-full-fail-");
     makeLifecycleDirs(root);
     seedContentPackage(root);
@@ -356,19 +370,19 @@ describe("doctor CLI", () => {
       "package main\n",
       "utf8",
     );
-    captureStdout(() => {
-      expect(run(["--full", "--project-root", root])).toBe(1);
+    await captureStdout(async () => {
+      expect(await run(["--full", "--project-root", root])).toBe(1);
     });
   });
 
-  it("flags stray packages/ under .deft/core (#2142 / #2804)", () => {
+  it("flags stray packages/ under .deft/core (#2142 / #2804)", async () => {
     const root = makeRoot("doctor-stray-packages-");
     makeLifecycleDirs(root);
     seedContentPackage(root);
     mkdirSync(join(root, ".deft", "core", "packages", "cli"), { recursive: true });
     writeFileSync(join(root, ".deft", "core", "packages", "cli", "package.json"), "{}\n", "utf8");
-    const out = captureStdout(() => {
-      run(["--project-root", root]);
+    const out = await captureStdout(async () => {
+      await run(["--project-root", root]);
     });
     expect(out).toContain("Deposit hygiene: fail");
     expect(out).toContain("packages/cli/package.json");
@@ -401,10 +415,10 @@ describe("doctor CLI", () => {
     expect(renderDepositFileSetHygieneLine(root, result)).toContain("legacy/vbrief/old.md");
   });
 
-  it("defaults projectRoot to process.cwd() when --project-root is omitted", () => {
+  it("defaults projectRoot to process.cwd() when --project-root is omitted", async () => {
     // Exercises the `flags.projectRoot ?? process.cwd()` false branch in doctor.ts.
-    const out = captureStdout(() => {
-      run([]);
+    const out = await captureStdout(async () => {
+      await run([]);
     });
     // The pre-cutover and migration lines are rendered using process.cwd().
     // We only assert that both lines were emitted (not their exact content,
@@ -412,5 +426,73 @@ describe("doctor CLI", () => {
     expect(out).toContain("Pre-cutover:");
     expect(out).toContain("xBrief migration:");
     expect(out).toContain("Deposit hygiene:");
+  });
+
+  it("prints both content roots when walk-root and installed root diverge (#4706)", () => {
+    const root = makeRoot("doctor-roots-diverge-");
+    const walkRoot = seedContentPackage(root);
+    const installedRoot = join(root, "engine-content");
+    mkdirSync(installedRoot, { recursive: true });
+    writeFileSync(join(installedRoot, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(root, ".deft", "core", "stale-walk-only.md"), "stale\n", "utf8");
+    const result = evaluateDepositFileSetHygiene(root, {
+      contentRoot: installedRoot,
+      walkRoot,
+      installedRoot,
+    });
+    const line = renderDepositFileSetHygieneLine(root, result);
+    expect(line).toContain("Compared content root:");
+    expect(line).toContain(installedRoot);
+    expect(line).toContain("Project walk-root:");
+    expect(line).toContain(walkRoot);
+    expect(line).toContain("Engine content root:");
+    expect(line).toContain("directive update");
+    expect(line).toContain("stale-walk-only.md");
+  });
+
+  it("does not name directive update as prune recovery for extras versus the walk-root (#4706)", () => {
+    const root = makeRoot("doctor-walk-prune-");
+    const walkRoot = seedContentPackage(root);
+    const installedRoot = join(root, "engine-content");
+    mkdirSync(installedRoot, { recursive: true });
+    writeFileSync(join(installedRoot, "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(installedRoot, "stale-walk-only.md"), "kept-by-engine\n", "utf8");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(root, ".deft", "core", "stale-walk-only.md"), "stale\n", "utf8");
+    const result = evaluateDepositFileSetHygiene(root, {
+      contentRoot: walkRoot,
+      walkRoot,
+      installedRoot,
+    });
+    const line = renderDepositFileSetHygieneLine(root, result);
+    expect(line).toContain("fail");
+    expect(line).toContain("stale-walk-only.md");
+    expect(line).toContain("Compared content root:");
+    expect(line).not.toContain("Run `directive update`");
+    expect(line).toContain("Do not run `directive update`");
+    expect(line).toContain("#4706");
+  });
+
+  it("compares --full hygiene against resolveInstalledContentRoot (#4706)", async () => {
+    const root = makeRoot("doctor-installed-full-");
+    makeLifecycleDirs(root);
+    seedContentPackage(root);
+    const installedRoot = join(root, "engine-content");
+    mkdirSync(installedRoot, { recursive: true });
+    writeFileSync(join(installedRoot, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(root, ".deft", "core", "walk-only.md"), "stale\n", "utf8");
+    vi.mocked(resolveInstalledContentRoot).mockResolvedValueOnce(installedRoot);
+    const out = await captureStdout(async () => {
+      expect(await run(["--full", "--project-root", root])).toBe(1);
+    });
+    expect(out).toContain("Deposit hygiene: fail");
+    expect(out).toContain("walk-only.md");
+    expect(out).toContain("Compared content root:");
+    expect(out).toContain(installedRoot);
   });
 });

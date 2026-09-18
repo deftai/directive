@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Doctor --full deposit hygiene compares .deft/core to the engine content tree update already reconciled (#4706).** Uses `resolveInstalledContentRoot`, not the project ancestor walk. When those roots diverge, doctor prints both and does not name `directive update` as the prune for extras versus the walk-root. AGENTS managed-section freshness stays a warning with an explicit template root; primary recovery remains `deft agents:refresh`. Does not recut `contentRoot()` prefer-package. Walk-root as canonical stays leftover #4710. Tracking #4706.
+
 - **Throttle-skip after `.deft/core` is gone is not billed as clean (#4723).** Default doctor falls through into the existing probe when `classify().hasDeftCore` is false. Signpost is not the implementation site. Does not recut `--full`, `CLEAN_WINDOW_HOURS`, or `lastFindingCount`. Tracking #4723.
 
 - **Grok vendor-compat `--host claude` occupancy owner is `host:grok:v1` of payload `session_id` when `GROK_HOOK_EVENT` is set (#4708).** Write presents that grok owner. Leftover `GROK_SESSION_ID` without `GROK_HOOK_EVENT` stays Claude. `--host cursor` does not attach lifecycle rewrite on `GROK_HOOK_EVENT`. Native `--host grok` missing `GROK_SESSION_ID` stays #4125. Tracking #4708.

@@ -43,7 +43,13 @@ import { evaluateAgentHooks } from "../verify-env/agent-hooks.js";
 import { probeAgentHooksLive } from "../verify-env/agent-hooks-live-probe.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
-import { agentsRefreshPlan, hasManagedSectionMarker, hasV3ManagedMarker } from "./agents-md.js";
+import {
+  agentsRefreshPlan,
+  agentsRefreshPlanWithInstalledTemplate,
+  hasManagedSectionMarker,
+  hasV3ManagedMarker,
+  peekDoctorAgentsTemplateRoot,
+} from "./agents-md.js";
 import {
   checkXbriefEnvelopeMajorVersion,
   DOCTOR_ADVISORY_FAIL_CHECKS,
@@ -1073,7 +1079,14 @@ function runAgentsMdFreshnessCheck(
     return;
   }
   try {
-    const planFn = seams.agentsRefreshPlan ?? ((root: string) => agentsRefreshPlan(root));
+    const planFn =
+      seams.agentsRefreshPlan ??
+      ((root: string) => {
+        const templateRoot = peekDoctorAgentsTemplateRoot();
+        return templateRoot !== undefined
+          ? agentsRefreshPlanWithInstalledTemplate(root, templateRoot)
+          : agentsRefreshPlan(root);
+      });
     const plan = planFn(projectRoot);
     const state = String(plan.state ?? "");
     if (state === "current") {
