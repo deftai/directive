@@ -337,7 +337,7 @@ describe("ts:check-lane release-host timeline (#4744 leftover)", () => {
     expect(writes.some((line) => line.includes("timeline project spawn-heavy complete"))).toBe(
       true,
     );
-    expect(writes.some((line) => line.includes("timeline coverage-merge-report"))).toBe(true);
+    expect(writes.some((line) => line.includes("timeline coverage-merge-report 8500ms"))).toBe(true);
   });
 });
 

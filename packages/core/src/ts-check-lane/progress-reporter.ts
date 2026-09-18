@@ -262,7 +262,7 @@ export class TsCheckLaneProgressReporter {
   private reportCoverageMerge(): void {
     if (!this.timeline || this.coverageReported) return;
     this.coverageReported = true;
-    const elapsed = this.now() - this.lastModuleEndAt;
+    const elapsed = this.now() - this.runStartedAt;
     this.emit(formatCoverageReportLine(elapsed));
   }
 }
