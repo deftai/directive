@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   childOccupancyFileSegment,
   childOccupancyIdentitySourceKind,
@@ -19,16 +19,55 @@ import {
   readOccupancy,
 } from "./occupancy.js";
 
-const temps: string[] = [];
+const sharedTemps: string[] = [];
+let sharedOccupancy: string | null = null;
+let sharedOther: string | null = null;
+let sharedLinked: { primary: string; child: string } | null = null;
+let sharedForeign: string | null = null;
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "occupancy.json.lock"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+  rmSync(join(root, ".deft", "spawn-pending"), { recursive: true, force: true });
+}
+
+function resetSharedFixtures(): void {
+  if (sharedOccupancy !== null) resetLeaseFiles(sharedOccupancy);
+  if (sharedOther !== null) resetLeaseFiles(sharedOther);
+  if (sharedLinked !== null) {
+    resetLeaseFiles(sharedLinked.primary);
+    resetLeaseFiles(sharedLinked.child);
+  }
+  if (sharedForeign !== null) resetLeaseFiles(sharedForeign);
+}
+
 afterEach(() => {
-  for (const t of temps) rmSync(t, { recursive: true, force: true });
-  temps.length = 0;
+  resetSharedFixtures();
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedOccupancy = null;
+  sharedOther = null;
+  sharedLinked = null;
+  sharedForeign = null;
 });
 
 function tempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "child-occupancy-"));
-  temps.push(root);
-  return root;
+  if (sharedOccupancy === null) {
+    sharedOccupancy = mkdtempSync(join(tmpdir(), "child-occupancy-"));
+    sharedTemps.push(sharedOccupancy);
+  }
+  return sharedOccupancy;
+}
+
+function otherRoot(): string {
+  if (sharedOther === null) {
+    sharedOther = mkdtempSync(join(tmpdir(), "child-occupancy-other-"));
+    sharedTemps.push(sharedOther);
+  }
+  return sharedOther;
 }
 
 function gitInit(root: string): void {
@@ -46,6 +85,36 @@ function addLinkedWorktree(root: string, dest: string): void {
     encoding: "utf8",
   });
 }
+
+function linkedFixture(): { primary: string; child: string } {
+  if (sharedLinked === null) {
+    const base = mkdtempSync(join(tmpdir(), "child-occ-linked-"));
+    sharedTemps.push(base);
+    const primary = join(base, "primary");
+    mkdirSync(primary, { recursive: true });
+    gitInit(primary);
+    const child = join(base, "wt-child");
+    addLinkedWorktree(primary, child);
+    sharedLinked = { primary, child };
+  }
+  return sharedLinked;
+}
+
+function foreignFixture(): string {
+  if (sharedForeign === null) {
+    sharedForeign = mkdtempSync(join(tmpdir(), "child-occ-foreign-"));
+    sharedTemps.push(sharedForeign);
+    gitInit(sharedForeign);
+  }
+  return sharedForeign;
+}
+
+beforeAll(() => {
+  tempRoot();
+  otherRoot();
+  linkedFixture();
+  foreignFixture();
+});
 
 describe("child occupancy dispatch record (#3999)", () => {
   const now = new Date("2026-08-31T12:00:00Z");
@@ -277,7 +346,7 @@ describe("child occupancy dispatch record (#3999)", () => {
 
   it("lists cwd when the heartbeat path is not under the worktree", () => {
     const root = tempRoot();
-    const other = tempRoot();
+    const other = otherRoot();
     const heartbeat = join(other, "custom", "agent.json");
     const guessed = worktreeCandidatesForHeartbeat(heartbeat, root);
     expect(guessed).toContain(root);
@@ -292,7 +361,7 @@ describe("child occupancy dispatch record (#3999)", () => {
 
   it("releases the recorded tree even when the store lives elsewhere", () => {
     const store = tempRoot();
-    const tree = tempRoot();
+    const tree = otherRoot();
     recordChildOccupancyLease(store, {
       agentId,
       parentId,
@@ -367,10 +436,7 @@ describe("child occupancy dispatch record (#3999)", () => {
   });
 
   it("binds a spawn-pending placeholder to the heartbeat linked worktree (#4066)", () => {
-    const root = tempRoot();
-    gitInit(root);
-    const child = join(root, "wt-child");
-    addLinkedWorktree(root, child);
+    const { primary: root, child } = linkedFixture();
     const placeholder = join(root, ".deft", "spawn-pending", "inc-pathless");
     mkdirSync(placeholder, { recursive: true });
     recordChildOccupancyLease(root, {
@@ -397,10 +463,8 @@ describe("child occupancy dispatch record (#3999)", () => {
   });
 
   it("does not bind a spawn-pending placeholder to a foreign heartbeat tree (#4066)", () => {
-    const root = tempRoot();
-    const foreign = tempRoot();
-    gitInit(root);
-    gitInit(foreign);
+    const { primary: root } = linkedFixture();
+    const foreign = foreignFixture();
     const placeholder = join(root, ".deft", "spawn-pending", "inc-pathless");
     mkdirSync(placeholder, { recursive: true });
     recordChildOccupancyLease(root, {

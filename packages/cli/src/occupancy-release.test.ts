@@ -7,15 +7,34 @@ import {
   HOST_ENV_IDENTITY_VARIABLES,
   readOccupancy,
 } from "@deftai/directive-core/session";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./occupancy-release.js";
 
-const temps: string[] = [];
+const sharedTemps: string[] = [];
+let sharedRoot: string | null = null;
 let previousSession: string | undefined;
 // This CLI reads `process.env`, and the actor chain now ends at the ambient host
 // owner, so the whole ambient surface is scrubbed per test (#3954 item 6). Left
 // in place, a developer host's own variable makes these outcomes machine-local.
 const previousHostEnv = new Map<string, string | undefined>();
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "occupancy.json.lock"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+}
+
+function fixtureRoot(): string {
+  if (sharedRoot === null) {
+    sharedRoot = mkdtempSync(join(tmpdir(), "occ-release-cli-"));
+    sharedTemps.push(sharedRoot);
+  }
+  return sharedRoot;
+}
+
+beforeAll(() => {
+  fixtureRoot();
+});
 
 beforeEach(() => {
   previousSession = process.env.DEFT_SESSION_ID;
@@ -26,8 +45,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  for (const t of temps) rmSync(t, { recursive: true, force: true });
-  temps.length = 0;
+  if (sharedRoot !== null) resetLeaseFiles(sharedRoot);
   if (previousSession === undefined) {
     delete process.env.DEFT_SESSION_ID;
   } else {
@@ -38,6 +56,11 @@ afterEach(() => {
     else process.env[variable] = value;
   }
   previousHostEnv.clear();
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedRoot = null;
 });
 
 describe("occupancy-release CLI (#3604)", () => {
@@ -52,8 +75,7 @@ describe("occupancy-release CLI (#3604)", () => {
       projectRoot: "/x",
       sessionId,
     });
-    const root = mkdtempSync(join(tmpdir(), "occ-release-host-cli-"));
-    temps.push(root);
+    const root = fixtureRoot();
     applyWorktreeOccupancy(root, { sessionId });
     delete process.env.DEFT_SESSION_ID;
     // Both ambient sources name someone else, so the explicit id is observably
@@ -66,8 +88,7 @@ describe("occupancy-release CLI (#3604)", () => {
   });
 
   it("releases the occupant the running host published, with no explicit id (#3954)", () => {
-    const root = mkdtempSync(join(tmpdir(), "occ-release-ambient-cli-"));
-    temps.push(root);
+    const root = fixtureRoot();
     process.env.GROK_SESSION_ID = "grok-session-a";
     delete process.env.DEFT_SESSION_ID;
     // Claim through the same chain the hook write gate presents on this host.
@@ -82,8 +103,7 @@ describe("occupancy-release CLI (#3604)", () => {
   });
 
   it("names the host owner when DEFT_SESSION_ID disagrees with it (#3954)", () => {
-    const root = mkdtempSync(join(tmpdir(), "occ-release-split-cli-"));
-    temps.push(root);
+    const root = fixtureRoot();
     const hostOwner = canonicalHostSessionId("grok", "grok-session-a");
     applyWorktreeOccupancy(root, { sessionId: hostOwner });
     // The deployed shape: a stale inherited id from another host's session sits
@@ -96,16 +116,14 @@ describe("occupancy-release CLI (#3604)", () => {
   });
 
   it("owner live release exits 0", () => {
-    const root = mkdtempSync(join(tmpdir(), "occ-release-cli-"));
-    temps.push(root);
+    const root = fixtureRoot();
     applyWorktreeOccupancy(root, { sessionId: "owner" });
     process.env.DEFT_SESSION_ID = "owner";
     expect(run(["--project-root", root])).toBe(0);
   });
 
   it("non-owner live release exits 1", () => {
-    const root = mkdtempSync(join(tmpdir(), "occ-release-cli-"));
-    temps.push(root);
+    const root = fixtureRoot();
     applyWorktreeOccupancy(root, { sessionId: "owner" });
     process.env.DEFT_SESSION_ID = "other";
     expect(run(["--project-root", root])).toBe(1);

@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   exactLifecycleCommandVerb,
   hintUninspectableLifecycleCommand,
@@ -26,16 +26,35 @@ import {
 const CLAUDE_RAW = "3d367ca0-6f5d-4152-82fe-31b3b8ff8de6";
 const CLAUDE_OWNER = canonicalHostSessionId("claude", CLAUDE_RAW);
 
-const temps: string[] = [];
-afterEach(() => {
-  for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
-});
+const sharedTemps: string[] = [];
+let sharedRoot: string | null = null;
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "occupancy.json.lock"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+}
 
 function tempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "occ-4431-"));
-  temps.push(root);
-  return root;
+  if (sharedRoot === null) {
+    sharedRoot = mkdtempSync(join(tmpdir(), "occ-4431-"));
+    sharedTemps.push(sharedRoot);
+  }
+  return sharedRoot;
 }
+
+beforeAll(() => {
+  tempRoot();
+});
+
+afterEach(() => {
+  if (sharedRoot !== null) resetLeaseFiles(sharedRoot);
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedRoot = null;
+});
 
 describe("payload-host mint refusal (#4431)", () => {
   it("does not add CLAUDE_CODE_SESSION_ID as a host-env identity source", () => {

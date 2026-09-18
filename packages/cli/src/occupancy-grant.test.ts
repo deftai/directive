@@ -8,27 +8,40 @@ import {
   HOST_ENV_IDENTITY_VARIABLES,
   readOccupancy,
 } from "@deftai/directive-core/session";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./occupancy-grant.js";
 
-const temps: string[] = [];
+const sharedTemps: string[] = [];
+let sharedRoot: string | null = null;
 let previousSession: string | undefined;
 // This CLI reads `process.env`, and the actor chain now ends at the ambient host
 // owner, so the whole ambient surface is scrubbed per test (#3954 item 6). Left
 // in place, a developer host's own variable makes these outcomes machine-local.
 const previousHostEnv = new Map<string, string | undefined>();
 
-function tempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "occ-grant-cli-"));
-  temps.push(root);
-  return root;
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "occupancy.json.lock"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+}
+
+function fixtureRoot(): string {
+  if (sharedRoot === null) {
+    sharedRoot = mkdtempSync(join(tmpdir(), "occ-grant-cli-"));
+    sharedTemps.push(sharedRoot);
+  }
+  return sharedRoot;
 }
 
 function leased(sessionId = "owner"): string {
-  const root = tempRoot();
+  const root = fixtureRoot();
   applyWorktreeOccupancy(root, { sessionId });
   return root;
 }
+
+beforeAll(() => {
+  fixtureRoot();
+});
 
 beforeEach(() => {
   previousSession = process.env.DEFT_SESSION_ID;
@@ -40,8 +53,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  for (const t of temps) rmSync(t, { recursive: true, force: true });
-  temps.length = 0;
+  if (sharedRoot !== null) resetLeaseFiles(sharedRoot);
   if (previousSession === undefined) {
     delete process.env.DEFT_SESSION_ID;
   } else {
@@ -52,6 +64,11 @@ afterEach(() => {
     else process.env[variable] = value;
   }
   previousHostEnv.clear();
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedRoot = null;
 });
 
 describe("occupancy-grant CLI (#3755)", () => {

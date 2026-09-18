@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Windows release Step 5 hang detector names timeout, not the D7 fixture (#4744).** Exit 124 named-cause prefers hang detector and last completed test file. Last-file ticks also write through stderr so the tee keeps them. Remaining spawn leftovers move to the spawn-heavy project. Do not raise RELEASE_CHECK_TIMEOUT_MS. Refs #4591, #4567. Tracking #4744.
+- **Windows release Step 5 hang detector names timeout, not the D7 fixture (#4744).** Exit 124 named-cause prefers hang detector and last completed test file. Last-file ticks also write through stderr so the tee keeps them. Remaining spawn leftovers move to the spawn-heavy project. Occupancy leftover CLI/child-occupancy/mint-refusal fixtures reuse share-plus-reset; occupancy-stress stays spawn-heavy. Do not raise RELEASE_CHECK_TIMEOUT_MS. Refs #4591, #4567. Tracking #4744.
 
 - **Ingest and promote bind harvest item ids to clause ids (#4732).** Promote binds on the source file before the folder move. A stamp writer outside complete may record kind:test from declared file_scope or existing artifact_path. Refs #4732.
 

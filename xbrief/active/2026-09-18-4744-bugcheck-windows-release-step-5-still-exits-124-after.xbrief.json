@@ -56,7 +56,17 @@
           "packages/core/src/ts-check-lane/run-lane.ts",
           "packages/core/src/vitest-runner/vitest-config-contract.test.ts",
           "vitest.config.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/cli/src/occupancy-grant.test.ts",
+          "packages/cli/src/occupancy-heartbeat.test.ts",
+          "packages/cli/src/occupancy-release.test.ts",
+          "packages/cli/src/occupancy-steal.test.ts",
+          "packages/core/src/session/child-occupancy.test.ts",
+          "packages/core/src/session/occupancy-mint-refusal.test.ts",
+          "packages/core/src/session/occupancy-stress.test.ts",
+          "packages/cli/src/install-upgrade.test.ts",
+          "packages/core/src/integration-e2e/triage-bootstrap-at-scale.test.ts",
+          "packages/core/src/session/branches.test.ts"
         ],
         "verify_commands": [
           "task check"
@@ -98,7 +108,17 @@
         "packages/core/src/ts-check-lane/run-lane.ts",
         "packages/core/src/vitest-runner/vitest-config-contract.test.ts",
         "vitest.config.ts",
-        "CHANGELOG.md"
+        "CHANGELOG.md",
+        "packages/cli/src/occupancy-grant.test.ts",
+        "packages/cli/src/occupancy-heartbeat.test.ts",
+        "packages/cli/src/occupancy-release.test.ts",
+        "packages/cli/src/occupancy-steal.test.ts",
+        "packages/core/src/session/child-occupancy.test.ts",
+        "packages/core/src/session/occupancy-mint-refusal.test.ts",
+        "packages/core/src/session/occupancy-stress.test.ts",
+        "packages/cli/src/install-upgrade.test.ts",
+        "packages/core/src/integration-e2e/triage-bootstrap-at-scale.test.ts",
+        "packages/core/src/session/branches.test.ts"
       ],
       "cohesion_exemption": "split_plan"
     },

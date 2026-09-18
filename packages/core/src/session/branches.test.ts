@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, type GitRunResult } from "./git.js";
 import { buildContext, evaluate, parse, ResumeGrammarError } from "./resume-conditions.js";
@@ -16,16 +16,49 @@ import {
 import { defaultBranchSync, runSessionStart } from "./session-start.js";
 import { inspectSessionRitual, verifySessionRitual } from "./verify-session-ritual.js";
 
-const temps: string[] = [];
+const sharedTemps: string[] = [];
+let sharedRepo: { root: string; head: string; branch: string } | null = null;
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "occupancy.json.lock"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+  rmSync(join(root, ".deft", "ritual-state.json"), { force: true });
+}
+
+function resetSharedRepo(): void {
+  if (sharedRepo === null) return;
+  const { root, head, branch } = sharedRepo;
+  execFileSync("git", ["checkout", "-q", "-f", branch], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["reset", "--hard", "-q", head], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["clean", "-fdq"], { cwd: root, encoding: "utf8" });
+  const extra = execFileSync("git", ["branch", "--format=%(refname:short)"], {
+    cwd: root,
+    encoding: "utf8",
+  })
+    .split(/\r?\n/)
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0 && name !== branch);
+  for (const name of extra) {
+    execFileSync("git", ["branch", "-D", name], { cwd: root, encoding: "utf8" });
+  }
+  resetLeaseFiles(root);
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
-  for (const t of temps) rmSync(t, { recursive: true, force: true });
-  temps.length = 0;
+  resetSharedRepo();
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedRepo = null;
 });
 
 function initRepo(): { root: string; head: string } {
+  if (sharedRepo !== null) return { root: sharedRepo.root, head: sharedRepo.head };
   const root = mkdtempSync(join(tmpdir(), "session-br-"));
-  temps.push(root);
+  sharedTemps.push(root);
   writeFileSync(join(root, "README.md"), "x\n", "utf8");
   mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
@@ -57,8 +90,17 @@ function initRepo(): { root: string; head: string } {
     },
   });
   const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  }).trim();
+  sharedRepo = { root, head, branch };
   return { root, head };
 }
+
+beforeAll(() => {
+  initRepo();
+});
 
 function capturedGitRun(projectRoot: string, args: readonly string[]): GitRunResult {
   const result = spawnSync("git", [...args], {

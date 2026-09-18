@@ -193,9 +193,11 @@ const subpathAliases: Record<string, string> = {
 
 // #4591 / #4744: spawn leftovers that must stay out of process. CLI parity tests
 // use in-process routeAndDispatch. Leftover git-worktree clones use share-plus-reset.
-// Occupancy suites stay per-it (no proven independent reset). Remaining Windows
-// --coverage cost after #4591: leftover execPath boots and occupancy-stress
-// children. In-process 240s suites stay in unit (second-pool overlap is slower).
+// Occupancy leftover CLI/child-occupancy/mint-refusal fixtures use share-plus-reset
+// (afterEach deletes occupancy.json / child-occupancy; cases stay independent).
+// Occupancy-stress stays spawn-heavy. Remaining Windows --coverage cost after #4591:
+// leftover execPath boots and occupancy-stress children. In-process 240s suites stay
+// in unit (second-pool overlap is slower).
 // Hang-detector timeout stays last
 // (operator lock 5685476402). Do not raise RELEASE_CHECK_TIMEOUT_MS.
 const spawnHeavyGlobs = [
@@ -273,7 +275,8 @@ export default defineConfig({
     // must stay out of process live in the spawn-heavy vitest project (#4591).
     // Cost classes after #4567 / #4591 / #4744: CLI process boots (in-process
     // routeAndDispatch; leftover execPath files in spawn-heavy), occupancy
-    // filesystem (per-it), leftover git-worktree clones (share-plus-reset).
+    // leftover CLI/child-occupancy (share-plus-reset), leftover git-worktree clones
+    // (share-plus-reset). Occupancy-stress stays spawn-heavy.
     // New files since #4591 are in-process except posix-only fifo-child.
     // Do not raise RELEASE_CHECK_TIMEOUT_MS; hang-detector stays last.
     testTimeout: isWin32 ? 240_000 : 5_000,

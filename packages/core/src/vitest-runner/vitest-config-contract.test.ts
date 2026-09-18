@@ -207,4 +207,24 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(worktree).toMatch(/resetLeaseFiles/);
     expect(worktree).toMatch(/beforeAll/);
   });
+
+  it("reuses share-plus-reset for leftover occupancy fixtures", () => {
+    const grant = readFileSync(join(repoRoot, "packages/cli/src/occupancy-grant.test.ts"), "utf8");
+    const child = readFileSync(
+      join(repoRoot, "packages/core/src/session/child-occupancy.test.ts"),
+      "utf8",
+    );
+    const branches = readFileSync(
+      join(repoRoot, "packages/core/src/session/branches.test.ts"),
+      "utf8",
+    );
+    expect(grant).toMatch(/function resetLeaseFiles/);
+    expect(grant).toMatch(/beforeAll/);
+    expect(grant).toMatch(/sharedRoot/);
+    expect(child).toMatch(/function linkedFixture/);
+    expect(child).toMatch(/resetLeaseFiles/);
+    expect(child).toMatch(/beforeAll/);
+    expect(branches).toMatch(/resetSharedRepo/);
+    expect(branches).toMatch(/beforeAll/);
+  });
 });

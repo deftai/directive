@@ -2,13 +2,37 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { applyWorktreeOccupancy } from "@deftai/directive-core/session";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./occupancy-steal.js";
 
-const temps: string[] = [];
+const sharedTemps: string[] = [];
+let sharedRoot: string | null = null;
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "occupancy.json.lock"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+}
+
+function tempRoot(): string {
+  if (sharedRoot === null) {
+    sharedRoot = mkdtempSync(join(tmpdir(), "occ-steal-cli-"));
+    sharedTemps.push(sharedRoot);
+  }
+  return sharedRoot;
+}
+
+beforeAll(() => {
+  tempRoot();
+});
+
 afterEach(() => {
-  for (const t of temps) rmSync(t, { recursive: true, force: true });
-  temps.length = 0;
+  if (sharedRoot !== null) resetLeaseFiles(sharedRoot);
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedRoot = null;
 });
 
 describe("occupancy-steal CLI (#3433)", () => {
@@ -33,8 +57,7 @@ describe("occupancy-steal CLI (#3433)", () => {
 
   it("refuses steal without --confirm", () => {
     expect(parseArgs(["--occupant", "abc"]).error).toBeUndefined();
-    const root = mkdtempSync(join(tmpdir(), "occ-steal-cli-"));
-    temps.push(root);
+    const root = tempRoot();
     applyWorktreeOccupancy(root, { sessionId: "old" });
     // Subject is --confirm, not host detection: explicit --session-id keeps
     // ambient declared-host markers from refuse-minting (#4636).
@@ -42,8 +65,7 @@ describe("occupancy-steal CLI (#3433)", () => {
   });
 
   it("steals when confirm and occupant match", () => {
-    const root = mkdtempSync(join(tmpdir(), "occ-steal-cli-"));
-    temps.push(root);
+    const root = tempRoot();
     applyWorktreeOccupancy(root, { sessionId: "old" });
     expect(
       run([
