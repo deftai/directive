@@ -166,7 +166,9 @@ describe("writeAgentHookDeposit no-swap recovery (#4716)", () => {
     mkdirSync(join(root, ".claude"), { recursive: true });
     writeFileSync(join(root, ".claude/settings.json"), "{}\n", "utf8");
 
-    const repaired = repairAgentHookRegistrations(root);
+    const repaired = repairAgentHookRegistrations(root, {
+      reevaluate: (next) => evaluateAgentHooks(next),
+    });
     expect(existsSync(join(root, ".deft/core"))).toBe(false);
     expect(repaired.written.changed).toBe(true);
     expect(repaired.after.code).toBe(0);
@@ -179,7 +181,10 @@ describe("writeAgentHookDeposit no-swap recovery (#4716)", () => {
   it("writes remaining enabled hosts when one host is opted out", () => {
     const root = project();
     const policy = { ...DEFAULT_HOST_HOOKS_POLICY, cursor: false };
-    const repaired = repairAgentHookRegistrations(root, { hostHooksPolicy: policy });
+    const repaired = repairAgentHookRegistrations(root, {
+      hostHooksPolicy: policy,
+      reevaluate: (next) => evaluateAgentHooks(next, policy),
+    });
     expect(repaired.after.code).toBe(0);
     const inspections = inspectAgentHookDeposit(root, policy);
     expect(inspections.find((entry) => entry.host === "cursor")).toMatchObject({
@@ -191,6 +196,22 @@ describe("writeAgentHookDeposit no-swap recovery (#4716)", () => {
         .every((entry) => entry.status === "healthy"),
     ).toBe(true);
     expect(existsSync(join(root, ".cursor/hooks.json"))).toBe(false);
+  });
+
+  it("defaults to the live probe after the no-swap write", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    driftCursor(root);
+    const probe = vi.fn(() => ({
+      code: 1 as const,
+      message: "live fail",
+      hosts: [],
+      cases: [],
+      durationMs: 1,
+    }));
+    const repaired = repairAgentHookRegistrations(root, { probeLive: probe });
+    expect(probe).toHaveBeenCalledTimes(1);
+    expect(repaired.after.code).toBe(1);
   });
 
   it("re-runs the existing live probe after the no-swap write", () => {

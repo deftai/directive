@@ -19,6 +19,11 @@ import {
   UNUSED_HOST_HOOKS_RECOVERY,
 } from "../policy/host-hooks.js";
 import { compareSemver, readPin } from "../resolution/pin.js";
+import {
+  type AgentHookLiveProbeResult,
+  type AgentHookLiveProbeSeams,
+  probeAgentHooksLive,
+} from "./agent-hooks-live-probe.js";
 import type { OutputStream } from "./verify-hooks-installed.js";
 
 /** #4716 no-swap recovery copy. Disclosure on `deft update` is not P1 relief. */
@@ -31,13 +36,18 @@ export const AGENT_HOOK_NO_SWAP_RECOVERY =
 export interface RepairAgentHookRegistrationsOptions {
   readonly io?: InitDepositIo;
   readonly hostHooksPolicy?: HostHooksPolicy;
-  /** Defaults to evaluateAgentHooks. Pass the live readiness wrapper to re-run that probe. */
+  /** Override post-write evaluation. Default is structural then live probe. */
   readonly reevaluate?: (projectRoot: string) => { readonly code: 0 | 1 | 2 };
+  /** Test seam for the default live probe. */
+  readonly probeLive?: (
+    projectRoot: string,
+    seams?: AgentHookLiveProbeSeams,
+  ) => AgentHookLiveProbeResult;
 }
 
 /**
  * #4716: write still-enabled host hook files without `runRefreshDeposit` file-swap,
- * then re-evaluate (structural by default; live probe when the caller passes it).
+ * then re-run the live probe. Structural inspect stays fail-closed before live.
  */
 export function repairAgentHookRegistrations(
   projectRoot: string,
@@ -47,10 +57,19 @@ export function repairAgentHookRegistrations(
   readonly after: { readonly code: 0 | 1 | 2 };
 } {
   const written = writeAgentHookDeposit(projectRoot, options.io, options.hostHooksPolicy);
-  const after = options.reevaluate
-    ? options.reevaluate(projectRoot)
-    : evaluateAgentHooks(projectRoot, options.hostHooksPolicy);
-  return { written, after };
+  if (options.reevaluate) {
+    return { written, after: options.reevaluate(projectRoot) };
+  }
+  const policy = options.hostHooksPolicy ?? loadHostHooksPolicyFromProject(projectRoot);
+  const structural = evaluateAgentHooks(projectRoot, policy);
+  if (structural.code !== 0) {
+    return { written, after: { code: structural.code } };
+  }
+  const enabledHosts = structural.registrations
+    .filter((entry) => policy[entry.host])
+    .map((entry) => entry.host);
+  const live = (options.probeLive ?? probeAgentHooksLive)(projectRoot, { hosts: enabledHosts });
+  return { written, after: { code: live.code } };
 }
 
 export interface AgentHookHealthResult {
