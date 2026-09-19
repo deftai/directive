@@ -136,37 +136,10 @@ function originIssueKey(plan: Record<string, unknown>): string {
   return issues.sort().join("|");
 }
 
-function itemTitles(items: unknown): string {
-  if (!Array.isArray(items)) {
-    return "";
-  }
-  const titles: string[] = [];
-  for (const item of items) {
-    if (typeof item !== "object" || item === null || Array.isArray(item)) {
-      continue;
-    }
-    const title = String((item as Record<string, unknown>).title ?? "").trim();
-    if (title.length > 0) {
-      titles.push(title);
-    }
-  }
-  return titles.join("\0");
-}
-
-function narrativesIdentity(plan: Record<string, unknown>): string {
-  const narratives = plan.narratives;
-  if (typeof narratives !== "object" || narratives === null || Array.isArray(narratives)) {
-    return "";
-  }
-  return JSON.stringify(narratives);
-}
-
 function planIdentity(plan: Record<string, unknown>): string {
   const title = String(plan.title ?? "").trim();
   const origin = originIssueKey(plan);
-  const items = itemTitles(plan.items);
-  const narratives = narrativesIdentity(plan);
-  return [title, origin, items, narratives].filter((part) => part.length > 0).join("\n");
+  return [title, origin].filter((part) => part.length > 0).join("\n");
 }
 
 function pairingKey(relPath: string): string | null {
@@ -468,11 +441,12 @@ export function evaluateCompletedWriteGuard(
   ];
 
   const findings: CompletedWriteGuardFinding[] = [];
-  // Pairing: stamped completed/ or cancelled/ dest (#3766). Cancel stamps
+  // Pairing: stamped completed/ or cancelled/ dest (#3766 / #4784). Cancel stamps
   // lifecycleWrite action=cancel. Status-only cancelled dests do not pair.
-  // R dests are git-bound to src. D+A also requires dest plan.title to match
-  // the deleted source so a copied stamp under the same basename cannot
-  // authorize an unrelated deletion.
+  // R dests are git-bound to src. D+A also requires pairingKey plus dest
+  // plan.title and origin issue refs to match the recovered source so a copied
+  // stamp cannot authorize an unrelated deletion. Item titles and narratives
+  // are not pairing identity (#4784).
   interface AuthDest {
     readonly rel: string;
     readonly key: string;

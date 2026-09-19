@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Completed-write pairing ignores item titles and narratives (#4784).** A stamped complete pairs when pairingKey, plan.title, origin issue refs, and a valid complete stamp match, including persist-on-complete versus recovered HEAD. Copied stamps with a different title or origin still refuse. Tracking #4784.
+
 ### Removed
 
 ## [0.119.4] - 2026-09-18

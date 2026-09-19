@@ -303,6 +303,53 @@ describe("scanCompletedWriteCorpus (#3679)", () => {
 describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
   const active = "xbrief/active/2026-08-25-story.xbrief.json";
   const completed = "xbrief/completed/2026-08-25-story.xbrief.json";
+  const ISSUE_URI = "https://github.com/deftai/directive/issues/4784";
+  const OTHER_ISSUE_URI = "https://github.com/deftai/directive/issues/3766";
+
+  function withOrigin(
+    raw: string,
+    uri: string,
+    extra?: {
+      items?: Array<Record<string, unknown>>;
+      narratives?: Record<string, string>;
+      id?: string;
+    },
+  ): string {
+    const data = JSON.parse(raw) as {
+      plan: {
+        items?: Array<Record<string, unknown>>;
+        narratives?: Record<string, string>;
+        references?: Array<{ type: string; uri: string }>;
+        id?: string;
+      };
+    };
+    data.plan.references = [{ type: "x-xbrief/github-issue", uri }];
+    if (extra?.items !== undefined) {
+      data.plan.items = extra.items;
+    }
+    if (extra?.narratives !== undefined) {
+      data.plan.narratives = extra.narratives;
+    }
+    if (extra?.id !== undefined) {
+      data.plan.id = extra.id;
+    }
+    return JSON.stringify(data);
+  }
+
+  function expectPaired(srcJson: string, destJson: string): void {
+    const shapes = [`D\t${active}\nA\t${completed}`, `R100\t${active}\t${completed}`];
+    for (const nameStatus of shapes) {
+      const result = evaluateCompletedWriteGuard("/tmp/proj", {
+        nameStatus,
+        payloads: new Map([
+          [completed, destJson],
+          [active, srcJson],
+        ]),
+      });
+      expect(result.code, nameStatus).toBe(0);
+      expect(result.findings, nameStatus).toHaveLength(0);
+    }
+  }
 
   it("rejects an unaccompanied delete of an active brief", () => {
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
@@ -350,40 +397,26 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     expect(result.findings).toHaveLength(0);
   });
 
-  it("rejects a same-title dest whose plan.items titles differ", () => {
-    const dest = JSON.parse(stamped()) as {
-      plan: { items?: Array<{ title: string; status: string }> };
-    };
-    dest.plan.items = [{ title: "other-item", status: "pending" }];
-    const src = JSON.parse(runningSource()) as {
-      plan: { items?: Array<{ title: string; status: string }> };
-    };
-    src.plan.items = [{ title: "story-item", status: "pending" }];
-    const result = evaluateCompletedWriteGuard("/tmp/proj", {
-      nameStatus: `D\t${active}\nA\t${completed}`,
-      payloads: new Map([
-        [completed, JSON.stringify(dest)],
-        [active, JSON.stringify(src)],
-      ]),
-    });
-    expect(result.code).toBe(1);
-    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  it("pairs a same-title dest whose plan.items titles differ", () => {
+    expectPaired(
+      withOrigin(runningSource(), ISSUE_URI, {
+        items: [{ title: "story-item", status: "pending" }],
+      }),
+      withOrigin(stamped(), ISSUE_URI, {
+        items: [{ title: "other-item", status: "pending" }],
+      }),
+    );
   });
 
-  it("rejects a same-title dest whose narratives differ", () => {
-    const dest = JSON.parse(stamped()) as { plan: { narratives?: Record<string, string> } };
-    dest.plan.narratives = { Overview: "replacement" };
-    const src = JSON.parse(runningSource()) as { plan: { narratives?: Record<string, string> } };
-    src.plan.narratives = { Overview: "original" };
-    const result = evaluateCompletedWriteGuard("/tmp/proj", {
-      nameStatus: `D\t${active}\nA\t${completed}`,
-      payloads: new Map([
-        [completed, JSON.stringify(dest)],
-        [active, JSON.stringify(src)],
-      ]),
-    });
-    expect(result.code).toBe(1);
-    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  it("pairs a same-title dest whose narratives differ", () => {
+    expectPaired(
+      withOrigin(runningSource(), ISSUE_URI, {
+        narratives: { Overview: "original" },
+      }),
+      withOrigin(stamped(), ISSUE_URI, {
+        narratives: { Overview: "replacement" },
+      }),
+    );
   });
 
   it("rejects a copied stamp under the same basename with a different title", () => {
@@ -392,6 +425,74 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
       payloads: new Map([
         [completed, stamped()],
         [active, runningSource("victim")],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
+  it("rejects a copied stamp under the same basename with a different origin", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${completed}`,
+      payloads: new Map([
+        [completed, withOrigin(stamped(), OTHER_ISSUE_URI)],
+        [active, withOrigin(runningSource(), ISSUE_URI)],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
+  it("pairs a LifecycleRepair narrative add when title, origin, pairingKey, and complete stamp match", () => {
+    expectPaired(
+      withOrigin(runningSource(), ISSUE_URI, {
+        narratives: { Overview: "original" },
+      }),
+      withOrigin(stamped(), ISSUE_URI, {
+        narratives: { Overview: "original", LifecycleRepair: "added" },
+      }),
+    );
+  });
+
+  it("pairs a renamed item title when title, origin, pairingKey, and complete stamp match", () => {
+    expectPaired(
+      withOrigin(runningSource(), ISSUE_URI, {
+        items: [{ title: "old-item", status: "pending" }],
+      }),
+      withOrigin(stamped(), ISSUE_URI, {
+        items: [{ title: "renamed-item", status: "completed" }],
+      }),
+    );
+  });
+
+  it("pairs an added clause_1 item when title, origin, pairingKey, and complete stamp match", () => {
+    expectPaired(
+      withOrigin(runningSource(), ISSUE_URI, {
+        items: [{ title: "story-item", status: "pending" }],
+      }),
+      withOrigin(stamped(), ISSUE_URI, {
+        items: [
+          { title: "story-item", status: "completed" },
+          { id: "clause_1", title: "clause_1", status: "pending" },
+        ],
+      }),
+    );
+  });
+
+  it("pairs when plan.id differs but title, origin, pairingKey, and complete stamp match", () => {
+    expectPaired(
+      withOrigin(runningSource(), ISSUE_URI, { id: "github.issue.123" }),
+      withOrigin(stamped(), ISSUE_URI, { id: "github.issue.999" }),
+    );
+  });
+
+  it("rejects a same-identity dest under a different basename", () => {
+    const other = "xbrief/completed/2026-08-25-other.xbrief.json";
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${other}`,
+      payloads: new Map([
+        [other, withOrigin(stamped(), ISSUE_URI)],
+        [active, withOrigin(runningSource(), ISSUE_URI)],
       ]),
     });
     expect(result.code).toBe(1);
@@ -484,6 +585,55 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     expect(result.message).toContain("scope:cancel");
     expect(result.message).toMatch(/untracked/);
     expect(result.message).toContain(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
+  });
+
+  it("pairs persist-on-complete clause:N dest against recovered HEAD src", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-persist-"));
+    try {
+      gitOk(["init", "-q", "-b", "master"], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "base"], root);
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+      const srcRel = "xbrief/active/2026-08-25-story.xbrief.json";
+      const destRel = "xbrief/completed/2026-08-25-story.xbrief.json";
+      const src = {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "stamped",
+          status: "running",
+          items: [{ title: "story-item", status: "pending" }],
+          references: [{ type: "x-xbrief/github-issue", uri: ISSUE_URI }],
+        },
+      };
+      writeFileSync(join(root, srcRel), JSON.stringify(src), "utf8");
+      gitOk(["add", srcRel], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "-m", "track active"], root);
+      gitOk(["rm", "-f", srcRel], root);
+      const dest = {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "stamped",
+          status: "completed",
+          items: [
+            { title: "story-item", status: "completed" },
+            { id: "clause:1", title: "clause:1", status: "pending" },
+          ],
+          references: [{ type: "x-xbrief/github-issue", uri: ISSUE_URI }],
+          metadata: {
+            lifecycleWrite: {
+              action: "complete",
+              writtenAt: "2026-08-25T00:00:00Z",
+            },
+          },
+        },
+      };
+      writeFileSync(join(root, destRel), JSON.stringify(dest), "utf8");
+      const result = evaluateCompletedWriteGuard(root, { baseRef: "master" });
+      expect(result.code).toBe(0);
+      expect(result.findings).toHaveLength(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("rejects an unaccompanied active delete discovered from git", () => {
