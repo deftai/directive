@@ -527,12 +527,14 @@ function validateSignals(record: JsonObj, signals: DetectedSignal[]): GateFindin
 
   for (const signal of signals) {
     if (signal.storage) {
-      const matchingSurfaces = surfaces.filter((s) => surfaceAllowsStorage(s, signal.storage!));
+      const storage = signal.storage;
+      const matchingSurfaces = surfaces.filter((s) => surfaceAllowsStorage(s, storage));
       const forbiddenMatches = surfaces.filter((s) =>
-        asStringList(s.forbiddenStorage).some((item) => storageMatches(signal.storage!, item)),
+        asStringList(s.forbiddenStorage).some((item) => storageMatches(storage, item)),
       );
       if (forbiddenMatches.length > 0) {
-        const surface = forbiddenMatches[0]!;
+        const surface = forbiddenMatches[0];
+        if (surface === undefined) continue;
         findings.push({
           stateSurface: surfaceName(surface),
           classification: surfaceClassification(surface),
@@ -795,7 +797,7 @@ export function scanDiff(diffText: string): [DetectedSignal[], string[]] {
 
     if (rawLine.startsWith("@@ ")) {
       const m = rawLine.match(/\+(\d+)/);
-      newLineNo = m ? parseInt(m[1]!, 10) : null;
+      newLineNo = m && m[1] !== undefined ? parseInt(m[1], 10) : null;
       continue;
     }
 
@@ -865,7 +867,10 @@ export function evaluateDiffText(
     const [records, error] = changedStoryRecords(opts.projectRoot, changedPaths);
     if (error !== null) return error;
     if (records.length === 1) {
-      [, payload, record] = records[0]!;
+      const only = records[0];
+      if (only) {
+        [, payload, record] = only;
+      }
     } else if (records.length > 1) {
       return {
         code: 2,
@@ -939,13 +944,20 @@ export function evaluateDiff(
 ): GateResult {
   const [diffText, error] = gitDiff(projectRoot, baseRef);
   if (error !== null) return error;
-  return evaluateDiffText(diffText!, { projectRoot, ...opts });
+  return evaluateDiffText(diffText ?? "", { projectRoot, ...opts });
 }
 
 export function evaluateStory(storyPath: string): GateResult {
   const [payload, error] = loadJsonFile(storyPath);
   if (error !== null) return error;
-  return validateRecord(systemOfRecord(payload!), { storyPayload: payload });
+  if (!payload) {
+    return {
+      code: 2,
+      message: "system-of-record gate misconfigured: story payload missing.",
+      findings: [],
+    };
+  }
+  return validateRecord(systemOfRecord(payload), { storyPayload: payload });
 }
 
 // ---------------------------------------------------------------------------

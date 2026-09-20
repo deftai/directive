@@ -341,7 +341,6 @@ export function parseArgs(argv: string[]): SetArgs {
         }
         host = parsedHost;
       } else if (arg === "--") {
-        continue;
       } else {
         return makeSetError(`unrecognized argument: ${arg}`);
       }

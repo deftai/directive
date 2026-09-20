@@ -57,7 +57,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (nextToken === "--help" || nextToken === "-h") {
         return { ...parsed, help: true };
       }
-      if (nextToken !== undefined && nextToken.startsWith("-")) {
+      if (nextToken?.startsWith("-")) {
         return {
           ...parsed,
           error: "argument --vbrief-path: expected one argument",
