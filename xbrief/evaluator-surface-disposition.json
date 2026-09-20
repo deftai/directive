@@ -1,11 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4744,
+  "issue": 4813,
   "surfaces": [
-    "packages/core/src/observable-scope/**",
-    "xbrief/evaluator-surface-disposition.json",
-    "vitest.config.ts"
+    "packages/core/src/intent-constraint/evaluate.ts",
+    "packages/core/src/intent-constraint/evaluate.test.ts",
+    "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure of vitest.config.ts Windows coverage cheapening (#4744). Keeps #4586 observable-scope surfaces (same-file const useState StringLiteral unwrap for tab-selected). Not reviewed authorization under #3164. Does not implement the #4503 recognizer."
+  "note": "Disclosure of intent-constraint dest-origin recut (#4813). Not reviewed authorization under #3164."
 }
