@@ -49,7 +49,7 @@ const ADVISORY_SHOULD_NOT_MERGE_RES: readonly RegExp[] = [
  * so explanatory Confidence residual prose naming the detector does not thrash
  * indefinitely (#2881 / PR #3227 conf 4 residual).
  */
-const ADVISORY_HIGH_SIGNAL_RES: readonly RegExp[] = [
+const _ADVISORY_HIGH_SIGNAL_RES: readonly RegExp[] = [
   /\bnot\s+(?:yet\s+)?safe\s+to\s+merge\b/i,
   /\bshould-not-merge\b/i,
   /\bsafe\s+to\s+merge\s+once\s+corrected\b/i,
@@ -124,7 +124,7 @@ export function extractAdvisoryVerdictRegions(body: string): string {
   return regions.filter((r) => r.trim().length > 0).join("\n\n");
 }
 
-function anyPatternMatches(text: string, patterns: readonly RegExp[]): boolean {
+function _anyPatternMatches(text: string, patterns: readonly RegExp[]): boolean {
   return patterns.some((re) => {
     re.lastIndex = 0;
     return re.test(text);

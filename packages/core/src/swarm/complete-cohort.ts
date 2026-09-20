@@ -79,10 +79,7 @@ function readPlanId(path: string): string | null {
     return null;
   }
 }
-export function findTrackedActiveTwins(
-  storyPaths: readonly string[],
-  vbriefDir: string,
-): string[] {
+export function findTrackedActiveTwins(storyPaths: readonly string[], vbriefDir: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const storyPath of storyPaths) {

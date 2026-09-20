@@ -254,7 +254,7 @@ writeFileSync(process.env.TEST_ENGINE_OUTER_OUT, JSON.stringify({
 
   it("_ts-build ends with a trailing no-op after the outer if/fi (#3381)", () => {
     const engine = readTask(ENGINE_FILE);
-    const tsBuild = engine.match(/  _ts-build:\n[\s\S]*?(?=\n  [a-zA-Z_])/);
+    const tsBuild = engine.match(/ {2}_ts-build:\n[\s\S]*?(?=\n {2}[a-zA-Z_])/);
     expect(tsBuild, "engine _ts-build task").not.toBeNull();
     const body = tsBuild?.[0] ?? "";
     expect(body).toMatch(

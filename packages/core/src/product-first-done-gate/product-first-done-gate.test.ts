@@ -7,6 +7,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { findTrackedActiveTwins, sweepCohort } from "../swarm/complete-cohort.js";
 import {
   attachPlanAcceptance,
   buildAcceptanceFromIntakeCapture,
@@ -27,7 +28,6 @@ import {
   isVerifyAcRequiredAtCeremonyDepth,
   resolveOracleScopeKey,
 } from "./evaluate.js";
-import { findTrackedActiveTwins, sweepCohort } from "../swarm/complete-cohort.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
@@ -807,7 +807,8 @@ describe("check-integrated cycle refuse (#4798)", () => {
 describe("leftover-complete must move tracked active (#4798)", () => {
   it("finds a same-basename active twin of a completed leftover", () => {
     const project = mkdtempSync(join(tmpdir(), "leftover-twin-"));
-    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    const name =
+      "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
     mkdirSync(join(project, "xbrief", "active"), { recursive: true });
     mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
     const active = join(project, "xbrief", "active", name);
@@ -823,31 +824,40 @@ describe("leftover-complete must move tracked active (#4798)", () => {
 
   it("skips same-basename twins with mismatched plan.id", () => {
     const project = mkdtempSync(join(tmpdir(), "leftover-mismatch-"));
-    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    const name =
+      "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
     mkdirSync(join(project, "xbrief", "active"), { recursive: true });
     mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
     const active = join(project, "xbrief", "active", name);
     const completed = join(project, "xbrief", "completed", name);
     writeFileSync(active, JSON.stringify({ plan: { id: "github.issue.4744", status: "running" } }));
-    writeFileSync(completed, JSON.stringify({ plan: { id: "github.issue.9999", status: "completed" } }));
+    writeFileSync(
+      completed,
+      JSON.stringify({ plan: { id: "github.issue.9999", status: "completed" } }),
+    );
     expect(findTrackedActiveTwins([completed], join(project, "xbrief"))).toEqual([]);
   });
 
   it("skips same-basename twins when either plan.id is missing", () => {
     const project = mkdtempSync(join(tmpdir(), "leftover-missing-id-"));
-    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    const name =
+      "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
     mkdirSync(join(project, "xbrief", "active"), { recursive: true });
     mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
     const active = join(project, "xbrief", "active", name);
     const completed = join(project, "xbrief", "completed", name);
     writeFileSync(active, JSON.stringify({ plan: { status: "running" } }));
-    writeFileSync(completed, JSON.stringify({ plan: { id: "github.issue.4744", status: "completed" } }));
+    writeFileSync(
+      completed,
+      JSON.stringify({ plan: { id: "github.issue.4744", status: "completed" } }),
+    );
     expect(findTrackedActiveTwins([completed], join(project, "xbrief"))).toEqual([]);
   });
 
   it("sweeps a completed leftover path by completing the remaining tracked active", () => {
     const project = mkdtempSync(join(tmpdir(), "leftover-move-"));
-    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    const name =
+      "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
     mkdirSync(join(project, "xbrief", "active"), { recursive: true });
     mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
     const active = join(project, "xbrief", "active", name);
@@ -865,8 +875,10 @@ describe("leftover-complete must move tracked active (#4798)", () => {
       }),
     );
     const sweep = sweepCohort([completed], project, true);
-    expect(sweep.stories.some((row) => row.path.replace(/\\/g, "/").includes("active/") && row.action === "complete")).toBe(
-      true,
-    );
+    expect(
+      sweep.stories.some(
+        (row) => row.path.replace(/\\/g, "/").includes("active/") && row.action === "complete",
+      ),
+    ).toBe(true);
   });
 });
