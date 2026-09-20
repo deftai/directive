@@ -40,11 +40,7 @@ export function confirmChildHandleForKill(child: TimedChildHandle): number | nul
   return child.pid;
 }
 
-function listDirectChildPids(
-  pid: number,
-  platform: NodeJS.Platform,
-  timeoutMs = 5_000,
-): number[] {
+function listDirectChildPids(pid: number, platform: NodeJS.Platform, timeoutMs = 5_000): number[] {
   if (platform === "win32") {
     const result = spawnSync(
       "wmic",
@@ -120,12 +116,14 @@ export function killTreeAndProveEmpty(
         KILL_TREE_VERIFY_BUDGET_MS,
       ));
   const alive = seams.isPidAlive ?? isPidAlive;
-  // Kill the root/group first; leftover pgrep/wmic walks are post-kill and budgeted.
-  kill(pid);
+  // Snapshot while the tree is intact, then kill root/group first. Post-kill
+  // pgrep -P from a dead root cannot see reparented process groups (#4801 P1).
   const snapshot = [pid, ...list(pid)];
+  kill(pid);
   let remaining = snapshot.filter(alive);
   if (remaining.length > 0) {
     for (const leftover of remaining) {
+      if (leftover === pid) continue;
       kill(leftover);
     }
     remaining = snapshot.filter(alive);

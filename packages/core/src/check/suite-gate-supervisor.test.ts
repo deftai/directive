@@ -256,20 +256,24 @@ describe("killTreeAndProveEmpty (#4801)", () => {
     expect(result.remaining).toEqual([]);
   });
 
-  it("kills the root before enumerating descendants", () => {
+  it("snapshots descendants before the first kill so reparented children stay in the set", () => {
     const order: string[] = [];
-    killTreeAndProveEmpty(1, {
+    const alive = new Set([2]);
+    const result = killTreeAndProveEmpty(1, {
       killTree: (pid) => {
         order.push(`kill:${pid}`);
+        alive.delete(pid);
       },
       listDescendants: () => {
         order.push("list");
-        return [];
+        return [2];
       },
-      isPidAlive: () => false,
+      isPidAlive: (pid) => alive.has(pid),
     });
-    expect(order[0]).toBe("kill:1");
-    expect(order).toEqual(["kill:1", "list"]);
+    expect(order[0]).toBe("list");
+    expect(order[1]).toBe("kill:1");
+    expect(order).toEqual(["list", "kill:1", "kill:2"]);
+    expect(result.remaining).toEqual([]);
   });
 
   it("escalates leftover descendants with a second kill", () => {
