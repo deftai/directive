@@ -833,6 +833,18 @@ describe("leftover-complete must move tracked active (#4798)", () => {
     expect(findTrackedActiveTwins([completed], join(project, "xbrief"))).toEqual([]);
   });
 
+  it("skips same-basename twins when either plan.id is missing", () => {
+    const project = mkdtempSync(join(tmpdir(), "leftover-missing-id-"));
+    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    const active = join(project, "xbrief", "active", name);
+    const completed = join(project, "xbrief", "completed", name);
+    writeFileSync(active, JSON.stringify({ plan: { status: "running" } }));
+    writeFileSync(completed, JSON.stringify({ plan: { id: "github.issue.4744", status: "completed" } }));
+    expect(findTrackedActiveTwins([completed], join(project, "xbrief"))).toEqual([]);
+  });
+
   it("sweeps a completed leftover path by completing the remaining tracked active", () => {
     const project = mkdtempSync(join(tmpdir(), "leftover-move-"));
     const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
