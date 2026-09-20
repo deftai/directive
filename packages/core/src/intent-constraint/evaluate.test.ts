@@ -1,8 +1,14 @@
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { evaluateIntentConstraint } from "./evaluate.js";
+import { dirname, join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  CANDIDATE_COMMITTED_ONLY,
+  CANDIDATE_WORKING_TREE,
+  evaluateIntentConstraint,
+  resolveIntentConstraintOrigin,
+} from "./evaluate.js";
 import { buildIntentConstraintRecord } from "./mint.js";
 import { INTENT_CONSTRAINT_REMEDIATION } from "./types.js";
 
@@ -324,5 +330,199 @@ export function publish(input: { size: number }[]): void {
       readAtHead: (rel: string) => (rel === "src/ingest.ts" ? head : null),
     });
     expect(result.code).toBe(0);
+  });
+});
+
+describe("intent-constraint origin recut (#4813)", () => {
+  const roots: string[] = [];
+
+  afterEach(() => {
+    delete process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    for (const root of roots.splice(0, roots.length)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  function git(root: string, args: string[]): void {
+    execFileSync("git", args, {
+      cwd: root,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "test",
+        GIT_AUTHOR_EMAIL: "test@example.com",
+        GIT_COMMITTER_NAME: "test",
+        GIT_COMMITTER_EMAIL: "test@example.com",
+      },
+    });
+  }
+
+  function writeTracked(root: string, rel: string, body: string): void {
+    const full = join(root, rel);
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, body, "utf8");
+    git(root, ["add", "--", rel]);
+  }
+
+  function writeProject(root: string, policy: Record<string, unknown>): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "P",
+          status: "running",
+          policy,
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  function makeMainDevelopConsumer(): string {
+    const root = mkdtempSync(join(tmpdir(), "ic-4813-"));
+    const bare = mkdtempSync(join(tmpdir(), "ic-4813-bare-"));
+    roots.push(root, bare);
+    git(root, ["init", "-q", "-b", "main"]);
+    git(root, ["config", "user.email", "test@example.com"]);
+    git(root, ["config", "user.name", "test"]);
+    writeTracked(root, ".gitignore", "node_modules\n");
+    writeTracked(
+      root,
+      "src/history.ts",
+      'export function old(): void { throw new Error("hist"); }\n',
+    );
+    git(root, ["commit", "-q", "-m", "main"]);
+    git(root, ["checkout", "-q", "-b", "develop"]);
+    writeTracked(
+      root,
+      "src/history.ts",
+      'export function old(): void { throw new Error("hist"); }\nexport function later(): void { throw new Error("dev"); }\n',
+    );
+    writeProject(root, { deliveryBranch: "develop" });
+    git(root, ["add", "--", "xbrief/PROJECT-DEFINITION.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "develop"]);
+    git(bare, ["init", "-q", "--bare", "-b", "main"]);
+    git(root, ["remote", "add", "origin", bare]);
+    git(root, ["push", "-q", "origin", "main"]);
+    git(root, ["push", "-q", "origin", "develop"]);
+    git(root, ["remote", "set-head", "origin", "main"]);
+    git(root, ["checkout", "-q", "-b", "feat"]);
+    return withTypescript(root);
+  }
+
+  it("uses typed dest origin/develop, not origin/HEAD main", () => {
+    delete process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    const root = makeMainDevelopConsumer();
+    const resolved = resolveIntentConstraintOrigin(root);
+    expect(resolved).toEqual({ origin: "origin/develop", mode: "dest" });
+  });
+
+  it("keeps standalone --origin-ref as an explicit diagnostic", () => {
+    delete process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    const root = makeMainDevelopConsumer();
+    const resolved = resolveIntentConstraintOrigin(root, "origin/main");
+    expect(resolved).toEqual({ origin: "origin/main", mode: "explicit" });
+  });
+
+  it("uses GITHUB_BASE_REF as the PR-target channel over typed dest", () => {
+    const root = makeMainDevelopConsumer();
+    process.env.GITHUB_BASE_REF = "main";
+    const resolved = resolveIntentConstraintOrigin(root);
+    expect(resolved).toEqual({ origin: "origin/main", mode: "pr-target" });
+  });
+
+  it("falls back to forge default when dest is not typed", () => {
+    delete process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    const root = makeMainDevelopConsumer();
+    writeProject(root, { wipCap: 5 });
+    git(root, ["add", "--", "xbrief/PROJECT-DEFINITION.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "untyped dest"]);
+    const resolved = resolveIntentConstraintOrigin(root);
+    expect(resolved).toEqual({ origin: "origin/main", mode: "forge-default" });
+  });
+
+  it("includes unstaged production when HEAD equals dest and reports working-tree", () => {
+    delete process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    const root = makeMainDevelopConsumer();
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(
+      join(root, "src", "naming.ts"),
+      'export const NAME_MAX = 200;\nexport function check(name: unknown): void { if (typeof name !== "string") throw new Error("n"); }\n',
+      "utf8",
+    );
+    try {
+      const result = evaluateIntentConstraint({ projectRoot: root });
+      expect(result.origin).toBe("origin/develop");
+      expect(result.originMode).toBe("dest");
+      expect(result.candidateMode).toBe(CANDIDATE_WORKING_TREE);
+      expect(result.skipped).not.toBe(true);
+      expect(result.code).toBe(1);
+      expect(result.message).toMatch(/src\/naming\.ts/);
+      expect(result.message).not.toMatch(/src\/history\.ts/);
+      expect(result.message).toContain("origin=origin/develop");
+      expect(result.message).toContain("origin-mode=dest");
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("N/A when HEAD equals dest names committed-only and does not assess unstaged absence as a pass", () => {
+    delete process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    const root = makeMainDevelopConsumer();
+    const result = evaluateIntentConstraint({ projectRoot: root });
+    expect(result.code).toBe(0);
+    expect(result.skipped).toBe(true);
+    expect(result.origin).toBe("origin/develop");
+    expect(result.originMode).toBe("dest");
+    expect(result.candidateMode).toBe(CANDIDATE_COMMITTED_ONLY);
+    expect(result.message).toMatch(/unstaged not assessed/);
+    expect(result.message).toContain("origin=origin/develop");
+  });
+
+  it("keeps mint authority at merge-base when assessing working-tree bytes", () => {
+    delete process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    const prev = process.env.DEFT_ACTIVE_SCOPE;
+    delete process.env.DEFT_ACTIVE_SCOPE;
+    const root = makeMainDevelopConsumer();
+    mkdirSync(join(root, ".deft", "intent-constraint"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "intent-constraint", "story-1.json"),
+      `${JSON.stringify(record(), null, 2)}\n`,
+      "utf8",
+    );
+    writeFileSync(join(root, "src", "naming.ts"), "export const NAME_MAX = 1024;\n", "utf8");
+    try {
+      const result = evaluateIntentConstraint({ projectRoot: root });
+      expect(result.code).toBe(1);
+      expect(result.candidateMode).toBe(CANDIDATE_WORKING_TREE);
+      expect(result.message).toMatch(/src\/naming\.ts/);
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ACTIVE_SCOPE;
+      else process.env.DEFT_ACTIVE_SCOPE = prev;
+    }
+  });
+
+  it("reports origin and candidate mode on injected N/A", () => {
+    const result = evaluateIntentConstraint({
+      projectRoot: process.cwd(),
+      mergeBase: "base",
+      changedFiles: ["tests/ingest.test.ts", "README.md"],
+    });
+    expect(result.code).toBe(0);
+    expect(result.skipped).toBe(true);
+    expect(result.message).toContain("origin=N/A");
+    expect(result.message).toContain("origin-mode=N/A");
+    expect(result.message).toContain("candidates=injected");
   });
 });
