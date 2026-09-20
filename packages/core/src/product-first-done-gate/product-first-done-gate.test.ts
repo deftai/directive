@@ -732,6 +732,7 @@ describe("check-integrated cycle refuse (#4798)", () => {
     expect(checkGraphReentryCommand("pnpm run check")).toBe("pnpm run check");
     expect(checkGraphReentryCommand("npm run verify:ac")).toBe("npm run verify:ac");
     expect(checkGraphReentryCommand("yarn check")).toBe("yarn check");
+    expect(checkGraphReentryCommand("bun run check")).toBe("bun run check");
   });
 
   it("refuses the #4744 active shape inside check-integrated verify:ac without spawning", () => {

@@ -100,6 +100,7 @@ export function findTrackedActiveTwins(
     }
     const activeId = readPlanId(activePath);
     const completedId = readPlanId(completedPath);
+    // Same basename is not enough: mismatched plan.id is not a twin.
     if (activeId && completedId && activeId !== completedId) {
       continue;
     }

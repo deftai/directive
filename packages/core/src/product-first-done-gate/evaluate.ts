@@ -191,7 +191,7 @@ function ledgerEntriesFromCommands(
 }
 
 const CHECK_GRAPH_WRAPPERS = new Set(["task", "deft", "directive"]);
-const PACKAGE_RUNNERS = new Set(["npm", "pnpm", "yarn", "npx"]);
+const PACKAGE_RUNNERS = new Set(["npm", "pnpm", "yarn", "npx", "bun"]);
 
 /**
  * Command that would re-enter the containing check graph (#4798).
