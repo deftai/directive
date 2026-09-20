@@ -419,6 +419,10 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     }
     mergeBase = resolved;
   }
+  if (mergeBase === undefined || mergeBase.length === 0) {
+    return attach(config("could not compute merge-base"), origin, "N/A", quiet);
+  }
+  const mergeBaseSha = mergeBase;
 
   let changed: string[];
   let candidateMode: string;
@@ -434,7 +438,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     changed = collected;
     candidateMode = CANDIDATE_STAGED;
   } else {
-    const collected = gitNameOnlyDiff(projectRoot, [mergeBase, "HEAD"]);
+    const collected = gitNameOnlyDiff(projectRoot, [mergeBaseSha, "HEAD"]);
     if (!Array.isArray(collected)) {
       return attach(config(collected.error), origin, CANDIDATE_COMMITTED, quiet);
     }
@@ -487,7 +491,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     );
   }
 
-  const readBase = options.readAtBase ?? ((rel: string) => gitShow(projectRoot, mergeBase, rel));
+  const readBase = options.readAtBase ?? ((rel: string) => gitShow(projectRoot, mergeBaseSha, rel));
   const readHead =
     options.readAtHead ??
     ((rel: string) =>
@@ -514,7 +518,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     );
   }
 
-  const baseRecords = listBaseRecords(options, projectRoot, mergeBase);
+  const baseRecords = listBaseRecords(options, projectRoot, mergeBaseSha);
   if (baseRecords.size === 0) {
     const listed = deltas
       .slice(0, 8)
