@@ -276,6 +276,27 @@ describe("killTreeAndProveEmpty (#4801)", () => {
     expect(result.remaining).toEqual([]);
   });
 
+  it("retries a failed root kill", () => {
+    const killed: number[] = [];
+    let rootAttempts = 0;
+    const alive = new Set([1, 2]);
+    const result = killTreeAndProveEmpty(1, {
+      killTree: (pid) => {
+        killed.push(pid);
+        if (pid === 1) {
+          rootAttempts += 1;
+          if (rootAttempts >= 2) alive.delete(1);
+          return;
+        }
+        alive.delete(pid);
+      },
+      listDescendants: () => [2],
+      isPidAlive: (pid) => alive.has(pid),
+    });
+    expect(killed.filter((id) => id === 1).length).toBeGreaterThanOrEqual(2);
+    expect(result.remaining).toEqual([]);
+  });
+
   it("escalates leftover descendants with a second kill", () => {
     const killed: number[] = [];
     const alive = new Set([1, 2, 3]);

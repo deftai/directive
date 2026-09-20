@@ -123,7 +123,6 @@ export function killTreeAndProveEmpty(
   let remaining = snapshot.filter(alive);
   if (remaining.length > 0) {
     for (const leftover of remaining) {
-      if (leftover === pid) continue;
       kill(leftover);
     }
     remaining = snapshot.filter(alive);
