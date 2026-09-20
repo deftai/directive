@@ -269,9 +269,9 @@ const PROTECTED_STAYING_OPEN_LABELS = new Set([
   "type:umbrella",
 ]);
 
-function githubIssueFromBrief(path: string): number | null {
+function githubIssueFromBriefText(text: string): number | null {
   try {
-    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    const raw = JSON.parse(text) as unknown;
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
       return null;
     }
@@ -281,6 +281,14 @@ function githubIssueFromBrief(path: string): number | null {
     }
     const [, issueNum] = extractIssueRef(plan as Record<string, unknown>);
     return issueNum;
+  } catch {
+    return null;
+  }
+}
+
+function githubIssueFromBrief(path: string): number | null {
+  try {
+    return githubIssueFromBriefText(readFileSync(path, "utf8"));
   } catch {
     return null;
   }
@@ -340,10 +348,13 @@ function listLandedCompletedRelpaths(
   projectRoot: string,
   deliveryBranch: string,
   runGit: typeof runText,
-): Set<string> {
+): { names: Set<string>; error: string | null } {
   const fetch = runGit(["git", "fetch", "origin", deliveryBranch], { cwd: projectRoot });
   if (fetch.returncode !== 0) {
-    return new Set();
+    return {
+      names: new Set(),
+      error: `git fetch origin ${deliveryBranch} failed (#4824)`,
+    };
   }
   const listed = runGit(
     [
@@ -359,7 +370,10 @@ function listLandedCompletedRelpaths(
     { cwd: projectRoot },
   );
   if (listed.returncode !== 0) {
-    return new Set();
+    return {
+      names: new Set(),
+      error: `git ls-tree origin/${deliveryBranch} failed (#4824)`,
+    };
   }
   const names = new Set<string>();
   for (const line of listed.stdout.split(/\r?\n/)) {
@@ -370,7 +384,7 @@ function listLandedCompletedRelpaths(
       names.add(trimmed);
     }
   }
-  return names;
+  return { names, error: null };
 }
 
 function fetchIssueOriginSnapshot(
@@ -434,10 +448,6 @@ function labelNamesFromIssuePayload(payload: Record<string, unknown>): string[] 
 }
 
 function isProtectedStayingOpenUmbrella(payload: Record<string, unknown>): boolean {
-  const title = typeof payload.title === "string" ? payload.title : "";
-  if (/\b(epic|omnibus|tracker|umbrella)\b/i.test(title)) {
-    return true;
-  }
   for (const name of labelNamesFromIssuePayload(payload)) {
     const lower = name.toLowerCase();
     if (PROTECTED_STAYING_OPEN_LABELS.has(lower) || lower.includes("umbrella")) {
@@ -480,23 +490,38 @@ function closeOriginsAfterLeftoverComplete(args: {
     return { errors, warnings };
   }
 
-  const landedNames = listLandedCompletedRelpaths(
-    args.projectRoot,
-    args.deliveryBranch,
-    args.runGit,
-  );
+  const landed = listLandedCompletedRelpaths(args.projectRoot, args.deliveryBranch, args.runGit);
+  if (landed.error !== null) {
+    errors.push(`origin-close refused DONE: ${landed.error}.`);
+    return { errors, warnings };
+  }
   const prLabel = args.prNumbers.map((n) => `#${String(n)}`).join(", ");
   const commentBody = `Completed in ${prLabel}`;
 
   for (const issue of args.originIssues) {
     const completedRel = completedBriefRelpathForIssue(args.projectRoot, issue);
-    if (completedRel === null || !landedNames.has(completedRel)) {
+    if (completedRel === null || !landed.names.has(completedRel)) {
       warnings.push(
         "#" +
           String(issue) +
           ": origin-close skipped; leftover-complete not on origin/" +
           args.deliveryBranch +
           " (#4824).",
+      );
+      continue;
+    }
+    const shown = args.runGit(["git", "show", `origin/${args.deliveryBranch}:${completedRel}`], {
+      cwd: args.projectRoot,
+    });
+    if (shown.returncode !== 0) {
+      errors.push(
+        `#${String(issue)}: origin-close refused DONE: git show origin/${args.deliveryBranch}:${completedRel} failed (#4824).`,
+      );
+      continue;
+    }
+    if (githubIssueFromBriefText(shown.stdout) !== issue) {
+      errors.push(
+        `#${String(issue)}: origin-close refused DONE: origin completed brief does not reference #${String(issue)} (#4824).`,
       );
       continue;
     }

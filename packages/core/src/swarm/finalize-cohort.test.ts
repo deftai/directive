@@ -193,6 +193,9 @@ interface MockIssueMeta {
 interface MockGitOpts {
   readonly onCommit?: () => void;
   readonly fetchFail?: boolean;
+  readonly lsTreeFail?: boolean;
+  readonly showFail?: boolean;
+  readonly showMismatchIssue?: number;
   readonly notAncestor?: boolean;
   readonly closedSurfaceAdd?: boolean;
   readonly landedCompleted?: readonly string[];
@@ -203,10 +206,36 @@ function mockRunGit(opts: MockGitOpts = {}): (command: readonly string[]) => Tex
   return (command) => {
     const joined = command.join(" ");
     if (joined.includes("ls-tree")) {
+      if (opts.lsTreeFail) {
+        return { returncode: 1, stdout: "", stderr: "ls-tree failed" };
+      }
       const names = opts.landedCompleted ?? [];
       return {
         returncode: 0,
         stdout: names.join("\n") + (names.length > 0 ? "\n" : ""),
+        stderr: "",
+      };
+    }
+    if (command[1] === "show") {
+      if (opts.showFail) {
+        return { returncode: 1, stdout: "", stderr: "show failed" };
+      }
+      const spec = String(command[2] ?? "");
+      const fromPath = Number((spec.match(/(\d+)/g) ?? []).pop() ?? "0");
+      const issue = opts.showMismatchIssue ?? fromPath;
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          plan: {
+            id: "story",
+            references: [
+              {
+                uri: "https://github.com/deftai/directive/issues/" + String(issue),
+                type: "x-xbrief/github-issue",
+              },
+            ],
+          },
+        }),
         stderr: "",
       };
     }
@@ -746,6 +775,80 @@ describe("finalizeCohort", () => {
     expect(comment?.some((p) => p.includes("Completed in #4815"))).toBe(true);
     expect(
       ghCalls.every((c) => !c.includes("issue") || !c.includes("view") || !c.includes("--json")),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses DONE when git fetch of deliveryBranch fails (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-fetch-fail-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 4815: { merged: true, closingIssues: [] } }, { 4813: "open" }),
+      runGit: mockRunGit({
+        landedCompleted: ["xbrief/completed/story-4813.xbrief.json"],
+        fetchFail: true,
+      }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("git fetch origin master failed"))).toBe(
+      true,
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses DONE when origin completed brief does not reference the story (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-show-mismatch-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 4815: { merged: true, closingIssues: [] } }, { 4813: "open" }),
+      runGit: mockRunGit({
+        landedCompleted: ["xbrief/completed/story-4813.xbrief.json"],
+        showMismatchIssue: 9999,
+      }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("does not reference #4813"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("closes ordinary tracker-titled stories without umbrella labels (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-title-tracker-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      { 4815: { merged: true, closingIssues: [] } },
+      { 4813: "open" },
+      { 4813: { title: "Remove legacy tracker" } },
+    );
+    const capturing = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4813.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4813"))),
     ).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
