@@ -35,10 +35,10 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 14 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 89 | 34 | 32 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 39 | 554 | 118 | 645 | 0 | 17 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 39 | 554 | 118 | 648 | 0 | 17 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 320 | 90 | 140 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
-| templates | Reusable document/scaffold templates. | 11 | 98 | 10 | 46 | 1 | 5 |
+| templates | Reusable document/scaffold templates. | 11 | 98 | 10 | 47 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 91 | 73 | 33 | 1 | 15 |
 | vbrief | The durable state format: project definition, specification, scopes, plans. | 1 | 71 | 27 | 27 | 0 | 8 |
 | verification | How agents prove work is done: gates, validators, coverage, review. | 4 | 39 | 22 | 26 | 0 | 4 |

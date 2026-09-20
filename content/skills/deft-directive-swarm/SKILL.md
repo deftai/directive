@@ -155,7 +155,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ### Envelope selection SLA (#3153 / #4529)
 
 ! Default story / through-merge envelope is `drive-to: merge-ready`. Depth: [`references/core-phase-0.md`](references/core-phase-0.md).
-! **Grok through-merge:** implement leaf MUST be `stop-at: pr-open`. Named partner is Approach 1 sibling or parent-retained. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained). `swarm:finalize-cohort` is leftover after merge. ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner. ⊗ Use `merge-release` as this closer. ⊗ Claim `swarm:finalize-cohort` is the product squash-merge. Related: #4421.
+! **Grok through-merge:** implement leaf MUST be `stop-at: pr-open`. Named leftover (class A) requires dest-cwd one-shot residual, stop-at after the push; Approach 1 remains wait owner (`pr:watch` + `verify:review-monitor` / `review-monitor:register`); parent-retained is closer plus post-merge `scope:complete` after that dest worker exists. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained) only after CLEAN. `swarm:finalize-cohort` is leftover after merge. Dest spawn deny is `BLOCKED` or dest-cwd residual (native, else CLI last-resort per #4215) — not parent-primary. ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner. ⊗ Parent-inline residual when dest spawn is available. ⊗ Use `merge-release` as this closer. ⊗ Claim `swarm:finalize-cohort` is the product squash-merge. Related: #4421. #4821.
 
 ### Operator follow-up after dual-stop / hard stop (#3273)
 
@@ -247,5 +247,6 @@ Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../.
 - ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
 - ⊗ Harvest a Grok `drive-to: merge-ready` continuation as the Grok through-merge partner, or use `merge-release` as that closer (#4529)
 - ⊗ Claim `swarm:finalize-cohort` is the product squash-merge (#4529)
+- ⊗ Parent-inline residual or parent-primary patch when dest spawn is available for Grok through-merge (#4821)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).
