@@ -50,10 +50,31 @@ export interface ReleasePreflightSeams {
   readonly dispatchCheck?: (
     frameworkRoot: string,
     projectRoot: string,
-    seams?: CheckOrchestratorSeams,
+    seams?: CheckOrchestratorSeams & {
+      readonly deadlineAtMs?: number;
+      readonly nowMs?: () => number;
+    },
   ) => number;
   /** Seams forwarded to the underlying check orchestrator (e.g. taskBin, spawnFn). */
   readonly checkSeams?: CheckOrchestratorSeams;
+  /** Clock seam so tests can mint a deterministic Step 5 deadline (#4801). */
+  readonly nowMs?: () => number;
+}
+
+/** Step 5 124 copy names the hung gate from completion.gates (#4801). */
+export function formatReleaseCheckTimeoutMessage(
+  timeoutMs: number,
+  completion: CachedCheckCompletion | undefined,
+): string {
+  const hung =
+    completion?.gates.find((g) => g.exit_code === 124) ??
+    completion?.gates.find((g) => g.status === "failed");
+  const gate = hung?.id?.trim() ?? "";
+  const minutes = timeoutMs / 60_000;
+  if (gate.length > 0) {
+    return `task check timed out after ${minutes}m at gate ${gate} (see docs/RELEASING.md)`;
+  }
+  return `task check timed out after ${minutes}m (see docs/RELEASING.md)`;
 }
 
 /**
@@ -72,24 +93,26 @@ export function runReleaseCheck(
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
   let completion: CachedCheckCompletion | undefined;
   const priorComplete = seams.checkSeams?.onCheckComplete;
-  const checkSeams: CheckOrchestratorSeams = {
+  const nowFn = seams.nowMs ?? Date.now;
+  const wallMs = seams.checkSeams?.timeoutMs ?? RELEASE_CHECK_TIMEOUT_MS;
+  const deadlineAtMs = nowFn() + wallMs;
+  const checkSeams = {
     ...seams.checkSeams,
-    timeoutMs: seams.checkSeams?.timeoutMs ?? RELEASE_CHECK_TIMEOUT_MS,
+    timeoutMs: wallMs,
+    deadlineAtMs,
+    ...(seams.nowMs !== undefined ? { nowMs: seams.nowMs } : {}),
     env: releaseCheckEnv({
       base: seams.checkSeams?.env ?? process.env,
       allowCoverageDebtIssue,
     }),
-    onCheckComplete: (snapshot) => {
+    onCheckComplete: (snapshot: CachedCheckCompletion) => {
       completion = snapshot;
       priorComplete?.(snapshot);
     },
   };
   const code = dispatch(projectRoot, projectRoot, checkSeams);
   if (code === 124) {
-    return [
-      false,
-      `task check timed out after ${RELEASE_CHECK_TIMEOUT_MS / 60_000}m (vitest coverage hang — see docs/RELEASING.md)`,
-    ];
+    return [false, formatReleaseCheckTimeoutMessage(wallMs, completion)];
   }
   if (code === 0) {
     if (completion !== undefined) {

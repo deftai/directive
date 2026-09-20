@@ -48,9 +48,11 @@ import {
   pruneSuiteTees,
   readTeeText,
   runSupervisedGate,
+  runTimedChild,
   type SupervisedGatePlan,
   type SupervisedGateResult,
   selectFailureSignalLines,
+  type TimedChildPlan,
 } from "./suite-gate-supervisor.js";
 
 export interface CachedCheckOptions extends CheckOrchestratorSeams {
@@ -77,6 +79,21 @@ export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly cliBin?: string | null;
   /** Suite-gate supervisor seam (tests). Production uses `runSupervisedGate`. */
   readonly superviseSuite?: (plan: SupervisedGatePlan) => SupervisedGateResult;
+  /** Tee-optional hang-kill seam (tests). Production uses `runTimedChild`. */
+  readonly superviseTimed?: (plan: TimedChildPlan) => SupervisedGateResult;
+  /** Absolute Step 5 deadline minted at runReleaseCheck entry (#4801). */
+  readonly deadlineAtMs?: number;
+  /** Clock seam for remaining-time tests (#4801). */
+  readonly nowMs?: () => number;
+}
+
+/** Remaining ms until a minted deadline; undefined when no deadline is armed. */
+export function remainingForDeadline(
+  deadlineAtMs: number | undefined,
+  nowMs: number,
+): number | undefined {
+  if (deadlineAtMs === undefined) return undefined;
+  return Math.max(0, deadlineAtMs - nowMs);
 }
 
 function captureSpawn(
@@ -361,6 +378,7 @@ export function dispatchCachedTaskCheck(
       stdout: string;
       stderr: string;
       spawnError?: string;
+      timedOut?: boolean;
     } = { exitCode: 0, stdout: "", stderr: "" };
 
     const result = runWithCache({
@@ -369,6 +387,17 @@ export function dispatchCachedTaskCheck(
       codeVersion,
       noCache: options.noCache,
       runner: () => {
+        const now = options.nowMs?.() ?? Date.now();
+        const remaining = remainingForDeadline(options.deadlineAtMs, now);
+        if (remaining === 0) {
+          lastSpawn = {
+            exitCode: 124,
+            stdout: "",
+            stderr: `check: gate ${gateId} refused: Step 5 remaining time exhausted`,
+            timedOut: true,
+          };
+          return lastSpawn;
+        }
         if (
           isSuiteCheckGate(gateSpec) &&
           (options.superviseSuite !== undefined || options.gateSpawnFn === undefined)
@@ -383,7 +412,7 @@ export function dispatchCachedTaskCheck(
             cwd,
             projectRoot: resolvedProject,
             env: options.env,
-            timeoutMs: options.timeoutMs,
+            timeoutMs: remaining ?? options.timeoutMs,
             sessionId,
             platform: process.platform,
           });
@@ -392,6 +421,7 @@ export function dispatchCachedTaskCheck(
             stdout: supervised.stdout,
             stderr: supervised.stderr,
             spawnError: supervised.spawnError,
+            timedOut: supervised.timedOut,
           };
           lastSuiteTeeRel = supervised.teeRel.length > 0 ? supervised.teeRel : null;
           lastSuiteTeeText =
@@ -403,6 +433,34 @@ export function dispatchCachedTaskCheck(
             stderr: supervised.stderr,
             spawnError: supervised.spawnError,
           };
+        }
+        if (remaining !== undefined && options.gateSpawnFn === undefined) {
+          const plan =
+            dispatch.mode === "cli"
+              ? cliSpawnPlan(spawnBin, spawnArgs)
+              : { command: spawnBin, args: spawnArgs };
+          const supervised = (options.superviseTimed ?? runTimedChild)({
+            command: plan.command,
+            args: plan.args,
+            cwd,
+            env: options.env,
+            timeoutMs: remaining,
+            platform: process.platform,
+          });
+          lastSpawn = {
+            exitCode: supervised.exitCode,
+            stdout: supervised.stdout,
+            stderr: supervised.stderr,
+            spawnError: supervised.spawnError,
+            timedOut: supervised.timedOut,
+          };
+          if (supervised.stdout.length > 0) {
+            process.stdout.write(supervised.stdout);
+          }
+          if (supervised.stderr.length > 0) {
+            process.stderr.write(supervised.stderr);
+          }
+          return lastSpawn;
         }
         const spawned = options.gateSpawnFn
           ? options.gateSpawnFn(gateId, spawnBin, spawnArgs, {
@@ -477,6 +535,7 @@ export function dispatchCachedTaskCheck(
           stdout: lastSpawn.stdout,
           stderr: lastSpawn.stderr,
           spawnError: lastSpawn.spawnError,
+          hangTimeout: lastSpawn.timedOut === true,
         });
         writeLines(named.lines);
         gateOutcomes.push({
@@ -498,6 +557,7 @@ export function dispatchCachedTaskCheck(
             : lastSpawn.stdout,
         stderr: lastSpawn.stderr,
         spawnError: lastSpawn.spawnError,
+        hangTimeout: lastSpawn.timedOut === true,
       });
       writeLines(named.lines);
       gateOutcomes.push({

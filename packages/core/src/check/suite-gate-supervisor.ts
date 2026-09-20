@@ -1,9 +1,12 @@
 /**
- * Synchronous suite-gate supervisor (#4230).
+ * Synchronous suite-gate supervisor (#4230) and tee-optional timed-child
+ * hang kill (#4801).
  *
- * Hygiene gates keep `captureSpawn`. The suite gate tees through a worker so
- * the orchestrator function stays sync. Timeout is armed only when `timeoutMs`
- * is set (release Step 5). Ambient `task check` tees without a 20-minute kill.
+ * Hygiene gates keep `captureSpawn` unless a Step 5 deadline is armed; then
+ * they use `runTimedChild` (Worker + Atomics.wait, no suite tees). The suite
+ * gate still tees through `runSupervisedGate`. Timeout is armed only when
+ * `timeoutMs` is set (release Step 5). Ambient `task check` tees the suite
+ * without a 20-minute kill.
  */
 import { existsSync } from "node:fs";
 import { sep } from "node:path";
@@ -16,6 +19,7 @@ import {
   type SupervisedGatePlan,
   type SupervisedGateResult,
 } from "./suite-gate-supervisor-lib.js";
+import type { TimedChildPlan } from "./suite-gate-supervisor-worker.js";
 
 export {
   appendBoundedCapture,
@@ -23,7 +27,6 @@ export {
   bindWorkerFailureToWaiter,
   boundedCaptureText,
   createBoundedCapture,
-  FAILURE_SIGNAL_TAIL_LINES,
   type KillTreeSeams,
   killDescendantTree,
   mintSuiteRunId,
@@ -44,6 +47,15 @@ export {
   superviseChild,
   touchTeeMtime,
 } from "./suite-gate-supervisor-lib.js";
+
+export {
+  confirmChildHandleForKill,
+  killTreeAndProveEmpty,
+  listDescendantPids,
+  superviseTimedChild,
+  type TimedChildHandle,
+  type TimedChildPlan,
+} from "./suite-gate-supervisor-worker.js";
 
 function resolveWorkerPath(): string {
   const localWorker = fileURLToPath(new URL("./suite-gate-supervisor-worker.js", import.meta.url));
@@ -68,7 +80,6 @@ export function runSupervisedGate(plan: SupervisedGatePlan): SupervisedGateResul
   };
   const workerPath = resolveWorkerPath();
   if (!existsSync(workerPath)) {
-    // Vitest/src path without a compiled worker — run in-process (tests).
     throw new Error(
       `suite-gate supervisor worker missing at ${workerPath}; use superviseChild in tests`,
     );
@@ -78,7 +89,7 @@ export function runSupervisedGate(plan: SupervisedGatePlan): SupervisedGateResul
   let worker: Worker;
   try {
     worker = new Worker(workerPath, {
-      workerData: { plan: fullPlan, signal, port: channel.port2 },
+      workerData: { plan: fullPlan, signal, port: channel.port2, mode: "suite" },
       transferList: [channel.port2],
     });
   } catch (err) {
@@ -119,6 +130,83 @@ export function runSupervisedGate(plan: SupervisedGatePlan): SupervisedGateResul
         signal: null,
         stdout: "",
         stderr: failure.failure ?? "suite-gate supervisor worker produced no result",
+        teePath: "",
+        teeRel: "",
+        spawnError: failure.failure,
+      };
+    }
+    return received.message as SupervisedGateResult;
+  } finally {
+    channel.port1.close();
+    void worker.terminate();
+  }
+}
+
+/**
+ * Worker + Atomics.wait wrap of `superviseTimedChild` (no suite tees / prune).
+ * Does not throw when the compiled worker is missing; tests call
+ * `superviseTimedChild` in-process.
+ */
+export function runTimedChild(plan: TimedChildPlan): SupervisedGateResult {
+  const workerPath = resolveWorkerPath();
+  if (!existsSync(workerPath)) {
+    return {
+      exitCode: 1,
+      timedOut: false,
+      signal: null,
+      stdout: "",
+      stderr: `timed-child supervisor worker missing at ${workerPath}`,
+      teePath: "",
+      teeRel: "",
+      spawnError: `timed-child supervisor worker missing at ${workerPath}`,
+    };
+  }
+  const signal = new Int32Array(new SharedArrayBuffer(4));
+  const channel = new MessageChannel();
+  let worker: Worker;
+  try {
+    worker = new Worker(workerPath, {
+      workerData: { plan, signal, port: channel.port2, mode: "timed" },
+      transferList: [channel.port2],
+    });
+  } catch (err) {
+    channel.port1.close();
+    return {
+      exitCode: 1,
+      timedOut: false,
+      signal: null,
+      stdout: "",
+      stderr: err instanceof Error ? err.message : String(err),
+      teePath: "",
+      teeRel: "",
+      spawnError: err instanceof Error ? err.message : String(err),
+    };
+  }
+  const failure: { failure?: string } = {};
+  bindWorkerFailureToWaiter(worker, signal, failure);
+  const waitMs = plan.timeoutMs !== undefined ? plan.timeoutMs + 15_000 : 60 * 60 * 1000;
+  try {
+    const waitResult = Atomics.wait(signal, 0, 0, waitMs);
+    if (waitResult === "timed-out") {
+      return {
+        exitCode: 124,
+        timedOut: true,
+        signal: null,
+        stdout: "",
+        stderr: failure.failure ?? "timed-child supervisor worker did not notify before backstop",
+        teePath: "",
+        teeRel: "",
+        spawnError: failure.failure,
+      };
+    }
+    const received = receiveMessageOnPort(channel.port1);
+    if (received === undefined) {
+      return {
+        exitCode: 1,
+        timedOut: false,
+        signal: null,
+        stdout: "",
+        stderr: failure.failure ?? "timed-child supervisor worker produced no result",
         teePath: "",
         teeRel: "",
         spawnError: failure.failure,
