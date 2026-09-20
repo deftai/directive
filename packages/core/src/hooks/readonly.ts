@@ -1,3 +1,4 @@
+import { PROCESS_ONLY_FLAG_KEYS } from "./classify/payload.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
@@ -281,9 +282,6 @@ export function isEphemeralSpawn(
 /** Grok PreToolUse stdin field for process-only critic spawn (#4241). Not explore. */
 const PROCESS_ONLY_CRITIC_SUBAGENT_TYPE = "plan";
 
-/** Recut skip-class flag implement-class never sets (#4296). Not dest-path. Not a gate bypass. */
-const PROCESS_ONLY_CRITIC_FLAG_KEYS = ["process_only", "processOnly"] as const;
-
 function fieldTruthy(input: Record<string, unknown>, key: string): boolean {
   const value = input[key];
   if (value === true) return true;
@@ -296,7 +294,7 @@ function hasProcessOnlyCriticFlag(
   toolInput: Record<string, unknown>,
   input: Record<string, unknown>,
 ): boolean {
-  return PROCESS_ONLY_CRITIC_FLAG_KEYS.some(
+  return PROCESS_ONLY_FLAG_KEYS.some(
     (key) => fieldTruthy(toolInput, key) || fieldTruthy(input, key),
   );
 }
@@ -355,7 +353,7 @@ export function appliesGrokSpawnDestContract(input: GrokSpawnDestContractInput):
  * Process-only critic spawn: dest occupancy skip without the explore tool allowlist
  * (#4241 / #4296). Process-only skip class, not an implementation-gate bypass. True on Grok
  * `spawn_subagent` when a host-visible stdin marker implement-class never sets is
- * present: `subagent_type` `plan`, or `process_only`. Dest-path (`cwd`) is not a
+ * present: `subagent_type` `plan`, or advertised `process_only`. Dest-path (`cwd`) is not a
  * class. Prompt text is never a class. Do not skip #2885 on destProven. Implement
  * envelope signals win. The flag is the class; implement-class never sets it.
  */

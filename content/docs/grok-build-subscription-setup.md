@@ -189,7 +189,7 @@ codex exec --ephemeral --skip-git-repo-check --dangerously-bypass-approvals-and-
 
 On ChatGPT omit `-m gpt-5.6` (HTTP 400). Self-attest the model the CLI ran.
 
-**Grok.** Seat remains `spawn_subagent`. Native critic is `subagent_type: general-purpose` plus host-visible `process_only` on PreToolUse stdin (`tool_input` / `toolInput`) and dest cwd. That stdin shape is `spawn-process-only-ready`: no dest occupancy, no leftover `file_scope`, at zero, one, or many leftover eligible briefs. Advertised JSON omitting the field is a separate upstream xAI schema ask; pass is the field on stdin. `subagent_type: plan` cannot post (read-only, no Shell) — dispatch-fail, not a hung critic. Do not make plan the critic seat. Implement-class never sets `process_only`.
+**Grok.** Seat remains `spawn_subagent`. Native critic is `subagent_type: general-purpose` plus advertised writing skip-class field `process_only` on spawn_subagent JSON (`tool_input` / `toolInput`) and dest cwd. That advertised field is `spawn-process-only-ready`: no dest occupancy, no leftover `file_scope`, at zero, one, or many leftover eligible briefs. Host xAI schema omit is a separate upstream xAI schema ask and does not block Directive advertised passability. `subagent_type: plan` cannot post (read-only, no Shell) — dispatch-fail, not a hung critic. Do not make plan the critic seat. Implement-class never sets `process_only`.
 
 Unmarked dest-cwd general-purpose is never a critic seat. Count selects that class: 2+ leftover eligible briefs on payloadRoot is Deny 1; 0 is #2885; 1 eligible + dest cwd + parent id is spawn-ready implement-class (dest-lock, leftover `file_scope`). Implement-class pin is `DEFT_ACTIVE_SCOPE`, not a critic recovery.
 

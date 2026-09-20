@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Exact-miss session:start hint deny names the actual miss (#4793).** Horizontal whitespace no longer blames quoting/redirect/pipe/chain. True pipe, redirect, newline, and chain stay fail-closed and name that miss. Read-only whitespace misses do not demand --session-id. Four-token `deft session:start -- --read-only` stays exact. Tracking #4793.
 - **Leftover pending cannot max-win ceremony size over a stamped active brief (#4795).** When an `xbrief/active/` brief yields a derived clause count, leftover pending is skipped (stamp-gated). Pending still fills as the #3358 proxy when no active file yields a count. Tracking #4795.
 - **Check-integrated verify:ac refuses check-graph re-entry (#4798).** `task check` / `verify:ac` as executable AC inside `task check` fail closed before spawn. leftover-complete moves remaining tracked active twins instead of add-completed-only. Hang bound remainder is #4801. Tracking #4798.
+- **Advertised Grok `spawn_subagent` JSON lists writing skip-class `process_only` (#4794).** Native spawn with that field plus dest cwd is `spawn-process-only-ready` at zero eligible briefs without inventing a story. Dest-path without the marker is not skip class. Implement-class never sets the flag. Re-running the #4315 stdin lander does not close this leftover. Tracking #4794.
 
 ### Removed
 

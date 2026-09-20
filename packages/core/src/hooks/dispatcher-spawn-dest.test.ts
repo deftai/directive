@@ -11,6 +11,10 @@ import {
   rerootMissingDestImperative,
 } from "../session/spawn-occupancy.js";
 import {
+  GROK_SPAWN_SUBAGENT_ADVERTISED_JSON,
+  GROK_SPAWN_WRITING_SKIP_CLASS_FIELD,
+} from "./classify/payload.js";
+import {
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
   CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
   decideHook,
@@ -259,6 +263,54 @@ describe("dest-proven implement spawn (#4215)", () => {
       expect(inspectRitual).not.toHaveBeenCalled();
       expect(inspectScope).not.toHaveBeenCalled();
     }
+  });
+
+  it("advertised spawn_subagent JSON lists writing skip-class; native field plus dest cwd is spawn-process-only-ready at 0 eligible (#4794)", () => {
+    const properties = GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.parameters.properties;
+    expect(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD in properties).toBe(true);
+    expect(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD).toBe("process_only");
+    expect("cwd" in properties).toBe(true);
+    expect(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD).not.toBe("cwd");
+    const { root, dest } = destFixture();
+    resetDestState(root, dest);
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const inspectScope = vi.fn((projectRoot: string) => inspectActiveScope(projectRoot));
+    const prepareArcDest = vi.fn(() => ({
+      dest: {
+        destPath: dest,
+        dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        originRef: "origin/main",
+        pinKind: "origin-default" as const,
+        reused: true,
+      },
+      record:
+        "arc-mode: no-ingest\ndest: " +
+        dest +
+        "\ndispatch-sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.name,
+          tool_input: {
+            subagent_type: "general-purpose",
+            [GROK_SPAWN_WRITING_SKIP_CLASS_FIELD]: true,
+            cwd: dest,
+            prompt: "git show the dispatch sha and post a GitHub comment",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams({ inspectRitual, inspectScope, prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.message).toMatch(/without dest occupancy/);
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
   });
 
   it("skips parent ritual when Grok cwd is dest-proven and parent identity is set", () => {

@@ -83,8 +83,42 @@ export function mergeHookDispatchEnviron(
   return { ...fallback, ...bag };
 }
 
-/** Host-visible process-only skip-class keys. Implement-class never sets these (#4315). */
-const PROCESS_ONLY_FLAG_KEYS = ["process_only", "processOnly"] as const;
+/** Host-visible process-only skip-class keys. Implement-class never sets these (#4315 / #4794). */
+export const PROCESS_ONLY_FLAG_KEYS = ["process_only", "processOnly"] as const;
+
+/** Canonical advertised writing skip-class field on native spawn_subagent JSON (#4794). */
+export const GROK_SPAWN_WRITING_SKIP_CLASS_FIELD = "process_only" as const;
+
+/**
+ * Advertised Grok spawn_subagent JSON (#4794).
+ * Writing skip-class is process_only. Dest-path (cwd) is not skip class.
+ * Implement-class never sets the skip-class field.
+ */
+export const GROK_SPAWN_SUBAGENT_ADVERTISED_JSON = {
+  name: "spawn_subagent",
+  parameters: {
+    type: "object",
+    properties: {
+      prompt: { type: "string" },
+      description: { type: "string" },
+      subagent_type: {
+        type: "string",
+        enum: ["general-purpose", "explore", "plan"],
+      },
+      background: { type: "boolean" },
+      isolation: { type: "string" },
+      resume_from: { type: "string" },
+      cwd: { type: "string" },
+      model: { type: "string" },
+      process_only: {
+        type: "boolean",
+        description:
+          "Writing skip-class. Implement-class never sets this. Dest-path is not this class.",
+      },
+    },
+  },
+} as const;
+
 const PROCESS_ONLY_TRUTHY = new Set(["1", "true", "yes", "on"]);
 
 function fieldTruthy(input: Record<string, unknown>, key: string): boolean {
@@ -101,9 +135,9 @@ function hasProcessOnlyFlag(input: Record<string, unknown>): boolean {
 
 /**
  * Land host-visible `process_only` onto canonical `tool_input` (#4315).
- * Grok PreToolUse stdin uses `toolInput` (camelCase). Pass is the field on
- * stdin, not advertised schema. Dest-path and prompt are not this class.
- * Implement-class never sets the flag.
+ * Grok PreToolUse stdin uses `toolInput` (camelCase). Advertised JSON lists
+ * process_only as the writing skip-class field operators can pass (#4794).
+ * Dest-path and prompt are not this class. Implement-class never sets the flag.
  */
 export function landProcessOnlyFlagOnToolInput(payload: unknown): unknown {
   const input = record(payload);
