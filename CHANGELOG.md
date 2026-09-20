@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Exact-miss session:start hint deny names the actual miss (#4793).** Horizontal whitespace no longer blames quoting/redirect/pipe/chain. True pipe, redirect, newline, and chain stay fail-closed and name that miss. Read-only whitespace misses do not demand --session-id. Four-token `deft session:start -- --read-only` stays exact. Tracking #4793.
+- **Leftover pending cannot max-win ceremony size over a stamped active brief (#4795).** When an `xbrief/active/` brief yields a derived clause count, leftover pending is skipped (stamp-gated). Pending still fills as the #3358 proxy when no active file yields a count. Tracking #4795.
 
 ### Removed
 

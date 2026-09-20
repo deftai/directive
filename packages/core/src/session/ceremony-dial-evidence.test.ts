@@ -122,7 +122,7 @@ describe("collectCeremonyDialConsumerEvidence (#3358)", () => {
     expect(evidence.taskSize).toBe("S");
   });
 
-  it("takes the max stamped count across briefs", () => {
+  it("does not let pending-4 beat active-1 (stamp-gated skip) (#4795)", () => {
     const root = tempRoot();
     writeBrief(root, "active", "small.xbrief.json", {
       clauses: [{ id: 1, text: "one" }],
@@ -136,8 +136,58 @@ describe("collectCeremonyDialConsumerEvidence (#3358)", () => {
       ],
     });
     const evidence = collectCeremonyDialConsumerEvidence(root, { env: {} });
+    expect(evidence.clauseCount).toBe(1);
+    expect(evidence.taskSize).toBe("S");
+    expect(evidence.reasons.some((r) => r.includes("xbrief/active/small.xbrief.json"))).toBe(true);
+    expect(evidence.reasons.some((r) => r.includes("xbrief/pending/"))).toBe(false);
+  });
+
+  it("uses pending-4 beside unstamped-active (stamp-gated, not file-gated) (#4795)", () => {
+    const root = tempRoot();
+    writeBrief(root, "active", "stub.xbrief.json", { clauses: [] });
+    writeBrief(root, "pending", "hard.xbrief.json", {
+      clauses: [
+        { id: 1, text: "a" },
+        { id: 2, text: "b" },
+        { id: 3, text: "c" },
+        { id: 4, text: "d" },
+      ],
+    });
+    const evidence = collectCeremonyDialConsumerEvidence(root, { env: {} });
     expect(evidence.clauseCount).toBe(4);
     expect(evidence.taskSize).toBe("L");
+    expect(evidence.reasons.some((r) => r.includes("xbrief/pending/hard.xbrief.json"))).toBe(true);
+  });
+
+  it("keeps intra-active max-win among stamped actives (#4795)", () => {
+    const root = tempRoot();
+    writeBrief(root, "active", "small.xbrief.json", {
+      clauses: [{ id: 1, text: "one" }],
+    });
+    writeBrief(root, "active", "large.xbrief.json", {
+      clauses: [
+        { id: 1, text: "a" },
+        { id: 2, text: "b" },
+        { id: 3, text: "c" },
+        { id: 4, text: "d" },
+      ],
+    });
+    writeBrief(root, "pending", "leftover.xbrief.json", {
+      clauses: [
+        { id: 1, text: "a" },
+        { id: 2, text: "b" },
+        { id: 3, text: "c" },
+        { id: 4, text: "d" },
+        { id: 5, text: "e" },
+        { id: 6, text: "f" },
+        { id: 7, text: "g" },
+      ],
+    });
+    const evidence = collectCeremonyDialConsumerEvidence(root, { env: {} });
+    expect(evidence.clauseCount).toBe(4);
+    expect(evidence.taskSize).toBe("L");
+    expect(evidence.reasons.some((r) => r.includes("xbrief/active/large.xbrief.json"))).toBe(true);
+    expect(evidence.reasons.some((r) => r.includes("xbrief/pending/"))).toBe(false);
   });
 
   it("ignores malformed briefs instead of inventing a size", () => {

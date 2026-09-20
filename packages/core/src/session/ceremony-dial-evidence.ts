@@ -6,7 +6,9 @@
  * declined with "insufficient evidence (size=- modelTier=-)".
  *
  * This module fills at least one input the consumer environment can supply:
- *   1. stamped #3323 clause count on active/pending briefs (size proxy)
+ *   1. stamped #3323 clause count (size proxy). Active stamped counts win;
+ *      pending is the #3358 proxy only when no active file yields a count
+ *      (#4795 stamp-gated skip — not file-gated skip of pending).
  *   2. host-supplied model-tier env (`DEFT_HOST_MODEL_TIER` and aliases)
  *   3. failing-gate count env (mid-session size proxy)
  *
@@ -30,7 +32,8 @@ export const ENV_HOST_MODEL_TIER = "DEFT_HOST_MODEL_TIER";
 /** Mid-session failing-gate count the consumer/harness can supply. */
 export const ENV_FAILING_GATE_COUNT = "DEFT_FAILING_GATE_COUNT";
 
-const LIFECYCLE_DIRS = ["active", "pending"] as const;
+const ACTIVE_DIR = "active" as const;
+const PENDING_DIR = "pending" as const;
 
 export interface CeremonyDialConsumerEvidence {
   readonly taskSize: CeremonyTaskSize | null;
@@ -107,39 +110,53 @@ function parseNonNegativeInt(raw: unknown): number | null {
   return Math.trunc(n);
 }
 
-/** Max stamped clause count across `xbrief/{active,pending}` (#3323). */
+function readMaxStampedClauseCountInDir(
+  projectRoot: string,
+  dir: typeof ACTIVE_DIR | typeof PENDING_DIR,
+): { count: number; source: string } | null {
+  const folder = join(projectRoot, "xbrief", dir);
+  if (!existsSync(folder)) return null;
+  let names: string[] = [];
+  try {
+    names = readdirSync(folder);
+  } catch {
+    return null;
+  }
+  let best: { count: number; source: string } | null = null;
+  for (const name of names) {
+    if (!name.endsWith(".xbrief.json") || name === "PROJECT-DEFINITION.xbrief.json") {
+      continue;
+    }
+    const path = join(folder, name);
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+      const count = clauseCountFromBrief(parsed);
+      if (count === null) continue;
+      if (best === null || count > best.count) {
+        best = { count, source: `xbrief/${dir}/${name}` };
+      }
+    } catch {
+      // fail-open — a malformed brief is not an evidence source
+    }
+  }
+  return best;
+}
+
+/**
+ * Max stamped clause count for ceremony size (#3323 / #4795).
+ *
+ * Stamp-gated: when at least one `xbrief/active/*.xbrief.json` yields a
+ * non-null `clauseCountFromBrief`, pending must not max-win. Intra-active
+ * max-win stays. Pending remains the #3358 proxy when no active file yields
+ * a derived count. Occupancy and `DEFT_ACTIVE_SCOPE` are not inputs.
+ */
 export function readStampedClauseCount(projectRoot: string): {
   readonly count: number;
   readonly source: string;
 } | null {
-  let best: { count: number; source: string } | null = null;
-  for (const dir of LIFECYCLE_DIRS) {
-    const folder = join(projectRoot, "xbrief", dir);
-    if (!existsSync(folder)) continue;
-    let names: string[] = [];
-    try {
-      names = readdirSync(folder);
-    } catch {
-      continue;
-    }
-    for (const name of names) {
-      if (!name.endsWith(".xbrief.json") || name === "PROJECT-DEFINITION.xbrief.json") {
-        continue;
-      }
-      const path = join(folder, name);
-      try {
-        const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-        const count = clauseCountFromBrief(parsed);
-        if (count === null) continue;
-        if (best === null || count > best.count) {
-          best = { count, source: `xbrief/${dir}/${name}` };
-        }
-      } catch {
-        // fail-open — a malformed brief is not an evidence source
-      }
-    }
-  }
-  return best;
+  const active = readMaxStampedClauseCountInDir(projectRoot, ACTIVE_DIR);
+  if (active !== null) return active;
+  return readMaxStampedClauseCountInDir(projectRoot, PENDING_DIR);
 }
 
 export function collectCeremonyDialConsumerEvidence(
