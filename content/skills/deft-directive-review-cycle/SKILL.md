@@ -244,6 +244,7 @@ Review fix cycles are multi-iteration work and MUST carry dual stop (`main.md` `
 |------------|--------------|----------------------|
 | Greptile / bot fix batch (Step 3 → re-review) | No P0/P1 on current HEAD; confidence meets `minGreptileConfidence` | **max 3** fix-batch iterations across the whole review ownership (do **not** reset the counter on push when the same primary fingerprint remains) **or** the **Same-fingerprint stop** (below) |
 | Confidence-only hold (0 P0/P1, score below floor) | Confidence meets floor, or operator chooses document/accept path | **max 1** optional polish pass, then stop (do not redesign unbounded — see confidence-only holds above) |
+| SHA-matched confidence + class A leftover (#4822) | Dest residual lands; then `pr:watch` / `pr:merge-ready` CLEAN | Dest residual or BLOCKED — ⊗ cap-wait / start wait-merge |
 
 **On failure stop:**
 
@@ -402,6 +403,31 @@ Remediation:
 
 ~ Surface the holdout to the user/parent on the first stable `ci_failures` probe (fail-loud), not after burning `max-wait-minutes`. See also [`templates/swarm-greptile-poller-prompt.md`](../../templates/swarm-greptile-poller-prompt.md) CLEAN gate evaluation (#1039).
 
+### Wait-merge is squash-after-CLEAN (`pr:watch` then `pr:wait-mergeable-and-merge` / #4822)
+
+Review-cycle babysit wait is `pr:watch` (blocking to CLEAN, or `--one-shot` ground-truth). `pr:wait-mergeable-and-merge` squash-merges **only after** `pr:watch` / `pr:merge-ready` is CLEAN. The closer's inner wait is pr-monitor, not a `pr:watch` loop. Keep cascade as squash-after-CLEAN.
+
+! **Caller order (MUST):** do **not** start `pr:wait-mergeable-and-merge` until `pr:watch` / `pr:merge-ready` is CLEAN.
+
+! **First-probe sequence (MUST):** one-shot or first probe: parse `clean_gate_holdout`; classify leftover A/B/C; dest residual or BLOCKED; wait-merge only after CLEAN. Borrowed from #2688: parse holdout on the first probe; MUST NOT idle-poll or start wait-merge. Do **not** copy the Greptile-CLEAN conjunct (`confidence meets resolved min`) onto `clean_gate_holdout=confidence` — that conjunct is false on confidence holdout.
+
+**Holdout split:**
+
+| Holdout | Action |
+|---------|--------|
+| `sha_match` | Blocking `pr:watch` until SHA match or cap. A leftover on a stale Last-reviewed SHA is not the current leftover. |
+| SHA-matched `confidence` + **class A** leftover (already-touched files, owned review-cycle) | Dest residual, **one-batch**. MUST NOT idle-poll or start wait-merge. Class B parks. After Dual-stop halt, wait for a #3273 phrase before another residual. |
+| SHA-matched `confidence` + 0 P0/P1 + no named leftover | Class C halt. Not cap-wait and not dest residual. |
+| Greptile CLEAN + SLizard/CI red | #4820. Do not merge that hang into this recut. |
+
+! Dual-stop: SHA-matched confidence holdout + class A leftover → dest residual or BLOCKED, not cap-wait. During an already-owned review-cycle the first SHA-matched class A leftover is the existing one-batch residual, not Dual-stop re-entry.
+
+⊗ Start `pr:wait-mergeable-and-merge` while `clean_gate_holdout` is `confidence` and a class A leftover is already observed.
+⊗ Treat `sha_match` as dest residual (stale review).
+⊗ Invent a third poller. Engine wait stays `pr:watch` then wait-merge after CLEAN.
+⊗ Harvest `cascade.ts`, pr-monitor, or `minGreptileConfidence`.
+⊗ Recut #4821 dest-worker ownership into this wait-verb order.
+⊗ Cite #3984 as babysit binding (in-tree #3984 is the PreToolUse matcher leftover of #3983).
 
 ### Runner capacity stall (`runner_capacity_stall` / #2672)
 
@@ -579,7 +605,7 @@ Workflow failover arming (Blacksmith cancelled → GH-hosted lane) is sibling is
    - **Approach 1** review-monitor (`worker_role: review-monitor`) with sticky `<!-- deft:review-owner -->` lease (#3090 / #3044 / dual-invoke `review-monitor:register` when available), **or**
    - A continuation leaf scoped **`drive-to: merge-ready`** on that PR/worktree that owns babysit → merge-ready in its tool loop (**not** for Grok through-merge — option 2 is dominated, #4529), **or**
    - Documented **parent-retained** ownership (`review_cycle: in_progress:<pr>#parent-retained`) as closer plus post-merge `scope:complete` after a dest worker exists — never silent hold. When dest spawn is available, parent-retained is **not** the residual fixer (next action is dest-cwd class A residual or engine wait). When dest spawn is unavailable, the next action remains explicit poll/fix.
-   ! **Grok through-merge named partner (#4529 / #4821):** dest-cwd class A one-shot residual first (named leftover on already-touched files), stop-at after the push; Approach 1 remains wait owner (`pr:watch` + `verify:review-monitor` / `review-monitor:register`); parent-retained (or Phase 6) squash-merges via `pr:wait-mergeable-and-merge` only after CLEAN, then post-merge `scope:complete`. Do not delete parent-retained as merge-path owner. Dest spawn deny is `BLOCKED` or dest-cwd residual via native implementation-capable spawn (#4215) — not parent-primary. ⊗ Send class-A residual through process-only CLI `grok --cwd` (cannot edit/push). ⊗ Harvest option 2 (Grok `drive-to: merge-ready` continuation) as this closer. ⊗ Start `pr:wait-mergeable-and-merge` as the babysit while `clean_gate_holdout=confidence` and a named leftover exists. ⊗ Parent-inline residual when dest spawn is available. ⊗ Use `merge-release` as this closer. Related: #4421. Do not recut occupancy live or Codex stdin (#4771 / #4818). Wait-verb swallow stays on #4822.
+   ! **Grok through-merge named partner (#4529 / #4821):** dest-cwd class A one-shot residual first (named leftover on already-touched files), stop-at after the push; Approach 1 remains wait owner (`pr:watch` + `verify:review-monitor` / `review-monitor:register`); parent-retained (or Phase 6) squash-merges via `pr:wait-mergeable-and-merge` only after CLEAN, then post-merge `scope:complete`. Do not delete parent-retained as merge-path owner. Dest spawn deny is `BLOCKED` or dest-cwd residual via native implementation-capable spawn (#4215) — not parent-primary. ⊗ Send class-A residual through process-only CLI `grok --cwd` (cannot edit/push). ⊗ Harvest option 2 (Grok `drive-to: merge-ready` continuation) as this closer. ⊗ Start `pr:wait-mergeable-and-merge` before `pr:watch` / `pr:merge-ready` is CLEAN (#4822). Depth: § Wait-merge is squash-after-CLEAN. ⊗ Parent-inline residual when dest spawn is available. ⊗ Use `merge-release` as this closer. Related: #4421. Do not recut occupancy live or Codex stdin (#4771 / #4818).
 2. ! Route through **this skill** — ⊗ Cursor global babysit (`#2261`), freestyle main-session poll, or dual parallel monitors (`#3044`).
 3. ! Apply Owner Continuity Gate (#3090) and Single review-monitor lease (#3044) without exception: one sticky lease; force-takeover only when the prior owner is dead.
 4. ! **Post-merge `scope:complete` (#2321 / Gap C):** When the implement leaf stopped at pr-open, it MUST NOT have run `task scope:complete`. After the PR **merges**, the merge-path owner (or swarm Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort` / monitor) MUST run `task scope:complete` or `task scope:cancel`. `task verify:orphan-active` fails closed on stranded active briefs.
@@ -960,7 +986,7 @@ task lifecycle:event -- emit plan:approved \
 - ⊗ Dual-lease or freestyle Cursor global babysit for the partner merge-path after implement stops at PR-open (#3153 / #2261 / #3044)
 - ⊗ Harvest a Grok `drive-to: merge-ready` continuation as the named partner for Grok through-merge, or use `merge-release` as that closer (#4529 / #3153)
 - ⊗ Parent-inline residual or parent-primary patch when dest spawn is available for Grok through-merge named leftover (#4821)
-- ⊗ Start `pr:wait-mergeable-and-merge` as the babysit while `clean_gate_holdout=confidence` and a named leftover exists (#4821)
+- ⊗ Start `pr:wait-mergeable-and-merge` before `pr:watch` / `pr:merge-ready` is CLEAN, or while SHA-matched `confidence` plus class A leftover is already observed (#4822)
 - ⊗ End owning turn with 0 children, no sticky lease, and no finish after drive-to-merge / babysit / shepherd claim — silent hold (#3090)
 - ⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without `done` or verifiable `in_progress:<pr>#…` lease/parent-retained (#3090)
 - ⊗ Treat check-run SUCCESS alone as CLEAN / merge-ready while dual-source P0/P1 remain (#3090)

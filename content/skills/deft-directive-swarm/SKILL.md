@@ -158,6 +158,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! Default story / through-merge envelope is `drive-to: merge-ready`. Depth: [`references/core-phase-0.md`](references/core-phase-0.md).
 ! **Grok through-merge:** implement leaf MUST be `stop-at: pr-open`. Named leftover (class A) requires dest-cwd one-shot residual, stop-at after the push; Approach 1 remains wait owner (`pr:watch` + `verify:review-monitor` / `review-monitor:register`); parent-retained is closer plus post-merge `scope:complete` after that dest worker exists. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained) only after CLEAN. `swarm:finalize-cohort` is leftover after merge. Dest spawn deny is `BLOCKED` or dest-cwd residual via native implementation-capable spawn (#4215) — not parent-primary. ⊗ Send class-A residual through process-only CLI `grok --cwd` (cannot edit/push). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner. ⊗ Parent-inline residual when dest spawn is available. ⊗ Use `merge-release` as this closer. ⊗ Claim `swarm:finalize-cohort` is the product squash-merge. Related: #4421. #4821.
+! **Wait-merge is squash-after-CLEAN (#4822):** Phase 5 babysit wait is `pr:watch`. Phase 6 `pr:wait-mergeable-and-merge` runs only after CLEAN. First-probe parse of `clean_gate_holdout`; SHA-matched confidence plus class A leftover is dest residual or BLOCKED, not cap-wait. `sha_match` stays blocking `pr:watch`. ⊗ Invent a third poller. ⊗ Harvest cascade.ts. ⊗ Recut #4821 dest-worker ownership. #4820 stays CLEAN-plus-SLizard/CI.
 
 ### Operator follow-up after dual-stop / hard stop (#3273)
 
@@ -250,5 +251,6 @@ Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../.
 - ⊗ Harvest a Grok `drive-to: merge-ready` continuation as the Grok through-merge partner, or use `merge-release` as that closer (#4529)
 - ⊗ Claim `swarm:finalize-cohort` is the product squash-merge (#4529)
 - ⊗ Parent-inline residual or parent-primary patch when dest spawn is available for Grok through-merge (#4821)
+- ⊗ Start `pr:wait-mergeable-and-merge` before `pr:watch` / `pr:merge-ready` is CLEAN, or while SHA-matched confidence plus class A leftover is already observed (#4822)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).

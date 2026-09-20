@@ -506,6 +506,7 @@ These rules bind **orchestrators** dispatching implementation, fix, or review-cy
 - ⊗ Re-dispatch a separate review-monitor or fix agent after an implementation worker exits at PR-open when the original envelope scoped `drive-to: merge-ready` — that split recreates cross-agent state-handoff hazards and terminal lifecycle gaps (#1878 / Gap C).
 - ⊗ Dispatch `stop-at: pr-open` without a named review-cycle partner merge-path owner plan (#3153).
 - ⊗ Parent-inline residual when dest spawn is available for Grok through-merge (#4821). Dest spawn deny is `BLOCKED` or dest-cwd residual via native implementation-capable spawn (#4215), not parent-primary. ⊗ Send class-A residual through process-only CLI `grok --cwd` (cannot edit/push).
+- ⊗ Start `pr:wait-mergeable-and-merge` before `pr:watch` / `pr:merge-ready` is CLEAN (#4822). Review-cycle babysit wait is `pr:watch`. First-probe parse `clean_gate_holdout`; SHA-matched confidence plus class A leftover is dest residual or BLOCKED, not cap-wait. `sha_match` is blocking `pr:watch` until SHA match or cap. ⊗ Invent a third poller. ⊗ Harvest cascade.ts. Greptile CLEAN + SLizard/CI red stays on #4820. Do not recut #4821 dest-worker ownership.
 - ⊗ Leave an `xbrief/active/` brief with `plan.status == running` on master after the story's issue is closed or its PR merged, or emit `DONE` with `ISSUE: closed` while that brief remains in `active/` — `deft verify:orphan-active -- --issue N` must be exit `0` after merge (#2321 / #3429).
 
 **Background / independent dispatch (Gap D):**
