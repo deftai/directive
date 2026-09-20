@@ -190,6 +190,87 @@ function ledgerEntriesFromCommands(
   }));
 }
 
+const CHECK_GRAPH_WRAPPERS = new Set(["task", "deft", "directive"]);
+
+/**
+ * Command that would re-enter the containing check graph (#4798).
+ * Contextual: only refused when verify:ac is check-integrated.
+ * Does not globally denylist `task check` for standalone done-gate use.
+ */
+export function checkGraphReentryCommand(command: string): string | null {
+  const trimmed = command.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  let end = 0;
+  while (end < trimmed.length && trimmed[end] !== " " && trimmed[end] !== "\t") {
+    end += 1;
+  }
+  const first = trimmed.slice(0, end).toLowerCase();
+  const rest = trimmed.slice(end).trim();
+  let subEnd = 0;
+  while (subEnd < rest.length && rest[subEnd] !== " " && rest[subEnd] !== "\t") {
+    subEnd += 1;
+  }
+  const sub = rest.slice(0, subEnd).toLowerCase();
+  if (CHECK_GRAPH_WRAPPERS.has(first) && (sub === "check" || sub === "verify:ac")) {
+    return first + " " + sub;
+  }
+  if (first === "verify:ac") {
+    return "verify:ac";
+  }
+  return null;
+}
+
+function checkIntegratedCycleRefuse(
+  commands: readonly LiteralAcceptanceCommand[],
+  projectRoot: string,
+): LiteralAcceptanceGateResult | null {
+  const hits: { command: LiteralAcceptanceCommand; reentry: string }[] = [];
+  for (const command of commands) {
+    const reentry = checkGraphReentryCommand(command.command);
+    if (reentry !== null) {
+      hits.push({ command, reentry });
+    }
+  }
+  if (hits.length === 0) {
+    return null;
+  }
+  const rejected: RejectedLiteralCommand[] = hits.map((hit) => ({
+    command: hit.command.command,
+    reason:
+      "check-integrated cycle refuse (#4798): " +
+      JSON.stringify(hit.command.command) +
+      " re-enters the containing check graph (" +
+      hit.reentry +
+      "). Do not spawn.",
+    sourceSpan: hit.command.sourceSpan ?? null,
+  }));
+  const runs = hits.map((hit) => {
+    const reason =
+      rejected.find((row) => row.command === hit.command.command)?.reason ??
+      "check-integrated cycle refuse";
+    return {
+      command: hit.command.command,
+      cwd: projectRoot,
+      exitCode: 2,
+      stdout: "",
+      stderr: reason,
+      ok: false,
+      detail: "refused: " + reason,
+    };
+  });
+  const lead = rejected[0]?.reason ?? "check-integrated cycle refuse (#4798)";
+  return {
+    ok: false,
+    code: 1,
+    message: "verify:ac FAILED (#3284): " + lead,
+    commands: [...commands],
+    runs,
+    rejected,
+  };
+}
+
 function resolveExecutableAcceptanceContract(
   plan: Record<string, unknown>,
   acceptance: PlanAcceptance,
@@ -479,6 +560,20 @@ export function evaluateVerifyAcFromPlan(
     acceptance,
     captureFromNarrativesFlag(optionsWithScope),
   );
+  // Check-integrated verify:ac must not spawn an acceptance command that re-enters
+  // task check / verify:ac (#4798). Standalone done-gate still may run task check.
+  // --allow-vbrief-drift is release mismatch-policy only; it does not authorize
+  // executing drifted leftover AC while this gate sits first.
+  if (optionsWithScope.checkIntegrated === true) {
+    const cycle = checkIntegratedCycleRefuse(contract.commands, projectRoot);
+    if (cycle !== null) {
+      return applyOracle(
+        annotate(cycle, acceptance, optionsWithScope.quiet),
+        optionsWithScope,
+        plan,
+      );
+    }
+  }
   const reused = tryReuseVerifyAc(plan, acceptance, optionsWithScope, projectRoot, contract);
   if (reused !== null) {
     return applyOracle(reused, optionsWithScope, plan);

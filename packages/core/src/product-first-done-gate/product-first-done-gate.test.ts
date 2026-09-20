@@ -5,7 +5,7 @@
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   attachPlanAcceptance,
@@ -21,11 +21,13 @@ import {
   resolveProductFirstCheckMode,
 } from "./check-mode.js";
 import {
+  checkGraphReentryCommand,
   evaluateVerifyAcFromPath,
   evaluateVerifyAcFromPlan,
   isVerifyAcRequiredAtCeremonyDepth,
   resolveOracleScopeKey,
 } from "./evaluate.js";
+import { findTrackedActiveTwins, sweepCohort } from "../swarm/complete-cohort.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
@@ -698,5 +700,145 @@ describe("resolveOracleScopeKey (#3337)", () => {
     expect(a).toContain("xbrief/active/foo.xbrief.json");
     expect(b).toContain("vbrief/active/foo.xbrief.json");
     expect(resolveOracleScopeKey({}, xPath, root)).toBe("xbrief/active/foo.xbrief.json");
+  });
+});
+
+function fixture4744Plan(): Record<string, unknown> {
+  return {
+    title: "bug(check): Windows release Step 5 still exits 124 after #4591 cheapening",
+    id: "github.issue.4744",
+    acceptance: {
+      commands: [],
+      none_stated: true,
+      source_rung: "derived",
+      ambiguity_attestation: "none_found",
+    },
+    metadata: {
+      swarm: {
+        verify_commands: ["task check"],
+      },
+    },
+  };
+}
+
+describe("check-integrated cycle refuse (#4798)", () => {
+  it("classifies task check and verify:ac as check-graph re-entry", () => {
+    expect(checkGraphReentryCommand("task check")).toBe("task check");
+    expect(checkGraphReentryCommand("task check --json")).toBe("task check");
+    expect(checkGraphReentryCommand("deft verify:ac")).toBe("deft verify:ac");
+    expect(checkGraphReentryCommand("verify:ac")).toBe("verify:ac");
+    expect(checkGraphReentryCommand("pnpm test")).toBeNull();
+    expect(checkGraphReentryCommand("task doctor")).toBeNull();
+  });
+
+  it("refuses the #4744 active shape inside check-integrated verify:ac without spawning", () => {
+    let spawned = 0;
+    const result = evaluateVerifyAcFromPlan(fixture4744Plan(), {
+      checkIntegrated: true,
+      captureFromNarratives: false,
+      bankOnPass: false,
+      reuseMode: "never",
+      hasSuiteFloor: true,
+      runner: () => {
+        spawned += 1;
+        return { exitCode: 0, stdout: "would hang", stderr: "" };
+      },
+    });
+    expect(spawned).toBe(0);
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/cycle refuse/i);
+    expect(result.message).toMatch(/task check/);
+  });
+
+  it("does not globally denylist task check outside check-integrated context", () => {
+    let spawned = 0;
+    const result = evaluateVerifyAcFromPlan(fixture4744Plan(), {
+      checkIntegrated: false,
+      captureFromNarratives: false,
+      bankOnPass: false,
+      reuseMode: "never",
+      hasSuiteFloor: true,
+      runner: () => {
+        spawned += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(spawned).toBe(1);
+    expect(result.ok).toBe(true);
+  });
+
+  it("still runs non-cycle commands when check-integrated", () => {
+    let spawned = 0;
+    const result = evaluateVerifyAcFromPlan(
+      {
+        title: "ok",
+        acceptance: {
+          commands: [{ command: "pnpm test" }],
+          none_stated: false,
+          source_rung: "stated",
+          ambiguity_attestation: "none_found",
+        },
+        metadata: {
+          literal_acceptance_commands: [{ command: "pnpm test", source: "explicit" }],
+        },
+      },
+      {
+        checkIntegrated: true,
+        captureFromNarratives: false,
+        bankOnPass: false,
+        reuseMode: "never",
+        hasSuiteFloor: true,
+        runner: () => {
+          spawned += 1;
+          return { exitCode: 0, stdout: "ok", stderr: "" };
+        },
+      },
+    );
+    expect(spawned).toBe(1);
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("leftover-complete must move tracked active (#4798)", () => {
+  it("finds a same-basename active twin of a completed leftover", () => {
+    const project = mkdtempSync(join(tmpdir(), "leftover-twin-"));
+    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    const active = join(project, "xbrief", "active", name);
+    const completed = join(project, "xbrief", "completed", name);
+    writeFileSync(active, JSON.stringify({ plan: { id: "github.issue.4744", status: "running" } }));
+    writeFileSync(
+      completed,
+      JSON.stringify({ plan: { id: "github.issue.4744", status: "completed" } }),
+    );
+    expect(findTrackedActiveTwins([completed], join(project, "xbrief"))).toEqual([resolve(active)]);
+    expect(findTrackedActiveTwins([active], join(project, "xbrief"))).toEqual([resolve(active)]);
+  });
+
+  it("sweeps a completed leftover path by completing the remaining tracked active", () => {
+    const project = mkdtempSync(join(tmpdir(), "leftover-move-"));
+    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    const active = join(project, "xbrief", "active", name);
+    const completed = join(project, "xbrief", "completed", name);
+    writeFileSync(
+      active,
+      JSON.stringify({
+        plan: { id: "github.issue.4744", title: "t", status: "running", items: [] },
+      }),
+    );
+    writeFileSync(
+      completed,
+      JSON.stringify({
+        plan: { id: "github.issue.4744", title: "t", status: "completed", items: [] },
+      }),
+    );
+    const sweep = sweepCohort([completed], project, true);
+    expect(sweep.stories.some((row) => row.path.replace(/\\/g, "/").includes("active/") && row.action === "complete")).toBe(
+      true,
+    );
   });
 });

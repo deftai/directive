@@ -64,6 +64,37 @@ function storyIdFromPath(path: string): string {
   return hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name.replace(/\.[^.]+$/, "");
 }
 
+/**
+ * Tracked active twins of cohort stories that already have a completed/
+ * counterpart with the same basename (#4798 leftover-complete must-move).
+ * Add-completed-only is not leftover-complete; clearing verify_commands is
+ * cleanup, not a substitute for moving or removing the active landmine.
+ */
+export function findTrackedActiveTwins(
+  storyPaths: readonly string[],
+  vbriefDir: string,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const storyPath of storyPaths) {
+    const name = basename(storyPath);
+    if (!hasArtifactSuffix(name)) {
+      continue;
+    }
+    const activePath = resolve(join(vbriefDir, "active", name));
+    const completedPath = resolve(join(vbriefDir, "completed", name));
+    if (seen.has(activePath)) {
+      continue;
+    }
+    if (!existsSync(activePath) || !existsSync(completedPath)) {
+      continue;
+    }
+    seen.add(activePath);
+    out.push(activePath);
+  }
+  return out;
+}
+
 function rel(path: string, projectRoot: string): string {
   try {
     return resolve(path)
@@ -438,6 +469,25 @@ function sweepCohortWithArgs(args: SweepCohortArgs): SweepResult {
     result.stories.push(
       completeStory({
         storyPath,
+        vbriefDir,
+        projectRoot,
+        settled,
+        dryRun,
+        delivery,
+      }),
+    );
+  }
+
+  const attempted = new Set(storyPaths.map((path) => resolve(path)));
+  for (const twin of findTrackedActiveTwins(storyPaths, vbriefDir)) {
+    const resolvedTwin = resolve(twin);
+    if (attempted.has(resolvedTwin)) {
+      continue;
+    }
+    attempted.add(resolvedTwin);
+    result.stories.push(
+      completeStory({
+        storyPath: twin,
         vbriefDir,
         projectRoot,
         settled,

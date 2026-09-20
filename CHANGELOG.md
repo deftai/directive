@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Canonical intent-constraint uses dest, not origin/HEAD, when dest is typed (#4813).** Local check merge-bases against origin/<deliveryBranch>. Actions uses GITHUB_BASE_REF. Reports origin and candidate mode, including N/A. HEAD-equal-origin with unstaged production is assessed from the working tree; mint stays merge-base. Tracking #4813.
 - **Exact-miss session:start hint deny names the actual miss (#4793).** Horizontal whitespace no longer blames quoting/redirect/pipe/chain. True pipe, redirect, newline, and chain stay fail-closed and name that miss. Read-only whitespace misses do not demand --session-id. Four-token `deft session:start -- --read-only` stays exact. Tracking #4793.
 - **Leftover pending cannot max-win ceremony size over a stamped active brief (#4795).** When an `xbrief/active/` brief yields a derived clause count, leftover pending is skipped (stamp-gated). Pending still fills as the #3358 proxy when no active file yields a count. Tracking #4795.
+- **Check-integrated verify:ac refuses check-graph re-entry (#4798).** `task check` / `verify:ac` as executable AC inside `task check` fail closed before spawn. leftover-complete moves remaining tracked active twins instead of add-completed-only. Hang bound remainder is #4801. Tracking #4798.
 
 ### Removed
 
