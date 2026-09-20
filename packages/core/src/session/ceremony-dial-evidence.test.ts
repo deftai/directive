@@ -290,3 +290,58 @@ describe("mergeCeremonyDialInputsWithConsumerEvidence (#3358)", () => {
     ).toEqual({ taskSize: "S", modelTier: "low", projectShape: "project" });
   });
 });
+
+describe("collectCeremonyDialConsumerEvidence merged as explicit-before-provisional (#4783)", () => {
+  it("lets CLI --task-size win over stamped consumer evidence", () => {
+    const root = tempRoot();
+    writeBrief(root, "pending", "queued.xbrief.json", {
+      clauses: [
+        { id: 1, text: "a" },
+        { id: 2, text: "b" },
+        { id: 3, text: "c" },
+      ],
+    });
+    const evidence = collectCeremonyDialConsumerEvidence(root, { env: {} });
+    expect(evidence.taskSize).toBe("M");
+    expect(
+      mergeCeremonyDialInputsWithConsumerEvidence(
+        { taskSize: "S", modelTier: null, projectShape: null },
+        evidence,
+      ).taskSize,
+    ).toBe("S");
+  });
+
+  it("fills missing explicit size from consumer evidence before provisional", () => {
+    const root = tempRoot();
+    writeBrief(root, "active", "story.xbrief.json", {
+      clauses: [{ id: 1, text: "one" }],
+    });
+    const evidence = collectCeremonyDialConsumerEvidence(root, { env: {} });
+    expect(evidence.taskSize).toBe("S");
+    expect(
+      mergeCeremonyDialInputsWithConsumerEvidence(
+        { taskSize: null, modelTier: null, projectShape: null },
+        evidence,
+      ).taskSize,
+    ).toBe("S");
+  });
+
+  it("still fills leftover pending-only — size remainder is #4795, not this number", () => {
+    const root = tempRoot();
+    writeBrief(root, "pending", "2026-09-17-hardening-tenant-context-idempotency.xbrief.json", {
+      clauses: [
+        { id: 1, text: "a" },
+        { id: 2, text: "b" },
+        { id: 3, text: "c" },
+      ],
+    });
+    const evidence = collectCeremonyDialConsumerEvidence(root, { env: {} });
+    expect(evidence.clauseCount).toBe(3);
+    expect(evidence.taskSize).toBe("M");
+    expect(
+      evidence.reasons.some((r) =>
+        r.includes("xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json"),
+      ),
+    ).toBe(true);
+  });
+});

@@ -1564,13 +1564,15 @@ export function runSessionStart(
   // #3214 / #3156: select ritual (ceremony) depth before building deferral maps.
   // Rapid/minimal auto-defer informational cold steps only; mutation readiness
   // (doctor, cache_fresh, agent_hooks, verify_tools) stays constant.
+  // Fill site (#3358 / #4783): collectCeremonyDialConsumerEvidence merged as
+  // explicit-before-provisional. CLI --task-size / env still win. Do not edit
+  // estimateProvisionalCeremonyInputs as if it scanned pending. Leftover-pending
+  // size remainder is #4795.
   // Two-stage + provisional intake (#3214 / #3263 / #1581 ordering): fill
-  // missing size/tier/shape from env/verb/files/deposit BEFORE resolve — never
-  // block on plan-item effort (post-planning only). Cold incomplete size is
-  // tier-conditional (#3263): mid/low → standard; frontier/unknown → rapid.
-  // #3358: fill at least one consumer-supplied input (stamped clause count,
-  // host-tier env, failing-gate count) so evaluation is not permanently
-  // size=- / modelTier=-. ⊗ Change rapid default when no evidence exists.
+  // remaining size/tier/shape from env/verb/files/deposit AFTER that merge —
+  // never block on plan-item effort (post-planning only). Cold incomplete size
+  // is tier-conditional (#3263): mid/low → standard; frontier/unknown → rapid.
+  // ⊗ Change rapid default when no evidence exists.
   const consumerDialEvidence = collectCeremonyDialConsumerEvidence(projectRoot, {
     env: options.env,
   });

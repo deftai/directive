@@ -1,5 +1,11 @@
 /**
- * Consumer-environment evidence for ceremony-dial escalation (#3358).
+ * Consumer-environment evidence for ceremony-dial escalation (#3358 / #4783).
+ *
+ * Fill site: `collectCeremonyDialConsumerEvidence` merged as
+ * explicit-before-provisional. session:start collects this evidence, then
+ * `mergeCeremonyDialInputsWithConsumerEvidence` into `ceremonyDialInputs`,
+ * then `resolveSessionCeremonyDialInputs`. `estimateProvisionalCeremonyInputs`
+ * is env/verb/files/prompt only and does not scan pending.
  *
  * Session:start left `taskSize` and `modelTier` null unless CLI flags or
  * provisional env/verb/file hints were set. Consumer runs then always
@@ -9,11 +15,12 @@
  *   1. stamped #3323 clause count (size proxy). Active stamped counts win;
  *      pending is the #3358 proxy only when no active file yields a count
  *      (#4795 stamp-gated skip — not file-gated skip of pending).
+ *      Leftover-pending size remainder is #4795, not this number.
  *   2. host-supplied model-tier env (`DEFT_HOST_MODEL_TIER` and aliases)
  *   3. failing-gate count env (mid-session size proxy)
  *
  * ⊗ Change the rapid default or decline threshold when no evidence exists.
- * Explicit CLI / session inputs still win at the merge site.
+ * CLI `--task-size` / env still win at the merge site.
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -159,6 +166,14 @@ export function readStampedClauseCount(projectRoot: string): {
   return readMaxStampedClauseCountInDir(projectRoot, PENDING_DIR);
 }
 
+/**
+ * Consumer fill site for session:start (#3358 / #4783).
+ *
+ * Merged as explicit-before-provisional: collect, then
+ * `mergeCeremonyDialInputsWithConsumerEvidence`, then the provisional
+ * classifier. Do not edit `estimateProvisionalCeremonyInputs` as if it
+ * scanned pending. Leftover-pending size remainder is #4795.
+ */
 export function collectCeremonyDialConsumerEvidence(
   projectRoot: string,
   options: { readonly env?: NodeJS.ProcessEnv } = {},
@@ -210,7 +225,13 @@ export function collectCeremonyDialConsumerEvidence(
   };
 }
 
-/** Explicit non-null wins; consumer evidence fills only missing fields. */
+/**
+ * Explicit-before-provisional merge (#4783).
+ *
+ * Explicit non-null (CLI `--task-size` / session inputs) wins; consumer
+ * evidence fills only missing fields. Env size/tier still win later in
+ * `estimateProvisionalCeremonyInputs` for fields this merge left null.
+ */
 export function mergeCeremonyDialInputsWithConsumerEvidence(
   explicit: CeremonyDialInputs | undefined,
   evidence: CeremonyDialConsumerEvidence,
