@@ -1,4 +1,9 @@
-import { PROCESS_ONLY_FLAG_KEYS } from "./classify/payload.js";
+import {
+  GROK_SPAWN_SUBAGENT_ADVERTISED_JSON,
+  GROK_SPAWN_WRITING_SKIP_CLASS_FIELD,
+  grokSpawnAdvertisedWritingSkipClass,
+  PROCESS_ONLY_FLAG_KEYS,
+} from "./classify/payload.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
@@ -294,13 +299,21 @@ function hasProcessOnlyCriticFlag(
   toolInput: Record<string, unknown>,
   input: Record<string, unknown>,
 ): boolean {
+  const advertisedField = grokSpawnAdvertisedWritingSkipClass();
+  if (advertisedField === null) return false;
+  if (advertisedField !== GROK_SPAWN_WRITING_SKIP_CLASS_FIELD) return false;
+  if (!(advertisedField in GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.parameters.properties)) {
+    return false;
+  }
   return PROCESS_ONLY_FLAG_KEYS.some(
     (key) => fieldTruthy(toolInput, key) || fieldTruthy(input, key),
   );
 }
 
 /** Verified Grok spawn surface that actually emits `subagent_type` (#4241). */
-const GROK_SPAWN_TOOL_NORMALIZED = "spawnsubagent";
+const GROK_SPAWN_TOOL_NORMALIZED = GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.name
+  .toLowerCase()
+  .replace(/[^a-z0-9]/g, "");
 
 export interface ProcessOnlyCriticSpawnContext {
   readonly host: string;

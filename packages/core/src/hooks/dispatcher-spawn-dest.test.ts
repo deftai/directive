@@ -13,6 +13,7 @@ import {
 import {
   GROK_SPAWN_SUBAGENT_ADVERTISED_JSON,
   GROK_SPAWN_WRITING_SKIP_CLASS_FIELD,
+  grokSpawnAdvertisedWritingSkipClass,
 } from "./classify/payload.js";
 import {
   CURSOR_TASK_SPAWN_CLASS_RECOVERY,
@@ -267,8 +268,10 @@ describe("dest-proven implement spawn (#4215)", () => {
 
   it("advertised spawn_subagent JSON lists writing skip-class; native field plus dest cwd is spawn-process-only-ready at 0 eligible (#4794)", () => {
     const properties = GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.parameters.properties;
+    expect(GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.name).toBe("spawn_subagent");
     expect(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD in properties).toBe(true);
     expect(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD).toBe("process_only");
+    expect(grokSpawnAdvertisedWritingSkipClass()).toBe(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD);
     expect("cwd" in properties).toBe(true);
     expect(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD).not.toBe("cwd");
     const { root, dest } = destFixture();

@@ -83,11 +83,11 @@ export function mergeHookDispatchEnviron(
   return { ...fallback, ...bag };
 }
 
-/** Host-visible process-only skip-class keys. Implement-class never sets these (#4315 / #4794). */
-export const PROCESS_ONLY_FLAG_KEYS = ["process_only", "processOnly"] as const;
-
 /** Canonical advertised writing skip-class field on native spawn_subagent JSON (#4794). */
 export const GROK_SPAWN_WRITING_SKIP_CLASS_FIELD = "process_only" as const;
+
+/** Host-visible process-only skip-class keys. Implement-class never sets these (#4315 / #4794). */
+export const PROCESS_ONLY_FLAG_KEYS = [GROK_SPAWN_WRITING_SKIP_CLASS_FIELD, "processOnly"] as const;
 
 /**
  * Advertised Grok spawn_subagent JSON (#4794).
@@ -119,6 +119,23 @@ export const GROK_SPAWN_SUBAGENT_ADVERTISED_JSON = {
   },
 } as const;
 
+/**
+ * Production skip-class field operators can pass on advertised spawn_subagent JSON (#4794).
+ * Classification honors this field only when advertised JSON lists it as a boolean
+ * that is not dest-path (`cwd`).
+ */
+export function grokSpawnAdvertisedWritingSkipClass():
+  | typeof GROK_SPAWN_WRITING_SKIP_CLASS_FIELD
+  | null {
+  const advertised = GROK_SPAWN_SUBAGENT_ADVERTISED_JSON;
+  if (advertised.name !== "spawn_subagent") return null;
+  const destPathField: string = "cwd";
+  if (GROK_SPAWN_WRITING_SKIP_CLASS_FIELD === destPathField) return null;
+  const skip = advertised.parameters.properties[GROK_SPAWN_WRITING_SKIP_CLASS_FIELD];
+  if (skip === undefined || skip.type !== "boolean") return null;
+  return GROK_SPAWN_WRITING_SKIP_CLASS_FIELD;
+}
+
 const PROCESS_ONLY_TRUTHY = new Set(["1", "true", "yes", "on"]);
 
 function fieldTruthy(input: Record<string, unknown>, key: string): boolean {
@@ -135,11 +152,13 @@ function hasProcessOnlyFlag(input: Record<string, unknown>): boolean {
 
 /**
  * Land host-visible `process_only` onto canonical `tool_input` (#4315).
- * Grok PreToolUse stdin uses `toolInput` (camelCase). Advertised JSON lists
- * process_only as the writing skip-class field operators can pass (#4794).
- * Dest-path and prompt are not this class. Implement-class never sets the flag.
+ * Grok PreToolUse stdin uses `toolInput` (camelCase). Production classification
+ * lands the advertised skip-class field from GROK_SPAWN_SUBAGENT_ADVERTISED_JSON
+ * (#4794). Dest-path and prompt are not this class. Implement-class never sets the flag.
  */
 export function landProcessOnlyFlagOnToolInput(payload: unknown): unknown {
+  const advertisedField = grokSpawnAdvertisedWritingSkipClass();
+  if (advertisedField === null) return payload;
   const input = record(payload);
   if (input === null) return payload;
   const nested = toolInputRecord(input);
@@ -150,7 +169,7 @@ export function landProcessOnlyFlagOnToolInput(payload: unknown): unknown {
     hasProcessOnlyFlag(input);
   if (!flagged) return payload;
   const current = record(input.tool_input);
-  if (camel === null && current !== null && current.process_only === true) return payload;
+  if (camel === null && current !== null && current[advertisedField] === true) return payload;
   const source = { ...(camel ?? {}), ...(nested ?? {}) };
-  return { ...input, tool_input: { ...source, process_only: true } };
+  return { ...input, tool_input: { ...source, [advertisedField]: true } };
 }

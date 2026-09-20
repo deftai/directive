@@ -3,6 +3,9 @@ import {
   fieldPresent,
   fieldString,
   firstString,
+  GROK_SPAWN_SUBAGENT_ADVERTISED_JSON,
+  GROK_SPAWN_WRITING_SKIP_CLASS_FIELD,
+  grokSpawnAdvertisedWritingSkipClass,
   hookPayloadEnvironBag,
   hookPayloadTopLevelKeys,
   landProcessOnlyFlagOnToolInput,
@@ -131,6 +134,23 @@ describe("landProcessOnlyFlagOnToolInput (#4315)", () => {
         prompt: "You are a process_only critic",
       },
     });
+  });
+
+  it("production lander emits the advertised skip-class field (#4794)", () => {
+    expect(grokSpawnAdvertisedWritingSkipClass()).toBe(GROK_SPAWN_WRITING_SKIP_CLASS_FIELD);
+    expect(
+      GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.parameters.properties[GROK_SPAWN_WRITING_SKIP_CLASS_FIELD]
+        .type,
+    ).toBe("boolean");
+    const landed = landProcessOnlyFlagOnToolInput({
+      toolName: GROK_SPAWN_SUBAGENT_ADVERTISED_JSON.name,
+      toolInput: {
+        subagent_type: "general-purpose",
+        [GROK_SPAWN_WRITING_SKIP_CLASS_FIELD]: true,
+        cwd: "/dest",
+      },
+    }) as { tool_input?: Record<string, unknown> };
+    expect(landed.tool_input?.[GROK_SPAWN_WRITING_SKIP_CLASS_FIELD]).toBe(true);
   });
 
   it("is a no-op when tool_input.process_only is already true", () => {
