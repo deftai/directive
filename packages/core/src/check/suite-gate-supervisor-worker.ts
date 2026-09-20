@@ -40,12 +40,16 @@ export function confirmChildHandleForKill(child: TimedChildHandle): number | nul
   return child.pid;
 }
 
-function listDirectChildPids(pid: number, platform: NodeJS.Platform): number[] {
+function listDirectChildPids(
+  pid: number,
+  platform: NodeJS.Platform,
+  timeoutMs = 5_000,
+): number[] {
   if (platform === "win32") {
     const result = spawnSync(
       "wmic",
       ["process", "where", `ParentProcessId=${pid}`, "get", "ProcessId", "/VALUE"],
-      { encoding: "utf8", windowsHide: true, timeout: 5_000 },
+      { encoding: "utf8", windowsHide: true, timeout: timeoutMs },
     );
     const text = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
     const ids: number[] = [];
@@ -57,7 +61,7 @@ function listDirectChildPids(pid: number, platform: NodeJS.Platform): number[] {
   }
   const result = spawnSync("pgrep", ["-P", String(pid)], {
     encoding: "utf8",
-    timeout: 5_000,
+    timeout: timeoutMs,
   });
   const ids: number[] = [];
   for (const line of (result.stdout ?? "").split(/\r?\n/)) {
@@ -67,15 +71,23 @@ function listDirectChildPids(pid: number, platform: NodeJS.Platform): number[] {
   return ids;
 }
 
+/** Per-call enumerator timeout during post-kill verification (#4801 P1). */
+const VERIFY_ENUM_TIMEOUT_MS = 1_000;
+/** Wall budget for leftover enumeration after the first kill (#4801 P1). */
+export const KILL_TREE_VERIFY_BUDGET_MS = 8_000;
+
 export function listDescendantPids(
   rootPid: number,
   platform: NodeJS.Platform,
   listDirect: (pid: number) => number[] = (pid) => listDirectChildPids(pid, platform),
+  budgetMs?: number,
 ): number[] {
   const visited = new Set<number>([rootPid]);
   const found: number[] = [];
   const stack = [rootPid];
+  const deadline = budgetMs !== undefined ? Date.now() + budgetMs : Number.POSITIVE_INFINITY;
   while (stack.length > 0) {
+    if (Date.now() >= deadline) break;
     const current = stack.pop() as number;
     for (const child of listDirect(current)) {
       if (visited.has(child)) continue;
@@ -98,10 +110,19 @@ export function killTreeAndProveEmpty(
 ): { remaining: number[] } {
   const platform = seams.platform ?? process.platform;
   const kill = seams.killTree ?? ((target: number) => killDescendantTree(target, { platform }));
-  const list = seams.listDescendants ?? ((target: number) => listDescendantPids(target, platform));
+  const list =
+    seams.listDescendants ??
+    ((target: number) =>
+      listDescendantPids(
+        target,
+        platform,
+        (childPid) => listDirectChildPids(childPid, platform, VERIFY_ENUM_TIMEOUT_MS),
+        KILL_TREE_VERIFY_BUDGET_MS,
+      ));
   const alive = seams.isPidAlive ?? isPidAlive;
-  const snapshot = [pid, ...list(pid)];
+  // Kill the root/group first; leftover pgrep/wmic walks are post-kill and budgeted.
   kill(pid);
+  const snapshot = [pid, ...list(pid)];
   let remaining = snapshot.filter(alive);
   if (remaining.length > 0) {
     for (const leftover of remaining) {

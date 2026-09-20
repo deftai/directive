@@ -256,6 +256,22 @@ describe("killTreeAndProveEmpty (#4801)", () => {
     expect(result.remaining).toEqual([]);
   });
 
+  it("kills the root before enumerating descendants", () => {
+    const order: string[] = [];
+    killTreeAndProveEmpty(1, {
+      killTree: (pid) => {
+        order.push(`kill:${pid}`);
+      },
+      listDescendants: () => {
+        order.push("list");
+        return [];
+      },
+      isPidAlive: () => false,
+    });
+    expect(order[0]).toBe("kill:1");
+    expect(order).toEqual(["kill:1", "list"]);
+  });
+
   it("escalates leftover descendants with a second kill", () => {
     const killed: number[] = [];
     const alive = new Set([1, 2, 3]);
@@ -281,6 +297,11 @@ describe("listDescendantPids (#4801)", () => {
       return [];
     });
     expect(ids).toEqual([2, 3]);
+  });
+
+  it("stops walking when the verification budget has already expired", () => {
+    const ids = listDescendantPids(1, "linux", () => [2, 3], -1);
+    expect(ids).toEqual([]);
   });
 });
 
