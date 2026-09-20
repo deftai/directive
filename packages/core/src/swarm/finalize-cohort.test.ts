@@ -96,14 +96,43 @@ interface MockPrState {
 function mockRunGh(
   mergedPrs: Record<number, MockPrState>,
   issueStates: Record<number, "open" | "closed"> = {},
+  issueMeta: Record<number, MockIssueMeta> = {},
 ): RunGhFn {
+  const states: Record<number, "open" | "closed"> = { ...issueStates };
   return (cmd) => {
     const issuePath = cmd.find((part) => part.startsWith("repos/") && part.includes("/issues/"));
     if (issuePath !== undefined) {
+      const commentMatch = issuePath.match(/\/issues\/(\d+)\/comments$/);
+      if (commentMatch !== null) {
+        const issueNumber = Number(commentMatch[1]);
+        if (issueMeta[issueNumber]?.commentFail === true) {
+          return { returncode: 1, stdout: "", stderr: "comment failed" };
+        }
+        return { returncode: 0, stdout: JSON.stringify({ id: 1 }), stderr: "" };
+      }
       const match = issuePath.match(/\/issues\/(\d+)$/);
       const issueNumber = match ? Number(match[1]) : 0;
-      const state = issueStates[issueNumber] ?? "open";
-      return { returncode: 0, stdout: JSON.stringify({ state }), stderr: "" };
+      const meta = issueMeta[issueNumber] ?? {};
+      if (cmd.includes("PATCH")) {
+        if (meta.patchFail === true) {
+          return { returncode: 1, stdout: "", stderr: "patch failed" };
+        }
+        states[issueNumber] = "closed";
+        return { returncode: 0, stdout: JSON.stringify({ state: "closed" }), stderr: "" };
+      }
+      if (meta.getFail === true) {
+        return { returncode: 1, stdout: "", stderr: "get failed" };
+      }
+      const state = states[issueNumber] ?? meta.state ?? "open";
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          state,
+          title: meta.title ?? "",
+          labels: (meta.labels ?? []).map((name) => ({ name })),
+        }),
+        stderr: "",
+      };
     }
     if (cmd.includes("pr") && cmd.includes("view") && cmd.includes("closingIssuesReferences")) {
       const viewIdx = cmd.indexOf("view");
@@ -152,17 +181,35 @@ function mockRunGh(
   };
 }
 
+interface MockIssueMeta {
+  readonly state?: "open" | "closed";
+  readonly labels?: readonly string[];
+  readonly title?: string;
+  readonly getFail?: boolean;
+  readonly patchFail?: boolean;
+  readonly commentFail?: boolean;
+}
+
 interface MockGitOpts {
   readonly onCommit?: () => void;
   readonly fetchFail?: boolean;
   readonly notAncestor?: boolean;
   readonly closedSurfaceAdd?: boolean;
+  readonly landedCompleted?: readonly string[];
 }
 
 function mockRunGit(opts: MockGitOpts = {}): (command: readonly string[]) => TextCaptureResult {
   let currentBranch = "";
   return (command) => {
     const joined = command.join(" ");
+    if (joined.includes("ls-tree")) {
+      const names = opts.landedCompleted ?? [];
+      return {
+        returncode: 0,
+        stdout: names.join("\n") + (names.length > 0 ? "\n" : ""),
+        stderr: "",
+      };
+    }
     if (opts.closedSurfaceAdd && joined.includes("diff") && joined.includes("--name-status")) {
       return { returncode: 0, stdout: "A\tdocs-site/new.html\n", stderr: "" };
     }
@@ -655,6 +702,274 @@ describe("finalizeCohort", () => {
     expect(result.result.sweep).not.toBeNull();
     expect(result.result.sweep?.parents.some((p) => p.action === "activate+complete")).toBe(true);
     expect(result.stdout).toContain(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+    rmSync(project, { recursive: true, force: true });
+  });
+  it("origin-closes leftover --stories after leftover-complete land without scraping Tracking (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-close-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        4815: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #4813\n\nNever Closes #4813",
+        },
+      },
+      { 4813: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4813.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.closing_issues).toEqual([]);
+    const patch = ghCalls.find(
+      (c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4813")),
+    );
+    expect(patch).toBeDefined();
+    const comment = ghCalls.find(
+      (c) => c.includes("POST") && c.some((p) => p.includes("/issues/4813/comments")),
+    );
+    expect(comment).toBeDefined();
+    expect(comment?.some((p) => p.includes("Completed in #4815"))).toBe(true);
+    expect(
+      ghCalls.every((c) => !c.includes("issue") || !c.includes("view") || !c.includes("--json")),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses DONE when leftover landed and origin REST GET fails (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-getfail-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh(
+        { 4815: { merged: true, closingIssues: [] } },
+        {},
+        { 4813: { getFail: true } },
+      ),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4813.xbrief.json"] }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.ok).toBe(false);
+    expect(result.result.errors.some((e) => e.includes("refused DONE") && e.includes("4813"))).toBe(
+      true,
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses DONE when leftover landed and origin stays open after PATCH (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-patchfail-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh(
+        { 4815: { merged: true, closingIssues: [] } },
+        { 4813: "open" },
+        { 4813: { patchFail: true } },
+      ),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4813.xbrief.json"] }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("REST PATCH failed"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("skips protected staying-OPEN umbrellas after leftover land (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-umbrella-"));
+    writeCompletedStory(project, "story-701", 701);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["701"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh(
+        { 4815: { merged: true, closingIssues: [] } },
+        { 701: "open" },
+        { 701: { labels: ["type:umbrella"], title: "Layer 3 umbrella" } },
+      ),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-701.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.warnings.some((w) => w.includes("protected staying-OPEN umbrella"))).toBe(
+      true,
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("skips already-closed origins after leftover land (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-closed-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh({ 4815: { merged: true, closingIssues: [] } }, { 4813: "closed" });
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4813.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(ghCalls.some((c) => c.includes("PATCH"))).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses DONE when leftover landed and origin comment POST fails (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-commentfail-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh(
+        { 4815: { merged: true, closingIssues: [] } },
+        { 4813: "open" },
+        { 4813: { commentFail: true } },
+      ),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4813.xbrief.json"] }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("failed to comment"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses DONE on invalid --repo after leftover land (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-badrepo-"));
+    writeCompletedStory(project, "story-4813", 4813);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: ["4813"],
+      repo: "not-a-repo",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 4815: { merged: true, closingIssues: [] } }),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4813.xbrief.json"] }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("invalid --repo") || e.includes("invalid --repo value"),
+      ),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+  it("skips parked-with-no-merged-PR origin-close (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-parked-"));
+    writeCompletedStory(project, "story-4781", 4781);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["4781"],
+      repo: "deftai/directive",
+      noCommit: true,
+      runGh: mockRunGh({}, { 4781: "open" }),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4781.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.warnings.some((w) => w.includes("parked-with-no-merged-PR"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not origin-close before leftover-complete land (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-noland-"));
+    const storyPath = writeActiveStory(project, "story-4813", 4813);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh({ 4815: { merged: true, closingIssues: [4813] } }, { 4813: "open" });
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [4815],
+      storyTokens: [storyPath],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(ghCalls.some((c) => c.includes("PATCH"))).toBe(false);
+    expect(result.result.warnings.some((w) => w.includes("leftover-complete not on origin"))).toBe(
+      true,
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not scrape Tracking/Refs from the product PR body for origin-close (#4824)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-noscrape-"));
+    writeCompletedStory(project, "story-2115", 2115);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        42: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #1997\nRefs #1997",
+        },
+      },
+      { 2115: "open", 1997: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [42],
+      storyTokens: ["2115"],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-2115.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(
+      ghCalls.some((c) =>
+        c.some(
+          (part) => part.includes("/issues/2115") && (c.includes("PATCH") || c.includes("POST")),
+        ),
+      ),
+    ).toBe(true);
+    expect(ghCalls.some((c) => c.some((part) => part.includes("/issues/1997")))).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
 });

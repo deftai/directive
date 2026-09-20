@@ -1,6 +1,6 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
 import { extractIssueRef } from "../capacity/backfill.js";
 import { composeDocsImpactBody, verifyDocsImpactBodyFile } from "../docs/docs-impact.js";
@@ -257,6 +257,305 @@ function fetchIssueClosed(issue: number, repo: string | null, runGh: RunGhFn): b
   } catch {
     return false;
   }
+}
+
+const PROTECTED_STAYING_OPEN_LABELS = new Set([
+  "epic",
+  "meta",
+  "tracker",
+  "type:tracker",
+  "status:tracker",
+  "umbrella",
+  "type:umbrella",
+]);
+
+function githubIssueFromBrief(path: string): number | null {
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return null;
+    }
+    const plan = (raw as Record<string, unknown>).plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      return null;
+    }
+    const [, issueNum] = extractIssueRef(plan as Record<string, unknown>);
+    return issueNum;
+  } catch {
+    return null;
+  }
+}
+
+function posixProjectRel(projectRoot: string, fullPath: string): string {
+  const root = resolve(projectRoot);
+  const resolved = resolve(fullPath);
+  if (!resolved.startsWith(root)) {
+    return basename(fullPath);
+  }
+  return resolved
+    .slice(root.length + 1)
+    .replace(new RegExp(String.fromCharCode(92) + String.fromCharCode(92), "g"), "/");
+}
+
+function completedBriefRelpathForIssue(projectRoot: string, issue: number): string | null {
+  for (const folder of ["xbrief/completed", "vbrief/completed"] as const) {
+    const dir = resolve(projectRoot, folder);
+    if (!existsSync(dir)) {
+      continue;
+    }
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".json")) {
+        continue;
+      }
+      const full = resolve(dir, name);
+      if (githubIssueFromBrief(full) === issue) {
+        return posixProjectRel(projectRoot, full);
+      }
+    }
+  }
+  return null;
+}
+
+function collectOriginIssueNumbers(
+  storyPaths: readonly string[],
+  storyTokens: readonly string[],
+): number[] {
+  const issues = new Set<number>();
+  for (const path of storyPaths) {
+    const issue = githubIssueFromBrief(path);
+    if (issue !== null) {
+      issues.add(issue);
+    }
+  }
+  for (const raw of storyTokens) {
+    const token = raw.trim();
+    if (/^\d+$/.test(token)) {
+      issues.add(Number(token));
+    }
+  }
+  return [...issues].sort((a, b) => a - b);
+}
+
+function listLandedCompletedRelpaths(
+  projectRoot: string,
+  deliveryBranch: string,
+  runGit: typeof runText,
+): Set<string> {
+  const fetch = runGit(["git", "fetch", "origin", deliveryBranch], { cwd: projectRoot });
+  if (fetch.returncode !== 0) {
+    return new Set();
+  }
+  const listed = runGit(
+    [
+      "git",
+      "ls-tree",
+      "--name-only",
+      "-r",
+      `origin/${deliveryBranch}`,
+      "--",
+      "xbrief/completed/",
+      "vbrief/completed/",
+    ],
+    { cwd: projectRoot },
+  );
+  if (listed.returncode !== 0) {
+    return new Set();
+  }
+  const names = new Set<string>();
+  for (const line of listed.stdout.split(/\r?\n/)) {
+    const trimmed = line
+      .trim()
+      .replace(new RegExp(String.fromCharCode(92) + String.fromCharCode(92), "g"), "/");
+    if (trimmed.length > 0) {
+      names.add(trimmed);
+    }
+  }
+  return names;
+}
+
+function fetchIssueOriginSnapshot(
+  issue: number,
+  repo: { owner: string; name: string },
+  runGh: RunGhFn,
+): { state: string | null; payload: Record<string, unknown>; error: string | null } {
+  const path = `repos/${repo.owner}/${repo.name}/issues/${String(issue)}`;
+  const result = runGh(["gh", "api", path]);
+  if (result.returncode !== 0) {
+    return {
+      state: null,
+      payload: {},
+      error: `REST GET ${path} failed: ${result.stderr.trim() || result.stdout.trim()}`,
+    };
+  }
+  try {
+    const body = JSON.parse(result.stdout) as unknown;
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+      return {
+        state: null,
+        payload: {},
+        error: `REST GET ${path} returned a non-object payload`,
+      };
+    }
+    const payload = body as Record<string, unknown>;
+    const state = typeof payload.state === "string" ? payload.state : null;
+    if (state === null) {
+      return { state: null, payload, error: `REST GET ${path} missing state` };
+    }
+    return { state, payload, error: null };
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return {
+      state: null,
+      payload: {},
+      error: `REST GET ${path} was unparseable: ${message}`,
+    };
+  }
+}
+
+function labelNamesFromIssuePayload(payload: Record<string, unknown>): string[] {
+  const labels = payload.labels;
+  if (!Array.isArray(labels)) {
+    return [];
+  }
+  const names: string[] = [];
+  for (const label of labels) {
+    if (typeof label === "string" && label.length > 0) {
+      names.push(label);
+      continue;
+    }
+    if (typeof label === "object" && label !== null && !Array.isArray(label)) {
+      const name = (label as Record<string, unknown>).name;
+      if (typeof name === "string" && name.length > 0) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
+function isProtectedStayingOpenUmbrella(payload: Record<string, unknown>): boolean {
+  const title = typeof payload.title === "string" ? payload.title : "";
+  if (/\b(epic|omnibus|tracker|umbrella)\b/i.test(title)) {
+    return true;
+  }
+  for (const name of labelNamesFromIssuePayload(payload)) {
+    const lower = name.toLowerCase();
+    if (PROTECTED_STAYING_OPEN_LABELS.has(lower) || lower.includes("umbrella")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function closeOriginsAfterLeftoverComplete(args: {
+  readonly projectRoot: string;
+  readonly deliveryBranch: string;
+  readonly originIssues: readonly number[];
+  readonly prNumbers: readonly number[];
+  readonly repo: string | null;
+  readonly dryRun: boolean;
+  readonly runGh: RunGhFn;
+  readonly runGit: typeof runText;
+}): { errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (args.dryRun || args.originIssues.length === 0) {
+    return { errors, warnings };
+  }
+  if (args.prNumbers.length === 0) {
+    warnings.push(
+      "origin-close skipped: parked-with-no-merged-PR (pass --pr of the product PR after leftover-complete land).",
+    );
+    return { errors, warnings };
+  }
+  if (args.repo === null || args.repo.length === 0) {
+    errors.push(
+      "origin-close refused DONE: leftover-complete land requires --repo OWNER/REPO for REST GET of origin issues (#4824).",
+    );
+    return { errors, warnings };
+  }
+  const parsed = parseRepo(args.repo);
+  if (parsed === null) {
+    errors.push(`origin-close refused DONE: invalid --repo value: ${JSON.stringify(args.repo)}`);
+    return { errors, warnings };
+  }
+
+  const landedNames = listLandedCompletedRelpaths(
+    args.projectRoot,
+    args.deliveryBranch,
+    args.runGit,
+  );
+  const prLabel = args.prNumbers.map((n) => `#${String(n)}`).join(", ");
+  const commentBody = `Completed in ${prLabel}`;
+
+  for (const issue of args.originIssues) {
+    const completedRel = completedBriefRelpathForIssue(args.projectRoot, issue);
+    if (completedRel === null || !landedNames.has(completedRel)) {
+      warnings.push(
+        "#" +
+          String(issue) +
+          ": origin-close skipped; leftover-complete not on origin/" +
+          args.deliveryBranch +
+          " (#4824).",
+      );
+      continue;
+    }
+
+    const fetched = fetchIssueOriginSnapshot(issue, parsed, args.runGh);
+    if (fetched.error !== null) {
+      errors.push(`#${String(issue)}: origin-close refused DONE: ${fetched.error}`);
+      continue;
+    }
+    if (fetched.state === "closed") {
+      continue;
+    }
+    if (isProtectedStayingOpenUmbrella(fetched.payload)) {
+      warnings.push(`#${String(issue)}: origin-close skipped; protected staying-OPEN umbrella.`);
+      continue;
+    }
+
+    const commentPath = `repos/${parsed.owner}/${parsed.name}/issues/${String(issue)}/comments`;
+    const commented = args.runGh([
+      "gh",
+      "api",
+      "-X",
+      "POST",
+      commentPath,
+      "-f",
+      `body=${commentBody}`,
+    ]);
+    if (commented.returncode !== 0) {
+      errors.push(
+        "#" +
+          String(issue) +
+          ": origin-close refused DONE: failed to comment " +
+          commentBody +
+          ": " +
+          (commented.stderr.trim() || commented.stdout.trim()),
+      );
+      continue;
+    }
+    const issuePath = `repos/${parsed.owner}/${parsed.name}/issues/${String(issue)}`;
+    const patched = args.runGh(["gh", "api", "-X", "PATCH", issuePath, "-f", "state=closed"]);
+    if (patched.returncode !== 0) {
+      errors.push(
+        "#" +
+          String(issue) +
+          ": origin-close refused DONE: REST PATCH failed: " +
+          (patched.stderr.trim() || patched.stdout.trim()),
+      );
+      continue;
+    }
+    const verify = fetchIssueOriginSnapshot(issue, parsed, args.runGh);
+    if (verify.error !== null || verify.state !== "closed") {
+      errors.push(
+        "#" +
+          String(issue) +
+          ": origin-close refused DONE: still open after REST PATCH (Tracking/Refs does not auto-close).",
+      );
+    }
+  }
+  return { errors, warnings };
 }
 
 function deriveLabel(
@@ -647,7 +946,13 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     for (const story of resolved.resolved) {
       addStory(story.path);
     }
-    errors.push(...resolved.errors);
+    for (const err of resolved.errors) {
+      const m = /^#(\d+): no active story references this issue\.?$/.exec(err);
+      if (m !== null && completedBriefReferencesIssue(projectRoot, Number(m[1]))) {
+        continue;
+      }
+      errors.push(err);
+    }
   }
 
   // Closing-issue tokens are incidental (they come from a merged PR's structured
@@ -707,7 +1012,44 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
   }
 
+  const originIssues = collectOriginIssueNumbers(storyPaths, storyTokens);
+
   if (storyPaths.length === 0) {
+    if (errors.length === 0 && originIssues.length > 0) {
+      const originClose = closeOriginsAfterLeftoverComplete({
+        projectRoot,
+        deliveryBranch,
+        originIssues,
+        prNumbers,
+        repo,
+        dryRun,
+        runGh,
+        runGit,
+      });
+      errors.push(...originClose.errors);
+      warnings.push(...originClose.warnings);
+      const originOk = errors.length === 0;
+      return buildResponse({
+        projectRoot,
+        dryRun,
+        noCommit,
+        prNumbers,
+        storyPaths,
+        closingIssues: [...closingIssues],
+        sweep: null,
+        commitSha: null,
+        branch: null,
+        prUrl: null,
+        deliveryBranch,
+        sweepBase: baseBranch,
+        deliveryErrors,
+        errors,
+        warnings,
+        ok: originOk,
+        emitJson: args.emitJson ?? false,
+        exitCode: originOk ? EXIT_OK : EXIT_GATE_FAILED,
+      });
+    }
     // When every closing ref was a benign skip and no real stories remain, the
     // run is clean-with-warnings (nothing to sweep), not a config error.
     const cleanNoop = errors.length === 0 && warnings.length > 0;
@@ -891,6 +1233,19 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       }
     }
   }
+
+  const originClose = closeOriginsAfterLeftoverComplete({
+    projectRoot,
+    deliveryBranch,
+    originIssues,
+    prNumbers,
+    repo,
+    dryRun,
+    runGh,
+    runGit,
+  });
+  errors.push(...originClose.errors);
+  warnings.push(...originClose.warnings);
 
   const ok = errors.length === 0;
   return buildResponse({
