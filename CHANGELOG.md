@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Restate spawn_subagent dest occupancy linger (#4782).** After an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record. Leftover dest-lock still refuses a live occupant. Swarm finalize stays launcher-only. Dest-linger close-out is leftover #4792. Tracking #4782.
+- **Grok Build Gap D is background spawn then end the parent turn (#4796).** Phase 3 names `spawn_subagent` next to Cursor/Claude/OpenClaw. Parent pane must not pull-wait. Completion is host notify or a second session that is the durable owner; otherwise bake-off (c) is a #3153 defect. Steer inbox is child-steer only. Unmeasured matrix cells are Unknown. Do not invent `sessions_yield`. Tracking #4796.
 
 ### Fixed
 
