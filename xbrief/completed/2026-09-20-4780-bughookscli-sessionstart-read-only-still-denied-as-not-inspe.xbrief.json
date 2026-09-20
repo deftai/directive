@@ -1,0 +1,477 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4780",
+    "updated": "2026-09-20T17:20:38Z"
+  },
+  "plan": {
+    "title": "bug(hooks,cli): session:start -- --read-only still denied as not inspectable on 0.119.2 (regression #4577)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(hooks,cli): session:start -- --read-only still denied as not inspectable on 0.119.2 (regression #4577)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4780",
+      "Overview": "## Summary\nClosed #4577 claimed lifecycle verbs deny common agent pipelines via an opaque \"not inspectable (quoting, redirect, pipe, or chain)\" rule. Recurrence on **0.119.2** / Grok Build during NoteTechnic phase-validate:\n\n```\ndeft session:start -- --read-only\n→ Hook denied: invocation is not inspectable (quoting, redirect, pipe, or chain).\n  Re-run as a simple command with --session-id=host:claude:v1:…\n```\n\nThe command had **no shell pipe/redirect** in the tool argv — only Directive own `--` passthrough for `--read-only`. Agents must discover the session-id re-run by trial and error. A later multi-step Shell script that merely *mentioned* session:start in a heredoc body was also denied as inspectable.\n\n## Expected\nRead-only session start accepts `deft session:start -- --read-only` (documented in AGENTS.md), or deny text names the exact illegal token instead of blaming quoting/pipes that are not present.\n\n## Actual\nOpaque inspectable deny; works only after adding `--session-id=host:claude:v1:…` (itself the #4708 Claude-namespace lie).\n\n## Environment\nGrok Build, macOS, `@deftai/directive@0.119.2`, consumer `deftai/notetechnic`.\n\n## Related\nClosed #4577 — treat as regression or incomplete fix.\n\n",
+      "Labels": "bug, agent-experience, grok-build, area:cli, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- When do not bind the recorded refutation-target as written. deft session:start -- --read-only is exact at this SHA.\n- When do not claim exact-miss hint deny closed on this number. That remainder is #4793.\n- When keep fail-closed on true compound forms. Keep rewriteSafe versus hint as separate classes.",
+      "Test": "When targeted tests on packages/core/src/hooks/classify/host-session-identity.ts, packages/core/src/hooks/classify/host-session-identity.test.ts pass for bound contract lean 4780-lock."
+    },
+    "items": [
+      {
+        "title": "When do not bind the recorded refutation-target as written. deft session:start -- --read-only is exact at this SHA.",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When do not bind the recorded refutation-target as written. deft session:start -- --read-only is exact at this SHA."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When do not claim exact-miss hint deny closed on this number. That remainder is #4793.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When do not claim exact-miss hint deny closed on this number. That remainder is #4793."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When keep fail-closed on true compound forms. Keep rewriteSafe versus hint as separate classes.",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When keep fail-closed on true compound forms. Keep rewriteSafe versus hint as separate classes."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "grok-build",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4780",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4780: bug(hooks,cli): session:start -- --read-only still denied as not inspectable on 0.119.2 (regression #4577)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4577",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4577"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When do not bind the recorded refutation-target as written. deft session:start -- --read-only is exact at this SHA.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When do not claim exact-miss hint deny closed on this number. That remainder is #4793.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When keep fail-closed on true compound forms. Keep rewriteSafe versus hint as separate classes.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the documented read-only session:start form with Directive own -- passthrough can still be denied as not inspectable (quoting, redirect, pipe, or chain) when those tokens are absent.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4780-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answered 1 after the missing-token ask; yolo standing for all five single-issue arcs.\n\nrefutation-target: deft session:start -- --read-only is classified uninspectable (quoting/redirect/pipe/chain) even though the only extra token is Directive own -- passthrough.\n\ntarget: #4780\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the NoteTechnic 0.119.2 Grok Build deny: deft session:start -- --read-only -> Hook denied: invocation is not inspectable (quoting, redirect, pipe, or chain). Re-run as a simple command with --session-id=host:claude:v1:.... No shell pipe/redirect in the tool argv. A later multi-step Shell that merely mentioned session:start in a heredoc body was also denied. Closed #4577 claimed this class. Filed as regression.\n\nPin-read at dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969:\n\n- inspectExactLifecycleCommand (host-session-identity.ts:870) returns null for non-exact payloads; dispatcher.ts:2502-2556 then deny occupancy-identity-unavailable with the quoting/redirect/pipe/chain copy.\n- Tests lock deft session:start --read-only as exact and requiresOwner false (host-session-identity.test.ts:308-316). task session:ready -- --session-id=... is classified exact. The AGENTS.md / agents-entry documented form is deft session:start -- --read-only (agents_md_session_start.test.ts:44).\n- commands.md documents both deft session:start --read-only and task session:start -- --read-only.\n- CHANGELOG Unreleased at this SHA has no inspectable -- passthrough recut for read-only session:start. #4431 closed non-inspectable fail-closed. #4577 closed the opaque deny class.\n\nInventory: inspectHintedLifecycleSessionId matching-owner carve-out; read-only booleanFlags for session:start. Do not invent dropping the chain deny. No implement and no ingest from this parent.\n\n\n",
+          "id": 5735437643,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735437643",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T19:55:46Z",
+          "updated_at": "2026-09-18T19:55:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation of Stop 1 comment 5735437643 target: that `deft session:start -- --read-only` is classified uninspectable (quoting/redirect/pipe/chain) even though the only extra token is Directive own `--` passthrough.\n\nThe target does not survive at dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969.\n\n## 1. Four-token argv is exact, not uninspectable\n\nclass: blocks-the-design\n\nEvidence: ran `inspectExactLifecycleCommand` and `hintUninspectableLifecycleCommand` from dest `packages/core/src/hooks/classify/host-session-identity.ts` (triage line-cite used `packages/core/src/host-session-identity.ts`, which is not in this tree). For Bash, Shell, and `run_terminal_command`, command `deft session:start -- --read-only`:\n\n- `INSPECTABLE_TOKEN_PATTERN` matches both `--` and `--read-only`\n- exact = `{ verb: session:start, requiresOwner: false, rewriteSafe: false, sessionIdStatus: absent }`\n- hinted = null\n\n`directive session:start -- --read-only` is the same pair. `task session:start -- --read-only` is exact with `rewriteSafe: true` because Task `--` is the CLI_ARGS boundary, not an unknown flag. `deft session:start --read-only` is exact with `requiresOwner: false` and `rewriteSafe: true`.\n\nThe occupancy-identity-unavailable copy that names quoting, redirect, pipe, or chain is reached only when exact is null and the hint returns a verb (`attachLifecycleIdentityRewrite` after the shell allow). That pair is false for the documented four-token argv. v0.119.2 `analyzeLifecycleArguments` already continues on unknown flags; it does not return null for `--`.\n\nFailure mode: a next-build that \"makes `--` inspectable\" is already dest behavior. Binding the recorded target recuts the wrong site and cannot produce the 0.119.2 deny string from this argv.\n\nDisposition: do not bind the recorded refutation-target as written.\n\n## 2. rewriteSafe false is not the uninspectable class\n\nclass: sharpens-framing\n\nEvidence: on the deft/directive branch, a lone `--` is an unknown forwarded arg, so `rewriteSafe` is false, while `--read-only` still sets `readOnly` and `requiresOwner` false. `rewriteExactLifecycleCommand` returns null when not rewrite-safe. `attachLifecycleIdentityRewrite` returns the prior allow when `requiresOwner` is false and does not consult `rewriteSafe` for the quoting/pipe/chain copy.\n\nFailure mode: treating \"outside auto-rewrite\" as \"uninspectable\" yields a `--` allowlist that does not touch the deny path.\n\nDisposition: keep rewrite vs hint as separate classes if P1 is restated.\n\n## 3. Exact-miss plus hint is what emits that copy\n\nclass: sharpens-framing\n\nEvidence: `exactLifecycleInvocation` returns null when `command !== command.trim()`, when `split(\" \")` yields an empty token, or when a token fails the inspectable pattern. Those misses still hint `session:start`. Measured hinted=`session:start` for trailing space, leading space, trailing newline, CRLF, double space, tabs, and `deft session:start -- --read-only | Out-Null`. Heredoc `cat <<EOF\\ndeft session:start --read-only\\nEOF` is the same pair. Quoted `echo 'deft session:start -- --read-only'` and `bash -lc '...'` are exact null and hinted null (quoted strings are not invocations).\n\nClosed #4577 body already reproduced the piped form (`-- --read-only` piped to head) plus heredoc compound issue-create, and said a simple re-run works. #4780's second report (a multi-step Shell that only mentioned `session:start` in a heredoc body) is that hint path, not `--`.\n\nFailure mode: the deny text always blames quoting/redirect/pipe/chain, including when the miss is whitespace or a heredoc mention. Agents then add `--session-id=host:claude:v1:…` by trial (#4708 namespace on the claude wire host).\n\nDisposition: a surviving P1 recut is \"exact-miss falls through to a false-cause hint deny\", not \"`--` is uninspectable\". Do not drop the chain deny.\n\n## Injection / swarm\n\nThe surface is occupancy identity and lifecycle `--session-id` rewrite (host owner, concurrent claim). The hint fail-closed on chain/pipe/redirect is load-bearing. Trimming then rewriting a command whose newline hid a second segment would bind the wrong owner. Keep fail-closed on true compound forms. Skipping `--` on the deft branch is not an occupancy-identity control.\n\n## Road not taken\n\nSkip lone `--` on the deft branch to match #3914 CLI skip and Task CLI_ARGS, so `rewriteSafe` stays true for the agents-entry spelling. That does not flip the uninspectable copy, which does not fire on the trimmed four-token argv.\n\nSteelmans of the recorded target: the 0.119.2 Grok deny string is real, so classification must have failed on `--`. Flip condition: `inspectExactLifecycleCommand` returning null for the trimmed four-token command at this SHA. Measured: it does not.\n\n## Footnotes\n\nclass: footnote. Hook tests lock `deft session:start --read-only`, not the agents-entry `deft session:start -- --read-only`. `agents_md_session_start.test.ts` locks `-- --` in agents-entry and forbids that spelling in commands.md (commands.md uses `deft session:start --read-only` and `task session:start -- --read-only`).\n\nclass: footnote. Native host grok is outside `UPDATED_INPUT_WIRE_HOSTS`, so `attachLifecycleIdentityRewrite` is a no-op there. The filed `--session-id=host:claude:v1:` string is the claude wire host (Grok vendor-compat), not native grok.\n\nclass: footnote. `inspectHintedLifecycleSessionId` matching-owner carve-out already allows a hinted command that names the host owner. That is the recovery the deny prints, not evidence that `--` is the illegal token.\n\nInventory: `inspectExactLifecycleCommand`, `hintUninspectableLifecycleCommand`, `inspectHintedLifecycleSessionId`, `analyzeLifecycleArguments` `--read-only` booleanFlags, Task `--` CLI_ARGS boundary, `attachLifecycleIdentityRewrite` hinted deny, #4431, #3914, closed #4577 body. Did not run vitest (dest `node_modules` absent); did run the dest inspect functions via tsx.",
+          "id": 5735550784,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735550784",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:05:48Z",
+          "updated_at": "2026-09-18T20:05:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe recorded target that deft session:start -- --read-only is uninspectable because of Directive own -- does not survive at this SHA. That four-token argv is exact. The deny copy that names quoting, redirect, pipe, or chain fires on exact-miss plus hint (whitespace, heredoc mention, true pipes), not on --. Do not drop the chain deny.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut P1. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4780 inspectable deny after critic 5735550784. Cites critic 5735550784. Supersedes write-back 5735437643.\n\nTarget-digest: sha256:7cceb199e8b3cf35b258df3e9b4253fe3cf6c351b8adfeb9daed042886915067\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4780-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735550784 1 Four-token argv is exact, not uninspectable — accept-into-contract\n- 5735550784 2 rewriteSafe false is not the uninspectable class — accept-into-contract\n- 5735550784 3 Exact-miss plus hint is what emits that copy — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735550784 reading=asserted\n\n## Bound remedy\n\n- Do not bind the recorded refutation-target as written. deft session:start -- --read-only is exact at this SHA.\n- Recut P1 to: exact-miss falls through to a false-cause hint deny (quoting/redirect/pipe/chain copy) when the miss is whitespace, heredoc mention, or a true compound form. Keep fail-closed on true chains.\n- Keep rewriteSafe versus hint as separate classes. Tests: four-token argv exact; trailing space / heredoc mention hinted session:start with that deny copy; piped form still deny.\n\n",
+          "id": 5735576170,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735576170",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:08:11Z",
+          "updated_at": "2026-09-18T20:08:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of successor lean 5735576170 (`relieves: P1` plus Bound remedy) against Stop 1 P1 on 5735437643. Dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969. Did not read comments after 5735576170. Did not ingest.\n\n## 1. Bound-remedy test slice locks the recut defect\n\nclass: blocks-the-design\n\nEvidence: Stop 1 P1 is the NoteTechnic 0.119.2 Grok deny of `deft session:start -- --read-only` with no pipe/redirect in the tool argv, plus a later heredoc mention of session:start, blamed on Directive own `--`. Ran a pin-read replica of dest `exactLifecycleInvocation` / `analyzeLifecycleArguments` (`INSPECTABLE_TOKEN_PATTERN`, trim-then-split, session:start booleanFlags including `--read-only`, unknown flags continue). Trimmed four-token argv is exact (`forwardedArgs: [\"--\", \"--read-only\"]`, `requiresOwner: false`, `rewriteSafe: false`). `directive` four-token is the same pair. `task session:start -- --read-only` is exact with `rewriteSafe: true`. Trailing space, leading space, trailing newline, CRLF, pipe, and heredoc mention are exact-null. Pin-read of tag v0.119.2 uses the same token class and the same trim-then-split exact path, so `--` is not a dest delta versus 0.119.2. Dispatcher `attachLifecycleIdentityRewrite` allows when exact is non-null and `requiresOwner` is false; the quoting/redirect/pipe/chain copy is the exact-null plus hint branch. Lean 5735576170 cites `relieves: P1` and harvests:\n\n- Recut P1 to exact-miss false-cause hint deny (that copy) on whitespace, heredoc mention, or true compound; keep fail-closed on true chains.\n- Tests: four-token argv exact; trailing space / heredoc mention hinted session:start with that deny copy; piped form still deny.\n\nThe test bullet is keep-current language in parallel with \"four-token argv exact\" and \"piped form still deny\".\n\nFailure mode: ingest captures those list items as the next-build. The implementable test slice pins the quoting/redirect/pipe/chain copy on whitespace and heredoc — the same copy the recut names as remaining P1. `relieves: P1` then asserts coverage of a harvest that preserves the recut defect. Tests also name trailing space only; replica exact-null includes newline and CRLF, which Stop 1 did not rule out.\n\nDisposition: do not bind `relieves: P1` with this Bound remedy. Split lock (four-token exact; true pipe/chain still deny) from remainder (whitespace including newline/CRLF, and heredoc mention, must not keep that copy — or the copy must name the miss). Until that split, the harvest does not cover Stop 1 P1.\n\n## Injection / swarm\n\nThe surface is occupancy identity and lifecycle `--session-id` rewrite. Hint fail-closed on true compound forms is load-bearing: trim-then-rewrite of a newline-hidden second segment would bind the wrong owner. Keep that deny. Skipping lone `--` on the deft branch is not an occupancy-identity control and does not flip the uninspectable copy on the trimmed four-token argv.\n\n## Road not taken\n\nRead \"with that deny copy\" as reproducing tests for the recut (red), not keep-current. Steelman: a Spec-path Bound remedy may restate P1 as the next-build problem, and first `relieves` plus Spec-path that supersedes a write-back is a print-false Handoff shape. Flip: the test bullet is parallel to \"piped form still deny\" and \"four-token argv exact\", which are keep-current locks. If the parent meant red tests, the harvest still has to say so; as written it locks the recut defect. That does not flip the blocking heading.\n\n## Footnotes\n\nclass: footnote. Dest `node_modules` absent; did not import dest `hintUninspectableLifecycleCommand`. Exact-null on whitespace/newline is dest `command !== command.trim()`. The deny copy lives on the exact-null plus hint branch in `dispatcher.ts` after the shell allow.\n\nclass: footnote. Native grok is outside `UPDATED_INPUT_WIRE_HOSTS`, so `attachLifecycleIdentityRewrite` is a no-op there. cursor plus `GROK_HOOK_EVENT` returns the prior allow. The filed recovery string `--session-id=host:claude:v1:` is the claude wire host, where this deny path runs. Not a Bound-remedy coverage of P1.\n\nclass: footnote. Dest tests still lock `deft session:start --read-only`, not the agents-entry four-token spelling. Harvest already asks for a four-token exact test; that lock is not the blocking miss.\n\n",
+          "id": 5735714377,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735714377",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:20:56Z",
+          "updated_at": "2026-09-18T20:20:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit found Bound remedy plus its test slice does not cover Stop 1 P1 as written. This map retracts relieves P1. The classified recut (four-token argv is exact; surviving hole is exact-miss false-cause hint deny) stands. P1 as filed stays unmet.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes.\n\nForward verdict: retract relieves. Disposition: classified headings accept-into-contract. Residual: unrelieved P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of #4780 bind after pain-audit 5735714377. Cites critic 5735550784 and pain-audit 5735714377. Supersedes lean 5735576170.\n\nTarget-digest: sha256:7cceb199e8b3cf35b258df3e9b4253fe3cf6c351b8adfeb9daed042886915067\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4780-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735550784 classified headings — accept-into-contract\n- 5735714377 1 Harvest does not cover Stop 1 P1 as written — accept-into-contract\n\ndoes-not-relieve: P1\n\n",
+          "id": 5735725845,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735725845",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:21:53Z",
+          "updated_at": "2026-09-18T20:21:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe -- passthrough target was refuted. Exact-miss false-cause hint deny remains. This map retracts relieves P1 as filed.\n\nThis is not an instruction to a later builder.\n\nopen-question: file leftover for exact-miss hint deny copy that names the actual miss instead of quoting/pipe/chain?\n\nHandoff because does-not-relieve P1 plus Spec-path on successor lean after retraction.\n\n",
+          "id": 5735728750,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735728750",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:22:08Z",
+          "updated_at": "2026-09-18T20:22:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nExact-miss session:start hint deny that blames quoting/pipe/chain is leftover #4793. This number recuts the recorded target: four-token deft session:start -- --read-only is exact at this SHA. It does not close P1 as filed.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4793.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4780 after leftover #4793. Cites critic 5735550784 and pain-audit 5735714377. Supersedes retraction 5735725845.\n\nTarget-digest: sha256:7cceb199e8b3cf35b258df3e9b4253fe3cf6c351b8adfeb9daed042886915067\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4793\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4780-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735550784 classified headings — accept-into-contract\n- 5735714377 1 Harvest does not cover Stop 1 P1 as written — accept-into-contract\n\noperator-deferred: P1 #4793\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735714377 leftover=4793 reading=measured\n\n## Bound remedy\n\n- Do not bind the recorded refutation-target as written. deft session:start -- --read-only is exact at this SHA.\n- Do not claim exact-miss hint deny closed on this number. That remainder is #4793.\n- Keep fail-closed on true compound forms. Keep rewriteSafe versus hint as separate classes.",
+          "id": 5735892785,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735892785",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:37:37Z",
+          "updated_at": "2026-09-18T20:37:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of successor lean 5735892785 (`operator-deferred: P1 #4793` plus Bound remedy) against Stop 1 P1 on 5735437643. Dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969. Did not read comments after 5735892785. Did not ingest.\n\n## 1. Leftover 4793 is a different open issue; Bound remedy does not relieve P1\n\nclass: footnote\n\nEvidence: REST issues/4793 is number 4793, state open, title exact-miss session:start hint deny. 4793 is not 4780. Lean 5735892785 cites `operator-deferred: P1 #4793` and leftover-issue: 4793. Bound remedy: do not bind the recorded refutation-target (four-token argv is exact); do not claim exact-miss hint deny closed on this number (remainder is 4793); keep fail-closed on true compound; keep rewriteSafe versus hint as separate classes. It does not recut the occupancy-identity-unavailable quoting/redirect/pipe/chain copy. It does not add tests that name the miss on whitespace or heredoc mention.\n\nPin-read replica of dest exactLifecycleInvocation / analyzeLifecycleArguments at f33b8b8e: trimmed `deft session:start -- --read-only` and directive four-token are exact (forwardedArgs `--` plus `--read-only`, requiresOwner false, rewriteSafe false). `task session:start -- --read-only` is exact with rewriteSafe true. Trailing space, leading space, double space, and a pipe token are exact-null. Dispatcher attachLifecycleIdentityRewrite (dispatcher.ts 2502-2556) emits that copy only on exact-null plus hint. requiresOwner false returns the prior allow. Bound remedy does not touch that branch.\n\nFailure mode: binding `relieves: P1` on this harvest would close Stop 1 P1 on 4780 while the exact-miss copy still fires. Same-number leftover would be unrelieved-pain, not yolo leftover.\n\nDisposition: keep `operator-deferred: P1 #4793`. Do not bind `relieves: P1` with this Bound remedy.\n\n## Injection / swarm\n\nOccupancy identity and lifecycle --session-id rewrite. Hint fail-closed on true compound stays load-bearing. Trim-then-rewrite of a newline-hidden second segment would bind the wrong owner. Keep that deny. Four-token exact is not coverage of the exact-miss copy.\n\n## Road not taken\n\nRead Bound remedy bullet 1 (four-token exact) as relieving P1 because the filed four-token deny is dest-false. Steelman: Stop 1 P1 as written included that argv, so recutting the recorded target could look like relief. Flip: pain-audit 5735714377 already split lock (four-token exact; true pipe/chain still deny) from remainder (exact-miss copy must name the miss). This harvest keeps the lock, names 4793 as the remainder, and does not change the copy. That does not flip the footnote.\n\n## Footnotes\n\nclass: footnote. Parent token on the lean inserts leftover=4793 between pointer and reading. Closed grammar is audit:<id> sha=... pointer=... reading=measured|asserted. Extra field does not change Bound remedy harvest.\n\nclass: footnote. Native grok is outside UPDATED_INPUT_WIRE_HOSTS, so attachLifecycleIdentityRewrite is a no-op there. The filed --session-id=host:claude:v1: string is the claude wire host. Not Bound-remedy coverage of P1.\n\nclass: footnote. Did not import dest hintUninspectableLifecycleCommand. Exact-null replica is dest command !== command.trim() plus empty or uninspectable tokens. The deny copy lives on the exact-null plus hint branch.\n\n",
+          "id": 5735982019,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735982019",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:01Z",
+          "updated_at": "2026-09-18T20:47:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| operator-deferred: P1 #4793 is a different-issue leftover; this harvest does not relieves exact-miss hint deny | verified | successor lean 5735892785; REST #4793 open; pain-audit 5735982019 footnote-only |\n| Four-token deft session:start -- --read-only is exact at this SHA | verified | critic 5735550784 inspectExactLifecycleCommand replica at f33b8b8e |\n| Exact-miss false-cause hint deny remainder is #4793 | verified | leftover #4793 body; pain-audit 5735982019 |\n\n",
+          "id": 5735988505,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735988505",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:44Z",
+          "updated_at": "2026-09-18T20:47:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nExact-miss session:start hint deny is leftover #4793. Agents agreed this number recuts the recorded -- uninspectable target. Four-token argv is exact. It does not close P1 as filed.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5735892785.\n\n",
+          "id": 5735989954,
+          "html_url": "https://github.com/deftai/directive/issues/4780#issuecomment-5735989954",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:53Z",
+          "updated_at": "2026-09-18T20:47:53Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5502353355,
+        "origin": "deftai/directive#4780",
+        "id": "github.issue.5502353355"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7cceb199e8b3cf35b258df3e9b4253fe3cf6c351b8adfeb9daed042886915067"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "four-token deft session:start -- --read-only stays exact",
+          "do not recut -- as uninspectable",
+          "CHANGELOG [Unreleased] #4780"
+        ],
+        "depends_on": [
+          "github.issue.5504498758"
+        ],
+        "conflict_group": "hooks-lifecycle-inspect",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 4780-lock on #4780; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4808,
+        "prBase": null,
+        "mergeCommit": "203a61ca1cfcfa217e6ec3ea329495829af6d67b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:20:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:20:38Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:20:38Z"
+      }
+    },
+    "id": "github.issue.5502353355",
+    "updated": "2026-09-20T17:20:38Z"
+  }
+}

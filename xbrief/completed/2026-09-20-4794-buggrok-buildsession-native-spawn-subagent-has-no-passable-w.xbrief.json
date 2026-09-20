@@ -1,0 +1,386 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4794",
+    "updated": "2026-09-20T17:21:05Z"
+  },
+  "plan": {
+    "title": "bug(grok-build,session): native spawn_subagent has no passable writing skip-class field",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(grok-build,session): native spawn_subagent has no passable writing skip-class field",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4794",
+      "Overview": "# Native Grok spawn_subagent has no passable writing skip-class field\n\nLeftover of #4781 after critic 5735518259, successor lean 5735576144, and Handoff 5735580987. Operator confirmed the leftover split on 2026-09-18. Do not ingest #4781 as validation-spawn closed.\n\n## Summary\n\nUnmarked dest-cwd general-purpose at zero eligible active briefs still fail-closes #2885 (No active xBRIEF artifact was found under xbrief/active/). Independent validation/review therefore cannot native-spawn without inventing and activating a story brief.\n\nprocess_only skip admits dest cwd at zero, one, or many leftover eligible briefs, but advertised spawn_subagent JSON on this host omits that field (upstream schema ask; #4315). Dest-path is not skip class. plan cannot post. explore is read-only. CLI grok --cwd --prompt-file is already process-only skip and is not spawn_subagent.\n\nSpecs writes after occupancy already exist on requirements posture (#4444). Binding a new specs/**-validation-pass* glob as the spawn remedy leaves native spawn denied.\n\n## Measured (dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969)\n\n- packages/core/src/hooks/readonly.ts: isProcessOnlyCriticSpawn requires plan or process_only; dest-path is not a class.\n- packages/core/src/hooks/dispatcher.ts: spawn with no write target still requires scope (#2885).\n- packages/core/src/hooks/scope.ts: 0 eligible prints the missing-active message.\n- Advertised spawn_subagent fields: prompt, description, subagent_type (general-purpose | explore | plan), background, isolation, resume_from, cwd, model. No process_only, no worker_role.\n\n## Desired shape\n\n- Advertised spawn_subagent grows a writing skip-class field operators can actually pass (process_only or a new named field). Implement-class never sets it.\n- Keep dest-path out of skip class. Keep prompt/free-text classification refused.\n- Spawn without an eligible active brief and specs writes are different gates. Specs writes stay on requirements posture after occupancy. Do not mint a second specs glob as the spawn remedy.\n- Write eligible active xBRIEF, not product xBRIEF. Validation on leftover-active trees is dest-lock, not this P1.\n- Tests: unmarked dest-cwd general-purpose at 0 eligible still #2885; dest-path without the marker is not skip class; a passable writing skip-class field admits dest cwd at 0/1/many leftover without inventing a story brief.\n\n## Out of scope\n\n- Recutting #4781 Expected to skip #2885 on destProven (blocked on #4781).\n- Treating CLI last-resort as native spawn_subagent close.\n- Inventing a fake active xBRIEF as recovery.\n\nRelated: #4781, #2885, #4315, #4296, #4219, #4444, #3080, #3259, #4421, #4575.",
+      "Labels": "bug, agent-experience, process, grok-build, harness, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- When keep advertised passability as the leftover proof. A native spawn_subagent schema field operators can pass (process_only or a new named field). Re-running the #4315 stdin lander fixture does not close this number.\n- When keep dest-path out of skip class. Implement-class never sets the flag.\n- When inventing an active xBRIEF is leftover-class #2885 lead, not skip-class close. CLI last-resort stays native-deny recovery, not spawn_subagent close.\n- When tests: advertised JSON lists a writing skip-class field; native spawn with that field plus dest cwd is spawn-process-only-ready at 0 eligible without inventing a brief; dest-path without the marker is not skip class.",
+      "Test": "When targeted tests on packages/core/src/hooks/classify/payload.ts, packages/core/src/hooks/readonly.ts, packages/core/src/hooks/dispatcher-spawn-dest.test.ts pass for bound contract lean 5736801046."
+    },
+    "items": [
+      {
+        "title": "When keep advertised passability as the leftover proof. A native spawn_subagent schema field operators can pass (process_only or a new named field). Re-running the #4315 stdin lander fixture does not close this number.",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When keep advertised passability as the leftover proof. A native spawn_subagent schema field operators can pass (process_only or a new named field). Re-running the #4315 stdin lander fixture does not close this number."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/payload.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When keep dest-path out of skip class. Implement-class never sets the flag.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When keep dest-path out of skip class. Implement-class never sets the flag."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/payload.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When inventing an active xBRIEF is leftover-class #2885 lead, not skip-class close. CLI last-resort stays native-deny recovery, not spawn_subagent close.",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When inventing an active xBRIEF is leftover-class #2885 lead, not skip-class close. CLI last-resort stays native-deny recovery, not spawn_subagent close."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/payload.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When tests: advertised JSON lists a writing skip-class field; native spawn with that field plus dest cwd is spawn-process-only-ready at 0 eligible without inventing a brief; dest-path without the marker is not skip class.",
+        "status": "completed",
+        "id": "clause:4",
+        "narrative": {
+          "Acceptance": "When tests: advertised JSON lists a writing skip-class field; native spawn with that field plus dest cwd is spawn-process-only-ready at 0 eligible without inventing a brief; dest-path without the marker is not skip class."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/payload.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4794",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4794: bug(grok-build,session): native spawn_subagent has no passable writing skip-class field"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2885",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2885"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When keep advertised passability as the leftover proof. A native spawn_subagent schema field operators can pass (process_only or a new named field). Re-running the #4315 stdin lander fixture does not close this number.",
+          "artifact_path": "packages/core/src/hooks/classify/payload.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When keep dest-path out of skip class. Implement-class never sets the flag.",
+          "artifact_path": "packages/core/src/hooks/classify/payload.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When inventing an active xBRIEF is leftover-class #2885 lead, not skip-class close. CLI last-resort stays native-deny recovery, not spawn_subagent close.",
+          "artifact_path": "packages/core/src/hooks/classify/payload.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When tests: advertised JSON lists a writing skip-class field; native spawn with that field plus dest cwd is spawn-process-only-ready at 0 eligible without inventing a brief; dest-path without the marker is not skip class.",
+          "artifact_path": "packages/core/src/hooks/classify/payload.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/readonly.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "content/docs/grok-build-subscription-setup.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because advertised spawn_subagent JSON still omits a writing skip-class field operators can pass, so unmarked dest-cwd general-purpose at zero eligible briefs fail-closes #2885.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4794-dc\norigin-ref: origin/master\ndispatch-sha: 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick while AFK; leftover Desired shape is tight so default motion N=1.\n\nrefutation-target: native Grok spawn_subagent has no passable writing skip-class field, so independent validation spawn at 0 eligible still requires inventing an active xBRIEF.\n\ntarget: #4794\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is native writing spawn without a passable marker. Keep dest-path out of skip class. Specs writes stay on requirements posture. Write eligible active xBRIEF, not product xBRIEF. Leftover of #4781. CLI last-resort is not native spawn_subagent close.\n\nPin-read at dispatch-sha 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94: readonly.ts isProcessOnlyCriticSpawn; dispatcher.ts spawn still requires scope; advertised spawn_subagent fields omit process_only. Inventory: #2885, #4315, #4296, #4219, #4444. No implement and no ingest from this parent.\n\n",
+          "id": 5736647286,
+          "html_url": "https://github.com/deftai/directive/issues/4794#issuecomment-5736647286",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T21:54:12Z",
+          "updated_at": "2026-09-18T21:54:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation-target: native Grok spawn_subagent has no passable writing skip-class field, so independent validation spawn at 0 eligible still requires inventing an active xBRIEF.\n\nCeiling inclusive 5736647286. Pin-read `git show 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94`. REST issue 4794 plus that write-back only.\n\n## Verdict\n\nThe advertised-field half stands. This seat's native `spawn_subagent` schema still has no writing skip-class field I can pass, and Directive still only honors that class when the marker is already on PreToolUse stdin. The \"so inventing an active xBRIEF\" half does not survive as a necessity. It is leftover-class deny text for unmarked dest-cwd general-purpose, not skip-class close, and it is the anti-pattern this leftover exists to stop.\n\n## 1. Desired tests' third clause is already green via stdin lander\n\nblocks-the-design\n\nEvidence: at 8b4be69, `landProcessOnlyFlagOnToolInput` copies `process_only` / `processOnly` / top-level onto canonical `tool_input` (`packages/core/src/hooks/classify/payload.ts`). Fixture `lands Grok stdin process_only as spawn-process-only-ready at 0, 1, and many leftover briefs (#4315)` injects the flag through `parseHookStdin` JSON and expects allow without `inspectScope` (`dispatcher-spawn-dest.test.ts`). Closed #4315 CHANGELOG: advertised schema is a separate upstream ask. This critic's live `spawn_subagent` parameters match user-guide `16-subagents.md`: prompt, description, subagent_type, background, isolation, resume_from, cwd, model. No `process_only`. No `worker_role`. I have no schema parameter that is that flag.\n\nFailure mode: binding the leftover's Desired tests as written stamps this number closed on the #4315 lander fixture while advertised JSON still omits the field. Operators still cannot native-spawn skip-class. That reprints the closed half of #4315 as if it were this remaining-set.\n\nDisposition: a bindable map must keep advertised passability as the leftover proof, not stdin-injected `process_only`. Re-running the lander fixture does not close #4794. Keep dest-path out of skip class. Do not recut destProven skip to paper over the omit.\n\n## 2. Inventing an xBRIEF is leftover-class deny text, not skip-class recovery\n\nsharpens-framing\n\nEvidence: `overlayGrokCriticSpawnNotReadyRecovery` overlays CLI last-resort only when `isProcessOnlyCriticSpawn` or launcher-family spawn-not-ready (`dispatcher.ts`). That overlay's comment: leftover-class dest-cwd unmarked general-purpose keeps promote-then-activate / unique-basename pin (#4542). Fixture `keeps #2885 on destProven implement-class without process_only` expects `scope:promote` / `scope:activate`, not `grok --cwd --prompt-file`, and expects `GROK_CRITIC_SPAWN_NOT_READY_RECOVERY` not to lead. Critic overlay text: do not lead with `scope:activate` for critic-class. Unmarked dest-cwd general-purpose at 0 eligible cannot take critic-class without the missing advertised field, so native deny names invent/activate. CLI last-resort remains classified process-only skip when dest is present (#4219) and is not `spawn_subagent`.\n\nFailure mode: treating \"requires inventing\" as the remaining required path binds the #4781 Actual anti-pattern (dummy story, dest-lock, #4421 complete). Overlaying critic CLI recovery onto unmarked general-purpose recuts #4542. Closing native spawn by inventing an eligible brief is implement-class dest-lock, which this leftover already names as not this P1.\n\nDisposition: split the compound. Native advertised writing skip-class omit stands. Inventing an active xBRIEF is the leftover-class #2885 lead, not skip-class close. Keep CLI last-resort as native-deny recovery after recorded miss, not as `spawn_subagent` close.\n\n## 3. This dest is not the 0-eligible class\n\nfootnote\n\nEvidence: `git ls-tree` at 8b4be69 lists `xbrief/active/2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json` with `plan.status` running. Playbook: 1 eligible plus dest cwd plus parent id is spawn-ready implement-class (dest-lock, leftover `file_scope`). 0 eligible is tests plus #4315 / #4781 Actual, not this dest.\n\nFailure mode: citing this dest as missing-active misreads leftover-active dest-lock as P1.\n\nDisposition: keep P1 as the 0-eligible class. Validation on leftover-active trees is dest-lock, not this number.\n\n## Injection / swarm\n\nsharpens-framing\n\nSpawn, dest occupancy, and shared dest are in play.\n\n- Prompt, description, and dest-path stay refused as class. `isolation=worktree` plus cwd stays invalid-extra-destination.\n- `plan` is advertised skip-class and cannot post (measured #4354 / playbook). Do not make it the writing seat.\n- `explore` is spawn-explore-ready with shell and no file edits. It does not close writing skip-class.\n- Implement envelope signals still win over `process_only`. Advertising the flag does not add a Directive predicate; it only makes the existing stdin marker reachable. Child Edit still hits #2885. Shell `gh issue comment --body-file` stays unclassifiable allow.\n- N writing validators as unmarked general-purpose dest-lock occupy dest. Skip-class shares dest cwd-without-occupy. Growing advertised JSON is that hatch, not destProven skip.\n\n## Road not taken\n\nStrongest rejected position: this leftover is already shipped as #4315 lander plus CLI last-resort.\n\nSteelman: stdin `process_only` allows spawn-process-only-ready at 0/1/many leftover; dest-path is not class; CLI argv dest-present is the same skip; playbook already says pass is the field on stdin.\n\nWhat would flip: this session's advertised `spawn_subagent` JSON lists a writing skip-class field operators can pass, and a native spawn with that field plus dest cwd is spawn-process-only-ready without an eligible brief. Until then the advertised omit stands and stdin lander tests do not close it.\n\n## Inventory (existing, not new)\n\n- process_only stdin lander (#4315)\n- plan skip-class, no post (#4241 / #4354)\n- explore read-only spawn (#1185)\n- CLI grok --cwd --prompt-file (#4219 / #4391)\n- leftover-class #2885 promote-then-activate lead (#4542)\n- ephemeral/docs/assist (#3080 / #3259); Grok advertised schema has no worker_role\n- requirements posture specs writes (#4444); spawn tools never take that branch\n- dest-path not skip class (#4296)\n\n## Re-verification\n\nPin-read at 8b4be69: `readonly.ts`, `dispatcher.ts` overlay, `payload.ts` lander, `spawn-occupancy.ts` recovery, `dispatcher.test.ts` process-only, `dispatcher-spawn-dest.test.ts` 0/1/many leftover and #2885 destProven, `grok-build-subscription-setup.md` critic spawn, user-guide `16-subagents.md` parameter table. REST: issue 4794 body, write-back 5736647286, closed #4315, #4781 inventory. Live advertised `spawn_subagent` in this seat omits `process_only`. Dest vitest did not start (no vitest package in this worktree); not used as proof. Did not spawn a child (1 eligible #4744 on this dest would dest-lock if the flag were stripped). Did not implement. Did not ingest.",
+          "id": 5736753718,
+          "html_url": "https://github.com/deftai/directive/issues/4794#issuecomment-5736753718",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:05:30Z",
+          "updated_at": "2026-09-18T22:05:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAdvertised spawn_subagent JSON still has no writing skip-class field operators can pass. Stdin lander tests already green on #4315 do not close this leftover. Inventing an active xBRIEF is leftover-class #2885 deny text, not skip-class close.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Desired tests. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4794 advertised passability after critic 5736753718. Cites critic 5736753718. Supersedes write-back 5736647286.\n\nTarget-digest: sha256:139ce60d1356b39ab5fac18540fdc469fc8cb62753972e2ca4dc93764cf9468d\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4794-dc\norigin-ref: origin/master\ndispatch-sha: 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94\ntarget shape: single-issue\n\nTakes:\n\n- 5736753718 1 Desired tests third clause is already green via stdin lander — accept-into-contract\n- 5736753718 2 Inventing an xBRIEF is leftover-class deny text, not skip-class recovery — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=8b4be69db9dae571c72eb9dd8e2ebd49b601cf94 pointer=comment:5736753718 reading=asserted\n\n## Bound remedy\n\n- Keep advertised passability as the leftover proof. A native spawn_subagent schema field operators can pass (process_only or a new named field). Re-running the #4315 stdin lander fixture does not close this number.\n- Keep dest-path out of skip class. Implement-class never sets the flag.\n- Inventing an active xBRIEF is leftover-class #2885 lead, not skip-class close. CLI last-resort stays native-deny recovery, not spawn_subagent close.\n- Tests: advertised JSON lists a writing skip-class field; native spawn with that field plus dest cwd is spawn-process-only-ready at 0 eligible without inventing a brief; dest-path without the marker is not skip class.",
+          "id": 5736801046,
+          "html_url": "https://github.com/deftai/directive/issues/4794#issuecomment-5736801046",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:11:03Z",
+          "updated_at": "2026-09-18T22:11:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of successor lean 5736801046 `relieves: P1` vs Stop 1 write-back 5736647286. Ceiling inclusive 5736801046. Pin-read `git show 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94`.\n\n## Verdict\n\nBound-remedy covers Stop 1 P1. The `relieves: P1` cite holds. No harvest change.\n\nStop 1 P1 is native writing spawn without a passable marker. Keep dest-path out of skip class. Specs writes stay on requirements posture. Write eligible active xBRIEF, not product xBRIEF. CLI last-resort is not native `spawn_subagent` close.\n\nHarvest on 5736801046 matches that pain: advertised passability as leftover proof (a native `spawn_subagent` schema field operators can pass: `process_only` or a new named field); re-running the #4315 stdin lander fixture does not close this number; dest-path stays out of skip class; inventing an xBRIEF is leftover-class #2885 lead; CLI last-resort stays native-deny recovery; tests require advertised JSON lists the field, native spawn with that field plus dest cwd is `spawn-process-only-ready` at 0 eligible without inventing a brief, and dest-path without the marker is not skip class.\n\n## 1. Specs-writes keep is omitted from harvest and cannot false-close P1\n\nfootnote\n\nEvidence: at 8b4be69, `decideHook` takes requirements posture only when `!isSpawnTool(toolName)` (`dispatcher.ts`). Spawn tools never return `write-requirements-ready`. `commands.md`: requirements posture is not a spawn class.\n\nFailure mode: minting a second `specs/**` glob as a spawn remedy would not skip #2885 and would not satisfy the advertised-JSON or `spawn-process-only-ready` tests.\n\nDisposition: leave harvest as written. Bind map stays bindable.\n\n## 2. A new named field is not skip-class until lander and predicate honor it\n\nfootnote\n\nEvidence: `PROCESS_ONLY_FLAG_KEYS` / `PROCESS_ONLY_CRITIC_FLAG_KEYS` are `process_only` and `processOnly` only (`payload.ts`, `readonly.ts`). `isProcessOnlyCriticSpawn` is Grok `spawn_subagent` plus `plan` or that flag. Implement envelope signals win.\n\nFailure mode: advertising a new key without growing the lander and predicate would still deny unmarked dest-cwd general-purpose at 0 eligible (`keeps #2885 on destProven implement-class without process_only`).\n\nDisposition: Bound-remedy tests already require `spawn-process-only-ready` with the chosen field. No harvest change.\n\n## 3. This dest is leftover-active, not the 0-eligible class\n\nfootnote\n\nEvidence: `git ls-tree` at 8b4be69 lists `xbrief/active/2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json` with `plan.status` running.\n\nFailure mode: citing this dest as missing-active misreads dest-lock as P1.\n\nDisposition: Bound-remedy tests the 0-eligible class. Keep P1 there.\n\n## Injection / swarm\n\nSpawn, dest occupancy, and shared dest are in play.\n\n- Prompt, description, and dest-path stay refused as class. `isolation=worktree` plus cwd stays invalid-extra-destination.\n- `plan` is advertised skip-class and cannot post (user-guide `16-subagents.md`: plan cannot edit files). Do not make it the writing seat.\n- `explore` is `spawn-explore-ready`. It does not close writing skip-class.\n- Implement envelope signals still win over `process_only`. Advertising the flag does not add a Directive predicate; it makes the existing stdin marker reachable. Child Edit still hits #2885. Shell `gh issue comment --body-file` stays unclassifiable allow.\n- N writing validators as unmarked general-purpose dest-lock occupy dest. Skip-class shares dest cwd-without-occupy. Growing advertised JSON is that hatch. Do not skip #2885 on destProven.\n- `overlayGrokCriticSpawnNotReadyRecovery` does not prefix CLI last-resort on unmarked leftover-class dest-cwd general-purpose (`dispatcher-spawn-dest.test.ts`: recovery false; message has promote-then-activate, not `grok --cwd --prompt-file`). CLI stays native-deny recovery after recorded miss.\n\n## Road not taken\n\nStrongest rejected position: `relieves: P1` is a false cite because tests 2 and 3 are already green via the #4315 lander.\n\nSteelman: `lands Grok stdin process_only as spawn-process-only-ready at 0, 1, and many leftover briefs` injects the flag through `parseHookStdin` and allows without `inspectScope`. Dest-path without the marker already denies. Overlay already withholds CLI from unmarked #2885.\n\nWhat would flip: Bound-remedy closed this number by re-running that lander, or by treating dest-path / CLI / a fake active xBRIEF as skip-class close. Item 1 forbids the lander close. Live advertised `spawn_subagent` in this seat still lists prompt, description, subagent_type, background, isolation, resume_from, cwd, model. No `process_only`. No `worker_role`.\n\n## Inventory (existing, not new)\n\n- process_only stdin lander (#4315)\n- plan skip-class, no post (#4241 / #4354)\n- explore read-only spawn (#1185)\n- CLI grok --cwd --prompt-file (#4219 / #4391)\n- leftover-class #2885 promote-then-activate lead (#4542)\n- ephemeral/docs/assist (#3080 / #3259); advertised schema has no worker_role\n- requirements posture specs writes (#4444); spawn tools never take that branch\n- dest-path not skip class (#4296)\n\n## Re-verification\n\nPin-read at 8b4be69: `readonly.ts` `isProcessOnlyCriticSpawn`, `payload.ts` lander, `dispatcher.ts` spawn skip and requirements `!isSpawnTool` branch, `overlayGrokCriticSpawnNotReadyRecovery`, `dispatcher-spawn-dest.test.ts` #2885 destProven and 0/1/many leftover lander, playbook critic spawn (advertised JSON omitting is a separate upstream ask; pass is the field on stdin — that omit is this leftover), user-guide `16-subagents.md` parameter table. REST: issue 4794 body, Stop 1 5736647286, critic 5736753718, successor lean 5736801046. Live advertised `spawn_subagent` omits `process_only`. Dest has 1 eligible #4744; did not spawn a child. Did not implement. Did not ingest.",
+          "id": 5736872358,
+          "html_url": "https://github.com/deftai/directive/issues/4794#issuecomment-5736872358",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:19:45Z",
+          "updated_at": "2026-09-18T22:19:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Advertised spawn_subagent has no passable writing skip-class field | verified | critic 5736753718 live schema; pain-audit 5736872358 |\n| #4315 stdin lander tests do not close this leftover | verified | critic heading 1 |\n| Inventing an xBRIEF is leftover-class #2885, not skip-class close | verified | critic heading 2 |\n\n",
+          "id": 5736910426,
+          "html_url": "https://github.com/deftai/directive/issues/4794#issuecomment-5736910426",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:24:18Z",
+          "updated_at": "2026-09-18T22:24:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nNative spawn_subagent still has no advertised writing skip-class field operators can pass. Stdin lander tests already green on #4315 do not close this leftover.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5736801046.\n\n",
+          "id": 5736912901,
+          "html_url": "https://github.com/deftai/directive/issues/4794#issuecomment-5736912901",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:24:34Z",
+          "updated_at": "2026-09-18T22:24:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5504498772,
+        "origin": "deftai/directive#4794",
+        "id": "github.issue.5504498772"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "139ce60d1356b39ab5fac18540fdc469fc8cb62753972e2ca4dc93764cf9468d"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/readonly.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "content/docs/grok-build-subscription-setup.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "advertised writing skip-class field on spawn_subagent",
+          "dest-path without marker is not skip class",
+          "spawn-process-only-ready at 0 eligible without inventing a brief",
+          "CHANGELOG [Unreleased] #4794"
+        ],
+        "depends_on": [],
+        "conflict_group": "spawn-skip-class",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5736801046 on #4794; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4807,
+        "prBase": null,
+        "mergeCommit": "507c47576414bc7aef017068f4708d9324a0feab",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:21:05Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:21:05Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:21:05Z"
+      }
+    },
+    "id": "github.issue.5504498772",
+    "updated": "2026-09-20T17:21:05Z"
+  }
+}

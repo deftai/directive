@@ -1,0 +1,433 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4793",
+    "updated": "2026-09-20T17:20:58Z"
+  },
+  "plan": {
+    "title": "bug(hooks,cli): exact-miss session:start hint deny blames quoting/pipe/chain",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(hooks,cli): exact-miss session:start hint deny blames quoting/pipe/chain",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4793",
+      "Overview": "# Exact-miss session:start hint deny names quoting/pipe/chain when those tokens are absent\n\nLeftover of #4780 after blocking pain-audit 5735714377, retraction 5735725845, and Handoff 5735728750. Operator confirmed the leftover split on 2026-09-18. Do not ingest #4780 as double-dash uninspectable closed.\n\n## Summary\n\nThe recorded #4780 target (deft session:start -- --read-only is uninspectable because of Directive own --) does not survive at dispatch-sha f33b8b8e. That four-token argv is exact. hintUninspectableLifecycleCommand is null. The occupancy-identity-unavailable copy that names quoting, redirect, pipe, or chain does not fire on that argv.\n\nThat copy fires when inspectExactLifecycleCommand is null and the hint still returns session:start: trailing/leading space, newline, CRLF, double space, tabs, true pipes, and a heredoc body that only mentions session:start. Agents then add --session-id=host:claude:v1:... by trial (#4708 namespace on the claude wire host).\n\nClosed #4577 already reproduced the piped form plus heredoc compound issue-create. The surviving recut is false-cause hint deny on exact-miss, not making -- inspectable.\n\n## Measured (dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969)\n\n- packages/core/src/hooks/classify/host-session-identity.ts: inspectExactLifecycleCommand for deft session:start -- --read-only is verb session:start, requiresOwner false. Lone -- is an unknown forwarded arg so rewriteSafe is false; that is not the uninspectable class.\n- packages/core/src/hooks/dispatcher.ts 2502-2556: hinted deny copy is occupancy-identity-unavailable quoting/redirect/pipe/chain.\n- Tests lock deft session:start --read-only as exact. agents_md_session_start.test.ts locks deft session:start -- --read-only in agents-entry. commands.md uses deft session:start --read-only and task session:start -- --read-only.\n\n## Desired shape\n\n- When exact is null and the hint returns a lifecycle verb, deny text names the actual miss (whitespace, empty token, heredoc mention, pipe, chain). Do not blame quoting/redirect/pipe/chain when those tokens are absent.\n- Keep fail-closed on true compound forms. Do not trim-then-rewrite a command whose newline hid a second segment.\n- Keep rewriteSafe versus hint as separate classes. Do not bind -- as uninspectable. Four-token deft session:start -- --read-only stays exact.\n- Tests: four-token argv exact; trailing space / heredoc mention hinted session:start with a deny copy that names the miss; piped form still deny.\n\n## Out of scope\n\n- Recutting -- as uninspectable (refuted on #4780).\n- Dropping the chain/pipe/redirect fail-closed.\n- Native grok UPDATED_INPUT_WIRE_HOSTS rewrite (native grok is outside that set; filed --session-id=host:claude:v1: is the claude wire host).\n\nRelated: #4780, #4577, #4431, #3914, #4708.",
+      "Labels": "bug, agent-experience, grok-build, area:cli, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- When inspectExactLifecycleCommand is null and the hint is session:start and quoting/redirect/pipe/chain tokens are absent, deny text names the actual miss. Measured class: leading/trailing space, double space, tab.\n- When keep fail-closed on pipe, redirect, newline, and chain. Name those as the actual miss. Do not put them in the false-cause leftover.\n- When drop heredoc-mention as a distinct false-cause class. Split line-start newline (keep fail-closed) from mid-line mention (no hint).\n- When drop the trial conjunct. Recut copy does not remove --session-id=. Four-token deft session:start -- --read-only stays exact.\n- When for requiresOwner false session:start --read-only, a miss that is only horizontal whitespace must not demand --session-id. Do not trim-then-rewrite across newline.",
+      "Test": "When targeted tests on packages/core/src/hooks/dispatcher.ts, packages/core/src/hooks/classify/host-session-identity.ts, packages/core/src/hooks/dispatcher.test.ts pass for bound contract lean 5736801043."
+    },
+    "items": [
+      {
+        "title": "When inspectExactLifecycleCommand is null and the hint is session:start and quoting/redirect/pipe/chain tokens are absent, deny text names the actual miss. Measured class: leading/trailing space, double space, tab.",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When inspectExactLifecycleCommand is null and the hint is session:start and quoting/redirect/pipe/chain tokens are absent, deny text names the actual miss. Measured class: leading/trailing space, double space, tab."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When keep fail-closed on pipe, redirect, newline, and chain. Name those as the actual miss. Do not put them in the false-cause leftover.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When keep fail-closed on pipe, redirect, newline, and chain. Name those as the actual miss. Do not put them in the false-cause leftover."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When drop heredoc-mention as a distinct false-cause class. Split line-start newline (keep fail-closed) from mid-line mention (no hint).",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When drop heredoc-mention as a distinct false-cause class. Split line-start newline (keep fail-closed) from mid-line mention (no hint)."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When drop the trial conjunct. Recut copy does not remove --session-id=. Four-token deft session:start -- --read-only stays exact.",
+        "status": "completed",
+        "id": "clause:4",
+        "narrative": {
+          "Acceptance": "When drop the trial conjunct. Recut copy does not remove --session-id=. Four-token deft session:start -- --read-only stays exact."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When for requiresOwner false session:start --read-only, a miss that is only horizontal whitespace must not demand --session-id. Do not trim-then-rewrite across newline.",
+        "status": "completed",
+        "id": "clause:5",
+        "narrative": {
+          "Acceptance": "When for requiresOwner false session:start --read-only, a miss that is only horizontal whitespace must not demand --session-id. Do not trim-then-rewrite across newline."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "grok-build",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4793",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4793: bug(hooks,cli): exact-miss session:start hint deny blames quoting/pipe/chain"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4577",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4577"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When inspectExactLifecycleCommand is null and the hint is session:start and quoting/redirect/pipe/chain tokens are absent, deny text names the actual miss. Measured class: leading/trailing space, double space, tab.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When keep fail-closed on pipe, redirect, newline, and chain. Name those as the actual miss. Do not put them in the false-cause leftover.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When drop heredoc-mention as a distinct false-cause class. Split line-start newline (keep fail-closed) from mid-line mention (no hint).",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When drop the trial conjunct. Recut copy does not remove --session-id=. Four-token deft session:start -- --read-only stays exact.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When for requiresOwner false session:start --read-only, a miss that is only horizontal whitespace must not demand --session-id. Do not trim-then-rewrite across newline.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because when inspectExactLifecycleCommand is null and the hint still returns session:start, the occupancy-identity-unavailable copy names quoting/redirect/pipe/chain even when those tokens are absent.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4793-dc\norigin-ref: origin/master\ndispatch-sha: 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick while AFK; leftover Desired shape is tight so default motion N=1.\n\nrefutation-target: exact-miss plus hint emits a false-cause quoting/pipe/chain deny for whitespace, heredoc mention, and true compounds, and that copy is why agents add --session-id=host:claude:v1 by trial.\n\ntarget: #4793\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the false-cause hint deny. Four-token deft session:start -- --read-only is exact at parent-arc SHA and is not this leftover. Keep fail-closed on true compounds. Do not bind -- as uninspectable. Leftover of #4780.\n\nPin-read at dispatch-sha 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94: host-session-identity.ts inspectExactLifecycleCommand and dispatcher.ts 2502-2556 hinted deny copy. Inventory: #4577, #4431, #3914, #4708. No implement and no ingest from this parent.\n\n",
+          "id": 5736647218,
+          "html_url": "https://github.com/deftai/directive/issues/4793#issuecomment-5736647218",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T21:54:12Z",
+          "updated_at": "2026-09-18T21:54:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation of Stop 1 comment 5736647218 at dispatch-sha 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94.\n\nThe target does not survive intact. Horizontal-whitespace exact-miss plus hint does emit the quoting/pipe/chain occupancy-identity-unavailable copy. True compounds, heredoc mention as one class, and \"that copy is why agents add --session-id=host:claude:v1 by trial\" do not.\n\nMethod: pin-read `packages/core/src/hooks/classify/host-session-identity.ts` and `packages/core/src/hooks/dispatcher.ts` at that SHA; ran `decideHook` + `inspectExactLifecycleCommand` + `hintUninspectableLifecycleCommand` on the argv below; re-ran `dispatcher.test.ts` \"uninspectable lifecycle identity rewrite\" (16 passed).\n\n## 1. True compounds are not false-cause\n\nsharpens-framing\n\nEvidence: `deft session:start --read-only | head` and `deft session:start && echo ok` are exact-null, hint `session:start`, deny `occupancy-identity-unavailable` with \"(quoting, redirect, pipe, or chain)\". Pipe and `&&` are present. `dispatcher.test.ts` locks the chained form and the matching `--session-id` allow. `exactLifecycleInvocation` comments that quoting, redirection, and chaining are the exact-null class.\n\nFailure mode: calling that copy false-cause on true compounds recuts #4431 / #4577 fail-closed as if the parenthetical were a lie.\n\nDisposition: keep fail-closed on pipe, redirect, newline, and chain. Name those as the actual miss. Do not put them in the false-cause leftover.\n\n## 2. Heredoc mention is not one miss class\n\nsharpens-framing\n\nEvidence at this SHA:\n\n- `cat <<EOF` then `please run deft session:start next` then `EOF` — hint null, allow. Mid-line mention is argument-position, same as `echo deft session:start`.\n- `cat <<EOF` then `deft session:start` then `EOF` — hint `session:start`, deny with the stock copy. That is newline executable-position (#4431), not a mention.\n- `cat <<'EOF' | gh issue create --body-file -` with a body line that mentions `deft session:start` — hint null, allow.\n\nFailure mode: \"heredoc mention\" as a third false-cause exemplar either over-denies a newline compound or names a shape that does not fire.\n\nDisposition: drop heredoc-mention as a distinct false-cause class, or split line-start newline (keep fail-closed) from mid-line mention (no hint).\n\n## 3. The stock copy instructs --session-id; it is not a trial of host:claude:v1\n\nsharpens-framing\n\nEvidence: the hinted deny is one string: not inspectable (quoting, redirect, pipe, or chain). Re-run as a simple command with `--session-id=${named}`. On host `claude`, `named` is `host:claude:v1:c2Vzc2lvbi1h`. Trailing-space `--read-only` plus that owner allows. `dispatcher.test.ts` locks chained start plus matching owner as allow. Native host `grok` skips `attachLifecycleIdentityRewrite` (`UPDATED_INPUT_WIRE_HOSTS` is codex, claude, cursor): trailing space and pipe on grok allow with no copy. Host `claude` plus `GROK_HOOK_EVENT` names `--session-id=host:grok:v1:...`, not claude.\n\nFailure mode: treating leftover success as \"agents stop adding `--session-id=host:claude:v1` by trial\" cannot be delivered by recutting the parenthetical. The next sentence still names the recovery the matching-id path honours. Issue Out of scope already parks native grok rewrite and the claude wire namespace.\n\nDisposition: drop the trial conjunct from the target. P1 stays the false-cause parenthetical on misses that are not quoting/redirect/pipe/chain. Recut copy does not remove `--session-id=`.\n\n## 4. Copy-only recut leaves --read-only whitespace as an owner deny\n\nsharpens-framing\n\nEvidence: `deft session:start --read-only` is exact, `requiresOwner` false, allow, no rewrite. The same argv with leading space, trailing space, double space, or tab is exact-null (`command !== command.trim()`, empty token from `split(\" \")`, or `INSPECTABLE_TOKEN_PATTERN`), hint `session:start`, deny `occupancy-identity-unavailable` asking for `--session-id=host:claude:v1:...`. CRLF is different: the hint tokenizer emits a newline chain token.\n\nFailure mode: agents following the copy bind occupancy identity onto a read-only alignment that the trimmed form does not require. A parenthetical recut still denies.\n\nDisposition: name this remainder if the leftover stays copy-only. Do not trim-then-rewrite across newline.\n\n## Injection / swarm lens\n\nThe target changes identity and untrusted shell text, and the deny string is an envelope agents execute.\n\nMatching `--session-id` still allows hinted compounds, including whitespace and `&&`. That is the #4431 escape hatch. Copy recut does not close it. If deny text names the miss, use a closed class (whitespace | empty-token | newline | pipe | redirect | quote | chain). Do not splice command bytes into the envelope.\n\n## Road not taken\n\nHorizontal-only trim so `deft session:start --read-only ` stays exact / `requiresOwner` false. Rejected for this leftover because Desired shape keeps fail-closed and forbids trim-then-rewrite when a newline hid a second segment. Steelman of one stock copy: \"re-run as a simple command\" is the recovery for every exact-null hint, so a taxonomy is extra. What flips that: the whitespace `--read-only` form is already simple except whitespace, and the stock cause sends the agent to `--session-id` instead of deleting a space.\n\n## What survives\n\nOn `UPDATED_INPUT_WIRE_HOSTS`, when `inspectExactLifecycleCommand` is null and the hint is `session:start` and quoting/redirect/pipe/chain tokens are absent, the `occupancy-identity-unavailable` copy still blames those tokens. Measured: leading/trailing space, double space, tab. Four-token `deft session:start -- --read-only` stays exact, `requiresOwner` false, hint null. Do not recut `--` as uninspectable.",
+          "id": 5736740543,
+          "html_url": "https://github.com/deftai/directive/issues/4793#issuecomment-5736740543",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:04:09Z",
+          "updated_at": "2026-09-18T22:04:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe leftover is horizontal-whitespace exact-miss (leading/trailing/double space or tab) that still blames quoting, redirect, pipe, or chain. True compounds stay fail-closed. Heredoc mention is not one miss class. The stock copy still names --session-id recovery; that is not a trial of host:claude:v1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut leftover. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4793 whitespace false-cause after critic 5736740543. Cites critic 5736740543. Supersedes write-back 5736647218.\n\nTarget-digest: sha256:0de00287e426893f7a5016bed57a515c3c8dcc3165fcfe28c0765dd600c082e8\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4793-dc\norigin-ref: origin/master\ndispatch-sha: 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94\ntarget shape: single-issue\n\nTakes:\n\n- 5736740543 1 True compounds are not false-cause — accept-into-contract\n- 5736740543 2 Heredoc mention is not one miss class — accept-into-contract\n- 5736740543 3 The stock copy instructs --session-id; it is not a trial of host:claude:v1 — accept-into-contract\n- 5736740543 4 Copy-only recut leaves --read-only whitespace as an owner deny — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=8b4be69db9dae571c72eb9dd8e2ebd49b601cf94 pointer=comment:5736740543 reading=asserted\n\n## Bound remedy\n\n- When inspectExactLifecycleCommand is null and the hint is session:start and quoting/redirect/pipe/chain tokens are absent, deny text names the actual miss. Measured class: leading/trailing space, double space, tab.\n- Keep fail-closed on pipe, redirect, newline, and chain. Name those as the actual miss. Do not put them in the false-cause leftover.\n- Drop heredoc-mention as a distinct false-cause class. Split line-start newline (keep fail-closed) from mid-line mention (no hint).\n- Drop the trial conjunct. Recut copy does not remove --session-id=. Four-token deft session:start -- --read-only stays exact.\n- For requiresOwner false session:start --read-only, a miss that is only horizontal whitespace must not demand --session-id. Do not trim-then-rewrite across newline.",
+          "id": 5736801043,
+          "html_url": "https://github.com/deftai/directive/issues/4793#issuecomment-5736801043",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:11:03Z",
+          "updated_at": "2026-09-18T22:11:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of `relieves: P1` on successor lean 5736801043 at dispatch-sha 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94. Ceiling 5736801043 inclusive.\n\nStop 1 P1 (5736647218) is the false-cause `occupancy-identity-unavailable` copy: exact is null, hint is `session:start`, and the deny names quoting/redirect/pipe/chain when those tokens are absent. Four-token `deft session:start -- --read-only` is exact and is not this leftover.\n\nMethod: pin-read `packages/core/src/hooks/classify/host-session-identity.ts` and `packages/core/src/hooks/dispatcher.ts` 2491-2556 at that SHA. Ran `inspectExactLifecycleCommand`, `hintUninspectableLifecycleCommand`, and `decideHook` (host `claude`, ready seams) on the argv below.\n\n## 1. Bound-remedy covers Stop 1 P1\n\nfootnote\n\nEvidence: Bound-remedy item 1 is that When-clause. On host `claude` the stock copy still fires for the measured class: leading/trailing space, double space, leading/trailing tab, tab-as-separator, including `deft session:start --read-only` with those misses. Message is one string: not inspectable (quoting, redirect, pipe, or chain). Re-run as a simple command with `--session-id=host:claude:v1:c2Vzc2lvbi1h`. Exact `deft session:start --read-only` is `requiresOwner` false, hint null, allow. Four-token `deft session:start -- --read-only` is exact, `requiresOwner` false, `rewriteSafe` false, hint null, allow. Pipe, `&&`, and `2>&1` have those tokens; fail-closed is true-cause. Heredoc mid-line mention (`please run deft session:start next`) is hint null, allow. Host `grok` allows the whitespace and pipe forms (no copy). Matching `--session-id` on trailing-space `--read-only` already allows.\n\nFailure mode: none on the `relieves: P1` cite. Item 1 harvests the P1 recut.\n\nDisposition: `relieves: P1` holds. Lean 5736801043 can bind as written for this id.\n\n## 2. Measured class is examples, not an exclusive leftover set\n\nsharpens-framing\n\nEvidence: the same stock copy fires at this SHA for other exact-null + hint `session:start` argv where quoting/redirect/pipe/chain tokens are absent: NBSP / em-space / VT / FF (JS `trim` / `\\s` class), `$FOO`, `%CD%`, `@args`, `*`, `~`, and `# foo`. Trailing CR/LF is exact-null via `trim` and the hint tokenizer emits a `\\n` chain token with no second segment. Bound-remedy item 2 already fail-closes newline. Item 1's When-clause already covers the tokens-absent set; the measured class lists ASCII space/tab only.\n\nFailure mode: locking next-build tests to leading/trailing space, double space, and tab leaves those other tokens-absent misses on the stock parenthetical.\n\nDisposition: keep item 1's When-clause as the leftover. Read the measured class as the cases re-run here, not a closed exclusive set. Does not retract `relieves: P1`. Does not change the harvested leftover if that When-clause stays the item.\n\n## 3. Item 5 is already the --read-only whitespace remainder\n\nfootnote\n\nEvidence: `deft session:start --read-only` with only horizontal whitespace still denies and demands `--session-id=` even though the trimmed form is `requiresOwner` false. Bound-remedy item 5 already forbids that demand and forbids trim-then-rewrite across newline. Item 4 keeps `--session-id=` on the recut copy for the rest.\n\nFailure mode: none for P1 coverage. Item 5 is extra remainder from critic 5736740543 heading 4, already harvested.\n\nDisposition: no new bind lean from this heading.\n\n## Injection / swarm lens\n\nThe deny string is an envelope agents execute. Item 1 says name the actual miss. Use a closed class; do not splice command bytes into that envelope. Copy recut does not close the matching `--session-id` hatch on hinted compounds.\n\n## Road not taken\n\nTreat expansion / Unicode-trim misses as unrelieved P1 and block bind. Rejected because item 1's When-clause is the P1 leftover and is already on the harvest. What flips that: a later parser or AC that takes only the measured-class substring as the next-build set.",
+          "id": 5736900149,
+          "html_url": "https://github.com/deftai/directive/issues/4793#issuecomment-5736900149",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:23:10Z",
+          "updated_at": "2026-09-18T22:23:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nPain-audit 5736900149 returned one sharpens-framing take that does not change harvested Bound-remedy. Bind remains successor lean 5736801043. No extra Lean heading.\n\nTakes: 5736900149 treat the measured whitespace class as examples, not an exclusive leftover set — accept-into-contract as inventory. Harvest unchanged.",
+          "id": 5736904841,
+          "html_url": "https://github.com/deftai/directive/issues/4793#issuecomment-5736904841",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:23:41Z",
+          "updated_at": "2026-09-18T22:23:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Horizontal-whitespace exact-miss blames quoting/pipe/chain | verified | critic 5736740543 decideHook probes; pain-audit 5736900149 |\n| True compounds stay fail-closed | verified | dispatcher.test.ts uninspectable rewrite; critic heading 1 |\n| Four-token deft session:start -- --read-only stays exact | verified | inspectExactLifecycleCommand at 8b4be69d |\n\n",
+          "id": 5736910438,
+          "html_url": "https://github.com/deftai/directive/issues/4793#issuecomment-5736910438",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:24:18Z",
+          "updated_at": "2026-09-18T22:24:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nExact-miss session:start that is only horizontal whitespace still blames quoting, pipe, or chain. True compounds stay fail-closed. Four-token -- --read-only stays exact.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5736801043.\n\n",
+          "id": 5736912908,
+          "html_url": "https://github.com/deftai/directive/issues/4793#issuecomment-5736912908",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:24:34Z",
+          "updated_at": "2026-09-18T22:24:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5504498758,
+        "origin": "deftai/directive#4793",
+        "id": "github.issue.5504498758"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0de00287e426893f7a5016bed57a515c3c8dcc3165fcfe28c0765dd600c082e8"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "whitespace exact-miss deny names the actual miss",
+          "true pipe/chain still fail-closed",
+          "four-token deft session:start -- --read-only stays exact",
+          "CHANGELOG [Unreleased] #4793"
+        ],
+        "depends_on": [],
+        "conflict_group": "hooks-lifecycle-inspect",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5736801043 on #4793; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4802,
+        "prBase": null,
+        "mergeCommit": "84a1be17b17245388769161188f35a4704a461e6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:20:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:20:58Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:20:58Z"
+      }
+    },
+    "id": "github.issue.5504498758",
+    "updated": "2026-09-20T17:20:58Z"
+  }
+}

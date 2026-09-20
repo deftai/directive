@@ -1,0 +1,592 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4783",
+    "updated": "2026-09-20T17:20:51Z"
+  },
+  "plan": {
+    "title": "bug(ceremony-dial): session:start binds provisional taskSize from unrelated pending xBRIEF",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(ceremony-dial): session:start binds provisional taskSize from unrelated pending xBRIEF",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4783",
+      "Overview": "## Summary\n`deft session:start` (mutation) on a consumer with **unrelated leftover pending xBRIEFs** stamped ceremony dial from those pendings even though the operator live intent was a different task (phase-validate / docs land).\n\nObserved (NoteTechnic 2026-09-18):\n```\n[deft ceremony-dial] provisional: … taskSize=M from stamped clauseCount=3\n  (xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json)\n```\nThat pending brief was **not** the work being started. It still biased ceremony depth / orientation noise for the validation session.\n\n## Expected\nCeremony dial keys off the **activated** scope or explicit operator task, not an arbitrary pending file that happens to exist.\n\n## Actual\nCold-start pulls a stale pending brief into provisional ceremony, confusing agents and burning tokens.\n\n## Environment\n`@deftai/directive@0.119.2`, Grok Build, `deftai/notetechnic`.\n\n## Related\n#3214 ceremony dial (closed feat); this is a **mis-binding** bug when multiple pendings exist.\n\n",
+      "Labels": "bug, agent-experience, process, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- When name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.\n- When do not claim leftover-pending size closed on this number. That remainder is #4795.\n- When cLI --task-size / env still win.",
+      "Test": "When targeted tests on packages/core/src/session/ceremony-dial-evidence.ts, packages/core/src/session/session-start.ts pass for bound contract lean 5735576143."
+    },
+    "items": [
+      {
+        "title": "When name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When do not claim leftover-pending size closed on this number. That remainder is #4795.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When do not claim leftover-pending size closed on this number. That remainder is #4795."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When cLI --task-size / env still win.",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When cLI --task-size / env still win."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4783",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4783: bug(ceremony-dial): session:start binds provisional taskSize from unrelated pending xBRIEF"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3214",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3214"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.",
+          "artifact_path": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When do not claim leftover-pending size closed on this number. That remainder is #4795.",
+          "artifact_path": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When cLI --task-size / env still win.",
+          "artifact_path": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/ceremony-dial-evidence.ts",
+          "packages/core/src/session/session-start.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because session:start still fills ceremony-dial taskSize from max stamped clauseCount across xbrief/{active,pending}, so an unrelated leftover pending brief can set provisional depth for a different live task.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4783-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answered 1 after the missing-token ask; yolo standing for all five single-issue arcs, now parallelized.\n\nrefutation-target: session:start binds provisional taskSize from an unrelated leftover pending xBRIEF via max stamped clauseCount across active/pending.\n\ntarget: #4783\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the NoteTechnic 2026-09-18 consumer line: provisional taskSize=M from stamped clauseCount=3 (xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json) during a phase-validate / docs land session that was not that pending brief. Directive 0.119.2.\n\nPin-read at dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969:\n\n- packages/core/src/session/ceremony-dial-evidence.ts LIFECYCLE_DIRS is [active, pending] (line 33).\n- readStampedClauseCount (110-142) max-wins clause count across every *.xbrief.json in those folders; the winner source is recorded as xbrief/<dir>/<name>.\n- collectCeremonyDialConsumerEvidence (152-163) maps that max to taskSize and emits taskSize=... from stamped clauseCount=N (source).\n- Header comment says this fill exists so consumer runs are not permanently insufficient evidence. It does not require the brief to be the activated scope or the operator live task.\n- CHANGELOG Unreleased at this SHA has no ceremony-dial pending-misbind recut. #3214 / #3358 shipped the fill.\n\nInventory: ceremony-dial.ts estimateProvisionalCeremonyInputs is env/verb/files/prompt (no pending scan). Explicit CLI inputs still win at merge. Do not invent dropping consumer evidence as the fix. No implement and no ingest from this parent.\n\n",
+          "id": 5735398076,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735398076",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T19:52:12Z",
+          "updated_at": "2026-09-18T19:52:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Verdict\n\nThe recorded refutation-target survives. `session:start` still fills resolved `taskSize` from max stamped clauseCount across `xbrief/{active,pending}`. A leftover pending file can be that source. I could not refute the fill.\n\nWhat does not survive is calling the fill a provisional-classifier misbind against current contract, or binding the issue Expected (\"activated scope or explicit operator task\") as a restore of current contract.\n\n## 1. Pre-provisional explicit fill, not the provisional classifier\nsharpens-framing\n\nEvidence: pin-read `packages/core/src/session/session-start.ts` at f33b8b8e — `collectCeremonyDialConsumerEvidence` then `mergeCeremonyDialInputsWithConsumerEvidence` into `ceremonyDialInputs` before `resolveSessionCeremonyDialInputs`. `estimateProvisionalCeremonyInputs` (`packages/core/src/policy/ceremony-dial.ts`) is env/verb/files/prompt only and does not scan pending. The printed `provisional:` line is `provisionalDial.reasons`. The pending source prints on `evidence:` (`session-start.test.ts` \"escalates from stamped clause count\" asserts `evidence:` plus `clauseCount=3`).\n\nFailure: a next-build edit of `estimateProvisionalCeremonyInputs` leaves the fill site untouched. The issue body `provisional: … from stamped clauseCount` collapses two lines.\n\nDisposition: name the merge site as consumer evidence merged as explicit-before-provisional.\n\n## 2. P1 leftover-pending-with-no-active is the locked #3358 proxy\nsharpens-framing\n\nEvidence: `ceremony-dial-evidence.test.ts` \"uses pending when active has no clauses\". OS-temp reproduction of `readStampedClauseCount`: pending-only 3 clauses → `taskSize=M`, source `xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json` (same shape as P1). CHANGELOG at this SHA: session:start maps stamped #3323 clause count so evaluation is not permanently `insufficient evidence (size=- modelTier=-)`. Unreleased has no pending-misbind recut.\n\nFailure: treating P1 as accidental mis-selection implies dropping pending restores current contract. It restores the #3358 decline.\n\nDisposition: any next-build contract must recut #3358 pending-as-proxy, not \"fix a misbind\".\n\n## 3. Expected cannot bind without a replacement consumer source\nblocks-the-design\n\nEvidence: `packages/cli/src/session-start.ts` `run()` passes `ceremonyDialInputs` and does not pass `ceremonyDialHints` (no matches under `packages/cli/**/*.ts`). Unflagged `deft session:start` has no verb/prompt size channel. `plannedOccupancy` runs after `resolveCeremonyDial`, so occupancy-claimed scope is not an input today. Dropping pending from `LIFECYCLE_DIRS` without `--task-size`/env leaves `size=-` on a leftover-pending-only consumer. `session-start.test.ts` \"stays rapid when no stamped clauses or host env exist\" locks that no-evidence path. #3358 forbade changing the rapid default when no evidence exists.\n\nFailure: implementer keys off \"activated scope or explicit operator task\"; pending-only consumers return to vacuous decline / rapid.\n\nDisposition: keep a consumer size source for the no-active CLI path, or name the #3358 recut and the new channel.\n\n## 4. Max-wins is stronger than leftover-when-empty\nsharpens-framing\n\nEvidence: test \"takes the max stamped count across briefs\". OS-temp reproduction: pending-4 beats active-1 → L; equal counts keep active (`count > best.count`, active scanned first).\n\nFailure: a remedy that only skips pending when active is empty still lets a larger leftover pending steal from a smaller live active.\n\nDisposition: split (a) no-active leftover pending = #3358 working default from (b) pending beating active = over-select.\n\n## 5. CLI size still wins\nfootnote\n\nEvidence: `mergeCeremonyDialInputsWithConsumerEvidence` fills only missing fields. `session-start.test.ts` \"does not override an explicit CLI size with stamped clauses\".\n\n## 6. Pending briefs are a shared-state depth oracle\nsharpens-framing\n\nInjection / swarm lens (pending xBRIEFs are shared writable state; session:start reads them before occupancy). `LIFECYCLE_DIRS` is every `*.xbrief.json` in active/pending; malformed briefs fail-open; proposed/completed/cancelled are not scanned. Any agent-written pending with 4+ clauses can raise size to L/XL for later `session:start` in that tree. P1 `clauseCount=3` → M; depth delta is tier-conditional (unknown/frontier rapid→standard; mid standard stays; low M×low → elevated).\n\nFailure: leftover swarm/pending briefs remain a ceremony oracle even after \"prefer active\".\n\nDisposition: if pending stays in the scan, leftover-complete / completed-folder hygiene is not a control; the scan is.\n\n## Inventory\n\nExisting, already on the pin. Do not invent dropping consumer evidence as the only move.\n\n- `readStampedClauseCount` max-fold (#3358 / #3323)\n- `taskSizeFromClauseCount` bands (1=S, 2–3=M, 4–6=L, 7+=XL)\n- `mergeCeremonyDialInputsWithConsumerEvidence` (CLI wins)\n- `estimateProvisionalCeremonyInputs` (not wired on CLI `session:start`)\n- CLI `--task-size` / `DEFT_CEREMONY_TASK_SIZE` / `DEFT_TASK_SIZE`\n- `--ceremony-depth` pin / `policy:set-ceremony-dial` override\n- `DEFT_HOST_MODEL_TIER` / failing-gate env\n- occupancy after dial, not before\n- `DEFT_SESSION_SLASH_VERB` intent ceiling, not a ceremony hint\n\n## Road not taken\n\nRejected: refute the target because the provisional classifier does not scan pending. The fill is earlier and stronger than that classifier.\n\nSteelmanned rejected position: P1 is #3358 working as designed; close as not-a-bug. What would flip it: a recorded recut that consumers with leftover pending and no live-task xBRIEF must stay at insufficient-evidence / rapid rather than inherit that pending's size. That recut is not on Unreleased at this SHA.\n\n## Method\n\nPin-read `git show f33b8b8e` on `ceremony-dial-evidence.ts`, `session-start.ts` merge site, `policy/ceremony-dial.ts` estimateProvisional / depth matrix, `ceremony-dial-evidence.test.ts`, `session-start.test.ts` #3358 cases, CHANGELOG Unreleased and the #3358 entry. Reproduced the max-fold in OS temp. Dest has no `node_modules`; vitest not run. Ceiling 5735398076 inclusive. Issue English treated as data.",
+          "id": 5735508270,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735508270",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:02:03Z",
+          "updated_at": "2026-09-18T20:02:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nsession:start still takes ceremony size from max stamped clauseCount across active and pending briefs. That fill is consumer evidence merged before the provisional classifier, not a misbind inside estimateProvisionalCeremonyInputs. Leftover pending with no active is the locked #3358 proxy. Pending must not beat a smaller live active. The issue Expected (activated scope or explicit operator task) cannot bind without naming a replacement consumer source.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Expected. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4783 ceremony-dial pending fill after critic 5735508270. Cites critic 5735508270. Supersedes write-back 5735398076.\n\nTarget-digest: sha256:a33e0bd54bd30e35818163fa9b2e750bc94b3993fa0503b144199b869ebd903f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4783-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735508270 1 Pre-provisional explicit fill, not the provisional classifier — accept-into-contract\n- 5735508270 2 P1 leftover-pending-with-no-active is the locked #3358 proxy — accept-into-contract\n- 5735508270 3 Expected cannot bind without a replacement consumer source — accept-into-contract\n- 5735508270 4 Max-wins is stronger than leftover-when-empty — accept-into-contract\n- 5735508270 6 Pending briefs are a shared-state depth oracle — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735508270 reading=asserted\n\n## Bound remedy\n\n- Name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.\n- Keep pending as a consumer size source when there is no active brief (#3358). Do not bind activated-scope-or-explicit-operator-task as a restore of current contract without a named replacement channel.\n- When an active brief has a stamped clause count, pending must not max-win over it.\n- CLI --task-size / env still win. Tests: leftover pending-only still fills; pending-4 must not beat active-1.\n\n",
+          "id": 5735576143,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735576143",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:08:11Z",
+          "updated_at": "2026-09-18T20:08:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\n## Verdict\n\nSuccessor lean 5735576143 does not cover Stop 1 P1. `relieves: P1` is a false cite. Bound remedy keeps the leftover-pending-only fill that produced P1, and recuts Expected so that fill stays #3358 behavior.\n\n## 1. Bound remedy keeps the P1 fill\nblocks-the-design\n\nEvidence: Stop 1 P1 (write-back 5735398076) is the NoteTechnic consumer line: leftover pending `xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json` clauseCount=3 → taskSize=M during a phase-validate / docs land session that was not that brief. Pin-read `readStampedClauseCount` / `taskSizeFromClauseCount` at f33b8b8e: `LIFECYCLE_DIRS` is active then pending; max-wins; 3 clauses map to M. OS-temp copy of that algorithm: pending-only file with that name and 3 clauses → `taskSize=M`, source exactly that path. `estimateProvisionalCeremonyInputs` still does not scan pending. CLI `packages/cli/src/session-start.ts` never passes `ceremonyDialHints`. CHANGELOG `[Unreleased]` at this SHA has no pending-misbind recut; #3358 already shipped the fill.\n\nBound remedy on lean 5735576143:\n\n- keep pending as a consumer size source when there is no active brief (#3358)\n- tests: leftover pending-only still fills\n- when an active brief has a stamped clause count, pending must not max-win\n\nStop 1 does not record an active brief. Pending as the printed source at count=3 is the no-active (or smaller-active) set. OS-temp: active-3 plus pending-3 keeps active (`count > best.count`, active first). The named P1 session is phase-validate / docs land, source pending: that is the no-active half. Harvest item 2 and the pending-only test lock that half. Item 3 recuts only pending-beating-active. CLI `--task-size` already wins today (`mergeCeremonyDialInputsWithConsumerEvidence`); P1 was unflagged.\n\n`evaluateBoundRemedyCites` with `coveredIds` empty for P1 and an operative `relieves: P1` cite returns `ok: false`.\n\nInjection / swarm lens: harvest keeps pending in the scan for the no-active path, so leftover shared pending briefs remain a ceremony oracle. Leftover-complete / completed-folder hygiene is not a control.\n\nFailure: binding this lean as `relieves: P1` would harvest a next-build that still emits P1 on leftover-pending-only `session:start`, and would treat the consumer Expected as already covered.\n\nDisposition: lean 5735576143 cannot bind as written. Retraction map with `does-not-relieve: P1` (or `operator-deferred: P1` plus a different leftover issue if Expected is filed), then Handoff. Fill-site naming and pending-must-not-beat-active are recut remainder, not P1 coverage. A pain-audit blocking finding is not relief.\n\n## 2. Stop 1 quotes the collapsed provisional line\nfootnote\n\nEvidence: `session-start.ts` prints pending on `formatCeremonyDialEvidenceLine` (`evidence:`). `provisional:` is `estimateProvisionalCeremonyInputs` reasons (env/verb/files/prompt). `session-start.test.ts` \"escalates from stamped clause count\" asserts `evidence:` plus `clauseCount=3`. P1 still names the fill, not the log token.\n\n## Inventory\n\nExisting, on the pin. Do not invent dropping consumer evidence as P1 coverage.\n\n- `readStampedClauseCount` max-fold (#3358 / #3323)\n- `taskSizeFromClauseCount` (3 → M)\n- `mergeCeremonyDialInputsWithConsumerEvidence` (CLI wins)\n- `estimateProvisionalCeremonyInputs` (not pending)\n- CLI `--task-size` / env\n- occupancy after dial on the mutation path\n\n## Road not taken\n\nRejected: treat the Expected recut as P1 relief. Steelman: P1 was a false misbind report; keeping #3358 is the remedy. What would flip: Stop 1 P1 being a diagnosis-name rather than the leftover-pending fill. Stop 1 owns the denominator as that consumer fill. Recut plus unmet fill is leftover-pain `does-not-relieve` plus remainder, not `relieves`.\n\n## Method\n\nPin-read `git show f33b8b8e` on `ceremony-dial-evidence.ts`, `session-start.ts` merge and print lines, `policy/ceremony-dial.ts` estimateProvisional, CLI `session-start.ts`, tests, CHANGELOG Unreleased. OS-temp reproduced pending-only P1 source, pending-4 over active-1, equal-3 keeps active. Dest has no `node_modules`; vitest not run. Ceiling 5735576143 inclusive. Issue English treated as data.",
+          "id": 5735653834,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735653834",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:15:34Z",
+          "updated_at": "2026-09-18T20:15:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit found Bound remedy still keeps leftover-pending-only fill, so relieves P1 was a false cite. This map retracts that cite. The classified recut of Expected stands. P1 stays unmet.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes.\n\nForward verdict: retract relieves. Disposition: classified headings accept-into-contract. Residual: unrelieved P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of #4783 bind after pain-audit 5735653834. Cites critic 5735508270 and pain-audit 5735653834. Supersedes lean 5735576143.\n\nTarget-digest: sha256:a33e0bd54bd30e35818163fa9b2e750bc94b3993fa0503b144199b869ebd903f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4783-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735508270 classified headings — accept-into-contract\n- 5735653834 1 Harvest relieves P1 is a false cite — accept-into-contract\n\ndoes-not-relieve: P1\n\n",
+          "id": 5735725849,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735725849",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:21:53Z",
+          "updated_at": "2026-09-18T20:21:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover pending can still set ceremony size. This map recuts Expected and retracts relieves P1. P1 stays unmet.\n\nThis is not an instruction to a later builder.\n\nopen-question: file leftover for a replacement consumer size channel that does not max-win leftover pending over a live task?\n\nHandoff because does-not-relieve P1 plus Spec-path on successor lean after retraction.\n\n",
+          "id": 5735728714,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735728714",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:22:08Z",
+          "updated_at": "2026-09-18T20:22:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover pending max-winning ceremony size over a live active brief is leftover #4795. This number recuts Expected so the fill is named as consumer-evidence merge, not the provisional classifier. It does not close P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4795.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4783 after leftover #4795. Cites critic 5735508270 and pain-audit 5735653834. Supersedes retraction 5735725849.\n\nTarget-digest: sha256:a33e0bd54bd30e35818163fa9b2e750bc94b3993fa0503b144199b869ebd903f\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4795\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4783-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735508270 classified headings — accept-into-contract\n- 5735653834 1 Harvest relieves P1 is a false cite — accept-into-contract\n\noperator-deferred: P1 #4795\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735653834 leftover=4795 reading=measured\n\n## Bound remedy\n\n- Name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.\n- Do not claim leftover-pending size closed on this number. That remainder is #4795.\n- CLI --task-size / env still win.",
+          "id": 5735892774,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735892774",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:37:37Z",
+          "updated_at": "2026-09-18T20:37:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\n## Verdict\n\nSuccessor lean 5735892774 does not cover Stop 1 P1. Leftover https://github.com/deftai/directive/issues/4795 is a different open issue (4795 ≠ 4783, state=open). Bound remedy on this lean does not relieve P1. `operator-deferred: P1 #4795` matches unmet P1 plus a different leftover number. Not a `relieves` cite. Not same-number leftover.\n\n## 1. Bound remedy does not cover P1; leftover #4795 is a different open issue\nfootnote\n\nEvidence: REST `GET repos/deftai/directive/issues/4795` returns number 4795, state=open, title leftover pending max-wins ceremony size over a live active brief. REST `GET repos/deftai/directive/issues/4783` returns number 4783, state=open. Different issue.\n\nBound remedy on lean 5735892774:\n\n- Name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.\n- Do not claim leftover-pending size closed on this number. That remainder is #4795.\n- CLI --task-size / env still win.\n\nNone recut `LIFECYCLE_DIRS` or leftover-pending-only fill. Pin-read `readStampedClauseCount` / `taskSizeFromClauseCount` at f33b8b8e: `LIFECYCLE_DIRS` is active then pending; max-wins; 3 clauses map to M. In-memory fold of that rule: pending-only file with that name and 3 clauses → `taskSize=M`, source `xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json`. `estimateProvisionalCeremonyInputs` is still env/verb/files/prompt. `session-start.ts` still merges `collectCeremonyDialConsumerEvidence` as explicit-before-provisional. CLI `packages/cli/src/session-start.ts` at this SHA still passes `ceremonyDialInputs` and does not pass `ceremonyDialHints`. CHANGELOG `[Unreleased]` at this SHA has no ceremony-dial pending-misbind recut.\n\n`evaluateBoundRemedyCites` with `unmetIds` P1, `coveredIds` empty, operative `operator-deferred: P1 #4795`, `issueNumber` 4783 returns `ok: true`. Same-number leftover would fail. A `relieves: P1` cite on this harvest would fail.\n\nFailure: none for this map's closed cite form. Treating `leftover-issue: 4795` or fill-site naming as P1 coverage would be a false `relieves`.\n\nDisposition: footnote. Form-ok is not relief. A pain-audit targeting `pain-P1` is not P1 relief.\n\n## 2. Leftover #4795 keeps leftover-pending-only fill\nsharpens-framing\n\nEvidence: Stop 1 P1 (write-back 5735398076) is leftover pending `xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json` clauseCount=3 → taskSize=M during a phase-validate / docs land session that was not that brief. Stop 1 does not record an active brief. Accepted heading 5735508270 2 locked leftover-pending-with-no-active as the #3358 proxy. #4795 Desired shape: keep pending as a consumer size source when there is no active brief; tests leftover pending-only still fills; when an active brief has a stamped clause count, pending must not max-win. In-memory fold: pending-4 beats active-1 → L (that half is #4795). The named P1 session is the no-active half, which #4795 keeps.\n\nInjection / swarm lens: leftover keeps pending in the scan for the no-active path, so leftover shared pending briefs remain a ceremony oracle. Leftover-complete / completed-folder hygiene is not a control.\n\nFailure: reading `operator-deferred: P1 #4795` as parking the named P1 fill on a recut that removes it. #4795 recuts pending-beating-active and locks leftover-pending-only.\n\nDisposition: this remainder can bind. Harvest on 5735892774 stays fill-site naming. P1 remainder on #4795 is pending-max-win-over-active plus locked leftover-pending-only, not a recut of the named no-active P1 session. Does not change harvested Bound-remedy on this lean.\n\n## Inventory\n\nExisting, on the pin. Do not invent dropping consumer evidence as P1 coverage on this remainder.\n\n- `readStampedClauseCount` max-fold (#3358 / #3323)\n- `taskSizeFromClauseCount` (3 → M)\n- `mergeCeremonyDialInputsWithConsumerEvidence` (CLI wins)\n- `estimateProvisionalCeremonyInputs` (not pending)\n- CLI `--task-size` / env\n- occupancy after dial on the mutation path\n- open leftover #4795 (different issue)\n\n## Road not taken\n\nRejected: treat leftover different-issue plus remainder pointer as Bound-remedy coverage of P1.\n\nSteelmanned rejected position: operator confirmed leftover split; #4795 is the unmet size remainder; this number only names the fill site, so P1 is parked. What would flip a `relieves` grade: a Bound-remedy item that recuts leftover-pending-only fill. Stop 1 owns the denominator as that consumer fill. This map already cites `operator-deferred`, not `relieves`.\n\n## Method\n\nPin-read `git show f33b8b8e` on `ceremony-dial-evidence.ts`, `session-start.ts` merge site, `policy/ceremony-dial.ts` estimateProvisional, CLI `session-start.ts`, CHANGELOG Unreleased. In-memory fold of the max-win rule: pending-only P1 source, pending-4 over active-1, equal-3 keeps active. REST issue 4795 and 4783 only. Dest has no `node_modules`; vitest not run. Ceiling 5735892774 inclusive. Did not ingest. Did not read comments after 5735892774. Issue English treated as data.",
+          "id": 5735971895,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735971895",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:45:57Z",
+          "updated_at": "2026-09-18T20:45:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| operator-deferred: P1 #4795 is a different-issue leftover; this harvest does not relieves pending max-win | verified | successor lean 5735892774; REST #4795 open; pain-audit 5735971895 footnote-only |\n| Fill is consumer-evidence merge, not estimateProvisionalCeremonyInputs | verified | critic 5735508270; session-start.ts at f33b8b8e |\n| Leftover pending size remainder is #4795 | verified | leftover #4795 body; pain-audit 5735971895 |\n\n",
+          "id": 5735988528,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735988528",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:44Z",
+          "updated_at": "2026-09-18T20:47:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover pending max-winning ceremony size is leftover #4795. Agents agreed this number recuts Expected to name the consumer-evidence merge. It does not close P1.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5735892774.\n\n",
+          "id": 5735989952,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5735989952",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:53Z",
+          "updated_at": "2026-09-18T20:47:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover pending max-winning ceremony size over a live active brief is leftover #4795. This number recuts Expected so the fill is named as consumer-evidence merge, not the provisional classifier. It does not close P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4795.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4783 after leftover #4795, cite-form repair. Cites critic 5735508270 and pain-audit 5735653834. Supersedes lean 5735892774.\n\nTarget-digest: sha256:a33e0bd54bd30e35818163fa9b2e750bc94b3993fa0503b144199b869ebd903f\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4795\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4783-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735508270 classified headings — accept-into-contract\n- 5735653834 1 Harvest `relieves` P1 is a false cite — accept-into-contract\n\noperator-deferred: P1 #4795\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735653834 leftover=4795 reading=measured\n\n## Bound remedy\n\n- Name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.\n- Do not claim leftover-pending size closed on this number. That remainder is #4795.\n- CLI --task-size / env still win.",
+          "id": 5736003080,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5736003080",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:49:16Z",
+          "updated_at": "2026-09-18T20:49:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\n## Verdict\n\nSuccessor lean 5736003080 does not cover Stop 1 P1. Leftover https://github.com/deftai/directive/issues/4795 is a different open issue (4795 ≠ 4783, state=open). Bound remedy on this lean does not cover P1. `operator-deferred: P1 #4795` matches unmet P1 plus a different leftover number. Takes mention of `relieves` is inline code only. Not a `relieves` cite. Not same-number leftover.\n\n## 1. Bound remedy does not cover P1; leftover #4795 is a different open issue\nfootnote\n\nEvidence: REST `GET repos/deftai/directive/issues/4795` returns number 4795, state=open, title leftover pending max-wins ceremony size over a live active brief. REST `GET repos/deftai/directive/issues/4783` returns number 4783, state=open. Different issue.\n\nBound remedy on lean 5736003080:\n\n- Name the fill site as collectCeremonyDialConsumerEvidence merged as explicit-before-provisional. Do not edit estimateProvisionalCeremonyInputs as if it scanned pending.\n- Do not claim leftover-pending size closed on this number. That remainder is #4795.\n- CLI --task-size / env still win.\n\nNone recut `LIFECYCLE_DIRS` or leftover-pending-only fill. Pin-read `readStampedClauseCount` / `taskSizeFromClauseCount` at f33b8b8e: `LIFECYCLE_DIRS` is active then pending; max-wins; 3 clauses map to M. In-memory fold of that rule: pending-only file with that name and 3 clauses → `taskSize=M`, source `xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json`. `estimateProvisionalCeremonyInputs` is still env/verb/files/prompt. `session-start.ts` still merges `collectCeremonyDialConsumerEvidence` as explicit-before-provisional. CLI `packages/cli/src/session-start.ts` at this SHA still passes `ceremonyDialInputs` and does not pass `ceremonyDialHints`. CHANGELOG `[Unreleased]` at this SHA has no ceremony-dial pending-misbind recut.\n\n`evaluateBoundRemedyCites` with `unmetIds` P1, `coveredIds` empty, operative `operator-deferred: P1 #4795`, `issueNumber` 4783 returns `ok: true`. Same-number leftover would fail. A `relieves: P1` cite on this harvest would fail.\n\nFailure: none for this map's closed cite form. Treating `leftover-issue: 4795` or fill-site naming as P1 coverage would be a false `relieves`.\n\nDisposition: footnote. Form-ok is not relief. A pain-audit targeting `pain-P1` is not P1 relief.\n\n## 2. Takes mention of `relieves` is inline code only\nfootnote\n\nEvidence: predecessor lean 5735892774 Takes contained ordinary-text closed form `relieves P1`, plus `operator-deferred: P1 #4795` (two dispositions for P1). Lean 5736003080 Takes wraps only the disposition token as inline code (`relieves`), so the closed form does not fire. `PAIN_CITE_RE` requires the disposition token then whitespace or colon then the id; a backtick between `relieves` and P1 is not that separator. Regex scan of the repaired Takes plus the operative cite line yields only `operator-deferred: P1 #4795`. `classifyPosition` would also refuse a keyword inside an inline-code span.\n\nFailure: none on this lean. Binding the predecessor Takes as written would be `malformed-pain` (conflicting dispositions). This number's cite-form repair removes that.\n\nDisposition: footnote. Harvest Bound-remedy unchanged. Closed cite on this lean is still `operator-deferred` only.\n\n## 3. Leftover #4795 keeps leftover-pending-only fill\nsharpens-framing\n\nEvidence: Stop 1 P1 (write-back 5735398076) is leftover pending `xbrief/pending/2026-09-17-hardening-tenant-context-idempotency.xbrief.json` clauseCount=3 → taskSize=M during a phase-validate / docs land session that was not that brief. Stop 1 does not record an active brief. Accepted heading 5735508270 2 locked leftover-pending-with-no-active as the #3358 proxy. #4795 Desired shape: keep pending as a consumer size source when there is no active brief; tests leftover pending-only still fills; when an active brief has a stamped clause count, pending must not max-win. In-memory fold: pending-4 beats active-1 → L (that half is #4795). The named P1 session is the no-active half, which #4795 keeps.\n\nInjection / swarm lens: leftover keeps pending in the scan for the no-active path, so leftover shared pending briefs remain a ceremony oracle. Leftover-complete / completed-folder hygiene is not a control.\n\nFailure: reading `operator-deferred: P1 #4795` as parking the named P1 fill on a recut that removes it. #4795 recuts pending-beating-active and locks leftover-pending-only.\n\nDisposition: this remainder can bind. Harvest on 5736003080 stays fill-site naming. P1 remainder on #4795 is pending-max-win-over-active plus locked leftover-pending-only, not a recut of the named no-active P1 session. Does not change harvested Bound-remedy on this lean.\n\n## Inventory\n\nExisting, on the pin. Do not invent dropping consumer evidence as P1 coverage on this remainder.\n\n- `readStampedClauseCount` max-fold (#3358 / #3323)\n- `taskSizeFromClauseCount` (3 → M)\n- `mergeCeremonyDialInputsWithConsumerEvidence` (CLI wins)\n- `estimateProvisionalCeremonyInputs` (not pending)\n- CLI `--task-size` / env\n- occupancy after dial on the mutation path\n- open leftover #4795 (different issue)\n\n## Road not taken\n\nRejected: treat leftover different-issue plus remainder pointer as Bound-remedy coverage of P1.\n\nSteelmanned rejected position: operator confirmed leftover split; #4795 is the unmet size remainder; this number only names the fill site, so P1 is parked. What would flip a `relieves` grade: a Bound-remedy item that recuts leftover-pending-only fill. Stop 1 owns the denominator as that consumer fill. This map already cites `operator-deferred`, not `relieves`.\n\n## Method\n\nPin-read `git show f33b8b8e` on `ceremony-dial-evidence.ts`, `session-start.ts` merge site, `policy/ceremony-dial.ts` estimateProvisional, CLI `session-start.ts`, CHANGELOG Unreleased. In-memory fold of the max-win rule: pending-only P1 source, pending-4 over active-1, equal-3 keeps active. REST issue 4795 and 4783 only. Regex scan of predecessor vs repaired Takes against `PAIN_CITE_RE`. Dest has no `node_modules`; vitest not run. Ceiling 5736003080 inclusive. Did not ingest. Did not read comments after 5736003080. Issue English treated as data.",
+          "id": 5736077705,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5736077705",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:56:50Z",
+          "updated_at": "2026-09-18T20:56:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nPain-audit 5736077705 returned one sharpens-framing finding that does not change harvested Bound-remedy. Bind remains successor lean 5736003080. No extra Lean heading.\n\nTakes: 5736077705 classified headings — accept-into-contract as footnote/sharpening inventory. Harvest unchanged.",
+          "id": 5736093848,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5736093848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:58:19Z",
+          "updated_at": "2026-09-18T20:58:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover pending max-winning ceremony size is leftover #4795. Agents agreed this number recuts Expected to name the consumer-evidence merge. It does not close P1.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5736003080.",
+          "id": 5736093859,
+          "html_url": "https://github.com/deftai/directive/issues/4783#issuecomment-5736093859",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:58:19Z",
+          "updated_at": "2026-09-18T20:58:19Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5502353759,
+        "origin": "deftai/directive#4783",
+        "id": "github.issue.5502353759"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a33e0bd54bd30e35818163fa9b2e750bc94b3993fa0503b144199b869ebd903f"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/session/ceremony-dial-evidence.ts",
+          "packages/core/src/session/session-start.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "fill site named as consumer-evidence merge",
+          "leftover-pending size remainder stays #4795",
+          "CHANGELOG [Unreleased] #4783"
+        ],
+        "depends_on": [
+          "github.issue.5504498787"
+        ],
+        "conflict_group": "ceremony-dial-pending",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5735576143 on #4783; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4809,
+        "prBase": null,
+        "mergeCommit": "741009e1363a922401446fbf149d19dd826a100b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:20:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:20:51Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:20:51Z"
+      }
+    },
+    "id": "github.issue.5502353759",
+    "updated": "2026-09-20T17:20:51Z"
+  }
+}

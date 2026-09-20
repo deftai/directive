@@ -1,0 +1,388 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4813",
+    "updated": "2026-09-20T17:22:37Z"
+  },
+  "plan": {
+    "title": "BLOCKER: intent-constraint validates the wrong diff in main/develop consumers",
+    "status": "completed",
+    "narratives": {
+      "Description": "BLOCKER: intent-constraint validates the wrong diff in main/develop consumers",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4813",
+      "Overview": "## Summary\nIn a consumer whose feature work targets `develop` while the GitHub default branch is `main`, Directive 0.119.5's canonical `deft check` invokes `verify:intent-constraint` against the merge-base with `origin/main`. It ignores the configured delivery branch and provides no aggregate-level origin-ref selection.\n\nThe gate consequently rejects constraints from older work already merged into `develop`, rather than evaluating the pending feature. Calling the standalone gate with `--origin-ref origin/develop` demonstrates the baseline difference, but returns N/A when HEAD equals develop because unstaged/untracked changes are not candidate inputs. That is not a successful validation of the pending implementation.\n\n## Affected consumer flow and version\n- Consumer: deftai/BestiMax, feature branch `feat/400-job-names`, intended PR base `develop`.\n- Installed engine and deposited content: 0.119.5.\n- macOS, zsh, Node 22.23.2, pnpm 9.15.0.\n- Flow: run the canonical aggregate against the existing uncommitted implementation before publication.\n- `plan[\"x-directive/policy\"].deliveryBranch` is `develop`.\n- Git branch tracking also names `refs/heads/develop`.\n- `origin/HEAD` names `origin/main`.\n- HEAD and `origin/develop`: `8e1da35a06c0c4a79e138ef1e5974a255f18037e`.\n- `origin/main`: `b628da4d9ed3f1c1e2284db55eab9e8e0b315e77`.\n- The resolved main merge-base is `0dd3016cd126c2d07613e95b80b9885911964a07`, pulling 18 older commits into this check.\n- `git ls-remote` confirmed these remote branch tips; this is not explained by stale local remote-tracking refs.\n\n## Reproduction and observed results\n1. Use a consumer with `main` as the forge default, `develop` as the configured delivery/feature target, and feature HEAD equal to develop with pending uncommitted production edits.\n2. Run:\n\n```sh\ndeft check --framework-root .deft/core --project-root .\n```\n\nObserved: aggregate exit 201, inner `verify:intent-constraint` exit 1; remaining gates and the product suite are skipped.\n\n```text\nverify:intent-constraint: unapproved constraint or rejection scope in\nweb/app/app/settings/actions.ts throw-site;\nweb/app/q/[token]/decide/handle.ts numeric-const=4000;\nweb/lib/organizations/contact.ts throw-site;\nweb/lib/organizations/contact.ts throw-site;\nweb/lib/organizations/contact.ts throw-site;\nweb/lib/quotes/draft.ts throw-site;\nweb/lib/quotes/line-identity.ts throw-site;\nweb/lib/quotes/line-identity.ts throw-site.\nINTENT_CONSTRAINT_MISSING\n```\n\n3. Inspect all deltas with the unchanged installed extractor. The diagnostic prints only the first eight; there are actually 12 facts across six files, among 26 production files compared.\n\nAll 12 originate in older commits already on develop:\n- `99f0fcf`, PR deftai/BestiMax#371: quote-link TTL 30 and two send-configuration throws (3 facts).\n- `95234aa`, PR deftai/BestiMax#373: `MAX_BODY_LEN=4000` (1 fact).\n- `d15bc6e`, PR deftai/BestiMax#374: organization-contact validation and settings error propagation (4 facts).\n- `ad05e63`, PR deftai/BestiMax#376: quote revision and line-identity conflict checks (4 facts).\n\n4. Run the supported standalone diagnostic:\n\n```sh\ndeft verify:intent-constraint --origin-ref origin/develop\n```\n\nObserved: exit 0 with:\n\n```text\nverify:intent-constraint: N/A — no changed production .ts/.js files.\n```\n\nHEAD equals develop, so that committed diff is empty. This does not examine or approve the pending product work.\n\n5. A separate read-only HEAD-versus-working-tree extraction, using the same installed extractor without changing any verifier or staging files, finds three genuinely new facts in `web/lib/naming.ts`: `NAME_MAX=200`, a non-string input rejection, and an overlength rejection. Those are not the historical facts reported by the aggregate.\n\n## Source trace in the published package\n- `directive-core/dist/evaluator-surface/evaluate.js`, `resolveDefaultBaseRef`: resolves `origin/HEAD`, then `origin/main`/`origin/master`; does not consult the consumer delivery branch or PR target.\n- `directive-core/dist/intent-constraint/evaluate.js`, `resolveMergeBase`: reuses that resolver unless an explicit `originRef` is supplied.\n- Its default candidate selection is `git diff --name-only <merge-base> HEAD`, with content read through `git show HEAD:<path>`. `--staged` uses the index instead; neither path includes unstaged/untracked work.\n- `directive-core/dist/check/gate-lists.js`, `CONSUMER_CHECK_GATES`: invokes `verify:intent-constraint` without an origin-ref.\n- `directive/dist/check.js`, `parseArgs`: accepts framework-root, project-root, and no-cache, but no origin-ref or candidate-diff selection.\n- The canonical aggregate invokes the deposited gate graph, not the consumer's root task alias. Changing only the root alias would not fix canonical `deft check`.\n\n## Expected behavior / maintainer-owned resolution\n- The canonical consumer flow should provide a supported, explicit way to validate against the actual target branch (or resolve the approved consumer target), rather than silently re-reviewing unrelated main-to-develop history.\n- Report the resolved base and candidate mode so an N/A result cannot be mistaken for assessment of a dirty working tree. If local working-tree validation is supported, its candidate inputs must include the intended unstaged/untracked changes; otherwise document and clearly report that they were not assessed.\n- Preserve the merge-base authority rule. Do not accept same-PR/self-authored snapshots, weaken constraint detection, or silently skip the gate to solve this.\n- Regression coverage should include main-default/develop-target consumers, main-target consumers, HEAD equal to the target with dirty production files, and the canonical aggregate's argument propagation.\n\n## Scope and approval distinction\nNeither the failing comparison base nor committed HEAD contains `.deft/intent-constraint` mint records. The pending naming work has an approved implementation plan, but that plan is not the merge-base mint required by this gate. This report does not claim that genuinely new constraints should pass without the required approval provenance.\n\nThe defect reported here is the canonical flow evaluating the wrong historical candidate for the consumer target, combined with the misleading standalone N/A diagnostic when the actual work remains uncommitted. The separate mid-build mint/approval workflow is already tracked in #4597.\n\n## Alternatives attempted and recovery cost\n- Upgraded engine and deposit from 0.119.3 to 0.119.5, then validated in a fresh agent session.\n- Corrected the consumer's missing Taskfile gate composition, tracked separately as deftai/BestiMax#402. That focused check now passes and exposes this next independent blocker.\n- Ran the supported explicit-origin standalone probe above; it gives an empty committed comparison, not local validation.\n- Inspected the published parser, resolver, extractor and aggregate dispatcher, and traced every historical fact to Git history.\n- No supported aggregate origin-ref/candidate-selection option was found. Rewriting refs, patching vendored/global verifiers, removing historical validation, fabricating approval records, or publishing contrary to the operator's uncommitted-only instruction are not reasonable workarounds.\n- Canonical validation remains blocked before the suite. Investigation required package-source inspection and a separate full-delta audit; no BestiMax product files, refs, policies, or approval records were changed during that investigation.\n\n## Related / deduplication\n- Refs #4541: original intent-constraint gate.\n- Refs #4597: open mid-build intent-mint workflow remainder; related but not the comparison-base defect.\n- #4774 was also inspected: it concerns PR file-scope/provenance enforcement, not this intent-constraint target selection.\n- Searched existing issues for intent-constraint with origin, base, and uncommitted, plus deliveryBranch/gate; no exact duplicate found.\n\nPlease leave the framework implementation with Directive maintainers. No downstream verifier patch or gate bypass has been applied.\n\n",
+      "Labels": "bug, agent-experience, process, area:cli, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- When canonical deft check must not use evaluator-surface resolveDefaultBaseRef (origin/HEAD then origin/main or origin/master) as the silent intent-constraint origin when a typed consumer dest exists. Local canonical check uses dest the same way orphan-active already does (resolveCandidateBaseRef / origin/<deliveryBranch>).\n- When report the resolved origin and candidate mode on every run, including N/A. Do not treat origin equal to HEAD as a successful validation. An opt-in --origin-ref on deft check is a diagnostic, not the default-base recut. Keep standalone --origin-ref.\n- When HEAD equals that origin and the working tree has production edits not in HEAD: either include those unstaged/untracked production files as candidates (bytes from the working tree; mint authority stays git show merge-base) or N/A in language that names committed HEAD versus origin only; unstaged not assessed. Do not skip. Do not let exit-0 N/A read as assessment of a dirty tree.\n- When preserve merge-base mint authority. Do not skip the gate. Do not invent a fourth default. Typed baseBranch is the integration source, not dest. Do not claim deliveryBranch is always the comparison base. Do not treat #4597 mid-build mint as this comparison-base recut.",
+      "Test": "When targeted tests on packages/core/src/intent-constraint/evaluate.test.ts pass for bound contract lean 5749712383."
+    },
+    "items": [
+      {
+        "title": "When canonical deft check must not use evaluator-surface resolveDefaultBaseRef (origin/HEAD then origin/main or origin/master) as the silent intent-constraint origin when a typed consumer dest exists. Local canonical check uses dest the same way orphan-active already does (resolveCandidateBaseRef / origin/<deliveryBranch>).",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When canonical deft check must not use evaluator-surface resolveDefaultBaseRef (origin/HEAD then origin/main or origin/master) as the silent intent-constraint origin when a typed consumer dest exists. Local canonical check uses dest the same way orphan-active already does (resolveCandidateBaseRef / origin/<deliveryBranch>)."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intent-constraint/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When report the resolved origin and candidate mode on every run, including N/A. Do not treat origin equal to HEAD as a successful validation. An opt-in --origin-ref on deft check is a diagnostic, not the default-base recut. Keep standalone --origin-ref.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When report the resolved origin and candidate mode on every run, including N/A. Do not treat origin equal to HEAD as a successful validation. An opt-in --origin-ref on deft check is a diagnostic, not the default-base recut. Keep standalone --origin-ref."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intent-constraint/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When HEAD equals that origin and the working tree has production edits not in HEAD: either include those unstaged/untracked production files as candidates (bytes from the working tree; mint authority stays git show merge-base) or N/A in language that names committed HEAD versus origin only; unstaged not assessed. Do not skip. Do not let exit-0 N/A read as assessment of a dirty tree.",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When HEAD equals that origin and the working tree has production edits not in HEAD: either include those unstaged/untracked production files as candidates (bytes from the working tree; mint authority stays git show merge-base) or N/A in language that names committed HEAD versus origin only; unstaged not assessed. Do not skip. Do not let exit-0 N/A read as assessment of a dirty tree."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intent-constraint/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When preserve merge-base mint authority. Do not skip the gate. Do not invent a fourth default. Typed baseBranch is the integration source, not dest. Do not claim deliveryBranch is always the comparison base. Do not treat #4597 mid-build mint as this comparison-base recut.",
+        "status": "completed",
+        "id": "clause:4",
+        "narrative": {
+          "Acceptance": "When preserve merge-base mint authority. Do not skip the gate. Do not invent a fourth default. Typed baseBranch is the integration source, not dest. Do not claim deliveryBranch is always the comparison base. Do not treat #4597 mid-build mint as this comparison-base recut."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intent-constraint/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4813",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4813: BLOCKER: intent-constraint validates the wrong diff in main/develop consumers"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4541",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4541"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4597",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4597"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/intent-constraint/evaluate.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When canonical deft check must not use evaluator-surface resolveDefaultBaseRef (origin/HEAD then origin/main or origin/master) as the silent intent-constraint origin when a typed consumer dest exists. Local canonical check uses dest the same way orphan-active already does (resolveCandidateBaseRef / origin/<deliveryBranch>).",
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When report the resolved origin and candidate mode on every run, including N/A. Do not treat origin equal to HEAD as a successful validation. An opt-in --origin-ref on deft check is a diagnostic, not the default-base recut. Keep standalone --origin-ref.",
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When HEAD equals that origin and the working tree has production edits not in HEAD: either include those unstaged/untracked production files as candidates (bytes from the working tree; mint authority stays git show merge-base) or N/A in language that names committed HEAD versus origin only; unstaged not assessed. Do not skip. Do not let exit-0 N/A read as assessment of a dirty tree.",
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When preserve merge-base mint authority. Do not skip the gate. Do not invent a fourth default. Typed baseBranch is the integration source, not dest. Do not claim deliveryBranch is always the comparison base. Do not treat #4597 mid-build mint as this comparison-base recut.",
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/intent-constraint/evaluate.ts",
+          "packages/core/src/intent-constraint/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because canonical `deft check` runs `verify:intent-constraint` against `origin/HEAD`/`origin/main` and ignores `plan.policy.deliveryBranch`, so a main-default/develop-target consumer re-reviews develop history as if it were the pending feature.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4813-dc\norigin-ref: origin/master\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick on the launching utterance (\"use appropriate n and no need to ask me\"); BLOCKER Desired is validate against the consumer target, so N=1.\n\nrefutation-target: origin/HEAD then origin/main is a sufficient default base for consumer intent-constraint in the canonical aggregate, so deliveryBranch need not be consulted.\n\ntarget: #4813\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\npain: P2\n\n## Gate stamp\n\nP1 is the canonical aggregate evaluating the wrong historical candidate. `resolveDefaultBaseRef` (`packages/core/src/evaluator-surface/evaluate.ts`) returns `origin/HEAD` then `origin/main`/`origin/master`. It does not read `plan.policy.deliveryBranch`. `CONSUMER_CHECK_GATES` invokes `verify:intent-constraint` with no origin-ref. `deft check` parseArgs has no origin-ref. BestiMax `feat/400-job-names` vs `origin/main` merge-base pulled 18 older commits; all 12 reported facts were already on develop.\n\nP2 is the standalone N/A when HEAD equals the target and the work is unstaged/untracked. Default candidates are `git diff --name-only <merge-base> HEAD` plus `git show HEAD:<path>`. `--staged` uses the index. Neither includes working-tree edits. Report the resolved base and candidate mode so N/A cannot be read as assessment of a dirty tree.\n\nDo not weaken merge-base authority, skip the gate, or treat plan-key mint as this comparison-base recut. #4597 is mid-build mint remainder. #4541 is the original gate. #4774 is PR file-scope, not this.\n\nPin-read at dispatch-sha 7011e07402257adcda6fa496fac079cd8aa54d42: `packages/core/src/evaluator-surface/evaluate.ts` `resolveDefaultBaseRef`; `packages/core/src/intent-constraint/evaluate.ts`; `packages/core/src/check/gate-lists.ts`; `packages/cli/src/check.ts`. Inventory: #4541, #4597, #4774, #3388. No implement and no ingest from this parent.\n\nEval: `triage:evaluate` sha12=7011e0740225 invocation=1e1b5c59-9cb7-465b-a97a-1b782b3b6a95 validity=still-open wip=0. Unreleased does not list #4813. Not a duplicate of #4597.",
+          "id": 5749676229,
+          "html_url": "https://github.com/deftai/directive/issues/4813#issuecomment-5749676229",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:03:46Z",
+          "updated_at": "2026-09-20T12:03:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nceiling: 5749676229\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\ncharter: refutation\n\nRefutation-target under test: origin/HEAD then origin/main is a sufficient default base for consumer intent-constraint in the canonical aggregate, so deliveryBranch need not be consulted.\n\nVerdict: the target does not survive. Origin/HEAD then origin/main is not a sufficient default for the canonical consumer aggregate. The trailing inference (\"so deliveryBranch need not be consulted\") also fails, but deliveryBranch is dest, not automatically the PR target. That is a framing recut, not a reason to keep the forge default.\n\n## 1. Canonical consumer check cannot use the forge default when it diverges from the consumer target\n\nclass: blocks-the-design\n\nEvidence (pin 7011e07402257adcda6fa496fac079cd8aa54d42):\n\n- `packages/core/src/evaluator-surface/evaluate.ts` `resolveDefaultBaseRef` returns `git rev-parse --abbrev-ref origin/HEAD`, else the first of origin/HEAD, origin/main, origin/master that verifies. It does not read plan policy.\n- `packages/core/src/intent-constraint/evaluate.ts` `resolveMergeBase` calls that resolver unless `originRef` is supplied. Default candidates are `git diff --name-only <merge-base> HEAD` plus `git show HEAD:<path>`.\n- `CONSUMER_CHECK_GATES` lists bare `verify:intent-constraint` (no `--origin-ref`). `packages/cli/src/check.ts` `parseArgs` accepts only framework-root, project-root, and no-cache; `--origin-ref` is unrecognized.\n- The same consumer aggregate already consults delivery dest for a sibling merge-chokepoint: `ORPHAN_ACTIVE_MERGE_GATE` is `--changed-only`, and `resolveCandidateBaseRef` (`packages/core/src/orphan-active/candidate-scope.ts`) defaults to `origin/<deliveryBranch>` via `resolveDeliveryBranch` (`packages/core/src/policy/delivery-branch.ts`).\n- Issue body (in envelope): BestiMax `feat/400-job-names`, typed `deliveryBranch=develop`, `origin/HEAD=origin/main`. Merge-base versus main is `0dd3016c`, 18 older commits. Canonical `deft check` exit 201 / inner exit 1; all 12 reported facts come from four already-merged develop PRs (deftai/BestiMax#371/#373/#374/#376). Standalone `--origin-ref origin/develop` is an empty committed diff because HEAD equals develop.\n\nRe-verified: a Node inlined mock of the pin-read resolver, with origin/HEAD abbrev `origin/main`, returns `origin/main` and `resolveMergeBase()` computes merge-base of HEAD and origin/main. Passing `origin/develop` is the only path that names the consumer target, and the canonical aggregate has no such path. Dest has no vitest install; this is not `vitest run`.\n\nFailure mode: a main-default / develop-target consumer running the merge chokepoint re-reviews integration history as if it were the pending feature, fail-fast skips remaining gates, and the operator cannot pass an origin-ref into canonical `deft check`.\n\nDisposition consequence: the recorded target cannot bind. The canonical consumer invocation must resolve an approved consumer target (existing `resolveDeliveryBranch` / `resolveCandidateBaseRef`, or a named PR/integration target — finding 2) instead of `resolveDefaultBaseRef`. Do not weaken merge-base mint authority, skip the gate, or treat plan-key mint as this recut.\n\n## 2. Consult deliveryBranch is not the unique replacement knob\n\nclass: sharpens-framing\n\nEvidence:\n\n- `packages/core/src/policy/delivery-branch.ts`: deliveryBranch is dest — where shipped work must land for a delivered completion disposition (#3041).\n- `packages/core/src/policy/base-branch.ts`: baseBranch is the integration-branch source, distinct from dest (#3388). Unset baseBranch equals dest. `origin/develop` is never identity; it may only emit a hint.\n- `packages/core/src/scope-provenance/evaluate.ts` exports a different `resolveDefaultBaseRef` that tries `DEFT_BASE_REF`, then `GITHUB_BASE_REF` (PR base in Actions), then origin/master, then origin/main. Still not deliveryBranch, but already a PR-target channel the intent-constraint path does not use.\n- BestiMax typed `deliveryBranch=develop`, which matches that consumer's feature target. A git-flow consumer that types dest=`main` (lifecycle-correct) and opens PRs to `develop` would still merge-base against main if the recut is always `origin/<deliveryBranch>`.\n\nFailure mode: a successor map that says only \"consult deliveryBranch\" binds dest as if it were the PR target. Git-flow dest=main reproduces the same history audit. Treating BestiMax's typing as the general rule also recuts #3041 dest semantics.\n\nDisposition consequence: the arc can bind that origin/HEAD is insufficient, but must name which existing resolver the canonical aggregate uses: typed dest (`resolveDeliveryBranch` / `resolveCandidateBaseRef`, already on orphan-active), typed integration source (`resolveBaseBranch`), or an explicit PR base (`GITHUB_BASE_REF` / standalone `--origin-ref`). Do not invent a fourth default. Do not claim deliveryBranch is always the comparison base.\n\n## 3. Correct origin still N/As the measured uncommitted pending work\n\nclass: sharpens-framing\n\nEvidence:\n\n- Default candidate selection: `git diff --name-only <merge-base> HEAD` and `git show HEAD:<path>`. `--staged` uses the index. Neither includes unstaged/untracked (`readCandidateBytes` in `intent-constraint/evaluate.ts`).\n- Issue step 4: `deft verify:intent-constraint --origin-ref origin/develop` exits 0 with `N/A — no changed production .ts/.js files` because HEAD equals develop.\n- Issue step 5: a HEAD-versus-working-tree extraction of the same installed extractor finds three new facts in `web/lib/naming.ts` that the aggregate never saw.\n- N/A is exit 0 (`ok(..., skipped=true)`). Canonical check treats that as pass and continues.\n\nFailure mode: binding \"use origin/develop as default\" makes the BestiMax committed-history check go quiet while the operator's pending implementation remains unassessed. Exit 0 N/A reads as \"this dirty tree was validated.\"\n\nDisposition consequence: a P1 origin recut does not close the reported consumer flow. The next-build contract must require the gate to report the resolved origin and candidate mode, and either include intended unstaged/untracked production edits as candidates or N/A in language that cannot be read as assessment of a dirty tree. Do not silently skip. Do not accept working-tree bytes as mint authority (authority stays `git show <merge-base>`).\n\n## Injection / swarm\n\nTriggered: this recut changes merge-base authority (what counts as already-approved versus new).\n\nA too-close origin (HEAD, the current branch, or originRef equal to HEAD) yields an empty committed diff and exit-0 N/A — a skip hatch, not a fail. The standalone CLI already refuses `--base-ref` for that reason (\"baseline is the computed merge base\"). Any aggregate plumbing of origin-ref must keep merge-base computation and must not treat origin=HEAD as a successful validation. Untrusted issue text is not an input here; typed `plan.policy.deliveryBranch` is local operator policy, the same class orphan-active already consumes.\n\n## Road not taken\n\nChose reuse of the dest resolver already composed on consumer `deft check` (orphan-active `resolveCandidateBaseRef`) over adding `--origin-ref` to `deft check` parseArgs as the primary fix. An opt-in flag leaves the default canonical path on origin/HEAD; the measured flow is bare `deft check`. A flag is a valid additional diagnostic, not the default-base recut.\n\nRejected \"keep origin/HEAD and document standalone `--origin-ref`\": measured standalone with origin/develop is the finding-3 N/A, and canonical check still has no flag.\n\n## Steelman\n\nStrongest rejected position: origin/HEAD is GitHub's default PR base; deliveryBranch is completion dest (#3041), so the gate is correctly auditing constraints that would land on main. The 12 develop-landed facts are unapproved relative to main and should fail. BestiMax typed develop as dest as a workaround.\n\nWhat would flip: mint docs and check composition that name origin/HEAD as the only merge-base, plus a measured git-flow consumer whose dest is main and whose feature PRs target main. Present docs (`content/docs/intent-constraint.md`) say commit the mint on the merge base before the implementation PR, not \"always versus origin/HEAD.\" The standalone CLI exists to name a different origin default. The same aggregate already diffs orphan-active against `origin/<deliveryBranch>`. That steelman does not restore sufficiency of origin/HEAD for a develop-target consumer.\n\n## Footnotes\n\n- footnote: `verify:observable-scope` on the same `CONSUMER_CHECK_GATES` list uses the same `resolveDefaultBaseRef` and a bare spawn with no origin-ref. Recutting only intent-constraint leaves the sibling merge-base gate on the forge default. Outside this target's first clause; the composition is one aggregate.\n- footnote: evaluator-surface `resolveDefaultBaseRef` and scope-provenance `resolveDefaultBaseRef` are different functions with different candidate orders. Inventory, not a third product recut.\n\nInventory: evaluator-surface `resolveDefaultBaseRef`, scope-provenance `resolveDefaultBaseRef`, `resolveDeliveryBranch` (#3041), `resolveBaseBranch` (#3388), `resolveCandidateBaseRef` (#3893), standalone `--origin-ref`, `GITHUB_BASE_REF`. Related: #4541 original gate, #4597 mid-build mint remainder, #4774 PR file-scope. No implement. No ingest.\n\n",
+          "id": 5749707876,
+          "html_url": "https://github.com/deftai/directive/issues/4813#issuecomment-5749707876",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:10:09Z",
+          "updated_at": "2026-09-20T12:10:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCanonical deft check must not silently merge-base intent-constraint against origin/HEAD or origin/main when the consumer has a typed dest. Dest is not always the PR target. Report the origin and candidate mode. An empty committed diff is not a pass of a dirty tree.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut leftover. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 audit:pain-P2 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4813 origin recut after critic 5749707876. Cites critic 5749707876. Supersedes write-back 5749676229.\n\nTarget-digest: sha256:9c3a1ca0c03314f7816852f0d128c0e15a3ab627cd95862d69c0b6335e183bf1\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4813-dc\norigin-ref: origin/master\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\ntarget shape: single-issue\n\nTakes:\n\n- 5749707876 1 Canonical consumer check cannot use the forge default when it diverges from the consumer target — accept-into-contract\n- 5749707876 2 Consult deliveryBranch is not the unique replacement knob — accept-into-contract\n- 5749707876 3 Correct origin still N/As the measured uncommitted pending work — accept-into-contract\n\nrelieves: P1\nrelieves: P2\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749707876 reading=asserted\naudit:pain-P2 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749707876 reading=asserted\n\n## Bound remedy\n\n- Canonical `deft check` must not use evaluator-surface `resolveDefaultBaseRef` (`origin/HEAD` then `origin/main`/`origin/master`) as the silent intent-constraint origin when a typed consumer dest exists.\n- Reuse existing resolvers. Do not invent a fourth default. Local canonical check uses dest the same way orphan-active already does (`resolveCandidateBaseRef` / `origin/<deliveryBranch>`). In Actions, `GITHUB_BASE_REF` is the PR-target channel (already on scope-provenance `resolveDefaultBaseRef`). Typed `baseBranch` is the integration source (#3388), not dest. Do not claim deliveryBranch is always the comparison base.\n- The primary recut is the default canonical path. An opt-in `--origin-ref` on `deft check` is a diagnostic, not the default-base recut. Keep standalone `--origin-ref`. Do not treat origin equal to HEAD as a successful validation.\n- Report the resolved origin and candidate mode on every run (including N/A).\n- When HEAD equals that origin and the working tree has production edits not in HEAD: either include those unstaged/untracked production files as candidates (bytes from the working tree; mint authority stays `git show <merge-base>`) or N/A in language that names \"committed HEAD versus origin only; unstaged not assessed.\" Do not skip. Do not let exit-0 N/A read as assessment of a dirty tree.\n- Preserve merge-base mint authority. Do not skip the gate. Do not treat #4597 mid-build mint as this comparison-base recut. Footnote sibling `verify:observable-scope` is inventory, not this bind.",
+          "id": 5749712383,
+          "html_url": "https://github.com/deftai/directive/issues/4813#issuecomment-5749712383",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:11:04Z",
+          "updated_at": "2026-09-20T12:11:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\n\nceiling: 5749712383\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\ncharter: open critique\npain-audit of successor lean 5749712383 Bound-remedy against Stop 1 P1 and P2.\n\nVerdict: Bound-remedy covers both named Stop 1 pains. The asserted `relieves: P1` and `relieves: P2` cites on successor lean 5749712383 hold. No `blocks-the-design` finding. This census is footnote-only; harvest does not need a new bind lean from this audit.\n\n## 1. P1 dest recut covers the named wrong-candidate pain\n\nclass: footnote\n\nEvidence (pin 7011e07402257adcda6fa496fac079cd8aa54d42, re-verified):\n\n- Evaluator-surface `resolveDefaultBaseRef` returns `git rev-parse --abbrev-ref origin/HEAD`, else the first of `origin/HEAD`, `origin/main`, `origin/master` that verifies. It does not read plan policy.\n- `resolveMergeBase` uses that resolver unless `originRef` is supplied. `CONSUMER_CHECK_GATES` lists bare `verify:intent-constraint`. `packages/cli/src/check.ts` `parseArgs` has no origin-ref. `checkGateSpawnArgs` on a string spec adds no extra args.\n- Node mock of that resolver with origin/HEAD abbrev `origin/main` returns `origin/main` and silent `resolveMergeBase()` yields merge-base `0dd3016cd126c2d07613e95b80b9885911964a07`. Passing `origin/develop` yields `8e1da35a06c0c4a79e138ef1e5974a255f18037e`. Same method as Stop 1 / critic 5749707876; same SHAs as the issue body.\n- `resolveCandidateBaseRef` already defaults to `origin/<deliveryBranch>` via `resolveDeliveryBranch`. Scope-provenance `resolveDefaultBaseRef` already tries `GITHUB_BASE_REF` (as `origin/<name>` then bare). Those are existing channels, not a fourth default.\n\nStop 1 P1 is the canonical aggregate evaluating the wrong historical candidate for a typed dest (`deliveryBranch=develop`) while the forge default is main. Bound-remedy forbids silent evaluator-surface `resolveDefaultBaseRef` when a typed dest exists, names local dest the same way orphan-active already does, names Actions `GITHUB_BASE_REF` as the PR-target channel, and keeps an opt-in `--origin-ref` on `deft check` as diagnostic rather than the default-base recut. That is the measured BestiMax path. `relieves: P1` holds.\n\nFailure mode if unread: none for P1. The typed-only trigger on bullet 1 (`when a typed consumer dest exists`) is narrower than `resolveCandidateBaseRef` (always dest, including git-default). BestiMax dest is typed, so either reading still recuts P1. Disposition consequence: none. Do not recut harvest to close this.\n\n## 2. P2 report-plus-disjunction covers the named misleading N/A\n\nclass: footnote\n\nEvidence:\n\n- Default candidates are `git diff --name-only <merge-base> HEAD` plus `git show HEAD:<path>`. `--staged` uses the index. `readCandidateBytes` does not read the working tree.\n- Empty production set returns `ok(\"verify:intent-constraint: N/A — no changed production .ts/.js files.\", true)` — exit 0, `skipped=true`, no origin, no candidate mode.\n- Stop 1 P2 is that N/A when HEAD equals the target and pending work is unstaged/untracked, plus: report the resolved base and candidate mode so N/A cannot be read as assessment of a dirty tree. Issue expected behavior allows include-working-tree or honest non-assessment.\n\nBound-remedy requires origin and candidate mode on every run including N/A, and when HEAD equals that origin with production edits not in HEAD: include unstaged/untracked production bytes as candidates (mint stays `git show <merge-base>`) or N/A in language that names committed HEAD versus origin only and that unstaged was not assessed. After the P1 recut, dest is that origin; the measured HEAD-equals-develop standalone is that trigger. `relieves: P2` holds.\n\nThe P2 bullet also says \"Do not skip\" next to the either/or. Read that with the last bullet (\"Do not skip the gate\"): it forbids removing `verify:intent-constraint`, not the honest-N/A branch Stop 1 P2 already allowed. Honest N/A stays `skipped=true`, not a pass of constraints. Disposition consequence: none. Do not recut harvest.\n\n## Injection / swarm\n\nTriggered: the recut changes what counts as already-approved versus new (merge-base origin and, optionally, candidate bytes).\n\nBound-remedy keeps mint authority at `git show <merge-base>`. Working-tree bytes, if used, are candidates only. The standalone CLI already refuses `--base-ref`. \"Do not treat origin equal to HEAD as a successful validation\" is compatible with honest skip (`skipped=true` N/A that names committed-only) and incompatible with a `skipped=false` pass on an empty committed diff. Untrusted issue text is not an input; typed `plan.policy.deliveryBranch` is local operator policy, the same class orphan-active already consumes. No blocking injection finding.\n\n## Road not taken\n\nChose \"both `relieves` cites hold\" over \"P2 is unrelieved because the disjunction lets an implementer leave the dirty tree unassessed.\" Stop 1 P2 and the issue body require reporting so N/A cannot be mistaken, and allow document-instead-of-working-tree-validation. Forcing the include branch would be a stronger product, not the named pain.\n\nRejected \"P1 is unrelieved because dest is not always the PR target.\" Critic 5749707876 finding 2 already recut that as framing. Bound-remedy incorporated it (local dest, Actions `GITHUB_BASE_REF`, do not claim dest is always the comparison base). Pain-audit of `relieves: P1` is the named forge-default history audit, which dest recuts for typed dest.\n\n## Steelman\n\nStrongest rejected position: exit-0 N/A on HEAD-equals-origin with dirty production is still the measured consumer flow (canonical check never sees `web/lib/naming.ts`), so `relieves: P2` is false unless Bound-remedy mandates the include branch and a non-zero or non-pass outcome.\n\nWhat would flip: Stop 1 P2 text that requires assessing uncommitted work, or a Bound-remedy that only allowed honest N/A without reporting candidate mode. Present Stop 1 P2 is the misleading N/A. Bound-remedy requires the report on every run and names the unstaged-not-assessed language. That steelman does not un-relieve P2.\n\n## Footnotes\n\n- footnote: `verify:observable-scope` on the same `CONSUMER_CHECK_GATES` list still uses evaluator-surface `resolveDefaultBaseRef` with a bare spawn. Bound-remedy already records that sibling as inventory, not this bind.\n- footnote: evaluator-surface `resolveDefaultBaseRef` and scope-provenance `resolveDefaultBaseRef` remain different functions. Bound-remedy points at the latter only as the existing `GITHUB_BASE_REF` channel, not a merge of the two.\n- footnote: fully-staged-not-HEAD production when HEAD equals origin is outside Stop 1 P2's unstaged/untracked words. Canonical check does not pass `--staged`. Not this bind.\n\nInventory: evaluator-surface `resolveDefaultBaseRef`, scope-provenance `resolveDefaultBaseRef`, `resolveDeliveryBranch` (#3041), `resolveBaseBranch` (#3388), `resolveCandidateBaseRef` (#3893), standalone `--origin-ref`, `GITHUB_BASE_REF`. Related: #4541, #4597, #4774. No implement. No ingest.",
+          "id": 5749760635,
+          "html_url": "https://github.com/deftai/directive/issues/4813#issuecomment-5749760635",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:20:57Z",
+          "updated_at": "2026-09-20T12:20:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Canonical intent-constraint uses origin/HEAD then origin/main, not dest | verified | critic 5749707876 pin-read resolveDefaultBaseRef; Node mock merge-base 0dd3016c vs develop 8e1da35a |\n| CONSUMER_CHECK_GATES has no origin-ref | verified | gate-lists.ts; check.ts parseArgs |\n| N/A on empty committed diff is exit 0 skipped | verified | intent-constraint evaluate.ts ok skipped=true; issue step 4 |\n| Bound-remedy dest recut plus honest N/A covers P1 and P2 | verified | pain-audit 5749760635 |",
+          "id": 5749763581,
+          "html_url": "https://github.com/deftai/directive/issues/4813#issuecomment-5749763581",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:21:32Z",
+          "updated_at": "2026-09-20T12:21:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCanonical deft check must not silently merge-base intent-constraint against origin/main when the consumer dest is develop. Dest is not always the PR target. Report the origin and candidate mode. An empty committed diff is not a pass of a dirty tree.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5749712383.",
+          "id": 5749763670,
+          "html_url": "https://github.com/deftai/directive/issues/4813#issuecomment-5749763670",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:21:33Z",
+          "updated_at": "2026-09-20T12:21:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5515664900,
+        "origin": "deftai/directive#4813",
+        "id": "github.issue.5515664900"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9c3a1ca0c03314f7816852f0d128c0e15a3ab627cd95862d69c0b6335e183bf1"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intent-constraint/evaluate.ts",
+          "packages/core/src/intent-constraint/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "canonical intent-constraint uses dest not origin/HEAD",
+          "report origin and candidate mode including N/A",
+          "dirty tree is not exit-0 skipped",
+          "CHANGELOG [Unreleased] #4813"
+        ],
+        "depends_on": [],
+        "conflict_group": "intent-constraint-origin",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5749712383 on #4813; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4815,
+        "prBase": null,
+        "mergeCommit": "553993aaa8206de6b5e8ab411065447cf710b8c2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:22:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:22:37Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:22:37Z"
+      }
+    },
+    "id": "github.issue.5515664900",
+    "updated": "2026-09-20T17:22:37Z"
+  }
+}

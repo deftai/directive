@@ -1,0 +1,565 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4782",
+    "updated": "2026-09-20T17:20:45Z"
+  },
+  "plan": {
+    "title": "bug(occupancy,grok-build): completed spawn_subagent leaves dest worktree leased (forces extra worktrees)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(occupancy,grok-build): completed spawn_subagent leaves dest worktree leased (forces extra worktrees)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4782",
+      "Overview": "## Summary\nAfter a Grok `spawn_subagent` child **completes successfully**, its destination worktree remains occupied under a Claude-namespaced child session id. The parent cannot reuse that worktree for the next sequential validator without minting a new worktree.\n\n## Measured (NoteTechnic phase-validate, 2026-09-18, 0.119.2)\n1. Spawn PATHS validator with `cwd=.deft-scratch/worktrees/validate-m1-05-08` → success; child completes (~546s).\n2. Immediate next spawn into **same cwd** → denied: occupied by `host:claude:v1:<child-id>`.\n3. Workaround: `git worktree add` four more trees (ops/content/security/integration).\n\n## Expected\nOn child terminal success/failure, dest occupancy for that child is released (or auto-released after short grace). Sequential validators can share one validation worktree.\n\n## Actual\nLeases linger; deny blames Claude; operator accumulates detached worktrees (#3860 hygiene pain in miniature every validation pass).\n\n## Related\n- #4708 (Claude namespace — why the lock *looks* like Claude)\n- Closed #3604 (leases never released outside swarm completion) — **recurrence** for Grok native spawn_subagent outside formal swarm:finalize\n- #4152 (dest-lock cleanup TOCTOU)\n\nIf #3604 fix was swarm-only, please extend to Grok `spawn_subagent` completion, or reopen with this consumer evidence.\n\n",
+      "Labels": "bug, agent-experience, process, grok-build, harness, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- When restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record.\n- When do not claim dest-linger closed on this number. That remainder is #4792.\n- When do not extend leftover dest-lock to yank a live occupant. Do not extend swarm:finalize to every spawn_subagent dest.",
+      "Test": "When targeted tests on packages/core/src/session/occupancy.ts, packages/core/src/session/spawn-occupancy.ts, packages/core/src/orchestration/subagent-monitor.ts pass for bound contract lean 5735576141."
+    },
+    "items": [
+      {
+        "title": "When restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record.",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When do not claim dest-linger closed on this number. That remainder is #4792.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When do not claim dest-linger closed on this number. That remainder is #4792."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When do not extend leftover dest-lock to yank a live occupant. Do not extend swarm:finalize to every spawn_subagent dest.",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When do not extend leftover dest-lock to yank a live occupant. Do not extend swarm:finalize to every spawn_subagent dest."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4782",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4782: bug(occupancy,grok-build): completed spawn_subagent leaves dest worktree leased (forces extra worktrees)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3604",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3604"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When do not claim dest-linger closed on this number. That remainder is #4792.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When do not extend leftover dest-lock to yank a live occupant. Do not extend swarm:finalize to every spawn_subagent dest.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/orchestration/subagent-monitor.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a Grok spawn_subagent child that completes successfully can leave its dest worktree occupied, so the parent cannot reuse that dest for the next sequential validator without minting another worktree.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4782-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answered 1 after the missing-token ask; yolo standing for all five single-issue arcs, now parallelized.\n\nrefutation-target: completed spawn_subagent leaves dest occupancy leased, and that linger is outside swarm:finalize / leftover dest-lock retry.\n\ntarget: #4782\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the NoteTechnic phase-validate 2026-09-18 measurement on 0.119.2: spawn cwd=.deft-scratch/worktrees/validate-m1-05-08 succeeds and the child completes (~546s); immediate next spawn into the same cwd is denied occupied by host:claude:v1:<child-id>. Workaround was git worktree add four more trees.\n\nPin-read at dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969:\n\n- #3999 terminal release is releaseChildOccupancyOnTerminal, invoked from packages/core/src/orchestration/subagent-monitor.ts when the monitor sees phase: terminal. Occupancy tests lock dispatch-claim-exit clears the child owner lease.\n- commands.md dispatcher-owned terminal release requires parent-id match, incarnation match, and a recorded child occupancy tuple under .deft/child-occupancy/. Swarm close-out still releases only the launcher occupancy_session_id (#3604).\n- #4254 leftover dest-lock is a later tool.before of the same parent on a dest with no live occupant; it is not live-occupant linger after a successful child.\n- #4708 explains Claude-namespace labeling of a Grok child owner; it does not release the lease.\n- CHANGELOG Unreleased at this SHA has no spawn_subagent dest-linger recut.\n\nInventory: occupancy:release remains occupant-run. process_only skip does not claim dest occupancy; unmarked implement-class dest-lock does. No implement and no ingest from this parent.\n\n",
+          "id": 5735398059,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735398059",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T19:52:12Z",
+          "updated_at": "2026-09-18T19:52:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\r\n```quarantined\nrole: critic\r\n```\naudit-targets: none\r\n\r\nPin: git show f33b8b8e24c9746d02f66532bd1815271771e969 (dest HEAD). Ceiling: comment 5735398059 inclusive. Charter: refutation of that write-back's refutation-target. Spend N=1, round 1, critic role fresh.\r\n\r\n## Verdict\r\n\r\nThe recorded target survives as a live-occupancy measurement. It does not survive as a missing leftover dest-lock or swarm:finalize close-out. Those two are different holes. Binding the target as a gap inside them, or as parent-observed spawn_subagent auto-release, recuts gates that already refuse that yank.\r\n\r\n## 1. Spawn persist is dest-lock; dest occupancy is the child's claim\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence. Pin-read `packages/core/src/session/spawn-occupancy.ts` at this SHA: `mintImplementSpawnReservation` sets `occupancyOwner: parentId` and `provenance: \"dispatch\"`. `persistSpawnReservation` writes dest-lock plus that dispatch record. It does not `applyWorktreeOccupancy`. Dest occupancy.json is claimed later by the child's `session:start` / write gate. `maybeRecordChildOccupancyOnClaim` (`occupancy.ts`) then stamps a second record keyed by raw `GROK_SESSION_ID` with `provenance: \"claim\"`. Consult order on the next spawn is `liveOccupant` first (`destination-occupied`: \"occupied by session ${live.sessionId}\"), then leftover dest-lock / `reservation-conflict`. The NoteTechnic deny text matches `destination-occupied`, not \"already reserved for dispatch\".\r\n\r\nFailure mode. Binding \"completed spawn_subagent leaves dest occupancy leased\" as a PreToolUse persist bug sends the remedy at dest-lock leftover-release. Sequential validators would still deny on live occupancy.json.\r\n\r\nDisposition. Restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child's host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record.\r\n\r\n## 2. Leftover dest-lock and swarm:finalize are not this close-out\r\n\r\nclass: blocks-the-design\r\n\r\nEvidence. `releaseLeftoverSpawnReservation` returns false when `liveOccupant(dest)` is non-null (comment: leftover of an allow the host did not launch; reincarnation after leftover-release, dest+parent is not a share token). Dispatcher leftover-release runs only after consult already allowed, which consult refuses when occupancy is live. `complete-cohort.ts` comment and `releaseSwarmOccupancy` call: launcher occupancy only; child owner leases are the #3999 terminal path, not here. CHANGELOG #3604: swarm close-out stays `releaseSwarmOccupancy` on complete-cohort. Occupancy:release is occupant-run; non-owner live release exits 1 (`occupancy-release.test.ts`). Dispatcher has no `tool.after` / PostToolUse spawn-complete arm.\r\n\r\nRe-verification. `claim-time records are not dispatcher close-out` passed. `dispatch-claim-exit clears the child owner lease without waiting for TTL` passed. `refuses a destination that already has a live occupant` passed. The leftover-release live-occupant suite did not finish the refuse assertion in this dest run (first consult `allow` was false under parallel `git worktree add`); that is not a recut of the pin-read liveOccupant refuse. Method-reconciliation: the passing destination-occupied consult is the sequential-validator deny; leftover dest-lock is the no-occupant retry.\r\n\r\nFailure mode. Extending leftover dest-lock to yank a live occupant recuts the #4254 TOCTOU refuse (revalidate immediately before dest-lock delete). Extending swarm:finalize to every spawn_subagent dest recuts cohort-keyed launcher close-out. Parent occupancy:release of the child's lease is non-owner refuse. Parent-observed spawn_subagent return as occupancy close-out is a host-env different-actor yank with no incarnation/parent-id/heartbeat tuple.\r\n\r\nDisposition. Do not bind the \"outside leftover dest-lock / swarm:finalize\" conjunct as a hole to fill inside those two. Do not bind issue Expected auto-release on parent-observed complete. Those two remaining outside is the category boundary, not the missing path.\r\n\r\n## 3. #3999 already is completion-release; Grok spawn_subagent never mints that shape\r\n\r\nclass: sharpens-framing\r\n\r\nEvidence. `releaseChildOccupancyOnTerminal` no-ops `provenance !== \"dispatch\"` (`claim-provenance`) and no-ops `live.sessionId !== record.occupancyOwner` (`owner-changed`). commands.md dispatcher-owned terminal release: ordinary self-claim records are not close-out; heartbeats should echo dispatch incarnation. The dispatch-claim-exit test records `occupancyOwner: childOwner` with `provenance: \"dispatch\"` then claims as that same id. Production mint records occupancyOwner=parent; claim-time writes a claim-provenance row keyed by GROK_SESSION_ID. Monitor lookup by heartbeat `agent_id` therefore hits claim-provenance, or the dispatch key `spawn-<8 hex>` with occupancyOwner=parent against a child live occupant (owner-changed). Either way dest occupancy stays. `cmdSubagentMonitor` only calls that release when a terminal heartbeat exists; Grok spawn_subagent host completion does not write one. Occupancy TTL is a separate 20-minute occupancy.json heartbeat, not the subagent-status file.\r\n\r\nFailure mode. Citing dispatch-claim-exit as proof that #3999 already clears this consumer path hides the mint+claim shape. A later implementer \"extends #3604 to spawn_subagent completion\" instead of stitching claim occupancyOwner onto the dispatch tuple, or teaching the child to `session:end`.\r\n\r\nDisposition. If the target binds, bind it as: live dest occupancy after Grok implement-class child complete is outside leftover dest-lock and swarm:finalize, and also outside the #3999 close-out the mint+claim path actually produces. The next-build question is that stitch (or occupant `session:end`), not leftover dest-lock, not cohort finalize, not parent yank.\r\n\r\n## 4. Labeling, skip-class, TTL\r\n\r\nclass: footnote\r\n\r\n#4708 remaps Grok occupancy owner when GROK_HOOK_EVENT is set; leftover GROK_SESSION_ID without that event stays Claude. Namespace labeling is not dest-occupancy release. CHANGELOG Unreleased at this SHA has no spawn_subagent dest-linger recut. process_only / `subagent_type` plan skips dest occupancy consult (`isProcessOnlyCriticSpawn`); unmarked general-purpose dest-cwd stays implement-class dest-lock. Expired occupancy (20 min) is residue, not a blocked entry path; leftover dest-lock can then fire. Sequential validators in seconds are inside TTL. P1 as NoteTechnic 0.119.2 measurement is untrusted described content; this post re-derived mechanism, not that run.\r\n\r\n## Injection / swarm\r\n\r\nTarget changes occupancy, worktrees, shared dest-lock, and host-env identity. Cooperative bearer-id occupancy is not a lineage: parent and Grok child are different actors; grant-across-host is refused by the destination-occupied message. Heartbeat JSON is worker-authored; invalid heartbeats skip terminal release. Unique dest-lock still mints a new incarnation after a true leftover-release; dest+parent is not a share token. Do not leftover-release a live occupant. Do not treat spawn_subagent host completion as authority to delete another actor's occupancy.json.\r\n\r\n## Road-not-taken\r\n\r\nChose: keep leftover dest-lock live-occupant refuse; keep swarm close-out launcher-only; name #3999 mint+claim as the completion path that does not fire.\r\n\r\nRejected leftover dest-lock yank of live occupancy. Flip: if occupancy.json after host-complete were proven abandoned (host session gone, no gated write possible), TTL already admits claim-over-expired; shortening TTL recuts #3999's out-of-scope bound.\r\n\r\nRejected parent PostToolUse auto-release. Flip: a host-authored completion event that carries the dispatch incarnation, parent-id, and dest path as the #3999 tuple would be dispatcher close-out, not a new yank.\r\n\r\nSteelmans the target: sequential validators cannot reuse one dest in seconds; leftover dest-lock tests cover no live occupant; swarm:finalize is not on that path. That measurement holds. The implied gap inside leftover dest-lock / swarm:finalize does not.",
+          "id": 5735506078,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735506078",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:01:52Z",
+          "updated_at": "2026-09-18T20:01:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter a Grok implement-class child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. That is not leftover dest-lock and not swarm:finalize. #3999 terminal release exists, but the mint+claim path Grok spawn_subagent actually produces does not fire it. Next-build is stitching claim occupancyOwner onto the dispatch tuple, or occupant session:end, not yanking a live occupant.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Expected. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4782 dest occupancy linger after critic 5735506078. Cites critic 5735506078. Supersedes write-back 5735398059.\n\nTarget-digest: sha256:a3950605b5082c8dab24347031c0d56c8d69afbd51a11eab578de3fbedcaddf0\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4782-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735506078 1 Spawn persist is dest-lock; dest occupancy is the child claim — accept-into-contract\n- 5735506078 2 Leftover dest-lock and swarm:finalize are not this close-out — accept-into-contract\n- 5735506078 3 #3999 already is completion-release; Grok spawn_subagent never mints that shape — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735506078 reading=asserted\n\n## Bound remedy\n\n- Restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record.\n- Do not extend leftover dest-lock to yank a live occupant. Do not extend swarm:finalize to every spawn_subagent dest. Do not bind parent-observed spawn_subagent return as occupancy close-out.\n- Next-build: stitch claim occupancyOwner onto the dispatch tuple so #3999 terminal release can fire, or have the occupant run session:end. Tests: destination-occupied after child complete; leftover dest-lock still refuses live occupant; dispatch-claim-exit still clears a true dispatch-provenance child.\n\n",
+          "id": 5735576141,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735576141",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:08:10Z",
+          "updated_at": "2026-09-18T20:08:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPin: git show f33b8b8e24c9746d02f66532bd1815271771e969 (dest HEAD equals dispatch-sha). Ceiling: comment 5735576141 inclusive. Pain-audit of successor lean 5735576141 against Stop 1 P1 on comment 5735398059. Dest has no vitest and no core dist; re-verification is pin-read of production and locked test source at that SHA, not a live suite.\n\n## Verdict\n\nStop 1 P1 is the NoteTechnic sequential-validator measurement: implement-class Grok spawn_subagent into one dest succeeds and the child completes; the immediate next spawn into the same cwd is denied occupied by `host:claude:v1:<child-id>`. successor lean 5735576141 cites `relieves: P1` over a Bound-remedy harvest. That harvest does not cover P1. The cite is not honest.\n\n## 1. Bound-remedy harvest does not cover Stop 1 P1\n\nclass: blocks-the-design\n\nEvidence. Consult order at this SHA (`packages/core/src/session/spawn-occupancy.ts`): `liveOccupant` first, deny `destination-occupied` (`occupied by session ${live.sessionId}`), leftover dest-lock later. Locked test `refuses a destination that already has a live occupant` encodes that deny. Stop 1 P1 matches that deny, not reservation-conflict.\n\nHarvest parse on successor lean 5735576141: Spec-path is present; heading Bound-remedy is present; `parseListItems` takes three bullets. Cite form `relieves: P1` is operative. The third bullet is the only next-build: stitch claim occupancyOwner onto the dispatch tuple so #3999 terminal release can fire, or have the occupant run session:end, plus three tests.\n\nDisjunct A does not fire on this path. `mintImplementSpawnReservation` records `occupancyOwner: parentId`, `provenance: \"dispatch\"`, `agentId` from payload or `spawn-<8 hex>`. Child claim writes occupancy.json, then `maybeRecordChildOccupancyOnClaim` stamps a second row keyed by raw `GROK_SESSION_ID`, `provenance: \"claim\"`, no dispatch incarnation. `releaseChildOccupancyOnTerminal` returns `claim-provenance` when `provenance !== \"dispatch\"` and `owner-changed` when `live.sessionId !== record.occupancyOwner`. Locked tests: `claim-time records are not dispatcher close-out` keeps occupancy; `dispatch-claim-exit clears the child owner lease without waiting for TTL` releases only when one dispatch-provenance row already has occupancyOwner equal to the live child. Monitor lookup (`cmdSubagentMonitor` / `releaseTerminalChildOccupancy`) is `readChildOccupancyLease(root, rec.agent_id)` from a terminal heartbeat. Occupancy.ts comment: heartbeat `agent_id` on this host is raw `GROK_SESSION_ID`, so lookup hits the claim row. Copying occupancyOwner onto the spawn-xxx dispatch row leaves that lookup on claim-provenance. commands.md dispatcher-owned terminal release: ordinary self-claim records are not close-out; heartbeats should echo dispatch incarnation. `isHookEvent(\"tool.after\")` is false; dispatcher has no spawn-complete arm. Stitch does not create a terminal heartbeat, and sequential validators spawn on parent tool return.\n\nDisjunct B does not fire after complete. `releaseOccupancy` / `session:end` is occupant-run: caller must equal `existing.sessionId` or the lease is expired. Locked test `non-owner live release exits 1`. TTL is 20 minutes; sequential validators in seconds are inside it. P1 occupancy.json is `host:claude:v1:<child-id>`. #4708 leftover `GROK_SESSION_ID` without `GROK_HOOK_EVENT` stays Claude (`dispatcher-grok-identity.test.ts`). Occupant-run session:end from a Grok shell that presents `host:grok:v1` of `GROK_SESSION_ID` is a different actor and is refused. The deny text already names occupant `session:end`; the measured child completed without it. Harvesting that recovery line is not a close-out that runs before the next spawn.\n\nThe named test `destination-occupied after child complete` can be satisfied by restating dispatch-claim-exit, which is already green at this SHA and does not encode mint+claim. Leftover dest-lock still-refuses-live-occupant is already `releaseLeftoverSpawnReservation` (`liveOccupant !== null` returns false). Those tests do not make either disjunct cover P1.\n\nFailure mode. Path-1 bind treats P1 as relieved. Ingest harvests a next-build that can ship while sequential same-cwd spawn stays `destination-occupied`. Parent cannot self-clear this `relieves` cite.\n\nDisposition. Lean cannot bind as written. Parent posts a retraction map first (`does-not-relieve: P1` or a recut harvest), then Handoff. A covering Bound-remedy has to name a close-out that actually runs on Grok spawn_subagent complete and leaves occupancy.json gone before the next sequential spawn: claim-time in-place update of the dispatch row (live occupant as occupancyOwner, provenance stays dispatch, incarnation stays the dispatch incarnation, agentId is the monitor lookup key) plus a host-authored completion event that carries that #3999 tuple, or in-lifetime occupant `session:end` that presents occupancy.json's session id. Do not leftover-yank a live occupant. Do not extend swarm:finalize. Do not bind parent-observed spawn_subagent return as occupancy close-out.\n\n## 2. Cite and harvest parse\n\nclass: footnote\n\nStop 1 `pain: P1` is operative. successor lean 5735576141 `relieves: P1` is an accepted cite form. Bound-remedy heading plus three list items is a non-empty harvest. This is not malformed-pain. It does not make disjunct A or B cover P1.\n\n## Injection / swarm\n\nTarget changes occupancy, worktrees, shared dest-lock, and host-env identity. Cooperative bearer-id occupancy is not a lineage: parent and Grok child are different actors; grant-across-host is the destination-occupied refuse. Heartbeat JSON is worker-authored; invalid heartbeats skip terminal release. Unique dest-lock still mints a new incarnation after a true leftover-release; dest+parent is not a share token. Do not leftover-release a live occupant. Do not treat spawn_subagent host completion as authority to delete another actor's occupancy.json.\n\n## Road-not-taken\n\nChose: `relieves: P1` is false because neither harvested disjunct closes sequential `destination-occupied` on the mint+claim Grok path.\n\nRejected \"the named P1 test is enough acceptance criteria.\" Flip: a test that used mint+claim (claim-provenance row, `GROK_SESSION_ID` heartbeat or none, live Claude leftover occupant) plus a close-out that actually runs would cover P1. The harvest English does not require that shape, and dispatch-claim-exit already matches the looser reading.\n\nSteelmans the harvest: stitch was the round-1 next-build phrase, and occupant `session:end` would cover P1 if the child presented occupancy.json's id before EXIT. That steelman fails the lookup/provenance pin-read, the missing tool.after pin-read, and the Claude-leftover vs grok-present identity pin-read.",
+          "id": 5735694105,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735694105",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:19:17Z",
+          "updated_at": "2026-09-18T20:19:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit found Bound remedy does not cover live dest occupancy after child complete, so relieves P1 was not honest. This map retracts that cite. The classified recut (not leftover dest-lock, not swarm:finalize) stands. P1 stays unmet.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes.\n\nForward verdict: retract relieves. Disposition: classified headings accept-into-contract. Residual: unrelieved P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of #4782 bind after pain-audit 5735694105. Cites critic 5735506078 and pain-audit 5735694105. Supersedes lean 5735576141.\n\nTarget-digest: sha256:a3950605b5082c8dab24347031c0d56c8d69afbd51a11eab578de3fbedcaddf0\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4782-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735506078 classified headings — accept-into-contract\n- 5735694105 1 Harvest relieves P1 is not honest — accept-into-contract\n\ndoes-not-relieve: P1\n\n",
+          "id": 5735725838,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735725838",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:21:53Z",
+          "updated_at": "2026-09-18T20:21:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLive dest occupancy after Grok child complete stays unmet. This map recuts Expected away from leftover dest-lock and swarm:finalize, and retracts relieves P1.\n\nThis is not an instruction to a later builder.\n\nopen-question: file leftover to stitch claim occupancyOwner onto the dispatch tuple so #3999 can fire?\n\nHandoff because does-not-relieve P1 plus Spec-path on successor lean after retraction.\n\n",
+          "id": 5735728709,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735728709",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:22:08Z",
+          "updated_at": "2026-09-18T20:22:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLive dest occupancy after a Grok implement-class child complete is leftover #4792. This number recuts Expected so leftover dest-lock and swarm:finalize are not the close-out. It does not close dest-linger.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4792.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4782 after leftover #4792. Cites critic 5735506078 and pain-audit 5735694105. Supersedes retraction 5735725838.\n\nTarget-digest: sha256:a3950605b5082c8dab24347031c0d56c8d69afbd51a11eab578de3fbedcaddf0\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4792\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4782-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735506078 classified headings — accept-into-contract\n- 5735694105 1 Harvest relieves P1 is not honest — accept-into-contract\n\noperator-deferred: P1 #4792\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735694105 leftover=4792 reading=measured\n\n## Bound remedy\n\n- Restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record.\n- Do not claim dest-linger closed on this number. That remainder is #4792.\n- Do not extend leftover dest-lock to yank a live occupant. Do not extend swarm:finalize to every spawn_subagent dest.",
+          "id": 5735892755,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735892755",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:37:37Z",
+          "updated_at": "2026-09-18T20:37:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPin: git show f33b8b8e24c9746d02f66532bd1815271771e969 (dest HEAD equals dispatch-sha). Ceiling: comment 5735892755 inclusive. Pain-audit of successor lean 5735892755 against Stop 1 P1 on comment 5735398059. Dest has no vitest and no core dist; re-verification is pin-read of production and locked test source at that SHA, plus REST GET of leftover issue 4792, not a live suite.\n\n## Verdict\n\nStop 1 P1 is the NoteTechnic sequential-validator measurement: implement-class Grok spawn_subagent into one dest succeeds and the child completes; the immediate next spawn into the same cwd is denied occupied by `host:claude:v1:` plus the child id. successor lean 5735892755 cites `operator-deferred: P1 #4792`. Leftover issue 4792 is a different open issue. Bound-remedy on this lean does not cover P1. The cite is honest.\n\n## 1. Leftover 4792 is a different open issue\n\nclass: footnote\n\nEvidence. REST GET `repos/deftai/directive/issues/4792`: `number` 4792, `state` open, `closed_at` null, title live dest occupancy after spawn_subagent child complete. REST GET `repos/deftai/directive/issues/4782`: `number` 4782, `state` open. 4792 is not 4782. successor lean 5735892755 operative cite `operator-deferred: P1 #4792` parses `deferredIssueNumber` 4792 (`scanPainCites` / `PAIN_CITE_RE`, `#` or `issue` plus 1-8 digits). `evaluateBoundRemedyCites` fails closed when `deferredIssueNumber` is null or equals the current issue (4782). This is not that path. Leftover body names leftover of 4782 after blocking pain-audit 5735694105, retraction 5735725838, and Handoff 5735728709. Lean recording field `leftover-issue: 4792` matches that number; it is not a closed cite form (`ACCEPTED_PAIN_CITE_FORMS`).\n\nFailure mode. Same-number leftover is `unrelieved-pain`, not yolo-confirmable leftover. Closed leftover would park P1 on a non-live next-build. Measured neither.\n\nDisposition. The `operator-deferred` form is accepted. This heading does not change the harvest.\n\n## 2. Bound-remedy harvest does not cover Stop 1 P1\n\nclass: footnote\n\nEvidence. Consult order at this SHA (`packages/core/src/session/spawn-occupancy.ts` 602-612): `liveOccupant` first, deny `destination-occupied` (`occupied by session ${live.sessionId}`), leftover dest-lock later. `releaseLeftoverSpawnReservation` returns false while `liveOccupant(dest)` is non-null (845-857). Swarm close-out (`complete-cohort.ts` 649-653) is launcher occupancy only; child owner leases are the #3999 terminal path. `releaseChildOccupancyOnTerminal` (`child-occupancy.ts` 342-344, 390-392) no-ops `provenance !== \"dispatch\"` (`claim-provenance`) and `live.sessionId !== record.occupancyOwner` (`owner-changed`). Production mint records `occupancyOwner: parentId`, `provenance: \"dispatch\"` (`spawn-occupancy.ts` 676, 686). Claim-time `maybeRecordChildOccupancyOnClaim` stamps `provenance: \"claim\"` keyed by raw `GROK_SESSION_ID` (`occupancy.ts` 1054-1072). Monitor lookup is `readChildOccupancyLease(root, rec.agent_id)` from a terminal heartbeat (`subagent-monitor.ts` 502-518). Grok spawn_subagent host completion does not write one. P1 occupancy.json stays live.\n\nHarvest parse on successor lean 5735892755: Spec-path is present; heading Bound-remedy is present; `parseListItems` takes three bullets. Cite form is `operator-deferred: P1 #4792`, not `relieves: P1`. The three bullets: (1) restate the mint+claim live occupancy.json premise; (2) do not claim dest-linger closed on this number, remainder is 4792; (3) do not extend leftover dest-lock to yank a live occupant, do not extend swarm:finalize. The stitch / occupant `session:end` next-build that successor lean 5735576141 harvested as bullet 3 is absent here. None of these three bullets is a close-out that leaves occupancy.json gone before the next sequential spawn. `evaluateBoundRemedyCites` wants `operator-deferred` only for unmet ids; P1 is unmet on this harvest.\n\nFailure mode. Treating this remainder recut as `relieves: P1` would repeat the 5735694105 block (ingest harvests a next-build that can ship while sequential same-cwd spawn stays `destination-occupied`). Citing `operator-deferred` while harvesting a covering close-out would fail `evaluateBoundRemedyCites` the other way. Measured neither.\n\nDisposition. Bound-remedy does not relieves P1. The lean can bind as a remainder recut with P1 parked on leftover 4792. This audit is footnote-only; it is not relief. A covering close-out stays on leftover 4792, not this harvest.\n\n## 3. Cite and harvest parse\n\nclass: footnote\n\nStop 1 `pain: P1` is operative on comment 5735398059. successor lean 5735892755 `operator-deferred: P1 #4792` is an accepted cite form. Bound-remedy heading plus three list items is a non-empty harvest. No `relieves: P1`. No `does-not-relieve: P1`. No conflicting dispositions. This is not malformed-pain. Recording field `leftover-issue: 4792` is not a closed cite form. It does not make the harvest cover P1.\n\n## Injection / swarm\n\nTarget changes occupancy, worktrees, shared dest-lock, and host-env identity. Cooperative bearer-id occupancy is not a lineage: parent and Grok child are different actors; grant-across-host is the destination-occupied refuse. Heartbeat JSON is worker-authored; invalid heartbeats skip terminal release. Unique dest-lock still mints a new incarnation after a true leftover-release; dest+parent is not a share token. Do not leftover-release a live occupant. Do not treat spawn_subagent host completion as authority to delete another actor's occupancy.json. Remainder recut does not recut those refuses.\n\n## Road-not-taken\n\nChose: `operator-deferred: P1 #4792` is honest because leftover 4792 is a different open issue and this Bound-remedy does not close sequential `destination-occupied`.\n\nRejected \"remainder recut still relieves because leftover still names stitch.\" Flip: if this harvest still listed stitch / occupant `session:end` as next-build, that would be a `relieves` cite (and would fail the 5735694105 covering test). This harvest dropped that bullet and named 4792 as remainder. Leftover design soundness is a later arc on 4792, not this cite.\n\nSteelmans the lean: parking P1 on a leftover that still proposes stitch does not close P1 on this number. That steelman holds. It does not convert `operator-deferred` into `relieves`.",
+          "id": 5735953307,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735953307",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:44:03Z",
+          "updated_at": "2026-09-18T20:44:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| operator-deferred: P1 #4792 is a different-issue leftover; this harvest does not relieves dest-linger | verified | successor lean 5735892755; REST #4792 open; pain-audit 5735953307 footnote-only |\n| Leftover dest-lock and swarm:finalize are not this close-out | verified | critic 5735506078; pin-read spawn-occupancy.ts / occupancy.ts at f33b8b8e |\n| Live dest occupancy remainder is #4792, not this Bound-remedy | verified | leftover #4792 body; pain-audit 5735953307 |\n\n",
+          "id": 5735988584,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735988584",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:44Z",
+          "updated_at": "2026-09-18T20:47:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLive dest occupancy after Grok child complete is leftover #4792. Agents agreed this number recuts Expected away from leftover dest-lock and swarm:finalize. It does not close dest-linger.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5735892755.\n\n",
+          "id": 5735989939,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5735989939",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:53Z",
+          "updated_at": "2026-09-18T20:47:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLive dest occupancy after a Grok implement-class child complete is leftover #4792. This number recuts Expected so leftover dest-lock and swarm:finalize are not the close-out. It does not close dest-linger.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted bind, and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4792.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4782 after leftover #4792, cite-form repair. Cites critic 5735506078 and pain-audit 5735694105. Supersedes lean 5735892755.\n\nTarget-digest: sha256:a3950605b5082c8dab24347031c0d56c8d69afbd51a11eab578de3fbedcaddf0\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4792\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4782-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735506078 classified headings — accept-into-contract\n- 5735694105 1 Harvest `relieves` P1 is not honest — accept-into-contract\n\noperator-deferred: P1 #4792\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735694105 leftover=4792 reading=measured\n\n## Bound remedy\n\n- Restate the premise: after an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record.\n- Do not claim dest-linger closed on this number. That remainder is #4792.\n- Do not extend leftover dest-lock to yank a live occupant. Do not extend swarm:finalize to every spawn_subagent dest.",
+          "id": 5736003038,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5736003038",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:49:16Z",
+          "updated_at": "2026-09-18T20:49:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPin: git show f33b8b8e24c9746d02f66532bd1815271771e969 (dest HEAD equals dispatch-sha). Ceiling: comment 5736003038 inclusive. Pain-audit of successor lean 5736003038 against Stop 1 P1 on comment 5735398059. Dest has no vitest and no core dist; re-verification is pin-read of production source at that SHA, REST GET of leftover issue 4792, and the published `PAIN_CITE_RE` against the REST lean body, not a live suite.\n\n## Verdict\n\nStop 1 P1 is the NoteTechnic sequential-validator measurement: implement-class Grok spawn_subagent into one dest succeeds and the child completes; the immediate next spawn into the same cwd is denied occupied by `host:claude:v1:` plus the child id. successor lean 5736003038 cites `operator-deferred: P1 #4792`. Leftover issue 4792 is a different open issue. Bound-remedy on this lean does not cover P1. Takes mention of `relieves` is inline code only. The cite is honest.\n\n## 1. Leftover 4792 is a different open issue\n\nclass: footnote\n\nEvidence. REST GET `repos/deftai/directive/issues/4792`: `number` 4792, `state` open, `closed_at` null, title live dest occupancy after spawn_subagent child complete. REST GET `repos/deftai/directive/issues/4782`: `number` 4782, `state` open. 4792 is not 4782. successor lean 5736003038 operative cite `operator-deferred: P1 #4792` parses `deferredIssueNumber` 4792 (`scanPainCites` / `PAIN_CITE_RE`, `#` or `issue` plus 1-8 digits). `evaluateBoundRemedyCites` fails closed when `deferredIssueNumber` is null or equals the current issue (4782). This is not that path. Leftover body names leftover of 4782 after blocking pain-audit 5735694105, retraction 5735725838, and Handoff 5735728709. Lean recording field `leftover-issue: 4792` matches that number; it is not a closed cite form (`ACCEPTED_PAIN_CITE_FORMS`).\n\nFailure mode. Same-number leftover is `unrelieved-pain`, not yolo-confirmable leftover. Closed leftover would park P1 on a non-live next-build. Measured neither.\n\nDisposition. The `operator-deferred` form is accepted. This heading does not change the harvest.\n\n## 2. Bound-remedy harvest does not cover Stop 1 P1\n\nclass: footnote\n\nEvidence. Consult order at this SHA (`packages/core/src/session/spawn-occupancy.ts` 602-612): `liveOccupant` first, deny `destination-occupied` (`occupied by session ${live.sessionId}`), leftover dest-lock later. `releaseLeftoverSpawnReservation` returns false while `liveOccupant(dest)` is non-null (845-857). Swarm close-out (`complete-cohort.ts` 649-653) is launcher occupancy only; child owner leases are the #3999 terminal path. `releaseChildOccupancyOnTerminal` (`child-occupancy.ts` 342-344, 390-392) no-ops `provenance !== \"dispatch\"` (`claim-provenance`) and `live.sessionId !== record.occupancyOwner` (`owner-changed`). Production mint records `occupancyOwner: parentId`, `provenance: \"dispatch\"` (`spawn-occupancy.ts` 676, 686). Claim-time `maybeRecordChildOccupancyOnClaim` stamps `provenance: \"claim\"` keyed by raw `GROK_SESSION_ID` (`occupancy.ts` 1054-1072). Monitor lookup is `readChildOccupancyLease(root, rec.agent_id)` from a terminal heartbeat (`subagent-monitor.ts` 502-518). Grok spawn_subagent host completion does not write one. P1 occupancy.json stays live.\n\nHarvest parse on successor lean 5736003038: Spec-path is present; heading Bound-remedy is present; three list items. Cite form is `operator-deferred: P1 #4792`, not `relieves: P1`. The three bullets: (1) restate the mint+claim live occupancy.json premise; (2) do not claim dest-linger closed on this number, remainder is 4792; (3) do not extend leftover dest-lock to yank a live occupant, do not extend swarm:finalize. The stitch / occupant `session:end` next-build that successor lean 5735576141 harvested as bullet 3 is absent here. None of these three bullets is a close-out that leaves occupancy.json gone before the next sequential spawn. `evaluateBoundRemedyCites` wants `operator-deferred` only for unmet ids; P1 is unmet on this harvest.\n\nFailure mode. Treating this remainder recut as `relieves: P1` would repeat the 5735694105 block (ingest harvests a next-build that can ship while sequential same-cwd spawn stays `destination-occupied`). Citing `operator-deferred` while harvesting a covering close-out would fail `evaluateBoundRemedyCites` the other way. Measured neither.\n\nDisposition. Bound-remedy does not `relieves` P1. The lean can bind as a remainder recut with P1 parked on leftover 4792. This audit is footnote-only; it is not relief. A covering close-out stays on leftover 4792, not this harvest.\n\n## 3. Cite-form repair: Takes mention of relieves is inline code only\n\nclass: footnote\n\nEvidence. Closed cite forms are the operative cite lines. Every other mention of a pain id or a disposition token on a lean goes in inline code. predecessor lean 5735892755 Takes line `Harvest relieves P1 is not honest` matches `PAIN_CITE_RE` as `relieves P1`. Combined with `operator-deferred: P1 #4792` that is two dispositions for P1 (`malformed-pain`). successor lean 5736003038 wraps `relieves` in inline code on that Takes line. Closing backtick sits between `relieves` and `P1`, so the regex does not match. Scan of the live REST body: this lean cites only `operator-deferred: P1 #4792`; the predecessor cites `relieves P1` plus `operator-deferred: P1 #4792`. `classifyPosition` would also refuse a hit inside inline code. No `does-not-relieve: P1`. No conflicting dispositions. Recording field `leftover-issue: 4792` is not a closed cite form.\n\nFailure mode. Leaving `relieves P1` operative on the Takes line next to `operator-deferred: P1 #4792` fails closed as `malformed-pain` even when Bound-remedy is honest. The repair removes that second disposition. Bare `P1` after the backticked token is not a closed cite form.\n\nDisposition. Cite-form repair holds. The lean can bind. This heading does not change the harvest.\n\n## Injection / swarm\n\nTarget changes occupancy, worktrees, shared dest-lock, and host-env identity. Cooperative bearer-id occupancy is not a lineage: parent and Grok child are different actors; grant-across-host is the destination-occupied refuse. Heartbeat JSON is worker-authored; invalid heartbeats skip terminal release. Unique dest-lock still mints a new incarnation after a true leftover-release; dest+parent is not a share token. Do not leftover-release a live occupant. Do not treat spawn_subagent host completion as authority to delete another actor's occupancy.json. Remainder recut does not recut those refuses.\n\n## Road-not-taken\n\nChose: `operator-deferred: P1 #4792` is honest because leftover 4792 is a different open issue, this Bound-remedy does not close sequential `destination-occupied`, and Takes `relieves` is inline code only.\n\nRejected \"remainder recut still relieves because leftover still names stitch.\" Flip: if this harvest still listed stitch / occupant `session:end` as next-build, that would be a `relieves` cite (and would fail the 5735694105 covering test). This harvest dropped that bullet and named 4792 as remainder.\n\nRejected \"Takes heading can keep bare `relieves P1` because Bound-remedy is unmet.\" Flip: `scanPainCites` does not NLP-grade Bound-remedy English (ADR-005); it reads closed cite forms. Predecessor 5735892755 already minted that conflict.\n\nSteelmans the lean: parking P1 on a leftover that still proposes stitch does not close P1 on this number. Wrapping `relieves` is enough to stop the closed cite. That steelman holds. It does not convert `operator-deferred` into `relieves`.",
+          "id": 5736088104,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5736088104",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:57:45Z",
+          "updated_at": "2026-09-18T20:57:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLive dest occupancy after Grok child complete is leftover #4792. Agents agreed this number recuts Expected away from leftover dest-lock and swarm:finalize. It does not close dest-linger.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5736003038.",
+          "id": 5736093860,
+          "html_url": "https://github.com/deftai/directive/issues/4782#issuecomment-5736093860",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:58:19Z",
+          "updated_at": "2026-09-18T20:58:19Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5502353622,
+        "origin": "deftai/directive#4782",
+        "id": "github.issue.5502353622"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a3950605b5082c8dab24347031c0d56c8d69afbd51a11eab578de3fbedcaddf0"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/orchestration/subagent-monitor.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "premise restated as live dest occupancy after implement-class complete",
+          "leftover dest-lock still refuses live occupant",
+          "CHANGELOG [Unreleased] #4782"
+        ],
+        "depends_on": [],
+        "conflict_group": "spawn-dest-occupancy",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5735576141 on #4782; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4806,
+        "prBase": null,
+        "mergeCommit": "aaa7d6f8a53df115755ac1358f5031268a10006d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:20:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:20:45Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:20:45Z"
+      }
+    },
+    "id": "github.issue.5502353622",
+    "updated": "2026-09-20T17:20:45Z"
+  }
+}

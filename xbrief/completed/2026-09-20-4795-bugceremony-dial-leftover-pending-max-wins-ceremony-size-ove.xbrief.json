@@ -1,0 +1,374 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4795",
+    "updated": "2026-09-20T17:21:12Z"
+  },
+  "plan": {
+    "title": "bug(ceremony-dial): leftover pending max-wins ceremony size over a live active brief",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(ceremony-dial): leftover pending max-wins ceremony size over a live active brief",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4795",
+      "Overview": "# Leftover pending must not max-win ceremony size over a live active brief\n\nLeftover of #4783 after blocking pain-audit 5735653834, retraction 5735725849, and Handoff 5735728714. Operator confirmed the leftover split on 2026-09-18. Do not ingest #4783 as ceremony-dial closed.\n\n## Summary\n\nsession:start fills resolved taskSize from max stamped clauseCount across xbrief/{active,pending} (readStampedClauseCount). The fill is consumer evidence merged as explicit-before-provisional, not estimateProvisionalCeremonyInputs.\n\nLeftover pending with no active is the locked #3358 proxy so evaluation is not permanently insufficient evidence. A larger leftover pending can also beat a smaller live active (count > best.count; active scanned first so equal counts keep active).\n\nThe issue Expected (activated scope or explicit operator task) cannot bind without a named replacement consumer source. Dropping pending from LIFECYCLE_DIRS with no --task-size/env leaves size=- on a leftover-pending-only consumer and restores the #3358 decline.\n\n## Measured (dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969)\n\n- packages/core/src/session/ceremony-dial-evidence.ts: LIFECYCLE_DIRS = [active, pending]. readStampedClauseCount max-wins. Source is recorded as xbrief/<dir>/<name>.\n- packages/core/src/session/session-start.ts: collectCeremonyDialConsumerEvidence then merge into ceremonyDialInputs before resolveSessionCeremonyDialInputs.\n- packages/cli/src/session-start.ts: unflagged deft session:start does not pass verb/prompt size hints. Occupancy runs after dial.\n- Tests: pending-only 3 clauses maps to taskSize=M; pending-4 beats active-1 maps to L; explicit CLI size still wins.\n\n## Desired shape\n\n- When an active brief has a stamped clause count, pending must not max-win over it.\n- Keep pending as a consumer size source when there is no active brief (#3358), unless a replacement channel is named in the same change (--task-size / env already exist; occupancy-claimed scope is not an input today).\n- Name the fill site as consumer-evidence merge, not the provisional classifier.\n- CLI --task-size / DEFT_CEREMONY_TASK_SIZE / DEFT_TASK_SIZE still win.\n- Tests: leftover pending-only still fills; pending-4 must not beat active-1; no-evidence path still rapid / insufficient evidence.\n\n## Out of scope\n\n- Editing estimateProvisionalCeremonyInputs as if it scanned pending (it does not).\n- Binding activated-scope-or-explicit-operator-task as a restore of current contract with no replacement source.\n- Changing the rapid default when no evidence exists (#3358 forbid).\n\nRelated: #4783, #3358, #3323, #3214, #3263.",
+      "Labels": "bug, agent-experience, process, design-critique:ingest-ready",
+      "AcceptanceCriteria": "- When at least one xbrief/active/*.xbrief.json yields a non-null clauseCountFromBrief, pending must not max-win over the max of those counts. Pick stamp-gated skip, not file-gated skip of pending whenever any active file exists.\n- When live means those stamped-count active files. Occupancy and DEFT_ACTIVE_SCOPE stay out. Intra-active max-win stays.\n- When keep pending as the #3358 proxy when no active file yields a derived count. Fill site is collectCeremonyDialConsumerEvidence merge, not estimateProvisionalCeremonyInputs. CLI --task-size / env still win.\n- When tests: pending-4 must not beat active-1; pending-only still fills; unstamped-active plus pending-4 is recorded as stamp-gated (pending still fills) unless a later leftover names file-gated.",
+      "Test": "When targeted tests on packages/core/src/session/ceremony-dial-evidence.ts, packages/core/src/session/ceremony-dial-evidence.test.ts pass for bound contract lean 5736801032."
+    },
+    "items": [
+      {
+        "title": "When at least one xbrief/active/*.xbrief.json yields a non-null clauseCountFromBrief, pending must not max-win over the max of those counts. Pick stamp-gated skip, not file-gated skip of pending whenever any active file exists.",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When at least one xbrief/active/*.xbrief.json yields a non-null clauseCountFromBrief, pending must not max-win over the max of those counts. Pick stamp-gated skip, not file-gated skip of pending whenever any active file exists."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When live means those stamped-count active files. Occupancy and DEFT_ACTIVE_SCOPE stay out. Intra-active max-win stays.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When live means those stamped-count active files. Occupancy and DEFT_ACTIVE_SCOPE stay out. Intra-active max-win stays."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When keep pending as the #3358 proxy when no active file yields a derived count. Fill site is collectCeremonyDialConsumerEvidence merge, not estimateProvisionalCeremonyInputs. CLI --task-size / env still win.",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When keep pending as the #3358 proxy when no active file yields a derived count. Fill site is collectCeremonyDialConsumerEvidence merge, not estimateProvisionalCeremonyInputs. CLI --task-size / env still win."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When tests: pending-4 must not beat active-1; pending-only still fills; unstamped-active plus pending-4 is recorded as stamp-gated (pending still fills) unless a later leftover names file-gated.",
+        "status": "completed",
+        "id": "clause:4",
+        "narrative": {
+          "Acceptance": "When tests: pending-4 must not beat active-1; pending-only still fills; unstamped-active plus pending-4 is recorded as stamp-gated (pending still fills) unless a later leftover names file-gated."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4795",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4795: bug(ceremony-dial): leftover pending max-wins ceremony size over a live active brief"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When at least one xbrief/active/*.xbrief.json yields a non-null clauseCountFromBrief, pending must not max-win over the max of those counts. Pick stamp-gated skip, not file-gated skip of pending whenever any active file exists.",
+          "artifact_path": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When live means those stamped-count active files. Occupancy and DEFT_ACTIVE_SCOPE stay out. Intra-active max-win stays.",
+          "artifact_path": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When keep pending as the #3358 proxy when no active file yields a derived count. Fill site is collectCeremonyDialConsumerEvidence merge, not estimateProvisionalCeremonyInputs. CLI --task-size / env still win.",
+          "artifact_path": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When tests: pending-4 must not beat active-1; pending-only still fills; unstamped-active plus pending-4 is recorded as stamp-gated (pending still fills) unless a later leftover names file-gated.",
+          "artifact_path": "packages/core/src/session/ceremony-dial-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/ceremony-dial-evidence.ts",
+          "packages/core/src/session/ceremony-dial-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because readStampedClauseCount max-wins across xbrief/{active,pending}, so a larger leftover pending can set taskSize over a smaller live active brief.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4795-dc\norigin-ref: origin/master\ndispatch-sha: 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick while AFK; leftover Desired shape is tight so default motion N=1.\n\nrefutation-target: pending max-wins clauseCount over a live active brief because readStampedClauseCount scans LIFECYCLE_DIRS active then pending with count greater than best.count.\n\ntarget: #4795\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is pending beating a smaller live active. Keep pending as #3358 proxy when there is no active brief, unless a replacement channel is named. Fill site is consumer-evidence merge, not estimateProvisionalCeremonyInputs. Leftover of #4783.\n\nPin-read at dispatch-sha 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94: ceremony-dial-evidence.ts LIFECYCLE_DIRS and readStampedClauseCount. Inventory: #3358, #3323, #3214. No implement and no ingest from this parent.\n\n",
+          "id": 5736647230,
+          "html_url": "https://github.com/deftai/directive/issues/4795#issuecomment-5736647230",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T21:54:12Z",
+          "updated_at": "2026-09-18T21:54:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nCharter: refutation of Stop 1 comment 5736647230.\nCeiling honored (inclusive id 5736647230). Pin-read `git show 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94:packages/core/src/session/ceremony-dial-evidence.ts` plus session-start merge, ceremony-dial provisional fill, and CLI `--task-size`. Reproduced `readStampedClauseCount` against temp fixtures (same `LIFECYCLE_DIRS`, `count > best.count`, `clauseCountFromBrief`).\n\n## Verdict\n\nThe named premise holds. Pending can max-win `clauseCount` over a smaller stamped active. I could not refute it.\n\n`LIFECYCLE_DIRS` is `[\"active\", \"pending\"]`. `readStampedClauseCount` replaces `best` when `best === null || count > best.count`. Consumer evidence is merged into session inputs with `explicit?.taskSize ?? evidence.taskSize` before `resolveSessionCeremonyDialInputs`. Unflagged CLI `session:start` passes `taskSize: null`, so evidence fills. `estimateProvisionalCeremonyInputs` does not scan pending.\n\nMeasured:\n\n- active clauses=1 then pending clauses=4 → `best.count=4` source `xbrief/pending/hard.xbrief.json` (matches locked test \"takes the max stamped count across briefs\").\n- equal counts (2 vs 2) keep the active source (`>` is not `>=`; active-first scan is only a tie-break).\n- This dest at the dispatch SHA: pending empty; leftover-complete active `#4744` derives count=5. No pending max-win here.\n\n## Finding 1 — unstamped-active fallthrough is unbound\n\nclass: sharpens-framing\n\nEvidence: same scanner, active file with `clauses: []` (no `clause_count`) returns `null` and is skipped; pending-4 then becomes `best`. Desired bullet 1 is stamp-gated (\"when an active brief has a stamped clause count\"). Desired bullet 2 keeps pending \"when there is no active brief\". The suite test named \"uses pending when active has no clauses\" writes only a pending file. Reachable state: active file present, derived count null, pending stamped.\n\nFailure mode: two implementations both pass the three Desired tests. (A) skip pending whenever `xbrief/active/` has a `*.xbrief.json`. (B) skip pending only when some active yields a non-null `clauseCountFromBrief`. (A) drops the `#3358` pending-only proxy as soon as a stub active exists. (B) still lets leftover pending set `taskSize` beside a live unstamped active.\n\nDisposition: the successor lean must pick the gate. Stamp-gated (B) matches P1 as \"pending beating a smaller counted active.\" File-gated (A) is a wider recut and must be named if chosen. Do not treat the misnamed test as coverage of (A) or of the stub-active case.\n\n## Finding 2 — \"live active\" is folder+count, not occupancy or `DEFT_ACTIVE_SCOPE`\n\nclass: sharpens-framing\n\nEvidence: `collectCeremonyDialConsumerEvidence` runs in `session-start.ts` before `runOccupancy(..., write:false)`. Occupancy is not a `CeremonyDialInputs` field. `DEFT_ACTIVE_SCOPE` is the write-fence / spawn pin (`packages/core/src/hooks/scope.ts`); ceremony-dial evidence does not read it. Intra-active max-win already exists: two stamped actives still use `count > best.count` among files in `active/`. Issue Out of scope already refuses restoring \"activated scope or explicit operator task\" with no replacement source.\n\nFailure mode: an implementer treats \"live\" as occupancy-claimed scope or `DEFT_ACTIVE_SCOPE` and mints a size channel this leftover forbids. Or they leave \"the\" active underspecified under WIP>1, so pending-vs-max(active) is shipped as if it selected the occupant.\n\nDisposition: bind \"live\" as `xbrief/active/*.xbrief.json` with a non-null derived count (max among those files if several). Occupancy / `DEFT_ACTIVE_SCOPE` stay out. Intra-active max-win stays unless a later leftover names a pin.\n\n## Finding 3 — fill site and env/CLI still win\n\nclass: footnote\n\nEvidence: `mergeCeremonyDialInputsWithConsumerEvidence` then `mergeCeremonyDialInputsWithProvisional`; CLI `--task-size` / `DEFT_CEREMONY_TASK_SIZE` / `DEFT_TASK_SIZE` remain explicit/env winners. Parent issue `#4783` labeled the field line `provisional:`; reasons for clauseCount live on `[deft ceremony-dial] evidence:`. `DEFT_FAILING_GATE_COUNT` still `maxSize`s over the clause-derived band after any pending/active recut (`collectCeremonyDialConsumerEvidence` keeps the larger of clause size and failing-gate size).\n\nFailure mode: editing `estimateProvisionalCeremonyInputs` as if it scanned pending, or folding failing-gate into P1.\n\nDisposition: keep fill-site and CLI/env bullets as written. Do not treat failing-gate escalation as this leftover.\n\n## Injection / swarm\n\nTriggered: shared `xbrief/{active,pending}` state sets ceremony depth (`skipFatPath`, `autoDeferSteps`, `lifecycleWrites`) on unflagged `session:start`.\n\nThe recut is a directory-priority rule, not an identity pin. After bind, a leftover stamped active is the size authority (this dest's leftover-complete `#4744` would already bind count=5 with empty pending). That residual is what Out of scope already accepted. Pending-only leftover still fills (`#3358` keep). No occupancy interlock exists on this path; do not invent one here.\n\n## Road not taken\n\nI tried to refute the premise by (1) occupancy later overriding size, and (2) the provisional classifier being the fill site. Both fail at this SHA.\n\nSteelmanning \"max-win is the `#3358` feature, close this leftover\": `#3358` needed a consumer proxy so evaluation is not permanently `size=-`. The locked test is max across WIP dirs. Recutting pending-below-stamped-active still keeps pending-only. That steelman does not make the scan false. It would relabel bug vs recut. Desired already names the test rewrite, so I do not block on the lock existing.\n\nWhat would flip Finding 1 to blocking: Desired tests that still pass under both gates after bind, with no recorded pick.\n\nNo `blocks-the-design` finding. Premise stands. Lean can bind once Finding 1's gate and Finding 2's \"live\" meaning are stated.",
+          "id": 5736743632,
+          "html_url": "https://github.com/deftai/directive/issues/4795#issuecomment-5736743632",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:04:29Z",
+          "updated_at": "2026-09-18T22:04:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPending can max-win stamped clauseCount over a smaller stamped active. The bind is stamp-gated: skip pending only when some active file yields a non-null derived count. Live means xbrief/active JSON with a derived count, not occupancy or DEFT_ACTIVE_SCOPE.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Desired gate. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4795 stamp-gated pending skip after critic 5736743632. Cites critic 5736743632. Supersedes write-back 5736647230.\n\nTarget-digest: sha256:ca8415ced28cb61300eaccbdcb5c89a12d46b237cc1dd5ed6beb987e3908f4cc\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4795-dc\norigin-ref: origin/master\ndispatch-sha: 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94\ntarget shape: single-issue\n\nTakes:\n\n- 5736743632 1 unstamped-active fallthrough is unbound — accept-into-contract\n- 5736743632 2 live active is folder+count, not occupancy or DEFT_ACTIVE_SCOPE — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=8b4be69db9dae571c72eb9dd8e2ebd49b601cf94 pointer=comment:5736743632 reading=asserted\n\n## Bound remedy\n\n- When at least one xbrief/active/*.xbrief.json yields a non-null clauseCountFromBrief, pending must not max-win over the max of those counts. Pick stamp-gated skip, not file-gated skip of pending whenever any active file exists.\n- Live means those stamped-count active files. Occupancy and DEFT_ACTIVE_SCOPE stay out. Intra-active max-win stays.\n- Keep pending as the #3358 proxy when no active file yields a derived count. Fill site is collectCeremonyDialConsumerEvidence merge, not estimateProvisionalCeremonyInputs. CLI --task-size / env still win.\n- Tests: pending-4 must not beat active-1; pending-only still fills; unstamped-active plus pending-4 is recorded as stamp-gated (pending still fills) unless a later leftover names file-gated.",
+          "id": 5736801032,
+          "html_url": "https://github.com/deftai/directive/issues/4795#issuecomment-5736801032",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:11:03Z",
+          "updated_at": "2026-09-18T22:11:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of successor lean 5736801032 `relieves: P1` against Stop 1 P1 on write-back 5736647230. Ceiling 5736801032 inclusive. Pin-read `git show 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94:` `packages/core/src/session/ceremony-dial-evidence.ts` (`LIFECYCLE_DIRS`, `readStampedClauseCount`, `clauseCountFromBrief`), session-start evidence merge, `estimateProvisionalCeremonyInputs`, CLI `--task-size`. OS-temp copy of that scanner plus stamp-gated skip (scan pending only when no active file yields a non-null `clauseCountFromBrief`).\n\n## Verdict\n\nBound-remedy on lean 5736801032 covers Stop 1 P1. `relieves: P1` is an honest cite. This leftover's P1 is pending beating a smaller counted active, not the #4783 leftover-pending-only fill.\n\n## Finding 1 — stamp-gated skip stops the P1 fill\n\nclass: footnote\n\nEvidence: Stop 1 P1 is pending beating a smaller live active. Desired bullet 1 is stamp-gated (\"when an active brief has a stamped clause count\"). OS-temp current scan: active clauses=1 then pending clauses=4 → count=4 source `xbrief/pending/hard.xbrief.json` taskSize=L (matches locked test \"takes the max stamped count across briefs\"). Stamp-gated skip → count=1 source active taskSize=S. Harvest item 1 plus test \"pending-4 must not beat active-1\" is that recut.\n\nPending-only-3 still fills M under stamp-gated (harvest item 3, #3358 keep). Unstamped-active (`clauses: []`) plus pending-4 still fills from pending (harvest item 4 records that remainder). Equal counts 2 vs 2 keep active (`>` is not `>=`). Dest at this SHA: pending empty; leftover-complete `#4744` derives count=5; no pending max-win here.\n\n`estimateProvisionalCeremonyInputs` fills from env/verb/fileCount, not pending. CLI `--task-size` still wins at `mergeCeremonyDialInputsWithConsumerEvidence`. Read `evaluateBoundRemedyCites`: a `relieves` cite is ok only when P1 is in `coveredIds`. This audit puts P1 there.\n\nFailure mode: treating dest empty-pending as \"P1 already gone\" would skip the locked pending-4/active-1 rewrite. The harvest names the test.\n\nDisposition: bind map stays bindable. No harvest change. Footnote-only is not clearance.\n\n## Injection / swarm\n\nTriggered: shared `xbrief/{active,pending}` sets ceremony depth on unflagged `session:start`. After bind, a stamped active is size authority; leftover pending cannot raise it. Pending-only leftover still fills (#3358 keep on this remainder). Occupancy / `DEFT_ACTIVE_SCOPE` stay out.\n\n## Road not taken\n\nRejected: treat unstamped-active fallthrough as a P1 miss (Stop 1 \"live active\" / \"no active brief\"). Steelman: any file in `active/` is live, so stamp-gated still emits pending size beside a stub active. What would flip: Stop 1 P1 being \"pending fills while any active file exists\" rather than \"pending beating a smaller counted active.\" Stop 1 uses \"smaller\"; Desired bullet 1 is stamp-gated; the lean recorded the stub-active case as remainder. That is not this P1.\n\nRejected: `#4783`-style false `relieves` because harvest keeps pending-only. That was P1 on the parent issue. This leftover's denominator is the beating-active half.\n\nNo `blocks-the-design`. No harvest-changing `sharpens-framing`.\n\n## Method\n\nPin-read SHA 8b4be69db9dae571c72eb9dd8e2ebd49b601cf94. OS-temp reproduced current vs stamp-gated. Locked tests read; vitest not run. Comments after 5736801032 out of envelope. Issue English treated as data.",
+          "id": 5736849735,
+          "html_url": "https://github.com/deftai/directive/issues/4795#issuecomment-5736849735",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:17:03Z",
+          "updated_at": "2026-09-18T22:17:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Pending max-wins stamped clauseCount over a smaller stamped active | verified | critic 5736743632 scanner reproduction; pain-audit 5736849735 |\n| Bind is stamp-gated skip of pending | verified | successor lean 5736801032 Bound remedy |\n| Live means active files with derived count, not occupancy | verified | critic heading 2 |\n\n",
+          "id": 5736910425,
+          "html_url": "https://github.com/deftai/directive/issues/4795#issuecomment-5736910425",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:24:18Z",
+          "updated_at": "2026-09-18T22:24:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWhen an active brief has a stamped clause count, leftover pending must not max-win over it. Pending still fills when no active file yields a derived count.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5736801032.\n\n",
+          "id": 5736912943,
+          "html_url": "https://github.com/deftai/directive/issues/4795#issuecomment-5736912943",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T22:24:34Z",
+          "updated_at": "2026-09-18T22:24:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5504498787,
+        "origin": "deftai/directive#4795",
+        "id": "github.issue.5504498787"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ca8415ced28cb61300eaccbdcb5c89a12d46b237cc1dd5ed6beb987e3908f4cc"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/ceremony-dial-evidence.ts",
+          "packages/core/src/session/ceremony-dial-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "pending-4 does not beat active-1",
+          "pending-only still fills",
+          "CHANGELOG [Unreleased] #4795"
+        ],
+        "depends_on": [],
+        "conflict_group": "ceremony-dial-pending",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5736801032 on #4795; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4803,
+        "prBase": null,
+        "mergeCommit": "7011e07402257adcda6fa496fac079cd8aa54d42",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:21:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:21:12Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:21:12Z"
+      }
+    },
+    "id": "github.issue.5504498787",
+    "updated": "2026-09-20T17:21:12Z"
+  }
+}

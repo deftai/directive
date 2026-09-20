@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4163",
-    "updated": "2026-09-20T12:31:28Z"
+    "updated": "2026-09-20T17:21:50Z"
   },
   "plan": {
     "title": "[framework-gap] migrate:xbrief no-ops dual-envelope files that the 0.111 commit gate rejects",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] migrate:xbrief no-ops dual-envelope files that the 0.111 commit gate rejects",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4163",
@@ -16,43 +16,91 @@
     "items": [
       {
         "title": "Add a strip plan beside `planHybridEnvelopeRewrites`, not through `transformArtifactV06ToV08` / `isAlreadyV08Artifact`.",
-        "status": "proposed",
-        "id": "clause:1"
+        "status": "completed",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Redundancy predicate: fail closed on field disagreement the same way `dual-populated` refuses a merge. Strip only when every legacy-info field is either `version: \"0.6\"` or already present and equal on the canonical 0.8 object.",
-        "status": "proposed",
-        "id": "clause:2"
+        "status": "completed",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Preserve the canonical envelope and `plan` byte-for-byte aside from deleting the leftover key.",
-        "status": "proposed",
-        "id": "clause:3"
+        "status": "completed",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Reuse `checkGitClean` plus `containedWrite`.",
-        "status": "proposed",
-        "id": "clause:4"
+        "status": "completed",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Validate the in-memory post-strip object with `validateVbriefSchema` and the envelope predicate already inside `scanCorpusEnvelope` (`vBRIEFInfo` present, or `xBRIEFInfo.version` not `0.8`); fail closed if dirty. Do not `readFileSync` the pre-strip path. Do not treat detector-null as pass. After apply, `evaluateXbriefDrift` on that same candidate set is the success-then-reject postcondition. A non-redundant dual envelope in the drift-gate set refuses the whole migrate (non-zero).",
-        "status": "proposed",
-        "id": "clause:5"
+        "status": "completed",
+        "id": "clause:5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Call site: same `xbriefHasContent && !vbriefPresent` window, after empty hybrid pending, before `detectLegacyVbriefLayout` / residual-schema noop. On non-empty strip pending, reuse hybrid `checkGitClean` plus `containedWrite`, then return rewritten so the noop cannot fire.",
-        "status": "proposed",
-        "id": "clause:6"
+        "status": "completed",
+        "id": "clause:6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "File set is `scanCorpusEnvelope` candidates. Root `specification.xbrief.json` and `plan.xbrief.json` are in. `xbrief/completed/**` stays historical.",
-        "status": "proposed",
-        "id": "clause:7"
+        "status": "completed",
+        "id": "clause:7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Update-transaction prevention remains leftover.",
-        "status": "proposed",
-        "id": "clause:8"
+        "status": "completed",
+        "id": "clause:8",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       }
     ],
     "tags": [
@@ -384,9 +432,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "0a6bfda84289a7fe1f9c5cfee6a6ac23c70b509a0d7482b6e1020c65bbda4253"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4816,
+        "prBase": null,
+        "mergeCommit": "5ffaa0c4d2a8772b5d9bdf2e11beefd4efc07526",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:21:50Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:21:50Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:21:50Z"
       }
     },
     "id": "github.issue.5337301686",
-    "updated": "2026-09-20T12:31:28Z"
+    "updated": "2026-09-20T17:21:50Z"
   }
 }

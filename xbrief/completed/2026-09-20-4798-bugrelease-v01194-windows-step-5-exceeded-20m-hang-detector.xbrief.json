@@ -1,0 +1,720 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4798",
+    "updated": "2026-09-20T17:21:25Z"
+  },
+  "plan": {
+    "title": "bug(release): v0.119.4 Windows Step 5 exceeded 20m hang detector after leftover-complete #4744",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(release): v0.119.4 Windows Step 5 exceeded 20m hang detector after leftover-complete #4744",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4798",
+      "Overview": "## Summary\n\nv0.119.4 production Step 5 on Windows primary `C:\\Repos\\deft\\directive` exceeded the 20-minute hang detector after leftover-complete #4744. Operator authorized an incident `--skip-ci` for this cut. Do not raise `RELEASE_CHECK_TIMEOUT_MS`. The next patch after a hang fix must cut without `--skip-ci`.\n\n## Observed\n\n- Command: `task release -- 0.119.4 --allow-dirty --allow-vbrief-drift --summary \"...\"`\n- Steps 1-4: dirty WARN, master OK, vBRIEF drift SKIP (`--allow-vbrief-drift` for leftover active duplicate of completed #4744), tag `v0.119.4` unused\n- Last printed line before stall: `check: product AC gate verify:ac first (#3284)`\n- Wall clock: still running at ~1492s (~25m) with no `[5/13]` PASS/FAIL/124 line\n- Recurrence class: Windows release Step 5 hang after leftover-complete #4744 (PR 4775 / leftover PR 4797)\n\n## Acceptance\n\n- [ ] A later production cut of a patch after this hang fix completes Step 5 (`task check` / vitest coverage) within 20 minutes without `--skip-ci`\n- [ ] Do not raise `RELEASE_CHECK_TIMEOUT_MS` as the remedy\n\n## Tracking\n\nIncident skip for v0.119.4: `--skip-ci --allow-skip-ci` citing this issue.",
+      "Labels": "bug, ci-cd, agent-experience, area:release, platform:windows, design-critique:ingest-ready, framework-gap",
+      "AcceptanceCriteria": "- When cycle guard: check-integrated verify:ac refuses an acceptance command that re-enters the containing check graph (task check or verify:ac). Do not globally denylist task check outside that context. Fixture the #4744 active shape (swarm.verify_commands task check, none_stated true).\n- When leftover-complete must move or remove tracked active, not add-completed-only. Clearing verify_commands on leftover-complete is cleanup, not a substitute for the cycle guard.\n- When `--allow-vbrief-drift` must not authorize executing commands from a drifted leftover while validating gates sit after AC.\n- When do not harvest a Step 5 hang bound, spawnSync timeout, or runSupervisedGate remaining-time 124 on this issue. That remainder is #4801.\n- When do not raise RELEASE_CHECK_TIMEOUT_MS. A later production cut without skip-ci is confirmation, not the sole AC.",
+      "Test": "When targeted tests on packages/core/src/product-first-done-gate/product-first-done-gate.test.ts pass for bound contract lean 5746447756."
+    },
+    "items": [
+      {
+        "title": "When cycle guard: check-integrated verify:ac refuses an acceptance command that re-enters the containing check graph (task check or verify:ac). Do not globally denylist task check outside that context. Fixture the #4744 active shape (swarm.verify_commands task check, none_stated true).",
+        "status": "completed",
+        "id": "clause:1",
+        "narrative": {
+          "Acceptance": "When cycle guard: check-integrated verify:ac refuses an acceptance command that re-enters the containing check graph (task check or verify:ac). Do not globally denylist task check outside that context. Fixture the #4744 active shape (swarm.verify_commands task check, none_stated true)."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When leftover-complete must move or remove tracked active, not add-completed-only. Clearing verify_commands on leftover-complete is cleanup, not a substitute for the cycle guard.",
+        "status": "completed",
+        "id": "clause:2",
+        "narrative": {
+          "Acceptance": "When leftover-complete must move or remove tracked active, not add-completed-only. Clearing verify_commands on leftover-complete is cleanup, not a substitute for the cycle guard."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When `--allow-vbrief-drift` must not authorize executing commands from a drifted leftover while validating gates sit after AC.",
+        "status": "completed",
+        "id": "clause:3",
+        "narrative": {
+          "Acceptance": "When `--allow-vbrief-drift` must not authorize executing commands from a drifted leftover while validating gates sit after AC."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When do not harvest a Step 5 hang bound, spawnSync timeout, or runSupervisedGate remaining-time 124 on this issue. That remainder is #4801.",
+        "status": "completed",
+        "id": "clause:4",
+        "narrative": {
+          "Acceptance": "When do not harvest a Step 5 hang bound, spawnSync timeout, or runSupervisedGate remaining-time 124 on this issue. That remainder is #4801."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "When do not raise RELEASE_CHECK_TIMEOUT_MS. A later production cut without skip-ci is confirmation, not the sole AC.",
+        "status": "completed",
+        "id": "clause:5",
+        "narrative": {
+          "Acceptance": "When do not raise RELEASE_CHECK_TIMEOUT_MS. A later production cut without skip-ci is confirmation, not the sole AC."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "agent-experience",
+      "area:release",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4798",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4798: bug(release): v0.119.4 Windows Step 5 exceeded 20m hang detector after leftover-complete #4744"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When cycle guard: check-integrated verify:ac refuses an acceptance command that re-enters the containing check graph (task check or verify:ac). Do not globally denylist task check outside that context. Fixture the #4744 active shape (swarm.verify_commands task check, none_stated true).",
+          "artifact_path": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When leftover-complete must move or remove tracked active, not add-completed-only. Clearing verify_commands on leftover-complete is cleanup, not a substitute for the cycle guard.",
+          "artifact_path": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When `--allow-vbrief-drift` must not authorize executing commands from a drifted leftover while validating gates sit after AC.",
+          "artifact_path": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When do not harvest a Step 5 hang bound, spawnSync timeout, or runSupervisedGate remaining-time 124 on this issue. That remainder is #4801.",
+          "artifact_path": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When do not raise RELEASE_CHECK_TIMEOUT_MS. A later production cut without skip-ci is confirmation, not the sole AC.",
+          "artifact_path": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/product-first-done-gate.test.ts",
+          "packages/core/src/swarm/complete-cohort.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because production Windows Step 5 can run past RELEASE_CHECK_TIMEOUT_MS with no 124 because that hang detector is armed only on the suite gate after verify:ac first, and leftover-complete #4744 still leaves an active duplicate whose swarm.verify_commands is task check.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4798-dc\norigin-ref: origin/master\ndispatch-sha: 5d45d1557b181383a79c6705e68fc3daeb34d74a\n\ncharter: refutation\nspend: N>=3\nspend-ask: asked\nspend-why: operator answered n=3 after the missing-token ask; yolo standing from the launching utterance; colliding panel English is the N>=3 motion, not a second spend class.\n\nDual-stop cap: 3 posts\n\nrefutation-target: leftover-complete #4744 (active duplicate still on origin/master with swarm.verify_commands task check) is why v0.119.4 Windows Step 5 ran past 20 minutes without a 124, because RELEASE_CHECK_TIMEOUT_MS is armed only on the suite gate after check: product AC gate verify:ac first.\n\ntarget: #4798\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is a production Windows release Step 5 that can exceed 20 minutes with no [5/13] PASS/FAIL/124 line. Observed on v0.119.4: last printed line was check: product AC gate verify:ac first (#3284); still running at ~1492s; operator used incident --skip-ci. Recurrence class after leftover-complete #4744 (PR 4775 / leftover PR 4797). Do not raise RELEASE_CHECK_TIMEOUT_MS. The next patch after a hang fix must cut without --skip-ci.\n\nPin-read at dispatch-sha 5d45d1557b181383a79c6705e68fc3daeb34d74a:\n\n- packages/core/src/release/constants.ts 42-44: RELEASE_CHECK_TIMEOUT_MS = 20 * 60 * 1000.\n- packages/core/src/release/preflight.ts runReleaseCheck 67-92: timeoutMs on checkSeams; exit 124 message is task check timed out after 20m (vitest coverage hang).\n- packages/core/src/check/cached-orchestrator.ts 331-332: prints check: product AC gate verify:ac first (#3284) before spawn. 372-386: timeoutMs is passed only when isSuiteCheckGate. 407-416: non-suite captureSpawn / gateSpawnFn has no timeoutMs.\n- packages/core/src/check/suite-gate-supervisor-lib.ts 5 and 301-308: Timeout is armed only when timeoutMs is set; kill tree at that wall.\n- xbrief/active/2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json: plan.status running; swarm.verify_commands is [task check]; plan.acceptance.commands [] with none_stated true.\n- xbrief/completed counterpart: swarm.verify_commands [].\n- CHANGELOG Unreleased: hang detector names timeout, Tracking #4744, does not close the 20-minute wall. Do not raise RELEASE_CHECK_TIMEOUT_MS.\n- docs/RELEASING.md: production --skip-ci is incident-only; next patch after a hang fix must cut without --skip-ci.\n\nInventory already on the tree: #4591 cheapening (measured 439s then), #4744 named-cause / last-file ticks, spawn-heavy partition, suite supervisor, --allow-skip-ci=#N. Do not invent raising RELEASE_CHECK_TIMEOUT_MS as the fix. No implement and no ingest from this parent.",
+          "id": 5746182892,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746182892",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-19T23:43:17Z",
+          "updated_at": "2026-09-19T23:43:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5746187688\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\n\nLaunch probe pong rc 0 grok/claude/codex with critic-argv bypass flags. Native grok spawn_subagent omitted process_only skip-class on this host schema; grok CLI last-resort. Dual-stop cap: 3 posts. No default retry.\n\nThis is not a successor lean.",
+          "id": 5746187688,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746187688",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-19T23:44:22Z",
+          "updated_at": "2026-09-19T23:44:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, fresh critic, charter refutation. Pin-read at `5d45d1557b181383a79c6705e68fc3daeb34d74a`; input ceiling `5746187688` inclusive. I did not read same-round sibling posts.\n\nThe named refutation target survives. The active #4744 duplicate does not merely add work: its executable acceptance ledger is `task check`, while `verify:ac` is the first gate of `task check`. That is an unbounded self-call before the only supervised gate is reached.\n\n## Cleanup-only can satisfy the issue while leaving the defect intact (blocks-the-design)\n\nEvidence. A pinned-tree capture-only run against `xbrief/active/2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json` resolved exactly one executable command: `task check`, source `swarm.verify_commands`; the brief has `plan.acceptance.commands: []` and `none_stated: true`. `FRAMEWORK_CHECK_GATES` puts `verify:ac --soft-missing-xbrief` first (`gate-lists.ts:23-25`), and `resolveExecutableAcceptanceContract` prefers the literal ledger when it is non-empty (`product-first-done-gate/evaluate.ts:193-204`). The issue's two acceptance bullets require only a later green production cut and no timeout increase. Moving the duplicate to completed makes that particular cut escape the self-call and can satisfy both bullets without adding any recurrence guard.\n\nFailure mode. A later active brief can again carry `swarm.verify_commands: [\"task check\"]`; the next release re-enters `verify:ac -> task check -> verify:ac` before the suite supervisor. A one-time lifecycle cleanup therefore passes the stated acceptance while preserving the production hang class.\n\nDisposition. The design cannot bind as written. Add deterministic acceptance that a check-integrated `verify:ac` rejects an acceptance command which re-enters its containing check graph before spawning it, with a regression fixture for the #4744 shape. Keep the later Windows production cut as end-to-end proof, not the sole proof.\n\n## The root cause is executable graph self-reference; leftover-complete is the trigger (sharpens-framing)\n\nEvidence. The active brief stores `task check` at lines 71-73. The literal-command safety policy intentionally allowlists wrapper subcommand `check` (`literal-acceptance/safety.ts:56-65, 313-340`), and the literal runner executes the exact string synchronously with no timeout (`literal-acceptance/run.ts:32-56, 76-95`). Existing tests positively assert that `task check` is run and may pass (`literal-acceptance.test.ts:155-184`). I found no context-aware self-reference or acceptance-cycle guard. This inventory explains why a valid-looking verification command becomes invalid only when evaluated inside the check graph.\n\nFailure mode. Framing the defect as leftover-complete can steer the remedy toward lifecycle cleanup. Framing it as a generic unsafe command can steer toward banning `task check` even where it is a legitimate standalone acceptance command. Both miss the contextual cycle.\n\nDisposition. Recut the causal statement to: stale active #4744 exposed a missing cycle constraint in executable acceptance commands. Detect the ancestor/self-reference at acceptance resolution or execution context; do not globally remove `task check` from the verification-shaped allowlist.\n\n## The 20-minute constant is a suite budget, not a Step 5 wall-clock watchdog (sharpens-framing)\n\nEvidence. `runReleaseCheck` passes `RELEASE_CHECK_TIMEOUT_MS` into the check orchestrator, but `cached-orchestrator.ts:372-386` forwards it only when `isSuiteCheckGate` is true. The suite set is only `ts:check-lane` and `verify:consumer-test-lane` (`gate-lists.ts:60-73`). Non-suite gates, including the first `verify:ac`, use `captureSpawn` without `timeoutMs` (`cached-orchestrator.ts:407-416`). Thus the missing 124 is expected from the current topology, and total Step 5 time is not bounded by the named constant even after the recursion is fixed.\n\nFailure mode. A different hung fast gate can again run indefinitely; a merely slow fast gate can also consume time before a full 20-minute suite budget. Conversely, wrapping only this `verify:ac` symptom does not establish a Step 5 wall-clock contract.\n\nDisposition. State which invariant is intended. If 20 minutes is the whole Step 5 ceiling, supervise the aggregate check process (with process-tree termination) and test a hung non-suite gate. If it remains a suite-only budget, rename the incident claim accordingly and separately require fail-fast cycle rejection. Do not raise `RELEASE_CHECK_TIMEOUT_MS` in either case.\n\n## Injection / swarm lens\n\nThis target changes executable shared xBRIEF state and release-process authority. The issue thread itself is not the execution source: intake already distinguishes untrusted text from promoted `verify_commands`. The authority crossing is that a stale active artifact's promoted command controls the release check. The deterministic control belongs at the executable command graph and lifecycle validation boundary, not in prose review or issue-text filtering. No new worktree or agent-mesh mechanism is implicated.\n\n## Road not taken\n\nRejected: delete the duplicate and call the next green cut the fix. It clears the current trigger but leaves the cycle legal.\n\nRejected: globally forbid `task check` in literal acceptance. The command can be valid outside a containing `task check`; the defect is contextual recursion.\n\nSteelman for an outer timeout alone: it guarantees release recovery even for an unknown hung fast gate. That would improve containment, but it would still spend 20 minutes on a deterministic cycle and would not make the acceptance graph valid. A cycle guard plus an explicitly scoped aggregate watchdog would flip the blocking verdict.\n\n",
+          "id": 5746222663,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746222663",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-19T23:51:40Z",
+          "updated_at": "2026-09-19T23:51:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, refutation charter, fresh critic. Pin-read at `5d45d1557b181383a79c6705e68fc3daeb34d74a`. Ceiling 5746187688 inclusive (Stop 1 write-back plus the panel-deposit; no sibling text read).\n\n## Verdict on the named target\n\nTwo conjuncts. I re-ran both.\n\n**Survives.** The wall really is armed only on the suite branch. `packages/core/src/check/cached-orchestrator.ts` 372-386 passes `timeoutMs` inside the `isSuiteCheckGate` branch; 407-416 falls through to `captureSpawn` / `gateSpawnFn` with no timeout argument. `suite-gate-supervisor-lib.ts` 299-309 arms a timer only `if (plan.timeoutMs !== undefined)`. `verify:ac` is `PRODUCT_AC_GATE_ID` (`product-first-done-gate/types.ts:59`) and is not in `SUITE_CHECK_GATE_IDS` (`gate-lists.ts:66-69`), so gate 1 has no wall.\n\n**Survives on the tree, but not as a cause statement.** `xbrief/active/` at the dispatch SHA holds exactly one brief besides `.gitkeep`, and its `plan.metadata.swarm.verify_commands` is `[\"task check\"]` while the completed counterpart is `[]`. `capture.ts` 669-676 reads `swarm.verify_commands` as source `verify_commands`; `types.ts` lists that source as executable; `product-first-done-gate/evaluate.ts:512` hands it to `runLiteralAcceptanceCommands`; `literal-acceptance/run.ts` 33-43 is `spawnSync(command, { shell: true, env: process.env })` with **no `timeout`**. `evaluateCommandSafety` passes it: `evaluateWrapperSubcommand` allowlists the exact token `check`. So the chain is real and the leftover is the only brief that could have walked it.\n\nWhat does not survive is the **scope** the sentence implies. Naming the #4744 leftover as the cause makes archiving the leftover the remedy, and the acceptance criterion as written would sign that off. Three mechanisms stay armed after it.\n\n## blocks-the-design — gate 1 executes an xbrief that no gate has validated yet\n\nEvidence. `FRAMEWORK_CHECK_GATES` (`gate-lists.ts` 100-158) is ordered `PRODUCT_FIRST_AC_GATE` at index 0, then `verify:branch`, `verify:cache-fresh`, `ORPHAN_ACTIVE_MERGE_GATE`, `verify:completed-write-guard`, and `verify:xbrief-drift` well below it. The `#3284` product-first order therefore puts the one gate that *runs agent-authored strings out of the active brief* ahead of every gate that would tell you the brief is a leftover duplicate.\n\nFailure mode. Gate 1 never returns, so `verify:orphan-active` and `verify:xbrief-drift` never run, and the operator's terminal shows one line and then nothing for 25 minutes. The diagnostic that names the bad brief is strictly downstream of the hang the bad brief causes. Worse on the silence: `captureSpawn` (`cached-orchestrator.ts` 88-106) is `spawnSync` and writes the child's stdout/stderr only *after* it returns (411-421), whereas `runSupervisedGate` tees live (`suite-gate-supervisor-lib.ts` 291-297). The non-suite path is unsupervised *and* mute. The absence of a second `check: product AC gate` line in the transcript is therefore not evidence against recursion — it is what buffering predicts either way.\n\nDisposition consequence. A lean scoped to \"remove the leftover, cut again\" cannot bind: it leaves gate 1 executing unvalidated input, and the next leftover reproduces the incident with a different issue number. Fix the order or fence the executor; the leftover is the trigger, not the defect.\n\n## blocks-the-design — the remedy the premise invites orphans the process tree on Windows\n\nEvidence. The obvious reading of \"the wall is armed only on the suite gate\" is \"arm it on the non-suite gate too\". The non-suite path is `spawnSync` (`cached-orchestrator.ts` 88-93). Node's `spawnSync` `timeout` signals the immediate child only. The immediate child here is `task.exe`, which spawns node, which spawns the recursive `task check`. `suite-gate-supervisor-lib.ts` 301-308 exists in this repo precisely because that is not enough — it calls `killDescendantTree(child.pid, { platform })` on the timer.\n\nFailure mode. Adding `timeout:` to `captureSpawn` makes Step 5 report 124 on time while the orphaned node/vitest descendants keep running, holding the coverage tmpdir and the tee handle. The operator gets a clean failure line and a machine that still needs a manual kill — the same recovery `docs/RELEASING.md` already documents, now with a misleading exit code.\n\nDisposition consequence. Whatever the lean binds, it must name `runSupervisedGate` (or `killDescendantTree`) rather than \"set a timeout on the non-suite branch\". This is an inventory point, not a new mechanism: the tree-killing supervisor is already written and already imports `RELEASE_CHECK_TIMEOUT_MS`.\n\n## blocks-the-design — the 20-minute budget has no representation that survives a spawn\n\nEvidence. `RELEASE_CHECK_TIMEOUT_MS` reaches the orchestrator only as an in-process seam: `preflight.ts:77` sets `timeoutMs` on `checkSeams`. `releaseCheckEnv` (`preflight.ts` 27-45) is the *only* thing that crosses into child processes, and it exports `DEFT_RELEASE_PREFLIGHT=1` and `CHECK_MODE=full`, deletes `CHECK_AC_ONLY` and `HYGIENE_ADVISORY`, and carries no timeout at all. `defaultLiteralAcceptanceRunner` then spawns with `env: process.env`.\n\nFailure mode. The nested `task check` inherits full-mode release posture — AC-only explicitly removed, so it runs the whole gate list including `ts:check-lane` — and constructs its seams fresh, with `timeoutMs` undefined. Every depth of the recursion runs the *suite* gate unsupervised too. So the true statement is stronger than the target's: it is not that the wall sits on the wrong gate, it is that the wall cannot bound anything past one process boundary. Move it to gate 1 and a nested `task check` is still unbounded.\n\nDisposition consequence. The lean's \"because\" clause needs replacing, not just widening. If the budget is meant to be a release-cut property it has to be an inherited deadline (absolute wall-clock in the child env), or command execution has to be refused under `DEFT_RELEASE_PREFLIGHT`. Those are different remedies and the current premise picks neither.\n\n## sharpens-framing — the safety layer already treats \"hang\" as a threat, by enumeration\n\nEvidence. `literal-acceptance/safety.ts` `evaluateVitestArgs` refuses bare `vitest` (\"defaults to watch; denied\") and refuses `watch`, `ui`, `browser`, `dev` with the reason string `hang/interactive mode`. So hang-as-denial-of-release is an already-recognised class in the executor's own threat model. The same file's `evaluateWrapperSubcommand` then allowlists the literal token `check` and the whole `verify:` prefix — meaning `task check` **and** `task verify:ac` are both sanctioned acceptance commands, and `evaluatePackageManagerArgs` admits `pnpm test`.\n\nFailure mode. An enumeration of interactive binaries cannot cover re-entrancy (`task check` re-enters the gate that is running it) or a legal-but-long command (`pnpm test` runs the same coverage suite a second time, inside the release cut). Each escape costs a new denylist row and the row is only written after an incident.\n\nDisposition consequence. State the remedy as a duration bound plus a re-entrancy guard on the runner. I grepped `packages/core/src/check`, `literal-acceptance`, and `product-first-done-gate` for a depth or re-entrancy counter and found none. If the lean instead adds `check` to a denylist, it is buying one row.\n\n## sharpens-framing — the stated acceptance criterion cannot tell the two live remedies apart\n\nEvidence. AC 1 is \"a later production cut of a patch after this hang fix completes Step 5 within 20 minutes without `--skip-ci`\".\n\nFailure mode. That observation passes if the leftover brief is archived by ordinary lifecycle with no code change at all; it passes if the suite is merely fast that day; and it is one run on one host, so it cannot separate \"the executor is now bounded\" from \"nothing happened to be in `xbrief/active/` this time\". It is also a criterion the arc cannot evaluate at bind time — it is deferred to an unscheduled future cut.\n\nDisposition consequence. `P1` cannot be recorded as relieved against it. A discriminating criterion is in reach and is deterministic: a fixture where a plan carrying `swarm.verify_commands: [\"task check\"]` is either refused by the safety evaluator or killed by a supervised gate, asserted in-process, plus an order assertion that brief-validating gates precede the AC gate. Keep the production cut as confirmation, not as the criterion.\n\n## sharpens-framing — the signal existed at Step 3 and a reporting flag waived it into an executor\n\nEvidence. The issue's own Observed list records `vBRIEF drift SKIP (--allow-vbrief-drift for leftover active duplicate of completed #4744)`. The operator was told about the exact leftover brief two steps before Step 5 fed that brief's `verify_commands` to a shell.\n\nFailure mode. `--allow-vbrief-drift` is scoped to drift *reporting*. Nothing connects it to the later decision to execute strings out of the drifted artifact, so a flag the operator reasonably read as \"tolerate a stale brief record\" silently authorised \"run whatever that stale brief says to run\", with release-shell env inherited and no time bound.\n\nDisposition consequence. The remedy surface is wider than the gate list: the lean should say explicitly whether a waived drift/orphan finding may precede a gate that executes that brief's commands. If the answer is no, that is a one-line fail-closed and it is cheaper than every other option on this page.\n\n## Injection / swarm lens (triggered: authority, untrusted input, shared state)\n\nThis target is squarely in scope, so an `N/A` would be theater. `swarm.verify_commands` is executable-sourced and sits downstream of issue ingest; `intake/issue-ingest.ts` 1591-1606 carries the comment \"Do not copy untrusted issue text into `swarm.verify_commands` (executable)\" and strips capture-attached rows, which is the acknowledgement that this field is an authority boundary (`#3267`, `#480`).\n\nWhat I can and cannot claim. Provenance is defended and the first-token allowlist is genuinely tight — `gh`, `git`, `curl`, `docker` are excluded, `npx` is restricted to `vitest`, `exec` is restricted to `vitest`, and shell metacharacters are refused linearly. I am **not** claiming a credential-exfiltration path here.\n\nThe residual is availability and duration, and it is unguarded on three axes at once: no wall clock (`run.ts` 33-43), no re-entrancy guard (nothing in the three packages), and full parent env (`env: process.env`) inside a release cut that has already deleted `CHECK_AC_ONLY` and set `CHECK_MODE=full`. An agent — or a prompt-injected agent writing a brief — that lands one allowlisted-but-unbounded command in `xbrief/active/` stalls every subsequent release on that machine, before any validating gate runs, with no output. The production incident is the benign instance of that. A control that only bounds *what* may run, and never *how long* it may run or *whether it may re-enter*, is half a boundary.\n\n## footnote — deposit records an unmet skip-class marker\n\nThe panel-deposit notes that the native Grok `spawn_subagent` path omitted the `process_only` skip-class marker on this host schema and fell back to the `grok` CLI. The CLI seat is allowed, so the family composition is fine and I raise no blocking point. Recording it because a shared-dest sibling that is not marked process-only is the exact shape the skip class exists to distinguish, and the deposit is the durable record of that gap.\n\n## footnote — AC 2 is vacuous under the premise it accompanies\n\n\"Do not raise `RELEASE_CHECK_TIMEOUT_MS`\" is already emitted as remedy text on the tree (`packages/core/src/check/named-cause.ts:225`), and under the premise the constant is never reached on the hanging path, so its value cannot be the lever. Either the premise is right and the prohibition is a no-op, or the prohibition is load-bearing and the premise is wrong. Harmless, but it should not be counted as a second criterion.\n\n## Road not taken\n\nI tried to refute the causal clause outright — that the hang is not the AC gate at all, but a `spawnSync` `maxBuffer` stall or a Windows console block, since the only observation is an *absence* of output. I dropped it. `captureSpawn` buffers by construction, so gate 1 is silent whether it recursed or not; and the tree shows exactly one active brief and it carries `task check`. Recursion is the best-supported reading. But it is still inference from absence: nobody has posted a process tree or the Step-5 tee. That is a cheap, decisive measurement and the arc should ask for it before binding a mechanism story.\n\n## Steelman, and what would flip me\n\nThe strongest position against this post: the leftover is a real and sufficient cause, archiving it closes a production incident this week, and everything above is a re-architecture of the done-gate hiding inside a release bug. That is a fair reading of the blast radius, and if the operator wants the cut unblocked first I would not argue.\n\nWhat flips my two structural findings to sharpening: evidence that no acceptance command can reach an unvalidated active brief on the release path. `tryReuseVerifyAc` (`product-first-done-gate/evaluate.ts:266`, called at 482) exists, and I did not establish whether it fires on an `--allow-dirty` tree where the code version has moved. If the parent can show that the release path either reuses a verify:ac snapshot or scopes the gate to the cut's own brief, findings 1 and 3 drop to sharpening and the leftover-archive remedy becomes defensible. Finding 2 — the orphaned Windows process tree — does not depend on any of that and holds either way.\n\n",
+          "id": 5746232519,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746232519",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-19T23:53:51Z",
+          "updated_at": "2026-09-19T23:53:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation of Stop 1 `refutation-target:` on comment 5746182892. Pin SHA 5d45d1557b181383a79c6705e68fc3daeb34d74a. Panel-deposit 5746187688 is in envelope (`input-ceiling` matches this deposit id). Same-round siblings unread. No implement, no ingest, no dest occupy.\n\nThe named premise is a conjunct: leftover-complete #4744 (tracked active duplicate still on origin/master with `swarm.verify_commands: [\"task check\"]`) is why v0.119.4 Windows Step 5 ran past 20 minutes with no 124, because `RELEASE_CHECK_TIMEOUT_MS` is armed only on the suite gate after `check: product AC gate verify:ac first`.\n\nRe-verified the hang-detector half of that because-clause at the pin. It holds. The leftover-complete half does not survive as the why-no-124, and it is not a bindable P1 remedy by itself.\n\n## 1. leftover-complete did not disarm the hang detector\n\nclass: blocks-the-design\n\nEvidence. `runReleaseCheck` does pass `timeoutMs: RELEASE_CHECK_TIMEOUT_MS` (20 * 60 * 1000) on check seams (`packages/core/src/release/constants.ts` 42-44; `preflight.ts` 75-92). `cached-orchestrator.ts` forwards that value only inside `isSuiteCheckGate` (372-386). Non-suite gates, including product AC, use `captureSpawn` / `gateSpawnFn` with no `timeoutMs` (407-416, 82-93: `spawnSync` plus `maxBuffer`, no `timeout`). Suite supervisor comment and timer: armed only when `timeoutMs` is set (`suite-gate-supervisor-lib.ts` 5, 301-308). Test lock: `orchestrator.test.ts` \"arms the suite supervisor timeout only when timeoutMs is set (#4230)\". `docs/RELEASING.md` 43: hang detector is Step 5 `task check` with `runReleaseCheck` arming `timeoutMs`; ambient `task check` has no kill. REST: leftover PR 4797 files are CHANGELOG plus two `xbrief/completed/` adds. It does not touch orchestrator, supervisor, or `timeoutMs`.\n\nFailure mode. A stall inside verify:ac never reaches `ts:check-lane`, so the detector cannot fire a 124. Last printed line `check: product AC gate verify:ac first (#3284)` is written on stderr before the AC spawn (orchestrator 331-332). AC stdout/stderr is held until `captureSpawn` returns, so the operator console stays on that line for the whole AC wall. That is the no-124 shape. leftover-complete cannot be the cause of that arming hole; it did not change the arming code.\n\nDisposition. The conjunct cannot bind as written. Keep the suite-only arming as the why-no-124. Treat leftover-complete as incident trigger / failed cleanup, not as the hang-detector bug. A Bound-remedy that only removes the #4744 active duplicate, or only restates leftover-complete, leaves P1: any later AC stall still exceeds 20 minutes with no PASS/FAIL/124. Do not raise `RELEASE_CHECK_TIMEOUT_MS`. Reuse the seam that already exists: forward the same `timeoutMs` onto the AC `captureSpawn` path (and/or the literal runner) when `runReleaseCheck` set it.\n\n## 2. leftover-complete added a completed twin and left the landmine in `active/`\n\nclass: sharpens-framing\n\nEvidence. At the pin, both paths exist: `xbrief/active/2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json` (`plan.status` running, `swarm.verify_commands` `[\"task check\"]`, `plan.acceptance.commands` [], `none_stated` true, `ambiguity_attestation` none_found) and the completed counterpart (`plan.status` completed, `verify_commands` []). REST PR 4797: `status: added` on that completed file, 0 deletions, no `xbrief/active/` path. Timeline: issue #4744 closed 2026-09-18T21:39:38Z; leftover PR 4797 merged 21:42:43Z; #4798 opened 22:34:52Z after the v0.119.4 Step 5 stall. `--allow-vbrief-drift` on that cut skipped only the lifecycle-mismatch policy (`release/pipeline.ts` 199-215), which is how Step 5 ran against a known active/completed pair.\n\nFailure mode. leftover-complete for #4744 was add-completed, not move-active. The completed twin is the one with empty `verify_commands`. `verify:ac --soft-missing-xbrief` evaluates `xbrief/active/` first (`packages/cli/src/verify-ac.ts` 194-196). The safe completed copy is not the AC target while the running duplicate remains. `verify:orphan-active` would be the existing closed-issue + running-active gate, and #4744 was already closed before the leftover PR merged — but `ORPHAN_ACTIVE_MERGE_GATE` sits after PRODUCT_FIRST_AC_GATE in `FRAMEWORK_CHECK_GATES` (`gate-lists.ts` 100-109). If AC never returns, orphan-active never runs.\n\nDisposition. Scope leftover-complete as failed cleanup of a tracked active identity, not as the detector. A bind that only says \"delete the duplicate\" without a move/rm of tracked `active/` (or a gate that sees completed-counterpart + still-running active) will recur on the next leftover-complete that adds `completed/` and leaves `active/`. `--allow-vbrief-drift` is not the hang mechanism; it is how the known mismatch was waived into Step 5.\n\n## 3. `task check` as executable AC has no re-entry lock and no 20-minute kill\n\nclass: blocks-the-design\n\nEvidence. `evaluateLiteralAcceptanceFromPlan` runs the resolved ledger (`literal-acceptance/evaluate.ts` 248-259). `swarm.verify_commands` is an executable source and is loaded into that ledger (`capture.ts` 659-676). Wrapper allowlist first token `task`, subcommand `check` (`safety.ts` 40-65). Runner is `spawnSync` with `shell: true` and no `timeout` (`run.ts` 38-44). Check-integrated verify:ac still executes those peers; the advisory soft-pass is only for unpromoted/empty ledgers (`evaluate.ts` 545-590). Nested `task check` is ambient check, not `runReleaseCheck`, so it does not inherit `timeoutMs`. `DEFT_RELEASE_PREFLIGHT` is set by `releaseCheckEnv` and is consumed for coverage-debt / lane sanitizing, not as an AC re-entry guard. Operator freeze-class (\"do not leftover-complete dest stories whose verify_commands is `task check`; clear it before complete\") is not a gate. I did not spawn `task check` here (process-only; that spawn is the hang class).\n\nFailure mode. Product AC, running first and untimed, can shell another full `task check` against the same active brief. That inner check prints its own AC-first line into a captured buffer, then can shell `task check` again. Shared occupancy, the same `xbrief/active/` tree, and Windows `cmd.exe /c` via `shell: true` are the concurrency surface. The outer release process sits in `captureSpawn` past 20 minutes with no 124. This class exists whenever a tracked active brief carries `verify_commands: [\"task check\"]` during Step 5. leftover-complete failed to remove that brief; it did not invent the command, and v0.119.3/#4744 already reached the suite and 124'd, which is the opposite stall site.\n\nDisposition. A lean that only harvests the #4744 duplicate, or that restates the freeze-class as guidance, cannot bind for P1. That is a reviewer-catch close. Name a deterministic control on an existing seam: refuse wrapper `check` from literal AC when already inside `task check` / `DEFT_RELEASE_PREFLIGHT=1`, and/or forward `timeoutMs` onto AC `captureSpawn` and the literal runner so a nested or hung AC still exits 124 inside 20 minutes. Clearing `verify_commands` on leftover-complete remains necessary cleanup; it is not the control.\n\n## 4. \"Completes Step 5 within 20 minutes\" is not the same bar as \"emits 124\"\n\nclass: sharpens-framing\n\nEvidence. Issue #4798 acceptance wants a later production cut to finish Step 5 without `--skip-ci`. Stop 1 P1 is a Step 5 that can exceed 20 minutes with no PASS/FAIL/124. `docs/RELEASING.md` 43: the detector is hang detection, not a success SLA. CHANGELOG Unreleased at this SHA: hang detector names timeout, Tracking #4744, \"Does not close the 20-minute wall. Do not raise RELEASE_CHECK_TIMEOUT_MS.\" #4744 dest measurement in the active brief Overview was 25.52 min at 8 workers; #4591 measured 439s after cheapening. Those are different methods and dates, not one wall-clock.\n\nFailure mode. Unsticking AC (delete duplicate, or 124 the AC spawn) can restore the earlier suite-124 failure instead of a green cut. Binding leftover-complete as the #4798 remedy claims the success SLA without a new measurement of `ts:check-lane` on this pin.\n\nDisposition. Bind P1 to the no-124 / untimed-AC class. Keep the under-20m complete bar on #4744's still-open wall (or a measured leftover), not as proof that leftover-complete is the hang. Do not raise `RELEASE_CHECK_TIMEOUT_MS` to buy the SLA.\n\n## Inventory (existing, before any new mechanism)\n\n- `RELEASE_CHECK_TIMEOUT_MS` / `runReleaseCheck` `timeoutMs` (suite supervisor only)\n- suite-gate-supervisor kill tree + 124; named-cause and last-file ticks (#4744)\n- spawn-heavy partition and #4591 cheapening\n- `--allow-skip-ci=#N` incident path; `--allow-vbrief-drift` mismatch skip\n- `verify:orphan-active` / `--changed-only` (after AC, keyed on closed issue or merged PR, not on completed-counterpart)\n- `verify:completed-write-guard`, `verify:completed-tracked`\n- literal-AC allowlist that permits `task check`\n- check-integrated verify:ac executing `swarm.verify_commands` via untimed `spawnSync`\n- non-suite `captureSpawn` untimed, output held until exit\n- operator freeze-class to clear `verify_commands` before leftover-complete (not a gate)\n- `DEFT_RELEASE_PREFLIGHT` already in the release env, unused as re-entry lock\n\n## Injection / swarm lens\n\nThe target changes shared lifecycle identity (two files, one issue, opposite `verify_commands`), concurrency (nested `task check` from AC inside release Step 5), and leftover dest vs tracked origin/master (PR 4797 add-completed without deleting tracked `active/`). Untrusted issue/comment text had no instruction-shaped fragments to follow. The live hazard is executable `swarm.verify_commands` on a tracked active brief, not comment prose. No new occupancy or dest-lock concept; reuse `DEFT_RELEASE_PREFLIGHT` and the existing timeout seam rather than a second hang detector.\n\n## Road not taken\n\nSteelmanning leftover-complete as the unique cause: this cut stalled on the AC line after an add-only leftover PR, and removing the active duplicate might let AC skip and the suite run under the existing detector. Flip: the same active `task check` landmine hangs AC with or without a completed twin; PR 4797 did not change arming; v0.119.3 already 124'd on the suite when AC returned. What would flip this verdict is a pin-SHA measurement that verify:ac on that active brief does not execute `task check` (bank/cache hit, safety refuse, or check-integrated skip). The source at this SHA runs it.\n\nFootnote: if timeout is later forwarded onto AC, the 124 message in `preflight.ts` 90-91 still says \"vitest coverage hang\". That string would mislabel an AC timeout. Not required to bind the split above.\r\n\n",
+          "id": 5746235162,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746235162",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-19T23:54:28Z",
+          "updated_at": "2026-09-19T23:54:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProduction Step 5 can sit on verify:ac first past 20 minutes with no 124 because the hang detector is suite-only and verify:ac can shell task check from an active brief with no re-entry lock. Leftover-complete of #4744 was the trigger (add-completed, left the active landmine), not the detector bug. Archiving that one duplicate is not the bind. The recut is a cycle refuse on check-integrated acceptance plus a process-tree hang bound that does not raise RELEASE_CHECK_TIMEOUT_MS.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut pairing of cause vs trigger. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until the next pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4798 recut after round-1 panel. Cites critic 5746222663, 5746232519, 5746235162. Round 1 dispatched 3 siblings. Supersedes Stop 1 write-back 5746182892.\n\nTarget-digest: sha256:22145b064a6a28c32b9dd89b0777e7ae1d83fe6e1bdb5ca27ffab62a97351f0f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4798-dc\norigin-ref: origin/master\ndispatch-sha: 5d45d1557b181383a79c6705e68fc3daeb34d74a\ntarget shape: single-issue\nDual-stop cap: 3 posts (spent)\n\nTakes:\n\n- 5746222663 Cleanup-only can satisfy the issue while leaving the defect intact — accept-into-contract\n- 5746222663 The root cause is executable graph self-reference; leftover-complete is the trigger — accept-into-contract\n- 5746222663 The 20-minute constant is a suite budget, not a Step 5 wall-clock watchdog — accept-into-contract\n- 5746232519 gate 1 executes an xbrief that no gate has validated yet — accept-into-contract\n- 5746232519 the remedy the premise invites orphans the process tree on Windows — accept-into-contract\n- 5746232519 the 20-minute budget has no representation that survives a spawn — accept-into-contract\n- 5746232519 the safety layer already treats hang as a threat, by enumeration — accept-into-contract\n- 5746232519 the stated acceptance criterion cannot tell the two live remedies apart — accept-into-contract\n- 5746232519 the signal existed at Step 3 and a reporting flag waived it into an executor — accept-into-contract\n- 5746235162 1 leftover-complete did not disarm the hang detector — accept-into-contract\n- 5746235162 2 leftover-complete added a completed twin and left the landmine in active/ — accept-into-contract\n- 5746235162 3 task check as executable AC has no re-entry lock and no 20-minute kill — accept-into-contract\n- 5746235162 4 Completes Step 5 within 20 minutes is not the same bar as emits 124 — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=5d45d1557b181383a79c6705e68fc3daeb34d74a pointer=comment:5746235162 reading=asserted\n\n## Bound remedy\n\n- Recut the cause: leftover-complete #4744 (add-completed, left tracked active with swarm.verify_commands task check) is the incident trigger, not the why-no-124. The why-no-124 is suite-only timeoutMs plus untimed verify:ac first.\n- Cycle guard: check-integrated verify:ac refuses an acceptance command that re-enters the containing check graph (task check or verify:ac). Do not globally denylist task check outside that context. Fixture the #4744 active shape.\n- If 20 minutes is the whole Step 5 ceiling, supervise the aggregate check with killDescendantTree / runSupervisedGate, including a hung non-suite gate. Do not use spawnSync timeout on Windows. Do not raise RELEASE_CHECK_TIMEOUT_MS. Nested task check does not inherit timeoutMs; reuse DEFT_RELEASE_PREFLIGHT as re-entry refuse or inherited deadline.\n- leftover-complete must move or remove tracked active, not add-completed-only. Clearing verify_commands on leftover-complete is cleanup, not the control.\n- --allow-vbrief-drift must not authorize executing commands from a drifted leftover while validating gates sit after AC.\n- A later production cut without skip-ci is confirmation, not the sole AC. Discriminating tests: cycle-refuse fixture; hung non-suite gate 124 if the aggregate wall is bound. Keep the under-20m suite wall on #4744 leftover, not as proof leftover-complete is the hang.",
+          "id": 5746242839,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746242839",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-19T23:56:06Z",
+          "updated_at": "2026-09-19T23:56:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5746242839 at pin 5d45d1557b181383a79c6705e68fc3daeb34d74a. Ceiling 5746242839 inclusive. Comments after that id unread. Round-1 critic posts used only as cited by that lean. Process-only; no ingest; no dest occupy.\n\nStop 1 (5746182892) names P1 as a production Windows Step 5 that can exceed 20 minutes with no [5/13] PASS/FAIL/124. The bind lean cites relieves: P1, Spec-path harvest of its Bound-remedy list, and asserted audit:pain-P1 pointing at 5746235162.\n\n## relieves: P1 overclaims the committed harvest (blocks-the-design)\n\nEvidence. Re-verified at the pin. Product AC is first in FRAMEWORK_CHECK_GATES (gate-lists.ts 100-102). cached-orchestrator.ts 331-332 prints the observed line before spawn; 372-386 forwards timeoutMs only inside isSuiteCheckGate; 407-416 non-suite uses captureSpawn / gateSpawnFn with no timeoutMs. captureSpawn (82-93) is spawnSync with maxBuffer and no timeout. suite-gate-supervisor-lib.ts 301-308 arms killDescendantTree only when timeoutMs is set. runReleaseCheck (preflight.ts 67-92) sets timeoutMs on in-process dispatchTaskCheck; releaseCheckEnv sets DEFT_RELEASE_PREFLIGHT=1 and CHECK_MODE=full and deletes CHECK_AC_ONLY, with no deadline field. literal-acceptance/run.ts 38-44 is spawnSync shell:true, env: process.env, no timeout. safety.ts 56-65 allowlists wrapper check (and test); package-manager test/vitest stay legal. Pin tree still has both twins: active 2026-09-18-4744-… with swarm.verify_commands [\"task check\"], completed counterpart verify_commands [].\n\nThe take map accepted 5746235162 heading 4 (bind P1 to the no-124 / untimed-AC class) and heading 1 (a leftover-complete-only harvest leaves any later AC stall past 20 minutes with no 124). It also accepted 5746222663 (20-minute constant is a suite budget, not a Step 5 watchdog). Bound-remedy commits a cycle refuse on check-integrated verify:ac (bullet 2) plus leftover-complete must move/rm tracked active (bullet 4). Bullet 3 is not a control: \"If 20 minutes is the whole Step 5 ceiling\" plus \"re-entry refuse or inherited deadline\". Discriminating tests make the hung-non-suite 124 likewise conditional.\n\nFailure mode. Cycle refuse plus leftover move covers the leftover-complete / task-check re-entry incident: AC returns a FAIL line instead of sitting mute in captureSpawn. That is not the no-124 / untimed-AC class the take map bound. A later allowlisted non-cycle AC (pnpm test, task test, hung verify:ac work that is not a self-call) still runs under captureSpawn with no 124. An implementer can ship bullets 2 and 4, skip the if, and still cite this relieves line. Spec-path harvest of an if/or is not one next-build contract.\n\nDisposition. This lean cannot bind relieves: P1 as written. Either commit a 124 on hung AC / non-suite using the existing runSupervisedGate Worker (suite-gate-supervisor.ts 59-101, Atomics.wait so the orchestrator stays sync) and drop the if, or keep cycle refuse as the control and recut the cite to that subclass (does-not-relieve or operator-deferred the untimed-AC remainder on a different issue). Do not raise RELEASE_CHECK_TIMEOUT_MS. A blocking pain-audit is not relief.\n\n## DEFT_RELEASE_PREFLIGHT cannot carry a deadline; a copied 20m is not aggregate Step 5 supervision (sharpens-framing)\n\nEvidence. RELEASE_PREFLIGHT_ENV is a presence flag (constants.ts 38; preflight.ts 27-32 sets \"1\"). Consumers at this SHA are stale-cache tolerance and coverage-debt / lane sanitizing, not re-entry and not remaining milliseconds. Nested literal runs inherit process.env (run.ts 42), so the boolean already crosses the spawn; a deadline does not. runReleaseCheck calls dispatchTaskCheck in-process (preflight.ts 72-84); it is not a parent of captureSpawn. runSupervisedGate already is a parent (Worker owns the child). timeoutMs is one number forwarded to the suite gate, not remaining time. defaultSpawn on the uncached path (orchestrator.ts 102-114) uses spawnSync timeout, which on Windows signals only the immediate child; suite-gate-supervisor-lib.ts 160-169 exists because of that (taskkill /T /F /PID).\n\nFailure mode. Reading bullet 3 as \"reuse DEFT_RELEASE_PREFLIGHT\" yields a duplicate of bullet 2 on the release path only, or a no-op deadline. Copying RELEASE_CHECK_TIMEOUT_MS onto each non-suite gate gives a fresh 20 minutes per gate, so Step 5 can still exceed 20 minutes after a slow AC. Wrapping in-process dispatch with killDescendantTree of the current pid is self-kill, not supervision.\n\nDisposition. If a duration bound stays in harvest, name the seam: replace non-suite captureSpawn with runSupervisedGate, pass remaining ms from Step 5 start (new env, not DEFT_RELEASE_PREFLIGHT=1), or spawn the whole check from the pipeline process. Do not use spawnSync timeout on Windows. Cycle refuse stays check-integrated, not a global denylist of task check.\n\n## footnote — 124 copy still names vitest coverage\n\npreflight.ts 90-91 and orchestrator.ts 92-95 still say vitest coverage hang / budget. If AC or another non-suite gate is ever the 124 site, that string mislabels it. Does not decide relieves.\n\n## Inventory (existing, before any new mechanism)\n\n- RELEASE_CHECK_TIMEOUT_MS and runReleaseCheck timeoutMs (suite only on the cached path)\n- runSupervisedGate Worker + killDescendantTree (win32 taskkill /T /F)\n- captureSpawn / literal runner untimed spawnSync\n- wrapper allowlist including check and test; package-manager test/vitest\n- DEFT_RELEASE_PREFLIGHT boolean in releaseCheckEnv\n- --allow-vbrief-drift skips lifecycle mismatch policy only (constants.ts 78; pipeline.ts 194-201)\n- verify:orphan-active after AC; leftover active+completed twins at this SHA\n- --allow-skip-ci=#N incident path; do not raise RELEASE_CHECK_TIMEOUT_MS\n\n## Injection / swarm lens\n\nTriggered: executable swarm.verify_commands, check-graph re-entry, leftover active vs completed identity, Windows process tree. Intake already strips untrusted issue text out of verify_commands. The live authority crossing is a tracked active ledger running inside Step 5 before validating gates. Cycle refuse is a graph control. Duration for other allowlisted commands stays unguarded while bullet 3 is an if. No new occupancy or dest-lock concept. Untrusted thread had no instruction-shaped fragments followed.\n\n## Road not taken\n\nSteelman: Stop 1 P1 is the leftover-complete / task-check incident; cycle refuse plus must-move is enough; heading 3 even said refuse and/or timeout. Flip: the same take map accepted binding P1 to the no-124 / untimed-AC class and accepted that leftover-complete-only leaves any later AC stall without a 124. Bullet 3 is how the parent tried to hold both, and it committed neither wall. What would flip the blocking finding: a Bound-remedy that either (a) names a committed 124 on hung AC via runSupervisedGate remaining-time, or (b) cites relieves only for the cycle subclass and does not harvest the if.\n\n",
+          "id": 5746279022,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746279022",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T00:03:48Z",
+          "updated_at": "2026-09-20T00:03:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe round-1 recut tried to relieve P1 with a cycle refuse plus an optional hang bound. Pain-audit 5746279022 found that overclaims: cycle refuse returns a FAIL line, it does not emit 124 on a hung non-cycle AC, and Bound-remedy bullet 3 was an if. This map retracts that bind. It is not the harvest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the prior lean, and these takes.\n\nForward verdict: retract. Disposition: pain-audit blocking heading accept-into-contract. Residual: P1 unrelieved.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4798 retraction after pain-audit 5746279022. Cites critic 5746279022. Supersedes successor lean 5746242839. Not a bind.\n\nTarget-digest: sha256:22145b064a6a28c32b9dd89b0777e7ae1d83fe6e1bdb5ca27ffab62a97351f0f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4798-dc\norigin-ref: origin/master\ndispatch-sha: 5d45d1557b181383a79c6705e68fc3daeb34d74a\ntarget shape: single-issue\nDual-stop cap: 3 posts (spent; reserved pain-audit used)\n\nTakes:\n\n- 5746279022 relieves: P1 overclaims the committed harvest — accept-into-contract\n\ndoes-not-relieve: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=5d45d1557b181383a79c6705e68fc3daeb34d74a pointer=comment:5746279022 reading=asserted",
+          "id": 5746285231,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746285231",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T00:05:03Z",
+          "updated_at": "2026-09-20T00:05:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nHandoff after retraction lean. Dual-stop numbered cap 3 is spent. Reserved pain-audit slot used. Blocking pain-audit 5746279022: relieves P1 overclaimed because Bound-remedy bullet 3 was an if, and cycle refuse is not the no-124 / untimed-AC class.\n\nopen-question: Commit hung-AC 124 via runSupervisedGate remaining-time on this issue, or split that hang bound to a leftover and bind only the cycle refuse.\n\nYolo leftover-pain recommends one leftover path: file a new issue for the Step 5 hang bound (supervised non-suite 124, process-tree kill, no raise of RELEASE_CHECK_TIMEOUT_MS) and keep cycle refuse plus leftover-complete must-move as the remainder on #4798. Yolo standing does not confirm that split. Live operator confirm required to file.\n\nDo not dest-place. Do not ingest. Chip stays design-critique:in-progress.",
+          "id": 5746285333,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746285333",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T00:05:04Z",
+          "updated_at": "2026-09-20T00:05:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOperator confirmed the leftover split. The hang bound (supervised non-suite 124, process-tree kill, no raise of RELEASE_CHECK_TIMEOUT_MS) is now issue 4801. This issue binds only the cycle refuse and leftover-complete must-move. That is not a 124, and it does not relieve the original no-124 warrant.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, the retracted lean, and these takes.\n\nForward verdict: remainder bind after leftover 4801. Disposition: classified headings accept-into-contract. Residual: operator-deferred P1 until a critic targets it.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4798 remainder recut after leftover 4801. Cites critic 5746222663, 5746232519, 5746235162, pain-audit 5746279022. Supersedes retraction 5746285231. Predecessor 5746285231 does not carry relieves of P1. Leftover number recorded from parent issue-create output only.\n\nTarget-digest: sha256:22145b064a6a28c32b9dd89b0777e7ae1d83fe6e1bdb5ca27ffab62a97351f0f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4798-dc\norigin-ref: origin/master\ndispatch-sha: 5d45d1557b181383a79c6705e68fc3daeb34d74a\ntarget shape: single-issue\nDual-stop cap: 3 posts (spent; reserved pain-audit used)\n\nTakes:\n\n- 5746222663 Cleanup-only can satisfy the issue while leaving the defect intact — accept-into-contract\n- 5746222663 The root cause is executable graph self-reference; leftover-complete is the trigger — accept-into-contract\n- 5746222663 The 20-minute constant is a suite budget, not a Step 5 wall-clock watchdog — accept-into-contract\n- 5746232519 gate 1 executes an xbrief that no gate has validated yet — accept-into-contract\n- 5746232519 the remedy the premise invites orphans the process tree on Windows — accept-into-contract\n- 5746232519 the 20-minute budget has no representation that survives a spawn — accept-into-contract\n- 5746232519 the safety layer already treats hang as a threat, by enumeration — accept-into-contract\n- 5746232519 the stated acceptance criterion cannot tell the two live remedies apart — accept-into-contract\n- 5746232519 the signal existed at Step 3 and a reporting flag waived it into an executor — accept-into-contract\n- 5746235162 1 leftover-complete did not disarm the hang detector — accept-into-contract\n- 5746235162 2 leftover-complete added a completed twin and left the landmine in active/ — accept-into-contract\n- 5746235162 3 task check as executable AC has no re-entry lock and no 20-minute kill — accept-into-contract\n- 5746235162 4 Completes Step 5 within 20 minutes is not the same bar as emits 124 — accept-into-contract\n- 5746279022 relieves: P1 overclaims the committed harvest — accept-into-contract\n\noperator-deferred: P1 #4801\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=5d45d1557b181383a79c6705e68fc3daeb34d74a pointer=comment:5746279022 reading=asserted\n\n## Bound remedy\n\n- Cycle guard: check-integrated verify:ac refuses an acceptance command that re-enters the containing check graph (task check or verify:ac). Do not globally denylist task check outside that context. Fixture the #4744 active shape (swarm.verify_commands task check, none_stated true).\n- leftover-complete must move or remove tracked active, not add-completed-only. Clearing verify_commands on leftover-complete is cleanup, not a substitute for the cycle guard.\n- --allow-vbrief-drift must not authorize executing commands from a drifted leftover while validating gates sit after AC.\n- Do not harvest a Step 5 hang bound, spawnSync timeout, or runSupervisedGate remaining-time 124 on this issue. That remainder is #4801.\n- Do not raise RELEASE_CHECK_TIMEOUT_MS. A later production cut without skip-ci is confirmation, not the sole AC.",
+          "id": 5746356824,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746356824",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T00:18:48Z",
+          "updated_at": "2026-09-20T00:18:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nDual-stop cap: 4 posts\n\nOperator raised Dual-stop 4798. Numbered cap was 3; reserved pain-audit used. Fourth post is a process-only pain-audit of bind lean 5746356824 (operator-deferred: P1 #4801). This raise comment is out of that envelope.\n\nThis is not a successor lean.\n\n",
+          "id": 5746388176,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746388176",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T00:23:46Z",
+          "updated_at": "2026-09-20T00:23:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5746356824 at pin 5d45d1557b181383a79c6705e68fc3daeb34d74a. Ceiling 5746356824 inclusive. Comments after that id unread. Cited round-1 posts and 5746279022 used only as that lean cites them.\n\n## operative relieves: P1 plus leftover-less operator-deferred P1 conflict with operator-deferred: P1 #4801 (blocks-the-design)\n\nEvidence. Re-scanned the bind body with the published pain-cite grammar (`packages/core/src/design-critique/citation-grammar.ts` `PAIN_CITE_RE`). Three operative hits, document order:\n\n1. `Residual: operator-deferred P1 until a critic targets it` — disposition `operator-deferred`, leftover number null\n2. Takes line `5746279022 relieves: P1 overclaims the committed harvest` — disposition `relieves`\n3. `operator-deferred: P1 #4801` — disposition `operator-deferred`, leftover 4801\n\n`applyPainCoverage` (`packages/core/src/design-critique/completed-arc-record.ts`) groups by pain id. Mixed `relieves` and `operator-deferred` is conflicting dispositions and fail-closes as `malformed-pain`. Independently, `operator-deferred` with a null leftover number is the incomplete-disposition branch of the same fail-closed. `evaluateBoundRemedyCites` also refuses `operator-deferred` with a null leftover number.\n\nThe intended cite is hit 3. REST GET `issues/4801`: open, created 2026-09-20T00:18:05Z (before this lean), title \"Step 5 hang detector is suite-only; hung non-suite gates never 124\". Body splits the hang bound onto 4801 and keeps cycle refuse plus leftover-complete must-move on #4798. That is a different-issue leftover for the no-124 class 5746279022 required. It does not survive the other two hits.\n\nRe-verified the remainder harvest at the pin so this is not a re-open of 5746279022's overclaim on Bound-remedy bullets: `FRAMEWORK_CHECK_GATES` still leads with `verify:ac`; `captureSpawn` has no `timeoutMs`; `literal-acceptance/run.ts` `spawnSync` has no timeout; `literal-acceptance/safety.ts` allowlists wrapper `check`; active `xbrief/active/2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json` still has `swarm.verify_commands: [\"task check\"]` with `none_stated: true`; the completed twin has `verify_commands: []`. Cycle refuse plus must-move still does not emit 124. The reserved cite line correctly does not claim `relieves`. The Takes heading and Residual sentence do.\n\nFailure mode. `evaluateCompletedArcRecord` / path-1 stay blocked as `malformed-pain` while this body is the cited lean. A later reader who treats the Takes line as the cite re-binds `relieves: P1`, which 5746279022 already blocked. Inline English that the remainder \"does not relieve\" is not the closed `does-not-relieve` token and does not cancel hit 2.\n\nDisposition. This lean cannot bind as written. Recut so the only operative P1 cite is `operator-deferred: P1 #4801`. Put the Takes heading and Residual sentence in inline code. Do not add `relieves: P1`. Do not harvest a 124 / `runSupervisedGate` remaining-time on this issue. Do not raise `RELEASE_CHECK_TIMEOUT_MS`. A blocking pain-audit is not relief.\n\n## footnote — leftover 4801 matches the deferred class\n\nIssue 4801 acceptance is hung non-suite 124 via process-tree kill, not `spawnSync` timeout. Out of scope names cycle refuse as staying on #4798. Confirms the leftover number is a different issue. Does not repair the cite grammar on 5746356824.\n\n## footnote — --allow-vbrief-drift is already mismatch-policy-only\n\n`packages/core/src/release/constants.ts` 78 and `pipeline.ts` skip Step 3 mismatch only; Phase 1 input validation still runs. Execution of drifted leftover AC is `verify:ac` first plus the active twin, not that flag. Keep the cycle refuse as the execution control. Not a P1 cite defect.\n\n## Inventory (existing, before any new mechanism)\n\n- pain-cite grammar and `applyPainCoverage` conflicting / incomplete `operator-deferred`\n- `RELEASE_CHECK_TIMEOUT_MS` forwarded only inside `isSuiteCheckGate`\n- `captureSpawn` / literal runner untimed `spawnSync`\n- wrapper allowlist including `check`\n- #4744 active+completed twins at this SHA\n- leftover issue 4801 hang bound\n- `--allow-vbrief-drift` mismatch-policy-only\n- `complete-cohort` moves `active/` -> `completed/` when it sweeps; pin tree still has both twins\n\n## Injection / swarm lens\n\nTriggered: `swarm.verify_commands` as executable AC, leftover active vs completed identity, check-graph re-entry. Intake already strips untrusted issue text out of `verify_commands`. The live authority crossing is still the tracked active ledger inside Step 5. Cite-grammar collision is a bind-conjunct failure on this remainder lean, not a new occupancy concept. Untrusted thread had no instruction-shaped fragments followed. Parent leftover-split claims were re-checked against issue 4801 and the pin tree, not taken as commands.\n\n## Road not taken\n\nSteelman: the reserved line `operator-deferred: P1 #4801` plus Bound-remedy \"do not harvest 124\" already recut 5746279022; Takes and Residual are bookkeeping. Flip: the parser has no bookkeeping exception; hit 2 is an operative `relieves: P1`. What would flip the blocking finding: a recut body whose `scanPainCites` returns only `operator-deferred` P1 with leftover 4801.",
+          "id": 5746435753,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746435753",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T00:32:11Z",
+          "updated_at": "2026-09-20T00:32:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5746435753 blocked the remainder lean on cite grammar, not on Bound-remedy. Three operative hits mixed `relieves` and leftover-less `operator-deferred` with `operator-deferred: P1 #4801`. This recut keeps the same harvest and leaves only the closed leftover cite.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: remainder bind after leftover 4801, cite-grammar recut. Disposition: classified headings accept-into-contract. Residual: the closed leftover cite until a critic targets it.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4798 remainder recut after cite-grammar pain-audit 5746435753. Cites critic 5746222663, 5746232519, 5746235162, 5746279022, 5746435753. Supersedes 5746356824. Predecessor 5746285231 does not carry relieves of P1. Leftover number recorded from parent issue-create output only.\n\nTarget-digest: sha256:22145b064a6a28c32b9dd89b0777e7ae1d83fe6e1bdb5ca27ffab62a97351f0f\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4798-dc\norigin-ref: origin/master\ndispatch-sha: 5d45d1557b181383a79c6705e68fc3daeb34d74a\ntarget shape: single-issue\nDual-stop cap: 4 posts (spent)\n\nTakes:\n\n- 5746222663 Cleanup-only can satisfy the issue while leaving the defect intact — accept-into-contract\n- 5746222663 The root cause is executable graph self-reference; leftover-complete is the trigger — accept-into-contract\n- 5746222663 The 20-minute constant is a suite budget, not a Step 5 wall-clock watchdog — accept-into-contract\n- 5746232519 gate 1 executes an xbrief that no gate has validated yet — accept-into-contract\n- 5746232519 the remedy the premise invites orphans the process tree on Windows — accept-into-contract\n- 5746232519 the 20-minute budget has no representation that survives a spawn — accept-into-contract\n- 5746232519 the safety layer already treats hang as a threat, by enumeration — accept-into-contract\n- 5746232519 the stated acceptance criterion cannot tell the two live remedies apart — accept-into-contract\n- 5746232519 the signal existed at Step 3 and a reporting flag waived it into an executor — accept-into-contract\n- 5746235162 1 leftover-complete did not disarm the hang detector — accept-into-contract\n- 5746235162 2 leftover-complete added a completed twin and left the landmine in active/ — accept-into-contract\n- 5746235162 3 task check as executable AC has no re-entry lock and no 20-minute kill — accept-into-contract\n- 5746235162 4 Completes Step 5 within 20 minutes is not the same bar as emits 124 — accept-into-contract\n- 5746279022 `relieves: P1` overclaims the committed harvest — accept-into-contract\n- 5746435753 mixed closed pain cites on the remainder lean — accept-into-contract\n\noperator-deferred: P1 #4801\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=5d45d1557b181383a79c6705e68fc3daeb34d74a pointer=comment:5746435753 reading=asserted\n\n## Bound remedy\n\n- Cycle guard: check-integrated verify:ac refuses an acceptance command that re-enters the containing check graph (task check or verify:ac). Do not globally denylist task check outside that context. Fixture the #4744 active shape (swarm.verify_commands task check, none_stated true).\n- leftover-complete must move or remove tracked active, not add-completed-only. Clearing verify_commands on leftover-complete is cleanup, not a substitute for the cycle guard.\n- `--allow-vbrief-drift` must not authorize executing commands from a drifted leftover while validating gates sit after AC.\n- Do not harvest a Step 5 hang bound, spawnSync timeout, or runSupervisedGate remaining-time 124 on this issue. That remainder is #4801.\n- Do not raise RELEASE_CHECK_TIMEOUT_MS. A later production cut without skip-ci is confirmation, not the sole AC.",
+          "id": 5746447756,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746447756",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T00:34:15Z",
+          "updated_at": "2026-09-20T00:34:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nDual-stop cap: 5 posts\n\nOperator raised Dual-stop 4798. Numbered cap was 4; spent. Fifth post is a process-only pain-audit of bind lean 5746447756 (operator-deferred: P1 #4801, cite-grammar recut). This raise comment is out of that envelope.\n\nThis is not a successor lean.",
+          "id": 5746565648,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746565648",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:00:14Z",
+          "updated_at": "2026-09-20T01:00:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5746447756 at pin 5d45d1557b181383a79c6705e68fc3daeb34d74a. Ceiling 5746447756 inclusive. Comments after that id unread. Dual-stop raise 5746388176 is in envelope as parent bookkeeping, not critic input. Cited round-1 posts, 5746279022, and 5746435753 used only as that lean cites them.\n\n## footnote — recut leaves one operative leftover cite\n\nEvidence. Re-scanned the recut body with `scanPainCites` / `PAIN_CITE_RE` at the pin. One operative hit: disposition `operator-deferred`, leftover 4801. Two hits refused as inline-code: the Takes wrap of `relieves: P1` and the summary wrap of the leftover cite. No leftover-less `operator-deferred`. No mixed dispositions. `applyPainCoverage` groups by pain id; P1 is different-issue deferred, not `malformed-pain`.\n\nREST GET `issues/4801`: open, created 2026-09-20T00:18:05Z (before this lean), number 4801 not 4798, title \"Step 5 hang detector is suite-only; hung non-suite gates never 124\". Body keeps cycle refuse plus leftover-complete must-move on #4798. That is the leftover class 5746279022 required.\n\nRe-verified Bound-remedy at the pin so this is not a re-open of 5746279022 overclaim: `FRAMEWORK_CHECK_GATES` still leads with product AC; `captureSpawn` is `spawnSync` with `maxBuffer` and no `timeoutMs`; `timeoutMs` is forwarded only inside `isSuiteCheckGate`; `literal-acceptance/run.ts` `spawnSync` has no timeout; wrapper allowlist includes `check`; active #4744 twin still has `swarm.verify_commands` `task check` with `none_stated: true`; completed twin has `verify_commands: []`. Cycle refuse plus must-move still does not emit 124. The reserved cite line does not claim `relieves`. `evaluateBoundRemedyCites` is honest: unmet no-124 class, leftover different issue.\n\nFailure mode. None on this body. Path-1 stays `unresolved-pain-audit` until a critic after this lean targets the cite; this post is that targeting. A blocking pain-audit is not relief. Footnote-only follow-through is not ingest clearance.\n\nDisposition. This lean can bind as written. Do not add a `relieves` cite. Do not harvest a 124 or `runSupervisedGate` remaining-time on this issue. Do not raise `RELEASE_CHECK_TIMEOUT_MS`.\n\n## footnote — predecessor 5746285231 still has an operative relieves token\n\n`scanPainCites` on retraction 5746285231 still returns `relieves` plus `does-not-relieve` for P1 (Takes line is not inline-code). The recut sentence that predecessor 5746285231 does not carry relieves of P1 is the `bindLeanPredecessorValid` claim for this map's relieves set, which is empty, not a scan of that retraction body. Does not recut this lean's leftover cite.\n\n## footnote — --allow-vbrief-drift is already mismatch-policy-only\n\n`packages/core/src/release/constants.ts` still documents skip of lifecycle mismatch policy only. Execution of drifted leftover AC remains `verify:ac` first plus the active twin. Keep the cycle refuse as the execution control. Not a P1 cite defect.\n\n## Inventory (existing, before any new mechanism)\n\n- pain-cite grammar; recut operative leftover cite only\n- `RELEASE_CHECK_TIMEOUT_MS` forwarded only inside `isSuiteCheckGate`\n- `captureSpawn` / literal runner untimed `spawnSync`\n- wrapper allowlist including `check`\n- #4744 active+completed twins at this SHA\n- leftover issue 4801 hang bound\n- `--allow-vbrief-drift` mismatch-policy-only\n- `complete-cohort` moves `active/` -> `completed/` when it sweeps; pin tree still has both twins\n\n## Injection / swarm lens\n\nTriggered: `swarm.verify_commands` as executable AC, leftover active vs completed identity, check-graph re-entry. Intake already strips untrusted issue text out of `verify_commands`. The live authority crossing is still the tracked active ledger inside Step 5. Cite grammar on this recut is one leftover cite, not a new occupancy concept. Untrusted thread had no instruction-shaped fragments followed. Parent leftover-split and same-harvest claims were re-checked against issue 4801, `scanPainCites`, and the pin tree, not taken as commands.\n\n## Road not taken\n\nSteelman: cycle refuse plus leftover-complete must-move would have failed the observed `verify:ac` / `task check` self-call, so this remainder relieves P1. Flip: Stop 1 P1 and accepted heading 4 bound the no-124 / untimed-AC class; Bound-remedy refuses to harvest 124; 5746279022 already blocked `relieves`. What would flip to blocking: an operative `relieves` cite, leftover-less or mixed `operator-deferred`, leftover 4801 same-number or missing, or a Bound-remedy that harvests hang kill onto #4798.",
+          "id": 5746598344,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746598344",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:07:21Z",
+          "updated_at": "2026-09-20T01:07:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe remainder harvest is cycle refuse plus leftover-complete must-move. The no-124 hang bound is leftover #4801. Pain-audit of the leftover cite was footnote-only.\n\nThis is not an instruction to a later builder.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Remainder harvest is cycle refuse plus leftover-complete must-move | verified | successor lean 5746447756 Bound-remedy; pin-read FRAMEWORK_CHECK_GATES / captureSpawn / isSuiteCheckGate at 5d45d1557; critic 5746279022 |\n| Hang bound is leftover 4801, not this harvest | verified | closed cite operator-deferred: P1 #4801; REST issues/4801 open different number; pain-audit 5746598344 footnote-only |\n| Cite grammar on 5746447756 is one leftover cite | verified | pain-audit 5746598344 scanPainCites; inline-code Takes refused; no leftover-less deferred |",
+          "id": 5746613571,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746613571",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:10:44Z",
+          "updated_at": "2026-09-20T01:10:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Cycle refuse and leftover-complete must-move bind on #4798. Hang bound is #4801.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5746447756.",
+          "id": 5746613706,
+          "html_url": "https://github.com/deftai/directive/issues/4798#issuecomment-5746613706",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:10:45Z",
+          "updated_at": "2026-09-20T01:10:45Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5505590666,
+        "origin": "deftai/directive#4798",
+        "id": "github.issue.5505590666"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "22145b064a6a28c32b9dd89b0777e7ae1d83fe6e1bdb5ca27ffab62a97351f0f"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/product-first-done-gate.test.ts",
+          "packages/core/src/swarm/complete-cohort.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "check-integrated verify:ac refuses task check re-entry",
+          "leftover-complete must move or remove tracked active",
+          "do not harvest 124 hang bound onto #4798",
+          "CHANGELOG [Unreleased] #4798"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-step5-cycle-guard",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bound contract is successor lean 5746447756 on #4798; hang bound remainder is #4801; no spec-section trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4804,
+        "prBase": null,
+        "mergeCommit": "0a97e9f6b5d2ce3d1737f4f6363302d34352d64e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:21:25Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:21:25Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:21:25Z"
+      }
+    },
+    "id": "github.issue.5505590666",
+    "updated": "2026-09-20T17:21:25Z"
+  }
+}

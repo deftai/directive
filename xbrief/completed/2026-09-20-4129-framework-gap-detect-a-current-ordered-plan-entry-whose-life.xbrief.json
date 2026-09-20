@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4129",
-    "updated": "2026-09-20T12:31:27Z"
+    "updated": "2026-09-20T17:21:43Z"
   },
   "plan": {
     "title": "[framework-gap] Detect a current ordered-plan entry whose lifecycle entity is already terminal",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Detect a current ordered-plan entry whose lifecycle entity is already terminal",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4129",
@@ -16,48 +16,102 @@
     "items": [
       {
         "title": "Name the resolution function from a plan entry to a lifecycle entity per `PlanSequenceEntry.kind`, including no-origin skip versus fail-closed.",
-        "status": "proposed",
-        "id": "clause:1"
+        "status": "completed",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Sufficient terminal evidence is existing local ledgers: `TIP_TERMINAL_FOLDERS` (completed|cancelled), `hasTransitionWrite` / failed stamp, and `collectGithubRefs` on that entry's origin. Do not add a new GitHub issue-state client inside `verifyPlanTarget`.",
-        "status": "proposed",
-        "id": "clause:2"
+        "status": "completed",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Unknown policy reuses orphan-active `StateResolution` or stays filesystem-only so unknown does not arise.",
-        "status": "proposed",
-        "id": "clause:3"
+        "status": "completed",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Drift predicate: current plan entry is non-terminal (`status` pending or unset, sequence not exhausted) and a resolvable Directive lifecycle origin for that entry already sits in `completed/` or `cancelled/` (or carries the failed stamp). GitHub `closed` without a terminal xBRIEF stays on #3429 / #3476.",
-        "status": "proposed",
-        "id": "clause:4"
+        "status": "completed",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Fail-closed surfaces: `plan-sequence:current` (work selection) and `verifyPlanTarget` (work-unit plus sub-agent admission). Solo `swarm:launch` skip and dummy-target cohort admission are in that surface list, or they are a named leftover; they are not closed by editing only `packages/cli/src/verify-plan-sequence.ts`.",
-        "status": "proposed",
-        "id": "clause:5"
+        "status": "completed",
+        "id": "clause:5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Printed remediation is operator-reviewed stop/ask, same voice as orphan-active's do-not-complete-until, not unattended `plan-sequence:advance`.",
-        "status": "proposed",
-        "id": "clause:6"
+        "status": "completed",
+        "id": "clause:6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "New result code, not `mismatch` or `exhausted`, so agents cannot treat drift as pick-the-next-id.",
-        "status": "proposed",
-        "id": "clause:7"
+        "status": "completed",
+        "id": "clause:7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "Share one pure drift helper between `plan-sequence:current` and `verifyPlanTarget`. Do not add a third verb.",
-        "status": "proposed",
-        "id": "clause:8"
+        "status": "completed",
+        "id": "clause:8",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       },
       {
         "title": "#4433 `batching_allowed` stays out.",
-        "status": "proposed",
-        "id": "clause:9"
+        "status": "completed",
+        "id": "clause:9",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-20T17:20:11.336Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
       }
     ],
     "tags": [
@@ -346,9 +400,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "95b0573a29ca356e4f29deb7c023db0795181faf5de29878819e32960e84ffad"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4817,
+        "prBase": null,
+        "mergeCommit": "bfff4211286343597420c07af8639898b3b8bedb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b54ab658ccad9fda5a295707ea48bc6d2651ab9",
+        "verifiedAt": "2026-09-20T17:21:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T17:21:43Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T17:21:43Z"
       }
     },
     "id": "github.issue.5328714508",
-    "updated": "2026-09-20T12:31:27Z"
+    "updated": "2026-09-20T17:21:43Z"
   }
 }
