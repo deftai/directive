@@ -488,6 +488,11 @@ export function parseSubagentMonitorArgs(argv: string[]): SubagentMonitorArgs {
  * On a terminal heartbeat, compare-and-release a dispatch-recorded child
  * occupancy lease (#3999). Missing records and payload-kind skips are no-ops;
  * liveness exit codes are unchanged.
+ *
+ * Grok spawn_subagent host completion does not write a heartbeat. Parent tool
+ * return is not occupancy close-out. After an implement-class child claims dest,
+ * dest occupancy.json can still be live under the child host-env id (#4782).
+ * Dest-linger close-out is leftover #4792.
  */
 export function releaseTerminalChildOccupancy(
   records: readonly HeartbeatRecord[],

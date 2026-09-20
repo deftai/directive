@@ -3,9 +3,18 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { listChildOccupancyLeases, recordChildOccupancyLease } from "./child-occupancy.js";
+import {
+  listChildOccupancyLeases,
+  readChildOccupancyLease,
+  recordChildOccupancyLease,
+} from "./child-occupancy.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
-import { applyWorktreeOccupancy, evaluateOccupancyWriteGate } from "./occupancy.js";
+import {
+  applyWorktreeOccupancy,
+  evaluateOccupancyWriteGate,
+  liveOccupant,
+  readOccupancy,
+} from "./occupancy.js";
 import {
   allocatedWorktreeMatches,
   applyCursorNurseryOccupancy,
@@ -1256,6 +1265,57 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
     if (firstIncarnation === null) return;
     expect(releaseLeftoverSpawnReservation(root, dest, firstIncarnation, now)).toBe(false);
     expect(readSpawnReservationIncarnation(root, dest)).toBe(firstIncarnation);
+  });
+
+  it("destination-occupied after implement-class child claim; leftover dest-lock still refuses live occupant (#4782)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-4782-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const firstConsult = consultImplementSpawnOccupancy({
+      payload: grokPayload(dest),
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(firstConsult.allow).toBe(true);
+    if (!firstConsult.allow) return;
+    const firstMint = mintImplementSpawnReservation(firstConsult, {
+      payload: grokPayload(dest),
+      payloadRoot: root,
+      host: "grok",
+    });
+    expect(firstMint.reservation.occupancyOwner).toBe("parent-1");
+    expect(firstMint.reservation.provenance).toBe("dispatch");
+    expect(persistSpawnReservation(root, firstMint.reservation).ok).toBe(true);
+    const now = new Date("2026-09-18T20:00:00Z");
+    const grokRaw = "01a04782-child-complete";
+    applyWorktreeOccupancy(dest, {
+      sessionId: "host:claude:v1:child-id",
+      now,
+      env: { GROK_SESSION_ID: grokRaw },
+    });
+    expect(readOccupancy(dest)?.sessionId).toBe("host:claude:v1:child-id");
+    expect(readChildOccupancyLease(dest, grokRaw)?.provenance).toBe("claim");
+    const next = consultImplementSpawnOccupancy({
+      payload: grokPayload(dest),
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+      now,
+    });
+    expect(next.allow).toBe(false);
+    if (!next.allow) {
+      expect(next.reason).toBe("destination-occupied");
+      expect(next.message).toContain("host:claude:v1:child-id");
+    }
+    const firstIncarnation = firstMint.incarnation;
+    expect(firstIncarnation).not.toBeNull();
+    if (firstIncarnation === null) return;
+    expect(releaseLeftoverSpawnReservation(root, dest, firstIncarnation, now)).toBe(false);
+    expect(readSpawnReservationIncarnation(root, dest)).toBe(firstIncarnation);
+    expect(liveOccupant(dest, now)?.sessionId).toBe("host:claude:v1:child-id");
   });
 
   it("EXISTS of a different incarnation does not delete the winner", () => {

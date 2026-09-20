@@ -8,6 +8,12 @@
  * 3. Claim-time refuse on the main path lives in applyWorktreeOccupancy.
  * 4. Occupancy consult on the *destination* tree (live occupant), with a real
  *    actor -- never evaluateOccupancyWriteGate(parentRoot, actor=null).
+ *
+ * spawn_subagent persist is dest-lock plus a parent-owner dispatch record
+ * (#4782). Dest occupancy.json is the child later claim. After implement-class
+ * complete, that occupancy.json can still be live under the child host-env id.
+ * Sequential same-cwd spawn then denies destination-occupied. Leftover dest-lock
+ * still refuses a live occupant. Dest-linger close-out is leftover #4792.
  */
 
 import { createHash, randomUUID } from "node:crypto";
@@ -599,6 +605,9 @@ export function consultImplementSpawnOccupancy(
 
   let leftoverIncarnation: string | null = null;
   if (destPath !== null) {
+    // Live dest occupancy.json is the child claim, not dest-lock leftover.
+    // Sequential same-cwd spawn after implement-class complete hits this deny
+    // while occupancy.json is still live (#4782). Remainder is leftover #4792.
     const live = liveOccupant(destPath, input.now);
     if (live !== null) {
       return consultDeny(
@@ -673,6 +682,7 @@ export function mintImplementSpawnReservation(
   const reservation: ChildOccupancyDispatchInput = {
     agentId,
     parentId,
+    // Dispatch record owner is the parent; dest occupancy.json is the child claim (#4782).
     occupancyOwner: parentId,
     worktreePath: destPath ?? join(payloadRoot, ".deft", "spawn-pending", incarnation),
     identitySourceKind: appliesGrokSpawnDestContract({
@@ -783,7 +793,10 @@ export type PersistSpawnReservationResult =
   | { ok: true }
   | { ok: false; reason: "conflict" | "occupied" };
 
-/** Persist the dispatch reservation after other spawn gates have allowed. */
+/**
+ * Persist dest-lock plus the parent-owner dispatch record after other spawn
+ * gates have allowed. Does not apply dest occupancy.json (#4782).
+ */
 export function persistSpawnReservation(
   storeRoot: string,
   reservation: ChildOccupancyDispatchInput,
@@ -841,6 +854,9 @@ export function persistSpawnReservation(
  * has a live occupant. Also drops matching dispatch occupancy records so a
  * retry is not consult-denied as already reserved. A retry after this returns
  * true may persist a new incarnation.
+ *
+ * Do not yank a live occupant to close dest-linger after spawn_subagent
+ * complete (#4782). That remainder is leftover #4792.
  */
 export function releaseLeftoverSpawnReservation(
   storeRoot: string,

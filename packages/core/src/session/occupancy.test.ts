@@ -2727,6 +2727,59 @@ describe("child occupancy terminal release (#3999)", () => {
   const parentId = "parent-agent";
   const childOwner = "host:grok:v1:child-owner";
 
+  it("mint+claim dest occupancy stays live; claim-provenance is not dispatcher close-out (#4782)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-09-18T20:00:00Z");
+    const parentId = "parent-agent";
+    const grokRaw = "01a04782-child-complete";
+    const dispatchAgent = "spawn-4782aaaa";
+    recordChildOccupancyLease(root, {
+      agentId: dispatchAgent,
+      parentId,
+      occupancyOwner: parentId,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+      incarnation: "inc-4782",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(root, {
+      sessionId: "host:claude:v1:child-id",
+      now,
+      env: { GROK_SESSION_ID: grokRaw },
+    });
+    expect(readOccupancy(root)?.sessionId).toBe("host:claude:v1:child-id");
+    expect(readChildOccupancyLease(root, grokRaw)?.provenance).toBe("claim");
+    expect(readChildOccupancyLease(root, grokRaw)?.occupancyOwner).toBe("host:claude:v1:child-id");
+    const claimReleased = releaseChildOccupancyOnTerminal(root, {
+      agentId: grokRaw,
+      now,
+      incarnation: readChildOccupancyLease(root, grokRaw)?.incarnation,
+      parentId: readChildOccupancyLease(root, grokRaw)?.parentId,
+    });
+    expect(claimReleased.reason).toBe("claim-provenance");
+    const dispatchReleased = releaseChildOccupancyOnTerminal(root, {
+      agentId: dispatchAgent,
+      now,
+      incarnation: "inc-4782",
+      parentId,
+    });
+    expect(dispatchReleased.reason).toBe("owner-changed");
+    expect(readOccupancy(root)?.sessionId).toBe("host:claude:v1:child-id");
+  });
+
+  it("launcher swarm close-out does not yank a dest child occupant (#4782)", () => {
+    const root = tempRoot();
+    const dest = join(root, "dest");
+    mkdirSync(dest, { recursive: true });
+    const now = new Date("2026-09-18T20:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "swarm-parent", intent: "swarm", now, env: {} });
+    applyWorktreeOccupancy(dest, { sessionId: "host:claude:v1:child-id", now, env: {} });
+    const released = releaseSwarmOccupancy(root, { sessionId: "swarm-parent", now });
+    expect(released.code).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
+    expect(readOccupancy(dest)?.sessionId).toBe("host:claude:v1:child-id");
+  });
+
   it("dispatch-claim-exit clears the child owner lease without waiting for TTL", () => {
     const root = tempRoot();
     recordChildOccupancyLease(root, {

@@ -25,6 +25,11 @@
  * agent session. The answer there is identity, not automatic membership: each
  * side resolves its own owner through the shared lookup chain below and claims
  * its own worktree, which is where the dispatch envelope already puts it.
+ * After an implement-class Grok child claims dest and the parent tool returns,
+ * dest occupancy.json can still be live under the child host-env id (#4782).
+ * spawn_subagent persist is dest-lock plus a parent-owner dispatch record; this
+ * file is the child later claim. Swarm close-out stays launcher occupancy
+ * only. Dest-linger close-out is leftover #4792.
  * Membership stays explicit and owner-issued for the deliberate same-tree case,
  * and it stays affordable only that way -- 32 grants at a four-hour TTL against
  * a twenty-minute lease means granting on every dispatch exhausts a busy
@@ -1050,6 +1055,12 @@ export function applyWorktreeOccupancy(
  * Pre-dispatch / worktree mkdir cannot know a host-env child's occupancy
  * owner; the claiming process does. Heartbeat `agent_id` on this host is the
  * raw GROK_SESSION_ID, so that is the store key the terminal monitor looks up.
+ *
+ * This is a second, claim-provenance row. spawn_subagent persist is dest-lock
+ * plus a parent-owner dispatch record; dest occupancy.json is this child later
+ * claim. After the parent tool returns, occupancy.json can still be live under
+ * the child host-env id (#4782). That linger is leftover #4792 -- this stamp is
+ * not dispatcher close-out.
  */
 function maybeRecordChildOccupancyOnClaim(
   projectRoot: string,

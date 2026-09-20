@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Restate spawn_subagent dest occupancy linger (#4782).** After an implement-class Grok child claims dest and the parent tool returns, dest occupancy.json can still be live under the child host-env id. spawn_subagent persist is dest-lock plus a parent-owner dispatch record. Leftover dest-lock still refuses a live occupant. Swarm finalize stays launcher-only. Dest-linger close-out is leftover #4792. Tracking #4782.
+
 ### Fixed
 
 - **Ordered-plan current entry fail-closes when its lifecycle origin is already terminal (#4129).** `plan-sequence:current` and `verify:plan-sequence` share one filesystem drift helper: a pending current entry whose origin already sits in `xbrief/completed/` or `cancelled/` (failed stamps included) returns `terminal-lifecycle`, not `mismatch` or `exhausted`. Remediation is operator-reviewed stop/ask, not unattended `plan-sequence:advance`. GitHub-closed without a terminal xBRIEF stays on #3429 / #3476. Solo `swarm:launch` skip and dummy-target cohort admission remain leftover. Tracking #4129.

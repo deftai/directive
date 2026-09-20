@@ -45,6 +45,7 @@ import {
   parseIso8601Utc,
   parseSubagentMonitorArgs,
   recordOk,
+  releaseTerminalChildOccupancy,
   renderText,
   sweepScratchDirs,
 } from "./subagent-monitor.js";
@@ -247,6 +248,52 @@ describe("subagent-monitor", () => {
     expect(evaluateOccupancyWriteGate(root, { sessionId: "parent", now, env: {} }).allow).toBe(
       true,
     );
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("Grok spawn_subagent mint+claim without a heartbeat leaves dest occupancy live (#4782)", () => {
+    const root = mkdtempSync(join(tmpdir(), "sam-4782-"));
+    const scratch = join(root, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    const now = new Date("2026-09-18T20:00:00Z");
+    const parentId = "parent-agent";
+    const grokRaw = "01a04782-child-complete";
+    const childOwner = "host:claude:v1:child-id";
+    expect(
+      persistSpawnReservation(root, {
+        agentId: "spawn-4782aaaa",
+        parentId,
+        occupancyOwner: parentId,
+        worktreePath: root,
+        identitySourceKind: "host-env",
+        incarnation: "inc-4782",
+        provenance: "dispatch",
+      }).ok,
+    ).toBe(true);
+    applyWorktreeOccupancy(root, {
+      sessionId: childOwner,
+      now,
+      env: { GROK_SESSION_ID: grokRaw },
+    });
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+    releaseTerminalChildOccupancy([], root, now);
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+    expect(cmdSubagentMonitor(["--scratch-dir", scratch], root)).toBe(EXIT_OK);
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+    writeFileSync(
+      join(scratch, `${grokRaw}.json`),
+      JSON.stringify({
+        agent_id: grokRaw,
+        parent_id: parentId,
+        last_heartbeat_at: "2026-09-18T20:00:00Z",
+        last_message: "done",
+        phase: "terminal",
+        terminal_state: "CLEAN",
+      }),
+      "utf8",
+    );
+    expect(cmdSubagentMonitor(["--scratch-dir", scratch], root)).toBe(EXIT_OK);
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
     rmSync(root, { recursive: true, force: true });
   });
 
