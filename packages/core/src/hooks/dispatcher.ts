@@ -92,6 +92,7 @@ import {
   WRITE_GATED_REQUIRED_STEPS,
   writeGateRitualOptions,
 } from "../session/verify-session-ritual.js";
+import { uninspectableLifecycleDenyMessage } from "./classify/host-session-identity.js";
 import {
   fieldString,
   type HookPayloadContext,
@@ -2550,9 +2551,7 @@ function attachLifecycleIdentityRewrite(
       input,
       "occupancy-identity-unavailable",
       toolName,
-      `Directive denied lifecycle command ${hinted}: the invocation is not inspectable ` +
-        "(quoting, redirect, pipe, or chain). Re-run as a simple command with " +
-        `--session-id=${named}.`,
+      uninspectableLifecycleDenyMessage(hinted, named, input.payload),
     );
   }
   if (!lifecycle.requiresOwner) return decision;

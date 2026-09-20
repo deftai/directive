@@ -21,6 +21,11 @@ import {
 import { persistTrustedSessionPosture } from "../session/posture.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { GROK_CRITIC_SPAWN_NOT_READY_RECOVERY } from "../session/spawn-occupancy.js";
+import {
+  classifyUninspectableLifecycleMiss,
+  hintUninspectableLifecycleCommand,
+  inspectExactLifecycleCommand,
+} from "./classify/host-session-identity.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
   ASSIST_SESSION_POSTURE_ENV,
@@ -5759,6 +5764,104 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       );
       expect(decision.verdict, command).toBe("allow");
     }
+  });
+});
+
+describe("exact-miss session:start hint deny (#4793)", () => {
+  const CLAUDE_OWNER = "host:claude:v1:c2Vzc2lvbi1h";
+  const FALSE_CAUSE = "quoting, redirect, pipe, or chain";
+
+  function decideClaudeShell(command: string) {
+    return decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: "session-a",
+          tool_input: { command },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+  }
+
+  it("keeps four-token deft session:start -- --read-only exact and hint-null", () => {
+    const payload = {
+      tool_name: "Bash",
+      tool_input: { command: "deft session:start -- --read-only" },
+    };
+    expect(inspectExactLifecycleCommand(payload)).toMatchObject({
+      verb: "session:start",
+      requiresOwner: false,
+      rewriteSafe: false,
+    });
+    expect(hintUninspectableLifecycleCommand(payload)).toBeNull();
+    const decision = decideClaudeShell("deft session:start -- --read-only");
+    expect(decision.verdict).toBe("allow");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it.each([
+    [" leading space", " deft session:start --read-only"],
+    ["trailing space", "deft session:start --read-only "],
+    ["double space", "deft  session:start --read-only"],
+    ["tab separator", "deft\tsession:start --read-only"],
+    ["leading tab", "\tdeft session:start --read-only"],
+    ["trailing tab", "deft session:start --read-only\t"],
+  ])("names whitespace miss for %s and does not demand --session-id", (_label, command) => {
+    expect(inspectExactLifecycleCommand({ tool_name: "Bash", tool_input: { command } })).toBeNull();
+    expect(hintUninspectableLifecycleCommand({ tool_name: "Bash", tool_input: { command } })).toBe(
+      "session:start",
+    );
+    const miss = classifyUninspectableLifecycleMiss(command);
+    expect(["whitespace", "empty-token"]).toContain(miss);
+    const decision = decideClaudeShell(command);
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+    expect(decision.message).toContain("not inspectable");
+    expect(decision.message).toMatch(/\(whitespace\)|\(empty token\)/);
+    expect(decision.message).not.toContain(FALSE_CAUSE);
+    expect(decision.message).not.toContain("--session-id=");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it.each([
+    ["pipe", "deft session:start --read-only | head", "pipe"],
+    ["chain", "deft session:start && echo ok", "chain"],
+    ["redirect", "deft session:ready 2>&1", "redirect"],
+    ["newline", "echo ready\ndeft session:start", "newline"],
+  ])("keeps fail-closed on %s and names that miss", (_label, command, expected) => {
+    const decision = decideClaudeShell(command);
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+    expect(decision.message).toContain(`(${expected})`);
+    expect(decision.message).not.toContain(FALSE_CAUSE);
+    expect(decision.message).toContain(`--session-id=${CLAUDE_OWNER}`);
+  });
+
+  it("does not hint a mid-line heredoc mention of session:start", () => {
+    const command = "cat <<EOF\nplease run deft session:start next\nEOF";
+    expect(
+      hintUninspectableLifecycleCommand({ tool_name: "Bash", tool_input: { command } }),
+    ).toBeNull();
+    const decision = decideClaudeShell(command);
+    expect(decision.verdict).toBe("allow");
+  });
+
+  it("fails closed on line-start newline session:start and names newline", () => {
+    const command = "cat <<EOF\ndeft session:start\nEOF";
+    expect(hintUninspectableLifecycleCommand({ tool_name: "Bash", tool_input: { command } })).toBe(
+      "session:start",
+    );
+    const decision = decideClaudeShell(command);
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+    expect(decision.message).toContain("(newline)");
+    expect(decision.message).not.toContain(FALSE_CAUSE);
+    expect(decision.message).toContain(`--session-id=${CLAUDE_OWNER}`);
   });
 });
 

@@ -794,6 +794,99 @@ export function hintUninspectableLifecycleCommand(payload: unknown): ExactLifecy
   return windows[0]?.verb ?? null;
 }
 
+export const UNINSPECTABLE_LIFECYCLE_MISS_CLASSES = [
+  "newline",
+  "pipe",
+  "redirect",
+  "quote",
+  "chain",
+  "whitespace",
+  "empty-token",
+  "uninspectable-token",
+] as const;
+export type UninspectableLifecycleMissClass = (typeof UNINSPECTABLE_LIFECYCLE_MISS_CLASSES)[number];
+
+const UNINSPECTABLE_MISS_LABELS: Readonly<Record<UninspectableLifecycleMissClass, string>> = {
+  newline: "newline",
+  pipe: "pipe",
+  redirect: "redirect",
+  quote: "quoting",
+  chain: "chain",
+  whitespace: "whitespace",
+  "empty-token": "empty token",
+  "uninspectable-token": "uninspectable token",
+};
+
+const HORIZONTAL_WHITESPACE = /[\t\v\f\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/;
+const CONTROL_CHAIN_WORDS = new Set(["then", "do", "else", "elif", "fi", "done"]);
+
+/** Closed miss class for an exact-null lifecycle command (#4793). Compound tokens win. */
+export function classifyUninspectableLifecycleMiss(
+  command: string,
+): UninspectableLifecycleMissClass {
+  if (/[\n\r]/.test(command)) return "newline";
+  for (let i = 0; i < command.length; i += 1) {
+    if (command.startsWith("&&", i) || command.startsWith("||", i)) return "chain";
+    const c = command[i] ?? "";
+    if (c === "|") return "pipe";
+    if (c === ">" || c === "<") return "redirect";
+    if (c === ";" || c === "&" || c === "(" || c === ")" || c === "{" || c === "}") {
+      return "chain";
+    }
+  }
+  if (command.includes("'") || command.includes('"')) return "quote";
+  const words = command.split(/[ \t]+/).filter((token) => token.length > 0);
+  if (words.some((token) => CONTROL_CHAIN_WORDS.has(token))) return "chain";
+  if (command !== command.trim() || HORIZONTAL_WHITESPACE.test(command)) {
+    return "whitespace";
+  }
+  if (command.split(" ").some((token) => token.length === 0)) return "empty-token";
+  return "uninspectable-token";
+}
+
+function rawLifecycleCommand(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input);
+  if (toolInput !== null && typeof toolInput.command === "string") return toolInput.command;
+  if (typeof input.command === "string") return input.command;
+  if (toolInput !== null && typeof toolInput.cmd === "string") return toolInput.cmd;
+  if (typeof input.cmd === "string") return input.cmd;
+  return hookShellCommand(payload);
+}
+
+function hintedLifecycleRequiresOwner(payload: unknown): boolean {
+  const command = rawLifecycleCommand(payload);
+  if (command === null) return true;
+  const windows = lifecycleInvocationWindows(tokenizeUninspectableShell(command));
+  if (windows.length === 0) return true;
+  return windows.some((window) => {
+    const args = window.args[0] === "--" ? window.args.slice(1) : window.args;
+    const { readOnly } = analyzeLifecycleArguments(window.verb, args);
+    return window.verb !== "session:start" || !readOnly;
+  });
+}
+
+/** Hinted deny copy (#4793). Whitespace --read-only session:start omits --session-id. */
+export function uninspectableLifecycleDenyMessage(
+  verb: ExactLifecycleVerb,
+  namedOwner: string,
+  payload: unknown,
+): string {
+  const command = rawLifecycleCommand(payload) ?? "";
+  const miss = classifyUninspectableLifecycleMiss(command);
+  const label = UNINSPECTABLE_MISS_LABELS[miss];
+  const horizontal = miss === "whitespace" || miss === "empty-token";
+  const demandOwner = !horizontal || hintedLifecycleRequiresOwner(payload);
+  const recovery = demandOwner
+    ? `Re-run as a simple command with --session-id=${namedOwner}.`
+    : "Re-run as a simple command.";
+  return (
+    `Directive denied lifecycle command ${verb}: the invocation is not inspectable ` +
+    `(${label}). ${recovery}`
+  );
+}
+
 interface SessionIdArgs {
   readonly status: "absent" | "present" | "invalid";
   readonly values: readonly string[];

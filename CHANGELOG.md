@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Exact-miss session:start hint deny names the actual miss (#4793).** Horizontal whitespace no longer blames quoting/redirect/pipe/chain. True pipe, redirect, newline, and chain stay fail-closed and name that miss. Read-only whitespace misses do not demand --session-id. Four-token `deft session:start -- --read-only` stays exact. Tracking #4793.
+
 ### Removed
 
 ## [0.119.5] - 2026-09-20
