@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Records #4784 complete after completed-write pairing recut landed.** Completes the tracked brief for merged PR 4799. Refs #4784.
+
+
 ### Fixed
 
 - **Completed-write pairing ignores item titles and narratives (#4784).** A stamped complete pairs when pairingKey, plan.title, origin issue refs, and a valid complete stamp match, including persist-on-complete versus recovered HEAD. Copied stamps with a different title or origin still refuse. Tracking #4784.
