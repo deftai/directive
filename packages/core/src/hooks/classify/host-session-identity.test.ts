@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   exactLifecycleCommandVerb,
+  hintUninspectableLifecycleCommand,
   hookHostIdentitySource,
   hostIdentityFallsBackToExplicitOwner,
   inspectExactLifecycleCommand,
@@ -321,6 +322,84 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
         tool_input: { command: "deft session:start --occupant --read-only" },
       }),
     ).toMatchObject({ requiresOwner: true, rewriteSafe: false });
+  });
+
+  it.each([
+    "Bash",
+    "Shell",
+    "run_terminal_command",
+  ] as const)("keeps four-token deft session:start -- --read-only exact on %s (#4780)", (tool_name) => {
+    const payload = {
+      tool_name,
+      tool_input: { command: "deft session:start -- --read-only" },
+    };
+    expect(inspectExactLifecycleCommand(payload)).toMatchObject({
+      verb: "session:start",
+      requiresOwner: false,
+      rewriteSafe: false,
+      sessionIdStatus: "absent",
+    });
+    expect(hintUninspectableLifecycleCommand(payload)).toBeNull();
+    expect(rewriteExactLifecycleCommand(payload, CODEX_SESSION_ID)).toBeNull();
+  });
+
+  it("keeps directive four-token -- --read-only exact and hint-null (#4780)", () => {
+    const payload = {
+      tool_name: "Bash",
+      tool_input: { command: "directive session:start -- --read-only" },
+    };
+    expect(inspectExactLifecycleCommand(payload)).toMatchObject({
+      verb: "session:start",
+      requiresOwner: false,
+      rewriteSafe: false,
+    });
+    expect(hintUninspectableLifecycleCommand(payload)).toBeNull();
+  });
+
+  it("keeps task four-token -- --read-only exact and rewrite-safe (#4780)", () => {
+    const payload = {
+      tool_name: "Bash",
+      tool_input: { command: "task session:start -- --read-only" },
+    };
+    expect(inspectExactLifecycleCommand(payload)).toMatchObject({
+      verb: "session:start",
+      requiresOwner: false,
+      rewriteSafe: true,
+    });
+    expect(hintUninspectableLifecycleCommand(payload)).toBeNull();
+  });
+
+  it("keeps rewriteSafe false and hint as separate classes on four-token deft argv (#4780)", () => {
+    const fourToken = {
+      tool_name: "Bash",
+      tool_input: { command: "deft session:start -- --read-only" },
+    };
+    const threeToken = {
+      tool_name: "Bash",
+      tool_input: { command: "deft session:start --read-only" },
+    };
+    expect(inspectExactLifecycleCommand(fourToken)).toMatchObject({
+      rewriteSafe: false,
+      requiresOwner: false,
+    });
+    expect(hintUninspectableLifecycleCommand(fourToken)).toBeNull();
+    expect(inspectExactLifecycleCommand(threeToken)).toMatchObject({
+      rewriteSafe: true,
+      requiresOwner: false,
+    });
+    expect(hintUninspectableLifecycleCommand(threeToken)).toBeNull();
+  });
+
+  it.each([
+    ["pipe", "deft session:start -- --read-only | Out-Null"],
+    ["chain", "deft session:start -- --read-only && echo ok"],
+    ["redirect", "deft session:start -- --read-only > out.txt"],
+    ["newline", "deft session:start -- --read-only\necho next"],
+  ])("fails closed on true compound %s (#4780)", (_label, command) => {
+    const payload = { tool_name: "Bash", tool_input: { command } };
+    expect(inspectExactLifecycleCommand(payload)).toBeNull();
+    expect(hintUninspectableLifecycleCommand(payload)).toBe("session:start");
+    expect(rewriteExactLifecycleCommand(payload, CODEX_SESSION_ID)).toBeNull();
   });
 
   it.each([

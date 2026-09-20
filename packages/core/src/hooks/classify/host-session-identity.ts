@@ -254,6 +254,11 @@ export type ExactLifecycleCommandResult =
 // `@` splatting for PowerShell, and `%NAME%` expansion for command shells.
 // Backslashes are inspectable so Windows path-bearing lifecycle commands fail
 // closed, but they remain outside the auto-approved rewrite surface below.
+// Hyphen is included so Directive own -- passthrough stays inspectable:
+// deft session:start -- --read-only is exact, not the uninspectable hint
+// class. Direct-CLI -- is still an unknown forwarded arg (rewriteSafe
+// false). Task -- is CLI_ARGS and is stripped before argument analysis
+// (#4780). Do not recut -- as uninspectable.
 const INSPECTABLE_TOKEN_PATTERN = /^[A-Za-z0-9_./\\:+=,-]+$/;
 
 function isShellEnvAssignToken(token: string): boolean {
@@ -474,6 +479,7 @@ function analyzeLifecycleArguments(
     }
 
     if (!policy.valueFlags.has(token)) {
+      // Direct-CLI -- is unknown for rewrite, not uninspectable (#4780).
       rewriteSafe = false;
       continue;
     }
