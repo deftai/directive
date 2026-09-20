@@ -191,6 +191,7 @@ function ledgerEntriesFromCommands(
 }
 
 const CHECK_GRAPH_WRAPPERS = new Set(["task", "deft", "directive"]);
+const PACKAGE_RUNNERS = new Set(["npm", "pnpm", "yarn", "npx"]);
 
 /**
  * Command that would re-enter the containing check graph (#4798).
@@ -215,6 +216,17 @@ export function checkGraphReentryCommand(command: string): string | null {
   const sub = rest.slice(0, subEnd).toLowerCase();
   if (CHECK_GRAPH_WRAPPERS.has(first) && (sub === "check" || sub === "verify:ac")) {
     return first + " " + sub;
+  }
+  if (PACKAGE_RUNNERS.has(first)) {
+    const parts = rest.split(/\s+/).filter(Boolean);
+    let i = 0;
+    if ((parts[i] || "").toLowerCase() === "run") {
+      i += 1;
+    }
+    const script = (parts[i] || "").toLowerCase();
+    if (script === "check" || script === "verify:ac") {
+      return first + (i > 0 ? " run " : " ") + script;
+    }
   }
   if (first === "verify:ac") {
     return "verify:ac";

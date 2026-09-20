@@ -70,6 +70,15 @@ function storyIdFromPath(path: string): string {
  * Add-completed-only is not leftover-complete; clearing verify_commands is
  * cleanup, not a substitute for moving or removing the active landmine.
  */
+function readPlanId(path: string): string | null {
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as { plan?: { id?: unknown } };
+    const id = raw.plan?.id;
+    return typeof id === "string" && id.length > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
 export function findTrackedActiveTwins(
   storyPaths: readonly string[],
   vbriefDir: string,
@@ -87,6 +96,11 @@ export function findTrackedActiveTwins(
       continue;
     }
     if (!existsSync(activePath) || !existsSync(completedPath)) {
+      continue;
+    }
+    const activeId = readPlanId(activePath);
+    const completedId = readPlanId(completedPath);
+    if (activeId && completedId && activeId !== completedId) {
       continue;
     }
     seen.add(activePath);

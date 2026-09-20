@@ -729,6 +729,9 @@ describe("check-integrated cycle refuse (#4798)", () => {
     expect(checkGraphReentryCommand("verify:ac")).toBe("verify:ac");
     expect(checkGraphReentryCommand("pnpm test")).toBeNull();
     expect(checkGraphReentryCommand("task doctor")).toBeNull();
+    expect(checkGraphReentryCommand("pnpm run check")).toBe("pnpm run check");
+    expect(checkGraphReentryCommand("npm run verify:ac")).toBe("npm run verify:ac");
+    expect(checkGraphReentryCommand("yarn check")).toBe("yarn check");
   });
 
   it("refuses the #4744 active shape inside check-integrated verify:ac without spawning", () => {
@@ -815,6 +818,18 @@ describe("leftover-complete must move tracked active (#4798)", () => {
     );
     expect(findTrackedActiveTwins([completed], join(project, "xbrief"))).toEqual([resolve(active)]);
     expect(findTrackedActiveTwins([active], join(project, "xbrief"))).toEqual([resolve(active)]);
+  });
+
+  it("skips same-basename twins with mismatched plan.id", () => {
+    const project = mkdtempSync(join(tmpdir(), "leftover-mismatch-"));
+    const name = "2026-09-18-4744-bugcheck-windows-release-step-5-still-exits-124-after.xbrief.json";
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    const active = join(project, "xbrief", "active", name);
+    const completed = join(project, "xbrief", "completed", name);
+    writeFileSync(active, JSON.stringify({ plan: { id: "github.issue.4744", status: "running" } }));
+    writeFileSync(completed, JSON.stringify({ plan: { id: "github.issue.9999", status: "completed" } }));
+    expect(findTrackedActiveTwins([completed], join(project, "xbrief"))).toEqual([]);
   });
 
   it("sweeps a completed leftover path by completing the remaining tracked active", () => {
