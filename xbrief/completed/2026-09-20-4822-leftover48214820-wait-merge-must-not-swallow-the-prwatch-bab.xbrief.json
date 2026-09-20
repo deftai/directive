@@ -1,0 +1,382 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4822",
+    "updated": "2026-09-20T21:05:58Z"
+  },
+  "plan": {
+    "title": "leftover(#4821,#4820): wait-merge must not swallow the pr:watch babysit wait",
+    "status": "completed",
+    "narratives": {
+      "Description": "leftover(#4821,#4820): wait-merge must not swallow the pr:watch babysit wait",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4822",
+      "Overview": "## Leftover of #4821, ties to #4820\n\n#4821 covers parent-retained skipping the dest review-cycle worker. It names engine wait as `pr:watch` then `pr:wait-mergeable-and-merge`, but it does **not** call out the improper use of those wait functions.\n\nRecurrence: [PR 4809](https://github.com/deftai/directive/pull/4809) on 2026-09-20. Parent started `pr:wait-mergeable-and-merge` while SHA-matched Greptile was 4/5 with a named CHANGELOG leftover. That closer internally loops `pr:watch` and treats `clean_gate_holdout=confidence` as keep-polling until the cap. Operator asked whether the review skill requires a dest subagent plus the engine `pr:watch` wait, not a new program and not wait-merge as the babysit.\n\n## What is broken\n\nReview-cycle wait and Phase 6 squash are different verbs:\n\n- **Wait / wake:** `pr:watch` (blocking to CLEAN, or one-shot ground-truth). Named leftover, NEW_P0_P1, or confidence holdout must return to a dest review-cycle worker (Approach 1 / #4821), not idle.\n- **Squash:** `pr:wait-mergeable-and-merge` only after CLEAN.\n\nUsing wait-merge as the babysit **swallows** `pr:watch` results. A 4/5 named leftover becomes an hour-long poll instead of ACTION. A homemade node poller is the same class of miss.\n\n#4820 is the sibling hang on the other side of CLEAN: Greptile already 5/5 P1=0 while SLizard/CI terminal-blocks, and a Greptile-shaped babysit emits no wake for hours. Same action-loop hole, different holdout:\n\n| Holdout | Wrong babysit | Required wake |\n| --- | --- | --- |\n| confidence / named leftover (4809 / #4821) | wait-merge keeps polling | dest review-cycle residual |\n| Greptile CLEAN + SLizard/CI red (#4820) | Greptile-delta monitor sleeps | BLOCKED: fix that gate |\n\nDo not merge these into one recut of #4529. Do not treat #4820 SLizard matrix as this wait-merge swallow.\n\n## Recut\n\n- Review-cycle babysit wait is `pr:watch` (Approach 1 dest worker or parent-retained **dispatch** of that wait). ⊗ Start `pr:wait-mergeable-and-merge` while `clean_gate_holdout` is `confidence` or `sha_match` and a named leftover exists.\n- wait-merge may run only after `pr:watch` / `pr:merge-ready` is CLEAN.\n- Dual-stop: confidence holdout + named leftover → dest residual or BLOCKED, not cap-wait. Greptile CLEAN + other gate red stays on #4820.\n- Do not invent a third poller. Engine wait stays these two verbs in that order.\n\n## Fences\n\n- Do not reopen #4529 implement `stop-at: pr-open`.\n- Do not recut #4821 dest-worker ownership into this issue; this issue is wait-verb misuse.\n- Do not lower `minGreptileConfidence`.\n- Do not teach `--skip-slizard` (#4820 non-goal).\n\nRefs #4821 #4820 #4529 #4783 #3167 #3984\n\n",
+      "Labels": "bug, swarm, agent-experience, process, area:skills, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Skill/preamble forbid: do not start pr:wait-mergeable-and-merge until pr:watch / pr:merge-ready is CLEAN. Keep the closer as squash-after-CLEAN. Do not harvest cascade.ts, pr-monitor, or minGreptileConfidence.",
+        "status": "completed",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Sequence: one-shot or first-probe parse of clean_gate_holdout; leftover class A/B/C; dest residual or BLOCKED; wait-merge only after CLEAN. Copy the #2688 ci_failures wake shape onto SHA-matched confidence plus named leftover. Do not invent a third poller.",
+        "status": "completed",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Split holdouts. sha_match: blocking pr:watch until SHA match or cap. SHA-matched confidence plus named leftover: dest residual. SHA-matched confidence with 0 P0/P1 and no named leftover: class C halt.",
+        "status": "completed",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Drop Stop 1 inventory cite of #3984 as babysit binding. #4820 stays the CLEAN-plus-SLizard/CI hang. Do not recut #4821 dest-worker ownership into this issue.",
+        "status": "completed",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "area:skills",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4822",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4822: leftover(#4821,#4820): wait-merge must not swallow the pr:watch babysit wait"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4821",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4821"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Skill/preamble forbid: do not start pr:wait-mergeable-and-merge until pr:watch / pr:merge-ready is CLEAN. Keep the closer as squash-after-CLEAN. Do not harvest cascade.ts, pr-monitor, or minGreptileConfidence.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Sequence: one-shot or first-probe parse of clean_gate_holdout; leftover class A/B/C; dest residual or BLOCKED; wait-merge only after CLEAN. Copy the #2688 ci_failures wake shape onto SHA-matched confidence plus named leftover. Do not invent a third poller.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Split holdouts. sha_match: blocking pr:watch until SHA match or cap. SHA-matched confidence plus named leftover: dest residual. SHA-matched confidence with 0 P0/P1 and no named leftover: class C halt.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Drop Stop 1 inventory cite of #3984 as babysit binding. #4820 stays the CLEAN-plus-SLizard/CI hang. Do not recut #4821 dest-worker ownership into this issue.",
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because pr:wait-mergeable-and-merge started as the babysit swallows pr:watch results and turns a named leftover into a cap-wait instead of ACTION.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4822-dc\norigin-ref: origin/master\ndispatch-sha: 507c47576414bc7aef017068f4708d9324a0feab\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answered use appropriate n and no need to ask; yolo standing; no-ingest; wait-verb misuse is one leftover of 4821 and 4820, not the dest-worker recut.\n\nDual-stop cap: 6 posts\n\nrefutation-target: starting pr:wait-mergeable-and-merge while clean_gate_holdout is confidence and a named leftover exists loops pr:watch internally until the cap instead of returning to a dest review-cycle residual.\n\ntarget: #4822\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is PR 4809 2026-09-20: parent started pr:wait-mergeable-and-merge while SHA-matched Greptile was 4/5 with a named CHANGELOG leftover. The closer internally loops pr:watch and treats clean_gate_holdout=confidence as keep-polling. Leftover of #4821 dest-worker ownership; sibling hang on the other side of CLEAN is #4820. Do not merge those recuts.\n\nPin-read at dispatch-sha 507c47576414bc7aef017068f4708d9324a0feab:\n\n- packages/core/src/pr-wait-mergeable/cascade.ts 240-267: one-shot watch probe returns immediately on NEW_P0_P1. Otherwise monitorFn runs with capMinutes. Confidence holdout plus named leftover is not that NEW_P0_P1 early return, so wait-merge becomes a cap-wait.\n- content/skills/deft-directive-review-cycle/SKILL.md 346-401: Greptile CLEAN vs CI holdout is a different wake. That does not name wait-merge as babysit during confidence holdout.\n- Swarm SKILL.md 158: Phase 6 squash via pr:wait-mergeable-and-merge after the partner path, not as the residual babysit.\n\nInventory: #3167 CI weather; #3984 babysit binding. Do not invent a third poller. Engine wait stays pr:watch then wait-merge after CLEAN. No implement and no ingest from this parent.\r\n\n",
+          "id": 5750973449,
+          "html_url": "https://github.com/deftai/directive/issues/4822#issuecomment-5750973449",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:11:06Z",
+          "updated_at": "2026-09-20T16:11:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe named premise survives as a caller-order miss. It does not survive as a recut of the closer. Starting pr:wait-mergeable-and-merge on a SHA-matched sub-floor review does burn the cap instead of dest residual. The inner wait is pr-monitor, not pr:watch, and #4628 already documents that sub-floor confidence without P1 still waits. Harvest that recuts cascade.ts, or that treats sha_match like confidence, cannot bind as written.\n\n## cascade wait on confidence is the closer, not the babysit hole\n\nsharpens-framing\n\nEvidence. Pin SHA 507c47576414bc7aef017068f4708d9324a0feab. packages/core/src/pr-wait-mergeable/cascade.ts one-shot watch() returns immediately only on NEW_P0_P1 (hasBlocking). Otherwise monitorFn runs. Live default is runMonitor to the pr-monitor CLI with capMinutes (packages/core/src/pr-wait-mergeable/wrappers.ts; default 60 in main.ts). pr-monitor/monitor.ts exits CLEAN only when merge_ready on via primary or fallback1; otherwise CAP-REACHED / PR-TERMINAL / ABSENT-REQUIRED. It does not loop pr:watch. cascade.test.ts keeps waiting when one-shot watch is PENDING (#4628). CHANGELOG: Sub-floor confidence without P1 still waits. A 4/5 named CHANGELOG leftover is not hasBlocking, so the one-shot is PENDING and the closer proceeds into the cap wait. That matches PR 4809 as a caller start, not a missing early-return.\n\nFailure mode. A Bound-remedy that edits cascade.ts to treat confidence holdout like NEW_P0_P1 reverses #4628 and makes Phase 6 squash exit at 4/5 instead of waiting for a SHA-matched 5/5 retrigger. Named leftover is not a machine field on the waiter; P2 comments are not hasBlocking. Inventing a leftover-comment parser inside the closer is a third detector, which this issue already fences.\n\nDisposition. Bind only a caller/skill order: do not start wait-merge until pr:watch / pr:merge-ready is CLEAN. Keep the closer as squash-after-CLEAN. Do not harvest cascade.ts, pr-monitor, or minGreptileConfidence.\n\n## swapping in blocking pr:watch does not create dest residual\n\nsharpens-framing\n\nEvidence. review-cycle SKILL.md 346-401 names ACTION for clean_gate_holdout=ci_failures (#2688) and does not name wait-merge as babysit, as Stop 1 said. It also does not name ACTION for confidence. Blocking pr:watch (watch.ts) on !hasBlocking && !isClean && holdout !== sha_match STALLs after DEFAULT_STALL_THRESHOLD=3 (about 4.5 min at 90s). --one-shot returns PENDING on the first probe. Neither path spawns a dest review-cycle worker. SKILL leftover table already splits named leftover on already-touched files (class A, in-AC residual) from score-only 0 P0/P1 (class C). Ground-truth after dual-stop is already pr:merge-ready / pr:watch --one-shot then classify A/B/C (SKILL ~291). Swarm core-phase-5-6.md already splits Phase 5 verdict wait (pr:watch) from Phase 6 squash (wait-merge). review-cycle SKILL never writes a forbid on starting wait-merge during confidence holdout; preamble only names wait-merge as the Phase 6 closer.\n\nFailure mode. Harvest that only says babysit wait is pr:watch still idles (STALL or PENDING) unless the owner parses holdout, classifies leftover, and returns to dest residual or BLOCKED. That recreates 4809 with a shorter timer. Auto-follow of class A without the in-progress babysit loop also fights #3273 (consent after halt). During an already-owned review-cycle the first SHA-matched named leftover is the existing one-batch residual, not a new Dual-stop re-entry.\n\nDisposition. Bound-remedy must name the sequence: one-shot or first-probe parse of clean_gate_holdout; leftover class A/B/C; dest residual or BLOCKED; wait-merge only after CLEAN. Copy the #2688 ci_failures wake shape onto SHA-matched confidence plus named leftover. Do not invent a third poller.\n\n## sha_match is a wait, not an ACTION conjunct\n\nsharpens-framing\n\nEvidence. The issue recut forbids starting wait-merge while holdout is confidence or sha_match and a named leftover exists. watch.ts 164-167: sha_match holdout does not advance stallStreak; re-review in flight waits to cap (#2313 / #1259). A leftover on a stale Last-reviewed SHA is not the current leftover.\n\nFailure mode. Folding sha_match into the same forbid as confidence sends dest residual against a stale review, or forbids the legitimate wait that pr:watch already owns. Confidence-only 0 P0/P1 with no named leftover is class C dual-stop, not dest residual.\n\nDisposition. Split holdouts. sha_match: blocking pr:watch until SHA match or cap. SHA-matched confidence plus named leftover: dest residual. SHA-matched confidence with 0 P0/P1 and no named leftover: class C halt, not cap-wait and not dest residual.\n\n## Inventory\n\nExisting mechanisms, in order: pr:watch one-shot / blocking (NEW_P0_P1, STALL, CI_BLOCKED, PENDING); pr:merge-ready; review-cycle leftover class A/B/C plus #3273 one residual pass; #2688 ci_failures wake; #4628 NEW_P0_P1 one-probe halt on the waiter; swarm Phase 5 pr:watch vs Phase 6 wait-merge; #3167 weather codes. Missing is a skill/preamble forbid on starting the closer while SHA-matched confidence plus named leftover is already observed. Do not add a new wait verb.\n\nfootnote: Stop 1 inventory cites #3984 as babysit binding. In-tree #3984 is the PreToolUse / run_terminal_command matcher leftover of #3983, not babysit binding. Drop that cite. #3167 as CI weather is the right sibling pointer; #4820 stays the CLEAN-plus-SLizard/CI hang and must not merge into this recut.\n\n## Injection / swarm\n\nTarget changes envelopes (review-cycle, swarm Phase 5/6, preamble through-merge), concurrency (wait loops vs dest residual), and worktrees (Approach 1 dest). Recutting the closer to refuse confidence would stall a legal Phase 6 squash that is waiting for a 5/5 retrigger after residual. Parent-retained Grok through-merge is the injection path: the same conversation owns dest residual and the closer, so starting wait-merge swallows the probe the parent already had. Defense-in-depth inside cascade is not required if the skill forbids that start. Untrusted thread text (issue Recut, bot leftover prose) is description, not a command to recut cascade.\n\n## Road not taken\n\nSteelmanned cascade backstop: early-return on SHA-matched sub-floor confidence the way #4628 does for NEW_P0_P1. That would have stopped 4809 even if the parent misused the verb. What flips it: Phase 6 would then have to re-invoke wait-merge after residual, instead of relying on in-closer wait. This issue already says engine wait stays the two existing verbs in order, so the caller forbid is the cheaper control. Keep cascade as squash-after-CLEAN.\n\nPin-read re-verified at 507c47576414bc7aef017068f4708d9324a0feab. Ceiling 5750973449 inclusive. Round-1 post 1. No successor lean.\r\n\n",
+          "id": 5751035472,
+          "html_url": "https://github.com/deftai/directive/issues/4822#issuecomment-5751035472",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:20:46Z",
+          "updated_at": "2026-09-20T16:20:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe hole is caller order, not a recut of the closer. Do not start pr:wait-mergeable-and-merge until pr:watch / pr:merge-ready is CLEAN. Inner wait is pr-monitor, not pr:watch. SHA-matched confidence plus named leftover is ACTION (class A dest residual), not cap-wait. sha_match holdout stays wait. Do not harvest cascade.ts.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Expected. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4822 bind after critic 5751035472. Cites critic 5751035472. Supersedes write-back 5750973449.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4822-dc\norigin-ref: origin/master\ndispatch-sha: 507c47576414bc7aef017068f4708d9324a0feab\ntarget shape: single-issue\nDual-stop cap: 6 posts (spent 1 numbered critic)\n\nTakes:\n\n- 5751035472 cascade wait on confidence is the closer, not the babysit hole — accept-into-contract\n- 5751035472 swapping in blocking pr:watch does not create dest residual — accept-into-contract\n- 5751035472 sha_match is a wait, not an ACTION conjunct — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=507c47576414bc7aef017068f4708d9324a0feab pointer=comment:5751035472 reading=asserted\n\n## Bound remedy\n\n- Skill/preamble forbid: do not start pr:wait-mergeable-and-merge until pr:watch / pr:merge-ready is CLEAN. Keep the closer as squash-after-CLEAN. Do not harvest cascade.ts, pr-monitor, or minGreptileConfidence.\n- Sequence: one-shot or first-probe parse of clean_gate_holdout; leftover class A/B/C; dest residual or BLOCKED; wait-merge only after CLEAN. Copy the #2688 ci_failures wake shape onto SHA-matched confidence plus named leftover. Do not invent a third poller.\n- Split holdouts. sha_match: blocking pr:watch until SHA match or cap. SHA-matched confidence plus named leftover: dest residual. SHA-matched confidence with 0 P0/P1 and no named leftover: class C halt.\n- Drop Stop 1 inventory cite of #3984 as babysit binding. #4820 stays the CLEAN-plus-SLizard/CI hang. Do not recut #4821 dest-worker ownership into this issue.\r\n\n",
+          "id": 5751061402,
+          "html_url": "https://github.com/deftai/directive/issues/4822#issuecomment-5751061402",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:25:11Z",
+          "updated_at": "2026-09-20T16:25:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5751061402. The 4809 hole is caller order: start pr:wait-mergeable-and-merge on SHA-matched sub-floor confidence with a named leftover, and the closer's inner pr-monitor burns the cap. Skill/preamble forbid plus first-probe classify-then-residual covers that. Two Bound-remedy sentences over-copy and must be scoped; they do not un-relieve P1 and they do not recut cascade.ts.\n\n## #2688 analog cannot keep the Greptile-CLEAN conjunct\n\nsharpens-framing\n\nEvidence. Pin SHA 507c47576414bc7aef017068f4708d9324a0feab. review-cycle SKILL.md ~395: the ci_failures wake fires only when Greptile otherwise satisfies probe-side Step 6 (SHA match on HEAD, confidence meets resolved min, no P0/P1, not errored). clean_gate_holdout=confidence means that conjunct is false. Bind 5751061402 says Copy the #2688 ci_failures wake shape onto SHA-matched confidence plus named leftover while other bullets already forbid starting wait-merge until pr:watch / pr:merge-ready is CLEAN and sequence one-shot holdout parse then leftover class A/B/C then dest residual or BLOCKED.\n\nFailure mode. A harvest that copies the #2688 if-condition never fires on holdout=confidence, so 4809 still starts wait-merge and pr-monitor waits out capMinutes (default 60, main.ts). A harvest that copies the CI-fix path (gh pr checks, ci_failed_checks) onto a CHANGELOG leftover merges #4820 into this recut.\n\nDisposition. Keep the forbid, the sequence, and the holdout split. Name the borrowed bits only: parse clean_gate_holdout on the first probe; MUST NOT idle-poll or start wait-merge; class A dest residual. Do not copy Greptile otherwise satisfies including confidence meets min. Do not harvest cascade.ts, pr-monitor, or minGreptileConfidence. P1 still binds on the other bullets.\n\n## dest residual is class A in-progress, not any named leftover\n\nsharpens-framing\n\nEvidence. Leftover table SKILL.md 186-192: class A is a named leftover on already-touched files (in-AC residual until the resolved #3095 floor or same-fingerprint); class B is new subsystem / AC fight (park); class C is score-only, 0 P0/P1, no named leftover. After halt, SKILL.md 277-279 / 300: no-menu auto-follow of class A without a #3273 phrase. During an already-owned review-cycle the first SHA-matched leftover is the existing one-batch residual, not Dual-stop re-entry. Bind bullet 3 writes SHA-matched confidence plus named leftover: dest residual and drops already-touched and class B.\n\nFailure mode. A later builder treats every named leftover as dest residual, including class B, or re-enters Dual-stop without #3273. P1 is PR 4809 CHANGELOG on a file the PR already owns, so class A still matches and this does not un-relieve P1.\n\nDisposition. Scope dest residual to class A already-touched during an owned review-cycle (one-batch). Class B parks. After halt, wait for a #3273 phrase before another residual. Class C halt stays. No third poller.\n\n## Inventory\n\nRe-verified at 507c47576414bc7aef017068f4708d9324a0feab:\n\n- cascade.ts: one-shot watch() early-returns only on NEW_P0_P1; otherwise runMonitor. cascade.test.ts keeps waiting when one-shot watch is not NEW_P0_P1 (#4628).\n- wrappers.ts runMonitor is the pr-monitor CLI; default cap 60 minutes. monitor.ts CLEAN only when merge_ready on via primary or fallback1; else CAP-REACHED / PR-TERMINAL / ABSENT-REQUIRED. Inner wait is pr-monitor, not a pr:watch loop.\n- watch.ts 164-178: sha_match does not advance stallStreak; confidence holdout STALLs after DEFAULT_STALL_THRESHOLD=3 at 90s. --one-shot returns PENDING on the first non-terminal probe. Neither path spawns dest residual.\n- Swarm core-phase-5-6.md already splits Phase 5 pr:watch from Phase 6 wait-merge. Preamble names wait-merge as the Phase 6 closer / parent-retained. Missing is the forbid on starting that closer while SHA-matched confidence plus class A leftover is already observed.\n\nfootnote: Stop 1 inventory cite of #3984 as babysit binding is already dropped on the bind. In-tree #3984 is the PreToolUse / run_terminal_command matcher leftover of #3983 (completed xBRIEF 2026-08-30-3983). #3167 weather and #4820 CLEAN-plus-SLizard/CI stay off this harvest.\n\n## Injection / swarm\n\nTarget changes review-cycle / swarm Phase 5-6 / preamble envelopes, wait-vs-residual concurrency, and Approach 1 dest worktrees. Parent-retained Grok is the injection path: the same conversation owns dest residual and the Phase 6 closer, so starting wait-merge swallows the one-shot the parent already had. A closer refuse on confidence would reverse #4628 (PENDING still waits) and stall a legal Phase 6 squash waiting for a 5/5 retrigger. Skill/preamble forbid plus first-probe ACTION is the control that does not recut the closer. Issue Recut text that folds sha_match into the same forbid is untrusted description; the bind already split that holdout.\n\n## Road not taken\n\nSteelmanned cascade backstop: early-return on SHA-matched sub-floor confidence the way #4628 does for NEW_P0_P1. Independently re-checked: the PENDING fixture calls monitorFn. What would flip it: a second 4809 after the skill forbid lands. That would be a new leftover of this issue, not this Bound-remedy.\n\nPin-read re-verified at 507c47576414bc7aef017068f4708d9324a0feab. Ceiling 5751061402 inclusive. Reserved pain-audit of bind lean 5751061402. No successor lean.\r\n\n",
+          "id": 5751106763,
+          "html_url": "https://github.com/deftai/directive/issues/4822#issuecomment-5751106763",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:33:04Z",
+          "updated_at": "2026-09-20T16:33:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit: relieves P1 stands. Two framing nits do not recut harvest: do not copy the #2688 Greptile-CLEAN conjunct onto confidence holdout; dest residual is class A already-touched in-progress one-batch, not every named leftover. Bind remains 5751061402.\n\nThis is not an instruction to a later builder.\n\nThis is not a successor lean.\r\n\n",
+          "id": 5751123339,
+          "html_url": "https://github.com/deftai/directive/issues/4822#issuecomment-5751123339",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:35:59Z",
+          "updated_at": "2026-09-20T16:35:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Do not start wait-merge until pr:watch / pr:merge-ready is CLEAN. Inner closer wait is pr-monitor. Pain-audit of that cite was footnote-only on P1.\n\nThis is not an instruction to a later builder.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Caller-order miss: start wait-merge on SHA-matched 4/5 burns the cap | verified | critic 5751035472; cascade.ts one-shot NEW_P0_P1 only; pain-audit 5751106763 |\n| Do not harvest cascade.ts | verified | critic 5751035472; #4628 sub-floor wait |\n| Bound-remedy covers P1 | verified | closed cite relieves: P1 on bind 5751061402; pain-audit 5751106763 audit-targets: pain-P1 footnote-only |\r\n\n",
+          "id": 5751123631,
+          "html_url": "https://github.com/deftai/directive/issues/4822#issuecomment-5751123631",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:36:02Z",
+          "updated_at": "2026-09-20T16:36:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Wait-merge is squash-after-CLEAN. SHA-matched confidence plus named leftover is dest residual, not cap-wait.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5751061402.\r\n\n",
+          "id": 5751123751,
+          "html_url": "https://github.com/deftai/directive/issues/4822#issuecomment-5751123751",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:36:04Z",
+          "updated_at": "2026-09-20T16:36:04Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5518909778,
+        "origin": "deftai/directive#4822",
+        "id": "github.issue.5518909778"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "module_boundary": "typescript-engine"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4833,
+        "prBase": null,
+        "mergeCommit": "7872f0e396d1e08f795b115957a7a6684798d5e4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7872f0e396d1e08f795b115957a7a6684798d5e4",
+        "verifiedAt": "2026-09-20T21:05:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T21:05:58Z",
+      "completedSessionId": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T21:05:58Z"
+      }
+    },
+    "id": "github.issue.5518909778",
+    "updated": "2026-09-20T21:05:58Z"
+  }
+}

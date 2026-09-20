@@ -1,0 +1,357 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4821",
+    "updated": "2026-09-20T21:05:51Z"
+  },
+  "plan": {
+    "title": "leftover(#4529): Grok parent-retained review must not skip dest review-cycle worker",
+    "status": "completed",
+    "narratives": {
+      "Description": "leftover(#4529): Grok parent-retained review must not skip dest review-cycle worker",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4821",
+      "Overview": "## Leftover of #4529\n\nRecurrence: [PR 4809](https://github.com/deftai/directive/pull/4809) (#4783) on 2026-09-20. Grok through-merge parent started `pr:wait-mergeable-and-merge` while SHA-matched Greptile was 4/5 with a named CHANGELOG leftover, then parent-applied the residual with a temp script instead of a dest review-cycle subagent. Operator called that an improper babysit.\n\n## What is broken\n\n#4529 split implement (`stop-at: pr-open`) from the merge-path partner. The named partner is Approach 1 sibling **or parent-retained**, and Phase 6 squash is `pr:wait-mergeable-and-merge` (or parent-retained).\n\nThat pairing currently reads as: the parent conversation may be the review fixer, the waiter, and the closer. Approach 1 is still the default on grok-build when `spawn_subagent` is available. Parent-retained is ownership of **dispatch + closer**, not a license to skip the dest worker and patch the PR in the parent loop.\n\nThree jobs got collapsed:\n\n1. Fix findings — dest-cwd review-cycle residual (read all comments, one batch).\n2. Wait — engine `pr:watch` / `pr:wait-mergeable-and-merge`, not a homemade poller.\n3. Squash — same engine closer, only after CLEAN.\n\n#2843 tells a swarm monitor not to self-implement, then carves Grok to Approach 1 or parent-retained, so parent-inline fix is skill-legal. That is the recurrence hole.\n\n## Recut\n\nWhen grok-build `spawn_subagent` is available:\n\n- Named leftover on an already-touched PR file requires a dest review-cycle worker (not parent-as-leaf).\n- `pr:wait-mergeable-and-merge` is only the CLEAN closer. Do not start it as the babysit while `clean_gate_holdout=confidence` and a named leftover exists.\n- Dest spawn deny (`DEFT_ACTIVE_SCOPE` inherit, dest occupancy linger) must fail-loud. Do not silent-fallback to parent implement.\n- Do not harvest a Grok `drive-to: merge-ready` continuation as this closer (still #4529).\n\nFail-closed follow-on (not required for first land): engine refuse of wait-merge while confidence holdout plus named leftover, unless the operator leftover-lands.\n\n## Fences\n\n- Do not reopen or recut #4529 implement `stop-at: pr-open`.\n- Do not lower `minGreptileConfidence`.\n- Do not treat #4771 / #4818 (Codex ApplyPatch stdin) as this dest inherit deny.\n- Do not invent a new poller. Engine wait stays `pr:watch` then `pr:wait-mergeable-and-merge`.\n\nRefs #4529 #2843 #4130 #2261 #4783\n\n",
+      "Labels": "bug, swarm, agent-experience, process, area:skills, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Recut L4-B / partner-merge-path / Phase 5-6 carve-out so parent-retained is closer plus post-merge scope:complete after a dest worker exists. Do not delete parent-retained as merge-path owner. Do not treat #2655 restatement as the recut.",
+        "status": "completed",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-swarm/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Dest worker: dest-cwd one-shot residual (class A), stop-at after the push, then engine pr:watch, then pr:wait-mergeable-and-merge only after CLEAN. Not option 2. Approach 1 remains wait owner after residual lands, with verify:review-monitor / review-monitor:register.",
+        "status": "completed",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-swarm/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Dest spawn deny: BLOCKED or dest-cwd residual (native, else CLI last-resort per #4215). Not parent-primary residual. Do not recut occupancy live or Codex stdin (#4771 / #4818).",
+        "status": "completed",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-swarm/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Do not reopen #4529 implement stop-at pr-open. Do not lower minGreptileConfidence. Wait-verb swallow stays on #4822.",
+        "status": "completed",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-swarm/SKILL.md",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "area:skills",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4821",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4821: leftover(#4529): Grok parent-retained review must not skip dest review-cycle worker"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4529",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4529"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut L4-B / partner-merge-path / Phase 5-6 carve-out so parent-retained is closer plus post-merge scope:complete after a dest worker exists. Do not delete parent-retained as merge-path owner. Do not treat #2655 restatement as the recut.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Dest worker: dest-cwd one-shot residual (class A), stop-at after the push, then engine pr:watch, then pr:wait-mergeable-and-merge only after CLEAN. Not option 2. Approach 1 remains wait owner after residual lands, with verify:review-monitor / review-monitor:register.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Dest spawn deny: BLOCKED or dest-cwd residual (native, else CLI last-resort per #4215). Not parent-primary residual. Do not recut occupancy live or Codex stdin (#4771 / #4818).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not reopen #4529 implement stop-at pr-open. Do not lower minGreptileConfidence. Wait-verb swallow stays on #4822.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Grok parent-retained review currently licenses the parent conversation to skip the dest review-cycle worker and patch residuals inline.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4821-dc\norigin-ref: origin/master\ndispatch-sha: 507c47576414bc7aef017068f4708d9324a0feab\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answered use appropriate n and no need to ask; yolo standing; no-ingest; leftover of #4529 dest-worker skip is one ownership hole, not whole-motion blast.\n\nDual-stop cap: 6 posts\n\nrefutation-target: parent-retained on grok-build is treated as license for the parent to be the review fixer when spawn_subagent is available, so named leftover on an already-touched PR file is patched in the parent loop instead of a dest review-cycle worker.\n\ntarget: #4821\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is PR 4809 (#4783) 2026-09-20: Grok through-merge parent started pr:wait-mergeable-and-merge while SHA-matched Greptile was 4/5 with a named CHANGELOG leftover, then parent-applied the residual with a temp script instead of a dest review-cycle subagent. Operator called that an improper babysit. Leftover of #4529. Distinct from #4822 wait-verb swallow and from #4771/#4818 Codex stdin.\n\nPin-read at dispatch-sha 507c47576414bc7aef017068f4708d9324a0feab:\n\n- content/skills/deft-directive-swarm/SKILL.md 158: Grok through-merge implement is stop-at pr-open. Named partner is Approach 1 sibling or parent-retained. Phase 6 squash via pr:wait-mergeable-and-merge (or parent-retained). Harvest drive-to merge-ready as that partner is forbidden.\n- AGENTS.md Envelope SLA / Through-merge: Grok implement MUST be stop-at pr-open. Partner Approach 1 or parent-retained. Parent-retained is ownership of dispatch plus closer, not a silent Gap C handback — and not parent-as-leaf when dest spawn is available.\n- SKILL.md review-cycle 379: Grok Build implementation leaves MUST NOT nested-spawn; they block on pr:watch or were scoped stop-at pr-open so the parent spawns the sibling. That is spawn-the-sibling, not parent-inline fix.\n\nInventory: #2843 swarm monitor must not self-implement, then carves Grok to Approach 1 or parent-retained. #4130 nest limits. Do not reopen #4529 implement stop-at pr-open. Do not lower minGreptileConfidence. No implement and no ingest from this parent.\r\n\n",
+          "id": 5750973317,
+          "html_url": "https://github.com/deftai/directive/issues/4821#issuecomment-5750973317",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:11:04Z",
+          "updated_at": "2026-09-20T16:11:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## Verdict\n\nThe named refutation-target survives. On grok-build with spawn_subagent available, parent-retained is still an equal merge-path partner that tells the parent to poll/fix, because the #4529 carve-out removed the dest residual leaf that #2843 would otherwise spawn. #2655, #3032, and swarm SKILL.md:168 already tell the parent not to self-implement and not to yield without a review-monitor. Those sentences lose the collision: Envelope SLA plus Owner Continuity path B still make PR 4809-class parent-inline residual skill-legal.\n\nStop 1 pin-reads re-checked at 507c47576414bc7aef017068f4708d9324a0feab: swarm SKILL.md:158 is the Grok through-merge partner line; review-cycle SKILL.md:379 is the implementation-leaf nest forbid (parent spawns the sibling), not the parent-fixer license. Recurrence PR 4809 is merged (head 930cd3509842efbdbcb862a8131640b9805722cb).\n\n## Finding 1 — sharpens-framing\n\nThe license to skip the dest worker is not Envelope SLA \"or parent-retained\" alone. Bound-remedy has to recut the sentences that name parent-retained as the fixer.\n\nEvidence. review-cycle SKILL.md:541 path B: parent-retained next action is dual-source poll/fix. SKILL.md:581: parent-retained with an explicit next poll/fix action. SKILL.md:570: #2843 forbids monitor-inline fix and requires one dest continuation leaf, then #4529 forbids that continuation as a Grok drive-to: merge-ready coding leaf and substitutes Approach 1 or parent-retained. swarm references/core-phase-5-6.md:26-27 is the same carve-out. swarm SKILL.md:158 and AGENTS.md Envelope SLA list Approach 1 or parent-retained as equals. verify:l4-owner already refuses parent-retained as machine READY (packages/core/src/review-monitor/l4-owner.ts process path B only).\n\nFailure mode. Harvest restates swarm SKILL.md:158 / Envelope SLA as \"parent-retained means dispatch plus closer\" and leaves L4-B and the #2843/#4529 carve-out in place. The next through-merge parent still reads poll/fix in this conversation when spawn_subagent exists. P1 stays skill-legal.\n\nDisposition. Bind only if Bound-remedy names those L4-B / partner-merge-path / Phase 5-6 carve-out sentences as the edit set, and keeps parent-retained for closer plus post-merge scope:complete after a dest worker exists. Do not delete parent-retained as merge-path owner. Do not treat #2655 restatement as the recut.\n\n## Finding 2 — sharpens-framing\n\n\"Dest review-cycle worker\" is not Approach 1 poller-only and is not option-2 drive-to: merge-ready.\n\nEvidence. Approach 1 (review-cycle SKILL.md:650-654, host-grok-build.md:44 path b) is dest-cwd review-monitor plus review-monitor:register. The poller template applies a fix batch on NEW P0/P1 and does not exit on P2; confidence holdout stays in the wait loop until CLEAN or TIMEOUT. Named leftover on an already-touched file is class A (review-cycle SKILL.md:186-190) even at SHA-matched 4/5 with P0=0 P1=0. The dest fixer that #2843 would spawn is the continuation leaf Grok through-merge carved out. Fence already forbids harvesting drive-to: merge-ready as the closer.\n\nFailure mode. Harvest \"spawn Approach 1\" yields a dest poller that cap-waits clean_gate_holdout=confidence while a named CHANGELOG leftover sits on the PR (PR 4809 class). Harvest a Grok drive-to: merge-ready residual as that worker recreates #4529 P1.\n\nDisposition. Bound-remedy names worker_role and envelope: dest-cwd one-shot residual (class A), stop-at after the push, then engine wait with pr:watch, then pr:wait-mergeable-and-merge only after CLEAN. That residual is not the closer and is not option 2. Approach 1 remains the wait owner after the residual lands, with verify:review-monitor / review-monitor:register.\n\n## Finding 3 — sharpens-framing\n\nDest spawn deny already has a fail-loud path. Do not mint a second occupancy primitive.\n\nEvidence. host-grok-build.md:32 (#4215): if native spawn_subagent is denied, record the deny text; CLI grok --cwd is last-resort dest-cwd, not a habit, and not dual-launch. Unique dest-lock stays #4066. Stop 1 fences #4771/#4818 (Codex ApplyPatch stdin) off this dest inherit. Injection/swarm: silent parent-primary patch after dest deny mutates the wrong tree and skips dest-place.\n\nFailure mode. Harvest a new DEFT_ACTIVE_SCOPE / occupancy-linger gate. Or read #4215 as \"record deny then parent-implement on primary\". Recurrence is skipping both native dest spawn and CLI dest-cwd, then patching in the parent loop.\n\nDisposition. Cite #4215. Add only the missing forbid: dest spawn deny is BLOCKED or dest-cwd residual (native, else CLI last-resort). It is not parent-primary residual. Do not recut occupancy live or Codex stdin.\n\n## Finding 4 — footnote\n\npr:wait-mergeable-and-merge already one-probes SHA-matched NEW_P0_P1 with no cap wait (packages/core/src/pr-wait-mergeable/cascade.ts:248-261) and then cap-waits otherwise. Confidence holdout plus named leftover is not that NEW_P0_P1 exit, so wait-merge still cap-polls. Issue recut already parks engine refuse as fail-closed follow-on. Keep #4822 wait-verb swallow off this harvest.\n\n## Finding 5 — footnote\n\nStop 1 cite of review-cycle SKILL.md:379 is the leaf nest-limit, not the parent-fixer license. The license is SKILL.md:541, :570, :581. Does not change P1.\n\n## Road not taken\n\nRejected: leftover is prose because #2655/#3032/#2843 already forbid parent-as-leaf. Steelman: Approach 1 plus those MUSTs should have blocked PR 4809. What would flip that: L4-B and the #4529 carve-out gone, so parent-retained cannot be the fixer when spawn_subagent exists. They are still on the pin SHA, so restating #2655 without those edits would not close the hole.\n\nInjection/swarm: dest spawn, dest-cwd residual, occupancy, and who may mutate the PR tree. Existing controls are dest-place (#4066), #4215 deny record plus CLI dest, Approach 1 lease (#2655/#3044), class A one-shot residual, pr:watch, wait-merge closer. Missing control is the dest residual envelope after the #4529 carve-out, plus the L4-B poll/fix sentence.\n\nNo successor lean. Dual-stop numbered post 1 of 6.",
+          "id": 5751036897,
+          "html_url": "https://github.com/deftai/directive/issues/4821#issuecomment-5751036897",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:21:01Z",
+          "updated_at": "2026-09-20T16:21:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nParent-retained on grok-build is still an equal partner that tells the parent to poll/fix, because L4-B and the #4529 carve-out removed the dest residual leaf. This bind recuts those sentences. Dest residual is class A one-shot, stop-at after the push, then pr:watch, then wait-merge only after CLEAN. Dest spawn deny is BLOCKED or dest-cwd residual (#4215), not parent-primary patch.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Expected. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4821 bind after critic 5751036897. Cites critic 5751036897. Supersedes write-back 5750973317.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4821-dc\norigin-ref: origin/master\ndispatch-sha: 507c47576414bc7aef017068f4708d9324a0feab\ntarget shape: single-issue\nDual-stop cap: 6 posts (spent 1 numbered critic)\n\nTakes:\n\n- 5751036897 The license to skip the dest worker is L4-B plus the #4529 carve-out, not Envelope SLA parent-retained alone — accept-into-contract\n- 5751036897 Dest review-cycle worker is class A one-shot residual, not Approach 1 poller-only and not option-2 drive-to merge-ready — accept-into-contract\n- 5751036897 Dest spawn deny already has fail-loud; cite #4215; do not mint a second occupancy primitive — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=507c47576414bc7aef017068f4708d9324a0feab pointer=comment:5751036897 reading=asserted\n\n## Bound remedy\n\n- Recut L4-B / partner-merge-path / Phase 5-6 carve-out so parent-retained is closer plus post-merge scope:complete after a dest worker exists. Do not delete parent-retained as merge-path owner. Do not treat #2655 restatement as the recut.\n- Dest worker: dest-cwd one-shot residual (class A), stop-at after the push, then engine pr:watch, then pr:wait-mergeable-and-merge only after CLEAN. Not option 2. Approach 1 remains wait owner after residual lands, with verify:review-monitor / review-monitor:register.\n- Dest spawn deny: BLOCKED or dest-cwd residual (native, else CLI last-resort per #4215). Not parent-primary residual. Do not recut occupancy live or Codex stdin (#4771 / #4818).\n- Do not reopen #4529 implement stop-at pr-open. Do not lower minGreptileConfidence. Wait-verb swallow stays on #4822.\r\n\n",
+          "id": 5751061274,
+          "html_url": "https://github.com/deftai/directive/issues/4821#issuecomment-5751061274",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:25:10Z",
+          "updated_at": "2026-09-20T16:25:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\n## Verdict\n\nPain-audit of bind lean 5751061274. The operative `relieves: P1` cite is honest. Stop 1 P1 is PR 4809: parent started wait-merge while SHA-matched Greptile was 4/5 with a named CHANGELOG leftover, then parent-applied the residual with a temp script instead of a dest review-cycle worker. Bound-remedy recuts the L4-B / partner-merge-path / Phase 5-6 fixer sentences so parent-retained is closer plus post-merge scope:complete after a dest worker exists; names dest-cwd class A one-shot residual, stop-at after the push, then pr:watch, then wait-merge only after CLEAN; dest spawn deny is BLOCKED or dest-cwd residual (native, else CLI last-resort per #4215), not parent-primary. That covers the named pain. Cite is well-formed: line-start on the bind lean, predecessor 5750973317 carries no relief cite, no mixed disposition, wait-verb swallow stays on #4822.\n\n## Finding 1 — footnote\n\nEngine wait-merge still one-probes SHA-matched NEW_P0_P1 then cap-waits otherwise (packages/core/src/pr-wait-mergeable/cascade.ts:248-261). Confidence holdout plus named leftover is not that NEW_P0_P1 exit, so the verb still cap-polls if started early. Issue recut already parks engine refuse as fail-closed follow-on. Keep #4822 off this harvest. Does not unrelieve P1: first land is the skill order, not an engine refuse.\n\n## Finding 2 — footnote\n\npackages/core/src/review-monitor/l4-owner.ts:271 recovery copy still says keep parent dual-source poll/fix. The machine gate already fails parent-retained as READY (process path B only). Recut that copy if the L4-B file is touched; it is not a remaining license.\n\n## Finding 3 — footnote\n\ntemplates/swarm-greptile-poller-prompt.md still embodies poll plus fix of P0/P1 and does not exit on P2. Named leftover at 4/5 with P0=0 P1=0 is class A (review-cycle SKILL.md:186-190), which is why dest residual is the first worker and Approach 1 is wait owner after the push. Bound-remedy already sequences that. Do not harvest the poller template as the dest residual envelope.\n\n## Road not taken\n\nRejected: blocking because agents-entry / Envelope SLA still lists Approach 1 or parent-retained as equal partners without dest residual first. Steelman: the always-pin partner line is what a Grok parent reads, so leaving it uncut would re-license PR 4809. What would flip that: Envelope SLA being the fixer license. Pin-read at 507c47576414bc7aef017068f4708d9324a0feab: the fixer license is L4-B (SKILL.md:541 poll/fix), partner-merge-path (SKILL.md:581), and the Phase 5-6 #4529 carve-out (core-phase-5-6.md:26-27). Bound-remedy names those. Envelope SLA stays merge-path owner identity; Bound-remedy keeps parent-retained as closer after a dest worker exists.\n\nInjection/swarm: dest spawn, dest-cwd residual, occupancy, and who may mutate the PR tree. Existing controls: dest-place (#4066), #4215 deny record plus CLI dest, Approach 1 lease, class A one-shot residual, pr:watch, wait-merge closer. Bound-remedy adds the dest residual envelope after the #4529 carve-out and recuts L4-B poll/fix. Silent parent-primary patch after dest deny remains forbidden. Do not recut occupancy live or Codex stdin (#4771 / #4818).\n\nNo successor lean. Reserved pain-audit of bind lean 5751061274. Footnote-only; bind map stays bindable.",
+          "id": 5751109117,
+          "html_url": "https://github.com/deftai/directive/issues/4821#issuecomment-5751109117",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:33:29Z",
+          "updated_at": "2026-09-20T16:33:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Parent-retained on grok-build stays closer after a dest class A residual. L4-B and the #4529 carve-out are the edit set. Pain-audit of that cite was footnote-only.\n\nThis is not an instruction to a later builder.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| License to skip dest worker is L4-B plus #4529 carve-out | verified | critic 5751036897; pin-read review-cycle SKILL.md 541/570/581 at 507c47576 |\n| Dest worker is class A one-shot residual, not Approach 1 poller-only | verified | critic 5751036897 leftover table class A |\n| Bound-remedy covers P1 | verified | closed cite relieves: P1 on bind 5751061274; pain-audit 5751109117 audit-targets: pain-P1 footnote-only |\r\n\n",
+          "id": 5751123452,
+          "html_url": "https://github.com/deftai/directive/issues/4821#issuecomment-5751123452",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:36:00Z",
+          "updated_at": "2026-09-20T16:36:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Dest residual after #4529 carve-out; parent-retained is closer plus post-merge complete.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5751061274.\r\n\n",
+          "id": 5751123538,
+          "html_url": "https://github.com/deftai/directive/issues/4821#issuecomment-5751123538",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T16:36:01Z",
+          "updated_at": "2026-09-20T16:36:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5518876780,
+        "origin": "deftai/directive#4821",
+        "id": "github.issue.5518876780"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "module_boundary": "typescript-engine"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4825,
+        "prBase": null,
+        "mergeCommit": "cd1ee69dbb1bf50e811e79c82e43415cf1b79b90",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7872f0e396d1e08f795b115957a7a6684798d5e4",
+        "verifiedAt": "2026-09-20T21:05:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T21:05:51Z",
+      "completedSessionId": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T21:05:51Z"
+      }
+    },
+    "id": "github.issue.5518876780",
+    "updated": "2026-09-20T21:05:51Z"
+  }
+}

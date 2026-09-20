@@ -1,0 +1,355 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4824",
+    "updated": "2026-09-20T21:06:05Z"
+  },
+  "plan": {
+    "title": "leftover(#167): Tracking/Refs merge plus xBRIEF complete can leave GitHub issues open",
+    "status": "completed",
+    "narratives": {
+      "Description": "leftover(#167): Tracking/Refs merge plus xBRIEF complete can leave GitHub issues open",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4824",
+      "Overview": "## Leftover of #167 / Phase 6 Step 2\\n\\nRecurrence: 2026-09-20 through-merge collection. Product PRs used Tracking/Refs, never Closes. Leftover PR #4823 moved twelve xBRIEFs active/ to completed/ on master. GitHub issues stayed open. Operator caught #4813 still open; REST then closed #4780 #4782 #4783 #4793 #4794 #4795 #4796 #4798 #4801 #4813 #4129 #4163. #4781 stayed open (parked, no PR).\\n\\n## What is broken\\n\\nTracking/Refs is the through-merge standing (Layer 3 / #701: Closes on squash will shut a linked issue even when not intended). GitHub will not auto-close on Tracking. Closing is Phase 6 Step 2: after merge, REST-check state and, if still open, close with a comment naming the PR.\\n\\nThat step was skipped because leftover-complete of xBRIEFs was treated as the closeout unit.\\n\\nTwo existing gates look at GitHub closed, not the inverse:\\n\\n- verify:orphan-active fails when the issue is closed and the brief is still in active/.\\n- verify:completed-tracked fails when a closed issue has no completed/ artifact.\\n\\nA completed brief whose origin is still open is green on both.\\n\\nswarm:finalize-cohort --pr binds delivery evidence from GraphQL closingIssuesReferences. Tracking never fills that list, so the same miss also forced --merge-commit by hand and never closed the issue.\\n\\n#167 already covers squash plus closing keywords silently failing to close. This leftover is the Tracking path: close was never attempted.\\n\\n## Recut\\n\\nAfter finalize-cohort lands (or after pr:wait-mergeable-and-merge when the PR body is Tracking/Refs), REST-check each origin issue (repos/<owner>/<repo>/issues/<N>). If it is still open and not a protected staying-OPEN umbrella, either:\\n\\n- close with Completed in #<PR> (Phase 6 Step 2), or\\n- fail-closed verify:origin-closed (or an origin-open-after-complete check on the finalize dest).\\n\\nKeep Tracking/Refs on through-merge. Do not teach Closes. Do not use gh issue view --json.\\n\\n## Fences\\n\\n- Do not recut Layer 3 / #701 Closes-on-squash.\\n- Do not treat umbrellas / staying-OPEN protected issues as this close.\\n- Do not merge this into #4821 dest-worker skip or #4822 wait-verb swallow.\\n- Parked stories with no merged PR (#4781) stay open.\\n\\nRefs #167 #4823 #701 #3153 #3476\\n",
+      "Labels": "bug, swarm, agent-experience, process, area:skills, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "After leftover-complete of the named story list (finalize-cohort or scope:complete plus verify:completed-tracked green on origin/<deliveryBranch>), fail-closed REST GET repos/<owner>/<repo>/issues/<N> for those completed briefs github-issue refs only. If still open and not a protected staying-OPEN umbrella and not parked-with-no-merged-PR, close with a comment naming the product PR, or refuse DONE.",
+        "status": "completed",
+        "id": "clause:1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.ts",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Origin-close is after leftover-complete land of those stories. Do not start origin-close at pr:wait-mergeable-and-merge; that fights verify:orphan-active / #3429.",
+        "status": "completed",
+        "id": "clause:2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.ts",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Origin list is leftover --stories / completed-brief refs leftover-complete already trusted. Do not scrape Tracking/Refs from product PR bodies. Do not grow fetchClosingIssuesReferences. Do not add an unscoped verify:origin-closed to task check.",
+        "status": "completed",
+        "id": "clause:3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.ts",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      },
+      {
+        "title": "Keep Tracking/Refs. Do not teach Closes. Do not use gh issue view --json. Do not recut Layer 3 / #701. Do not merge this into #4821 dest-worker skip or #4822 wait-verb swallow. REST rewrite of Step 2 GraphQL is hygiene, not the gate.",
+        "status": "completed",
+        "id": "clause:4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.ts",
+          "recorded_at": "2026-09-20T21:05:02.349Z",
+          "recorded_by": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "area:skills",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4824",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4824: leftover(#167): Tracking/Refs merge plus xBRIEF complete can leave GitHub issues open"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4780",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4780"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "After leftover-complete of the named story list (finalize-cohort or scope:complete plus verify:completed-tracked green on origin/<deliveryBranch>), fail-closed REST GET repos/<owner>/<repo>/issues/<N> for those completed briefs github-issue refs only. If still open and not a protected staying-OPEN umbrella and not parked-with-no-merged-PR, close with a comment naming the product PR, or refuse DONE.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Origin-close is after leftover-complete land of those stories. Do not start origin-close at pr:wait-mergeable-and-merge; that fights verify:orphan-active / #3429.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Origin list is leftover --stories / completed-brief refs leftover-complete already trusted. Do not scrape Tracking/Refs from product PR bodies. Do not grow fetchClosingIssuesReferences. Do not add an unscoped verify:origin-closed to task check.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep Tracking/Refs. Do not teach Closes. Do not use gh issue view --json. Do not recut Layer 3 / #701. Do not merge this into #4821 dest-worker skip or #4822 wait-verb swallow. REST rewrite of Step 2 GraphQL is hygiene, not the gate.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "split_plan"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Tracking/Refs through-merge plus leftover-complete of xBRIEFs can leave origin GitHub issues open, and neither orphan-active nor completed-tracked fails that inverse.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4824-dc\norigin-ref: origin/master\ndispatch-sha: a4bb0675fc00a619b03a35abb2cdb38927bb3da7\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: leftover of #167 Tracking-path close never attempted is one closeout-gate hole, not whole-motion blast; session standing pick N without asking.\n\nDual-stop cap: 6 posts\n\nrefutation-target: leftover-complete of xBRIEFs (active to completed on master) is sufficient closeout after Tracking/Refs merge, so origin GitHub issues may stay open.\n\ntarget: #4824\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is 2026-09-20 through-merge collection: product PRs used Tracking/Refs, never Closes. Leftover PR #4823 moved twelve xBRIEFs active/ to completed/ on master at dispatch-sha a4bb0675fc00a619b03a35abb2cdb38927bb3da7. GitHub issues stayed open. Operator caught #4813 still open; REST then closed #4780 #4782 #4783 #4793 #4794 #4795 #4796 #4798 #4801 #4813 #4129 #4163. #4781 stayed open (parked, no PR). Leftover of closed #167 (squash plus closing keywords silently failing). This leftover is the Tracking path: close was never attempted.\n\nPin-read at dispatch-sha a4bb0675fc00a619b03a35abb2cdb38927bb3da7:\n\n- content/skills/deft-directive-swarm/references/core-phase-5-6.md Step 2: after squash, verify issues closed (`gh issue view --json state`) and close with Completed in #<PR> when github-issue refs remain open. That step exists; leftover-complete of xBRIEFs was treated as the closeout unit instead.\n- commands.md verify:orphan-active: fails when the issue is closed and the brief is still in active/. Inverse (completed brief, origin still open) is green.\n- commands.md verify:completed-tracked: fails when a closed issue has no completed/cancelled artifact. Inverse is green.\n- swarm:finalize-cohort --pr binds delivery evidence from GraphQL closingIssuesReferences. Tracking never fills that list, so the same miss forced --merge-commit by hand and never closed the issue.\n\nInventory: #167 already covers squash plus Closes silently failing. Layer 3 / #701 Closes-on-squash stays. Umbrellas / staying-OPEN protected issues are not this close. Parked stories with no merged PR (#4781) stay open. Do not merge this into #4821 dest-worker skip or #4822 wait-verb swallow. Keep Tracking/Refs. Do not teach Closes. Do not use gh issue view --json. No implement and no ingest from this parent.\n\n",
+          "id": 5751665130,
+          "html_url": "https://github.com/deftai/directive/issues/4824#issuecomment-5751665130",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T18:12:48Z",
+          "updated_at": "2026-09-20T18:12:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nceiling: 5751665130\ndispatch-sha: a4bb0675fc00a619b03a35abb2cdb38927bb3da7\ncharter: refutation\n\nRefutation-target under test: leftover-complete of xBRIEFs (active to completed on master) is sufficient closeout after Tracking/Refs merge, so origin GitHub issues may stay open.\n\nThe presumption is false as a closeout unit. leftover-complete is sufficient for verify:completed-tracked (#3476) and not for GitHub origin close. Pin-read at a4bb0675fc00a619b03a35abb2cdb38927bb3da7: Grok leftover owner names leftover-complete / completed-tracked as Phase 6 swarm:finalize-cohort and does not name Step 2. evaluateCompletedTracked skips state === \"open\". Recurrence timestamps: product PR 4815 merged 2026-09-20T14:06:14Z with body Tracking #4813 (no Closes); leftover PR 4823 merged 17:29:14Z as a4bb0675 (twelve xBRIEFs, test plan named verify:completed-tracked only); #4813 REST-closed 17:35:32Z by comment 5751460398 after that land. The recut as written still cannot bind.\n\n## Wait-merge origin-close contradicts orphan-active — blocks-the-design\n\nEvidence. Issue recut: After finalize-cohort lands (or after pr:wait-mergeable-and-merge when the PR body is Tracking/Refs). Existing Step 2 already says close after each squash merge (gh issue view --json state) and again for each completed xBRIEF. Envelope SLA after merge: verify:orphan-active -- --issue N must exit 0 before DONE; ISSUE: closed while the brief is still in active/ is forbidden. assessOrphanSignature ships (fail) when the selected origin is closed on an active/running brief. #4813 stayed in that window for ~3h after 4815 merged and ~6min after 4823 landed. Grok leftover is finalize-cohort after wait-merge, not at wait-merge.\n\nFailure mode. Binding the wait-merge arm closes origins while xBRIEFs remain in active/. That fail-closes orphan-active (#2321 / #3429) and reddens later merge-chokepoint scans that own those briefs. Layer 3 / #701 is the opposite polarity (reopen protected issues after squash). Tracking/Refs is standing so GitHub will not auto-close at wait-merge; that gap is closed by leftover-complete then origin-close, not by moving close earlier.\n\nDisposition. A successor lean cannot keep wait-merge as a close trigger. Origin-close is after leftover-complete land of those stories (finalize-cohort or scope:complete plus verify:completed-tracked green on origin/<deliveryBranch>), then REST-check those origins.\n\n## Origin denominator is leftover --stories, not closingIssuesReferences — sharpens-framing\n\nEvidence. fetchClosingIssuesReferences (packages/core/src/pr-protected-issues/gh.ts) runs gh pr view --json closingIssuesReferences (GraphQL). Tracking never fills that list; that is #2230. finalize-cohort --pr then errors empty cohort: pass --pr and/or --stories unless --stories is supplied. Recurrence used --stories / --merge-commit; leftover PR 4823 body also did not Closes the twelve. Unscoped inverse on task check would fail every completed brief whose origin is intentionally open (umbrellas, standing-open trackers). REST confirmed #4781 still open (parked, no PR). Step 2 already has close with Completed in #<PR>; leftover-complete skipped it because the leftover owner named completed-tracked as the unit.\n\nFailure mode. Growing fetchClosingIssues to scrape Tracking/Refs from product PR bodies reopens the #2230 false-sweep class. An unscoped verify:origin-closed on task check false-fails protected staying-OPEN issues. More Step 2 English without a per-cohort gate is the #167 class (prose that was skipped). Silent auto-close inside finalize races Layer 3 reopen and is a GitHub write under requireHumanMerge.\n\nDisposition. Bound-remedy: after leftover-complete of the named story list, fail-closed REST GET repos/<owner>/<repo>/issues/<N> for those completed briefs github-issue refs only; if still open and not a protected staying-OPEN umbrella and not parked-with-no-merged-PR, close with a comment naming the product PR, or refuse DONE. Keep Tracking/Refs. Do not teach Closes. Do not use gh issue view --json. Do not recut Layer 3 / #701. Do not merge this into #4821 or #4822. REST rewrite of Step 2 GraphQL line is hygiene, not the gate.\n\n## Injection / swarm\n\nThis target changes close authority, untrusted forge input, leftover concurrency, and shared GitHub/xBRIEF state. Origin list is the same --stories / completed-brief refs leftover-complete already trusted; do not concatenate Tracking/Refs tokens from product bodies. Prefer a fail-closed verifier that names REST PATCH over silent auto-close in finalize. Close only after active/ is empty for those origins so orphan-active stays green. Process-only; no dest occupy, no ingest, no labels.\n\n## Road-not-taken\n\nCloses on leftover PR 4823 would fire at the safe time (after complete). Rejected: #167 squash can silently fail to close, and #701 persistent closingIssuesReferences can shut umbrellas. Steelman of the wait-merge arm: leftover-complete can be skipped, so close at product merge. What would flip that verdict is a leftover owner that cannot DONE without origin-close after land. Moving close earlier flips orphan-active red instead.\n\n## footnote\n\n#167 (closed 2026-04-06) is squash plus closing keywords silently failing, plus ROADMAP. ROADMAP leftover is already #4316 (off leftover-complete). This leftover is the Tracking path: close was never attempted. Pin Step 2 still documents gh issue view --json state; the recut already forbids that (#954). Not P1 relief.\r\n\n",
+          "id": 5751732816,
+          "html_url": "https://github.com/deftai/directive/issues/4824#issuecomment-5751732816",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T18:24:43Z",
+          "updated_at": "2026-09-20T18:24:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover-complete of xBRIEFs is enough for completed-tracked and not enough to close GitHub origins after Tracking/Refs. This bind puts origin-close after leftover-complete land, REST-checks those named stories, and closes or refuses DONE. Wait-merge is not a close trigger because that fights orphan-active.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Expected. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4824 bind after critic 5751732816. Cites critic 5751732816. Supersedes write-back 5751665130.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4824-dc\norigin-ref: origin/master\ndispatch-sha: a4bb0675fc00a619b03a35abb2cdb38927bb3da7\ntarget shape: single-issue\nDual-stop cap: 6 posts (spent 1 numbered critic)\n\nTarget-digest: sha256:66dbe50771fe167fd73013ac84391528f4ccd024ddde51915d4c24678310a63a\n\nTakes:\n\n- 5751732816 Wait-merge origin-close contradicts orphan-active — accept-into-contract\n- 5751732816 Origin denominator is leftover --stories, not closingIssuesReferences — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=a4bb0675fc00a619b03a35abb2cdb38927bb3da7 pointer=comment:5751732816 reading=asserted\n\n## Bound remedy\n\n- After leftover-complete of the named story list (finalize-cohort or scope:complete plus verify:completed-tracked green on origin/<deliveryBranch>), fail-closed REST GET repos/<owner>/<repo>/issues/<N> for those completed briefs github-issue refs only. If still open and not a protected staying-OPEN umbrella and not parked-with-no-merged-PR, close with a comment naming the product PR, or refuse DONE.\n- Origin-close is after leftover-complete land of those stories. Do not start origin-close at pr:wait-mergeable-and-merge; that fights verify:orphan-active / #3429.\n- Origin list is leftover --stories / completed-brief refs leftover-complete already trusted. Do not scrape Tracking/Refs from product PR bodies. Do not grow fetchClosingIssuesReferences. Do not add an unscoped verify:origin-closed to task check.\n- Keep Tracking/Refs. Do not teach Closes. Do not use gh issue view --json. Do not recut Layer 3 / #701. Do not merge this into #4821 dest-worker skip or #4822 wait-verb swallow. REST rewrite of Step 2 GraphQL is hygiene, not the gate.",
+          "id": 5751739848,
+          "html_url": "https://github.com/deftai/directive/issues/4824#issuecomment-5751739848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T18:25:58Z",
+          "updated_at": "2026-09-20T18:25:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5751739848. Pin SHA a4bb0675fc00a619b03a35abb2cdb38927bb3da7. Ceiling inclusive 5751739848.\n\nThis map can bind. Stop 1 `pain: P1` is the Tracking-path close leftover-complete never attempted. Bound-remedy covers that remainder: origin-close after leftover-complete land of leftover `--stories` / completed-brief github-issue refs, fail-closed REST GET, close or refuse DONE. Wait-merge is not a close trigger. Re-ran the pin fixtures on this body: evaluateHandoffPrint print false, harvestRelievesOverlap false; bindLeanPredecessorValid against write-back 5751665130 true; scanPainCites one operative `relieves: P1`, rejected empty; no colliding `relieves P1` in summary English; Target-digest sha256 66dbe50771fe167fd73013ac84391528f4ccd024ddde51915d4c24678310a63a matches live REST issue body. Path-1 with no critic after this lean is unresolved-pain-audit; that is the check this seat fills, not a dishonest cite.\n\nInjection/swarm lens: this bind still changes close authority, leftover concurrency, and shared GitHub/xBRIEF state. Origin list is leftover `--stories` / completed-brief refs leftover-complete already trusted. Do not concatenate Tracking/Refs tokens from product PR bodies. Prefer fail-closed REST GET plus refuse DONE over silent auto-close inside finalize, and over an unscoped origin-closed check on task check.\n\n## 1. Pin re-check\n\nfootnote\n\nStop 1 5751665130 still names `pain: P1`. Dual-stop numbered 1 of 6 before this post (5751732816); this seat is in numbered cap, not the spent-cap reserved slot. No #4824 comments after ceiling 5751739848.\n\nPin-read at a4bb0675: `evaluateCompletedTracked` continues when `state === \"open\"` (packages/core/src/lifecycle/completed-tracked-on-delivery.ts). `assessOrphanSignature` ships when the selected origin is closed on an active/running brief (packages/core/src/orphan-active/evaluate.ts). `fetchClosingIssuesReferences` runs `gh pr view --json closingIssuesReferences` (packages/core/src/pr-protected-issues/gh.ts). Phase 6 Step 2 still documents `gh issue view --json state` after squash and again for each completed xBRIEF (content/skills/deft-directive-swarm/references/core-phase-5-6.md). Grok leftover owner names leftover-complete / completed-tracked as Phase 6 `swarm:finalize-cohort` and does not name Step 2.\n\nREST re-check of the recurrence: product PR 4815 merged 2026-09-20T14:06:14Z, body has Tracking #4813 and no Closes #4813; leftover PR 4823 merged 17:29:14Z as a4bb0675, test plan named `verify:completed-tracked` only; #4813 REST-closed 17:35:32Z by comment 5751460398 after that land. Completed xBRIEF for #4813 carries `x-xbrief/github-issue` `https://github.com/deftai/directive/issues/4813`, so leftover `--stories` / completed-brief refs would have named it.\n\nFailure mode of treating leftover-complete as the closeout unit is the measured inverse: completed-tracked green, orphan-active green, origins still open. Bound-remedy after leftover-complete land would have REST-checked that ref and refused DONE or closed. Disposition: census only; does not change the harvested Bound-remedy.\n\n## Road-not-taken\n\nRejected blocking on Step 2 English recurrence (more MUST-close prose that leftover-complete already skipped). Steelman: Step 2 already required close after each completed xBRIEF and was skipped because leftover-complete of xBRIEFs was treated as the unit; a Bound-remedy list item without a DONE conjunct is the same skip. What would flip that verdict is a harvest that omits refuse DONE, or that keeps wait-merge as a close trigger. Measured: harvest dropped wait-merge, kept origin-close after leftover-complete, and named fail-closed REST GET plus refuse DONE on leftover `--stories`. evaluateHandoffPrint on 5751739848 printed false; harvestRelievesOverlap false. Flip if those were true, or if scanPainCites had shown a colliding `does-not-relieve` on this bind.\r\n\n",
+          "id": 5751810621,
+          "html_url": "https://github.com/deftai/directive/issues/4824#issuecomment-5751810621",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T18:38:25Z",
+          "updated_at": "2026-09-20T18:38:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Leftover-complete is not GitHub closeout after Tracking/Refs. Origin-close is after leftover-complete land of leftover stories, REST-checked, close or refuse DONE. Pain-audit of that cite was footnote-only.\n\nThis is not an instruction to a later builder.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Wait-merge origin-close contradicts orphan-active | verified | critic 5751732816; assessOrphanSignature ships when origin closed on active/running brief |\n| Origin denominator is leftover --stories, not closingIssuesReferences | verified | critic 5751732816; fetchClosingIssuesReferences GraphQL; Tracking never fills that list |\n| Bound-remedy covers P1 | verified | closed cite relieves: P1 on bind 5751739848; pain-audit 5751810621 audit-targets: pain-P1 footnote-only |",
+          "id": 5751817399,
+          "html_url": "https://github.com/deftai/directive/issues/4824#issuecomment-5751817399",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T18:39:41Z",
+          "updated_at": "2026-09-20T18:39:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Leftover-complete of xBRIEFs is enough for completed-tracked and not enough to close GitHub origins after Tracking/Refs. Origin-close is after leftover-complete land of leftover stories, fail-closed REST GET, close or refuse DONE.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5751739848.\nVerified-claims table: comment 5751817399.\nPain-audit: comment 5751810621 footnote-only.",
+          "id": 5751817489,
+          "html_url": "https://github.com/deftai/directive/issues/4824#issuecomment-5751817489",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T18:39:42Z",
+          "updated_at": "2026-09-20T18:39:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5519472126,
+        "origin": "deftai/directive#4824",
+        "id": "github.issue.5519472126"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "66dbe50771fe167fd73013ac84391528f4ccd024ddde51915d4c24678310a63a"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4829,
+        "prBase": null,
+        "mergeCommit": "c220c0650669a2bc36e9a9259b124959ba3c5b52",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7872f0e396d1e08f795b115957a7a6684798d5e4",
+        "verifiedAt": "2026-09-20T21:06:05Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-20T21:06:05Z",
+      "completedSessionId": "host:grok:v1:MDFhMGJjNTEtNGE5MC03MmMxLWE2MGMtNzM1NzRkOWNlMTBl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-20T21:06:05Z"
+      }
+    },
+    "id": "github.issue.5519472126",
+    "updated": "2026-09-20T21:06:05Z"
+  }
+}
