@@ -14,7 +14,7 @@ Minimal runtime contract for the Grok Build dispatch-provider path (one supporte
 
 - One isolated git worktree per agent (identical to the Warp path — see Phase 2)
 - Workers launched via `spawn_subagent` dispatch (Phase 3 Step 2d)
-- Layer A (adapter): background spawn, then **end the parent turn**. User-facing `get_command_or_subagent_output` is pull-wait and is not the Gap D completion channel.
+- Layer A (adapter): background spawn of the **full planned set**, then end the parent turn only after those launches, any required review-monitor lease register, and a completion-owner ack (Step 2d). User-facing `get_command_or_subagent_output` is pull-wait and is not the Gap D completion channel.
 - Layer B (host): no `sessions_yield`, no live `resume_from`, no general retain. Steer is the #4286 file inbox (child-steer only).
 - Review-cycle **sibling** monitors spawned via `spawn_subagent` by the **parent/orchestrator** (not `start_agent`). Implementation leaves MUST NOT nested-spawn a review-monitor -- see Nested spawn_subagent boundary below.
 - Worktree git (`git status`, `git log`) and on-disk heartbeat remain liveness evidence. They are not parent-pane yield.
@@ -31,8 +31,12 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 2. The standard worktree prompt (STEP 1-6 from the Prompt Template below). Workers coordinate via worktree git + heartbeat. Do not adapt the worker prompt to parent `get_command_or_subagent_output`.
 3. `tool_input.cwd` set to the agent's reserved linked worktree. Grok implement dest is `cwd` only. Do not pass `worktree_path`, `worktreePath`, `worktree`, or `isolation=worktree`.
 4. ! **Background / non-blocking spawn** for any worker or poller whose loop runs longer than a short task (~3 min) — implementation, fix, and review-cycle workers — so the parent conversation stays interactive (#1880 Gap D). Use `spawn_subagent` in the background (host typically returns `subagent_id` immediately).
-5. ! **End the parent turn after spawn.** Do not keep the user-facing turn in `get_command_or_subagent_output` / Phase 4–6 pull-wait. Tier-1 spawn is not Tier-1 parent interactivity.
-6. ! **Completion channel (not parent pull-wait):** Prefer host completion-notify when the harness documents that the parent is notified on child terminal without polling (`DONE` / `BLOCKED` / `FAILED` per preamble §11). Until that path is **measured** (harness version, model, Directive SHA, trial A or B), do not claim it. Legal fallback: a **second session that is the durable owner** (#3153) — occupancy-lease holder, dest-proven cwd, one owner, one read-only companion, one durable handoff. That owner session MAY pull-wait. ⊗ End the interactive parent turn with nobody owning Phase 6 / leftover-complete. That is bake-off (c) as a #3153 defect, not a Gap D workaround.
+5. ! **End the parent turn after the planned launch set, not after the first spawn.** For a cohort with multiple workers, keep the turn open until every planned worker has launched. If an Approach 1 review-monitor is in that set, spawn it and register the sticky lease in the same turn (`task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive spawn_subagent`; `task verify:review-monitor -- --pr <N>` exit 0). Then end the user-facing turn. Do not keep it in `get_command_or_subagent_output` / Phase 4–6 pull-wait. Tier-1 spawn is not Tier-1 parent interactivity. ⊗ End the turn after the first spawn of a multi-worker cohort.
+6. ! **Completion owner before the user-facing turn ends (#3153).** Host completion-notify (parent notified on child terminal without polling: `DONE` / `BLOCKED` / `FAILED` per preamble §11) is **Unknown** on this ship. ⊗ Pick it as the owner path until trial A or B evidence exists (harness version, model, Directive SHA). Until then, create or transfer a durable completion owner and receive ack **before** ending the interactive turn. That owner observes child completion, merge, and `swarm:finalize-cohort` / `scope:complete`. Pick one:
+   - **Approach 1 sibling.** Parent `spawn_subagent` the review-monitor / Phase 6 closer. Ack is `task review-monitor:register -- --pr <N> --monitor-agent-id <id> --platform-primitive spawn_subagent` success (sticky `<!-- deft:review-owner -->`) and `task verify:review-monitor -- --pr <N>` exit 0 in the same turn. The sibling is the owner.
+   - **Parent-retained on this dest-proven occupancy-lease holder.** This session already holds the dest occupancy lease and is named owner (`review_cycle: in_progress:<pr>#parent-retained` when a PR exists; before PR, name this session as Phase 6 / leftover-complete owner). Ack is that same-turn named ownership plus this session's occupancy claim. This session MAY pull-wait; it is not the interactive research pane.
+   - **Two-session transfer.** Second session dest-places (`cwd` = reserved linked worktree) and claims occupancy there. One owner, one read-only companion, one durable handoff. Ack is the dest-proven session's occupancy claim output naming it as lease holder, recorded on the transferring turn. The companion does not write the steer inbox. The owner session MAY pull-wait.
+   ⊗ End the interactive parent turn with nobody owning Phase 6 / leftover-complete. That is bake-off (c) as a #3153 defect, not a Gap D workaround. ⊗ Treat unmeasured host notify plus a vague "second session" as that owner.
 
 ! **Parent ritual HEAD-discontinuous / dest occupancy deny class (#4215).** Native `spawn_subagent` with `cwd` to a dest-proven reserved linked worktree must not require a live parent primary ritual. Occupancy-refused on the contended primary is why `session:start --rearm` on master is the wrong recovery, not a spawn skip. If native spawn is denied, record that deny text in the handback. CLI `grok --cwd` is last-resort after that deny, not a habit after the first failure. Do not dual-launch CLI and `spawn_subagent` on the same unit. Do not document CLI as the real Grok Build launch path.
 
@@ -69,9 +73,9 @@ Grok Build cells in this ship: **Unknown**. Adapter Layer A binds anyway.
 
 Bake-off scoring:
 
-- **(c)** background workers + forced parent stop: score only when completion-notify **or** a second session that is the durable owner is measured true. Otherwise (c) is a #3153 defect.
+- **(c)** background workers + forced parent stop: score only when a named completion owner is acked before the turn ends (Approach 1 lease, parent-retained occupancy holder, or two-session occupancy-claim transfer) **or** host completion-notify is measured true. Unmeasured notify plus a vague second-session fallback is a #3153 defect.
 - **(d)** steer inbox: child-steer only. Does not score parent-pane usability. A scratch path does not interrupt a blocked tool.
-- **(a)** two-session split: name the occupancy-lease holder and the dest-proven session. One owner, one read-only companion, one durable handoff. The companion does not write the steer inbox.
+- **(a)** two-session split: dest-proven session claims occupancy; transferring parent records that claim as ack. One owner, one read-only companion, one durable handoff. The companion does not write the steer inbox.
 
 Until a measured callback exists, Grok wording is conditional: background `spawn_subagent` is available; parent-chat interactivity depends on returning the turn rather than entering pull-wait.
 
@@ -87,7 +91,7 @@ Until a measured callback exists, Grok wording is conditional: background `spawn
 
 ! **Grok through-merge (#4529):** implement MUST use (b). Path (a) is for non-through-merge Grok leaves only. Phase 6 monitor squash-merges via `pr:wait-mergeable-and-merge` (or parent-retained); `swarm:finalize-cohort` is leftover after merge. ⊗ Dispatch a Grok through-merge implement as (a).
 
-! Top-level parents/orchestrators that own `spawn_subagent` MAY Approach-1 background a review-monitor. After that spawn they MUST end the user-facing turn (Gap D above). Background spawn permission is not parent-yield.
+! Top-level parents/orchestrators that own `spawn_subagent` MAY Approach-1 background a review-monitor. After the full planned launch set (workers + that monitor), lease register, and completion-owner ack, they MUST end the user-facing turn (Gap D above). Background spawn permission is not parent-yield.
 
 ⊗ An implementation leaf backgrounds a nested `spawn_subagent` poller and exits claiming monitoring is active.
 ⊗ Invent mid-flight message-later on grok-build as a substitute for this boundary.
