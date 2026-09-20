@@ -1564,8 +1564,8 @@ export function runSessionStart(
   // #3214 / #3156: select ritual (ceremony) depth before building deferral maps.
   // Rapid/minimal auto-defer informational cold steps only; mutation readiness
   // (doctor, cache_fresh, agent_hooks, verify_tools) stays constant.
-  // Fill site (#3358 / #4783): collectCeremonyDialConsumerEvidence merged as
-  // explicit-before-provisional. CLI --task-size / env still win. Do not edit
+  // Fill site (#3358 / #4783): collectCeremonyDialConsumerEvidence after
+  // explicit CLI, before provisional env. Do not edit
   // estimateProvisionalCeremonyInputs as if it scanned pending. Leftover-pending
   // size remainder is #4795.
   // Two-stage + provisional intake (#3214 / #3263 / #1581 ordering): fill

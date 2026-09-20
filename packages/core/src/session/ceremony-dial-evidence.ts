@@ -20,7 +20,7 @@
  *   3. failing-gate count env (mid-session size proxy)
  *
  * ⊗ Change the rapid default or decline threshold when no evidence exists.
- * CLI `--task-size` / env still win at the merge site.
+ * Order: explicit CLI, then consumer evidence, then provisional env for fields still missing.
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -228,9 +228,9 @@ export function collectCeremonyDialConsumerEvidence(
 /**
  * Explicit-before-provisional merge (#4783).
  *
- * Explicit non-null (CLI `--task-size` / session inputs) wins; consumer
- * evidence fills only missing fields. Env size/tier still win later in
- * `estimateProvisionalCeremonyInputs` for fields this merge left null.
+ * Order: explicit CLI / session inputs, then consumer evidence for remaining
+ * nulls, then `estimateProvisionalCeremonyInputs` env/verb/files for fields
+ * this merge still left null.
  */
 export function mergeCeremonyDialInputsWithConsumerEvidence(
   explicit: CeremonyDialInputs | undefined,
