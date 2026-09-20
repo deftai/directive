@@ -1460,6 +1460,7 @@ describe("worktree occupancy lease (#3433)", () => {
       }),
       "utf8",
     );
+    rmSync(join(root, "xbrief", "active", "story-a.xbrief.json"), { force: true });
     vi.stubEnv("DEFT_SESSION_ID", "swarm-parent");
     const live = completeCohort({
       stories: [donePath],
@@ -1525,6 +1526,7 @@ describe("worktree occupancy lease (#3433)", () => {
       }),
       "utf8",
     );
+    rmSync(join(root, "xbrief", "active", "story-a.xbrief.json"), { force: true });
     vi.stubEnv("DEFT_SESSION_ID", "");
     const live = completeCohort({
       stories: [donePath],
@@ -1608,6 +1610,7 @@ describe("worktree occupancy lease (#3433)", () => {
       }),
       "utf8",
     );
+    rmSync(join(root, "xbrief", "active", "story-a.xbrief.json"), { force: true });
     vi.stubEnv("DEFT_SESSION_ID", "");
     const live = completeCohort({
       stories: [donePath],
@@ -1677,6 +1680,7 @@ describe("worktree occupancy lease (#3433)", () => {
       }),
       "utf8",
     );
+    rmSync(join(root, "xbrief", "active", "story-a.xbrief.json"), { force: true });
     vi.stubEnv("DEFT_SESSION_ID", "");
     const live = completeCohort({
       stories: [donePath],
