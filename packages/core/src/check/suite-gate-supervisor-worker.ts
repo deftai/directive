@@ -67,11 +67,6 @@ function listDirectChildPids(pid: number, platform: NodeJS.Platform, timeoutMs =
   return ids;
 }
 
-/** Per-call enumerator timeout during post-kill verification (#4801 P1). */
-const VERIFY_ENUM_TIMEOUT_MS = 1_000;
-/** Wall budget for leftover enumeration after the first kill (#4801 P1). */
-export const KILL_TREE_VERIFY_BUDGET_MS = 8_000;
-
 export function listDescendantPids(
   rootPid: number,
   platform: NodeJS.Platform,
@@ -112,8 +107,8 @@ export function killTreeAndProveEmpty(
       listDescendantPids(
         target,
         platform,
-        (childPid) => listDirectChildPids(childPid, platform, VERIFY_ENUM_TIMEOUT_MS),
-        KILL_TREE_VERIFY_BUDGET_MS,
+        (childPid) => listDirectChildPids(childPid, platform),
+        5_000,
       ));
   const alive = seams.isPidAlive ?? isPidAlive;
   // Snapshot while the tree is intact, then kill root/group first. Post-kill

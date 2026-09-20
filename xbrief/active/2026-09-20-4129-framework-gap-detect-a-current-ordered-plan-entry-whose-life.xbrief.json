@@ -1,0 +1,354 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4129",
+    "updated": "2026-09-20T12:31:27Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Detect a current ordered-plan entry whose lifecycle entity is already terminal",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Detect a current ordered-plan entry whose lifecycle entity is already terminal",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4129",
+      "Overview": "## Summary\n\nDetect a current ordered-plan entry whose lifecycle entity is already terminal\n\n## Context\n\nConsumer bxc-3ci/FreshserviceAI on Directive 0.109.1: issue 287 completed its product and lifecycle PRs, but .deft/plan-sequence.json still recorded issue 287 as the pending current entry. The behavior remains present in Directive 0.110.0 and master commit 212481b98051e9988f0a15748400c6afc154b2a5.\n\n## Expected behavior\n\nA deterministic read-only verifier should report when the current ordered-plan entry resolves to a completed, failed, or cancelled lifecycle entity while the plan entry remains non-terminal, and require explicit operator-reviewed reconciliation. Completed history must not automatically select or authorize the next target.\n\n## Actual behavior / gap\n\nscope:complete and swarm cohort closeout update lifecycle state without advancing the ordered plan. verify:plan-sequence only checks whether a requested target matches the current entry, so the cross-ledger contradiction passes and the separate plan-sequence:advance step can be omitted.\n\n## Session notes\n\nMinimal reproduction: create an ordered plan with issue A current; complete and land A through scope:complete; omit plan-sequence:advance; verify:plan-sequence still accepts A although its lifecycle entity is terminal. Acceptance should add a side-effect-free terminal-entry drift finding, preserve explicit operator authority for advancement, and provide one remediation. Related broad umbrellas: deftai/directive issues 3913 and 3910; neither explicitly covers this exact state.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "Labels": "bug, determinism, triage, agent-experience, area:vbrief, dogfood, legacy-arced"
+    },
+    "items": [
+      {
+        "title": "Name the resolution function from a plan entry to a lifecycle entity per `PlanSequenceEntry.kind`, including no-origin skip versus fail-closed.",
+        "status": "proposed",
+        "id": "clause:1"
+      },
+      {
+        "title": "Sufficient terminal evidence is existing local ledgers: `TIP_TERMINAL_FOLDERS` (completed|cancelled), `hasTransitionWrite` / failed stamp, and `collectGithubRefs` on that entry's origin. Do not add a new GitHub issue-state client inside `verifyPlanTarget`.",
+        "status": "proposed",
+        "id": "clause:2"
+      },
+      {
+        "title": "Unknown policy reuses orphan-active `StateResolution` or stays filesystem-only so unknown does not arise.",
+        "status": "proposed",
+        "id": "clause:3"
+      },
+      {
+        "title": "Drift predicate: current plan entry is non-terminal (`status` pending or unset, sequence not exhausted) and a resolvable Directive lifecycle origin for that entry already sits in `completed/` or `cancelled/` (or carries the failed stamp). GitHub `closed` without a terminal xBRIEF stays on #3429 / #3476.",
+        "status": "proposed",
+        "id": "clause:4"
+      },
+      {
+        "title": "Fail-closed surfaces: `plan-sequence:current` (work selection) and `verifyPlanTarget` (work-unit plus sub-agent admission). Solo `swarm:launch` skip and dummy-target cohort admission are in that surface list, or they are a named leftover; they are not closed by editing only `packages/cli/src/verify-plan-sequence.ts`.",
+        "status": "proposed",
+        "id": "clause:5"
+      },
+      {
+        "title": "Printed remediation is operator-reviewed stop/ask, same voice as orphan-active's do-not-complete-until, not unattended `plan-sequence:advance`.",
+        "status": "proposed",
+        "id": "clause:6"
+      },
+      {
+        "title": "New result code, not `mismatch` or `exhausted`, so agents cannot treat drift as pick-the-next-id.",
+        "status": "proposed",
+        "id": "clause:7"
+      },
+      {
+        "title": "Share one pure drift helper between `plan-sequence:current` and `verifyPlanTarget`. Do not add a third verb.",
+        "status": "proposed",
+        "id": "clause:8"
+      },
+      {
+        "title": "#4433 `batching_allowed` stays out.",
+        "status": "proposed",
+        "id": "clause:9"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "triage",
+      "agent-experience",
+      "area:vbrief",
+      "dogfood",
+      "legacy-arced"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4129",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4129: [framework-gap] Detect a current ordered-plan entry whose lifecycle entity is already terminal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Name the resolution function from a plan entry to a lifecycle entity per `PlanSequenceEntry.kind`, including no-origin skip versus fail-closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Sufficient terminal evidence is existing local ledgers: `TIP_TERMINAL_FOLDERS` (completed|cancelled), `hasTransitionWrite` / failed stamp, and `collectGithubRefs` on that entry's origin. Do not add a new GitHub issue-state client inside `verifyPlanTarget`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Unknown policy reuses orphan-active `StateResolution` or stays filesystem-only so unknown does not arise.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Drift predicate: current plan entry is non-terminal (`status` pending or unset, sequence not exhausted) and a resolvable Directive lifecycle origin for that entry already sits in `completed/` or `cancelled/` (or carries the failed stamp). GitHub `closed` without a terminal xBRIEF stays on #3429 / #3476.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Fail-closed surfaces: `plan-sequence:current` (work selection) and `verifyPlanTarget` (work-unit plus sub-agent admission). Solo `swarm:launch` skip and dummy-target cohort admission are in that surface list, or they are a named leftover; they are not closed by editing only `packages/cli/src/verify-plan-sequence.ts`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Printed remediation is operator-reviewed stop/ask, same voice as orphan-active's do-not-complete-until, not unattended `plan-sequence:advance`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "New result code, not `mismatch` or `exhausted`, so agents cannot treat drift as pick-the-next-id.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Share one pure drift helper between `plan-sequence:current` and `verifyPlanTarget`. Do not add a third verb.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "#4433 `batching_allowed` stays out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because verify:plan-sequence still authorizes a current ordered-plan entry after that entry's lifecycle entity is already terminal, so completed work remains the authorized next target and plan-sequence:advance can be omitted.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4129-dc\norigin-ref: origin/master\ndispatch-sha: eda261d7a6e0d75b61466c6234ea517cd77df598\n\ncharter: open critique\nspend: N=1\nspend-ask: resolved\nspend-why: operator utterance `use n=1 or n=3 as needed`. Per-issue Stop 2: local verifier, specified expected behavior, not high blast. Default motion N=1.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #4129\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: matching the current ordered-plan entry is sufficient target authorization even when that entry's lifecycle entity is already completed, failed, or cancelled\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Round-1 ceiling is this write-back (N=1).\n\nP1 is that `verify:plan-sequence` compares only whether a requested target matches `entries[current_index]`. `scope:complete` and swarm closeout can make that current entry's issue/PR terminal without advancing the sequence. The cross-ledger contradiction passes, and the next authorized target stays the completed work.\n\nWhat this P1 is not:\n\n- Not `verify:orphan-active` (active xBRIEFs whose issues are closed).\n- Not #4433 `batching_allowed` (parallel-wave authorization).\n- Not automatic advance. Completed history must not select the next target.\n- Not GitHub-only status as the sole ledger. The ordered-plan file is the authorization record.\n\nRe-measured at `eda261d7a6e0d75b61466c6234ea517cd77df598`: `packages/cli/src/verify-plan-sequence.ts` calls `verifyPlanTarget` only. No terminal-lifecycle drift finding exists in that path.\n\n",
+          "id": 5746684311,
+          "html_url": "https://github.com/deftai/directive/issues/4129#issuecomment-5746684311",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:24:53Z",
+          "updated_at": "2026-09-20T01:24:53Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nOpen critique of #4129 at dispatch SHA `eda261d7a6e0d75b61466c6234ea517cd77df598`. Input ceiling 5746684311 (Stop 1 write-back). No later comments read.\n\nRe-verified at that SHA, not from line cites:\n\n- `verifyPlanTarget` (`packages/core/src/plan-sequence/types.ts`) returns ok on kind+id match of `entries[current_index]`. Its body contains none of `status`, `completed`, `cancelled`, `failed`, `lifecycle`, `xbrief`, `github`, `orphan`.\n- `packages/cli/src/verify-plan-sequence.ts` calls that function only. No sequence → exit 0 skip. Match → exit 0. It requires `--target-kind` and `--target`; there is no current-entry scan.\n- `git grep plan-sequence` on `packages/core/src/scope/main.ts`, `lifecycle-write.ts`, `swarm/complete-cohort.ts`, and `swarm/finalize-cohort.ts` is empty. `scope:complete` / cohort closeout do not advance `.deft/plan-sequence.json`.\n- `admitSwarmLaunchPlanSequence` (`packages/core/src/swarm/launch.ts`) calls `verifyPlanTarget(seq, { targetKind: \"story\", target: \"swarm-cohort\" })` only when `dispatchKind === \"swarm-cohort\"`. Solo launch skips it. `allocationPlanId` plus `batchingRationale` bypasses a rejected admission.\n- Existing terminal vocabulary already lives on xBRIEF lifecycle: `TIP_TERMINAL_FOLDERS = completed | cancelled` (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts`); `hasTransitionWrite` / failed `plan.status` (`packages/core/src/scope/lifecycle-write.ts`); origin extraction `collectGithubRefs` (`packages/core/src/orphan-active/refs.ts`); unknown-state policy `StateResolution` live|inventory|cache|unverified (`packages/core/src/orphan-active/issue-state.ts`).\n\nStop 1 P1 (match-only `verify:plan-sequence` still authorizes a current entry whose lifecycle is already terminal; advance can be omitted) is true as far as it goes. It is not yet a bindable bound remedy.\n\n## 1. Lifecycle resolution, ledger, and unknown policy are unbound\n\nblocks-the-design\n\nEvidence: `PlanSequenceEntry.kind` is `pr | issue | story | task | phase | checklist | review`, with optional `issue` and `title`. GitHub issue state is `open | closed` only. The issue's expected tokens are `completed, failed, or cancelled`, which already name xBRIEF folders and the failed stamp, not forge state. Stop 1 says GitHub-only status is not the sole ledger, without saying whether GitHub is necessary, sufficient, optional corroboration, or out of scope. `verifyPlanTarget` is a pure function; orphan-active already owns unverified/skip-gh/cache-age.\n\nFailure mode: an implementer following Stop 1's file pointer adds a GitHub `state===closed` read inside `verify:plan-sequence` or `verifyPlanTarget`. Then either (a) unverified/outage fail-opens and today's hole remains whenever `gh` is down, (b) unverified fail-closes every ordered-plan work unit on forge outage, (c) `kind=story` swarm entries with no `issue` field never resolve and silently stay authorized, or (d) GitHub-closed is treated as sufficient terminal and recuts `lifecycle-write.ts` (\"GitHub-closed is not authority to mint complete\") plus `verify:completed-tracked` (closed forge issue still needs a tracked completed/cancelled blob).\n\nDisposition consequence: the successor map cannot bind until it names (1) the resolution function from a plan entry to a lifecycle entity per kind, including \"no origin\" (skip vs fail), (2) which existing ledgers are sufficient for terminal — inventory first: `TIP_TERMINAL_FOLDERS` + `hasTransitionWrite` + `collectGithubRefs` on the current entry's origin, not a new issue-state client — and (3) the unknown policy, either by reusing orphan-active `StateResolution` or by staying filesystem-only so unknown does not arise.\n\n## 2. P1's \"authorized next target\" is not the CLI match path, and the one remediation must not auto-advance\n\nblocks-the-design\n\nEvidence: preamble §2.55 binds \"what's next?\" to `plan-sequence:current` and requires `verify:plan-sequence` only before a new work unit (PR, branch, story activation, sub-agent). `plan-sequence:current` prints the current id and exits 0 whenever the sequence is not exhausted; it does not call `verifyPlanTarget`. `resolveContinuation` in this module has no CLI caller (queue's same-named helper is a different function). `advancePlanSequence` is the write that marks current `completed` and moves `current_index`, which is what authorizes the next entry. Sibling verifiers print `run task …` remediations (`orphan-active/evaluate.ts`, `completed-tracked-on-delivery.ts`). Solo `swarm:launch` never calls `verify:plan-sequence` or `verifyPlanTarget`. Cohort admission uses dummy target `swarm-cohort`, not the launched story ids.\n\nFailure mode: a bound remedy that only adds a drift finding to `packages/cli/src/verify-plan-sequence.ts` (Stop 1's re-measurement) leaves `plan-sequence:current` still naming issue 287 as next, and leaves solo swarm dispatch still launching that story. Completed work remains the authorized next target on the work-selection and sub-agent paths. Separately, if the one remediation is `task plan-sequence:advance`, agents follow printed `run task` lines unattended and the next entry becomes authorized without operator review — the auto-advance the issue forbids.\n\nDisposition consequence: bind must list the fail-closed surfaces (at least `plan-sequence:current` for work selection and `verifyPlanTarget` for work-unit plus sub-agent admission, or an explicit leftover that swarm/solo stay out). The printed remediation must be operator-reviewed stop/ask, in the same voice as orphan-active's \"Do not run task scope:complete until …\", not an unattended advance. A new result code (not `mismatch` / `exhausted`) is required so agents cannot treat drift as \"pick the next id\". Dummy-target cohort admission and the solo skip are in that surface list, or they are a named leftover; they are not closed by editing the CLI file Stop 1 pointed at. `#4433` `batching_allowed` stays out (unused persist-only field; Stop 1 already excluded it).\n\n## 3. Reuse the xBRIEF terminal folders; do not invent a forge-state lifecycle entity\n\nsharpens-framing\n\nEvidence: consumer reproduction is issue 287 after product and lifecycle PRs, which is exactly a tracked origin under `xbrief/completed/` (or cancelled/failed). `evaluateCompletedTracked` already pairs closed GitHub issues with those folders; `verify:orphan-active` already pairs closed GitHub issues with leftover `active/` briefs. Stop 1 correctly says this P1 is not orphan-active.\n\nFailure mode: specifying \"GitHub closed\" as the lifecycle entity duplicates those two gates, imports their unverified policy, and still misses story-kind entries whose terminal evidence is a completed xBRIEF basename rather than `issue.state`.\n\nDisposition consequence: state the drift predicate as: current plan entry is non-terminal (`status` pending or unset, sequence not exhausted) and a resolvable Directive lifecycle origin for that entry already sits in `completed/` or `cancelled/` (or carries the failed stamp). GitHub `closed` without a terminal xBRIEF stays on `#3429` / `#3476`. That is a wording change, not a second verifier.\n\n## Injection / swarm lens\n\nThe target changes who may start the next ordered-plan unit versus who already finished a lifecycle entity. GitHub issue/PR bodies and `state` are untrusted. Using forge-closed to *advance* would let a close on the current issue authorize the next entry; the issue correctly forbids that. Using forge-closed to *fail-closed* current is a stall, not an injection into next, but outage/unverified then reconstitutes today's hole or blocks all ordered-plan work. `plan-sequence.json` is shared authorization across dests; dest-local `scope:complete` can terminal an xBRIEF in one worktree while primary `current_index` still points at it, and the reverse. `plan-sequence:advance` is not occupancy-gated, so any agent can currently write the next authorization. Swarm identity: solo launch skips the only machine gate; cohort checks a dummy story id; explicit allocation-plan consent bypasses rejection. A CLI-only finding does not sit on those paths.\n\n## Road not taken\n\nAuto-advance on detection — rejected; it makes lifecycle (including untrusted forge state) select the next authorized target. A new GitHub issue-state reader inside `verifyPlanTarget` — rejected in favor of the existing local terminal folders unless the successor map explicitly takes leftover unknown-policy from orphan-active. A third verb beside `verify:plan-sequence` — unnecessary if `verifyPlanTarget` plus `plan-sequence:current` share one pure drift helper; a CLI-only add is the measured miss above.\n\n## Steelman\n\nCLI-only fail-closed on match is enough because preamble already requires `verify:plan-sequence` before a new work unit, so agents stop on 287 and must ask. What would flip that: a path that treats `plan-sequence:current` as authorization without the CLI, which is the measured solo `swarm:launch` path and the `current` verb itself.\n\nGitHub-closed as the lifecycle entity matches the consumer's wording (\"issue 287 completed\"). What would flip that: the expected tokens `completed | failed | cancelled` already naming xBRIEF lifecycle, and `lifecycle-write.ts` already refusing GitHub-closed as complete-authority.\n\n## Footnotes\n\nfootnote `entry.status` is parsed (`pending | completed | skipped`) and ignored by `verifyPlanTarget`. `advancePlanSequence` pairs status with index except when `exhausted` (already fail-closed). Hand-edit only; not the consumer bug (status stays pending).\n\nfootnote `#3913` / `#3910` are open lifecycle-authority epics and do not specify this cross-ledger predicate. No `4129` xBRIEF exists at this SHA.\n\nfootnote vitest was not executed here (`npx` 401 against the registry). Re-verification is `git show` / `git grep` at `eda261d7a6e0d75b61466c6234ea517cd77df598`.\n\n",
+          "id": 5746752888,
+          "html_url": "https://github.com/deftai/directive/issues/4129#issuecomment-5746752888",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:34:45Z",
+          "updated_at": "2026-09-20T01:34:45Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA current ordered-plan entry can stay the authorized next target after its lifecycle work is already in a terminal xBRIEF folder, because verify:plan-sequence only matches kind+id. Confirming this map recuts the fix away from a CLI-only match-path finding: name how a plan entry resolves to a lifecycle entity, reuse the existing terminal folders, fail-close the work-selection and admission surfaces, and print an operator-reviewed stop rather than unattended advance. GitHub-closed without a terminal xBRIEF stays on the existing orphan/completed-tracked issues.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after one isolated critic. Cites critic 5746752888. Supersedes Stop 1 write-back 5746684311. Round 1 sibling count 1.\n\nTarget-digest: sha256:95b0573a29ca356e4f29deb7c023db0795181faf5de29878819e32960e84ffad\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4129-dc\norigin-ref: origin/master\ndispatch-sha: eda261d7a6e0d75b61466c6234ea517cd77df598\ntarget shape: single-issue\nround: 1\nsiblings: 1\nDual-stop cap: 6 posts (1 spent)\n\nTakes:\n\n- 5746752888 Lifecycle resolution, ledger, and unknown policy are unbound — accept-into-contract\n- 5746752888 P1's authorized next target is not the CLI match path, and the one remediation must not auto-advance — accept-into-contract\n- 5746752888 Reuse the xBRIEF terminal folders; do not invent a forge-state lifecycle entity — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Name the resolution function from a plan entry to a lifecycle entity per `PlanSequenceEntry.kind`, including no-origin skip versus fail-closed.\n- Sufficient terminal evidence is existing local ledgers: `TIP_TERMINAL_FOLDERS` (completed|cancelled), `hasTransitionWrite` / failed stamp, and `collectGithubRefs` on that entry's origin. Do not add a new GitHub issue-state client inside `verifyPlanTarget`.\n- Unknown policy reuses orphan-active `StateResolution` or stays filesystem-only so unknown does not arise.\n- Drift predicate: current plan entry is non-terminal (`status` pending or unset, sequence not exhausted) and a resolvable Directive lifecycle origin for that entry already sits in `completed/` or `cancelled/` (or carries the failed stamp). GitHub `closed` without a terminal xBRIEF stays on #3429 / #3476.\n- Fail-closed surfaces: `plan-sequence:current` (work selection) and `verifyPlanTarget` (work-unit plus sub-agent admission). Solo `swarm:launch` skip and dummy-target cohort admission are in that surface list, or they are a named leftover; they are not closed by editing only `packages/cli/src/verify-plan-sequence.ts`.\n- Printed remediation is operator-reviewed stop/ask, same voice as orphan-active's do-not-complete-until, not unattended `plan-sequence:advance`.\n- New result code, not `mismatch` or `exhausted`, so agents cannot treat drift as pick-the-next-id.\n- Share one pure drift helper between `plan-sequence:current` and `verifyPlanTarget`. Do not add a third verb.\n- #4433 `batching_allowed` stays out.\n\nFootnotes stay footnotes: ignored `entry.status`, open #3913/#3910, vitest not run here.\n\n",
+          "id": 5746775460,
+          "html_url": "https://github.com/deftai/directive/issues/4129#issuecomment-5746775460",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:38:32Z",
+          "updated_at": "2026-09-20T01:38:32Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nStop 4 pain-audit, round 2 reiteration, fresh critic. Question: does Bound remedy on successor lean 5746775460 relieve P1 named on Stop 1 write-back 5746684311. Ceiling 5746775460. SHA `eda261d7a6e0d75b61466c6234ea517cd77df598`. Round-1 critic 5746752888 in envelope as the accepted headings.\n\n**The Bound remedy relieves P1.**\n\nP1 named: `verify:plan-sequence` still authorizes a current ordered-plan entry after that entry's lifecycle entity is already terminal, so completed work remains the authorized next target and `plan-sequence:advance` can be omitted.\n\nHarvest that closes that pain: fail-close `verifyPlanTarget` (the only function the CLI calls) and `plan-sequence:current` (the work-selection printer) on a filesystem drift predicate — current entry non-terminal in the sequence file, and a resolvable Directive origin already in `completed/` or `cancelled/` (failed already lands in `completed/`). Printed remediation is operator-reviewed stop, not unattended advance. New result code, not `mismatch` / `exhausted`. No GitHub issue-state client inside `verifyPlanTarget`. That is the named mechanism, the named consequence, and the named non-advance.\n\nRe-verified at the pin SHA, not from line cites:\n\n- `verifyPlanTarget` (`packages/core/src/plan-sequence/types.ts`) returns ok on kind+id/issue/title match. Result codes are `missing | exhausted | mismatch | kind-mismatch`. Body has no folder, stamp, or origin scan.\n- `packages/cli/src/verify-plan-sequence.ts` calls that function only. No sequence → exit 0 skip. Match → exit 0. Tests encode skip-clean and exhausted-once; no terminal-lifecycle case exists.\n- `plan-sequence:current` (`packages/cli/src/plan-sequence.ts`) prints `entries[current_index]` and exits 0 whenever the sequence is not exhausted. It does not call `verifyPlanTarget`.\n- `git grep plan-sequence` on `packages/core/src/scope/main.ts`, `lifecycle-write.ts`, `swarm/complete-cohort.ts`, and `swarm/finalize-cohort.ts` is empty. `scope:complete` / cohort closeout still do not advance `.deft/plan-sequence.json`.\n- Existing terminal ledgers: `TIP_TERMINAL_FOLDERS` (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts`); `TRANSITIONS.fail.targetFolder` is `completed` (`packages/core/src/scope/constants.ts`); `hasTransitionWrite` (`packages/core/src/scope/lifecycle-write.ts`); `collectGithubRefs` (`packages/core/src/orphan-active/refs.ts`). `collectWipCensus` already parses `entry.issue` or a numeric `entry.id`.\n- Swarm admission (`packages/core/src/swarm/launch.ts`): solo launch skips; cohort calls `verifyPlanTarget` with dummy target `swarm-cohort`; `allocationPlanId` plus `batchingRationale` bypasses rejection. Those stay on the harvest leftover disjunct. They are not the Stop 1 CLI path.\n\n## Injection / swarm lens\n\nThe target changes who may start the next ordered-plan unit versus who already finished a lifecycle entity. `plan-sequence.json` is shared authorization; dest-local `scope:complete` can mint a terminal xBRIEF in one worktree while `current_index` still points at it. Forge `closed` is untrusted and is correctly kept off this predicate (#3429 / #3476). Using forge-closed to *advance* would inject next-target authorization; the harvest forbids that. Fail-closing current plus `verifyPlanTarget` on local terminal folders is a stall of the finished unit, not an injection into the next. Solo skip and dummy-target-plus-consent remain launch paths if leftover is named; that does not reopen P1's match-path authorization.\n\n## 1. Swarm leftover disjunct is extra to P1, not unmet P1\n\nfootnote\n\nEvidence: harvest requires fail-closed `plan-sequence:current` and `verifyPlanTarget`, then says solo skip and dummy-target cohort admission are in that list or a named leftover. Round-1 heading 2 already allowed that leftover. Stop 1 P1 names `verify:plan-sequence` and the authorized next target that `plan-sequence:current` prints.\n\nFailure mode if misread as unmet P1: parent retracts `relieves: P1` or files same-number leftover, and Dual-stop spends another harvest pass on swarm admission. Solo launch of a finished story can still happen under leftover; that is a named extra hole, not the warrant.\n\nDisposition consequence: none on this bind map. `relieves: P1` stays. Swarm leftover, if taken, is extra scope on this harvest, not `operator-deferred: P1`.\n\n## 2. StateResolution unknown-policy disjunct is unused on the filesystem predicate\n\nfootnote\n\nEvidence: harvest says unknown policy reuses orphan-active `StateResolution` or stays filesystem-only so unknown does not arise, and also forbids a new GitHub issue-state client inside `verifyPlanTarget`. `StateResolution` is GitHub `open | closed` with `unverified` (`packages/core/src/orphan-active/issue-state.ts`). The drift predicate is folder presence, which does not call that type.\n\nFailure mode if the disjunct is implemented as GitHub-closed terminal evidence: unverified fail-opens reconstitutes today's hole on `gh` down, or unverified fail-closes every ordered-plan unit — round-1 heading 1 (a)/(b). The other harvest bullets already forbid that reading.\n\nDisposition consequence: none. Filesystem-only is what the drift predicate already binds. No harvest recut required for P1 coverage.\n\n## 3. `collectGithubRefs` extracts origins; failed already sits in `completed/`\n\nfootnote\n\nEvidence: `collectGithubRefs` reads xBRIEF `references` / `x-tracking`, it does not mark terminal. `scope:fail` target folder is `completed` with status `failed`. Scanning `TIP_TERMINAL_FOLDERS` already covers completed, failed, and cancelled. Dual-root scan in completed-tracked already walks `xbrief/` and legacy `vbrief/`.\n\nFailure mode: treating the inventory list as a three-way AND (folder plus stamp plus GitHub refs) would miss a stamped completed brief whose origin is a story basename, or a failed brief already in `completed/`. The drift predicate is the binding sentence and does not require that AND.\n\nDisposition consequence: none. Implementer reuses the existing folder scan plus origin match (`collectGithubRefs` and/or numeric `entry.id` / `entry.issue` as `collectWipCensus` already does). Not a second verifier.\n\n## Road not taken\n\nTreat leftover swarm as unrelieved P1 — rejected. What would flip: if Stop 1's \"authorized next target\" were every dispatch path, including solo `swarm:launch`. It is the ordered-plan current entry, printed by `plan-sequence:current` and admitted by `verify:plan-sequence`. Harvest already fail-closes those two.\n\nTreat `entry.status === \"completed\"` without a terminal xBRIEF as P1 — rejected. Consumer status stays `pending`; `advancePlanSequence` is what pairs status with index. Hand-edit status is the round-1 footnote, not this warrant.\n\n## Steelman\n\nCLI-only drift on `packages/cli/src/verify-plan-sequence.ts` would close the Stop 1 file pointer. What would flip that: `plan-sequence:current` still naming issue 287 as next, which is why harvest fail-closes that verb too. A pure helper of the sequence JSON alone cannot see `completed/`; callers must pass folder-scan facts into a pure predicate. That composition is already in the harvest (one helper shared by current and `verifyPlanTarget`), not a third verb.\n\n",
+          "id": 5746838362,
+          "html_url": "https://github.com/deftai/directive/issues/4129#issuecomment-5746838362",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:49:51Z",
+          "updated_at": "2026-09-20T01:49:51Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5746775460.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5746775460 are accept-into-contract | critic 5746752888 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers terminal ordered-plan current-entry authorization | pain-audit 5746838362 | pin-read of verifyPlanTarget, plan-sequence:current, TIP_TERMINAL_FOLDERS; footnote-only census |\n\n",
+          "id": 5746872287,
+          "html_url": "https://github.com/deftai/directive/issues/4129#issuecomment-5746872287",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:56:07Z",
+          "updated_at": "2026-09-20T01:56:07Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA current ordered-plan entry can stay authorized after its lifecycle work is already in a terminal xBRIEF folder. The accepted next-build recuts the verifier to local terminal folders, fail-closes work selection and target admission, and prints an operator-reviewed stop instead of unattended advance.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5746775460.\n\n",
+          "id": 5746872334,
+          "html_url": "https://github.com/deftai/directive/issues/4129#issuecomment-5746872334",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:56:08Z",
+          "updated_at": "2026-09-20T01:56:08Z",
+          "author_association": "CONTRIBUTOR"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5328714508,
+        "origin": "deftai/directive#4129",
+        "id": "github.issue.5328714508"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "95b0573a29ca356e4f29deb7c023db0795181faf5de29878819e32960e84ffad"
+      }
+    },
+    "id": "github.issue.5328714508",
+    "updated": "2026-09-20T12:31:27Z"
+  }
+}

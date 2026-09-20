@@ -1,0 +1,392 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4163",
+    "updated": "2026-09-20T12:31:28Z"
+  },
+  "plan": {
+    "title": "[framework-gap] migrate:xbrief no-ops dual-envelope files that the 0.111 commit gate rejects",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] migrate:xbrief no-ops dual-envelope files that the 0.111 commit gate rejects",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4163",
+      "Overview": "## Summary\n\nOn a consumer already using the `xbrief/` layout, `deft migrate:xbrief` and the normal xBRIEF validation path accept a document that carries both a canonical `xBRIEFInfo@0.8` envelope and a redundant legacy `vBRIEFInfo@0.6` envelope. A Directive 0.111.0 commit hook then rejects that same document as soon as an otherwise supported deposit upgrade updates its `deft_version` compatibility stamp.\n\nThis leaves no canonical in-place transition: the migrator exits successfully without repairing the document, but the next framework upgrade cannot be committed without a manual root-xBRIEF edit.\n\nParent: #4159\n\n## Environment\n\n- Consumer: `bxc-3ci/FreshserviceAI`\n- Consumer base: Directive deposit 0.109.1\n- Target engine/content: `@deftai/directive` 0.111.0 from public npm\n- Node: 24.18.0\n- OS: macOS\n- Layout: root `xbrief/`; no legacy `vbrief/` tree\n\n## Input shape\n\nThe consumer's root specification contains a complete canonical envelope and a redundant legacy envelope:\n\n```json\n{\n  \"vBRIEFInfo\": { \"version\": \"0.6\" },\n  \"plan\": { \"...\": \"...\" },\n  \"xBRIEFInfo\": {\n    \"version\": \"0.8\",\n    \"metadata\": { \"deft_version\": \"0.109.1\" }\n  }\n}\n```\n\nThe 0.111.0 updater coherently changes only `xBRIEFInfo.metadata.deft_version` to `0.111.0` along with the deposit version/generation surfaces.\n\n## Reproduction\n\nFrom the already-upgraded consumer worktree:\n\n```text\n$ deft migrate:xbrief\nProject is already on the xbrief layout — residual legacy markers (e.g. a stale deposited schema) cannot be cleared by migrate:xbrief when no vbrief/ tree remains. Run `directive update` to refresh deposited schema files.\n$ echo $?\n0\n```\n\nNo file changes are made. `task deft:xbrief:validate` passes 154 scope xBRIEFs plus the project definition, and `deft doctor --full --network --json` completes without diagnosing the dual envelope.\n\nAttempting the framework refresh commit then fails in the 0.111.0 hook:\n\n```text\nverify_xbrief_drift: detected 1 legacy-layout token(s):\nxbrief/specification.xbrief.json [legacy-envelope-key] legacy envelope key vBRIEFInfo on correctly named .xbrief.json (canonical xBRIEFInfo@0.8)\n```\n\nThe commit is not created.\n\n## Expected\n\nOne supported transition should converge the already-`xbrief/` document before the commit gate:\n\n- `deft migrate:xbrief` detects a dual envelope, proves that the legacy block is redundant, removes it atomically, and validates the resulting canonical document; or\n- the update transaction performs and reports that exact canonicalization before staging the compatibility stamp.\n\nThe command must not exit 0 while leaving a shape that the next mandatory gate rejects. Ambiguous or non-redundant dual envelopes should fail closed with a precise remediation rather than being merged automatically.\n\n## Actual impact\n\n- A valid 0.109.1 → 0.111.0 deposit refresh becomes uncommittable after the updater stamps the root specification.\n- The prescribed migrator reports success but cannot repair the file.\n- The updater's generic instruction to refresh deposited files cannot help because the affected root specification is project-owned.\n- Consumers must hand-edit a root authority document or weaken/bypass a gate; the latter is not acceptable.\n\n## Consumer workaround\n\nRemove only the redundant `vBRIEFInfo: {\"version\":\"0.6\"}` block, retain the existing complete `xBRIEFInfo@0.8` envelope byte-for-byte apart from the authorized version stamp, then re-run full xBRIEF validation. The consumer's project-specific compatibility guard is being extended narrowly to allow only that exact one-time deletion during a coherent deposit upgrade; it continues to reject all other root-xBRIEF drift.\n\n## Duplicate audit\n\n- #3236 is closed and covered `xBRIEFInfo@0.6` on an already-renamed tree; it did not cover simultaneous canonical `xBRIEFInfo@0.8` plus legacy `vBRIEFInfo@0.6`.\n- #3933 fixed lifecycle aliases that manufactured a second envelope, but did not provide an in-place cleanup path for existing dual-envelope consumers.\n- #3863 discusses the writer/skew incident and misleading remediation, not this upgrade-time migration/gate transition.\n- #4092 concerns the documented two-hop brownfield path, not an already-current dual-envelope root file.\n\n## Acceptance criteria\n\n- [ ] An `xbrief/`-only fixture containing redundant `vBRIEFInfo@0.6` plus complete `xBRIEFInfo@0.8` converges to exactly one canonical envelope through a documented current command.\n- [ ] The transition is atomic and preserves the canonical envelope and `plan` semantics.\n- [ ] Ambiguous dual envelopes fail closed without deleting either block.\n- [ ] The post-transition document passes the same xBRIEF drift hook used on consumer commits.\n- [ ] Migrator/update success cannot leave a document that the mandatory next gate rejects.\n- [ ] Doctor or migration preflight reports the actionable state before a framework stamp makes it a commit blocker.\n\nRelated: #4159\nRefs: #3236, #3933, #3863, #4092\n\n",
+      "Labels": "bug, agent-experience, area:vbrief, status:child"
+    },
+    "items": [
+      {
+        "title": "Add a strip plan beside `planHybridEnvelopeRewrites`, not through `transformArtifactV06ToV08` / `isAlreadyV08Artifact`.",
+        "status": "proposed",
+        "id": "clause:1"
+      },
+      {
+        "title": "Redundancy predicate: fail closed on field disagreement the same way `dual-populated` refuses a merge. Strip only when every legacy-info field is either `version: \"0.6\"` or already present and equal on the canonical 0.8 object.",
+        "status": "proposed",
+        "id": "clause:2"
+      },
+      {
+        "title": "Preserve the canonical envelope and `plan` byte-for-byte aside from deleting the leftover key.",
+        "status": "proposed",
+        "id": "clause:3"
+      },
+      {
+        "title": "Reuse `checkGitClean` plus `containedWrite`.",
+        "status": "proposed",
+        "id": "clause:4"
+      },
+      {
+        "title": "Validate the in-memory post-strip object with `validateVbriefSchema` and the envelope predicate already inside `scanCorpusEnvelope` (`vBRIEFInfo` present, or `xBRIEFInfo.version` not `0.8`); fail closed if dirty. Do not `readFileSync` the pre-strip path. Do not treat detector-null as pass. After apply, `evaluateXbriefDrift` on that same candidate set is the success-then-reject postcondition. A non-redundant dual envelope in the drift-gate set refuses the whole migrate (non-zero).",
+        "status": "proposed",
+        "id": "clause:5"
+      },
+      {
+        "title": "Call site: same `xbriefHasContent && !vbriefPresent` window, after empty hybrid pending, before `detectLegacyVbriefLayout` / residual-schema noop. On non-empty strip pending, reuse hybrid `checkGitClean` plus `containedWrite`, then return rewritten so the noop cannot fire.",
+        "status": "proposed",
+        "id": "clause:6"
+      },
+      {
+        "title": "File set is `scanCorpusEnvelope` candidates. Root `specification.xbrief.json` and `plan.xbrief.json` are in. `xbrief/completed/**` stays historical.",
+        "status": "proposed",
+        "id": "clause:7"
+      },
+      {
+        "title": "Update-transaction prevention remains leftover.",
+        "status": "proposed",
+        "id": "clause:8"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:vbrief",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4163",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4163: [framework-gap] migrate:xbrief no-ops dual-envelope files that the 0.111 commit gate rejects"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add a strip plan beside `planHybridEnvelopeRewrites`, not through `transformArtifactV06ToV08` / `isAlreadyV08Artifact`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Redundancy predicate: fail closed on field disagreement the same way `dual-populated` refuses a merge. Strip only when every legacy-info field is either `version: \"0.6\"` or already present and equal on the canonical 0.8 object.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Preserve the canonical envelope and `plan` byte-for-byte aside from deleting the leftover key.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Reuse `checkGitClean` plus `containedWrite`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Validate the in-memory post-strip object with `validateVbriefSchema` and the envelope predicate already inside `scanCorpusEnvelope` (`vBRIEFInfo` present, or `xBRIEFInfo.version` not `0.8`); fail closed if dirty. Do not `readFileSync` the pre-strip path. Do not treat detector-null as pass. After apply, `evaluateXbriefDrift` on that same candidate set is the success-then-reject postcondition. A non-redundant dual envelope in the drift-gate set refuses the whole migrate (non-zero).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Call site: same `xbriefHasContent && !vbriefPresent` window, after empty hybrid pending, before `detectLegacyVbriefLayout` / residual-schema noop. On non-empty strip pending, reuse hybrid `checkGitClean` plus `containedWrite`, then return rewritten so the noop cannot fire.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "File set is `scanCorpusEnvelope` candidates. Root `specification.xbrief.json` and `plan.xbrief.json` are in. `xbrief/completed/` stays historical.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Update-transaction prevention remains leftover.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because migrate:xbrief still no-ops an already-xbrief dual-envelope document (canonical xBRIEFInfo@0.8 plus redundant vBRIEFInfo@0.6), then the commit drift gate rejects that same file after a supported deft_version stamp.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4163-dc\norigin-ref: origin/master\ndispatch-sha: eda261d7a6e0d75b61466c6234ea517cd77df598\n\ncharter: open critique\nspend: N=1\nspend-ask: resolved\nspend-why: operator utterance `use n=1 or n=3 as needed`. Per-issue Stop 2: local migrator/gate transition, specified expected behavior, not high blast. Default motion N=1.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #4163\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: already-on-xbrief layout is a successful no-op even when a redundant legacy vBRIEFInfo@0.6 envelope remains beside a complete xBRIEFInfo@0.8 envelope that the next mandatory gate will reject\n\n## Gate stamp\n\nThe triage author stamps the semantic call. Round-1 ceiling is this write-back (N=1).\n\nP1 is the missing in-place transition: `runXbriefMigration` rewrites hybrid `xBRIEFInfo@0.6` envelopes, then short-circuits already-xbrief trees with no `vbrief/` as noop. A root specification that already carries complete `xBRIEFInfo@0.8` plus redundant `vBRIEFInfo@0.6` is not that hybrid rewrite. `verify_xbrief_drift` still reports `legacy-envelope-key`. Success plus a later mandatory reject is the defect.\n\nWhat this P1 is not:\n\n- Not #3236 hybrid `xBRIEFInfo@0.6` on a renamed tree (that rewrite exists).\n- Not #3933 lifecycle aliases that manufactured a second envelope.\n- Not a two-hop brownfield `vbrief/` tree (#4092).\n- Not license to merge ambiguous dual envelopes. Non-redundant dual envelopes must fail closed.\n\nRe-measured at `eda261d7a6e0d75b61466c6234ea517cd77df598`: `packages/core/src/xbrief-migrate/migrate-project.ts` still returns the already-on-xbrief noop after the hybrid-0.6 rewrite plan is empty.\n\n",
+          "id": 5746684475,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746684475",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:24:55Z",
+          "updated_at": "2026-09-20T01:24:55Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRe-verified at `eda261d7a6e0d75b61466c6234ea517cd77df598` on the reproduced dual envelope (`vBRIEFInfo: {version: \"0.6\"}` beside complete `xBRIEFInfo@0.8`). The Stop 1 P1 holds as a control-flow fact, not a line cite: `readDeclaredArtifactVersion` prefers `xBRIEFInfo` and returns `0.8`, so `planHybridEnvelopeRewrites` skips; `isAlreadyV08Artifact` is true, so `transformArtifactV06ToV08` would clone the leftover key; `detectLegacyVbriefLayout` still records the legacy info key, so `runXbriefMigration` takes the already-xbrief residual-schema noop and exits 0. `scanCorpusEnvelope` still returns `legacy-envelope-key`. That is the defect. The findings below are about the proposed in-place transition.\n\n## 1. Operationalize redundant-legacy against split envelope readers `sharpens-framing`\n\n**Evidence:** Two existing readers disagree on which top-level key is the document envelope when both are present. `resolveInfoBlock` (`packages/core/src/vbrief-validate/schema.ts`) walks `VALID_INFO_ROOT_KEYS` in insertion order `vBRIEFInfo`, then `xBRIEFInfo`, so validation treats the legacy block as SoT. `readDeclaredArtifactVersion` (`packages/core/src/xbrief-migrate/transforms.ts`) walks the opposite order, so migrate/doctor treat the canonical 0.8 block as SoT. `resolveV06InfoBlock` again prefers classic `vBRIEFInfo`. On the reproduced object, a check that executed those predicates returned `validate_resolves=vBRIEFInfo` and `declared_version=0.8` at the same time. `stampExistingEnvelopes` (`packages/core/src/lifecycle/brief-envelope.ts`) stamps *both* objects when both exist (locked by the hybrid-artifact test in `brief-envelope.test.ts`). Layout dual-populated already refuses a destructive merge (`detect.ts` `dual-populated`: mark, never merge). The 0.6 transform's \"drop both keys\" path does not fire here: `isAlreadyV08Artifact` returns the clone unchanged, leftover key included.\n\n**Failure mode:** An implementer \"proves redundant\" by \"complete `xBRIEFInfo@0.8` is present\" and deletes `vBRIEFInfo`. Validation and any swarm/ingest worker that still uses `resolveInfoBlock` flip SoT without a field-level disagreement check. Unique legacy fields (`description`, `created`, `updated`) vanish. The opposite reuse is worse: disabling the already-0.8 early return sends the file through `resolveV06InfoBlock`, which prefers the 0.6 block, drops the complete 0.8 envelope (including `metadata.deft_version`), and emits a new 0.8 wrapper from legacy bytes. Root specification is an authority document; concurrent workers can observe pre-strip and post-strip SoT in the same cohort.\n\n**Disposition:** The in-place strip can bind, but the lean must name a redundancy predicate and a write path that is not `transformArtifactV06ToV08`. Inventory, do not invent: fail closed on field disagreement the same way `dual-populated` refuses a merge; strip only when every legacy-info field is either `version: \"0.6\"` or already present and equal on the canonical 0.8 object; preserve the canonical envelope and `plan` byte-for-byte aside from deleting the leftover key; reuse `checkGitClean` plus `containedWrite` from the hybrid rewrite; validate the post-strip object with `validateVbriefSchema` and `scanCorpusEnvelope` before write. Exact `{version: \"0.6\"}` equality is not that predicate — see finding 4.\n\nRoad not taken: extend `isAlreadyV08Artifact` to drop leftover keys. Steelman: the transform comment already says dual-key hybrids must not leave stale `vBRIEFInfo`, so one function would cover 0.6 rewrite and 0.8 leftover. What flips that: the function's contract is idempotent unchanged 0.8, it has no fail-closed disagreement path, and routing 0.8+0.6 through `resolveV06InfoBlock` inverts authority. Leave the 0.6 transform alone. Add a strip plan beside `planHybridEnvelopeRewrites`, not through it.\n\n## 2. Scope the strip to the drift-gate file set `sharpens-framing`\n\n**Evidence:** The commit gate that rejected the consumer is `scanCorpusEnvelope` on tracked `xbrief/**/*.xbrief.json` *outside* `LIFECYCLE_FOLDER_PREFIXES` (`drift-gate.ts`; lifecycle exemption locked in `drift-gate.test.ts` as `#4086`). `planHybridEnvelopeRewrites` walks every `*.xbrief.json` under `xbrief/`, including `proposed/pending/active/completed/cancelled`. Doctor's envelope major check (`collectLiveXbriefEnvelopePaths`) scans only `PROJECT-DEFINITION` plus `pending/` and `active/` — not `specification.xbrief.json`, the reproduced path. The issue fixture names a dual envelope; it does not name that path set.\n\n**Failure mode:** Copying the hybrid-rewrite walk into this strip recuts `#4086`: historical lifecycle records that the drift gate deliberately ignores get rewritten, noisy archive diffs, and a second SoT flip on completed work. Copying the doctor scan misses `specification.xbrief.json` entirely, so the reproduced blocker never converges. Shipping either walk ships a \"fix\" that does not match the gate that actually failed.\n\n**Disposition:** Bind the file set to the rejecting gate: same candidate set as `scanCorpusEnvelope` (canonical suffix under `xbrief/`, not lifecycle-folder, not allowlisted). Root `specification.xbrief.json` and `plan.xbrief.json` are in; `xbrief/completed/**` stays historical unless a later leftover says otherwise. Do not invent a third scanner.\n\n## 3. One success-path owns the success-then-reject postcondition `sharpens-framing`\n\n**Evidence:** The issue expected lists `migrate:xbrief` *or* the update transaction, plus doctor/preflight before a framework stamp. The Stop 1 P1 is the migrator noop. Those are different units of work. Doctor `checkXbriefEnvelopeMajorVersion` cannot carry the prevention AC: it does not scan `specification.xbrief.json`, and even if it did, `readDeclaredArtifactVersion` returns `0.8` so the file classifies `current`. `directive update` stamping only `xBRIEFInfo.metadata.deft_version` (the reproduced updater behavior) leaves the leftover key in place, then the 0.111 hook rejects. After a migrate-only strip, that stamp path still produces an uncommittable tree until someone thinks to run migrate.\n\n**Failure mode:** A bound remedy that only extends `runXbriefMigration` repairs the prescribed mop and still lets update exit 0 on a shape `verify_xbrief_drift` will reject. A bound remedy that only teaches doctor via the major-version check stays green on the reproduced file. The \"or\" lets an implementer pick one surface and leave the postcondition \"success cannot leave a document the next mandatory gate rejects\" half-met.\n\n**Disposition:** The P1 repair is `migrate:xbrief` on the drift-gate file set (findings 1–2). If prevention stays in this issue, name it as a second accepted heading that reuses `scanCorpusEnvelope` / `evaluateXbriefDrift` (already detects the leftover key on specification) or runs that same strip *before* the compatibility stamp inside update — not a new detector, and not the envelope-major check. If prevention is leftover, say so on the lean so the postcondition binds only to migrate.\n\n## 4. Version-only equality is not a redundancy proof `footnote`\n\n`stampExistingEnvelopes` on a dual artifact writes `updated` onto both keys. After any lifecycle mutator, `vBRIEFInfo` is no longer `{version: \"0.6\"}`. A predicate copied from the consumer workaround would then fail closed on files that are still the same leftover pin, and migrate would no-op again. The field-subset predicate in finding 1 covers that shape; exact-object equality does not.\n\n## 5. Write-sink inventory `footnote`\n\n`applyHybridEnvelopeRewrites` already plans, then `containedWrite` replace, behind `checkGitClean` unless `--force`. The strip should use that pair. Do not add a second write primitive for a root authority JSON file.\n\n",
+          "id": 5746756916,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746756916",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:35:22Z",
+          "updated_at": "2026-09-20T01:35:32Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nmigrate:xbrief still exits 0 on an already-xbrief file that carries a complete xBRIEFInfo@0.8 envelope plus a leftover vBRIEFInfo@0.6 key, and the commit drift gate then rejects that same file. Confirming this map keeps the in-place strip, but not through the 0.6 transform: prove every leftover field is redundant or equal, walk the same file set the drift gate uses, and leave update-time prevention as leftover so success-then-reject is owned by migrate on that set.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: leftover prevention on the update stamp path.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after one isolated critic. Cites critic 5746756916. Supersedes Stop 1 write-back 5746684475. Round 1 sibling count 1.\n\nTarget-digest: sha256:0a6bfda84289a7fe1f9c5cfee6a6ac23c70b509a0d7482b6e1020c65bbda4253\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4163-dc\norigin-ref: origin/master\ndispatch-sha: eda261d7a6e0d75b61466c6234ea517cd77df598\ntarget shape: single-issue\nround: 1\nsiblings: 1\nDual-stop cap: 6 posts (1 spent)\n\nTakes:\n\n- 5746756916 Operationalize redundant-legacy against split envelope readers — accept-into-contract\n- 5746756916 Scope the strip to the drift-gate file set — accept-into-contract\n- 5746756916 One success-path owns the success-then-reject postcondition — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Add a strip plan beside `planHybridEnvelopeRewrites`, not through `transformArtifactV06ToV08` / `isAlreadyV08Artifact`. Do not reuse the 0.6 transform's drop-both-keys path.\n- Redundancy predicate: fail closed on field disagreement the same way `dual-populated` refuses a merge. Strip only when every legacy-info field is either `version: \"0.6\"` or already present and equal on the canonical 0.8 object. Unique legacy fields (`description`, `created`, `updated`) without an equal canonical counterpart refuse.\n- Preserve the canonical envelope and `plan` byte-for-byte aside from deleting the leftover key.\n- Reuse `checkGitClean` plus `containedWrite`. Validate the post-strip object with `validateVbriefSchema` and `scanCorpusEnvelope` before write.\n- File set is the rejecting gate: same candidates as `scanCorpusEnvelope` (canonical suffix under `xbrief/`, not lifecycle-folder, not allowlisted). Root `specification.xbrief.json` and `plan.xbrief.json` are in. `xbrief/completed/**` stays historical.\n- P1 repair is `migrate:xbrief` on that file set. Update-transaction prevention (strip or `evaluateXbriefDrift` before the compatibility stamp) is leftover, not this Bound-remedy. Doctor envelope-major check is not that prevention.\n\nFootnotes stay footnotes: version-only equality is not a redundancy proof; do not add a second write primitive.\n\n",
+          "id": 5746775552,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746775552",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:38:33Z",
+          "updated_at": "2026-09-20T01:38:33Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nStop 4 pain-audit of successor lean 5746775552 asserted `relieves: P1` against Stop 1 P1 on 5746684475. Round-1 critic 5746756916 headings are the accepted framing. Re-verified at `eda261d7a6e0d75b61466c6234ea517cd77df598` on the reproduced object (`vBRIEFInfo: {version: \"0.6\"}` beside complete `xBRIEFInfo@0.8`).\n\nMeasured (not a line cite): `readDeclaredArtifactVersion` returns `0.8`, so a hybrid rewrite is not planned; `isAlreadyV08Artifact` is true, so `transformArtifactV06ToV08` keeps the leftover key; `resolveInfoBlock` still resolves `vBRIEFInfo`; `scanCorpusEnvelope` on the live specification path returns `legacy-envelope-key`; no `vbrief/` tree, so `runXbriefMigration` still takes the residual-schema noop. P1 is still the defect at this SHA.\n\nVerdict: the Bound remedy's strip design can relieve that P1, but the harvested bullets as written do not yet. Two restatements against existing mechanisms. Not `blocks-the-design`.\n\n## 1. Pre-write `scanCorpusEnvelope` cannot validate a post-strip object `sharpens-framing`\n\n**Evidence:** Ran the exported detector on the reproduced specification path: kind `legacy-envelope-key`. Ran the same two envelope checks on the in-memory object after deleting `vBRIEFInfo`: clean. Ran the detector on a missing path: `null` (it `readFileSync`s; I/O or parse failure returns `null`, not a finding). Hybrid in-place rewrite plans a body, then `containedWrite`; it does not call `scanCorpusEnvelope` before write. `validateVbriefSchema` already accepts an in-memory object; `scanCorpusEnvelope` does not.\n\n**Failure mode:** A write gate that calls `scanCorpusEnvelope(rel, livePath)` before `containedWrite` always sees the leftover key, so the strip never lands and migrate still no-ops or refuses without repairing. A write gate that scans a not-yet-written staging path treats detector-`null` as pass. Either way the harvested \"validate the post-strip object with `scanCorpusEnvelope` before write\" does not produce a canonical file the drift gate will accept. Skip-and-exit-0 on a dual-envelope sibling that failed the redundancy predicate would leave `evaluateXbriefDrift` red after a migrate success: the same success-then-reject P1, now at corpus scope.\n\n**Disposition:** The lean can bind. Restate that harvest bullet. Apply the envelope predicate already inside `scanCorpusEnvelope` (`vBRIEFInfo` present, or `xBRIEFInfo.version` not `0.8`) to the in-memory post-strip object; fail closed if dirty. Do not `readFileSync` the pre-strip path. Do not treat detector-`null` as pass. Do not add a third scanner. A non-redundant dual envelope in the drift-gate set refuses the whole migrate (non-zero), matching hybrid transform failure. After apply, `evaluateXbriefDrift` on that same candidate set is the existing success-then-reject postcondition.\n\nRoad not taken: `blocks-the-design` because asserted `relieves: P1` is false as harvested. Steelman: the phrase \"post-strip object\" already means in-memory. What would flip: a harvest that names `scanCorpusEnvelope(rel, livePath)` as the write gate. It names the object. Sharpen the call, keep the strip.\n\n## 2. Name the already-xbrief call site before the residual-schema noop `sharpens-framing`\n\n**Evidence:** Same run: hybrid pending is empty because declared version is `0.8`. Leftover key is still in the file. `vbrief/` is absent. That is the residual-schema noop path. `runXbriefMigration` only applies `planHybridEnvelopeRewrites` when `pending.length > 0`; empty pending falls through to `detectLegacyVbriefLayout` and the already-xbrief noop. `planHybridEnvelopeRewrites` is a non-exported function in that window; a new planner that is only declared beside it is never consulted.\n\n**Failure mode:** Implementer adds a strip planner next to the hybrid planner, does not call it in that window, migrate still exits 0, `verify_xbrief_drift` still reports `legacy-envelope-key`. P1 unrelieved.\n\n**Disposition:** The lean can bind. Name the call site on the harvest: same `xbriefHasContent && !vbriefPresent` window, after empty hybrid pending, before `detectLegacyVbriefLayout` / residual-schema noop. On non-empty strip pending, reuse the hybrid `checkGitClean` plus `containedWrite` apply, then return rewritten so the noop cannot fire.\n\nInjection / swarm: root specification is an authority envelope. Split readers already disagree (`validate_resolves=vBRIEFInfo` and `declared_version=0.8` on one object). The accepted fail-closed field-subset predicate is the existing `dual-populated` analog (mark, never merge). Measured: reproduced `{version: \"0.6\"}` is redundant; unique `description` refuses; equal stamped `updated` on both keys still strips. Do not route 0.8 leftover through `resolveV06InfoBlock`.\n\n## 3. Reproduced redundancy holds `footnote`\n\nField-subset predicate accepts the consumer leftover `{version: \"0.6\"}`. Exact-object equality is still the wrong proof after `stampExistingEnvelopes` writes `updated` on both keys; the accepted predicate already covers that when the stamps match. Root `specification.xbrief.json` is in the `scanCorpusEnvelope` candidate set; `xbrief/completed/**` is not.\n\n## 4. Update-stamp leftover is not this P1 `footnote`\n\nAccepted heading 3 plus the lean's leftover line already bind P1 to `migrate:xbrief` on the drift-gate set. Doctor `collectLiveXbriefEnvelopePaths` still skips `specification.xbrief.json`. Dirty-tree `checkGitClean` unless `--force` is the hybrid rewrite's existing override, not a new primitive. Not recut as P1.\n\n",
+          "id": 5746844532,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746844532",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:50:55Z",
+          "updated_at": "2026-09-20T01:50:55Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nmigrate:xbrief still no-ops the dual-envelope already-xbrief file. Confirming this map keeps the in-place strip and restates two harvest bullets: validate the post-strip object in memory with the envelope predicate already inside scanCorpusEnvelope, and call the strip planner in the already-xbrief window after empty hybrid pending, before the residual-schema noop.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-2 successor after pain-audit. Cites critic 5746844532. Supersedes successor lean 5746775552. Round 1 sibling count 1.\n\nTarget-digest: sha256:0a6bfda84289a7fe1f9c5cfee6a6ac23c70b509a0d7482b6e1020c65bbda4253\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4163-dc\norigin-ref: origin/master\ndispatch-sha: eda261d7a6e0d75b61466c6234ea517cd77df598\ntarget shape: single-issue\nround: 2\nsiblings: 1\nDual-stop cap: 6 posts (2 spent)\n\nTakes:\n\n- 5746756916 Operationalize redundant-legacy against split envelope readers — accept-into-contract\n- 5746756916 Scope the strip to the drift-gate file set — accept-into-contract\n- 5746756916 One success-path owns the success-then-reject postcondition — accept-into-contract\n- 5746844532 Pre-write scanCorpusEnvelope cannot validate a post-strip object — accept-into-contract\n- 5746844532 Name the already-xbrief call site before the residual-schema noop — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Add a strip plan beside `planHybridEnvelopeRewrites`, not through `transformArtifactV06ToV08` / `isAlreadyV08Artifact`.\n- Redundancy predicate: fail closed on field disagreement the same way `dual-populated` refuses a merge. Strip only when every legacy-info field is either `version: \"0.6\"` or already present and equal on the canonical 0.8 object.\n- Preserve the canonical envelope and `plan` byte-for-byte aside from deleting the leftover key.\n- Reuse `checkGitClean` plus `containedWrite`.\n- Validate the in-memory post-strip object with `validateVbriefSchema` and the envelope predicate already inside `scanCorpusEnvelope` (`vBRIEFInfo` present, or `xBRIEFInfo.version` not `0.8`); fail closed if dirty. Do not `readFileSync` the pre-strip path. Do not treat detector-null as pass. After apply, `evaluateXbriefDrift` on that same candidate set is the success-then-reject postcondition. A non-redundant dual envelope in the drift-gate set refuses the whole migrate (non-zero).\n- Call site: same `xbriefHasContent && !vbriefPresent` window, after empty hybrid pending, before `detectLegacyVbriefLayout` / residual-schema noop. On non-empty strip pending, reuse hybrid `checkGitClean` plus `containedWrite`, then return rewritten so the noop cannot fire.\n- File set is `scanCorpusEnvelope` candidates. Root `specification.xbrief.json` and `plan.xbrief.json` are in. `xbrief/completed/**` stays historical.\n- Update-transaction prevention remains leftover.\n\nFootnotes stay footnotes.\n\n",
+          "id": 5746872524,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746872524",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T01:56:11Z",
+          "updated_at": "2026-09-20T01:56:11Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nStop 4 pain-audit of successor lean 5746872524 asserted `relieves: P1` against Stop 1 P1 on 5746684475. Prior pain-audit 5746844532 is in envelope; this recut restates its two sharpening headings. Re-verified at `eda261d7a6e0d75b61466c6234ea517cd77df598` on the reproduced consumer object (`vBRIEFInfo: {version: \"0.6\"}` beside the live `xbrief/specification.xbrief.json` `xBRIEFInfo@0.8`).\n\nMeasured (not a line cite): `readDeclaredArtifactVersion` returns `0.8`, so `planHybridEnvelopeRewrites` skips the file; `isAlreadyV08Artifact` is true, so `transformArtifactV06ToV08` keeps the leftover key; `resolveInfoBlock` still resolves `vBRIEFInfo`; the post-parse body inside `scanCorpusEnvelope` returns `legacy-envelope-key`; `detectLegacyVbriefLayout` sees the leftover key string. No `vbrief/` tree, so `runXbriefMigration` still takes the residual-schema noop (the consumer migrate message). After deleting the leftover key in memory, that same envelope body is clean, `resolveInfoBlock` resolves `xBRIEFInfo`, and canonical `xBRIEFInfo` plus `plan` are unchanged.\n\nVerdict: the Bound remedy on successor lean 5746872524 relieves that P1. Not `blocks-the-design`.\n\n## 1. Recut harvest intercepts the residual-schema noop `footnote`\n\n**Evidence:** P1 is the already-xbrief dual-envelope file after an empty hybrid-0.6 plan: migrate exits 0, `verify_xbrief_drift` still reports `legacy-envelope-key` on `xbrief/specification.xbrief.json`. The recut names the strip planner beside `planHybridEnvelopeRewrites`, the `xbriefHasContent && !vbriefPresent` window after empty hybrid pending, and return `rewritten` on non-empty strip pending so the residual-schema noop cannot fire. That is the P1 exit. Harvest also restates the in-memory write gate: apply the two conditions already inside `scanCorpusEnvelope` (`vBRIEFInfo` present, or `xBRIEFInfo.version` a non-`0.8` string) to the post-strip object; do not `readFileSync` the pre-strip path; do not treat detector-null as pass. Ran those two conditions on the reproduced object (dirty) and on the post-strip object (clean). File set is that detector's candidates: root `specification.xbrief.json` is in; `xbrief/completed/**` is not. Non-redundant dual envelopes refuse the whole migrate. Update-stamp prevention stays leftover, which is how accepted heading 3 bound P1 to `migrate:xbrief` on that set.\n\n**Failure mode:** None on the named P1. An implementer following those harvest bullets writes a canonical file the drift gate accepts.\n\n**Disposition:** Footnote. The lean can bind as written. The two 5746844532 restatements are in the harvest and match the measured control flow.\n\n## 2. Hybrid-pending early return is outside this P1 `footnote`\n\n**Evidence:** When hybrid pending is non-empty, `runXbriefMigration` applies 0.6 rewrites and returns `rewritten` before the new strip window. A mixed tree (0.6 hybrid plus this 0.8 leftover) would still exit 0 with specification dirty on that first invocation.\n\n**Failure mode:** Not the named P1. Stop 1 re-measured the empty-hybrid-plan noop. A second migrate then hits empty hybrid pending and the recut window.\n\n**Disposition:** Footnote. Do not recut the call site into the hybrid-return branch as a P1 condition.\n\nInjection / swarm: root specification is an authority envelope. Split readers still disagree on the dual object (`validate_resolves=vBRIEFInfo` and `declared_version=0.8`). The recut keeps the fail-closed field-subset analog of `dual-populated` (mark, never merge) and does not route the leftover through `resolveV06InfoBlock` / `transformArtifactV06ToV08`. After strip, both readers resolve `xBRIEFInfo`.\n\nRoad not taken: `blocks-the-design` because same-invocation hybrid return can still leave drift red, or because `evaluateXbriefDrift` is named as postcondition rather than a migrate-exit gate. Steelman: success-then-reject is the P1 shape, so any migrate success that leaves `legacy-envelope-key` is unrelieved. What would flip: the reproduced tree having non-empty hybrid pending, or a harvest that calls `scanCorpusEnvelope(rel, livePath)` as the write gate. Measured tree is empty hybrid pending; harvest names the in-memory object. Keep the strip.\n\n",
+          "id": 5746923656,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746923656",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:05:58Z",
+          "updated_at": "2026-09-20T02:05:58Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5746872524.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5746872524 are accept-into-contract | critics 5746756916, 5746844532 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers migrate:xbrief dual-envelope already-xbrief noop | pain-audit 5746923656 | pin-read of planHybridEnvelopeRewrites window, scanCorpusEnvelope envelope predicate, residual-schema noop; footnote-only census |\n\n",
+          "id": 5746929072,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746929072",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:07:05Z",
+          "updated_at": "2026-09-20T02:07:05Z",
+          "author_association": "CONTRIBUTOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nmigrate:xbrief still no-ops an already-xbrief file that carries leftover vBRIEFInfo@0.6 beside complete xBRIEFInfo@0.8. The accepted next-build is an in-place strip in that already-xbrief window, with an in-memory envelope check, not the 0.6 transform.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5746872524.\n\n",
+          "id": 5746929152,
+          "html_url": "https://github.com/deftai/directive/issues/4163#issuecomment-5746929152",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:07:06Z",
+          "updated_at": "2026-09-20T02:07:06Z",
+          "author_association": "CONTRIBUTOR"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5337301686,
+        "origin": "deftai/directive#4163",
+        "id": "github.issue.5337301686"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0a6bfda84289a7fe1f9c5cfee6a6ac23c70b509a0d7482b6e1020c65bbda4253"
+      }
+    },
+    "id": "github.issue.5337301686",
+    "updated": "2026-09-20T12:31:28Z"
+  }
+}
