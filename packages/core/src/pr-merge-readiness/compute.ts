@@ -396,6 +396,21 @@ function finalizeVerdictGate(
     failures.push(...ci.failures);
     partialData.ci = ci.ci;
     partialData.slizard = ci.slizard;
+    // Empty review + CI is not MERGE-READY unless GitHub is CLEAN + MERGEABLE (#4883).
+    // Same reader as the soft-reconcile path. Fallback2's display is not this check.
+    // CI already refused a null repo, so this read has one.
+    if (failures.length === 0) {
+      const fetchMergeabilityFn = options.fetchMergeabilityFn ?? fetchMergeability;
+      const signal = fetchMergeabilityFn(prNumber, resolved.repo as string, runGh);
+      partialData.mergeability = mergeabilityToDict(signal);
+      if (!isGithubMergeableClean(signal)) {
+        failures.push(
+          "GitHub does not report this pull request as mergeable and clean " +
+            `(mergeable=${String(signal.mergeable)}, mergeable_state=${String(signal.mergeableState)}). ` +
+            "An empty review and CI failure list is not MERGE-READY until mergeable is true and mergeable_state is clean (#4883).",
+        );
+      }
+    }
     return { failures, partialData };
   }
 

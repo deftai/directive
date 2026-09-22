@@ -192,6 +192,8 @@ describe("compute branches", () => {
           stdout: JSON.stringify({
             head: { sha: "abc1234567890def1234567890abcdef12345678" },
             base: { ref: "master" },
+            mergeable: true,
+            mergeable_state: "clean",
           }),
         },
         "comments-jq": { returncode: 1 },

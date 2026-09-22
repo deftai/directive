@@ -237,7 +237,12 @@ describe("coverage boost branches", () => {
       if (j.includes("/pulls/")) {
         return {
           returncode: 0,
-          stdout: JSON.stringify({ head: { sha: HEAD }, base: { ref: "master" } }),
+          stdout: JSON.stringify({
+            head: { sha: HEAD },
+            base: { ref: "master" },
+            mergeable: true,
+            mergeable_state: "clean",
+          }),
           stderr: "",
         };
       }
@@ -301,7 +306,12 @@ describe("coverage boost branches", () => {
       if (j.includes("/pulls/")) {
         return {
           returncode: 0,
-          stdout: JSON.stringify({ head: { sha: HEAD }, base: { ref: "master" } }),
+          stdout: JSON.stringify({
+            head: { sha: HEAD },
+            base: { ref: "master" },
+            mergeable: true,
+            mergeable_state: "clean",
+          }),
           stderr: "",
         };
       }
@@ -418,7 +428,12 @@ describe("coverage boost branches", () => {
       if (j.includes("/pulls/") && !j.includes("check-runs")) {
         return {
           returncode: 0,
-          stdout: JSON.stringify({ head: { sha: HEAD }, base: { ref: "master" } }),
+          stdout: JSON.stringify({
+            head: { sha: HEAD },
+            base: { ref: "master" },
+            mergeable: true,
+            mergeable_state: "clean",
+          }),
           stderr: "",
         };
       }

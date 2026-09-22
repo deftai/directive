@@ -1,0 +1,298 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4883",
+    "updated": "2026-09-22T22:36:39Z"
+  },
+  "plan": {
+    "title": "pr:merge-ready prints MERGE-READY while GitHub mergeable is CONFLICTING",
+    "status": "running",
+    "narratives": {
+      "Description": "pr:merge-ready prints MERGE-READY while GitHub mergeable is CONFLICTING",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4883",
+      "Overview": "\n\n1. The empty-failure return in finalizeVerdictGate does not yield MERGE-READY unless isGithubMergeableClean holds.\n2. That check reuses fetchMergeability and isGithubMergeableClean. The fallback2 display is not that check.\r\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:cli, dogfood, status:child, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "The empty-failure return in finalizeVerdictGate does not yield MERGE-READY unless isGithubMergeableClean holds.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "That check reuses fetchMergeability and isGithubMergeableClean. The fallback2 display is not that check.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "dogfood",
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4883",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4883: pr:merge-ready prints MERGE-READY while GitHub mergeable is CONFLICTING"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The empty-failure return in finalizeVerdictGate does not yield MERGE-READY unless isGithubMergeableClean holds.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "That check reuses fetchMergeability and isGithubMergeableClean. The fallback2 display is not that check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because pr:merge-ready prints MERGE-READY from an empty failure list without requiring GitHub mergeable, so a CONFLICTING pull request can still read MERGE-READY.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4883-dc\norigin-ref: origin/HEAD\ndispatch-sha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; Desired is one named failure, not an open RFC, so N=1.\n\nrefutation-target: the empty-failure path that prints MERGE-READY already requires GitHub mergeable_state clean and mergeable true, so CONFLICTING cannot print MERGE-READY.\n\ntarget: #4883\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is MERGE-READY while GitHub mergeable is CONFLICTING. Parent #4832 stays the tracker.\n\nPin-read at dispatch-sha aba2407f86bbef9b21f1b07d85ce396886d6bef5: packages/core/src/pr-merge-readiness/evaluate.ts isMergeReady returns failures.length === 0. output.ts prints Result: MERGE-READY on that predicate. finalizeVerdictGate in compute.ts returns on failures.length === 0 after the CI gate and does not call fetchMergeability on that branch. fetchMergeability runs on the soft-verdict reconcile path. No implement and no ingest from this parent.\n\nCensus: still-open, 0 comments, wip active=0 pending=0. Unreleased on origin/master does not name #4883.",
+          "id": 5779054311,
+          "html_url": "https://github.com/deftai/directive/issues/4883#issuecomment-5779054311",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:15:34Z",
+          "updated_at": "2026-09-22T15:15:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound-1 refutation of the Stop 1 `refutation-target:` on write-back 5779054311. Pin SHA `aba2407f86bbef9b21f1b07d85ce396886d6bef5`. Re-read the same early return the write-back named, then ran that branch.\n\nThe target does not hold. A current-HEAD clean Greptile review and a green CI gate still print `Result: MERGE-READY` and exit 0 when REST `mergeable` is false and `mergeable_state` is `dirty`. That REST pair is the shape `mergeability.ts` maps from GraphQL `mergeable: CONFLICTING`.\n\n## 1. Empty-failure MERGE-READY skips GitHub clean and mergeable\n\nblocks-the-design\n\nEvidence. `finalizeVerdictGate` in `packages/core/src/pr-merge-readiness/compute.ts` calls `evaluateGates`, and when that list is empty (lines 394-399) it appends the CI and SLizard failures and returns. That return does not call `fetchMergeability` or `isGithubMergeableClean`. `isMergeReady` (`evaluate.ts:185`) is `failures.length === 0`. `printHuman` (`output.ts:138`) pushes `Result: MERGE-READY` on that predicate, and `run` in `main.ts` writes that string and returns `exitCodeFor`, which is 0 for an empty failure list. No later check reads mergeability.\n\n`isGithubMergeableClean` (`mergeability.ts:69-70`) is `mergeable === true && mergeableState === \"clean\"`. The only caller that can turn a non-empty verdict failure list into `failures: []` is the soft-reconcile branch at `compute.ts:417-440`, after `verdictBlockIsSoftOnly`. That branch does require clean and mergeable true. It is the branch taken when the verdict list is already non-empty. `computeFallback2` (`compute.ts:633`) always sets `failures` to `FALLBACK2_NOT_CLEAN_MSG`, so that layer never prints MERGE-READY. It only records `mergeable` and `mergeable_state` for the blocked fallback display.\n\nProbe. Vitest 4.1.11, two tests, both passed, temporary file removed, tree left at the pin SHA. `computeGateResult` with REST `mergeable: false`, `mergeable_state: \"dirty\"`, one successful check-run, ruleset and protection 404, empty review threads.\n\n- Current-HEAD Greptile body, confidence 5/5, reviewed SHA equal to HEAD: `via` primary, `failures` `[]`, `partialData.mergeability` absent, `verdict_override` absent, human text contains `Result: MERGE-READY`, `exitCodeFor` 0.\n- Empty comment body (absent verdict), same GitHub payload: failures non-empty, `partialData.mergeability` is `{ mergeable: false, mergeable_state: \"dirty\" }`, no `verdict_override`, human text contains `Result: MERGE-BLOCKED`, exit non-zero.\n\nFailure mode. `deft pr:merge-ready` reports MERGE-READY, exit 0, for a pull request GitHub reports as CONFLICTING, whenever the review gates and the CI gate are empty. The operator can merge on that line while the pull request is conflicting.\n\nDisposition. A successor lean that accepts the refutation-target cannot bind. Stop 1 pain P1 stands: MERGE-READY from an empty failure list while GitHub mergeable is CONFLICTING. A bindable statement fails the `compute.ts:394` return closed unless `isGithubMergeableClean` holds. That predicate and `fetchMergeability` already exist on the soft-reconcile path. Reuse them on the empty return. Patching fallback2 does not change the primary MERGE-READY line.\n\nRoad not taken. Treating only the `compute.ts:440` clear-to-empty return as the empty-failure path. That return does require `mergeable_state` clean and `mergeable` true. It runs only after a soft verdict block.\n\nSteelman. The strongest reading of the target is that every MERGE-READY result is that #2260 override, so CONFLICTING cannot clear. The probe's absent-verdict case matches that reading and stays MERGE-BLOCKED. The reading fails on a present, current-HEAD, high-confidence review: `evaluateGates` returns an empty list and the function returns at line 399 before the predicate. The verdict would flip if that early return called `isGithubMergeableClean`, or if `evaluateGates` or the CI gate pushed a failure when `mergeable` is false. Neither does.\n\n## 2. The pulls document on the empty return is the base-ref read\n\nfootnote\n\n`fetchPrBaseRef` (`gh.ts:484`) GETs `repos/<owner>/<repo>/pulls/<N>` on the CI path and keeps `base.ref` only. The conflicting payload in the probe was therefore returned on the empty-failure run, and `partialData.mergeability` was still absent. The fields are on that response. The MERGE-READY predicate does not use them.\r\n\n",
+          "id": 5779262403,
+          "html_url": "https://github.com/deftai/directive/issues/4883#issuecomment-5779262403",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:29:17Z",
+          "updated_at": "2026-09-22T15:29:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\npr:merge-ready prints MERGE-READY and exits 0 when the review and CI gates are empty, even if GitHub reports the pull request as not mergeable. Confirming this map means that empty return is not MERGE-READY unless GitHub reports a clean mergeable pull request. The same parent wrote the opening triage and these takes.\n\n**Lean:** round 1, critic 5779262403. Supersedes 5779054311.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:c2c6a3f5ddb4c8201109a4e50f3e4c7eefb5d8a582e1eb8db866bf9fdbd7bf18\n\naccept-into-contract: Empty-failure MERGE-READY skips GitHub clean and mergeable\n\nrelieves: P1\n\n## Bound remedy\n\n1. The empty-failure return in finalizeVerdictGate does not yield MERGE-READY unless isGithubMergeableClean holds.\n2. That check reuses fetchMergeability and isGithubMergeableClean. The fallback2 display is not that check.\r\n\n",
+          "id": 5779345474,
+          "html_url": "https://github.com/deftai/directive/issues/4883#issuecomment-5779345474",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:34:53Z",
+          "updated_at": "2026-09-22T15:34:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of successor lean 5779345474 against Stop 1 pain P1 on write-back 5779054311. Pin aba2407f86bbef9b21f1b07d85ce396886d6bef5.\n\nP1 is MERGE-READY while GitHub mergeable is CONFLICTING. The bound remedy says the empty-failure return in finalizeVerdictGate does not yield MERGE-READY unless isGithubMergeableClean holds, and that this check reuses fetchMergeability and isGithubMergeableClean. The fallback2 display is not that check.\n\nThe bound remedy covers P1.\n\nMERGE-READY is one predicate. isMergeReady is failures.length === 0 (evaluate.ts:185). printHuman pushes Result: MERGE-READY on that predicate (output.ts:138) and exitCodeFor returns 0 (output.ts:160). The JSON merge_ready field reads the same predicate (output.ts:40).\n\nTwo returns can hand back an empty failure list. The empty-failure return (compute.ts:394) appends the CI gate and returns. It does not call fetchMergeability. The soft-reconcile return (compute.ts:428) clears the list only when isGithubMergeableClean is true. computeFallback2 always returns a non-empty failure (compute.ts:633).\n\nisGithubMergeableClean is mergeable === true and mergeableState === \"clean\" (mergeability.ts:69). The file maps REST mergeable false to GraphQL mergeable CONFLICTING (mergeability.ts:8). A false boolean fails the predicate even when mergeable_state is clean.\n\nRan the pin sources with a REST payload of mergeable false and mergeable_state dirty, one green check-run, ruleset and protection 404, and empty review threads.\n\n- Current-HEAD confidence 5/5 review: via primary, 0 failures, mergeability absent, no verdict override, human text Result: MERGE-READY, exit 0.\n- Absent verdict, same payload: 1 failure, mergeability dirty/false, no override, Result: MERGE-BLOCKED, exit 1.\n- Excluded-author skip, same payload: 0 failures, mergeability absent, Result: MERGE-READY, exit 0. Same empty return.\n- Predicate false for false/dirty, false/clean, null/dirty, true/dirty, true/unstable, and null/null. True only for true/clean.\n\nThe CONFLICTING shape is the false boolean. Requiring the predicate on the empty return stops that return from yielding MERGE-READY. The soft return already refuses it. Fallback2 never yields it. Excluded-author reaches the same empty return, so it is covered without a separate check.\n\nRoad not taken. A CONFLICTING-only check that ignores unstable, behind, blocked, and draft. That would be a new predicate. The soft path already uses isGithubMergeableClean.\n\nSteelman. The issue's word is CONFLICTING, so a narrower check would match the pain text and would leave today's MERGE-READY behavior for a mergeable-true non-clean state. The verdict flips if isGithubMergeableClean returned true for REST mergeable false. It does not. The harvested check is the one that covers P1.\n\nLens. The empty return would start granting MERGE-READY only after the existing REST read. Failed, empty, and non-boolean fetches come back mergeable null, which the predicate rejects. An honest CONFLICTING payload cannot take the true-and-clean branch. No separate finding.\n\n## Clean predicate is broader than CONFLICTING\n\nfootnote\n\nEvidence. The probe rejects mergeable true with mergeable_state unstable, and mergeable true with dirty.\n\nFailure mode. On the empty return, a pull request GitHub calls MERGEABLE but not CLEAN would also stop printing MERGE-READY. That is wider than P1.\n\nDisposition. The harvested list stays as written. P1 does not depend on narrowing the predicate. The broader check is the mechanism the soft path already uses.\n\nCensus: one footnote. The bound remedy covers P1.",
+          "id": 5779543821,
+          "html_url": "https://github.com/deftai/directive/issues/4883#issuecomment-5779543821",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:48:06Z",
+          "updated_at": "2026-09-22T15:48:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSame parent wrote the opening triage and the successor lean. The round-1 critic and the pain-audit critic were separate posts. Rows are those critics runs at aba2407f86bbef9b21f1b07d85ce396886d6bef5. They are not marked verified: this parent did not re-run the probe, and the second seat was the same model family.\n\n| Claim | Evidence | Method | Mark |\n| --- | --- | --- | --- |\n| An empty failure list prints MERGE-READY when GitHub mergeable is false | Current-HEAD review, mergeable false and mergeable_state dirty, exit 0, Result: MERGE-READY | Critic probe at the dispatch SHA | not verified |\n| isGithubMergeableClean rejects that payload | Predicate false for false/dirty and true only for true/clean | Critic probe at the dispatch SHA | not verified |\n| The bound remedy covers P1 | Requiring that predicate on the empty return stops MERGE-READY for the CONFLICTING shape | Pain-audit footnote at the dispatch SHA | not verified |\r\n\n",
+          "id": 5779581165,
+          "html_url": "https://github.com/deftai/directive/issues/4883#issuecomment-5779581165",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:50:38Z",
+          "updated_at": "2026-09-22T15:50:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\npr:merge-ready prints MERGE-READY when the review and CI gates are empty, even if GitHub reports the pull request as not mergeable. The record accepts requiring the existing clean-and-mergeable check on that empty return. The same parent wrote the opening triage and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5779345474\nverified-claims table 5779581165\r\n\n",
+          "id": 5779582845,
+          "html_url": "https://github.com/deftai/directive/issues/4883#issuecomment-5779582845",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:50:45Z",
+          "updated_at": "2026-09-22T15:50:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: The merge-ready command says the pull request is ready while GitHub itself says the branches conflict.\n\nWhy that ruins the product for them: They try to land the change and the product contradicts GitHub. The finish line they were given is wrong.\n\nHow likely: Medium. Fewer people reach a pull request on day one. Almost everyone who does, and who has a conflict, will be misled.\n\n",
+          "id": 5780299987,
+          "html_url": "https://github.com/deftai/directive/issues/4883#issuecomment-5780299987",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:27Z",
+          "updated_at": "2026-09-22T16:39:27Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Parent: #4832\n\n## Finding\n\ndeft pr:merge-ready reported MERGE-READY while gh pr view mergeable was CONFLICTING. The empty-failure return never checks that GitHub itself considers the pull request mergeable.\n\nSplit out of #4832 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: Urgent (audit scale S1)\n- Source: #4832\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540575294,
+        "origin": "deftai/directive#4883",
+        "id": "github.issue.5540575294"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c2c6a3f5ddb4c8201109a4e50f3e4c7eefb5d8a582e1eb8db866bf9fdbd7bf18"
+      }
+    },
+    "id": "github.issue.5540575294",
+    "updated": "2026-09-22T22:36:39Z"
+  }
+}

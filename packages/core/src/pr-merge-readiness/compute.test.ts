@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeGateResult } from "./compute.js";
+import { exitCodeFor, printHuman } from "./output.js";
 import type { RunGhFn } from "./types.js";
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";
@@ -191,6 +192,122 @@ describe("computeGateResult #2260 reconciliation", () => {
     expect(result.failures).toEqual([]);
     // No override needed — the verdict itself was clean.
     expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+    const mergeability = (result.partialData as Record<string, unknown>).mergeability as Record<
+      string,
+      unknown
+    >;
+    expect(mergeability.mergeable).toBe(true);
+    expect(mergeability.mergeable_state).toBe("clean");
+    expect(printHuman(result)).toContain("Result: MERGE-READY");
+    expect(exitCodeFor(result)).toBe(0);
+  });
+
+  it("does not MERGE-READY an empty failure list when GitHub is not clean (#4883)", () => {
+    const result = computeGateResult(
+      4883,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "dirty",
+        mergeable: false,
+      }),
+    );
+    expect(result.via).toBe("primary");
+    expect(result.failures.length).toBeGreaterThan(0);
+    expect(result.failures.join(" ")).toContain("not MERGE-READY");
+    expect(result.failures.join(" ")).toContain("mergeable=false");
+    expect(result.failures.join(" ")).toContain("mergeable_state=dirty");
+    expect(result.failures.join(" ")).not.toContain("fallback2 is a coarse signal");
+    expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+    const mergeability = (result.partialData as Record<string, unknown>).mergeability as Record<
+      string,
+      unknown
+    >;
+    expect(mergeability.mergeable).toBe(false);
+    expect(mergeability.mergeable_state).toBe("dirty");
+    const human = printHuman(result);
+    expect(human).toContain("Result: MERGE-BLOCKED");
+    expect(human).not.toContain("Result: MERGE-READY");
+    expect(exitCodeFor(result)).toBe(1);
+  });
+
+  it("does not MERGE-READY when mergeable is true but mergeable_state is not clean (#4883)", () => {
+    const result = computeGateResult(
+      4883,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "unstable",
+        mergeable: true,
+      }),
+    );
+    expect(result.via).toBe("primary");
+    expect(result.failures.join(" ")).toContain("mergeable_state=unstable");
+    expect(result.failures.join(" ")).not.toContain("fallback2 is a coarse signal");
+  });
+
+  it("does not MERGE-READY an excluded-author skip when GitHub is not clean (#4883)", () => {
+    const body = "<!-- greptile-status --> PR author is in the excluded authors list.";
+    const result = computeGateResult(
+      4883,
+      "deftai/directive",
+      fakeRunGh({ commentBody: body, mergeableState: "dirty", mergeable: false }),
+    );
+    expect(result.verdict.excludedAuthor).toBe(true);
+    expect(result.failures.length).toBeGreaterThan(0);
+    expect(result.failures.join(" ")).not.toContain("fallback2 is a coarse signal");
+    expect((result.partialData as Record<string, unknown>).verdict_override).toBeUndefined();
+  });
+
+  it("reuses fetchMergeabilityFn on the empty-failure return (#4883)", () => {
+    let called = false;
+    const result = computeGateResult(
+      4883,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "clean",
+        mergeable: true,
+      }),
+      {
+        fetchMergeabilityFn: () => {
+          called = true;
+          return { mergeableState: "dirty", mergeable: false, error: null };
+        },
+      },
+    );
+    expect(called).toBe(true);
+    expect(result.via).toBe("primary");
+    expect(result.failures.length).toBeGreaterThan(0);
+    const mergeability = (result.partialData as Record<string, unknown>).mergeability as Record<
+      string,
+      unknown
+    >;
+    expect(mergeability.mergeable).toBe(false);
+    expect(mergeability.mergeable_state).toBe("dirty");
+  });
+
+  it("does not read mergeability when CI already blocks an empty review list (#4883)", () => {
+    let called = false;
+    const result = computeGateResult(
+      4883,
+      "deftai/directive",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "dirty",
+        mergeable: false,
+      }),
+      {
+        requiredContexts: ["TypeScript (build + lint + test)", "terraform-plan"],
+        fetchMergeabilityFn: () => {
+          called = true;
+          return { mergeableState: "clean", mergeable: true, error: null };
+        },
+      },
+    );
+    expect(called).toBe(false);
+    expect(result.failures.join(" ")).toContain("ci_absent_required");
+    expect((result.partialData as Record<string, unknown>).mergeability).toBeUndefined();
   });
 
   it("fails closed on green observed CI when ruleset required context is absent (#3234)", () => {
