@@ -203,6 +203,8 @@ describe("runInitDeposit", () => {
     );
     expect(result.taskfileWired).toBe(true);
     expect(lines.join("")).toContain("AGENTS.md created");
+    expect(lines.join("")).not.toContain("Commit hygiene");
+    expect(lines.join("")).not.toContain("git add");
     expect(spawnSpy).not.toHaveBeenCalled();
   });
 
@@ -314,8 +316,23 @@ describe("runInitDeposit", () => {
       ready: true,
       live_status: "functional",
     });
-    expect(err.join("")).toContain("Deft installed successfully");
-    expect(err.join("")).toContain("deft agent hook readiness: live green");
+    const errText = err.join("");
+    expect(errText).toContain("Deft installed successfully");
+    expect(errText).toContain("Location     :");
+    expect(errText).toContain("AGENTS.md    : updated");
+    expect(errText).toContain("Skills       :");
+    expect(errText).toContain("User config  :");
+    expect(errText).not.toContain("Commit hygiene");
+    expect(errText).not.toContain("directive migrate");
+    const nextSteps = errText.slice(errText.indexOf("Next steps:"));
+    expect(nextSteps).toContain(`1. Open your AI coding assistant in ${project}`);
+    expect(nextSteps.match(/^\s*\d+\..*$/gm)).toEqual([
+      `  1. Open your AI coding assistant in ${project}`,
+    ]);
+    expect(nextSteps).not.toContain("Use AGENTS.md");
+    expect(nextSteps).not.toContain("project:render");
+    expect(nextSteps).not.toContain("`");
+    expect(errText).toContain("deft agent hook readiness: live green");
   });
 
   it("keeps a completed deposit but exits non-zero when post-deposit hook readiness fails", async () => {
@@ -369,7 +386,7 @@ describe("runInitDeposit", () => {
     expect(summary.staged_paths).toEqual(["Taskfile.yml", ".deft/core"]);
   });
 
-  it("printNextSteps includes friendly wizard lines", () => {
+  it("printNextSteps names what was created and one next step (#4656)", () => {
     const lines: string[] = [];
     printNextSteps(
       {
@@ -383,10 +400,19 @@ describe("runInitDeposit", () => {
       },
       { printf: (text) => lines.push(text) },
     );
-    expect(lines.join("")).toContain("Next steps:");
+    const text = lines.join("");
+    expect(text).toContain("Location     : /proj/.deft/core");
+    expect(text).toContain("AGENTS.md    : updated");
+    expect(text).toContain("Skills       : .agents/skills/ created");
+    expect(text).toContain("User config  : /cfg");
+    expect(text).toContain("1. Open your AI coding assistant in /proj");
+    expect(text.match(/^\s*\d+\..*$/gm)).toEqual(["  1. Open your AI coding assistant in /proj"]);
+    expect(text).not.toContain("Use AGENTS.md");
+    expect(text).not.toContain("project:render");
+    expect(text).not.toContain("`");
   });
 
-  it("printNextSteps nudges migrate when deposit lacks npm provenance (#2059)", () => {
+  it("printNextSteps does not nudge migrate when fresh init has no managedBy (#4656)", () => {
     const root = makeProject(VENDORED_MANIFEST);
     const lines: string[] = [];
     printNextSteps(
@@ -401,7 +427,7 @@ describe("runInitDeposit", () => {
       },
       { printf: (text) => lines.push(text) },
     );
-    expect(lines.join("")).toContain("directive migrate");
+    expect(lines.join("")).not.toContain("directive migrate");
   });
 
   it("printNextSteps omits migrate nudge when deposit is already npm-managed", () => {

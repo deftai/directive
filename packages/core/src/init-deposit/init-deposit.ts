@@ -29,7 +29,7 @@ import {
 import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate-project.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
-import { depositStagePaths, printCommitGuidance } from "./hygiene.js";
+import { depositStagePaths } from "./hygiene.js";
 import {
   buildLegacyRefusalJson,
   buildLegacyRefusalMessage,
@@ -38,7 +38,6 @@ import {
   type LegacyLayoutDetection,
   LegacyLayoutRefusedError,
 } from "./legacy-detect.js";
-import { printMigrateNudgeIfNeeded } from "./migrate.js";
 import { ensurePrettierIgnoreLines } from "./prettierignore.js";
 import {
   CANONICAL_INSTALL_ROOT,
@@ -230,15 +229,9 @@ export function printNextSteps(result: InitDepositResult, io: InitDepositIo): vo
   io.printf("  AGENTS.md    : updated\n");
   io.printf(`  Skills       : .agents/skills/ ${skillsStatus} (auto-discovered by AI agents)\n`);
   io.printf(`  User config  : ${result.configDir}\n`);
+  // No migrate nudge: fresh-init VERSION has no managedBy. Update still nudges (#4656).
   io.printf("\nNext steps:\n");
   io.printf(`  1. Open your AI coding assistant in ${result.projectDir}\n`);
-  io.printf("  2. Deft skill auto-discovery is partially implemented — if your agent doesn't\n");
-  io.printf('     start setup automatically, tell it: "Use AGENTS.md"\n');
-  io.printf("  3. On first session, the agent will guide you through USER.md (if missing).\n");
-  io.printf(
-    "  4. PROJECT-DEFINITION is seeded at init (#3013) — run `task project:render` once to refresh items from lifecycle folders; do not multi-turn invent project identity.\n",
-  );
-  printMigrateNudgeIfNeeded(result.projectDir, io);
   io.printf("\n");
 }
 
@@ -358,10 +351,10 @@ export async function runInitDeposit(
 
   const configDir = createUserConfigDir(io);
 
-  const { stagePaths, staged, stagedPaths } = depositStagePaths(projectDir, {
+  // Upgrade commit recipe stays on update. Fresh-init success does not print it (#4656).
+  const { stagedPaths } = depositStagePaths(projectDir, {
     includeTaskfile: taskfileWired,
   });
-  printCommitGuidance(io, stagePaths, staged);
 
   // #3117: stamp live generation only after required init projections succeed.
   // Stamping earlier would advance authority for a failed/partial init (Greptile).

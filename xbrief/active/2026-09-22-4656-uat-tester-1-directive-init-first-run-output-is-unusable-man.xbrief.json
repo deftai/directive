@@ -1,0 +1,536 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4656",
+    "updated": "2026-09-22T20:51:42Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 1] directive init first-run output is unusable (many next actions, maintainer dump)",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 1] directive init first-run output is unusable (many next actions, maintainer dump)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4656",
+      "Overview": "\n\n- First-run success already names what was created.\n- The edit stops the init success path from using the upgrade recipe (printCommitGuidance).\n- The edit stops printMigrateNudgeIfNeeded on the fresh-init success path, where the VERSION manifest has no managedBy.\n- One next step remains, from the list printNextSteps already prints.\n- That kept step is the only imperative the success path prints.\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, area:installer, area:cli, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "First-run success already names what was created.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "The edit stops the init success path from using the upgrade recipe (printCommitGuidance).",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "The edit stops printMigrateNudgeIfNeeded on the fresh-init success path, where the VERSION manifest has no managedBy.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "One next step remains, from the list printNextSteps already prints.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "That kept step is the only imperative the success path prints.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "area:installer",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4656",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4656: [UAT Tester 1] directive init first-run output is unusable (many next actions, maintainer dump)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "First-run success already names what was created.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The edit stops the init success path from using the upgrade recipe (printCommitGuidance).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The edit stops printMigrateNudgeIfNeeded on the fresh-init success path, where the VERSION manifest has no managedBy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "One next step remains, from the list printNextSteps already prints.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "That kept step is the only imperative the success path prints.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705167885,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5705167885",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:58:45Z",
+          "updated_at": "2026-09-16T21:58:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "UAT Tester 6 hit the same class of problem on cold-start (doctor/init noise, unclear next step). Fresh write-up with WSL/Grok evidence: #4701",
+          "id": 5716666332,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5716666332",
+          "user": {
+            "login": "Shinran7",
+            "id": 268619852,
+            "node_id": "U_kgDOEALQTA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/268619852?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/Shinran7",
+            "html_url": "https://github.com/Shinran7",
+            "followers_url": "https://api.github.com/users/Shinran7/followers",
+            "following_url": "https://api.github.com/users/Shinran7/following{/other_user}",
+            "gists_url": "https://api.github.com/users/Shinran7/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/Shinran7/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/Shinran7/subscriptions",
+            "organizations_url": "https://api.github.com/users/Shinran7/orgs",
+            "repos_url": "https://api.github.com/users/Shinran7/repos",
+            "events_url": "https://api.github.com/users/Shinran7/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/Shinran7/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-17T15:09:04Z",
+          "updated_at": "2026-09-17T15:09:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Lifecycle: installing Directive, updating it, and getting one clear next step when something looks wrong. It also covers whether the version someone thinks they installed is the version that is actually running.\n\nWhat a new person hits: The first setup command succeeds, then prints a long maintainer log and several different things to do next.\n\nWhy that ruins the product for them: The first screen feels like the tool is bloated and aimed at its own developers. A new person cannot tell which line is for them.\n\nHow likely: High. Almost everyone who runs setup sees this output.\n\n",
+          "id": 5780261166,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5780261166",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:36:55Z",
+          "updated_at": "2026-09-22T16:36:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because init still prints maintainer git-add guidance and more than one next action on the success path, so a first-run consumer does not get one next step.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4656-dc\norigin-ref: origin/HEAD\ndispatch-sha: eec15b57b142591c99bd8a68c13dda573f1c03aa\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; the Desired shape is one named failure, so N=1.\n\nrefutation-target: directive init first-run success prints a maintainer git-add recipe and several next actions, rather than what was created and one next step.\n\ntarget: #4656\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is first-run init success output that names several next actions and a maintainer git-add recipe instead of one next step.\n\nPin-read at dispatch-sha eec15b57b142591c99bd8a68c13dda573f1c03aa: packages/core/src/init-deposit/init-deposit.ts prints Use AGENTS.md. packages/core/src/init-deposit/hygiene.ts prints git add -- guidance and warns against git add -A. The init deposit tests still expect directive migrate on one success path. Unreleased at this SHA does not name #4656. No open PR. Active brief on origin/master is #4840 only. Still-open. #4701 cites this issue as the Tester 1 sibling and is not a duplicate.\n\nNo implement and no ingest from this parent.\n\n",
+          "id": 5781763680,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5781763680",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:25:43Z",
+          "updated_at": "2026-09-22T18:25:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nsha: eec15b57b142591c99bd8a68c13dda573f1c03aa\nround: 1 critic\ncharter: refutation\n\n## sharpens-framing Creation lines already print\n\nThe recorded target says first-run success prints a maintainer git-add recipe and several next actions, rather than what was created and one next step. The recipe and the several next actions do print. What was created also prints, on that same success path.\n\nEvidence. Pinned read of eec15b57b142591c99bd8a68c13dda573f1c03aa. Init was not executed.\n\nprintNextSteps in packages/core/src/init-deposit/init-deposit.ts lines 226-242 prints the success banner, then Location, AGENTS.md updated, Skills, and User config, then a Next steps list of four items, then printMigrateNudgeIfNeeded. runInitDepositCli calls that function on success (same file, lines 414 and 416).\n\nrunInitDeposit writes the VERSION manifest without managedBy (same file, lines 320-328). buildInstallManifestText adds managed_by only when that field is set (packages/core/src/init-deposit/scaffold.ts lines 154-157). shouldEmitMigrateNudge returns true when the manifest exists and is not npm-managed (packages/core/src/init-deposit/migrate.ts lines 456-468). A fresh init therefore prints the directive migrate line. The test at packages/core/src/init-deposit/init-deposit.test.ts lines 389-404 locks that same predicate on a hand-built non-npm manifest.\n\nprintCommitGuidance in packages/core/src/init-deposit/hygiene.ts lines 1463-1516 prints the upgrade recipe whenever the path list is nonempty. The commit-hygiene header, the git add -A warning, and the co-travel paragraph print first. The staging branch then prints one of the git-add sentences. The five-step chore/deft-framework-upgrade list (branch, commit, push, PR, merge) follows that branch, so it prints for every nonempty path list. runInitDeposit calls printCommitGuidance(io, stagePaths, staged) at init-deposit.ts lines 361-364. The cachedNames parameter defaults to an empty list (hygiene.ts line 1468). depositStagePaths already computed cachedNames, and this call drops it. hygiene.test.ts lines 1263-1266 lock the empty-cache branch to the Stage ONLY these sentence. The update path passes cachedNames (packages/core/src/init-deposit/refresh.ts lines 1106-1112) and calls this printer only when the deposit is not already current.\n\nframeworkStagePaths adds .deft/core when the deposit directory exists (hygiene.ts lines 1025-1032). That directory exists before the guidance call, because reconstitute runs at init-deposit.ts line 313. Greenfield gitignore includes .deft/core/ when the deposit is not tracked (gitignore.ts lines 207-216; the line text is .deft/core/ at gitignore.ts line 31). A repository with no commits is that case: isDepositTrackedInGit is false when ls-files is empty. The printed git add uses the unfiltered stage list. stageFrameworkPaths drops untracked ignored paths before the real git add (hygiene.ts lines 1135-1137). No commit count gates the recipe.\n\nFailure mode. Adding a creation summary repeats printNextSteps lines 228-232. Shortening only the Next steps list leaves the upgrade recipe on the path, because runInitDeposit prints it first. Passing cachedNames changes the git-add sentence. The five-step upgrade list still prints, because those lines follow the staging branch.\n\nDisposition. Bind this statement: first-run success prints the maintainer git-add recipe and more than one next action, and it already names what was created. The edit stops the init success path from using the upgrade recipe, and leaves one next step from the list printNextSteps already prints. The absence wording in the recorded target stays out of the bound statement.\n\nRoad not taken. Blocking the whole sentence. The case for a block is that the absence wording makes the sentence unusable as a problem statement. The creation lines on this success path flip that to a scope change: the recipe half and the several-actions half can bind once that wording is dropped.\n\n",
+          "id": 5781892529,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5781892529",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:35:23Z",
+          "updated_at": "2026-09-22T18:35:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nFirst-run init already names what was created. The same success path also prints a maintainer git-add recipe and several next actions. Confirming this map keeps the recipe and the extra actions as the problem, and drops the claim that those creation lines are missing. The accepted solution is a success path that does not print the upgrade recipe and that keeps one next step from the list already printed. Pain P1 stays asserted until a later critic targets it. No leftover issue.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.7 parent authored Stop 1 and these takes.\n\nForward verdict: the sharpening binds. Disposition: Creation lines already print is accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4656 round-1 successor. Cites critic 5781892529. Supersedes Stop 1 write-back 5781763680.\n\nTarget-digest: sha256:3941396c5cc903d8fcd28ccf586e124a321021abc6a2bc974ef08e3e374a3732\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4656-dc\norigin-ref: origin/HEAD\ndispatch-sha: eec15b57b142591c99bd8a68c13dda573f1c03aa\ntarget shape: single-issue\n\nTakes:\n\n- 5781892529 Creation lines already print — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\nInitial triage remains outside this amendment. The relieves cite is the asserted premise.\n\naudit:pain-P1 sha=eec15b57b142591c99bd8a68c13dda573f1c03aa pointer=comment:5781892529 reading=asserted\n\n## Bound remedy\n\n- First-run success prints the maintainer git-add recipe and more than one next action, and it already names what was created.\n- The edit stops the init success path from using the upgrade recipe, and leaves one next step from the list printNextSteps already prints.\n- The absence wording in the recorded target stays out of the bound statement.\n\n",
+          "id": 5781933530,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5781933530",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:38:22Z",
+          "updated_at": "2026-09-22T18:38:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nsha: eec15b57b142591c99bd8a68c13dda573f1c03aa\nround: pain-audit after the bind lean\ncharter: refutation\n\n## blocks-the-design Migrate nudge survives the bound edit\n\nComment 5781933530 cites relief for P1. Stop 1 write-back 5781763680 defines P1 as first-run init success output that names several next actions and a maintainer git-add recipe instead of one next step. The harvested edit stops the upgrade recipe and leaves one next step from the list printNextSteps already prints. That list is the four numbered items. The migrate nudge is the next call in the same function, and the harvested edit leaves that call in place.\n\nEvidence. Pin-read with git show eec15b57b142591c99bd8a68c13dda573f1c03aa of the success-path printers. Init was not executed. This is the same method as the round-1 pin-read: follow the printers the success path calls.\n\nprintNextSteps in packages/core/src/init-deposit/init-deposit.ts lines 233-240 prints the Next steps heading and items 1 through 4. Line 241 calls printMigrateNudgeIfNeeded. runInitDeposit writes the VERSION manifest with no managedBy field (same file, lines 320-328). buildInstallManifestText appends managed_by only when that field is set (packages/core/src/init-deposit/scaffold.ts lines 154-157). shouldEmitMigrateNudge returns true when that manifest exists and is not npm-managed (packages/core/src/init-deposit/migrate.ts lines 456-468). The printed line tells the user to run directive migrate (migrate.ts lines 452-453). The test at packages/core/src/init-deposit/init-deposit.test.ts lines 389-404 locks that line on a non-npm manifest. Stop 1 cited that test under the P1 gate stamp. runInitDeposit calls printCommitGuidance at init-deposit.ts line 364, and runInitDepositCli calls printNextSteps on success (lines 414 and 416).\n\nFailure mode. An implementer who follows the harvested edit removes the upgrade-recipe printer and keeps one of the four numbered steps. The nudge still prints on a fresh init, because the manifest that runInitDeposit writes has no managedBy. The success path then names that kept step and the migrate command. P1 asks for one next step. The relief cite does not cover P1.\n\nDisposition. This lean cannot bind as written. The relief cite stays an asserted premise the harvested edit does not discharge.\n\n## footnote Git-add sentence sits inside the stopped printer\n\nUnder the method comment 5781892529 recorded, and that this lean accepted, the upgrade recipe is printCommitGuidance (packages/core/src/init-deposit/hygiene.ts lines 1463-1516). That function prints the git add -- sentence (lines 1504-1506) and then the five-step upgrade list (lines 1508-1516). Stopping that printer removes the git-add recipe P1 names. A cut that stops only the five-step list would be a different method. This footnote is census only. It carries no disposition.\n\nRoad not taken. Treating the surviving nudge as a wording change and rewriting the edit so it also stops printMigrateNudgeIfNeeded. The case for that class is that the parent meant a single user-facing step and would accept the extra stop. The recorded edit leaves the nudge call in place, so the relief cite is false on the harvest that is posted. What would flip this verdict to a wording change: the bound edit already stops that nudge, or it defines the one remaining step as the only imperative the success path prints.",
+          "id": 5782072061,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782072061",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:47:39Z",
+          "updated_at": "2026-09-22T18:47:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe pain-audit of lean 5781933530 blocked bind. The harvested edit stops the upgrade recipe and leaves one numbered next step, and the migrate nudge still prints on a fresh init. That is a second next action, so P1 is not covered. This map retracts the bind. No ingest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.7 parent authored Stop 1 and these takes.\n\nForward verdict: retraction. Disposition: Migrate nudge survives the bound edit is accept-into-contract. The git-add sentence footnote stays outside the take map. Residual: P1 unrelieved.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of #4656 after blocking pain-audit 5782072061. Supersedes successor lean 5781933530. Parent does not intend to bind this map.\n\nTarget-digest: sha256:3941396c5cc903d8fcd28ccf586e124a321021abc6a2bc974ef08e3e374a3732\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4656-dc\norigin-ref: origin/HEAD\ndispatch-sha: eec15b57b142591c99bd8a68c13dda573f1c03aa\ntarget shape: single-issue\n\nTakes:\n\n- 5782072061 Migrate nudge survives the bound edit — accept-into-contract\n\nFootnote census: 5782072061 Git-add sentence sits inside the stopped printer. Outside the take map.\n\ndoes-not-relieve: P1\n\n## Bound remedy\n\n- This lean cannot bind as written.\n- The harvested edit stops the upgrade recipe and leaves one next step from the four numbered items, and it leaves printMigrateNudgeIfNeeded in place.\n- A fresh init still prints the migrate line because the VERSION manifest has no managedBy.\n- The success path then names the kept step and the migrate command. P1 asks for one next step.\n\n",
+          "id": 5782105048,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782105048",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:49:30Z",
+          "updated_at": "2026-09-22T18:49:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nopen-question: Halt this arc, or post a later bind lean on this issue that also stops the migrate nudge?\n\nHandoff after blocking pain-audit 5782072061 plus retraction map 5782105048. The posted map carries does-not-relieve for P1 and Spec-path, so the handoff print is the unrelieved-pain recut. Retraction spends no numbered critic post. A checking critic is a later dispatch. Yolo standing does not confirm this Handoff or a leftover split.\n\nLeftover path: do not file a second issue. The migrate nudge is the same P1, not a separable unmet part. Deliverable remainder stays on this issue: one next step means the success path also stops printMigrateNudgeIfNeeded. Recommend halt until the operator picks the open question. Do not dest-place. Do not ingest.\n\n",
+          "id": 5782108447,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782108447",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:49:42Z",
+          "updated_at": "2026-09-22T18:49:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a fresh init still prints the upgrade recipe and a migrate nudge beside the next-step list, so first-run success does not give one next step.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4656-dc\norigin-ref: origin/HEAD\ndispatch-sha: eec15b57b142591c99bd8a68c13dda573f1c03aa\n\ncharter: open critique\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; this later bind is one named edit, so N=1.\n\ntarget: #4656\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is first-run init success output that prints the maintainer upgrade recipe and the migrate nudge beside the next-step list, instead of one next step. Creation lines already print.\n\nPost-handoff warrant after Handoff 5782108447. Charter is open critique. The previous warrant is 5781763680. Operator asked to post the later bind lean. Pain-audit 5782072061 showed printMigrateNudgeIfNeeded still runs when the VERSION manifest has no managedBy. Pin remains eec15b57b142591c99bd8a68c13dda573f1c03aa.\n\nNo implement and no ingest from this parent.\n\n",
+          "id": 5782221382,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782221382",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:57:31Z",
+          "updated_at": "2026-09-22T18:57:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nFirst-run init already names what was created. The success path also prints an upgrade recipe and a migrate nudge beside the next-step list. The operator asked for this later bind. The accepted solution stops that recipe and stops the fresh-init migrate nudge, and keeps one next step from the list that already prints. Pain P1 stays asserted until a later critic targets it. No leftover issue.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.7 parent authored the warrants and these takes.\n\nForward verdict: later bind after the blocking audit. Disposition: Migrate nudge survives the bound edit is accept-into-contract, and the harvest now stops that nudge. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4656 later bind after operator confirm. Cites pain-audit 5782072061. Supersedes successor lean 5782105048. Follows post-handoff warrant 5782221382.\n\nTarget-digest: sha256:3941396c5cc903d8fcd28ccf586e124a321021abc6a2bc974ef08e3e374a3732\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4656-dc\norigin-ref: origin/HEAD\ndispatch-sha: eec15b57b142591c99bd8a68c13dda573f1c03aa\ntarget shape: single-issue\n\ncharter: open critique\nspend: N=1\nspend-ask: asked\n\nTakes:\n\n- 5782072061 Migrate nudge survives the bound edit — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\nInitial triage remains outside this amendment. The `relieves` cite is the asserted premise.\n\naudit:pain-P1 sha=eec15b57b142591c99bd8a68c13dda573f1c03aa pointer=comment:5782072061 reading=asserted\n\n## Bound remedy\n\n- First-run success already names what was created.\n- The edit stops the init success path from using the upgrade recipe (printCommitGuidance).\n- The edit stops printMigrateNudgeIfNeeded on the fresh-init success path, where the VERSION manifest has no managedBy.\n- One next step remains, from the list printNextSteps already prints.\n- That kept step is the only imperative the success path prints.\n\n",
+          "id": 5782228710,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782228710",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T18:58:02Z",
+          "updated_at": "2026-09-22T18:58:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nsha: eec15b57b142591c99bd8a68c13dda573f1c03aa\nround: pain-audit after the later bind lean\ncharter: open critique\n\nComment 5782228710's bound remedy covers P1 from Stop 1 write-back 5782221382. P1 is first-run init success output that prints the maintainer upgrade recipe and the migrate nudge beside the next-step list, instead of one next step. Creation lines already print.\n\nPin-read at eec15b57b142591c99bd8a68c13dda573f1c03aa. Init was not executed. Same method as pain-audit 5782072061: follow the printers the success path calls.\n\nThe upgrade recipe is printCommitGuidance (packages/core/src/init-deposit/hygiene.ts lines 1463-1516), called from runInitDeposit (packages/core/src/init-deposit/init-deposit.ts line 364) before the success return. The bound edit stops that call on the init success path.\n\nThe migrate nudge is printMigrateNudgeIfNeeded (packages/core/src/init-deposit/migrate.ts lines 476-483). printNextSteps calls it at init-deposit.ts line 241, after the four numbered lines at lines 234-240. runInitDeposit writes the VERSION manifest with no managedBy (init-deposit.ts lines 320-328). buildInstallManifestText appends managed_by only when that field is set (packages/core/src/init-deposit/scaffold.ts lines 154-157). shouldEmitMigrateNudge returns true when that manifest exists and is not npm-managed (migrate.ts lines 456-468; the sentinel is managed_by equal to npm, migrate.ts lines 50-51 and 291-293). The test at packages/core/src/init-deposit/init-deposit.test.ts lines 389-404 locks the migrate line on a non-npm manifest. The bound edit stops that call on the fresh-init success path.\n\nOne numbered line remains from those four. That is one next step. With both printers stopped, the recipe and the nudge are not beside it.\n\n## footnote Readiness recovery stays outside P1\n\nrunInitDepositCli prints the agent-hook readiness message after printNextSteps (init-deposit.ts lines 414-423). When the live probe fails and the failure is not timeout-only, that message appends UNUSED_HOST_HOOKS_RECOVERY (packages/core/src/verify-env/agent-hook-readiness.ts lines 231-238; packages/core/src/policy/host-hooks.ts lines 53-58), which names a policy command. Stop 1 does not put that printer in P1. The bound stops match the two printers P1 names. This line does not keep the recipe or the nudge.\n\nNo disposition. Census only.\n\nRoad not taken. Refusing the cite because a failed probe still prints that policy command, or because the harvest does not name which of the four lines remains. The case for refusing is that one next step could mean every command on the CLI success path, and an unnamed survivor leaves a product choice. The latest Stop 1 names the recipe and the nudge beside the list, and pain-audit 5782072061 treated one of the four as followable once the nudge stops. This harvest stops the nudge and the recipe. What would flip the coverage verdict: a bound bullet that leaves printCommitGuidance or printMigrateNudgeIfNeeded on the fresh-init success path, or a Stop 1 pain that names a printer this harvest does not stop.",
+          "id": 5782346802,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782346802",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:06:30Z",
+          "updated_at": "2026-09-22T19:06:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5782228710.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on the later bind are accept-into-contract | round-1 critic 5781892529 and pain-audit 5782072061, carried on lean 5782228710 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 is stopping printCommitGuidance and printMigrateNudgeIfNeeded on the fresh-init success path, leaving one numbered step from printNextSteps | pain-audit 5782346802 | pin-read at eec15b57b142591c99bd8a68c13dda573f1c03aa; init was not executed |\n| Creation lines already print and stay in the harvest | critic 5781892529 | same pin-read of printNextSteps |\n| Readiness recovery is a footnote outside P1 | pain-audit 5782346802 | census only; Stop 1 does not name that printer |\n\n",
+          "id": 5782374896,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782374896",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:08:34Z",
+          "updated_at": "2026-09-22T19:08:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nFirst-run init already names what was created. The later bind stops the upgrade recipe and the fresh-init migrate nudge, and one numbered next step remains. The pain-audit agrees that harvest covers the stamped pain. A hook-readiness line can still appear when a probe fails, and that line is outside this pain.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.7 parent authored the warrant and the bind lean.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCite successor lean 5782228710.\nverified-claims table 5782374896.\n\n",
+          "id": 5782376760,
+          "html_url": "https://github.com/deftai/directive/issues/4656#issuecomment-5782376760",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:08:42Z",
+          "updated_at": "2026-09-22T19:08:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C3 PASS letter / UX fail; C4 related\n**Defect:** 3\n\n### Expected\nFirst-run success names what was created and gives one next step a new user can follow.\n\n### What happened\nInit dumped a maintainer upgrade-PR `git add` recipe (on a repo with **zero commits**), a JSON blob, a wall of LF\u00e2\u2020\u2019CRLF warnings, hook fail-closed vs `ready: true`, `directive migrate`, \"Use AGENTS.md\" vs README `read AGENTS.md and follow it`, and `git add .deft/core` after saying `.deft/core` is gitignored.\n\n### Evidence\nFull `directive.cmd init` transcript from Tester 1. Coworker independently called it a blurb that does not make sense.\n\n### Environment\nDirective 0.119.1. Empty repo, no commits yet.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480357281,
+        "origin": "deftai/directive#4656",
+        "id": "github.issue.5480357281"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3941396c5cc903d8fcd28ccf586e124a321021abc6a2bc974ef08e3e374a3732"
+      }
+    },
+    "id": "github.issue.5480357281",
+    "updated": "2026-09-22T20:51:42Z"
+  }
+}

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **First-run init success keeps what was created and one next step (#4656).** The init success path no longer prints the upgrade commit recipe or the fresh-init migrate nudge. The next-step list keeps only opening the AI coding assistant in the project directory. Tracking #4656.
+
 ### Removed
 
 ## [0.119.7] - 2026-09-22
