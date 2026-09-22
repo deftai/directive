@@ -33,7 +33,11 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveContentPackageRoot } from "../content-root.js";
 import { locateManifest, parseInstallManifest } from "../doctor/manifest.js";
-import { containedWrite } from "../fs/contained-write.js";
+import {
+  containedWrite,
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+} from "../fs/contained-write.js";
 import { CANONICAL_INSTALL_ROOT } from "./scaffold.js";
 
 /**
@@ -84,6 +88,7 @@ export interface MigrateSeams {
   /**
    * Backup bytes. Default is containedWrite rooted at the backup directory,
    * not the project. A project root refuses the cache and temp paths.
+   * An EXISTS refusal from mode "create" is retried under another filename.
    */
   writeBackup?: (path: string, text: string) => void;
 }
@@ -127,15 +132,24 @@ export function migrateVersionBackupName(projectRoot: string, suffix: string): s
   return `VERSION.bak.${projectBackupKey(projectRoot)}.${suffix}`;
 }
 
-function unusedBackupFile(dir: string, baseName: string): string {
+function backupNameTaken(skip: ReadonlySet<string>, candidate: string): boolean {
+  return existsSync(candidate) || skip.has(candidate) || skip.has(resolve(candidate));
+}
+
+function unusedBackupFile(dir: string, baseName: string, skip: ReadonlySet<string>): string {
   const first = join(dir, baseName);
-  if (!existsSync(first)) return first;
+  if (!backupNameTaken(skip, first)) return first;
   const pid = process.pid;
   for (let n = 1; n < 10000; n += 1) {
     const candidate = join(dir, `${baseName}.${pid}.${n}`);
-    if (!existsSync(candidate)) return candidate;
+    if (!backupNameTaken(skip, candidate)) return candidate;
   }
-  return join(dir, `${baseName}.${pid}.${Date.now()}`);
+  const stamp = Date.now();
+  for (let n = 0; n < 100; n += 1) {
+    const candidate = join(dir, `${baseName}.${pid}.${stamp}.${n}`);
+    if (!backupNameTaken(skip, candidate)) return candidate;
+  }
+  return join(dir, `${baseName}.${pid}.${stamp}.last`);
 }
 
 function userCacheDir(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string | null {
@@ -180,6 +194,7 @@ export function resolveMigrateBackupFile(
   projectRoot: string,
   suffix: string,
   backupRootDir?: () => string,
+  skip: ReadonlySet<string> = new Set(),
 ): string {
   const fileName = migrateVersionBackupName(projectRoot, suffix);
   const roots = [
@@ -195,11 +210,14 @@ export function resolveMigrateBackupFile(
     } catch {
       continue;
     }
-    const candidate = unusedBackupFile(dir, fileName);
+    const candidate = unusedBackupFile(dir, fileName, skip);
     if (pathIsInside(projectRoot, candidate)) continue;
+    if (backupNameTaken(skip, candidate)) continue;
     return candidate;
   }
-  return join(mkdtempSync(join(tmpdir(), "deft-core-bak-")), fileName);
+  const fallback = join(mkdtempSync(join(tmpdir(), "deft-core-bak-")), fileName);
+  if (!backupNameTaken(skip, fallback) && !pathIsInside(projectRoot, fallback)) return fallback;
+  return join(mkdtempSync(join(tmpdir(), "deft-core-bak-")), `${fileName}.${process.pid}.1`);
 }
 
 function writeBackupFile(path: string, text: string): void {
@@ -212,6 +230,46 @@ function writeBackupFile(path: string, text: string): void {
     data: text,
     mode: "create",
   });
+}
+
+function isBackupCreateExists(err: unknown): boolean {
+  return err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS;
+}
+
+/**
+ * Same-second callers can both observe one free name. The loser of mode
+ * "create" gets EXISTS; pick another name instead of aborting the stamp.
+ * Any other failure is invoked again outside the catch so that refusal still
+ * stops the migration.
+ */
+function writeMigrateBackup(
+  projectRoot: string,
+  suffix: string,
+  text: string,
+  backupRootDir: (() => string) | undefined,
+  writeBackup: (path: string, text: string) => void,
+): string {
+  const rejected = new Set<string>();
+  let lastPath = "";
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const backupPath = resolveMigrateBackupFile(projectRoot, suffix, backupRootDir, rejected);
+    lastPath = backupPath;
+    let failed: unknown = null;
+    try {
+      writeBackup(backupPath, text);
+    } catch (err) {
+      failed = err;
+    }
+    if (failed === null) return backupPath;
+    if (!isBackupCreateExists(failed)) {
+      writeBackup(backupPath, text);
+      return backupPath;
+    }
+    rejected.add(backupPath);
+    rejected.add(resolve(backupPath));
+  }
+  writeBackup(lastPath, text);
+  return lastPath;
 }
 
 /**
@@ -322,12 +380,13 @@ export function runMigrate(projectRoot: string, seams: MigrateSeams = {}): Migra
     };
   }
 
-  const backupPath = resolveMigrateBackupFile(
+  const backupPath = writeMigrateBackup(
     projectRoot,
     backupSuffix(nowIso()),
+    text,
     seams.backupRootDir,
+    writeBackup,
   );
-  writeBackup(backupPath, text);
   writeText(manifestPath, stampManifestText(text));
 
   return {

@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseInstallManifest } from "../doctor/manifest.js";
+import * as containedWriteMod from "../fs/contained-write.js";
 import {
   defaultVersionBackupRootDir,
   detectCanonicalVendoredManifest,
@@ -378,5 +379,53 @@ describe("VERSION backup stays outside the deposit (#4812)", () => {
     expect(existsSync(result.backupPath ?? "")).toBe(true);
     expect(readFileSync(result.backupPath ?? "", "utf8")).toBe(VENDORED_MANIFEST);
     expect(relative(resolve(root), resolve(result.backupPath ?? "")).startsWith("..")).toBe(true);
+  });
+
+  it("retries another name when the first exclusive create returns EXISTS (#4812)", () => {
+    const root = makeProject(VENDORED_MANIFEST);
+    const backupRoot = outsideBackupRoot(root);
+    const suffix = "2026-06-24T21-20-43Z";
+    const first = join(backupRoot, migrateVersionBackupName(root, suffix));
+    const created: string[] = [];
+    const realWrite = containedWriteMod.containedWrite;
+    const spy = vi.spyOn(containedWriteMod, "containedWrite").mockImplementation((input) => {
+      if (input.mode !== "create") return realWrite(input);
+      created.push(String(input.target));
+      if (created.length === 1) {
+        throw new containedWriteMod.ContainedWriteError(
+          `contained write refused: target ${String(input.target)} already exists (mode=create)`,
+          {
+            code: containedWriteMod.ContainedWriteErrorCode.EXISTS,
+            root: String(input.root),
+            target: String(input.target),
+          },
+        );
+      }
+      return realWrite(input);
+    });
+    try {
+      const result = runMigrate(root, {
+        resolveEngine: enginePresent,
+        nowIso: () => "2026-06-24T21:20:43Z",
+        backupRootDir: () => backupRoot,
+      });
+      expect(created).toHaveLength(2);
+      expect(created[0]).toBe(first);
+      expect(created[1]).not.toBe(first);
+      expect(created[1]).toBe(
+        join(backupRoot, `${migrateVersionBackupName(root, suffix)}.${process.pid}.1`),
+      );
+      expect(result.outcome).toBe("migrated");
+      expect(result.exitCode).toBe(0);
+      expect(result.backupPath).toBe(created[1]);
+      expect(existsSync(first)).toBe(false);
+      expect(readFileSync(result.backupPath ?? "", "utf8")).toBe(VENDORED_MANIFEST);
+      expect(relative(resolve(root), resolve(result.backupPath ?? "")).startsWith("..")).toBe(true);
+      expect(result.backupPath ?? "").not.toContain(join(".deft", "core"));
+      const stamped = readFileSync(join(root, ".deft", "core", "VERSION"), "utf8");
+      expect(isNpmManaged(parseInstallManifest(stamped))).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
