@@ -271,12 +271,39 @@ describe("landed completed filenames (#4844)", () => {
     });
   });
 
+  it("does not skip D7 when a root commit has unrelated uncommitted or untracked files", () => {
+    const root = tempRoot("vb-4844-dirty-root-");
+    initMaster(root);
+    writeBrief(root, "xbrief", "completed", "2026-09-13-UPPER.xbrief.json", "completed");
+    writeBrief(root, "xbrief", "completed", "2026-09-13-has.dot.xbrief.json", "completed");
+    writeFileSync(join(root, "notes.txt"), "tracked\n", "utf8");
+    git(root, ["add", "xbrief", "notes.txt"]);
+    commit(root, "root");
+    git(root, ["update-ref", "refs/remotes/origin/master", "HEAD"]);
+    const head = gitText(root, ["rev-parse", "HEAD"]);
+    writeFileSync(join(root, "notes.txt"), "uncommitted\n", "utf8");
+    writeFileSync(join(root, "untracked.txt"), "untracked\n", "utf8");
+
+    withDeftBaseRef(head, () => {
+      expect(landedUnchangedCompletedPaths(root)).toBeNull();
+      const { errors, warnings } = validateAll(join(root, "xbrief"));
+      expect(d7Names(errors)).toEqual(
+        ["2026-09-13-UPPER.xbrief.json", "2026-09-13-has.dot.xbrief.json"].sort(),
+      );
+      expect(warnings.join("\n")).not.toContain("(D7)");
+    });
+  });
+
   it("applies the same landed split under vbrief/completed", () => {
     const root = tempRoot("vb-4844-legacy-");
     initMaster(root);
     writeBrief(root, "vbrief", "completed", "directive-adoption.vbrief.json", "completed");
-    git(root, ["add", "vbrief"]);
+    writeFileSync(join(root, "notes.txt"), "tracked\n", "utf8");
+    git(root, ["add", "vbrief", "notes.txt"]);
     commit(root, "base");
+    writeFileSync(join(root, "notes.txt"), "next\n", "utf8");
+    git(root, ["add", "notes.txt"]);
+    commit(root, "child");
     git(root, ["checkout", "-b", "change"]);
     writeBrief(root, "vbrief", "completed", "2026-09-13-UPPER.vbrief.json", "completed");
     const { errors, warnings } = validateAll(join(root, "vbrief"));

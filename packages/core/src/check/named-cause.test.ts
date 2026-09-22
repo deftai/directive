@@ -293,6 +293,18 @@ describe("named-cause gate failures (#3282)", () => {
     expect(msg.remedy).not.toContain("schema");
   });
 
+  it("names the basename remedy when the printed path contains spaces (#4844)", () => {
+    const msg = formatNamedCauseFailure({
+      gateId: "vbrief:validate",
+      exitCode: 1,
+      stdout:
+        "FAIL: xbrief/completed/2026-09-13 my file.xbrief.json: filename '2026-09-13 my file.xbrief.json' does not match convention YYYY-MM-DD-descriptive-slug.xbrief.json (D7)\n",
+    });
+    expect(msg.remedy).toContain("already landed");
+    expect(msg.remedy).not.toContain("schema");
+    expect(msg.remedy).not.toBe("Fix xBRIEF/vBRIEF schema errors reported by the gate");
+  });
+
   it("keeps the basename remedy when the D7 marker is truncated off the cause (#4844)", () => {
     const longPath = `${"x".repeat(300)}/completed/2026-09-11-M0-01-monorepo-scaffold.xbrief.json`;
     const msg = formatNamedCauseFailure({

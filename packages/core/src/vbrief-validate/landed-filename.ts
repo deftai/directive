@@ -54,19 +54,13 @@ function verifiedCommit(ref: string, projectRoot: string): string | null {
   return sha.length > 0 ? sha : null;
 }
 
-/** Uncommitted or untracked work. A clean tree means this commit is the change. */
-function worktreeDirty(projectRoot: string): boolean {
-  const status = git(["status", "--porcelain"], projectRoot);
-  if (status === null || status.status !== 0) return false;
-  return status.stdout.trim().length > 0;
-}
-
 /**
  * Landed base ref. A ref that resolves to HEAD is not a landed base when
  * this commit has a parent: that tree already contains the commit, and
  * `base...HEAD` is empty. The tree before this commit is `HEAD~1`.
- * A root commit has no earlier tree. Uncommitted work there still uses
- * HEAD; a clean root commit cannot prove a landed name (#4844).
+ * A root commit has no earlier tree. Do not return HEAD. Nothing is an
+ * unchanged landed name. Unrelated uncommitted or untracked files do not
+ * change that (#4844).
  */
 function resolveBaseRef(projectRoot: string): string | null {
   const head = verifiedCommit("HEAD", projectRoot);
@@ -97,7 +91,6 @@ function resolveBaseRef(projectRoot: string): string | null {
   if (!sawCurrentHead || head === null) return null;
   const parent = verifiedCommit("HEAD~1", projectRoot);
   if (parent !== null && parent !== head) return "HEAD~1";
-  if (worktreeDirty(projectRoot)) return "HEAD";
   return null;
 }
 
