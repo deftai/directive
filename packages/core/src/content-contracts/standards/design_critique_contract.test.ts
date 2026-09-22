@@ -1494,11 +1494,13 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(leftover).toContain("Do not auto-ingest");
     expect(leftover).toContain("Do not skill-auto-dispatch");
     expect(leftover).toContain("Do not reuse round-1 as pain-audit");
-    const badNonHalt = leftover.split(/(?<=[.!?])\s+/).filter(
-      (sentence) =>
-        /missing-pain|unrelieved-pain/.test(sentence) &&
-        /is not a conversation halt/.test(sentence),
-    );
+    const badNonHalt = leftover
+      .split(/(?<=[.!?])\s+/)
+      .filter(
+        (sentence) =>
+          /missing-pain|unrelieved-pain/.test(sentence) &&
+          /is not a conversation halt/.test(sentence),
+      );
     expect(badNonHalt).toEqual([]);
     expect(text).toContain("Mid-arc EXIT stays next-envelope");
     const skill = readText(SKILL_REL);
@@ -1508,9 +1510,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("evaluateHandoffPrint");
     expect(skill).not.toContain("evaluatePainCitePlacement");
     expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
-    const motion = readText(
-      "skills/deft-directive-design-critique/references/motion-shape.md",
-    );
+    const motion = readText("skills/deft-directive-design-critique/references/motion-shape.md");
     expect(motion).toContain("honest pain cites");
     expect(motion).toContain("not operator next-envelope");
   });
