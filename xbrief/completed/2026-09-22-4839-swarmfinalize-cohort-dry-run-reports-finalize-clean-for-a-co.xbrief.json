@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4839",
-    "updated": "2026-09-22T00:12:34Z"
+    "updated": "2026-09-22T14:20:56Z"
   },
   "plan": {
     "title": "swarm:finalize-cohort --dry-run reports FINALIZE CLEAN for a cohort that fails closed on #3240 acceptance evidence",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "swarm:finalize-cohort --dry-run reports FINALIZE CLEAN for a cohort that fails closed on #3240 acceptance evidence",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4839",
@@ -16,23 +16,47 @@
     "items": [
       {
         "title": "`completeParent` for a brief already in `active/` clones the plan, runs `persistClauseKeyedPendingItems`, then `evaluateAcceptanceEvidenceGate`. Skip `atomicWriteBrief`. Skip `runTransition`. Skip `applyClauseDerivationToPlan`.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4851"
+        }
       },
       {
         "title": "The same persist-and-gate check on `completeStory`. Derivation stays on the pending folder.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/complete-cohort-sweep.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4851"
+        }
       },
       {
         "title": "Failed gate: `action: failed`, `ok: false`, `detail` the gate message, path left out of `settled`. Gate ok true keeps today's would-complete record and the settled add.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4851"
+        }
       },
       {
         "title": "Update fixtures that currently expect dry-run CLEAN on pending items with no `x-directive/evidence`.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4851"
+        }
       }
     ],
     "tags": [
@@ -624,9 +648,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "e8c655532a87e5b6aeb9569a1fcbf3da1d30aa83e818cd7586535c4c562bbcec"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4851,
+        "prBase": null,
+        "mergeCommit": "01b4589988b6cdaee6fd40a3b61ceda7c983fc8b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:20:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:20:56Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:20:56Z"
       }
     },
     "id": "github.issue.5528769651",
-    "updated": "2026-09-22T00:12:34Z"
+    "updated": "2026-09-22T14:20:56Z"
   }
 }
