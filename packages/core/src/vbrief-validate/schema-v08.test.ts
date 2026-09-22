@@ -1,7 +1,13 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { isRecognizedReservedReferenceType } from "@deftai/directive-types";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  describeUnknownReservedReferenceType,
+  isRecognizedReservedReferenceType,
+  KNOWN_REFERENCE_TYPES,
+  RESERVED_REFERENCE_TYPE_ALIASES,
+} from "@deftai/directive-types";
 import { describe, expect, it } from "vitest";
 import { atomicWriteBrief, validateBriefForPersist } from "../scope/brief-io.js";
 import { scanVbrief } from "./conformance.js";
@@ -326,9 +332,35 @@ const CLASS_B_BARES = [
   "hash-pinned-input",
   "upstream-defect",
   "azure-boards-issue",
+  "prerequisite",
+  "related-pr",
+  "source",
+  "runbook",
+  "prior-art",
+  "peer",
+  "upstream",
+  "origin",
+  "related-scope",
+] as const;
+
+const BESTIMAX_CLASS_B_BARES = [
+  "prerequisite",
+  "related-pr",
+  "source",
+  "runbook",
+  "prior-art",
+  "peer",
+  "upstream",
+  "origin",
+  "related-scope",
 ] as const;
 
 const CLASS_B_PREFIXES = ["x-vbrief/", "x-xbrief/"] as const;
+
+const REFERENCES_MD = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../../content/conventions/references.md",
+);
 
 function classBDoc(type: string) {
   return {
@@ -349,8 +381,8 @@ function writeProposedBrief(root: string, name: string, type: string): string {
   return vbrief;
 }
 
-describe("Class B reserved-prefix compatibility (#4746 / #4765)", () => {
-  it("warns on all thirty Class B spellings and keeps them off the fatal-errors API", () => {
+describe("Class B reserved-prefix compatibility (#4746 / #4765 / #4846)", () => {
+  it("warns on all forty-eight Class B spellings and keeps them off the fatal-errors API", () => {
     for (const prefix of CLASS_B_PREFIXES) {
       for (const bare of CLASS_B_BARES) {
         const type = prefix + bare;
@@ -362,10 +394,42 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765)", () => {
         expect(warnings, type).toHaveLength(1);
         expect(warnings[0], type).toContain(type);
         expect(warnings[0], type).toContain("unknown reserved-prefix subtype");
+        expect(warnings[0], type).not.toContain("nearest canonical");
+        const described = describeUnknownReservedReferenceType(type);
+        expect(described?.subtype, type).toBe(bare);
+        expect(described?.nearestCanonical, type).toBeNull();
         expect(validateVbriefSchema(classBDoc(type), "brief.json"), type).toEqual([]);
         expect(isRecognizedReservedReferenceType(type), type).toBe(false);
       }
     }
+  });
+
+  it("keeps the nine BestiMax bares off known types and aliases (#4846)", () => {
+    for (const bare of BESTIMAX_CLASS_B_BARES) {
+      expect(CLASS_B_BARES, bare).toContain(bare);
+      expect(RESERVED_REFERENCE_TYPE_ALIASES[bare], bare).toBeUndefined();
+      for (const prefix of CLASS_B_PREFIXES) {
+        const type = prefix + bare;
+        expect(KNOWN_REFERENCE_TYPES as readonly string[], type).not.toContain(type);
+        expect(isRecognizedReservedReferenceType(type), type).toBe(false);
+      }
+    }
+    expect(RESERVED_REFERENCE_TYPE_ALIASES["related-pr"]).toBeUndefined();
+  });
+
+  it("records the Class B set and the #4846 bounds in conventions/references.md", () => {
+    const page = readFileSync(REFERENCES_MD, "utf8");
+    for (const bare of CLASS_B_BARES) {
+      expect(page, bare).toContain(`\`${bare}\``);
+    }
+    expect(page).toContain("`related-pr` is not `github-pr`");
+    expect(page).toContain("`origin` is not delivery provenance");
+    expect(page).toContain("18 completed, 8 proposed, 0 pending, 0 active");
+    expect(page).toContain("Every cited type was `x-xbrief`");
+    expect(page).toContain("Append-on-discovery is not the steady state");
+    expect(page).toContain("permanent warning");
+    expect(page).toContain("no read-only discriminator");
+    expect(page).toContain("`--warnings-as-errors` still fails");
   });
 
   it("does not treat nearestCanonical == null as the warning classifier", () => {
@@ -443,7 +507,7 @@ describe("Class B reserved-prefix compatibility (#4746 / #4765)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("CLI exits 0 for each of the fifteen names under both prefixes", () => {
+  it("CLI exits 0 for each of the twenty-four names under both prefixes and 1 with --warnings-as-errors", () => {
     for (const prefix of CLASS_B_PREFIXES) {
       for (const bare of CLASS_B_BARES) {
         const root = mkdtempSync(join(tmpdir(), "vb-4746-matrix-"));

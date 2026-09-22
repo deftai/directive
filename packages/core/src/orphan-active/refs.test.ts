@@ -23,6 +23,23 @@ describe("collectGithubRefs reserved subtypes (#4698)", () => {
     ]);
   });
 
+  it("does not harvest related-pr or origin as delivery provenance (#4846)", () => {
+    for (const type of [
+      "x-xbrief/related-pr",
+      "x-vbrief/related-pr",
+      "x-xbrief/origin",
+      "x-vbrief/origin",
+    ]) {
+      const { issues, prs, unknownReserved } = collectGithubRefs(
+        { references: [{ uri: PR_URI, type }] },
+        "deftai/directive-training",
+      );
+      expect(issues, type).toEqual([]);
+      expect(prs, type).toEqual([]);
+      expect(unknownReserved, type).toEqual([{ type, uri: PR_URI, nearestCanonical: null }]);
+    }
+  });
+
   it("still matches github-pr", () => {
     const { prs, unknownReserved } = collectGithubRefs(
       {

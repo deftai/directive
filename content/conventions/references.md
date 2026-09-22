@@ -47,9 +47,25 @@ fail-closes unknown reserved-prefix subtypes except a bounded Class B
 compatibility set (`depends-on`, `supersedes`, `source-document`,
 `user-approval`, `revisit-condition`, `superseded-by`, `verification`,
 `evidence`, `runtime-evidence`, `change-proposal`, `delivery-evidence`,
-`build-run`, `hash-pinned-input`, `upstream-defect`, `azure-boards-issue`)
+`build-run`, `hash-pinned-input`, `upstream-defect`, `azure-boards-issue`,
+`prerequisite`, `related-pr`, `source`, `runbook`, `prior-art`, `peer`,
+`upstream`, `origin`, `related-scope`)
 under both prefixes, which warn. Forward custom types use `x-<consumer>/`.
 The types below carry documented semantics.
+
+Class B membership is a permanent warning.
+The severity function has no read-only discriminator, so the same bare warns on later writes.
+It is not a fifth type registry, and `nearestCanonical` null is not the classifier. These
+names stay off `KNOWN_REFERENCE_TYPES`, engine-written bares, and
+`RESERVED_REFERENCE_TYPE_ALIASES`.
+`related-pr` is not `github-pr`. `origin` is not delivery provenance.
+Default validation exit 0 is the acceptance boundary; `--warnings-as-errors` still fails.
+
+`prerequisite`, `related-pr`, `source`, `runbook`, `prior-art`, `peer`,
+`upstream`, `origin`, and `related-scope` close the evidenced BestiMax corpus
+(#4846). Append-on-discovery is not the steady state. Executed folder counts
+for those citations: 18 completed, 8 proposed, 0 pending, 0 active.
+Every cited type was `x-xbrief`.
 
 - `x-vbrief/plan` — reference to another vBRIEF plan (epic→story or story→epic links, also the canonical v0.5 enum value)
 - `x-vbrief/github-issue` — a GitHub issue (the **primary** origin of an ingested scope vBRIEF). `task issue:emit` treats any `plan.references[]` entry whose type matches `github-issue` / `x-vbrief/github-issue` / `x-xbrief/github-issue` as **already tracked** and SKIPs create. Do **not** add related-only issue refs with this type when the brief still needs emit for its primary origin — keep related links in narratives / PR body / `Refs #N` prose instead (#2881 related-ref footgun).
@@ -58,7 +74,7 @@ The types below carry documented semantics.
 - `x-vbrief/user-request` — a direct user request captured verbatim (no external tracker ID)
 - `x-vbrief/spec-section` — a pointer into `specification.vbrief.json` by item id or narrative key (traceability link for FR/NFR requirements)
 
-Consumer projects ? MAY extend with `x-<consumer>/*` values. Document them in a project-local conventions file and cite them from `PROJECT-DEFINITION.vbrief.json`. Do not add new reserved-prefix subtypes. Historical Class B names under `x-vbrief/` and `x-xbrief/` remain read-accepted as warnings; do not rewrite completed JSON to relocate them.
+Consumer projects ? MAY extend with `x-<consumer>/*` values. Document them in a project-local conventions file and cite them from `PROJECT-DEFINITION.vbrief.json`. Do not add new reserved-prefix subtypes. Historical Class B names under `x-vbrief/` and `x-xbrief/` stay warnings. Membership is not a read-only mode. Do not rewrite completed JSON to relocate them.
 
 ### Additive sibling fields
 

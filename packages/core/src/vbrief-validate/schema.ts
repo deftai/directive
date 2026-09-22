@@ -126,9 +126,11 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
 }
 
 /**
- * Bounded compatibility set (#4746 / #4765). Positive membership of fifteen
- * bares under x-vbrief/ and x-xbrief/. Not a fifth type registry and not
+ * Bounded compatibility set (#4746 / #4765 / #4846). Positive membership of
+ * these bares under x-vbrief/ and x-xbrief/. Not a fifth type registry and not
  * ENGINE_WRITTEN_BARE_TYPES. nearestCanonical == null is not the classifier.
+ * Membership is a permanent warning: severityForUnknownReserved has no
+ * read-only discriminator. The #4846 nine close that evidenced corpus.
  */
 const CLASS_B_COMPATIBILITY_BARES: ReadonlySet<string> = new Set([
   "depends-on",
@@ -146,6 +148,15 @@ const CLASS_B_COMPATIBILITY_BARES: ReadonlySet<string> = new Set([
   "hash-pinned-input",
   "upstream-defect",
   "azure-boards-issue",
+  "prerequisite",
+  "related-pr",
+  "source",
+  "runbook",
+  "prior-art",
+  "peer",
+  "upstream",
+  "origin",
+  "related-scope",
 ]);
 
 export interface PlanReferenceTypeIssues {
