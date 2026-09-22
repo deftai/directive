@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4707",
-    "updated": "2026-09-21T03:02:48Z"
+    "updated": "2026-09-22T16:57:46Z"
   },
   "plan": {
     "title": "bug(scope,schema): scope:complete emits PlanItem.id values the 0.8 schema forbids, and xbrief:validate passes them",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(scope,schema): scope:complete emits PlanItem.id values the 0.8 schema forbids, and xbrief:validate passes them",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4707",
@@ -16,23 +16,47 @@
     "items": [
       {
         "title": "Change `CLAUSE_KEYED_ITEM_ID_PREFIX` to `clause.`. Dual-read `clause:N` on lookup, including `findItemByKey` next to `clauseHasKeyedItem`. Do not treat ingest/promote bind as a second design. Do not add a parallel id mint.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4836",
+          "recorded_at": "2026-09-22T16:55:39Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Same unit of work: writer first or together, then fail-closed pattern check on string `id` when present, inside `packages/core/src/vbrief-validate/schema.ts` `validatePlanItem` next to effort/status (reuse `constants` the way `VALID_PLAN_ITEM_EFFORTS` is reused).",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4836",
+          "recorded_at": "2026-09-22T16:55:39Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Same-PR rewrite of every PlanItem.id matching `clause:N` (same nested walk as `collectItemIdKeys`; this corpus is top-level). Title rewrite stays the exact-id case. Early complete persist write is gated on `addedIds.length > 0`; leftover rewrite must still mutate ids when addedIds is empty, before the later complete persist.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4836",
+          "recorded_at": "2026-09-22T16:55:39Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Strike warn-first à la #4746 from this harvest; it is leftover, not P1 coverage. Integer ids stay leftover, not P1. Do not plug Ajv. Do not put the check in `scanVbrief` or `verify:vbrief-conformance`. Do not make `id` required. Do not widen the schema class to allow `:`.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4836",
+          "recorded_at": "2026-09-22T16:55:39Z",
+          "recorded_by": "MScottAdams"
+        }
       }
     ],
     "tags": [
@@ -338,9 +362,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "569a19ca27e3bea6f338c95cab1926d7257270ffc383dc246a3773fdc222efbc"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4836,
+        "prBase": null,
+        "mergeCommit": "eca518627",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7712f482781c4885fd9d395756e2c316785730dd",
+        "verifiedAt": "2026-09-22T16:57:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGM5ZTQtN2MzZS03NGUzLWI4NDktNTE5NzU4Njk5YzU4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T16:57:46Z",
+      "completedSessionId": "host:grok:v1:MDFhMGM5ZTQtN2MzZS03NGUzLWI4NDktNTE5NzU4Njk5YzU4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T16:57:46Z"
       }
     },
     "id": "github.issue.5489819696",
-    "updated": "2026-09-21T03:02:48Z"
+    "updated": "2026-09-22T16:57:46Z"
   }
 }

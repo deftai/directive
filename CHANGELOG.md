@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Records #4707 complete after clause.N PlanItem ids landed.** Completes the tracked brief for merged PR 4836. Refs #4707.
+
 ### Fixed
 
 - **Literal AC accepts closed `python -m pytest`, `python3 -m pytest`, and `py -m pytest` (#4702).** Stamp-time acceptance runs the same command-safety check. `plan.acceptance` validation reports every stamp refusal, not only no-op reasons. The `-m` flag and `pytest` module are exact; `-M` and `PYTEST` stay refused. Other interpreter modes, uv, bare pytest, go test, and node --test stay refused.
