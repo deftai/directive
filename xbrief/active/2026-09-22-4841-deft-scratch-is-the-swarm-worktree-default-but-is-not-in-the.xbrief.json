@@ -17,22 +17,22 @@
       {
         "title": "Add `.deft-scratch/` to `CANONICAL_GITIGNORE_BASELINE` and `canonicalGitignoreLines`, same shape as `.claude/worktrees/`.",
         "status": "proposed",
-        "id": "clause:1"
+        "id": "clause.1"
       },
       {
         "title": "Lock the TypeScript list with `toContain(\".deft-scratch/\")`. The existing subset test then requires the Go list to carry it. Init, update, and `EnsureGitignoreLines` pick the line up from those arrays.",
         "status": "proposed",
-        "id": "clause:2"
+        "id": "clause.2"
       },
       {
         "title": "Acceptance is an untracked path: once the line is present, `git add -A` does not stage `.deft-scratch/worktrees/<story>`. A path already in the index stays until `git rm --cached`. Keep that removal off `directive update`.",
         "status": "proposed",
-        "id": "clause:3"
+        "id": "clause.3"
       },
       {
         "title": "Do not add `temp/` to either baseline. Do not register `.deft-scratch` on `RUNTIME_WRITER_PATHS_LOCAL_CACHE`. Do not move the swarm default outside the repository.",
         "status": "proposed",
-        "id": "clause:4"
+        "id": "clause.4"
       }
     ],
     "tags": [
