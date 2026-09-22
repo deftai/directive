@@ -1,0 +1,44 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4917"
+  },
+  "plan": {
+    "title": "bug(release): adoption-blocker punch list must not block a tag",
+    "status": "proposed",
+    "narratives": {
+      "Description": "bug(release): adoption-blocker punch list must not block a tag",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4917",
+      "Overview": "The release census treats `adoption-blocker` as a tag block. Fifty-five open issues wear that label. They are the punch list, and a cut must be able to ship while they stay open.\n\n`blocks-release-tag` remains the only label that stops a tag. Do not close the punch-list issues. Do not add a ships-past hatch. Do not derive `adoption-blocker` from a title."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4917",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4917: bug(release): adoption-blocker punch list must not block a tag"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5544410988,
+        "origin": "deftai/directive#4917",
+        "id": "github.issue.5544410988"
+      }
+    },
+    "id": "github.issue.5544410988"
+  }
+}

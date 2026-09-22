@@ -1,7 +1,8 @@
 /**
  * Check 4 -- consumer hard-stop census (#3900 / #3713 / #3969).
  *
- * Enumerates open issues by privileged label only.
+ * Enumerates open issues by blocks-release-tag only.
+ * adoption-blocker is the punch list and does not block a tag.
  * BLOCKER is the sole permitted consumer title classification (inbound flare).
  * The adoption-blocker label is never derived from a title.
  * Issue bodies are not read into the verdict.
@@ -13,14 +14,10 @@
 import { classifyPosition } from "../design-critique/citation-grammar.js";
 
 export const CONSUMER_HARD_STOP_TITLE_RE = /^BLOCKER\b/i;
-export const ADOPTION_BLOCKER_LABEL = "adoption-blocker";
 export const BLOCKS_RELEASE_TAG_LABEL = "blocks-release-tag";
 
-/** Maintainer-applied labels that can block a cut. Titles cannot. */
-export const PRIVILEGED_HARD_STOP_LABELS: readonly string[] = [
-  ADOPTION_BLOCKER_LABEL,
-  BLOCKS_RELEASE_TAG_LABEL,
-];
+/** The only maintainer-applied label that can block a cut. Titles cannot. */
+export const PRIVILEGED_HARD_STOP_LABELS: readonly string[] = [BLOCKS_RELEASE_TAG_LABEL];
 
 const REMEDIATION =
   "Recovery: close those issues in this cut (or list them in the Unreleased Closes set). " +

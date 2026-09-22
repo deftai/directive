@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The release census no longer treats open `adoption-blocker` issues as a tag block (#4917).** `blocks-release-tag` is the only label that stops a cut. The punch list stays open. No ships-past hatch. Closes #4917.
 - **Records #4906 complete after the completed-twin restamp landed.**
 - **A restamp of a completed brief can pair deletion of its leftover active twin (#4906).**
 - **Records #4907 complete after the Windows fixture split landed.**

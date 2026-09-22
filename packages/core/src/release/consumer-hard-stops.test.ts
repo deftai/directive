@@ -45,18 +45,14 @@ describe("classifyHardStop (#3900 check 4 / #3713 / #3969)", () => {
     ).toBeNull();
   });
 
-  it("matches the adoption-blocker label without deriving it from a title", () => {
-    const match = classifyHardStop({
-      number: 99,
-      title: "install fails on first session",
-      labels: ["adoption-blocker"],
-    });
-    expect(match).toEqual({
-      number: 99,
-      title: "install fails on first session",
-      viaTitle: false,
-      viaLabel: true,
-    });
+  it("does not treat adoption-blocker as a tag block", () => {
+    expect(
+      classifyHardStop({
+        number: 99,
+        title: "install fails on first session",
+        labels: ["adoption-blocker"],
+      }),
+    ).toBeNull();
   });
 
   it("matches blocks-release-tag so a privileged deadlined entry is visible", () => {
@@ -77,7 +73,7 @@ describe("classifyHardStop (#3900 check 4 / #3713 / #3969)", () => {
     const match = classifyHardStop({
       number: 7,
       title: "BLOCKER: install fails",
-      labels: ["adoption-blocker"],
+      labels: ["blocks-release-tag"],
     });
     expect(match?.viaTitle).toBe(true);
     expect(match?.viaLabel).toBe(true);
@@ -112,7 +108,7 @@ describe("enumerateConsumerHardStops", () => {
       { number: 11, title: "install", labels: ["adoption-blocker"] },
       { number: 3899, title: "chore: remediation", labels: ["blocks-release-tag"] },
     ]);
-    expect(matches.map((m) => m.number)).toEqual([11, 3899]);
+    expect(matches.map((m) => m.number)).toEqual([3899]);
   });
 });
 
@@ -133,20 +129,29 @@ describe("parseClosesSet", () => {
 });
 
 describe("evaluateConsumerHardStopCensus", () => {
-  it("fails when an open privileged hard-stop is not in the cut Closes set", () => {
+  it("does not fail the census when only adoption-blocker issues are open", () => {
     const result = evaluateConsumerHardStopCensus({
       issues: [{ number: 3463, title: "feat: rust lane", labels: ["adoption-blocker"] }],
       closesSet: new Set(),
     });
+    expect(result.code).toBe(0);
+    expect(result.matches).toEqual([]);
+  });
+
+  it("fails when an open privileged hard-stop is not in the cut Closes set", () => {
+    const result = evaluateConsumerHardStopCensus({
+      issues: [{ number: 3899, title: "chore: remediation", labels: ["blocks-release-tag"] }],
+      closesSet: new Set(),
+    });
     expect(result.code).toBe(1);
-    expect(result.shipsPast.map((e) => e.number)).toEqual([3463]);
+    expect(result.shipsPast.map((e) => e.number)).toEqual([3899]);
     expect(result.message).toContain("Recovery:");
   });
 
   it("passes when the cut Closes set covers every open hard-stop", () => {
     const result = evaluateConsumerHardStopCensus({
-      issues: [{ number: 3463, title: "feat: rust lane", labels: ["adoption-blocker"] }],
-      closesSet: new Set([3463]),
+      issues: [{ number: 3899, title: "chore: remediation", labels: ["blocks-release-tag"] }],
+      closesSet: new Set([3899]),
     });
     expect(result.code).toBe(0);
     expect(result.shipsPast).toEqual([]);
