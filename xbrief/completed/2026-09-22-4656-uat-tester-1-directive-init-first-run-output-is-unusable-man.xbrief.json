@@ -546,7 +546,7 @@
           "author_association": "MEMBER"
         }
       ],
-      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C3 PASS letter / UX fail; C4 related\n**Defect:** 3\n\n### Expected\nFirst-run success names what was created and gives one next step a new user can follow.\n\n### What happened\nInit dumped a maintainer upgrade-PR `git add` recipe (on a repo with **zero commits**), a JSON blob, a wall of LFâ†’CRLF warnings, hook fail-closed vs `ready: true`, `directive migrate`, \"Use AGENTS.md\" vs README `read AGENTS.md and follow it`, and `git add .deft/core` after saying `.deft/core` is gitignored.\n\n### Evidence\nFull `directive.cmd init` transcript from Tester 1. Coworker independently called it a blurb that does not make sense.\n\n### Environment\nDirective 0.119.1. Empty repo, no commits yet.\r\n\n",
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C3 PASS letter / UX fail; C4 related\n**Defect:** 3\n\n### Expected\nFirst-run success names what was created and gives one next step a new user can follow.\n\n### What happened\nInit dumped a maintainer upgrade-PR `git add` recipe (on a repo with **zero commits**), a JSON blob, a wall of LF\u00e2\u2020\u2019CRLF warnings, hook fail-closed vs `ready: true`, `directive migrate`, \"Use AGENTS.md\" vs README `read AGENTS.md and follow it`, and `git add .deft/core` after saying `.deft/core` is gitignored.\n\n### Evidence\nFull `directive.cmd init` transcript from Tester 1. Coworker independently called it a blurb that does not make sense.\n\n### Environment\nDirective 0.119.1. Empty repo, no commits yet.\r\n\n",
       "x-directive/plan-id": {
         "version": 1,
         "source": "github-rest-id",
