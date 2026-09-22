@@ -235,9 +235,7 @@ function parentCandidatesFrom(plan: Record<string, unknown>, vbriefDir: string):
  * #3240 on a clone. Persist mutates items in place; the clone is not written.
  * Derivation stays on the pending folder (#4839).
  */
-function dryRunAcceptanceEvidenceGate(
-  path: string,
-): { ok: true } | { ok: false; detail: string } {
+function dryRunAcceptanceEvidenceGate(path: string): { ok: true } | { ok: false; detail: string } {
   const plan = loadPlan(path);
   if (plan === null) {
     return { ok: false, detail: `cannot read plan for acceptance evidence gate: ${path}` };
