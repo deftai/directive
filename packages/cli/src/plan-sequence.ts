@@ -11,6 +11,8 @@ import {
   collectTerminalLifecycleOrigins,
   createPlanSequence,
   detectTerminalEntryDrift,
+  inspectMissingSequenceKind,
+  missingSequenceKindPayload,
   type PlanSequence,
   type PlanSequenceEntry,
   type PlanSequenceKind,
@@ -127,6 +129,17 @@ export function main(argv: string[] = process.argv.slice(2)): number {
       return 0;
     }
     if (parsed.action === "current") {
+      const missingKind = inspectMissingSequenceKind(root);
+      if (missingKind !== null) {
+        if (parsed.emitJson) {
+          process.stdout.write(
+            `${JSON.stringify(missingSequenceKindPayload(missingKind), null, 2)}\n`,
+          );
+        } else {
+          process.stderr.write(`${missingKind.message}\n`);
+        }
+        return 1;
+      }
       const seq = readPlanSequence(root);
       if (seq === null) {
         process.stderr.write(

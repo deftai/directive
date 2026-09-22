@@ -6,6 +6,8 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   collectTerminalLifecycleOrigins,
+  inspectMissingSequenceKind,
+  missingSequenceKindPayload,
   type PlanTargetKind,
   readPlanSequence,
   verifyPlanTarget,
@@ -104,7 +106,17 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     process.stderr.write(`${parsed.error ?? "usage error"}\n`);
     return 2;
   }
-  const seq = readPlanSequence(resolve(parsed.projectRoot));
+  const root = resolve(parsed.projectRoot);
+  const missingKind = inspectMissingSequenceKind(root);
+  if (missingKind !== null) {
+    if (parsed.emitJson) {
+      process.stdout.write(`${JSON.stringify(missingSequenceKindPayload(missingKind), null, 2)}\n`);
+    } else {
+      process.stderr.write(`${missingKind.message}\n`);
+    }
+    return 1;
+  }
+  const seq = readPlanSequence(root);
   // No sequence: allow (caller may have explicit operator approval); warn on stderr.
   if (seq === null) {
     if (parsed.emitJson) {
@@ -119,7 +131,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
   const result = verifyPlanTarget(seq, {
     targetKind: parsed.targetKind,
     target: parsed.target,
-    terminalOrigins: collectTerminalLifecycleOrigins(resolve(parsed.projectRoot)),
+    terminalOrigins: collectTerminalLifecycleOrigins(root),
   });
   if (parsed.emitJson) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

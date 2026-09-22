@@ -1,4 +1,10 @@
 export {
+  inspectMissingSequenceKind,
+  type MissingSequenceKindPayload,
+  type MissingSequenceKindReport,
+  missingSequenceKindPayload,
+} from "./missing-kind.js";
+export {
   clearPlanSequence,
   planSequencePath,
   readPlanSequence,
@@ -11,6 +17,7 @@ export {
   type PlanEntryOriginResolution,
   resolvePlanEntryLifecycleOrigin,
   TERMINAL_LIFECYCLE_CODE,
+  type TerminalDriftSubject,
   type TerminalEntryDriftResult,
   type TerminalLifecycleOrigin,
 } from "./terminal-drift.js";

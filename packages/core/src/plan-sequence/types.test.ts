@@ -18,4 +18,17 @@ describe("plan-sequence types", () => {
       parsePlanSequence({ sequence_kind: "delivery", entries: [{ id: "a", kind: "pr" }] }),
     ).toThrow(/sequence_id/);
   });
+
+  it("does not parse a non-string sequence_kind as a sequence (#4843)", () => {
+    const base = {
+      sequence_id: "undefined",
+      entries: [{ id: "m0-gap", kind: "story" as const, issue: 285 }],
+    };
+    for (const sequence_kind of [undefined, null, 1, { k: "delivery" }, false]) {
+      expect(() => parsePlanSequence({ ...base, sequence_kind })).toThrow(
+        /plan-sequence: sequence_kind required/,
+      );
+    }
+    expect(parsePlanSequence({ ...base, sequence_kind: "" }).sequence_kind).toBe("");
+  });
 });

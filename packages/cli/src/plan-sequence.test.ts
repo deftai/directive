@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -191,6 +191,160 @@ describe("plan-sequence CLI (#2402)", () => {
     } finally {
       outSpy.mockRestore();
       err2.mockRestore();
+    }
+  });
+
+  it("current names a missing sequence_kind and the pending current terminal fact (#4843)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ps-cli-kind-"));
+    roots.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    mkdirSync(join(root, "xbrief/completed"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft/plan-sequence.json"),
+      JSON.stringify({
+        sequence_id: "undefined",
+        authorized_by: "",
+        current_index: 0,
+        exhausted: false,
+        entries: [
+          { id: "285", kind: "issue", issue: 285 },
+          { id: "286", kind: "issue", issue: 286 },
+        ],
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief/completed/285.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "Done 285",
+          status: "completed",
+          references: [
+            { uri: "https://github.com/acme/app/issues/285", type: "x-xbrief/github-issue" },
+          ],
+        },
+      }),
+    );
+    const err: string[] = [];
+    const errSpy = vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    try {
+      expect(planSequenceMain(["current", "--project-root", root])).toBe(1);
+      const text = err.join("");
+      expect(text).toContain("plan-sequence.json");
+      expect(text).toContain("sequence_kind");
+      expect(text).toContain("not an authorized sequence");
+      expect(text).toContain("issue:285");
+      expect(text).toContain("Stop and ask the operator whether to advance, replace, or clear");
+      expect(text).not.toContain("every entry");
+      expect(text).not.toContain("No active ordered-plan sequence");
+    } finally {
+      errSpy.mockRestore();
+    }
+    const out: string[] = [];
+    const outSpy = vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    const err2 = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(planSequenceMain(["current", "--project-root", root, "--json"])).toBe(1);
+      const payload = JSON.parse(out.join("")) as {
+        ok?: boolean;
+        authorized?: boolean;
+        missing_field?: string;
+        sequence_kind?: string;
+        entries?: unknown;
+        terminal_lifecycle_drift?: { code: string };
+      };
+      expect(payload.ok).toBe(false);
+      expect(payload.authorized).toBe(false);
+      expect(payload.missing_field).toBe("sequence_kind");
+      expect(payload.terminal_lifecycle_drift?.code).toBe("terminal-lifecycle");
+      expect(payload.sequence_kind).toBeUndefined();
+      expect(payload.entries).toBeUndefined();
+    } finally {
+      outSpy.mockRestore();
+      err2.mockRestore();
+    }
+  });
+
+  it("current does not report terminal-lifecycle when only a later entry is terminal (#4843)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ps-cli-kind-later-"));
+    roots.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    mkdirSync(join(root, "xbrief/completed"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft/plan-sequence.json"),
+      JSON.stringify({
+        sequence_id: "undefined",
+        authorized_by: "",
+        entries: [
+          { id: "285", kind: "issue", issue: 285 },
+          { id: "286", kind: "issue", issue: 286 },
+        ],
+      }),
+    );
+    writeFileSync(
+      join(root, "xbrief/completed/286.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "Done 286",
+          status: "completed",
+          references: [
+            { uri: "https://github.com/acme/app/issues/286", type: "x-xbrief/github-issue" },
+          ],
+        },
+      }),
+    );
+    const err: string[] = [];
+    const errSpy = vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    try {
+      expect(planSequenceMain(["current", "--project-root", root])).toBe(1);
+      const text = err.join("");
+      expect(text).toContain("missing sequence_kind");
+      expect(text).not.toContain("terminal in");
+      expect(text).not.toContain("every entry");
+    } finally {
+      errSpy.mockRestore();
+    }
+  });
+
+  it("set still writes when sequence_kind is omitted and advance keeps the bare throw (#4843)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ps-cli-kind-set-"));
+    roots.push(root);
+    const file = join(root, "plan.json");
+    writeFileSync(
+      file,
+      JSON.stringify({
+        sequence_id: "undefined",
+        authorized_by: "",
+        entries: [{ id: "285", kind: "story", issue: 285 }],
+      }),
+    );
+    expect(planSequenceMain(["set", "--project-root", root, "--file", file])).toBe(0);
+    const written = JSON.parse(readFileSync(join(root, ".deft/plan-sequence.json"), "utf8")) as {
+      sequence_kind?: string;
+    };
+    expect(written.sequence_kind).toBeUndefined();
+    const err: string[] = [];
+    const errSpy = vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    try {
+      expect(planSequenceMain(["advance", "--project-root", root])).toBe(1);
+      const text = err.join("");
+      expect(text).toContain("plan-sequence: sequence_kind required");
+      expect(text).not.toContain("not an authorized sequence");
+    } finally {
+      errSpy.mockRestore();
     }
   });
 });

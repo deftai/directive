@@ -6,7 +6,7 @@
  * (failed stamps live in completed/). Callers pass folder-scan facts.
  * Filesystem-only — no GitHub issue-state client.
  */
-import type { PlanSequence, PlanSequenceEntry } from "./types.js";
+import type { PlanSequenceEntry } from "./types.js";
 
 export const TERMINAL_LIFECYCLE_CODE = "terminal-lifecycle" as const;
 
@@ -176,12 +176,23 @@ function currentEntryIsNonTerminal(entry: PlanSequenceEntry): boolean {
 }
 
 /**
- * Drift when the current sequence entry is non-terminal and a resolvable
- * origin already sits in completed/ or cancelled/ (or carries a failed stamp
- * recorded on that terminal fact). GitHub `closed` is not an input.
+ * Entries, index, and exhausted only. Not a parsed PlanSequence: a missing
+ * sequence_kind must not be filled in to run this check (#4843).
+ */
+export interface TerminalDriftSubject {
+  readonly entries: readonly PlanSequenceEntry[];
+  readonly current_index: number;
+  readonly exhausted: boolean;
+}
+
+/**
+ * Drift when the current entry is still pending and a resolvable origin
+ * already sits in completed/ or cancelled/ (or carries a failed stamp
+ * recorded on that terminal fact). One current entry, not every entry.
+ * GitHub `closed` is not an input.
  */
 export function detectTerminalEntryDrift(
-  sequence: PlanSequence | null,
+  sequence: TerminalDriftSubject | null,
   terminals: readonly TerminalLifecycleOrigin[],
 ): TerminalEntryDriftResult {
   if (sequence === null) {
