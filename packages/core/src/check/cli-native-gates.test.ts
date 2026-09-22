@@ -1,3 +1,7 @@
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   allGatesCliDispatchable,
@@ -14,6 +18,47 @@ import {
   FRAMEWORK_CHECK_GATES,
   PRODUCT_FIRST_AC_GATE,
 } from "./gate-lists.js";
+
+/** Top-level cmd.exe tokens. `""` inside quotes is one escaped quote. */
+function splitCmdTokens(line: string): string[] {
+  const tokens: string[] = [];
+  let cur = "";
+  let inQuote = false;
+  let started = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i] ?? "";
+    if (inQuote) {
+      if (c === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+          continue;
+        }
+        inQuote = false;
+        continue;
+      }
+      cur += c;
+      continue;
+    }
+    if (c === '"') {
+      inQuote = true;
+      started = true;
+      continue;
+    }
+    if (c === " ") {
+      if (started) {
+        tokens.push(cur);
+        cur = "";
+        started = false;
+      }
+      continue;
+    }
+    started = true;
+    cur += c;
+  }
+  if (started) tokens.push(cur);
+  return tokens;
+}
 
 describe("cli-native gates (#3335)", () => {
   it("classifies every consumer check gate as CLI-dispatchable", () => {
@@ -74,4 +119,65 @@ describe("cli-native gates (#3335)", () => {
     expect(plan.args[3]).toContain("deft");
     expect(plan.args[3]).toContain("verify:ac");
   });
+
+  // Sibling sites each spawn, but they share this plan. One cmd.exe round-trip is the coverage.
+  it.skipIf(process.platform !== "win32")(
+    "live-spawns cliSpawnPlan through cmd.exe with a spaced project dir, spaced deft.cmd, and a&b",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-4772-cli-"));
+      const projectDir = join(root, "directive uat");
+      const shimDir = join(root, "shim dir");
+      try {
+        mkdirSync(projectDir, { recursive: true });
+        mkdirSync(shimDir, { recursive: true });
+        const shim = join(shimDir, "deft.cmd");
+        const capture = join(shimDir, "capture.ps1");
+        const outPath = join(projectDir, "argv.txt");
+        const projectSlash = projectDir.replace(/\\/g, "/");
+        writeFileSync(
+          capture,
+          [
+            '$me = Get-CimInstance Win32_Process -Filter "ProcessId=$PID"',
+            '$parent = Get-CimInstance Win32_Process -Filter "ProcessId=$($me.ParentProcessId)"',
+            "Set-Content -LiteralPath $env:DEFT_ARGV_OUT -Value $parent.CommandLine -Encoding utf8",
+            "",
+          ].join("\r\n"),
+          "utf8",
+        );
+        writeFileSync(
+          shim,
+          `@echo off\r\npowershell.exe -NoProfile -File "${capture}"\r\n`,
+          "utf8",
+        );
+        const argv = ["verify:branch", "--project-root", projectSlash, "a&b"] as const;
+        const plan = cliSpawnPlan(shim, argv, "win32");
+        const result = spawnSync(plan.command, plan.args, {
+          cwd: projectDir,
+          encoding: "utf8",
+          env: { ...process.env, DEFT_ARGV_OUT: outPath },
+          shell: false,
+          ...(plan.windowsVerbatimArguments === true
+            ? { windowsVerbatimArguments: true as const }
+            : {}),
+        });
+        expect(result.status, `${result.stderr ?? ""}\n${result.stdout ?? ""}`).toBe(0);
+        const captured = readFileSync(outPath, "utf8");
+        const shimAt = captured.toLowerCase().indexOf(shim.toLowerCase());
+        expect(shimAt, captured).toBeGreaterThanOrEqual(0);
+        let rest = captured.slice(shimAt + shim.length).trim();
+        if (rest.startsWith('"')) rest = rest.slice(1).trim();
+        if (rest.endsWith('"') && (rest.match(/"/g) ?? []).length % 2 === 1) {
+          rest = rest.slice(0, -1);
+        }
+        expect(splitCmdTokens(rest), captured).toEqual([
+          "verify:branch",
+          "--project-root",
+          projectSlash,
+          "a&b",
+        ]);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
 });
