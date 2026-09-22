@@ -21,7 +21,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
-          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4865"
         }
       },
@@ -31,8 +31,8 @@
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/product-first-done-gate/acceptance.ts",
-          "recorded_at": "2026-09-22T14:10:00Z",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4865"
         }
       },
@@ -42,8 +42,8 @@
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/literal-acceptance/safety.ts",
-          "recorded_at": "2026-09-22T14:10:00Z",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4865"
         }
       },
@@ -54,7 +54,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
-          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4865"
         }
       },
@@ -65,7 +65,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
-          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4865"
         }
       },
@@ -76,7 +76,7 @@
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "packages/core/src/literal-acceptance/run.ts",
-          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4865"
         }
       },
@@ -87,7 +87,7 @@
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "https://github.com/deftai/directive/issues/4722",
-          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4865"
         }
       }
