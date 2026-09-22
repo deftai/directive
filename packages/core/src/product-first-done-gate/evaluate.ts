@@ -518,7 +518,12 @@ export function evaluateVerifyAcFromPlan(
   const acceptance = readPlanAcceptance(plan);
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
   // Only hard-fail schema when an explicit plan.acceptance object exists.
-  if (plan.acceptance !== undefined && schemaErrors.length > 0) {
+  // Non-noop stamp refusals stay on the per-command safety-reject path (#3615).
+  // A schema-config stop would mis-label the remedy and skip safe peers.
+  const schemaBlocks =
+    plan.acceptance !== undefined &&
+    schemaErrors.some((error) => error.startsWith("plan.acceptance") || isNoopRefusalReason(error));
+  if (schemaBlocks) {
     const noop = schemaErrors.some((error) => isNoopRefusalReason(error));
     return applyOracle(
       {

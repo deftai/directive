@@ -8,7 +8,6 @@
 import {
   attachLiteralAcceptanceCommands,
   evaluateStampAcceptanceSafety,
-  isNoopRefusalReason,
   isVerbatimStatementSpan,
   type LiteralAcceptanceCommand,
   NOOP_ACCEPTANCE_REMEDIATION,
@@ -122,9 +121,10 @@ export function validatePlanAcceptance(value: unknown): string[] {
         "(use source_rung:derived when commands are agent-authored under none_stated)",
     );
   }
+  // Stamp throws on every safety refusal. Validation must already fail (#4702).
   for (const cmd of commands) {
     const stamp = evaluateStampAcceptanceSafety({ commands: [{ command: cmd.command }] });
-    if (!stamp.ok && isNoopRefusalReason(stamp.reason)) {
+    if (!stamp.ok) {
       errors.push(stamp.reason ?? NOOP_ACCEPTANCE_REMEDIATION);
     }
   }

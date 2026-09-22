@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildAcceptanceFromIntakeCapture,
+  stampAcceptanceFromLiteralCapture,
+  validatePlanAcceptance,
+} from "../product-first-done-gate/acceptance.js";
+import {
   evaluateCommandSafety,
   evaluateStampAcceptanceSafety,
   isExecutableLiteralSource,
@@ -128,10 +133,56 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     ["py -m http.server", /-m pytest/],
     ["python script.py", /-m pytest/],
     ["python -mpytest", /-m pytest/],
+    ["python -M pytest", /-m pytest/],
+    ["python -m PYTEST", /-m pytest/],
   ] as const)("refuses %s (#4702)", (command, reason) => {
     const result = evaluateCommandSafety(command);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(reason);
+  });
+
+  it("validation surfaces every stamp refusal, not only no-op reasons (#4702)", () => {
+    const refused = "node --test";
+    const reason = evaluateCommandSafety(refused).reason ?? "";
+    expect(reason).toMatch(/allowlist/);
+    expect(
+      validatePlanAcceptance({
+        commands: [{ command: refused }],
+        none_stated: false,
+        source_rung: "derived",
+      }),
+    ).toContain(reason);
+    expect(() => buildAcceptanceFromIntakeCapture([{ command: refused }])).toThrow(reason);
+    expect(() =>
+      stampAcceptanceFromLiteralCapture({
+        title: "t",
+        metadata: {
+          literal_acceptance_commands: [{ command: refused, source: "explicit" }],
+        },
+      }),
+    ).toThrow(reason);
+    expect(
+      validatePlanAcceptance({
+        commands: [{ command: "python -m pytest" }],
+        none_stated: false,
+        source_rung: "derived",
+      }),
+    ).toEqual([]);
+  });
+
+  it.each([
+    "python -M pytest",
+    "python -m PYTEST",
+  ])("refuses non-exact pytest grammar %s at validation (#4702)", (command) => {
+    const result = evaluateCommandSafety(command);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/-m pytest/);
+    expect(
+      validatePlanAcceptance({
+        commands: [{ command }],
+        none_stated: false,
+      }),
+    ).toContain(result.reason);
   });
 
   it("runs command safety when the command is stamped (#4702)", () => {

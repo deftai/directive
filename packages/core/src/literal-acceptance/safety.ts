@@ -37,7 +37,7 @@ const SHELL_META_CHARS = new Set([
  * ambient credentials. Capture may still record broader CLI shape; only these
  * tokens may spawn. Wrappers, package managers, vitest, and the Python
  * interpreters require the argument grammars below. python, python3, and py
- * are `-m pytest` only (#4702). Bare pytest, uv, go test, and node --test stay out.
+ * are exact `-m pytest` only (#4702). Bare pytest, uv, go test, and node --test stay out.
  */
 const PYTHON_PYTEST_INTERPRETERS = new Set(["python", "python3", "py"]);
 
@@ -456,13 +456,14 @@ function evaluateVitestArgs(rest: string): CommandSafetyResult {
 }
 
 /**
- * Python interpreters: only `python|python3|py -m pytest` plus pytest args (#4702).
- * Other modes and modules stay denied. uv is not an interpreter on this list.
+ * Python interpreters: only exact `python|python3|py -m pytest` plus pytest args (#4702).
+ * `-m` and `pytest` are case-sensitive. Other modes and modules stay denied.
+ * uv is not an interpreter on this list.
  */
 function evaluatePythonPytestArgs(rest: string): CommandSafetyResult {
   const tokens = rest.length === 0 ? [] : rest.trim().split(/\s+/);
-  const flag = tokens[0]?.toLowerCase();
-  const moduleName = tokens[1]?.toLowerCase();
+  const flag = tokens[0];
+  const moduleName = tokens[1];
   if (flag !== "-m" || moduleName !== "pytest") {
     return {
       ok: false,
