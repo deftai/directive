@@ -1507,12 +1507,21 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).toContain("Yolo first-lean cites: Yolo leftover-pain");
     expect(skill).toContain("honest pain cites");
     expect(skill).toContain("Mid-arc EXIT does not default to operator next-envelope");
+    const continuation =
+      "the parent fills a pain-audit brief while a Dual-stop numbered or reserved slot remains; if both are spent, raise the cap or halt";
+    expect(skill.split(continuation).length - 1).toBe(2);
     expect(skill).not.toContain("evaluateHandoffPrint");
     expect(skill).not.toContain("evaluatePainCitePlacement");
     expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
     const motion = readText("skills/deft-directive-design-critique/references/motion-shape.md");
     expect(motion).toContain("honest pain cites");
     expect(motion).toContain("not operator next-envelope");
+    expect(motion).toContain(continuation);
+    const pack = JSON.parse(readText("packs/skills/skills-pack-0.1.json")) as {
+      skills: readonly { id: string; body?: string }[];
+    };
+    const dc = pack.skills.find((entry) => entry.id === "deft-directive-design-critique");
+    expect((dc?.body ?? "").split(continuation).length - 1).toBe(2);
   });
 
   it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {

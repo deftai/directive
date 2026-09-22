@@ -62,7 +62,7 @@ Each critic dispatch EXITs after posting.
 
 Not sequential review. Same-round critics are isolated: each reads one fixed input ceiling and cannot read other siblings' posts through the thread. More: [`references/motion-shape.md`](references/motion-shape.md).
 
-After same-round siblings are posted, the parent posts the successor lean; the operator confirms or amends before bind or stamp. Under yolo, the first all-accept lean carries honest pain cites. Mid-arc EXIT does not default to operator next-envelope after that bind-capable lean; the parent fills a pain-audit brief.
+After same-round siblings are posted, the parent posts the successor lean; the operator confirms or amends before bind or stamp. Under yolo, the first all-accept lean carries honest pain cites. Mid-arc EXIT does not default to operator next-envelope after that bind-capable lean; the parent fills a pain-audit brief while a Dual-stop numbered or reserved slot remains; if both are spent, raise the cap or halt.
 
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
@@ -72,4 +72,4 @@ Dispatch-composition miss: offer or file a prevention issue.
 
 ## EXIT
 
-deft-directive-design-critique complete -- exiting skill. After an admitted completed-arc record: Next: run `task issue:ingest`. Mid-arc EXIT: operator fills the brief template and dispatches the next envelope, except after a bind-capable lean under yolo: Mid-arc EXIT does not default to operator next-envelope; the parent fills a pain-audit brief. Direct EXIT: ingest is a separate operator verb.
+deft-directive-design-critique complete -- exiting skill. After an admitted completed-arc record: Next: run `task issue:ingest`. Mid-arc EXIT: operator fills the brief template and dispatches the next envelope, except after a bind-capable lean under yolo: Mid-arc EXIT does not default to operator next-envelope; the parent fills a pain-audit brief while a Dual-stop numbered or reserved slot remains; if both are spent, raise the cap or halt. Direct EXIT: ingest is a separate operator verb.

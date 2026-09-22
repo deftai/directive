@@ -14,6 +14,6 @@ Orientation only. Normative rules: [`contracts/design-critique.md`](../../../con
 |------|-------|--------|
 | After same-round siblings are posted | Parent | Post successor lean with proposed per-heading takes |
 | Before bind/stamp | Operator | Confirm or amend that lean. Under yolo, a bind-capable first all-accept lean carries honest pain cites and does not wait on that turn (Yolo leftover-pain). |
-| Next envelope | Operator (or parent after operator verb) | Fill brief template and dispatch. After a bind-capable lean under yolo, not operator next-envelope; the parent fills a pain-audit brief. |
+| Next envelope | Operator (or parent after operator verb) | Fill brief template and dispatch. After a bind-capable lean under yolo, not operator next-envelope; the parent fills a pain-audit brief while a Dual-stop numbered or reserved slot remains; if both are spent, raise the cap or halt. |
 
 Comment-lead chips (model then role) govern comment signing — see brief template and Stop 3.
