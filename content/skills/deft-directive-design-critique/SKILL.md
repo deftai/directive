@@ -47,6 +47,7 @@ After this round's siblings are posted: successor lean, then verbs.
 Auto-stamp after operator confirm; not while same-round siblings outstanding.
 Yolo standing confirm of a posted all-accept map: Operator verbs. Confirm conjunct only. Not ingest.
 Yolo leftover-pain (split/defer/deliver): Dual stop. Pain coverage. Confirm conjunct only. Not ingest.
+Yolo first-lean cites: Yolo leftover-pain. Honest pain cites. Not operator next-envelope.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
 Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.
@@ -61,7 +62,7 @@ Each critic dispatch EXITs after posting.
 
 Not sequential review. Same-round critics are isolated: each reads one fixed input ceiling and cannot read other siblings' posts through the thread. More: [`references/motion-shape.md`](references/motion-shape.md).
 
-After same-round siblings are posted, the parent posts the successor lean; the operator confirms or amends before bind or stamp.
+After same-round siblings are posted, the parent posts the successor lean; the operator confirms or amends before bind or stamp. Under yolo, the first all-accept lean carries honest pain cites. Mid-arc EXIT does not default to operator next-envelope after that bind-capable lean.
 
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
@@ -71,4 +72,4 @@ Dispatch-composition miss: offer or file a prevention issue.
 
 ## EXIT
 
-deft-directive-design-critique complete -- exiting skill. After an admitted completed-arc record: Next: run `task issue:ingest`. Mid-arc EXIT: operator fills the brief template and dispatches the next envelope. Direct EXIT: ingest is a separate operator verb.
+deft-directive-design-critique complete -- exiting skill. After an admitted completed-arc record: Next: run `task issue:ingest`. Mid-arc EXIT: operator fills the brief template and dispatches the next envelope, except after a bind-capable lean under yolo: Mid-arc EXIT does not default to operator next-envelope. Direct EXIT: ingest is a separate operator verb.

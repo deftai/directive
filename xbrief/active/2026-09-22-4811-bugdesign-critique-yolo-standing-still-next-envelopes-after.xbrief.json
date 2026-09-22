@@ -1,0 +1,487 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4811",
+    "updated": "2026-09-22T00:12:46Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): yolo standing still next-envelopes after an all-accept successor lean when Stop 1 pain is uncited",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(design-critique): yolo standing still next-envelopes after an all-accept successor lean when Stop 1 pain is uncited",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4811",
+      "Overview": "\n\n- Contract: under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites). No free-English intermediate hatch. Intermediate recuts carry none does not default that first lean to uncited.\n- Uncited first map stays Handoff. Do not publish that path-1 unrelieved-pain or missing-pain on an uncited Spec-path lean is a conversation non-halt. Do not recut evaluateHandoffPrint in this leftover.\n- After an operative first relieves, path-1 unresolved-pain-audit is not a conversation halt while Dual-stop numbered or reserved slot remains: parent fills a pain-audit brief (new ceiling at the bind map, process-only, dest cwd-without-occupy). Yolo-confirm is not ingest and not next-envelope.\n- Thin skill EXIT / motion pointer names continuation after a bind-capable lean under yolo. Mid-arc EXIT does not default to operator next-envelope in that case. Pointer-only. Content-contract tests lock those strings. Live parent turns may stay unenforced.\n- Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Dual-stop raise stays a raise. Do not waive #4592. Do not auto-ingest. Do not skill-auto-dispatch. Do not reuse round-1 as pain-audit.",
+      "Labels": "bug, design, agent-experience, process, area:skills, critic, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Contract: under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites). No free-English intermediate hatch. Intermediate recuts carry none does not default that first lean to uncited.",
+        "status": "proposed",
+        "id": "clause:1"
+      },
+      {
+        "title": "Uncited first map stays Handoff. Do not publish that path-1 unrelieved-pain or missing-pain on an uncited Spec-path lean is a conversation non-halt. Do not recut evaluateHandoffPrint in this leftover.",
+        "status": "proposed",
+        "id": "clause:2"
+      },
+      {
+        "title": "After an operative first relieves, path-1 unresolved-pain-audit is not a conversation halt while Dual-stop numbered or reserved slot remains: parent fills a pain-audit brief (new ceiling at the bind map, process-only, dest cwd-without-occupy). Yolo-confirm is not ingest and not next-envelope.",
+        "status": "proposed",
+        "id": "clause:3"
+      },
+      {
+        "title": "Thin skill EXIT / motion pointer names continuation after a bind-capable lean under yolo. Mid-arc EXIT does not default to operator next-envelope in that case. Pointer-only. Content-contract tests lock those strings. Live parent turns may stay unenforced.",
+        "status": "proposed",
+        "id": "clause:4"
+      },
+      {
+        "title": "Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Dual-stop raise stays a raise. Do not waive #4592. Do not auto-ingest. Do not skill-auto-dispatch. Do not reuse round-1 as pain-audit.",
+        "status": "proposed",
+        "id": "clause:5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "area:skills",
+      "critic",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4811",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4811: bug(design-critique): yolo standing still next-envelopes after an all-accept successor lean when Stop 1 pain is uncited"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4308",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4308"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4308",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4308"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Contract: under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites). No free-English intermediate hatch. Intermediate recuts carry none does not default that first lean to uncited.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Uncited first map stays Handoff. Do not publish that path-1 unrelieved-pain or missing-pain on an uncited Spec-path lean is a conversation non-halt. Do not recut evaluateHandoffPrint in this leftover.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "After an operative first relieves, path-1 unresolved-pain-audit is not a conversation halt while Dual-stop numbered or reserved slot remains: parent fills a pain-audit brief (new ceiling at the bind map, process-only, dest cwd-without-occupy). Yolo-confirm is not ingest and not next-envelope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Thin skill EXIT / motion pointer names continuation after a bind-capable lean under yolo. Mid-arc EXIT does not default to operator next-envelope in that case. Pointer-only. Content-contract tests lock those strings. Live parent turns may stay unenforced.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Dual-stop raise stays a raise. Do not waive #4592. Do not auto-ingest. Do not skill-auto-dispatch. Do not reuse round-1 as pain-audit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because under yolo standing an all-accept successor lean with uncited Stop 1 pain still next-envelopes: skill EXIT and unenforced leftover-pain fixtures license a halt that yolo-confirm already forbids.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4811-dc\norigin-ref: origin/master\ndispatch-sha: 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said separately (three independent arcs, not a panel); yolo standing from the launching utterance.\n\nDual-stop cap: 6 posts\n\nrefutation-target: yolo standing plus an all-accept first successor lean on an arc whose Stop 1 named pain still next-envelopes because the thin skill EXIT and unenforced leftover-pain fixtures license a halt after uncited pain.\n\ntarget: #4811\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is leftover of closed #4308 after pain coverage: yolo-confirm is not ingest and not next-envelope, but missing-pain path-1 refuse is treated as conversation halt. Field: #4774 #4773 #4772 #4771. Do not waive #4592. Do not auto-ingest. Dual-stop raise stays a raise.\n\nPin-read at dispatch-sha 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e:\n\n- content/skills/deft-directive-design-critique/SKILL.md 64: parent posts successor lean; operator confirms or amends before bind or stamp.\n- Same file EXIT 74: Mid-arc EXIT operator fills the brief and dispatches the next envelope.\n- content/contracts/design-critique.md leftover-pain: live parent turns stay unenforced; yolo standing confirms all-accept, does not confirm ingest or next-envelope.\n\nNo implement and no ingest from this parent.",
+          "id": 5750538063,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750538063",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T14:51:33Z",
+          "updated_at": "2026-09-20T14:51:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation of Stop 1 field `refutation-target:` on comment 5750538063.\n\nThe dual-license is real. Leftover-pain fixtures do not tell the parent to halt after an uncited first all-accept. Followed as written, they post a bind map with honest cites and then a pain-audit critic. The halt licenses already on the tree are the thin-skill Mid-arc EXIT sentence, `evaluateHandoffPrint` on uncited Spec-path (the #4589 shape), leftover-split confirm, and Dual-stop halt-for-human. The proposed acceptance criterion that path-1 `missing-pain` / `unresolved-pain-audit` is not a conversation halt cannot bind as written.\n\n## 1. Overbroad path-1 non-halt dual-licenses Handoff\n\nblocks-the-design\n\nEvidence. Pin SHA `0a97e9f6b5d2ce3d1737f4f6363302d34352d64e`. `evaluateAutoStampPath1Write` on Stop 1 ``pain: P1`` plus an uncited Spec-path lean refuses the path-1 write as `unrelieved-pain` (auto-stamp-path1 fixture, recorded as issue 4589). That same fixture expects `evaluateHandoffPrint` print true. `operatorVerbApplySet` with autoStamp and handoffApplies offers Handoff and Halt, not an empty menu. Field first maps 5746998760 (#4773), 5746998761 (#4774), 5746998777 (#4771), 5747028858 (#4772) are that shape: `yolo-standing: yes`, Spec-path, all-accept takes, no operative ``relieves`` / ``does-not-relieve`` / ``operator-deferred`` line. `evaluateYoloStandingLeftoverScope` never confirms a leftover split. Dual-stop spent plus unrelieved pain still prints halt-for-human or Handoff. #4772 first map already records Dual-stop cap 3 posts spent; reserved-slot in-cap needs asserted cites, which that map does not carry.\n\nFailure mode. Publish AC 2 as written and a parent who follows Handoff waits on the widget while a parent who follows this issue continues into bind-plus-pain-audit. Same dual-license class as closed #4308, now against a live print predicate the contract already says must not go empty when autoStamp is true. A parent who treats leftover-recommend wait as a forbidden halt files leftover without a live confirm, posts incomplete deferred cite, or dishonest ``relieves``.\n\nDisposition consequence. The lean cannot bind while AC 2 / Expected 3 call path-1 `missing-pain` a non-halt. Drop that sentence. Keep first-lean bind-capable honest cites (that is print-false on first ``relieves``). Keep parent-after-yolo pain-audit after `unresolved-pain-audit` while Dual-stop numbered or reserved slot remains. Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Recut `evaluateHandoffPrint` only if the recovery path (first map already posted uncited, then a second bind map in the same unit) is still wanted; that recovery is the field shape and is Handoff today.\n\n## 2. Leftover-pain fixtures do not license the halt\n\nsharpens-framing\n\nEvidence. `evaluatePainCitePlacement` allows cites on bind/retraction and forbids them on intermediate. `bindLeanPredecessorValid` requires a predecessor that does not already ``relieves`` those ids. Pain-audit dispatch is after the bind map. `evaluateYoloLeftoverRecommendation` recommends a leftover path when yolo plus uncited/does-not-relieve plus remainder; it does not EXIT the parent. Skill pin-read: motion-shape line 64 is confirm-then-bind/stamp; EXIT line 74 is operator fills the next envelope. \"Live parent turns stay unenforced\" is a fixture disclaimer, not a halt recipe.\n\nFailure mode. Harvest that names leftover-pain.ts as the halt license recuts the wrong file and leaves Mid-arc EXIT plus Handoff print untouched. Root-cause item 3 reading of \"do not auto-dispatch a pain-audit seat\" as \"wait for another operator turn\" is the skill EXIT, not leftover-pain.\n\nDisposition consequence. Record the hole as: under yolo standing, after an all-accept map that can carry honest cites, Mid-arc EXIT does not ask the operator to fill the next envelope. Parent after the already-standing yolo verb posts bind-capable cites if missing, then fills the pain-audit brief. Pointer-only in the thin skill. Do not mechanize leftover-pain parent turns (AC 4 already says that).\n\n## 3. Named intermediate reason has no closed form\n\nsharpens-framing\n\nEvidence. Expected 2 makes the first all-accept bind-capable unless the parent records a named intermediate reason. No line-start, no fixture. Field maps already named residual English \"until bind plus pain-audit\" and ``audit:pain-P1`` substantiation; coverage still saw uncited. That substantiation token is not a pain cite.\n\nFailure mode. Parent writes \"this is intermediate\" and next-envelopes again. Same hole. Forcing cites before leftover confirm cannot emit a well-formed different-issue deferred cite: the leftover number comes only from parent issue-create after a live confirm, and yolo standing does not confirm the split.\n\nDisposition consequence. Either first-lean-is-bind with no free-English hatch except leftover-recommend (already an operator wait), or a closed reason token consumed by a fixture. Do not add a prose hatch.\n\n## 4. Pain-audit stays a later envelope\n\nsharpens-framing\n\nInjection/swarm lens: this target changes who may fill the next critic envelope without a new operator turn (authority, envelopes, shared thread state).\n\nEvidence. Round-1 critic of original P1 is not a pain audit (auto-stamp-path1 fixture). English Pain-audit headings are not targeting. The envelope field is operative line-start audit-targets with ids or none. Ceiling for that seat is the bind map id. Skill forbids auto-dispatch. Dual-stop reserved slot is one in-cap pain-audit when asserted coverage exists and numbered cap is spent; a second extra post needs a raise (this issue non-goal).\n\nFailure mode. Same-unit continuation collapses pain-audit into round-1, skips the operative audit-targets field, or skill-auto-dispatches. Path-1 stays `unresolved-pain-audit`. Or an N>=3 spent map (#4772) dispatches a fourth numbered post without reserved-slot cites.\n\nDisposition consequence. Name continuation as parent-filled brief, new ceiling at the bind map, process-only, dest cwd-without-occupy, no ingest. Not round-1 reuse. Not skill auto-dispatch.\n\n## Road-not-taken\n\nRejected \"the existing yolo-confirm MUST NOT already forbids treating confirm as next-envelope, so this issue is invalid.\" Yolo-confirm is confirm only. Handoff is a different verb. Mid-arc EXIT is a different EXIT. The interrupt is real.\n\nSteelman of a narrower bind: Expected 2 (honest cites on the first all-accept) plus an EXIT pointer that parent-after-yolo fills the pain-audit envelope. Flip condition: AC 2 drops `missing-pain` non-halt; leftover-split and Handoff / Dual-stop halt stay.\n\n## 5. Pin and field re-check\n\nfootnote\n\nStop 1 cites of skill line 64, EXIT line 74, and leftover-pain \"live parent turns stay unenforced\" match the pin. The four field maps match the #4589 uncited Spec-path print. No #4811 comments after ceiling 5750538063.\n\n",
+          "id": 5750592154,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750592154",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:01:37Z",
+          "updated_at": "2026-09-20T15:01:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nYolo standing still next-envelopes after an uncited all-accept lean because Mid-arc EXIT and Handoff print license a wait. Bind: first all-accept lean is bind-capable with honest pain cites; path-1 missing-pain is not a conversation halt while Dual-stop remains for bind-plus-pain-audit. Drop overbroad AC 2 that dual-licenses Handoff. Dual-stop raise stays a raise.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut AC 2; keep first-lean cites and parent-after-yolo pain-audit. Disposition: classified headings accept-into-contract.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4811 remainder recut after critic 5750592154. Cites critic 5750592154. Round 1 dispatched 1 sibling. Supersedes Stop 1 write-back 5750538063.\n\nTarget-digest: sha256:02473cf2d552f7fd731132edb6e8a6a7cca4edc865f6084744ca42f67a6a4cf3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4811-dc\norigin-ref: origin/master\ndispatch-sha: 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e\ntarget shape: single-issue\nDual-stop cap: 6 posts\n\nTakes:\n\n- 5750592154 Overbroad path-1 non-halt dual-licenses Handoff — accept-into-contract\n- 5750592154 Leftover-pain fixtures do not license the halt — accept-into-contract\n- 5750592154 Named intermediate reason has no closed form — accept-into-contract\n- 5750592154 Pain-audit stays a later envelope — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=0a97e9f6b5d2ce3d1737f4f6363302d34352d64e pointer=comment:5750592154 reading=asserted\n\n## Bound remedy\n\n- Contract: under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites) unless leftover-recommend already requires a live operator confirm. No free-English intermediate hatch. Intermediate recuts carry none does not default that first lean to uncited.\n- Path-1 missing-pain / unresolved-pain-audit is not a conversation halt while Dual-stop numbered or reserved slot remains: parent posts the bind-capable lean if the first map was uncited, then fills a pain-audit brief (new ceiling at the bind map, process-only, dest cwd-without-occupy). Yolo-confirm is not ingest and not next-envelope.\n- Thin skill EXIT / motion pointer names that continuation. It does not copy the rule body. Mid-arc EXIT after successor lean under yolo standing does not default to operator next-envelope.\n- Drop AC 2 as written if it dual-licenses Handoff against evaluateHandoffPrint. Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Dual-stop raise stays a raise. Content-contract tests lock the pointer strings. Live parent turns may stay unenforced; this is a recording-obligation hole.\n- Do not waive #4592. Do not auto-ingest. Do not skill-auto-dispatch critics. Do not reuse round-1 as pain-audit.",
+          "id": 5750606339,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750606339",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:04:04Z",
+          "updated_at": "2026-09-20T15:04:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5750606339. Pin SHA 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e.\n\nThe bind's operative `relieves: P1` is not honest. Harvested Bound-remedy still dual-licenses the halt that is P1.\n\n## 1. Bound-remedy re-publishes the missing-pain non-halt\n\nblocks-the-design\n\nInjection/swarm lens: this harvest still changes who may fill the next envelope without a new operator turn, against a live Handoff print predicate.\n\nEvidence. Pin SHA `0a97e9f6b5d2ce3d1737f4f6363302d34352d64e`. `evaluateAutoStampPath1Write` on Stop 1 `pain: P1` plus an uncited Spec-path lean refuses as `unrelieved-pain`, not `missing-pain` (`missing-pain` is an empty Stop 1 list). That fixture expects `evaluateHandoffPrint` print true. First operative `relieves` is print-false and the refuse becomes `unresolved-pain-audit`. Round-1 critic 5750592154 finding 1 required dropping AC 2 / Expected 3 that called path-1 `missing-pain` a non-halt, keeping first-lean cites and parent-after-yolo pain-audit after `unresolved-pain-audit`, and leaving Handoff in place. Recut `evaluateHandoffPrint` only if same-unit recovery after an already-uncited first map is still wanted; that recovery is Handoff today. Yolo standing does not confirm Handoff. Bind 5750606339 accepted that heading then harvested Bound-remedy bullet 2: path-1 `missing-pain` / `unresolved-pain-audit` is not a conversation halt while Dual-stop remains, and the parent posts a bind-capable lean if the first map was uncited. Bullet 4 leaves Handoff in place and drops AC 2 only with `if`. Forward verdict recut AC 2; harvest `parseListItems` still carries the dropped sentence plus the recovery path.\n\nFailure mode. A parent who follows Handoff waits on the widget after an uncited all-accept Spec-path map. A parent who follows this Bound-remedy continues into a second bind map in the same unit. Same dual-license class as closed #4308 and as critic finding 1. An operative `relieves: P1` on an unmet dual-license is a dishonest cite. Harvesting that bullet also treats yolo standing as skipping Handoff.\n\nDisposition consequence. Retraction, then Handoff. Do not bind 5750606339. Recut harvest: first all-accept carries honest cites (print-false on first `relieves`); parent-after-yolo fills the pain-audit envelope after `unresolved-pain-audit` while Dual-stop numbered or reserved slot remains; Mid-arc EXIT under yolo standing does not default to operator next-envelope after that bind-capable lean. Drop the `missing-pain` non-halt sentence. Uncited Spec-path stays Handoff unless this issue recuts `evaluateHandoffPrint`. Leftover-split confirm, Dual-stop halt-for-human, Dual-stop raise, #4592 refuse, no auto-ingest, no skill auto-dispatch, and no round-1 reuse stay.\n\n## Road-not-taken\n\nRejected harvest-changing sharpening that keeps `relieves: P1` and only rewords bullet 2. Cite honesty requires `relieves` only for ids Bound-remedy covers. P1 is the dual-license; harvest still has it. Flip if bullet 2 is deleted from harvest and recovery is explicitly still-Handoff, or if `evaluateHandoffPrint` is recut so that recovery is print-false.\n\nSteelman of the bind: Forward verdict already recut AC 2; bullet 2's colon is the cite-then-pain-audit continuation. The load-bearing phrase is \"if the first map was uncited\" plus naming `missing-pain` as a non-halt. That is the field recovery and the dropped sentence.\n\n## 2. Pin re-check\n\nfootnote\n\nSkill motion line 64 and EXIT line 74 match the pin. Auto-stamp-path1 #4589 `unrelieved-pain` plus Handoff print true, and #4590 `relieves` plus `unresolved-pain-audit` plus Handoff print false, match the pin. Bind predecessor 5750538063 does not already `relieves` P1. Dual-stop numbered 1 of 6 after round-1 critic 5750592154; this seat is in numbered cap, not the spent-cap reserved slot. No #4811 comments after ceiling 5750606339.",
+          "id": 5750645827,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750645827",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:11:12Z",
+          "updated_at": "2026-09-20T15:11:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5750645827 blocked the prior bind: it re-published path-1 missing-pain as a non-halt and dual-licensed Handoff. This recut drops that sentence. First all-accept lean is bind-capable with honest cites. Uncited first map stays Handoff. After first relieves, unresolved-pain-audit is parent-after-yolo pain-audit while Dual-stop remains.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: harvest recut after blocking pain-audit. Disposition: classified headings accept-into-contract.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4811 harvest recut after pain-audit 5750645827. Cites critic 5750592154, 5750645827. Supersedes 5750606339. Predecessor 5750538063 does not carry relieves of P1.\n\nTarget-digest: sha256:02473cf2d552f7fd731132edb6e8a6a7cca4edc865f6084744ca42f67a6a4cf3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4811-dc\norigin-ref: origin/master\ndispatch-sha: 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e\ntarget shape: single-issue\nDual-stop cap: 6 posts\n\nTakes:\n\n- 5750592154 Overbroad path-1 non-halt dual-licenses Handoff — accept-into-contract\n- 5750592154 Leftover-pain fixtures do not license the halt — accept-into-contract\n- 5750592154 Named intermediate reason has no closed form — accept-into-contract\n- 5750592154 Pain-audit stays a later envelope — accept-into-contract\n- 5750645827 Bound-remedy re-publishes the missing-pain non-halt — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=0a97e9f6b5d2ce3d1737f4f6363302d34352d64e pointer=comment:5750645827 reading=asserted\n\n## Bound remedy\n\n- Contract: under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites). No free-English intermediate hatch. Intermediate recuts carry none does not default that first lean to uncited.\n- Do not publish that path-1 unrelieved-pain or missing-pain on an uncited Spec-path lean is a conversation non-halt. That dual-licenses Handoff (evaluateHandoffPrint print true). Uncited first map stays Handoff. Do not recut evaluateHandoffPrint in this leftover.\n- After an operative first relieves, path-1 unresolved-pain-audit is not a conversation halt while Dual-stop numbered or reserved slot remains: parent fills a pain-audit brief (new ceiling at the bind map, process-only, dest cwd-without-occupy). Yolo-confirm is not ingest and not next-envelope.\n- Thin skill EXIT / motion pointer names continuation after a bind-capable lean under yolo. Mid-arc EXIT does not default to operator next-envelope in that case. Pointer-only. Content-contract tests lock those strings. Live parent turns may stay unenforced.\n- Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Dual-stop raise stays a raise. Do not waive #4592. Do not auto-ingest. Do not skill-auto-dispatch. Do not reuse round-1 as pain-audit.",
+          "id": 5750661832,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750661832",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:14:07Z",
+          "updated_at": "2026-09-20T15:14:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind 5750661832. Pin SHA 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e.\n\nHarvest English met the flip on 5750645827: it dropped the missing-pain non-halt, named uncited first map as Handoff, and kept parent-after-yolo pain-audit after first relieves. This map still cannot bind. It is same-P Recut-supersedes after a blocking pain-audit.\n\n## 1. Recut bind after blocking audit is same-P Recut-supersedes\n\nblocks-the-design\n\nInjection/swarm lens: this map still changes who may path-1 stamp versus who waits on Handoff (authority, envelopes, shared thread state).\n\nEvidence. Pin SHA `0a97e9f6b5d2ce3d1737f4f6363302d34352d64e`. Re-ran `handoff.test.ts`, `leftover-pain.test.ts`, and `auto-stamp-path1.test.ts` at that tree: 54 passed.\n\n`evaluatePainAuditFollowThrough` on class `blocking` returns `postRetractionThenHandoff: true`, `newBindLeanAndAudit: false`, `isRelief: false` (`leftover-pain.test.ts`). 5750645827 finding 1 is that class. A blocking pain-audit is not relief.\n\nBind 5750661832 carries operative Spec-path wrapping, operative ``relieves: P1``, and `Supersedes 5750606339`. Map 5750606339 is Lean-shaped with operative ``relieves: P1``. That is the #4554 harvest-overlap fixture in `handoff.test.ts`: print true, `harvestRelievesOverlap: true`. Print-false is first relieves that supersedes a write-back, or relieves after a does-not-relieve map. This supersedes a relieves map.\n\nThe same bind names Predecessor 5750538063 (Stop 1, no relieves) so `bindLeanPredecessorValid` with empty predecessor ids is true, while `Supersedes` (the overlap input) names 5750606339. `evaluateYoloStandingLeftoverScope` `confirmsHandoff` is false.\n\nFailure mode. Footnote-only on this seat lets `evaluateAutoStampPath1Write` write path-1 when a critic after the bind targets `pain-P1` (`auto-stamp-path1.test.ts`). `evaluateHandoffPrint` still prints. Yolo standing does not confirm Handoff. A parent who follows leftover-pain follow-through retracts then prints Handoff. A parent who follows this bind stamps. Same dual-license class as Stop 1 P1, now against the published Recut-supersedes print.\n\nDisposition consequence. Do not bind 5750661832. Retraction map first (cites still required), then Handoff. The recut harvest (dropped missing-pain non-halt; uncited first map stays Handoff; after first relieves parent fills pain-audit; EXIT pointer) is Handoff candidate generation, not a same-arc bind that relieves the same P*. Do not recut `evaluateHandoffPrint`. Leftover-split confirm, Dual-stop halt-for-human, Dual-stop raise, #4592 refuse, no auto-ingest, no skill auto-dispatch, no round-1 reuse stay.\n\n## Road-not-taken\n\nRejected footnote-only because harvest English met 5750645827's flip. Follow-through keys on the blocking class token, not on `harvestChanged`. Flip if leftover-pain treated a recut after blocking as `newBindLeanAndAudit`. It does not.\n\nSteelman of the bind: this seat is the required check after the recut; #4554 Handoff is operator confirm and does not refuse path-1; footnote-only is bindable without an extra lean. The load-bearing clash is `evaluatePainAuditFollowThrough` on blocking plus harvest overlap on this map.\n\n## 2. Pin re-check\n\nfootnote\n\nSkill motion line 64 and EXIT line 74 match the pin. Auto-stamp-path1 #4589 uncited Spec-path is `unrelieved-pain` plus Handoff print true; #4590 first relieves is `unresolved-pain-audit` plus Handoff print false. Stop 1 5750538063 still names `pain: P1`. Dual-stop numbered 2 of 6 before this post (5750592154, 5750645827); this seat is in numbered cap. No #4811 comments after ceiling 5750661832.",
+          "id": 5750731094,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750731094",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:26:45Z",
+          "updated_at": "2026-09-20T15:26:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5750731094 blocked the recut bind: a new relieves map after a blocking audit is same-P Recut-supersedes and harvest-overlap Handoff. This map retracts that bind. It is not the harvest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: retract. Disposition: pain-audit blocking heading accept-into-contract. Residual: P1 unrelieved.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4811 retraction after pain-audit 5750731094. Cites critic 5750731094. Supersedes 5750661832. Not a bind.\n\nTarget-digest: sha256:02473cf2d552f7fd731132edb6e8a6a7cca4edc865f6084744ca42f67a6a4cf3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4811-dc\norigin-ref: origin/master\ndispatch-sha: 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e\ntarget shape: single-issue\nDual-stop cap: 6 posts\n\nTakes:\n\n- 5750731094 Recut bind after blocking audit is same-P Recut-supersedes — accept-into-contract\n\ndoes-not-relieve: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=0a97e9f6b5d2ce3d1737f4f6363302d34352d64e pointer=comment:5750731094 reading=asserted",
+          "id": 5750735895,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750735895",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:27:40Z",
+          "updated_at": "2026-09-20T15:27:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nHandoff after retraction. Dual-stop numbered remaining. Blocking pain-audit 5750731094: recut bind after blocking audit is same-P Recut-supersedes / harvest-overlap. Uncited first map stays Handoff. A later bind that supersedes a relieves map still prints Handoff.\n\nopen-question: File a leftover for the Mid-arc EXIT pointer plus first-lean cites only, or raise Dual-stop 4811 for a bind that supersedes this retraction (does-not-relieve) rather than the prior relieves map.\n\nYolo leftover-pain recommends one leftover path: new issue for the recording-obligation hole (first-lean cites plus EXIT pointer; do not recut evaluateHandoffPrint; do not publish missing-pain as non-halt). Yolo standing does not confirm that split. Live operator confirm required to file.\n\nDo not dest-place. Do not ingest. Chip stays design-critique:in-progress.",
+          "id": 5750735987,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750735987",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:27:41Z",
+          "updated_at": "2026-09-20T15:27:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThis bind supersedes the retraction, not a prior relieves map. First all-accept lean is bind-capable with honest pain cites. Uncited first map stays Handoff. After first relieves, unresolved-pain-audit is parent-after-yolo pain-audit while Dual-stop remains. Do not recut evaluateHandoffPrint.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: remainder bind after retraction. Disposition: classified headings accept-into-contract.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4811 remainder bind after retraction 5750735895. Cites critic 5750592154, 5750645827, 5750731094. Supersedes 5750735895. Predecessor 5750735895 does not carry relieves of P1.\n\nTarget-digest: sha256:02473cf2d552f7fd731132edb6e8a6a7cca4edc865f6084744ca42f67a6a4cf3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4811-dc\norigin-ref: origin/master\ndispatch-sha: 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e\ntarget shape: single-issue\nDual-stop cap: 6 posts\n\nTakes:\n\n- 5750592154 Overbroad path-1 non-halt dual-licenses Handoff — accept-into-contract\n- 5750592154 Leftover-pain fixtures do not license the halt — accept-into-contract\n- 5750592154 Named intermediate reason has no closed form — accept-into-contract\n- 5750592154 Pain-audit stays a later envelope — accept-into-contract\n- 5750645827 Bound-remedy re-publishes the missing-pain non-halt — accept-into-contract\n- 5750731094 Recut bind after blocking audit is same-P Recut-supersedes — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=0a97e9f6b5d2ce3d1737f4f6363302d34352d64e pointer=comment:5750731094 reading=asserted\n\n## Bound remedy\n\n- Contract: under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites). No free-English intermediate hatch. Intermediate recuts carry none does not default that first lean to uncited.\n- Uncited first map stays Handoff. Do not publish that path-1 unrelieved-pain or missing-pain on an uncited Spec-path lean is a conversation non-halt. Do not recut evaluateHandoffPrint in this leftover.\n- After an operative first relieves, path-1 unresolved-pain-audit is not a conversation halt while Dual-stop numbered or reserved slot remains: parent fills a pain-audit brief (new ceiling at the bind map, process-only, dest cwd-without-occupy). Yolo-confirm is not ingest and not next-envelope.\n- Thin skill EXIT / motion pointer names continuation after a bind-capable lean under yolo. Mid-arc EXIT does not default to operator next-envelope in that case. Pointer-only. Content-contract tests lock those strings. Live parent turns may stay unenforced.\n- Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Dual-stop raise stays a raise. Do not waive #4592. Do not auto-ingest. Do not skill-auto-dispatch. Do not reuse round-1 as pain-audit.",
+          "id": 5750841404,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750841404",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:47:08Z",
+          "updated_at": "2026-09-20T15:47:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5750841404. Pin SHA 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e.\n\nThis map can bind. Harvest English still matches the 5750645827 flip: first all-accept carries honest cites; uncited first map stays Handoff; after print-false relieves, parent-after-yolo fills the pain-audit envelope; do not recut evaluateHandoffPrint. Named Supersedes 5750735895 is retraction 5750735895 (operative `does-not-relieve: P1`), not bind 5750606339 or 5750661832. Re-ran the pin fixtures on this body: evaluateHandoffPrint print false, harvestRelievesOverlap false; bindLeanPredecessorValid against 5750735895 true; scanPainCites one operative `relieves: P1`, rejected empty; Target-digest sha256 02473cf2d552f7fd731132edb6e8a6a7cca4edc865f6084744ca42f67a6a4cf3 matches live REST issue body. Path-1 with no critic after this lean is unresolved-pain-audit; that is the check this seat fills, not a dishonest cite.\n\nInjection/swarm lens: this bind still changes who may path-1 stamp versus who waits on Handoff. Measured print-false on relieves after a does-not-relieve map is the published recovery, not harvest-overlap.\n\n## 1. Pin re-check\n\nfootnote\n\nSkill motion line 64 and EXIT line 74 match the pin. Auto-stamp-path1 #4589 uncited Spec-path is unrelieved-pain plus Handoff print true; #4590 first relieves is unresolved-pain-audit plus Handoff print false; relieves after a does-not-relieve map stays print-false (handoff.test.ts). Stop 1 5750538063 still names `pain: P1`. Dual-stop numbered 3 of 6 before this post (5750592154, 5750645827, 5750731094); this seat is in numbered cap, not the spent-cap reserved slot. No #4811 comments after ceiling 5750841404.\n\n## Road-not-taken\n\nRejected blocking on evaluatePainAuditFollowThrough newBindLeanAndAudit false. That fixture is immediate follow-through after a blocking audit. Retraction 5750735895 and Handoff 5750735987 already posted. A later relieves map that Recut-supersedes a does-not-relieve map is print-false, not harvest-overlap. Flip if evaluateHandoffPrint on 5750841404 printed or harvestRelievesOverlap were true. Measured false.\n\nSteelman of blocking: same-P relieves after a blocking audit is always Recut-supersedes. The load-bearing input is the named Supersedes id. This map names 5750735895, which does not carry `relieves: P1`.",
+          "id": 5750902683,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750902683",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:58:39Z",
+          "updated_at": "2026-09-20T15:58:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nFirst all-accept lean is bind-capable with honest pain cites. Uncited first map stays Handoff. After first relieves, unresolved-pain-audit is parent-after-yolo pain-audit. This bind supersedes the retraction. Pain-audit of that harvest was footnote-only.\n\nThis is not an instruction to a later builder.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Bind 5750841404 supersedes retraction 5750735895, not a relieves map | verified | REST comments; scanPainCites one operative relieves: P1; bindLeanPredecessorValid true; pain-audit 5750902683 |\n| evaluateHandoffPrint print false; harvestRelievesOverlap false | verified | pain-audit 5750902683 re-ran pin fixtures on this body |\n| Harvest drops missing-pain non-halt; uncited first map stays Handoff | verified | Bound-remedy 5750841404; critic 5750645827 flip; 5750902683 footnote-only |",
+          "id": 5750906913,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750906913",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:59:29Z",
+          "updated_at": "2026-09-20T15:59:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Under yolo, the first all-accept lean carries honest pain cites. Mid-arc EXIT does not wait after that lean. Uncited first map stays Handoff. Dual-stop raise stays a raise.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5750841404.",
+          "id": 5750907030,
+          "html_url": "https://github.com/deftai/directive/issues/4811#issuecomment-5750907030",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:59:31Z",
+          "updated_at": "2026-09-20T15:59:31Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nUnder yolo standing, after an all-accept successor lean is posted, the parent conversation still stops and names bind / pain-audit as the next envelope. The operator has to ask why the parent stopped. This is the leftover of closed #4308 after pain coverage (#4496 / #4593) landed.\n\nMeasured this session on #4774 / #4773 / #4772 / #4771. Launching utterance: evaluate, label, and if valid arc yolo no ingest; use appropriate n; no need to ask. Follow-up: stay off master, this is no ingest.\n\n## Expected\n\nAfter same-round siblings are posted, with yolo standing already on the launching utterance:\n\n1. Parent posts the successor lean (first-lean offer still posts).\n2. If that map is total all-accept and Stop 1 named pain, that lean is the bind lean unless the parent records a named reason it is intermediate. Pain cites go on it. \"Intermediate recuts carry none\" does not default the first lean to uncited.\n3. Yolo standing is the confirm conjunct. Path-1 still refuses missing-pain / unresolved-pain-audit. That refuse is not a conversation halt.\n4. In the same unit of work the parent posts the bind-capable lean if the first lean was uncited, then dispatches the pain-audit critic (parent after the yolo verb; not skill auto-dispatch).\n5. Footnote-only pain-audit: path-1 stamp in that unit. Harvest-changing sharpening: recut bind in that unit while Dual-stop remains.\n6. Do not print next-envelope / wait for the operator to say continue. Do not treat skill Mid-arc EXIT as yolo-complete. Ingest stays a later `task issue:ingest`.\n\n## Actual\n\nParent posted all-accept successor leans without `relieves: P1` (read as intermediate because \"intermediate recuts carry none\"):\n\n- #4773 5746998760\n- #4774 5746998761\n- #4771 5746998777\n- #4772 5747028858\n\nThen ended the turn: next envelope is bind lean plus pain-audit, then synthesis. Operator had to ask why you stopped. Bind leans and pain-audits ran only after that prompt. #4773 / #4774 later reached ingest-ready. #4772 / #4771 later Dual-stop-halted on recut audits, which is a different cap, not this halt.\n\n## Root cause\n\nClosed #4308 published yolo as confirm of a posted all-accept map. It did not publish what the parent does when that confirm cannot path-1 stamp because Stop 1 pain is uncited. Three published sentences still license the halt:\n\n1. Thin skill motion: \"the parent posts the successor lean; the operator confirms or amends before bind or stamp.\" Yolo replaces confirm. Bind/stamp is still sequenced after an operator turn.\n2. Thin skill EXIT: \"Mid-arc EXIT: operator fills the brief template and dispatches the next envelope.\" After successor lean, that sentence is the same shape as critic EXIT after posting.\n3. leftover-pain.ts and the contract: live parent turns stay unenforced; leftover-pain helpers are fixtures. \"Do not auto-dispatch a pain-audit seat\" is read as do not dispatch without another operator turn.\n\nContract already forbids the halt reading: Treat yolo-confirm as ingest, next-envelope, or chip hygiene beyond the existing auto-stamp remaining-set write. A parent that follows the skill EXIT and the unenforced leftover-pain fixtures will still next-envelope. A parent that follows that MUST NOT will continue. Both readings are licensed. That is the #4308 shape with pain coverage in the way of stamp.\n\nThe agent miss is real: successor leans omitted pain cites, so evaluateAutoStampPath1Write would return missing-pain, and the parent treated stamp-refuse as handback. The recurrence is the missing MUST that yolo standing plus named Stop 1 pain plus an all-accept first lean is one unit through bind-capable cites and pain-audit dispatch.\n\n## Reproduction\n\n1. Operator: arc yolo no-ingest on an open issue whose Stop 1 will record pain: P1. Do not ask.\n2. Parent stamps mechanism-shaped, posts Stop 1 with pain: P1, dispatches round-1 critic, posts an all-accept successor lean with no relieves / operator-deferred cite.\n3. Observe whether the same unit posts a bind-capable lean and a pain-audit critic, or ends with next-envelope / wait.\n\n## Impact\n\nYolo is standing auto-pilot. A Stop 1 pain list is the common case after #4496. The parent that matches current skill EXIT waits. The operator has to recut in chat. Same interrupt class as #4308 field instance #4293.\n\n## Acceptance criteria\n\n- [ ] Contract publishes that under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (pain cites) unless the parent records a named intermediate reason. \"Intermediate recuts carry none\" does not default that first lean to uncited.\n- [ ] Contract publishes that path-1 missing-pain / unresolved-pain-audit after that lean is not a conversation halt: parent posts the bind-capable lean if needed and dispatches pain-audit in that unit. Yolo-confirm remains not ingest and not next-envelope.\n- [ ] Thin skill EXIT / motion pointer names that continuation. It does not copy the rule body. Mid-arc EXIT after successor lean under yolo standing does not default to operator next-envelope.\n- [ ] Content-contract tests lock those pointer strings. Live parent turns may stay unenforced as today; this is a recording-obligation hole, not a new runtime gate, unless a later story mechanizes leftover-pain parent turns.\n\n## Non-goals\n\n- Waiving pain coverage because yolo is standing (#4592 refuse stays).\n- Auto-ingest.\n- Auto-dispatch of critics from the skill with no parent after an operator verb.\n- Mapping looks-good / proceed onto confirm.\n- Reopening #4308 yolo-as-confirm of empty disagreement.\n- Mechanizing Dual-stop raise. Recut pain-audit after the reserved slot stays a raise.\n\n## Related\n\n#4308 (closed: yolo confirm of all-accept). #4496 pain coverage. #4593 leftover-pain fixtures; live parent turns unenforced. #4592 path-1 refuse. Field: #4774 #4773 #4772 #4771 this session.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5515533425,
+        "origin": "deftai/directive#4811",
+        "id": "github.issue.5515533425"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "02473cf2d552f7fd731132edb6e8a6a7cca4edc865f6084744ca42f67a6a4cf3"
+      }
+    },
+    "id": "github.issue.5515533425",
+    "updated": "2026-09-22T00:12:46Z"
+  }
+}

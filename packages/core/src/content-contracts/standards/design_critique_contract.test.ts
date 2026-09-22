@@ -1457,6 +1457,64 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("Default Close is 6 posts");
   });
 
+  it("locks yolo first-lean cites and mid-arc EXIT pointer (#4811)", () => {
+    const text = readText(CONTRACT);
+    const leftover = markdownSection(text, "#### Yolo leftover-pain (#4593)");
+    expect(leftover).toContain(
+      "an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites)",
+    );
+    expect(leftover).toContain("No free-English intermediate hatch");
+    expect(leftover).toContain(
+      "Intermediate recuts carry none does not default that first lean to uncited",
+    );
+    expect(leftover).toContain(
+      "Intermediate recuts that are not bind and not retraction carry none",
+    );
+    expect(leftover).toContain("Uncited first map stays Handoff");
+    expect(leftover).toContain(
+      "Do not publish that path-1 `unrelieved-pain` or `missing-pain` on an uncited Spec-path lean is a conversation non-halt",
+    );
+    expect(leftover).toContain("Do not recut `evaluateHandoffPrint`");
+    expect(leftover).toContain(
+      "After an operative first `relieves`, path-1 `unresolved-pain-audit` is not a conversation halt while Dual-stop numbered or reserved slot remains",
+    );
+    expect(leftover).toContain("pain-audit brief");
+    expect(leftover).toContain("cwd-without-occupy");
+    expect(leftover).toContain("Yolo-confirm is not ingest and not next-envelope");
+    expect(leftover).toContain(
+      "Mid-arc EXIT does not default to operator next-envelope in that case",
+    );
+    expect(leftover).toContain("Pointer-only");
+    expect(leftover).toContain("Live parent turns may stay unenforced");
+    expect(leftover).toContain(
+      "Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place",
+    );
+    expect(leftover).toContain("Dual-stop raise stays a raise");
+    expect(leftover).toContain("Do not waive #4592");
+    expect(leftover).toContain("Do not auto-ingest");
+    expect(leftover).toContain("Do not skill-auto-dispatch");
+    expect(leftover).toContain("Do not reuse round-1 as pain-audit");
+    const badNonHalt = leftover.split(/(?<=[.!?])\s+/).filter(
+      (sentence) =>
+        /missing-pain|unrelieved-pain/.test(sentence) &&
+        /is not a conversation halt/.test(sentence),
+    );
+    expect(badNonHalt).toEqual([]);
+    expect(text).toContain("Mid-arc EXIT stays next-envelope");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("Yolo first-lean cites: Yolo leftover-pain");
+    expect(skill).toContain("honest pain cites");
+    expect(skill).toContain("Mid-arc EXIT does not default to operator next-envelope");
+    expect(skill).not.toContain("evaluateHandoffPrint");
+    expect(skill).not.toContain("evaluatePainCitePlacement");
+    expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
+    const motion = readText(
+      "skills/deft-directive-design-critique/references/motion-shape.md",
+    );
+    expect(motion).toContain("honest pain cites");
+    expect(motion).toContain("not operator next-envelope");
+  });
+
   it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {
     const text = readText(CONTRACT);
     expect(text).toContain("## Parent-side substantiation");
