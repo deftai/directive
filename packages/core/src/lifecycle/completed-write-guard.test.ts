@@ -740,6 +740,52 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     }
   });
 
+  it("refuses an active deletion when a committed completed restamp is restored to the merge-base blob (#4906)", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-undone-restamp-"));
+    try {
+      gitOk(["init", "-q", "-b", "master"], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "base"], root);
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+      const originalCompleted = withOrigin(stamped(), ISSUE_URI);
+      writeFileSync(join(root, active), withOrigin(runningSource(), ISSUE_URI), "utf8");
+      writeFileSync(join(root, completed), originalCompleted, "utf8");
+      gitOk(["add", active, completed], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "-m", "track twin"], root);
+      const base = spawnSync("git", ["rev-parse", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+        env: isolatedGitEnv(root),
+      });
+      expect(base.status).toBe(0);
+      const baseSha = base.stdout.trim();
+      const modified = JSON.parse(originalCompleted) as {
+        plan: { metadata: { lifecycleWrite: { writtenAt: string } } };
+      };
+      modified.plan.metadata.lifecycleWrite.writtenAt = "2026-09-22T18:00:00Z";
+      writeFileSync(join(root, completed), JSON.stringify(modified), "utf8");
+      gitOk(["add", completed], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "-m", "restamp completed"], root);
+      writeFileSync(join(root, completed), originalCompleted, "utf8");
+      gitOk(["rm", "-f", active], root);
+      const shown = spawnSync(
+        "git",
+        ["diff", "-M", "--name-status", "--diff-filter=ARDM", baseSha],
+        { cwd: root, encoding: "utf8", env: isolatedGitEnv(root) },
+      );
+      expect(shown.status).toBe(0);
+      expect(shown.stdout).toContain("D\t" + active);
+      expect(shown.stdout).not.toContain(completed);
+      const result = evaluateCompletedWriteGuard(root, { baseRef: baseSha });
+      expect(result.code, result.message).toBe(1);
+      expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+      expect(result.message).toContain(ACTIVE_TWIN_RESTAMP_REMEDIATION);
+      expect(result.message).not.toContain(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("refuses a completed modification whose identity does not match the active deletion (#4906)", () => {
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `D\t${active}\nM\t${completed}`,

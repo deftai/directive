@@ -4,9 +4,11 @@
  * destination (#3766).
  *
  * A modification of an existing completed/ file can pair an active deletion
- * when that plan carries a complete lifecycleWrite, pairingKey and planIdentity
- * match, and transitionWriteFitsFolder accepts completed (#4906). Merge-base
- * presence alone does not. A D or R of that completed path does not.
+ * when the net tree against the merge base differs on that path, the plan
+ * carries a complete lifecycleWrite, pairingKey and planIdentity match, and
+ * transitionWriteFitsFolder accepts completed (#4906). Merge-base presence
+ * alone does not. A committed edit the worktree restores to the merge-base
+ * blob does not. A D or R of that completed path does not.
  *
  * Historical corpus is advisory (doctor). New work in the change set is hard
  * (verify:completed-write-guard). Does not read completionProvenance and does
@@ -308,23 +310,39 @@ function discoverNameStatusRecords(projectRoot: string, baseRef: string): NameSt
     throw new GitCommandError(`base ref '${resolved}' not found; pass --base-ref`);
   }
   const records: NameStatusRecord[] = [];
-  const range = resolved.includes("...") ? resolved : `${resolved}...HEAD`;
-  const committed = git(["diff", "-M", "--name-status", "--diff-filter=ARDM", range], projectRoot);
-  if (committed.status !== 0) {
+  // Net worktree against the merge base. Gluing `base...HEAD` to `git diff HEAD`
+  // keeps an M after the worktree has restored the merge-base blob (#4906).
+  let left = resolved;
+  let right = "HEAD";
+  if (resolved.includes("...")) {
+    const parts = resolved.split("...");
+    const rawLeft = (parts[0] ?? "").trim();
+    const rawRight = (parts[1] ?? "").trim();
+    left = rawLeft.length > 0 ? rawLeft : "HEAD";
+    right = rawRight.length > 0 ? rawRight : "HEAD";
+  }
+  const mergeBase = git(["merge-base", left, right], projectRoot);
+  if (mergeBase.status !== 0) {
     const detail =
-      committed.stdout.trim() || `git diff ${range} exited ${String(committed.status)}`;
+      mergeBase.stdout.trim() || `git merge-base exited ${String(mergeBase.status)}`;
     throw new GitCommandError(
-      `committed change-set unavailable for '${range}': ${detail}. ` +
+      `committed change-set unavailable for '${resolved}': ${detail}. ` +
         "Pass --base-ref to a merge-base ancestor of HEAD.",
     );
   }
-  records.push(...parseNameStatusRecords(committed.stdout));
-  const vsHead = git(["diff", "-M", "--name-status", "--diff-filter=ARDM", "HEAD"], projectRoot);
-  if (vsHead.status !== 0) {
-    const detail = vsHead.stdout.trim() || `git diff HEAD exited ${String(vsHead.status)}`;
+  const baseSha = mergeBase.stdout.trim();
+  if (baseSha.length === 0) {
+    throw new GitCommandError(
+      `committed change-set unavailable for '${resolved}': empty merge-base. ` +
+        "Pass --base-ref to a merge-base ancestor of HEAD.",
+    );
+  }
+  const net = git(["diff", "-M", "--name-status", "--diff-filter=ARDM", baseSha], projectRoot);
+  if (net.status !== 0) {
+    const detail = net.stdout.trim() || `git diff ${baseSha} exited ${String(net.status)}`;
     throw new GitCommandError(`working-tree change-set unavailable: ${detail}`);
   }
-  records.push(...parseNameStatusRecords(vsHead.stdout));
+  records.push(...parseNameStatusRecords(net.stdout));
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
   if (untracked.status !== 0) {
     const detail = untracked.stdout.trim() || `git ls-files exited ${String(untracked.status)}`;
