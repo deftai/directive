@@ -9,10 +9,34 @@
 
 import { basename } from "node:path";
 import { matchPolicyGlob } from "../test-boundary/evaluate.js";
-import type { TestBoundaryPolicy } from "../test-boundary/policy.js";
+import { DEFAULT_TEST_FILE_PATTERNS, type TestBoundaryPolicy } from "../test-boundary/policy.js";
 
 /** Source-file extensions in scope for v1. */
-const SOURCE_EXTENSIONS: ReadonlySet<string> = new Set([".py", ".go", ".ts", ".tsx"]);
+const SOURCE_EXTENSIONS: ReadonlySet<string> = new Set([".py", ".go", ".ts", ".tsx", ".js"]);
+
+/**
+ * Test suffixes for one extension, taken from DEFAULT_TEST_FILE_PATTERNS.
+ * The final extension must match exactly (`.js`, not `.jsx` / `.mjs` / `.cjs`).
+ * Intent-constraint already names `.(test|spec).js`; this is not a second list.
+ */
+function policyTestSuffixes(ext: string): readonly string[] {
+  const suffixes: string[] = [];
+  for (const pattern of DEFAULT_TEST_FILE_PATTERNS) {
+    const star = pattern.lastIndexOf("*");
+    if (star < 0) {
+      continue;
+    }
+    const suffix = pattern.slice(star + 1).toLowerCase();
+    const dot = suffix.lastIndexOf(".");
+    if (dot > 0 && suffix.slice(dot) === ext) {
+      suffixes.push(suffix);
+    }
+  }
+  return suffixes;
+}
+
+/** `.test.js` / `.spec.js` already on DEFAULT_TEST_FILE_PATTERNS. */
+const JS_POLICY_TEST_SUFFIXES: readonly string[] = policyTestSuffixes(".js");
 
 /** Return the final `.ext` (lowercased) of a path, or empty when none. */
 function extOf(pathStr: string): string {
@@ -55,9 +79,9 @@ function dirOf(rel: string): string {
 
 /**
  * True when `relPath` is a test file (excluded from the needs-coverage set
- * AND counted as available coverage). Covers the co-located TS/TSX
+ * AND counted as available coverage). Covers the co-located TS/TSX/JS
  * `.test` / `.spec` convention, Go `*_test.go`, and Python `test_*.py` /
- * `*_test.py`.
+ * `*_test.py`. JS suffixes are the test-boundary policy names, not a second list.
  */
 export function isTestFile(relPath: string): boolean {
   const b = basename(relPath).toLowerCase();
@@ -67,6 +91,9 @@ export function isTestFile(relPath: string): boolean {
     b.endsWith(".spec.ts") ||
     b.endsWith(".spec.tsx")
   ) {
+    return true;
+  }
+  if (JS_POLICY_TEST_SUFFIXES.some((suffix) => b.endsWith(suffix))) {
     return true;
   }
   if (b.endsWith("_test.go")) {
@@ -108,6 +135,8 @@ export function expectedTestBasenames(sourcePath: string): string[] {
       return [`test_${stem}.py`, `${stem}_test.py`];
     case ".go":
       return [`${stem}_test.go`];
+    case ".js":
+      return JS_POLICY_TEST_SUFFIXES.map((suffix) => `${stem}${suffix}`);
     default:
       return [];
   }

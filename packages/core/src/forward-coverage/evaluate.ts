@@ -4,7 +4,7 @@
  *
  * Two halves:
  *  1. Fail-closed new-file existence (#1310): each NEW source file
- *     (`*.py` / `*.go` / `*.ts` / `*.tsx`, excluding tests and `*.d.ts`)
+ *     (`*.py` / `*.go` / `*.ts` / `*.tsx` / `*.js`, excluding tests and `*.d.ts`)
  *     must have a corresponding test at a searched path (pre-existing tests count).
  *  2. Warn-first diff coverage (#3514): intersect `coverage-final.json`
  *     with added/modified lines and report uncovered changed branches.

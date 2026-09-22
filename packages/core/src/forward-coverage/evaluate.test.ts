@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { defaultTestBoundaryPolicy } from "../test-boundary/policy.js";
+import { DEFAULT_TEST_FILE_PATTERNS, defaultTestBoundaryPolicy } from "../test-boundary/policy.js";
 import {
   evaluateForwardCoverage,
   expectedTestBasenames,
@@ -71,6 +71,28 @@ describe("classification helpers", () => {
     expect(expectedTestBasenames("scripts/foo.py")).toEqual(["test_foo.py", "foo_test.py"]);
     expect(expectedTestBasenames("cmd/foo.go")).toEqual(["foo_test.go"]);
   });
+
+  it("includes .js in the correspondence triple using test-boundary names", () => {
+    const suffixes = DEFAULT_TEST_FILE_PATTERNS.map((pattern) => {
+      const star = pattern.lastIndexOf("*");
+      return star < 0 ? "" : pattern.slice(star + 1);
+    }).filter((suffix) => {
+      const dot = suffix.lastIndexOf(".");
+      return dot > 0 && suffix.slice(dot) === ".js";
+    });
+    expect(suffixes).toEqual([".test.js", ".spec.js"]);
+    expect(expectedTestBasenames("src/app.js")).toEqual(suffixes.map((suffix) => `app${suffix}`));
+    expect(isTestFile("src/app.test.js")).toBe(true);
+    expect(isTestFile("src/app.spec.js")).toBe(true);
+    expect(isSourceFile("src/app.js")).toBe(true);
+    expect(isSourceFile("src/untested.js")).toBe(true);
+    expect(isSourceFile("src/app.test.js")).toBe(false);
+    expect(isSourceFile("src/app.spec.js")).toBe(false);
+    expect(isSourceFile("src/app.mjs")).toBe(false);
+    expect(isSourceFile("src/app.cjs")).toBe(false);
+    expect(isSourceFile("src/app.jsx")).toBe(false);
+    expect(isTestFile("src/app.test.jsx")).toBe(false);
+  });
 });
 
 describe("evaluateForwardCoverage", () => {
@@ -84,6 +106,34 @@ describe("evaluateForwardCoverage", () => {
     expect(result.exitCode).toBe(0);
     expect(result.missing).toEqual([]);
     expect(result.message).toContain("forward coverage");
+  });
+
+  it("returns exit 1 when staged src/app.js and src/untested.js have no tests", () => {
+    const root = buildRepo({
+      "src/app.js": "export const app = 1;\n",
+      "src/untested.js": "export const untested = 1;\n",
+    });
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(1);
+    expect(result.missing.map((m) => m.path).sort()).toEqual(["src/app.js", "src/untested.js"]);
+    expect(result.message).toContain("src/app.test.js");
+    expect(result.message).toContain("src/untested.spec.js");
+    expect(result.message).not.toContain("0 new source file(s) checked");
+  });
+
+  it("returns exit 0 when colocated .test.js and .spec.js cover the staged js sources", () => {
+    const root = buildRepo({
+      "src/app.js": "export const app = 1;\n",
+      "src/app.test.js": "import { app } from './app';\n",
+      "src/untested.js": "export const untested = 1;\n",
+      "src/untested.spec.js": "import { untested } from './untested';\n",
+    });
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(0);
+    expect(result.missing).toEqual([]);
+    expect(result.message).toContain("2 new source file(s) checked");
   });
 
   it("returns exit 1 when a new source file has no test in the diff (staged)", () => {

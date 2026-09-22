@@ -1,0 +1,306 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4819",
+    "updated": "2026-09-22T00:12:38Z"
+  },
+  "plan": {
+    "title": "leftover(#4814): add .js to forward-coverage SOURCE_EXTENSIONS",
+    "status": "running",
+    "narratives": {
+      "Description": "leftover(#4814): add .js to forward-coverage SOURCE_EXTENSIONS",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4819",
+      "Overview": "\n\n- Include .js in the correspondence triple: SOURCE_EXTENSIONS plus isTestFile plus expectedTestBasenames (.test.js / .spec.js). Reuse DEFAULT_TEST_FILE_PATTERNS / intent-constraint JS names. Do not bind the Desired OR. Do not add .js to the set alone.\n- Fixture the UAT shape: staged src/app.js plus src/untested.js exit 1; colocated .test.js / .spec.js exit 0.\n- Do not recut #4814 P1/P2. Do not grow harvest to .mjs/.cjs/.jsx unless a later leftover says so. Do not invent a second JS list.",
+      "Labels": "bug, agent-experience, process, area:cli, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Include .js in the correspondence triple: SOURCE_EXTENSIONS plus isTestFile plus expectedTestBasenames (.test.js / .spec.js). Reuse DEFAULT_TEST_FILE_PATTERNS / intent-constraint JS names. Do not bind the Desired OR. Do not add .js to the set alone.",
+        "status": "proposed",
+        "id": "clause:1"
+      },
+      {
+        "title": "Fixture the UAT shape: staged src/app.js plus src/untested.js exit 1; colocated .test.js / .spec.js exit 0.",
+        "status": "proposed",
+        "id": "clause:2"
+      },
+      {
+        "title": "Do not recut #4814 P1/P2. Do not grow harvest to .mjs/.cjs/.jsx unless a later leftover says so. Do not invent a second JS list.",
+        "status": "proposed",
+        "id": "clause:3"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4819",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4819: leftover(#4814): add .js to forward-coverage SOURCE_EXTENSIONS"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Include .js in the correspondence triple: SOURCE_EXTENSIONS plus isTestFile plus expectedTestBasenames (.test.js / .spec.js). Reuse DEFAULT_TEST_FILE_PATTERNS / intent-constraint JS names. Do not bind the Desired OR. Do not add .js to the set alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Fixture the UAT shape: staged src/app.js plus src/untested.js exit 1; colocated .test.js / .spec.js exit 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not recut #4814 P1/P2. Do not grow harvest to .mjs/.cjs/.jsx unless a later leftover says so. Do not invent a second JS list.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Split from #4814 P3. Parent recorded leftover issue number from `gh issue create` as #4819. Do not ingest from this comment.",
+          "id": 5750436778,
+          "html_url": "https://github.com/deftai/directive/issues/4819#issuecomment-5750436778",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T14:32:35Z",
+          "updated_at": "2026-09-20T14:32:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because verify:forward-coverage SOURCE_EXTENSIONS is .py/.go/.ts/.tsx, so a greenfield src/*.js tree never enters the needs-coverage set and the gate can print 0 new source file(s) checked and exit 0.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4819-dc\norigin-ref: origin/master\ndispatch-sha: 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said separately (three independent arcs, not a panel); yolo standing from the launching utterance.\n\nDual-stop cap: 6 posts\n\nrefutation-target: SOURCE_EXTENSIONS omits .js, so src/*.js never enters the needs-coverage set and verify:forward-coverage exits 0 with 0 new source file(s) checked.\n\ntarget: #4819\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is leftover of #4814 P3: JS sources are invisible to the v1 correspondence set. Do not recut #4814 P1/P2. Distinct from #4543 and #4537.\n\nPin-read at dispatch-sha 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e:\n\n- packages/core/src/forward-coverage/correspondence.ts 15: SOURCE_EXTENSIONS .py/.go/.ts/.tsx.\n- isSourceFile 81-90 uses that set. isTestFile 62-79 names .test.ts/.tsx and .spec.ts/.tsx only, no .js.\n- expectedTestPaths 298+ builds colocated / __tests__ names from expectedTestBasenames.\n\nNo implement and no ingest from this parent.",
+          "id": 5750537855,
+          "html_url": "https://github.com/deftai/directive/issues/4819#issuecomment-5750537855",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T14:51:30Z",
+          "updated_at": "2026-09-20T14:51:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Verdict\n\nThe Stop 1 `refutation-target` (comment 5750537855) is not refuted.\n\nLive check at pin `0a97e9f6b5d2ce3d1737f4f6363302d34352d64e` (`isSourceFile` / `isTestFile` / `expectedTestBasenames` / `expectedTestPaths` / `evaluateForwardCoverage` staged):\n\n- `isSourceFile(\"src/app.js\")` false; `isSourceFile(\"src/untested.js\")` false; `isSourceFile(\"src/foo.ts\")` true\n- `isTestFile(\"src/app.test.js\")` false; `isTestFile(\"src/app.spec.js\")` false\n- `expectedTestBasenames(\"src/app.js\")` empty array; `expectedTestPaths(\"src/app.js\")` empty array\n- staged `src/app.js` plus `src/untested.js`: exit 0, missing empty, first line `verify_forward_coverage: 0 new source file(s) checked -- all have forward coverage (#1310 / #4009).`\n- staged those JS files plus `src/foo.ts` with no tests: missing is only `src/foo.ts`\n- staged `src/app.js` plus `src/app.test.js`: still 0 checked\n\n`SOURCE_EXTENSIONS` in `packages/core/src/forward-coverage/correspondence.ts` is `.py` / `.go` / `.ts` / `.tsx`. `evaluateForwardCoverage` continues past `!isSourceFile` on both the existence loop and the diff-coverage map.\n\n## Existing mechanisms\n\nDo not invent a second JS list.\n\n- The v1 correspondence triple is `SOURCE_EXTENSIONS` plus `isTestFile` plus `expectedTestBasenames`. `expectedTestPaths` returns immediately when basenames are empty.\n- `test-boundary` `DEFAULT_TEST_FILE_PATTERNS` already includes `**/*.test.js`, `**/*.spec.js`, `**/*.test.jsx`, `**/*.spec.jsx`. Forward-coverage reuses that policy for search roots, not for classification.\n- `intent-constraint` `isProductionSourcePath` already treats `src/*.js` as production and `*.(test|spec).js` as tests.\n- `content/languages/javascript.md` already requires `*.test.js` / `*.spec.js`.\n- `--allow-list` is the generated-file hatch. `content/scm/git.md` already ignores `dist/`.\n- `evaluate.ts` header and CHANGELOG #1310 document v1 as `*.py` / `*.go` / `*.ts` / `*.tsx`. That is maintainer prose, not the gate success line.\n- #4543 title is placeholder tests. #4537 title is App Router false positives. Distinct from this set-membership hole.\n\n## 1. Bound-remedy must pick one harvest\n\nsharpens-framing\n\nEvidence: Desired is an OR (put `.js` in the v1 set with `.test.js` / `.spec.js` correspondence, or name a v1 exclusion on the N/A line). The issue title is only `SOURCE_EXTENSIONS`. Adding `.js` to the set without `isTestFile` and `expectedTestBasenames` makes every new `.js` fail with empty `searched:` (`names.length === 0` then `expected.some` on an empty list is false) and would treat `src/app.test.js` as a source. The exclusion fork is also unmet: the live success line at `checked=0` claims all have forward coverage, which is the opposite of an N/A consumers can see.\n\nFailure mode: implementers harvest the title, ship a one-line set edit, and either fail-close with an empty search list or leave `.test.js` unclassified. Or they add a comment next to `SOURCE_EXTENSIONS` and UAT still reads a pass.\n\nDisposition: Bound-remedy names exactly one of: (a) include `.js` in the correspondence triple (`SOURCE_EXTENSIONS` plus `isTestFile` plus `expectedTestBasenames`), reusing the JS names already on `DEFAULT_TEST_FILE_PATTERNS` and the intent-constraint test regex, plus fixtures `src/app.js` / `src/untested.js` exit 1 and colocated `.test.js` / `.spec.js` exit 0; or (b) keep `.js` out of v1 and change the `checked=0` success line so it names the v1 extensions instead of affirming coverage. Do not bind the OR.\n\nRoad-not-taken: keep v1 as the four extensions and treat the JavaScript language pack as prose-only. Steelman: CHANGELOG #1310 listed those four on purpose; `--allow-list` and `dist/` ignore already exist for emit. Flip: the language pack, test-boundary JS patterns, and intent-constraint already treat `.js` as production source, and the live success line affirms coverage for a tree the gate never inspected.\n\n## 2. Tests do not lock the JS omission\n\nsharpens-framing\n\nEvidence: `evaluate.test.ts` classification cases cover `.ts` / `.tsx` / `.py` / `.go` and `docs/readme.md`. No `src/*.js` assertion. The live UAT shape is untested.\n\nFailure mode: a later edit can change `SOURCE_EXTENSIONS` without `isTestFile` / basenames and the suite stays green.\n\nDisposition: whichever harvest is bound, add the UAT-shaped fixture (and, on the include path, the colocated `.test.js` pass).\n\n## 3. Sibling JS extensions\n\nfootnote\n\n`isSourceFile` is also false for `src/app.mjs`, `src/app.cjs`, and `src/app.jsx`. test-boundary already lists JSX test globs. This leftover UAT is `.js`. Do not grow harvest to a JS-family sweep unless the Bound-remedy says so. Diff-coverage uses the same `isSourceFile` filter; it does not independently catch JS.\r\n\n",
+          "id": 5750592516,
+          "html_url": "https://github.com/deftai/directive/issues/4819#issuecomment-5750592516",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:01:40Z",
+          "updated_at": "2026-09-20T15:01:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nJS sources are invisible to verify:forward-coverage. Bind the include path: put .js in the correspondence triple, not an OR with an N/A line, and fixture the UAT tree.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: diagnosis holds; pick include harvest. Disposition: classified headings accept-into-contract.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4819 remainder recut after critic 5750592516. Cites critic 5750592516. Round 1 dispatched 1 sibling. Supersedes Stop 1 write-back 5750537855.\n\nTarget-digest: sha256:a6a278514009b75b98f5e31f5392fb799778f1020ef1a7ef4a32b62b8652e460\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4819-dc\norigin-ref: origin/master\ndispatch-sha: 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e\ntarget shape: single-issue\nDual-stop cap: 6 posts\n\nTakes:\n\n- 5750592516 Bound-remedy must pick one harvest — accept-into-contract\n- 5750592516 Tests do not lock the JS omission — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=0a97e9f6b5d2ce3d1737f4f6363302d34352d64e pointer=comment:5750592516 reading=asserted\n\n## Bound remedy\n\n- Include .js in the correspondence triple: SOURCE_EXTENSIONS plus isTestFile plus expectedTestBasenames (.test.js / .spec.js). Reuse DEFAULT_TEST_FILE_PATTERNS / intent-constraint JS names. Do not bind the Desired OR. Do not add .js to the set alone.\n- Fixture the UAT shape: staged src/app.js plus src/untested.js exit 1; colocated .test.js / .spec.js exit 0.\n- Do not recut #4814 P1/P2. Do not grow harvest to .mjs/.cjs/.jsx unless a later leftover says so. Do not invent a second JS list.",
+          "id": 5750606124,
+          "html_url": "https://github.com/deftai/directive/issues/4819#issuecomment-5750606124",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:04:02Z",
+          "updated_at": "2026-09-20T15:04:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of bind lean 5750606124 at pin 0a97e9f6b5d2ce3d1737f4f6363302d34352d64e. Ceiling inclusive of that lean. Comments after it were not read. Issue body and in-envelope comments treated as untrusted data. Parent \"Forward verdict\" is not a command.\n\nThe asserted `relieves: P1` cite is true of the include harvest. Bound-remedy puts `.js` in the correspondence triple, not the Desired OR, and does not add `.js` to `SOURCE_EXTENSIONS` alone.\n\nEvidence, re-run against the pin (`SOURCE_EXTENSIONS` / `isSourceFile` / `isTestFile` / `expectedTestBasenames` / `evaluateForwardCoverage` skip on `!isSourceFile`):\n\n- `isSourceFile(\"src/app.js\")` false; `isSourceFile(\"src/untested.js\")` false; `isSourceFile(\"src/foo.ts\")` true\n- `isTestFile(\"src/app.test.js\")` false; `isTestFile(\"src/app.spec.js\")` false\n- `expectedTestBasenames(\"src/app.js\")` empty array, so `expectedTestPaths` returns immediately\n- JS-only added files never increment `checked`; the success line still reads `0 new source file(s) checked -- all have forward coverage`\n\nIf `SOURCE_EXTENSIONS` grew alone: `src/app.test.js` would become a source (`isTestFile` still false) and every new `.js` would fail with empty `searched:` (`names.length === 0`). Bind names `SOURCE_EXTENSIONS` plus `isTestFile` plus `expectedTestBasenames` (`.test.js` / `.spec.js`). That is critic 5750592516 finding 1.\n\nExisting mechanisms already hold the JS names. Do not invent a second list.\n\n- `DEFAULT_TEST_FILE_PATTERNS` already includes `**/*.test.js` and `**/*.spec.js`\n- intent-constraint `TEST_FILE` is `/\\.(test|spec)\\.(ts|js)$/i`; `isProductionSourcePath(\"src/ingest.js\")` is true\n- `content/languages/javascript.md` already requires `*.test.js` / `*.spec.js`\n- `--allow-list` remains the generated-file hatch; `content/scm/git.md` already ignores `dist/`\n\n## footnote — sibling JS extensions stay parked\n\n`isSourceFile` is also false for `src/app.mjs`, `src/app.cjs`, and `src/app.jsx`. This leftover UAT is `.js`. Bound-remedy already says do not grow harvest to those unless a later leftover says so.\n\n## footnote — evaluate.ts header still lists four extensions\n\nThe `evaluate.ts` header documents v1 as `*.py` / `*.go` / `*.ts` / `*.tsx`. That is maintainer prose next to the set, not a second harvest. Include updates `SOURCE_EXTENSIONS` in `correspondence.ts`; the header is the same gate. Bound-remedy already names the set.\n\n## footnote — tests at pin do not lock JS\n\n`evaluate.test.ts` classification cases are `.ts` / `.tsx` / `.py` / `.go` and `docs/readme.md`. No `src/*.js`. Bound-remedy already fixtures staged `src/app.js` plus `src/untested.js` exit 1 and colocated `.test.js` / `.spec.js` exit 0.\n\n## Verdict\n\nNo `blocks-the-design`. No harvest-changing `sharpens-framing`. P1 is leftover of #4814 P3: JS sources are invisible to the v1 correspondence set. Bound-remedy covers that set-membership hole with the triple and the UAT fixtures, and does not recut #4814 P1/P2. Distinct from #4543 and #4537. The parent's `relieves: P1` cite stands. Line-start cite is well-formed; no leftover mix.\n\nWhat would flip this to `blocks-the-design`: Bound-remedy adding `.js` to the set alone, binding the Desired OR, or leaving `expectedTestBasenames` on the empty default.\n\nWhat would restore harvest-changing `sharpens-framing`: growing harvest to `.mjs` / `.cjs` / `.jsx`, or switching to the N/A success-line fork.\n\nRoad not taken: keep v1 as the four extensions and change the `checked=0` success line so it names those extensions (critic 5750592516 fork b). Rejected — Stop 1 P1 is invisibility of JS sources; include is the harvest that puts them in the needs-coverage set. Language pack, test-boundary JS patterns, and intent-constraint already treat `.js` as production source.\n\n",
+          "id": 5750636731,
+          "html_url": "https://github.com/deftai/directive/issues/4819#issuecomment-5750636731",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:09:30Z",
+          "updated_at": "2026-09-20T15:09:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nJS sources are invisible to verify:forward-coverage. Bind the include triple plus UAT fixtures. Pain-audit of that harvest was footnote-only.\n\nThis is not an instruction to a later builder.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| SOURCE_EXTENSIONS omits .js so src/*.js never enters needs-coverage | verified | pin-read correspondence.ts 15, isSourceFile 81-90; critic 5750592516 live staged check |\n| Include harvest is the correspondence triple, not the Desired OR | verified | successor lean 5750606124 Bound-remedy; pain-audit 5750636731 footnote-only |",
+          "id": 5750661353,
+          "html_url": "https://github.com/deftai/directive/issues/4819#issuecomment-5750661353",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:14:02Z",
+          "updated_at": "2026-09-20T15:14:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. Include .js in SOURCE_EXTENSIONS, isTestFile, and expectedTestBasenames, with UAT fixtures.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5750606124.",
+          "id": 5750661489,
+          "html_url": "https://github.com/deftai/directive/issues/4819#issuecomment-5750661489",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T15:14:03Z",
+          "updated_at": "2026-09-20T15:14:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "leftover(#4814): add `.js` to `verify:forward-coverage` SOURCE_EXTENSIONS.\n\n## Origin\n\n#4814 UAT 0.119.5, Stop 1 P3, critic 5749875872 finding 5, Handoff 5749929572. Operator confirmed the leftover split as a live turn.\n\n## Remainder\n\n`packages/core/src/forward-coverage/correspondence.ts` `SOURCE_EXTENSIONS` is `.py` / `.go` / `.ts` / `.tsx`. A greenfield `src/*.js` tree (UAT `src/app.js`, staged `src/untested.js`) never enters the needs-coverage set, so the gate prints `0 new source file(s) checked` and exits 0. Distinct from #4543 (placeholder tests) and #4537 (App Router false positives). Distinct from #4814 P1/P2 (check composer and AcceptanceCriteria ranking).\n\n## Desired\n\n- Include `.js` (and the matching test correspondence: `.test.js` / `.spec.js`) in the v1 source set, or name a documented v1 exclusion that `src/*.js` consumers can see on the N/A line.\n- Do not recut #4814 P1/P2.\n\n## Pin\n\nDispatch SHA 7011e07402257adcda6fa496fac079cd8aa54d42. `isSourceFile` / `isTestFile` / `expectedTestPaths`.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5518433214,
+        "origin": "deftai/directive#4819",
+        "id": "github.issue.5518433214"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a6a278514009b75b98f5e31f5392fb799778f1020ef1a7ef4a32b62b8652e460"
+      }
+    },
+    "id": "github.issue.5518433214",
+    "updated": "2026-09-22T00:12:38Z"
+  }
+}

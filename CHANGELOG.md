@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **verify:forward-coverage counts .js sources (#4819).** `.js` joins the correspondence triple: `SOURCE_EXTENSIONS`, `isTestFile`, and `expectedTestBasenames` (`.test.js` / `.spec.js` from the existing test-boundary names). Staged `src/app.js` plus `src/untested.js` fails; colocated `.test.js` / `.spec.js` passes. `.mjs` / `.cjs` / `.jsx` stay out. Tracking #4819.
 - **Consumer baselines ignore `.deft-scratch/` (#4841).** Init, update, and the installer append the directory rule, same shape as `.claude/worktrees/`. An already-indexed path stays until `git rm --cached`. `temp/` stays off the baseline. Tracking #4841.
 - **scope:complete PlanItem ids match the 0.8 dotted-segment pattern (#4707).** Persist writes `clause.N`. Lookup dual-reads leftover `clause:N`. Rewrite-only leftover `clause:N` → `clause.N` persists before the acceptance evidence gate even when no new items are added. `xbrief:validate` fails closed on a non-conformant string `id`. Same-PR rewrite of synthesis `clause:N` ids. Integer ids and warn-first stay leftover. Tracking #4707.
 - **Spec-path harvest no longer copies the refused GitHub body into Overview (#4524).** `buildIssueVbrief` assigns Overview from harvest remainder when `specPathHarvest` is present, and persists the body under `plan.metadata.issueBody`. Body-is-normative ingest still copies the body. Cache `content.md` is an explicit non-goal. Do not grow `scan()` as an instruction-shaped detector. Tracking #4524.
