@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4813,
+  "issue": 4772,
   "surfaces": [
-    "packages/core/src/intent-constraint/evaluate.ts",
-    "packages/core/src/intent-constraint/evaluate.test.ts",
+    "packages/core/src/consumer-test-lane/evaluate.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure of intent-constraint dest-origin recut (#4813). Not reviewed authorization under #3164."
+  "note": "Disclosure that consumer-test-lane defaultSpawn forwards windowsVerbatimArguments on the win32 cmd.exe plan (#4772). Not reviewed authorization under #3164."
 }
