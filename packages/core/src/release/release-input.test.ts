@@ -119,6 +119,13 @@ describe("splitGitNulRecordsStrict", () => {
     expect(splitGitNulRecordsStrict(Buffer.from("a\0b"))).toBeNull();
     expect(splitGitNulRecordsStrict(Buffer.alloc(0))).toEqual([]);
   });
+
+  it("preserves a backslash byte in a git -z record (#4907)", () => {
+    const record = Buffer.from("xbrief/pending/foo\\bar.xbrief.json\0");
+    expect(splitGitNulRecordsStrict(record)?.map((b) => b.toString("utf8"))).toEqual([
+      "xbrief/pending/foo\\bar.xbrief.json",
+    ]);
+  });
 });
 
 describe("folder coupling", () => {
@@ -183,7 +190,12 @@ describe("canonical root", () => {
     const target = join(root, "other");
     mkdirSync(join(target, "pending"), { recursive: true });
     writeFileSync(join(target, "pending", "a.xbrief.json"), MINIMAL);
-    symlinkSync(target, join(root, "xbrief"));
+    // Directory junction needs no symlink privilege and still lstats as a symlink (#4907).
+    if (process.platform === "win32") {
+      symlinkSync(target, join(root, "xbrief"), "junction");
+    } else {
+      symlinkSync(target, join(root, "xbrief"));
+    }
     const result = validateReleaseInputs(root, "scanner");
     expect(result.ok).toBe(false);
     expect(result.code).toBe("unsafe-node");
@@ -226,14 +238,18 @@ describe("three-view census", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("keeps a POSIX backslash in a committed filename across all three views", () => {
-    const root = initRepo();
-    commitArtifact(root, "pending", "foo\\bar.xbrief.json");
-    const result = validateReleaseInputs(root, "scanner");
-    expect(result.ok).toBe(true);
-    expect(result.code).toBe("ok");
-    expect(result.selectedPaths).toEqual(["xbrief/pending/foo\\bar.xbrief.json"]);
-  });
+  // Win32 treats `\` as a separator, so this committed name is not a reachable fixture there (#4907).
+  it.skipIf(process.platform === "win32")(
+    "keeps a POSIX backslash in a committed filename across all three views",
+    () => {
+      const root = initRepo();
+      commitArtifact(root, "pending", "foo\\bar.xbrief.json");
+      const result = validateReleaseInputs(root, "scanner");
+      expect(result.ok).toBe(true);
+      expect(result.code).toBe("ok");
+      expect(result.selectedPaths).toEqual(["xbrief/pending/foo\\bar.xbrief.json"]);
+    },
+  );
 });
 
 describe("production-reader observer", () => {

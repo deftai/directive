@@ -155,18 +155,26 @@ describe("shared-active write-fence bind (#4007)", () => {
     expect(result.message).toContain("blocked");
   });
 
-  it("fences a blocked basename that contains a newline (#4840)", () => {
-    const project = root();
-    const active = join(project, "xbrief", "active");
-    mkdirSync(active, { recursive: true });
-    const injected = "evil\ninject.xbrief.json";
-    writeFileSync(join(active, injected), JSON.stringify({ plan: { status: "blocked" } }), "utf8");
-    const result = inspectActiveScope(project, { env: {} });
-    expect(result.ready).toBe(false);
-    expect(result.denyKind).toBe("zero-eligible-blocked");
-    expect(result.message).not.toContain("\n");
-    expect(result.message).toContain(fenceUntrustedAcceptanceText(injected));
-  });
+  // NTFS rejects a basename that contains a newline; the file-create assertion stays on other hosts (#4907).
+  it.skipIf(process.platform === "win32")(
+    "fences a blocked basename that contains a newline (#4840)",
+    () => {
+      const project = root();
+      const active = join(project, "xbrief", "active");
+      mkdirSync(active, { recursive: true });
+      const injected = "evil\ninject.xbrief.json";
+      writeFileSync(
+        join(active, injected),
+        JSON.stringify({ plan: { status: "blocked" } }),
+        "utf8",
+      );
+      const result = inspectActiveScope(project, { env: {} });
+      expect(result.ready).toBe(false);
+      expect(result.denyKind).toBe("zero-eligible-blocked");
+      expect(result.message).not.toContain("\n");
+      expect(result.message).toContain(fenceUntrustedAcceptanceText(injected));
+    },
+  );
 
   it("binds the dispatched story when DEFT_ACTIVE_SCOPE names it", () => {
     const project = root();

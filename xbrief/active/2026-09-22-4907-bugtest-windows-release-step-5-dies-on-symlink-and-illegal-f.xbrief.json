@@ -1,0 +1,421 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4907",
+    "updated": "2026-09-22T17:04:26Z"
+  },
+  "plan": {
+    "title": "bug(test): Windows release Step 5 dies on symlink and illegal-filename fixtures",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(test): Windows release Step 5 dies on symlink and illegal-filename fixtures",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4907",
+      "Overview": "\n\n- Split the four finishes. Do not bind one it.skipIf(win32) across all four.\n- xbrief root (release-input.test.ts:180): on win32 create the link as a junction, keep unsafe-node and payloadReads 0. Do not skip.\n- Escaping file symlink (acceptance-evidence.test.ts:1964): skip only when symlinkSync returns EPERM or EACCES, using the #4344 capability probe. Keep the assertion on a host that can create the file symlink. A junction is not this case.\n- Newline basename (scope.test.ts:158): skip on win32. Keep the Linux file-create assertion. A fence of the same string in operator copy without creating a file may stay as extra coverage.\n- POSIX backslash git filename (release-input.test.ts:229): skip the git-integration half on win32. Keep the Linux assertion. Byte-preservation of a backslash in a git -z record may be asserted through splitGitNulRecordsStrict with a synthetic buffer on every platform.\n- No behaviour loses its assertion on a platform where that behaviour is reachable.\n- Success for this pain is the four named tests finishing on win32 under that split. It is not the whole of task check. verify:orphan-active on run 35747255508 stays out.\n- Unguarded symlinkSync in other test files, and a verify lane for the #4344 itSymlink convention, are leftover of this instance set. They are not this pain.\n\n\n",
+      "Labels": "bug, agent-experience, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Split the four finishes. Do not bind one it.skipIf(win32) across all four.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "xbrief root (release-input.test.ts:180): on win32 create the link as a junction, keep unsafe-node and payloadReads 0. Do not skip.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Escaping file symlink (acceptance-evidence.test.ts:1964): skip only when symlinkSync returns EPERM or EACCES, using the #4344 capability probe. Keep the assertion on a host that can create the file symlink. A junction is not this case.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Newline basename (scope.test.ts:158): skip on win32. Keep the Linux file-create assertion. A fence of the same string in operator copy without creating a file may stay as extra coverage.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "POSIX backslash git filename (release-input.test.ts:229): skip the git-integration half on win32. Keep the Linux assertion. Byte-preservation of a backslash in a git -z record may be asserted through splitGitNulRecordsStrict with a synthetic buffer on every platform.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "No behaviour loses its assertion on a platform where that behaviour is reachable.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Success for this pain is the four named tests finishing on win32 under that split. It is not the whole of task check. verify:orphan-active on run 35747255508 stays out.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Unguarded symlinkSync in other test files, and a verify lane for the #4344 itSymlink convention, are leftover of this instance set. They are not this pain.",
+        "status": "proposed",
+        "id": "clause.8"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4907",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4907: bug(test): Windows release Step 5 dies on symlink and illegal-filename fixtures"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Split the four finishes. Do not bind one it.skipIf(win32) across all four.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "xbrief root (release-input.test.ts:180): on win32 create the link as a junction, keep unsafe-node and payloadReads 0. Do not skip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Escaping file symlink (acceptance-evidence.test.ts:1964): skip only when symlinkSync returns EPERM or EACCES, using the #4344 capability probe. Keep the assertion on a host that can create the file symlink. A junction is not this case.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Newline basename (scope.test.ts:158): skip on win32. Keep the Linux file-create assertion. A fence of the same string in operator copy without creating a file may stay as extra coverage.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "POSIX backslash git filename (release-input.test.ts:229): skip the git-integration half on win32. Keep the Linux assertion. Byte-preservation of a backslash in a git -z record may be asserted through splitGitNulRecordsStrict with a synthetic buffer on every platform.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No behaviour loses its assertion on a platform where that behaviour is reachable.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Success for this pain is the four named tests finishing on win32 under that split. It is not the whole of task check. verify:orphan-active on run 35747255508 stays out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Unguarded symlinkSync in other test files, and a verify lane for the #4344 itSymlink convention, are leftover of this instance set. They are not this pain.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Release Step 5 on Windows dies in fixture setup for four tests that Linux already passes, and that is a host-portable test contract.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4907-dc\norigin-ref: origin/HEAD\ndispatch-sha: 7712f482781c4885fd9d395756e2c316785730dd\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend: N≥3\nspend-ask: resolved\nspend-why: whole-motion Windows release Step 5 hang; operator arc yolo no-ingest\n\nDual-stop cap: 3 round-1 critic posts; a fourth post needs an operator raise\n\nrefutation-target: the four named tests must finish on win32 (skip or a Windows-legal fixture) so task check can exit 0, without weakening the Linux assertions those tests already hold.\n\ntarget: #4907\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is Release v0.119.7 Step 5 on this Windows host: task check exit 201 after the fast preflight. Four tests fail while creating the fixture, before the assertion. 18436 passed, 176 skipped. Linux TypeScript (build + lint + test) on 7712f4827 succeeded. No tag was pushed and npm did not publish.\n\nPin-read at dispatch-sha 7712f482781c4885fd9d395756e2c316785730dd:\n\n- packages/core/src/hooks/scope.test.ts:158-168 writeFileSync of a basename that contains a newline.\n- packages/core/src/release/release-input.test.ts:180-191 symlinkSync of xbrief to another directory.\n- packages/core/src/release/release-input.test.ts:229-236 commitArtifact of pending/foo\\\\bar.xbrief.json, a POSIX backslash in the filename.\n- packages/core/src/scope/acceptance-evidence.test.ts:1964-1973 symlinkSync of an external regular file into packages/a/index.ts.\n\nThe GitHub merge-gate verify:orphan-active red on 7712f4827 (run 35747255508) is a separate red. Out of this arc. No ingest from this parent.\n\n",
+          "id": 5780346246,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780346246",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:42:44Z",
+          "updated_at": "2026-09-22T16:42:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5780352182\nfamilies: grok, claude, codex",
+          "id": 5780352182,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780352182",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:43:11Z",
+          "updated_at": "2026-09-22T16:43:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nCharter refutation, round 1, fresh critic. Stop 1 is 5780346246; this attacks its refutation-target. Read at 7712f482781c4885fd9d395756e2c316785730dd via git show.\n\n## Re-verification of the four named tests at dispatch-sha\n\nAll four pin-reads land at the cited lines.\n\n- `packages/core/src/hooks/scope.test.ts:158` fences a blocked basename that contains a newline (#4840); `:162` builds the basename from \"evil\" + LF + \"inject.xbrief.json\".\n- `packages/core/src/release/release-input.test.ts:180` symlink xbrief root fails before target reads; `:186` symlinkSync(target, join(root, \"xbrief\")).\n- `packages/core/src/release/release-input.test.ts:229` keeps a POSIX backslash in a committed filename across all three views; `:231` commitArtifact of pending/foo-backslash-bar.xbrief.json.\n- `packages/core/src/scope/acceptance-evidence.test.ts:1964` refuses a symlink that escapes to an external regular file; `:1973` symlinkSync(outsideFile, join(root, pointer)).\n\n## blocks-the-design 1 — the success condition is unreachable inside the target's own scope boundary\n\nThe refutation-target ends \"so `task check` can exit 0\". `verify:orphan-active` is a dep of `check:framework-source` (`Taskfile.yml:461-464`, invoked with CLI_ARGS \"--changed-only\"). The issue reports that lane red on CI for this same SHA (run 35747255508), and the Gate stamp rules it out of arc on the strength of a local pass that \"scanned 0 running briefs\".\n\nA `--changed-only` scan with nothing in scope is a vacuous pass. It is not evidence the lane is green on this SHA; it is evidence the lane had nothing to look at. And a lane that sits inside `check:framework-source` cannot be out of an arc whose success condition is that same gate exiting 0. As written the target can be fully satisfied — all four tests finishing on win32, no Linux assertion weakened — and `task check` still exits non-zero.\n\nPick one: narrow the target to \"the `ts:check-lane` test phase completes on win32\", or pull orphan-active back in scope. Do not keep a whole-motion success clause bounded by a scope that excludes a lane inside the motion.\n\n## blocks-the-design 2 — instance-scoped target for a class-scoped defect, and the class is already measurable\n\nMeasured at the dispatch SHA: 80 test files under `packages/core/src` call `symlinkSync`. 29 of them contain no `skipIf` guard anywhere in the file. Both files in this issue are on that unguarded list — `release/release-input.test.ts` and `scope/acceptance-evidence.test.ts`.\n\nThat leaves 27 same-class files whose Windows behaviour this run says nothing about. It says nothing because `check:framework-source` fans roughly 40 deps in parallel and the only lane outcome reported here is `ts:check-lane`. \"Four tests failed\" is the first-observed red in a parallel fan, not an enumerated blocker set.\n\nFixing four named instances buys one green release and leaves 27 candidates to surface on the next Windows release, one release at a time. The target should name the class — unguarded `symlinkSync` in test fixtures — and what closes it, not four instances.\n\n## blocks-the-design 3 — \"mechanism-shaped: true\" does not hold; this is conformance against a mechanism that already landed\n\nThe Gate stamp claims mechanism-shaped. The mechanism exists and was changelogged.\n\n`CHANGELOG.md:504` (#4344): \"Doctor escaping-symlink test skips on Windows without symlink privilege. containDepositInstallRoot rejects an escaping symlink still asserts on platforms that can create the symlink; EPERM/EACCES on win32 skips instead of failing task check.\" Implemented at `doctor/branches.test.ts:56-74` as a capability probe wrapped around the `symlinkSync` call, calling `ctx.skip()` on EPERM/EACCES and rethrowing otherwise. The sibling dir/junction fallback is production code at `doctor/openclaw-skills.ts:344-357`.\n\nSo the policy question this arc would answer was already answered, and answered better than the target's disjunction: probe the capability, skip only the hosts that genuinely cannot, keep asserting everywhere else. What is missing is enforcement. 47 files reference the `itSymlink` idiom and 29 drifted, with no `verify:*` lane binding the convention — in a repo whose merge gate enforces `verify:biome-config`, `verify:encoding`, and `verify:closing-keywords`.\n\nThe design defect is the unenforced portability contract. A refutation arc aimed at the four instances leaves that hole exactly where it is.\n\n## sharpens-framing 1 — \"(skip or a Windows-legal fixture)\" is a false binary over three different root causes\n\nThe parenthetical homogenizes four failures that have three distinct causes and three different correct answers.\n\n- **Test 2 (`release-input.test.ts:186`) is a plain fixture bug, not a platform limit.** The target is a directory and no type argument is passed, so Node defaults to \"file\" on win32 — which fails for a directory target regardless of Developer Mode. \"junction\" requires no privilege at all, and this repo already does exactly that at `fs/contained-write.test.ts:460`, `hooks/outside-project-root.test.ts:14`, and `hooks/dispatcher-write-reissue.test.ts:331`. This test should keep asserting on Windows. Skipping it is a strict loss taken for no reason.\n- **Test 4 (`acceptance-evidence.test.ts:1973`) is the genuine privilege case.** The target is an external regular file, so a junction cannot substitute. This is where the #4344 capability probe applies — not a blanket skipIf(win32), which also retires the assertion on Windows hosts that do hold the privilege.\n- **Test 3 (`release-input.test.ts:229`) has a third option the disjunction excludes.** The byte-preservation claim belongs to `splitGitNulRecordsStrict`, exported from `release/release-input.ts:161`, which already has a direct describe block 116 lines above the failing test in the same file at `release-input.test.ts:113-120`. Feeding it a synthetic NUL-delimited buffer holds the backslash assertion on every platform with no filesystem and no git. Only the git-integration half needs a POSIX-only fixture.\n- **Test 1 (`scope.test.ts:162`) is the only irreducible one.** 0x0A falls in the 0-31 range NTFS reserves; that basename cannot exist on win32.\n\nOne of four is skip-only. Offering skip as a co-equal option across all four invites the cheapest compliant outcome: three recoverable Windows assertions retired to get a release out.\n\n## sharpens-framing 2 — the no-weakening guard is one-sided\n\n\"without weakening the Linux assertions those tests already hold\" protects Linux and says nothing about Windows.\n\nEvery one of these four guards path-injection or unsafe-node behaviour — newline fencing in an untrusted basename, symlink escape to an external file, backslash-as-separator in a committed path. That is precisely the set of semantics that differ on Windows. Under the guard as written, skipping all four is fully compliant, and the result is a release-input validator whose Windows path handling is unasserted on the one platform that runs Step 5. The failing host and the newly untested platform are the same host.\n\nMake the guard two-sided: no behaviour loses its assertion on any platform where that behaviour is reachable. Reachability, not convenience, decides the skip.\n\n## footnote 1 — citation drift in the pin-read\n\nThe issue body and the Gate stamp both attribute test 4 to (#4840). The test title at `acceptance-evidence.test.ts:1964` carries no issue tag; only test 1 at `scope.test.ts:158` does. The line ranges themselves re-verify exactly. Cosmetic, but the stamp is what downstream seats read.\n\n## footnote 2 — the pass count covers one lane\n\n\"18436 tests passed, 176 skipped\" is `ts:check-lane` alone. Because `check:framework-source` deps run in parallel, that number carries no information about the other roughly 39 lanes on this Windows host. It should not be read as everything else being green here.\n\n",
+          "id": 5780434868,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780434868",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:48:36Z",
+          "updated_at": "2026-09-22T16:48:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Verdict\n\nThe refutation target does not survive as written. The requirement that all four tests finish on win32 is right, but the blanket allowance “skip or a Windows-legal fixture” permits a green Step 5 that drops coverage of a Windows-native escape mechanism.\n\n### blocks-the-design — blanket skip permission can erase the junction safety assertion\n\nEvidence: at `7712f482781c4885fd9d395756e2c316785730dd`, an exact targeted Vitest run collected the four named cases and reproduced all four setup failures: newline basename `ENOENT` at `packages/core/src/hooks/scope.test.ts:163`; directory symlink `EPERM` at `packages/core/src/release/release-input.test.ts:186`; POSIX-backslash basename `ENOENT` at `packages/core/src/release/release-input.test.ts:59/231`; and file symlink `EPERM` at `packages/core/src/scope/acceptance-evidence.test.ts:1973`. The repository already uses both `it.skipIf(process.platform === \"win32\")` for privilege-dependent file symlinks and `process.platform === \"win32\" ? \"junction\" : \"dir\"` for directory-link tests. On this same host, `symlinkSync(target, link, \"junction\")` succeeded and `lstatSync(link).isSymbolicLink()` returned true; `validateReleaseInputs` rejects an `xbrief` root when `lstatSync(...).isSymbolicLink()` is true.\n\nFailure mode: an implementation can satisfy the present wording by skipping all four cases on win32. `task check` then exits cleanly while Windows has no assertion that a junctioned lifecycle root is rejected before target reads. That is not merely lost parity: it removes native coverage at the untrusted-filesystem boundary the test is meant to defend.\n\nDisposition consequence: the lean cannot bind with blanket skip permission. Recut it into a per-fixture contract: use a Windows junction for the `xbrief` directory-link case; allow a win32/capability skip for the external-file symlink case; and allow win32 skips for the newline and literal-POSIX-backslash integration fixtures, whose names cannot be represented with the intended semantics on Windows. Preserve their platform-neutral fencing/record-decoding assertions separately and keep the existing Linux integration assertions unchanged.\n\nThe strongest rejected alternative is to apply the repository’s common `itSymlink` win32 skip uniformly. That is appropriate for the file-symlink case and operationally simple, but it is too broad for a directory reparse point that Windows can create without symlink privilege. I would flip this verdict if the target explicitly required the junction assertion and restricted skips to the three non-portable fixtures.\n\nInjection/swarm lens: the newline basename is untrusted display input and the two link cases cross filesystem authority boundaries. No prompt, identity, concurrency, worktree, or shared-state mechanism changes here; the concrete safety obligation is to retain deterministic fencing and containment coverage rather than treating reviewer attention as the control.\n\n",
+          "id": 5780471793,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780471793",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:51:13Z",
+          "updated_at": "2026-09-22T16:51:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nblocks-the-design. The refutation target in 5780346246 cannot bind as written. It says the four tests must finish on win32 by a skip or a Windows-legal fixture, so task check can exit 0, without weakening the Linux assertions those tests already hold.\n\nThe failure half is real. vitest 4.1.11 at 7712f482781c4885fd9d395756e2c316785730dd, filtered to the four names, reported 4 failed and 107 skipped. Each dies in setup, before the assertion:\n\n- scope.test.ts:163 ENOENT writing a basename that contains a newline.\n- release-input.test.ts:186 EPERM on symlinkSync of the xbrief directory.\n- release-input.test.ts:231 ENOENT inside commitArtifact at release-input.test.ts:59, writing pending/foo\\bar.xbrief.json.\n- acceptance-evidence.test.ts:1973 EPERM on symlinkSync of an outside regular file to packages/a/index.ts.\n\nThe parenthetical does not fit those four results.\n\n- Newline basename. writeFileSync of that name returns ENOENT, including with a verbatim \\\\?\\ prefix. No Windows-legal fixture is still a basename that contains a newline. Skip is the finish that leaves the Linux test in place. acceptance-evidence.test.ts:2034 already fences a newline in operator copy without creating a file.\n- xbrief root. symlinkSync returns EPERM. symlinkSync with type junction succeeds on this host (Node v24.18.0). lstat of that junction reports isSymbolicLink true and isDirectory false, and a read through it returns the target bytes. release-input.ts:474 refuses that lstat before any payload read, and the fail path leaves payloadReads at 0. A junction keeps the unsafe-node and payloadReads 0 assertions. A win32 skip leaves that check unrun on the host that can execute it.\n- Backslash filename. writeFileSync returns ENOENT because Win32 treats the backslash as a separator. Creating the missing parent writes a nested foo/bar.xbrief.json. git update-index --index-info of a stage-0 record prints \"Ignoring path xbrief/pending/foo\\bar.xbrief.json\" and does not index it. The nested file is a different selectedPaths value from the assertion at release-input.test.ts:235. Skip keeps the Linux assertion. The nested fixture replaces it. release-input.ts:207 says not to rewrite a backslash in a git -z path.\n- Escaping file symlink. symlinkSync returns EPERM. A junction aimed at the outside file lstats as a symlink, then realpathSync returns ENOENT, so isShippedFilePointer (clauses.ts:671-679) returns false from the catch. That matches a missing path. It does not reach the escape check at clauses.ts:674. A hardlink to an outside file realpath-resolves inside the project. Neither substitute is the escaping file symlink the test names.\n\nFailure mode: the sentence binds one it.skipIf(process.platform === \"win32\") on all four, the pattern at capacity/backfill.test.ts:7, authz/protected-dest-realpath.test.ts:10, and cache/operations.test.ts:18. Local task check can then exit 0, and the Linux bodies stay. That skip leaves the xbrief-root refusal unrun here, where a junction is the unprivileged reparse point and a read through it succeeds. The same sentence also binds the nested backslash plant, which changes the filename the assertion holds. Those are the authority checks in the tests: which directory the release scanner will read, and which basename is one path component.\n\nDisposition: do not bind that parenthetical. Split the finishes. Use a junction for the xbrief-root test and keep unsafe-node plus payloadReads 0. Skip the newline test and the backslash test on win32, and do not swap in the nested path. For the file symlink, skip only when symlinkSync returns EPERM, and keep the assertion on a host that can create the link.\n\nRoad not taken: one skipIf(win32) for all four. It unblocks Step 5, and the Linux run on this SHA already passed the assertions. It loses because the directory junction on this host still trips the lstat predicate and is followed by a read.\n\nsharpens-framing. The goal can bind: these four setup failures are why local task check exits 201, and Step 5 needs them to finish. Evidence is the issue body (18436 passed, 176 skipped, Linux green on 7712f4827) and the vitest result above. Failure mode: a lean treats exit 0 as proof the four assertions still ran. Disposition: write the four finishes into that goal. Exit 0 is the bar after the split, with the Linux assertions kept as a conjunct.\n\nfootnote. The issue body puts (#4840) on the file-escape test. That marker is the describe at acceptance-evidence.test.ts:1782. The it() title at line 1964 has no marker. The test body is the containment check.\n\nfootnote. verify:orphan-active run 35747255508 stays outside this target, as 5780346246 already records. A local task check exit 0 leaves that run alone.",
+          "id": 5780482929,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780482929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:52:01Z",
+          "updated_at": "2026-09-22T16:52:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** round-1 takes over the three critic posts.\n\nSpec-path:\n\nTarget-digest: sha256:636eb3592bcbc82bfd75a5d0fdd1ec6dd323c428797bff5fcbfaa0aa57e75091\n\n## In plain English\n\nRelease Step 5 on this Windows host died in task check because four tests failed while creating their fixtures. Linux already passed those tests. A single skip on Windows would unblock the release and drop the directory-link check on the host that can still run it.\n\nConfirming this map binds a split. The xbrief directory-link test uses a junction and keeps asserting. The escaping file-symlink test skips only when the host cannot create the link. The newline basename and the POSIX-backslash git filename skip on win32, because those names cannot exist with the intended meaning. The success bar is those four tests finishing, not the whole of task check.\n\nForward verdict: the skip-or-fixture parenthetical does not survive; the four setup failures do. Disposition: the bound remedy below. Non-self-arbitration: this parent also wrote the Stop 1 triage; the takes below accept critic headings. This lean does not implement or close the issue.\n\n## Round\n\nround: 1\nsiblings: 3\nleaning-over: 5780434868, 5780471793, 5780482929\nsupersedes: 5780346246\n\n## Bound remedy\n\n- Split the four finishes. Do not bind one it.skipIf(win32) across all four.\n- xbrief root (release-input.test.ts:180): on win32 create the link as a junction, keep unsafe-node and payloadReads 0. Do not skip.\n- Escaping file symlink (acceptance-evidence.test.ts:1964): skip only when symlinkSync returns EPERM or EACCES, using the #4344 capability probe. Keep the assertion on a host that can create the file symlink. A junction is not this case.\n- Newline basename (scope.test.ts:158): skip on win32. Keep the Linux file-create assertion. A fence of the same string in operator copy without creating a file may stay as extra coverage.\n- POSIX backslash git filename (release-input.test.ts:229): skip the git-integration half on win32. Keep the Linux assertion. Byte-preservation of a backslash in a git -z record may be asserted through splitGitNulRecordsStrict with a synthetic buffer on every platform.\n- No behaviour loses its assertion on a platform where that behaviour is reachable.\n- Success for this pain is the four named tests finishing on win32 under that split. It is not the whole of task check. verify:orphan-active on run 35747255508 stays out.\n- Unguarded symlinkSync in other test files, and a verify lane for the #4344 itSymlink convention, are leftover of this instance set. They are not this pain.\n\n## Per-heading takes\n\n### Claude 5780434868\n\n- 1 the success condition is unreachable inside the target's own scope boundary — accept-into-contract\n- 2 instance-scoped target for a class-scoped defect — accept-into-contract\n- 3 mechanism-shaped does not hold; #4344 already landed — accept-into-contract\n- sharpens 1 skip or Windows-legal fixture is a false binary — accept-into-contract\n- sharpens 2 the no-weakening guard is one-sided — accept-into-contract\n\n### Codex 5780471793\n\n- blanket skip permission can erase the junction safety assertion — accept-into-contract\n\n### Grok 5780482929\n\n- the parenthetical does not fit those four results — accept-into-contract\n- the goal can bind once the four finishes are written — accept-into-contract\n\nResidual: none.\n\nrelieves: P1\n\n",
+          "id": 5780512503,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780512503",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:54:03Z",
+          "updated_at": "2026-09-22T16:54:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nThe relief cite for P1 on comment 5780512503 holds. The bound-remedy list covers the pain Stop 1 (5780346246) named, and the four finishes do not bring back the blanket win32 skip that round 1 refused.\n\n## What was re-checked\n\nDispatch SHA 7712f482781c4885fd9d395756e2c316785730dd, this Windows host, Node v24.18.0. The four filesystem operations were re-run. The full vitest lane was not.\n\n- A basename containing a newline fails writeFileSync with ENOENT. scope.test.ts:162 builds that name. Skipping that one test on win32 lets it finish. The Linux file-create assertion stays. The name cannot exist here, so the skip does not drop a reachable assertion.\n- symlinkSync of a directory with no type fails with EPERM (release-input.test.ts:186). The same call with type junction succeeds. lstat reports isSymbolicLink true and isDirectory false, and a read through the junction returns the target bytes. validateReleaseInputs reaches release-input.ts:474 and returns the unsafe-node failure with payloadReads 0 before any payload read. The junction bullet keeps both assertions. A win32 skip of this test would drop a check this host can run.\n- writeFileSync of a filename containing a POSIX backslash fails with ENOENT (commitArtifact at release-input.ts caller release-input.test.ts:59, test at :231). git update-index --index-info of that path does not index it: ls-files afterwards shows only the other file. Skipping the git-integration test on win32 matches a name Windows will not store. The Linux selectedPaths assertion at :235 stays.\n- symlinkSync of an outside regular file fails with EPERM (acceptance-evidence.test.ts:1973). The #4344 probe is the EPERM or EACCES ctx.skip around symlinkSync in doctor/branches.test.ts:60-68. The assertion remains on a host that can create the file symlink.\n\nA junction pointed at that outside file does create. lstat reports a symlink that is neither file nor directory, realpath returns ENOENT, and isShippedFilePointer (clauses.ts:667-679) returns false from the catch, before the escape check at clauses.ts:674. The list's ban on a junction for this case is what stops that test going green on a missing path.\n\nStop 1 defines P1 as this Windows release Step 5 death: task check exit 201 after the fast preflight because these four fixtures die before the assertion. Run 35747255508 is already out of the arc in that same write-back. The list's success bar is those four finishes, not the rest of task check. That is the same cut. The directory-link refusal still runs on this host.\n\nThe newline basename and the two links are untrusted filesystem inputs. The control that stays is deterministic: the junction refusal still runs here, and the file-symlink refusal still runs when symlinkSync succeeds.\n\n## Road not taken\n\nOne reading treats the success-bar sentence as voiding the cite, because P1 names task check exit 201 and the list says success is not the whole of task check. That reading loses. Stop 1 already placed run 35747255508 outside this arc and named the four setup deaths as the 201. I would flip if a ts:check-lane run on this SHA showed another setup failure in this same set.\n\n## footnote\n\nThe sentence that a backslash may be asserted through splitGitNulRecordsStrict is extra coverage, not another finish required for P1. The unit block at release-input.test.ts:113-121 feeds the records \"a\" and \"b\" only. The selectedPaths backslash assertion lives on the Linux git test, which the list keeps. Windows cannot store that committed name, so the win32 skip does not drop a reachable assertion. The bound-remedy list stays as written.\n\n## footnote\n\nThe exclusion that names a verify lane for the #4344 itSymlink convention uses the wrong identifier for work that is already out of this pain. In this tree itSymlink means it.skipIf(process.platform === \"win32\"), as at capacity/backfill.test.ts:7. The landed #4344 behavior is the EPERM or EACCES probe. The file-symlink bullet already names that probe. The four finishes stay as written.",
+          "id": 5780602843,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780602843",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T17:00:44Z",
+          "updated_at": "2026-09-22T17:00:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Newline basename writeFileSync is ENOENT on this win32 host | Re-run at 7712f482781c4885fd9d395756e2c316785730dd | held |\n| 2 | Directory symlinkSync without type is EPERM; type junction succeeds and validateReleaseInputs still returns unsafe-node with payloadReads 0 | symlinkSync junction + lstat + validateReleaseInputs | held |\n| 3 | POSIX-backslash git filename is ENOENT / not indexed on win32 | writeFileSync + git update-index --index-info | held |\n| 4 | File symlinkSync of an outside regular file is EPERM; a junction is not the escape check | symlinkSync EPERM; junction realpath ENOENT before clauses.ts:674 | held |\n\n",
+          "id": 5780612273,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780612273",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T17:01:27Z",
+          "updated_at": "2026-09-22T17:01:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRelease Step 5 on this Windows host died because four tests failed while creating their fixtures. The accepted change is a split: a junction for the directory-link test, a privilege skip only for the file-symlink test, and win32 skips only for names Windows cannot store. A blanket skip of all four is refused.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5780512503.\n\n",
+          "id": 5780612548,
+          "html_url": "https://github.com/deftai/directive/issues/4907#issuecomment-5780612548",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T17:01:28Z",
+          "updated_at": "2026-09-22T17:01:28Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Release v0.119.7 Step 5 on this Windows host stopped in `task check` (exit 201) after the fast preflight. Four tests failed while setting up the fixture, before the assertion:\n\n1. `packages/core/src/hooks/scope.test.ts` — fences a blocked basename that contains a newline (#4840). `ENOENT` creating a filename that contains a newline.\n2. `packages/core/src/release/release-input.test.ts` — symlink xbrief root fails before target reads. `EPERM` on `symlinkSync`.\n3. `packages/core/src/release/release-input.test.ts` — keeps a POSIX backslash in a committed filename. `ENOENT` because Windows treats the backslash as a directory separator.\n4. `packages/core/src/scope/acceptance-evidence.test.ts` — refuses a symlink that escapes to an external regular file (#4840). `EPERM` on `symlinkSync`.\n\n18436 tests passed, 176 skipped. Linux `TypeScript (build + lint + test)` on `7712f4827` succeeded, so these four are the Windows host. No tag was pushed and npm did not publish.\n\n`verify:orphan-active` on that same local run scanned 0 running briefs and passed. The GitHub merge gate on `7712f4827` is a separate red: `verify:orphan-active` exit 201 in run 35747255508.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5542432243,
+        "origin": "deftai/directive#4907",
+        "id": "github.issue.5542432243"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "636eb3592bcbc82bfd75a5d0fdd1ec6dd323c428797bff5fcbfaa0aa57e75091"
+      }
+    },
+    "id": "github.issue.5542432243",
+    "updated": "2026-09-22T17:04:26Z"
+  }
+}

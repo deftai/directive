@@ -1961,7 +1961,7 @@ describe("stampMatchAnyFileEvidence (#4840)", () => {
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toMatchObject({ kind: "test", pointer });
   });
 
-  it("refuses a symlink that escapes to an external regular file", () => {
+  it("refuses a symlink that escapes to an external regular file", (ctx) => {
     const root = mkdtempSync(join(tmpdir(), "matchany-symlink-"));
     temps.push(root);
     const outsideDir = mkdtempSync(join(tmpdir(), "matchany-outside-"));
@@ -1970,7 +1970,16 @@ describe("stampMatchAnyFileEvidence (#4840)", () => {
     writeFileSync(outsideFile, "export {}\n", "utf8");
     mkdirSync(join(root, "packages", "a"), { recursive: true });
     const pointer = "packages/a/index.ts";
-    symlinkSync(outsideFile, join(root, pointer));
+    try {
+      symlinkSync(outsideFile, join(root, pointer));
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      // SeCreateSymbolicLink is off without Developer Mode / admin (#4344).
+      if (process.platform === "win32" && (code === "EPERM" || code === "EACCES")) {
+        ctx.skip();
+      }
+      throw err;
+    }
     const item: Record<string, unknown> = {
       id: clauseKeyedItemId(1),
       title: clauseKeyedItemId(1),

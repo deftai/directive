@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows release Step 5 fixture tests finish instead of dying in setup (#4907).** The xbrief directory link is a junction on win32 and still asserts unsafe-node with payloadReads 0. The escaping file symlink skips only on EPERM or EACCES. Newline basenames and POSIX-backslash git filenames skip on win32. A synthetic git -z buffer still preserves a backslash on every platform. Tracking #4907.
 - **Literal AC accepts closed `python -m pytest`, `python3 -m pytest`, and `py -m pytest` (#4702).** Stamp-time acceptance runs the same command-safety check. `plan.acceptance` validation reports every stamp refusal, not only no-op reasons. The `-m` flag and `pytest` module are exact; `-M` and `PYTEST` stay refused. Other interpreter modes, uv, bare pytest, go test, and node --test stay refused.
 - **Darwin dest-class tests no longer time out under contention (#4847).** Selected spawn- and filesystem-heavy tests now use platform-specific per-test timeout budgets. Tracking #4847.
 - **#4008 bind allows missing matchAny files and still refuses directories (#4840).** Promotion binds a non-glob path that `matchAny(file_scope)` accepts even when the file does not exist yet. Existing directories stay off `artifact_path`. Stamp and the clause walk still require a contained regular file. Tracking #4840.
