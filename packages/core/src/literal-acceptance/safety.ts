@@ -35,8 +35,12 @@ const SHELL_META_CHARS = new Set([
  * First-token allowlist for **execution** (#3267 Greptile P1 ambient-authority).
  * Network/SCM tools (curl/gh/git/docker) are intentionally excluded — they retain
  * ambient credentials. Capture may still record broader CLI shape; only these
- * tokens may spawn, and wrappers/PMs require subcommand allowlists below.
+ * tokens may spawn. Wrappers, package managers, vitest, and the Python
+ * interpreters require the argument grammars below. python, python3, and py
+ * are `-m pytest` only (#4702). Bare pytest, uv, go test, and node --test stay out.
  */
+const PYTHON_PYTEST_INTERPRETERS = new Set(["python", "python3", "py"]);
+
 const ALLOWED_FIRST_TOKENS = new Set([
   "task",
   "deft",
@@ -47,6 +51,7 @@ const ALLOWED_FIRST_TOKENS = new Set([
   "yarn",
   "bun",
   "vitest",
+  ...PYTHON_PYTEST_INTERPRETERS,
 ]);
 
 /**
@@ -199,7 +204,7 @@ function commandHasStatementProvenance(cmd: StampAcceptanceCommand): boolean {
 }
 
 /**
- * Stamp-time no-op refuse + stated-only-with-span (#3396).
+ * Stamp-time no-op and command-safety refuse (#3396 / #4702).
  * A restamp cannot raise the rung to stated without a recorded statement span.
  */
 export function evaluateStampAcceptanceSafety(
@@ -215,12 +220,12 @@ export function evaluateStampAcceptanceSafety(
     sourceRung = "derived";
   }
   for (const cmd of input.commands) {
-    const noop = evaluateNoopDenylist(cmd.command);
-    if (!noop.ok) {
+    const safety = evaluateCommandSafety(cmd.command);
+    if (!safety.ok) {
       return {
         ok: false,
-        reason: noop.reason,
-        outcome: REJECTED_NOOP_OUTCOME,
+        reason: safety.reason,
+        ...(safety.outcome !== undefined ? { outcome: safety.outcome } : {}),
         sourceRung,
         hasVerbatimStatementSpan,
       };
@@ -301,6 +306,11 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
   // vitest first-token: allow run / related test args only (no watch/ui).
   if (first === "vitest") {
     return evaluateVitestArgs(rest);
+  }
+
+  // python/python3/py: only `-m pytest` (not pip, http.server, -c, or a bare pytest token).
+  if (PYTHON_PYTEST_INTERPRETERS.has(first)) {
+    return evaluatePythonPytestArgs(rest);
   }
 
   return { ok: true, reason: null };
@@ -443,4 +453,23 @@ function evaluateVitestArgs(rest: string): CommandSafetyResult {
     ok: false,
     reason: "vitest args must be run|--version (watch/ui/network denied for ambient-authority)",
   };
+}
+
+/**
+ * Python interpreters: only `python|python3|py -m pytest` plus pytest args (#4702).
+ * Other modes and modules stay denied. uv is not an interpreter on this list.
+ */
+function evaluatePythonPytestArgs(rest: string): CommandSafetyResult {
+  const tokens = rest.length === 0 ? [] : rest.trim().split(/\s+/);
+  const flag = tokens[0]?.toLowerCase();
+  const moduleName = tokens[1]?.toLowerCase();
+  if (flag !== "-m" || moduleName !== "pytest") {
+    return {
+      ok: false,
+      reason:
+        "python/python3/py is limited to -m pytest " +
+        "(other interpreter modes and modules denied for ambient-authority)",
+    };
+  }
+  return { ok: true, reason: null };
 }
