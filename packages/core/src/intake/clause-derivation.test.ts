@@ -247,6 +247,29 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     expect(plan.acceptance).toBeUndefined();
   });
 
+  it("stamps AcceptanceCriteria lines when plan items have titles (#4867)", () => {
+    const plan: Record<string, unknown> = {
+      title: "titles are not the clause set",
+      narratives: {
+        AcceptanceCriteria:
+          "- Login rejects empty passwords\n- Session token persists across refresh",
+        Overview: "do not scrape this Overview into clauses",
+      },
+      items: [
+        { title: "plan item title 1", narrative: {} },
+        { title: "plan item title 2", narrative: {} },
+      ],
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(true);
+    expect(result.clauses.map((c) => c.text)).toEqual([
+      "Login rejects empty passwords",
+      "Session token persists across refresh",
+    ]);
+    expect(result.clauses.every((c) => c.provenance === "statement")).toBe(true);
+    expect(result.clauses.some((c) => c.text.startsWith("plan item title"))).toBe(false);
+  });
+
   it("stamps clauses from heading-less AcceptanceCriteria list items (#4374)", () => {
     const plan: Record<string, unknown> = {
       title: "phase-3 list",

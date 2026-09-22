@@ -312,6 +312,12 @@ export interface DeclaredAcceptanceNarrativeSurface {
   readonly lines: readonly string[];
   /** Original narrative keys that were non-empty (for named 0-clause notices). */
   readonly keys: readonly string[];
+  /**
+   * Parseable lines from AcceptanceCriteria only (#4867).
+   * Empty when that key is absent or bare prose. Not a subset of `lines`
+   * after cross-key dedupe: a line that also appears on Test still counts.
+   */
+  readonly acceptanceCriteriaLines: readonly string[];
 }
 
 /**
@@ -326,11 +332,13 @@ export function collectDeclaredAcceptanceNarrativeSurface(
 ): DeclaredAcceptanceNarrativeSurface {
   const narratives = asRecord(plan.narratives);
   if (narratives === null) {
-    return { present: false, lines: [], keys: [] };
+    return { present: false, lines: [], keys: [], acceptanceCriteriaLines: [] };
   }
   const keys: string[] = [];
   const lines: string[] = [];
+  const acceptanceCriteriaLines: string[] = [];
   const seen = new Set<string>();
+  const acceptanceCriteriaSeen = new Set<string>();
   for (const key of Object.keys(narratives)) {
     if (!DECLARED_ACCEPTANCE_NARRATIVE_KEYS.has(normalizeAcceptanceNarrativeKey(key))) {
       continue;
@@ -344,8 +352,13 @@ export function collectDeclaredAcceptanceNarrativeSurface(
       .map((item) => normalizeClauseText(stripInlineMarkdownBold(item.title)))
       .filter((title) => title.length > 0 && !isMetaClause(title));
     const parsed = fromList.length > 0 ? fromList : collectLabeledLines(value);
+    const isAcceptanceCriteria = normalizeAcceptanceNarrativeKey(key) === "acceptancecriteria";
     for (const line of parsed) {
       const dedupe = line.toLowerCase();
+      if (isAcceptanceCriteria && !acceptanceCriteriaSeen.has(dedupe)) {
+        acceptanceCriteriaSeen.add(dedupe);
+        acceptanceCriteriaLines.push(line);
+      }
       if (seen.has(dedupe)) {
         continue;
       }
@@ -353,7 +366,7 @@ export function collectDeclaredAcceptanceNarrativeSurface(
       lines.push(line);
     }
   }
-  return { present: keys.length > 0, lines, keys };
+  return { present: keys.length > 0, lines, keys, acceptanceCriteriaLines };
 }
 
 export function formatZeroClauseAcceptanceShapedNotice(keys: readonly string[]): string {
@@ -367,15 +380,17 @@ export function formatZeroClauseAcceptanceShapedNotice(keys: readonly string[]):
 
 export interface ClauseDerivationSources {
   /**
-   * Declared acceptance lines from `plan.items`. When non-empty this IS the
-   * derived clause set; the statement extractors below are the path for a brief
-   * that declares no items (#3826).
+   * Declared acceptance lines from `plan.items` (#3826). When non-empty, and
+   * AcceptanceCriteria has no parseable lines, this is the clause set. Item
+   * titles in this list are not the clause set when AcceptanceCriteria lines
+   * parse (#4867).
    */
   readonly itemSurface?: readonly string[];
   /**
    * Declared AcceptanceCriteria / Test / Verification parse (#4374). When
-   * `present` is true this IS the clause set even if `lines` is empty — do not
-   * fall through to statement scrape.
+   * `present` is true and the item surface is empty, this is the clause set
+   * even if `lines` is empty — do not fall through to statement scrape.
+   * Parseable `acceptanceCriteriaLines` replace a non-empty item surface (#4867).
    */
   readonly declaredNarrative?: DeclaredAcceptanceNarrativeSurface;
 }
@@ -408,20 +423,25 @@ export function deriveAcceptanceClauses(
   const itemSurface = (sources.itemSurface ?? [])
     .map((line) => normalizeClauseText(line))
     .filter((line) => line.length > 0 && !isMetaClause(line));
-  // #3826: `plan.items` is a declared, body-scoped acceptance surface, while the
-  // statement carries the whole untrusted issue comment thread. Preferring the
-  // declared surface is what keeps an acceptance-shaped heading buried in that
-  // thread from becoming the gate — the #3794 and #3819 mechanism.
-  let raw: readonly string[] = itemSurface;
-  if (raw.length === 0) {
-    const declared = sources.declaredNarrative;
-    if (declared?.present === true) {
-      raw = declared.lines
-        .map((line) => normalizeClauseText(line))
-        .filter((line) => line.length > 0 && !isMetaClause(line));
-    } else {
-      raw = text.length > 0 ? collectStatementSurface(text) : [];
-    }
+  const declared = sources.declaredNarrative;
+  const acceptanceCriteriaLines = (declared?.acceptanceCriteriaLines ?? [])
+    .map((line) => normalizeClauseText(line))
+    .filter((line) => line.length > 0 && !isMetaClause(line));
+  // #3826: `plan.items` stays ahead of statement scrape and of Test / Verification,
+  // so a thread heading cannot become the gate. #4867: parseable
+  // AcceptanceCriteria lines are the clause texts even when that item surface
+  // is non-empty. Item titles are not that set. Bare prose stays off this path.
+  let raw: readonly string[];
+  if (itemSurface.length > 0 && acceptanceCriteriaLines.length > 0) {
+    raw = acceptanceCriteriaLines;
+  } else if (itemSurface.length > 0) {
+    raw = itemSurface;
+  } else if (declared?.present === true) {
+    raw = declared.lines
+      .map((line) => normalizeClauseText(line))
+      .filter((line) => line.length > 0 && !isMetaClause(line));
+  } else {
+    raw = text.length > 0 ? collectStatementSurface(text) : [];
   }
   const seen = new Set<string>();
   const clauses: AcceptanceClause[] = [];

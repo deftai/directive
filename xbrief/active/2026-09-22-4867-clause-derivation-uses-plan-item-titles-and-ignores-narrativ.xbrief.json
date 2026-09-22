@@ -1,0 +1,299 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4867",
+    "updated": "2026-09-22T22:36:33Z"
+  },
+  "plan": {
+    "title": "Clause derivation uses plan-item titles and ignores narratives.AcceptanceCriteria",
+    "status": "running",
+    "narratives": {
+      "Description": "Clause derivation uses plan-item titles and ignores narratives.AcceptanceCriteria",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4867",
+      "Overview": "\n\n1. When plan.narratives.AcceptanceCriteria has parseable lines, those lines are the derived clause texts even if plan items have titles.\n2. Item titles are not that clause set.\r\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:cli, area:vbrief, dogfood, status:child, design-critique:ingest-ready, core-capabilities, promise:requirements"
+    },
+    "items": [
+      {
+        "title": "When plan.narratives.AcceptanceCriteria has parseable lines, those lines are the derived clause texts even if plan items have titles.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Item titles are not that clause set.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "area:vbrief",
+      "dogfood",
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4867",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4867: Clause derivation uses plan-item titles and ignores narratives.AcceptanceCriteria"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When plan.narratives.AcceptanceCriteria has parseable lines, those lines are the derived clause texts even if plan items have titles.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Item titles are not that clause set.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because scope:promote derives the clauses the done-gate checks from plan-item titles, while the interview criteria sit on plan.narratives.AcceptanceCriteria.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4867-dc\norigin-ref: origin/HEAD\ndispatch-sha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; Desired is one named failure, not an open RFC, so N=1.\n\nrefutation-target: clause derivation and the done-gate already bind plan.narratives.AcceptanceCriteria, so plan-item titles are not the clauses that get checked.\n\ntarget: #4867\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is clauses taken from plan-item titles while plan.narratives.AcceptanceCriteria is ignored. Parent #4814 stays the tracker.\n\nPin-read at dispatch-sha aba2407f86bbef9b21f1b07d85ce396886d6bef5: collectTaskStatementFromPlan in packages/core/src/intake/clause-derivation.ts pushes plan.title, then narrative keys including AcceptanceCriteria, then each plan item as narrative.Acceptance or else the item title. The item branch does not read an item AcceptanceCriteria field. No implement and no ingest from this parent.\n\nCensus: still-open, 0 comments, wip active=0 pending=0. Unreleased on origin/master does not name #4867.",
+          "id": 5779053838,
+          "html_url": "https://github.com/deftai/directive/issues/4867#issuecomment-5779053838",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:15:32Z",
+          "updated_at": "2026-09-22T15:15:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nVerdict: refuted. Round 1. One finding.\n\nThe target says clause derivation and the done-gate already bind plan.narratives.AcceptanceCriteria, so plan-item titles are not the clauses that get checked. On a plan that has both, the clause texts are the item titles.\n\nblocks-the-design\n\nEvidence. Pinned at aba2407f86bbef9b21f1b07d85ce396886d6bef5, I called deriveAcceptanceClauses with the two sources applyClauseDerivationToPlan passes: collectPlanItemAcceptanceSurface and collectDeclaredAcceptanceNarrativeSurface. The plan had eight list lines on narratives.AcceptanceCriteria and five items with empty narrative objects, titled plan item title 1 through plan item title 5. The declared surface was present and held all eight criteria. The derived texts were the five titles, and each artifact_path was null. The same call with an empty items array derived the eight criteria. walkAcceptanceClauses on the five title clauses, declared scope empty, returned unverifiable, detail \"no artifact path bound\", adjudicable false, on every row. The criteria texts were not in that walk.\n\nevaluateVerifyAcFromPlan was not executed. This worktree has no install of @deftai/directive-types. The walk above is the function applyClauseWalk calls. applyOracle calls applyClauseWalk on every result. applyClauseWalk reads result.acceptance.clauses. readPlanAcceptance loads those clauses from plan.acceptance and does not read narratives. Scope promote stamps that object through applyClauseDerivationToPlan on activate and promote.\n\nderiveAcceptanceClauses uses the item surface whenever that surface is non-empty. The declared narrative lines become the clause set only after the item surface is empty. That empty-item path is what returned the eight criteria.\n\nartifact_path null does not identify the title path. buildClause sets null on every derived clause, including the eight criteria.\n\nFailure mode. Criteria recorded on plan.narratives.AcceptanceCriteria never become the walked clauses while plan items still have titles. The done-gate walks the titles, then stops on an unbound path, and adjudicates neither the title prose nor the criteria. That substitution is the named failure.\n\nDisposition. A successor lean that accepts the target, and treats the pain as already-holding, cannot bind. Both surfaces already exist. The miss is the items-first short-circuit while the declared key has parseable lines. This finding adds no mechanism.\n\nRoad not taken. Read \"bind\" as \"the field is loaded somewhere\" and let the target stand. collectTaskStatementFromPlan does append AcceptanceCriteria, and the empty-item derive uses the key. That is true of the read. It is not the clause set once items are present: this run stamped the titles, and the walk received the titles. The verdict flips if a run with non-empty item titles and present AcceptanceCriteria list items derives anything other than those titles.\n\nThe clause set is what the done-gate walks. This run opened no file read. The walk stopped on the unbound path. The miss is which sentences are the clauses.\r\n\n",
+          "id": 5779260902,
+          "html_url": "https://github.com/deftai/directive/issues/4867#issuecomment-5779260902",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:29:11Z",
+          "updated_at": "2026-09-22T15:29:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWhen a plan has both item titles and acceptance criteria on the narrative, the derived clauses are the titles, and the done-gate walks those titles. Confirming this map means parseable narrative acceptance criteria are the clauses even when the items have titles. The same parent wrote the opening triage and these takes.\n\n**Lean:** round 1, critic 5779260902. Supersedes 5779053838.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:f02941460fe286da5ffcdbfacf283a98858acf05d70c042c2cb4774a62563d5c\n\naccept-into-contract: blocks-the-design\n\nrelieves: P1\n\n## Bound remedy\n\n1. When plan.narratives.AcceptanceCriteria has parseable lines, those lines are the derived clause texts even if plan items have titles.\n2. Item titles are not that clause set.\r\n\n",
+          "id": 5779345042,
+          "html_url": "https://github.com/deftai/directive/issues/4867#issuecomment-5779345042",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:34:51Z",
+          "updated_at": "2026-09-22T15:34:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nCoverage: the bound remedy on comment 5779345042 covers pain P1 from the Stop 1 write-back 5779053838. The P1 coverage cite on that lean matches the harvest. This audit is footnote-only. The two harvest sentences stay as written.\n\nP1 is clauses taken from plan-item titles while plan.narratives.AcceptanceCriteria is ignored. The harvest says that when that field has parseable lines, those lines are the derived clause texts even if plan items have titles, and that item titles are outside that clause set.\n\nfootnote\n\nEvidence. Pin aba2407f86bbef9b21f1b07d85ce396886d6bef5. I called deriveAcceptanceClauses with the two surfaces applyClauseDerivationToPlan passes: collectPlanItemAcceptanceSurface and collectDeclaredAcceptanceNarrativeSurface. The plan had eight list lines on narratives.AcceptanceCriteria and five items with empty narrative objects, titled plan item title 1 through plan item title 5. The declared surface was present and held all eight lines. The derived texts were the five titles, and each artifact_path was null. The same call with an empty item surface derived the eight criteria, and each artifact_path was null. walkAcceptanceClauses on each set, declared scope empty, returned unverifiable, detail \"no artifact path bound\", adjudicable false, on every row.\n\nPromote and activate call applyClauseDerivationToPlan, which passes those two surfaces into that function and stamps plan.acceptance.clauses. The done-gate walk reads those clauses. The harvest makes the eight criteria the sentences that stamp, and therefore the sentences the gate walks, while the items still have titles.\n\nThe unverifiable row is the same on the title set and on the criteria set. buildClause sets artifact_path null for every derived clause. The harvest changes which sentences are stamped and leaves that unbound walk as it is. The Stop 1 pain line is the title substitution.\n\nA second call put \"item narrative acceptance line\" on one item's narrative.Acceptance, kept the eight criteria, and derived that one line. The harvest's first sentence already names the AcceptanceCriteria lines as the clause texts when they parse. Today's item-acceptance result is the same items-first short-circuit, and it sits outside the title wording of P1.\n\nBare prose in AcceptanceCriteria was present with zero parsed lines, and the item title stayed the derived text. The harvest already requires parseable lines, so that prose stays outside the clause set.\n\nAcceptanceCriteria plus Test, with no items, derived both lines. With a title present, the derived text was the title. The harvest names the AcceptanceCriteria lines as the clause texts in the titled case.\n\nInjection lens. The remedy takes parseable lines from the AcceptanceCriteria key. Overview prose on the same plan stayed out of both clause sets. artifact_path stayed null, so the walk still stops before any file read. The statement-scrape path and path binding from clause text stay closed.\n\napplyClauseDerivationToPlan and evaluateVerifyAcFromPlan did not execute. Importing the stamp module resolves @deftai/directive-types, which this worktree does not have. The promote caller in packages/core/src/scope/transition.ts and the walk in packages/core/src/product-first-done-gate/evaluate.ts were read at the pin.\n\nRoad not taken. Treat the shared unverifiable walk as a miss against P1 and block the lean. The empty-item call already returns that walk for the criteria themselves. The pain line is which sentences are derived.\n\nWhat would flip the verdict. A run where the done-gate walks item titles after the stamped clauses are the AcceptanceCriteria lines, or a Stop 1 pain line that names adjudication or a bound artifact path. The gate stamp on 5779053838 is the title substitution, and the walk consumes the stamped clauses.\n\nThis footnote carries no disposition weight.\r\n\n",
+          "id": 5779485882,
+          "html_url": "https://github.com/deftai/directive/issues/4867#issuecomment-5779485882",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:44:16Z",
+          "updated_at": "2026-09-22T15:44:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSame parent wrote the opening triage and the successor lean. The round-1 critic and the pain-audit critic were separate posts. Rows are those critics runs of deriveAcceptanceClauses at aba2407f86bbef9b21f1b07d85ce396886d6bef5. They are not marked verified: this parent did not re-run the call, and the second seat was the same model family.\n\n| Claim | Evidence | Method | Mark |\n| --- | --- | --- | --- |\n| With item titles and parseable AcceptanceCriteria lines, the derived texts are the titles | Five titles derived while eight criteria lines were present | Critic call at the dispatch SHA | not verified |\n| An empty item surface derives the AcceptanceCriteria lines | Same call with an empty item surface returned the eight lines | Critic call at the dispatch SHA | not verified |\n| The bound remedy covers the title substitution | The harvest makes those lines the clause texts while items still have titles, and the unbound walk is the same for both sets | Pain-audit footnote at the dispatch SHA | not verified |\r\n\n",
+          "id": 5779517450,
+          "html_url": "https://github.com/deftai/directive/issues/4867#issuecomment-5779517450",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:46:23Z",
+          "updated_at": "2026-09-22T15:46:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWhen a plan has both item titles and acceptance criteria on the narrative, the derived clauses are the titles. The record accepts making parseable narrative acceptance criteria the clauses even when the items have titles. The same parent wrote the opening triage and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5779345042\nverified-claims table 5779517450\r\n\n",
+          "id": 5779519594,
+          "html_url": "https://github.com/deftai/directive/issues/4867#issuecomment-5779519594",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:46:33Z",
+          "updated_at": "2026-09-22T15:46:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Requirements: what done means. The person says what the change must do, and Directive is supposed to check that the code actually does that, and does not wander past it.\n\nWhat a new person hits: They write real acceptance criteria during setup. Directive ignores them and invents check items from the task titles instead.\n\nWhy that ruins the product for them: The careful part of the interview is thrown away. The product then grades the work against sentences it made up.\n\nHow likely: High on the first story that goes through setup. The criteria exist because the product asked for them.\n\n",
+          "id": 5780276609,
+          "html_url": "https://github.com/deftai/directive/issues/4867#issuecomment-5780276609",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:54Z",
+          "updated_at": "2026-09-22T16:37:54Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Parent: #4814\n\n## Finding\n\nSetup wrote eight behavioral criteria on plan.narratives.AcceptanceCriteria. scope:promote derived five clauses from plan-item titles, with artifact_path null, and the done-gate then checks titles rather than the criteria the interview recorded.\n\nSplit out of #4814 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: REQUIREMENTS\n- Priority: Urgent (audit scale S1)\n- Source: #4814\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540560742,
+        "origin": "deftai/directive#4867",
+        "id": "github.issue.5540560742"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f02941460fe286da5ffcdbfacf283a98858acf05d70c042c2cb4774a62563d5c"
+      }
+    },
+    "id": "github.issue.5540560742",
+    "updated": "2026-09-22T22:36:33Z"
+  }
+}
