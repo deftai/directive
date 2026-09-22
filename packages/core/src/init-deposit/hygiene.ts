@@ -1363,19 +1363,20 @@ export async function reconcileDepositToContentPackage(
   io: InitDepositIo,
 ): Promise<PrunePackageAbsentDepositPathsResult> {
   const result = await prunePackageAbsentDepositPaths(deftDir, contentRoot, io);
-  const remaining = await findPackageAbsentDepositPaths(deftDir, contentRoot);
-  const lied = ledgerDeletesStillOnDisk();
-  if (remaining.length > 0 || lied.length > 0) {
+  const remaining = [...(await findPackageAbsentDepositPaths(deftDir, contentRoot))];
+  for (const rel of ledgerDeletesStillOnDisk()) {
+    if (!remaining.includes(rel)) remaining.push(rel);
+  }
+  if (remaining.length > 0) {
     if (isPortRecordMode()) {
       // Dest IO was skipped; dest-only paths stay on disk and are already ledgered.
       // That planning ledger is not dest proof (#4812).
       return result;
     }
-    const reported = remaining.length > 0 ? remaining : lied;
-    const sample = reported.slice(0, 5).join(", ");
-    const more = reported.length > 5 ? ` (+${reported.length - 5} more)` : "";
+    const sample = remaining.slice(0, 5).join(", ");
+    const more = remaining.length > 5 ? ` (+${remaining.length - 5} more)` : "";
     throw new Error(
-      `deposit reconcile failed: ${reported.length} package-absent path(s) remain under .deft/core ` +
+      `deposit reconcile failed: ${remaining.length} package-absent path(s) remain under .deft/core ` +
         `(e.g. ${sample}${more}). Refusing VERSION stamp until dst-only content is removed (#2913).`,
     );
   }
