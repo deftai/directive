@@ -64,11 +64,12 @@ const VBRIEF_VALIDATE_BASENAME_REMEDY =
 
 /**
  * Canonical filename diagnostic (filename 'name' does not match convention ... (D7)).
- * The printed path may contain spaces. A schema line that only quotes (D7)
- * or "does not match convention" is not a miss.
+ * The printed path may contain spaces. A basename may contain an apostrophe;
+ * the closing quote is the one before " does not match convention".
+ * A schema line that only quotes (D7) or "does not match convention" is not a miss.
  */
 const BASENAME_MISS_MARKER = ": filename '";
-const BASENAME_MISS_TAIL = /^[^'\r\n]+' does not match convention .+ \(D7\)$/;
+const BASENAME_MISS_TAIL = /^[^\r\n]+?' does not match convention .+ \(D7\)$/;
 
 function lineIsBasenameMiss(line: string): boolean {
   let text = line.trim();
