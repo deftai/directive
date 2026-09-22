@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4663",
-    "updated": "2026-09-22T21:03:11Z"
+    "updated": "2026-09-22T22:01:54Z"
   },
   "plan": {
     "title": "[UAT Tester 1] Setup cannot write PROJECT-DEFINITION: requirements posture vs mutation needing an active xBRIEF",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 1] Setup cannot write PROJECT-DEFINITION: requirements posture vs mutation needing an active xBRIEF",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4663",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "A writer stores the Phase 2 narrative strings Overview, TechStack, Strategy, Quality, ProjectRules, and Branching in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty. That write is not an agent patch of that file. That writer does not set policy keys.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4925",
+          "recorded_at": "2026-09-22T22:01:29Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Policy mutation stays on policy:enforce-branches and policy:allow-direct-commits.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4925",
+          "recorded_at": "2026-09-22T22:01:29Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "An agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture stays denied with code write-requirements-out-of-class.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4925",
+          "recorded_at": "2026-09-22T22:01:29Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The same patch under mutation posture with an empty xbrief/active/ stays denied with code scope-not-ready.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4925",
+          "recorded_at": "2026-09-22T22:01:29Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Session start with an empty active set stays exit 0.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4925",
+          "recorded_at": "2026-09-22T22:01:29Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -441,9 +471,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "c89a03b5e27c069a970f146594e2824965a97f5294b0b85607ba7d09dc837079"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4925,
+        "prBase": null,
+        "mergeCommit": "5ba75913e29e81a033ec33ad1a2f56e6a9363c0c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5ba75913e29e81a033ec33ad1a2f56e6a9363c0c",
+        "verifiedAt": "2026-09-22T22:01:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T22:01:54Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T22:01:54Z"
       }
     },
     "id": "github.issue.5480358534",
-    "updated": "2026-09-22T21:03:11Z"
+    "updated": "2026-09-22T22:01:54Z"
   }
 }
