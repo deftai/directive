@@ -52,7 +52,11 @@ function isPlanTargetKind(value: string): value is PlanTargetKind {
   return (PLAN_TARGET_KINDS as readonly string[]).includes(value);
 }
 
-/** Same entry shape parsePlanSequence accepts, without requiring sequence_kind. */
+/** Same entry shape parsePlanSequence accepts, without requiring sequence_kind.
+ * Any string kind is kept. A later entry outside the target-kind set must not
+ * drop the current entry's terminal-lifecycle fact. Origin resolution has no
+ * branch for other strings, so an odd current kind skips the fact instead of throwing.
+ */
 function readDriftSubject(obj: Record<string, unknown>): TerminalDriftSubject | null {
   if (!Array.isArray(obj.entries) || obj.entries.length === 0) {
     return null;
@@ -66,12 +70,9 @@ function readDriftSubject(obj: Record<string, unknown>): TerminalDriftSubject | 
     if (typeof entry.id !== "string" || typeof entry.kind !== "string") {
       return null;
     }
-    if (!isPlanTargetKind(entry.kind)) {
-      return null;
-    }
     entries.push({
       id: entry.id,
-      kind: entry.kind,
+      kind: entry.kind as PlanSequenceEntry["kind"],
       title: typeof entry.title === "string" ? entry.title : undefined,
       issue: typeof entry.issue === "number" ? entry.issue : undefined,
       status:
@@ -82,6 +83,10 @@ function readDriftSubject(obj: Record<string, unknown>): TerminalDriftSubject | 
   }
   const current_index = typeof obj.current_index === "number" ? obj.current_index : 0;
   const exhausted = obj.exhausted === true || current_index >= entries.length;
+  const current = entries[current_index];
+  if (!exhausted && current !== undefined && !isPlanTargetKind(current.kind)) {
+    return null;
+  }
   return { entries, current_index, exhausted };
 }
 

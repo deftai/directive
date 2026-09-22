@@ -144,6 +144,34 @@ describe("inspectMissingSequenceKind (#4843)", () => {
     expect(later?.message).toContain(planSequencePath(laterOnly));
   });
 
+  it("keeps the pending current terminal-lifecycle fact when a later kind is epic", () => {
+    const root = tempRoot();
+    writeOrigin(root, 285, "completed");
+    writeSequence(
+      root,
+      legacy([
+        { id: "285", kind: "issue", issue: 285, status: "pending" },
+        { id: "later", kind: "epic", issue: 999 },
+      ]),
+    );
+    const report = inspectMissingSequenceKind(root);
+    expect(report?.authorized).toBe(false);
+    expect(report?.missingField).toBe("sequence_kind");
+    expect(report?.terminalLifecycle?.code).toBe("terminal-lifecycle");
+    expect(report?.terminalLifecycle?.folder).toBe("completed");
+    expect(report?.message).toContain("issue:285");
+    expect(report?.message).not.toContain("epic:");
+    expect(report?.message).not.toContain("every entry");
+    if (report === null) {
+      throw new Error("expected missing-kind report");
+    }
+    const payload = missingSequenceKindPayload(report);
+    expect(payload.terminal_lifecycle_drift?.code).toBe("terminal-lifecycle");
+    expect(payload.authorized).toBe(false);
+    expect(payload).not.toHaveProperty("entries");
+    expect(() => readPlanSequence(root)).toThrow(/plan-sequence: sequence_kind required/);
+  });
+
   it("does not treat a completed current entry, an exhausted sequence, or a cancelled non-match as drift", () => {
     const completedCurrent = tempRoot();
     writeOrigin(completedCurrent, 285, "completed");
