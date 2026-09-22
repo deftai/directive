@@ -23,7 +23,7 @@ function tempRoot(prefix: string): string {
   return root;
 }
 
-function git(cwd: string, args: readonly string[]): void {
+function gitEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env };
   delete env.GIT_DIR;
   delete env.GIT_WORK_TREE;
@@ -32,7 +32,26 @@ function git(cwd: string, args: readonly string[]): void {
   env.GIT_AUTHOR_EMAIL = "t@example.com";
   env.GIT_COMMITTER_NAME = "t";
   env.GIT_COMMITTER_EMAIL = "t@example.com";
-  execFileSync("git", args, { cwd, env, stdio: "ignore" });
+  return env;
+}
+
+function git(cwd: string, args: readonly string[]): void {
+  execFileSync("git", args, { cwd, env: gitEnv(), stdio: "ignore" });
+}
+
+function gitText(cwd: string, args: readonly string[]): string {
+  return execFileSync("git", args, { cwd, env: gitEnv(), encoding: "utf8" }).trim();
+}
+
+function withDeftBaseRef(value: string, run: () => void): void {
+  const prev = process.env.DEFT_BASE_REF;
+  process.env.DEFT_BASE_REF = value;
+  try {
+    run();
+  } finally {
+    if (prev === undefined) delete process.env.DEFT_BASE_REF;
+    else process.env.DEFT_BASE_REF = prev;
+  }
 }
 
 function writeBrief(root: string, dir: string, folder: string, name: string, status: string): void {
@@ -180,6 +199,76 @@ describe("landed completed filenames (#4844)", () => {
     }
     expect(warnings.join("\n")).not.toContain("(D7)");
     expect(errors.some((error) => error.includes("(D7)"))).toBe(true);
+  });
+
+  it("does not treat the default-branch tip as an unchanged landed tree", () => {
+    const root = tempRoot("vb-4844-head-");
+    initMaster(root);
+    for (const name of LANDED_BAD) {
+      writeBrief(root, "xbrief", "completed", name, "completed");
+    }
+    writeBrief(root, "xbrief", "active", "2026-09-21-ok-slug.xbrief.json", "running");
+    git(root, ["add", "xbrief"]);
+    commit(root, "base");
+    writeBrief(root, "xbrief", "completed", "2026-09-13-UPPER.xbrief.json", "completed");
+    writeBrief(root, "xbrief", "completed", "2026-09-13-has.dot.xbrief.json", "completed");
+    git(root, [
+      "mv",
+      "xbrief/active/2026-09-21-ok-slug.xbrief.json",
+      "xbrief/completed/2026-09-21-Bad.Slug.xbrief.json",
+    ]);
+    const edited = join(root, "xbrief", "completed", LANDED_BAD[0]);
+    writeFileSync(
+      edited,
+      readFileSync(edited, "utf8").replace('"title":"T"', '"title":"Edited"'),
+      "utf8",
+    );
+    git(root, ["add", "xbrief"]);
+    commit(root, "direct on master");
+    git(root, ["update-ref", "refs/remotes/origin/master", "HEAD"]);
+    const head = gitText(root, ["rev-parse", "HEAD"]);
+
+    withDeftBaseRef(head, () => {
+      const landed = landedUnchangedCompletedPaths(root);
+      expect(landed).not.toBeNull();
+      for (const name of LANDED_BAD) {
+        expect(landed?.has(`xbrief/completed/${name}`)).toBe(true);
+      }
+      expect(landed?.has("xbrief/completed/2026-09-13-UPPER.xbrief.json")).toBe(false);
+      expect(landed?.has("xbrief/completed/2026-09-13-has.dot.xbrief.json")).toBe(false);
+      expect(landed?.has("xbrief/completed/2026-09-21-Bad.Slug.xbrief.json")).toBe(false);
+
+      const { errors, warnings } = validateAll(join(root, "xbrief"));
+      expect(d7Names(errors)).toEqual(
+        [
+          "2026-09-13-UPPER.xbrief.json",
+          "2026-09-13-has.dot.xbrief.json",
+          "2026-09-21-Bad.Slug.xbrief.json",
+        ].sort(),
+      );
+      for (const name of LANDED_BAD) {
+        expect(d7Names(errors)).not.toContain(name);
+      }
+      expect(warnings.join("\n")).not.toContain("(D7)");
+    });
+  });
+
+  it("does not skip D7 when the introducing commit is HEAD and has no parent", () => {
+    const root = tempRoot("vb-4844-root-");
+    initMaster(root);
+    writeBrief(root, "xbrief", "completed", "2026-09-13-UPPER.xbrief.json", "completed");
+    writeBrief(root, "xbrief", "completed", "2026-09-13-has.dot.xbrief.json", "completed");
+    git(root, ["add", "xbrief"]);
+    commit(root, "root");
+    git(root, ["update-ref", "refs/remotes/origin/master", "HEAD"]);
+    const head = gitText(root, ["rev-parse", "HEAD"]);
+
+    withDeftBaseRef(head, () => {
+      expect(landedUnchangedCompletedPaths(root)).toBeNull();
+      expect(d7Names(validateAll(join(root, "xbrief")).errors)).toEqual(
+        ["2026-09-13-UPPER.xbrief.json", "2026-09-13-has.dot.xbrief.json"].sort(),
+      );
+    });
   });
 
   it("applies the same landed split under vbrief/completed", () => {

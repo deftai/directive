@@ -317,4 +317,19 @@ describe("named-cause gate failures (#3282)", () => {
     });
     expect(msg.remedy).toBe("Fix xBRIEF/vBRIEF schema errors reported by the gate");
   });
+
+  it("keeps the schema remedy when a schema line only quotes (D7) (#4844)", () => {
+    const msg = formatNamedCauseFailure({
+      gateId: "vbrief:validate",
+      exitCode: 1,
+      stdout:
+        "FAIL: xbrief/active/2026-01-01-good.xbrief.json: 'plan.status' invalid: '(D7)' " +
+        "(expected one of ['completed'])\n" +
+        "FAIL: xbrief/active/2026-01-01-good.xbrief.json: plan.items[id] invalid status: " +
+        "'does not match convention'\n",
+    });
+    expect(msg.remedy).toBe("Fix xBRIEF/vBRIEF schema errors reported by the gate");
+    expect(msg.remedy).not.toContain("already landed");
+    expect(msg.remedy).not.toContain("rename landed");
+  });
 });

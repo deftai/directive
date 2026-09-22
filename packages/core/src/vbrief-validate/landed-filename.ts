@@ -1,10 +1,10 @@
 /**
  * Completed basenames the check walk may skip for D7 (#4844).
  *
- * A name already at the base ref, and not an add or rename destination
- * in the change set, does not fail the gate. Discovery failure does not
- * exempt: callers keep the hard filename error. This is not a completed/
- * skip and not a warning.
+ * A name already in the landed tree, and not an add or rename destination
+ * in the change set, does not fail the gate. The landed tree is the base
+ * ref. A ref that resolves to HEAD is not that base. Discovery failure
+ * does not exempt. This is not a completed/ skip and not a warning.
  */
 
 import { spawnSync } from "node:child_process";
@@ -47,8 +47,29 @@ function normalizeRepoRelPath(raw: string): string {
   return text.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
-/** Default-branch ref. `HEAD` is not a landed base (#4844). */
+function verifiedCommit(ref: string, projectRoot: string): string | null {
+  const verified = git(["rev-parse", "--verify", "-q", `${ref}^{commit}`], projectRoot);
+  if (verified === null || verified.status !== 0) return null;
+  const sha = verified.stdout.trim();
+  return sha.length > 0 ? sha : null;
+}
+
+/** Uncommitted or untracked work. A clean tree means this commit is the change. */
+function worktreeDirty(projectRoot: string): boolean {
+  const status = git(["status", "--porcelain"], projectRoot);
+  if (status === null || status.status !== 0) return false;
+  return status.stdout.trim().length > 0;
+}
+
+/**
+ * Landed base ref. A ref that resolves to HEAD is not a landed base when
+ * this commit has a parent: that tree already contains the commit, and
+ * `base...HEAD` is empty. The tree before this commit is `HEAD~1`.
+ * A root commit has no earlier tree. Uncommitted work there still uses
+ * HEAD; a clean root commit cannot prove a landed name (#4844).
+ */
 function resolveBaseRef(projectRoot: string): string | null {
+  const head = verifiedCommit("HEAD", projectRoot);
   const githubBase = process.env.GITHUB_BASE_REF?.trim();
   const explicit = [
     process.env.DEFT_BASE_REF,
@@ -63,12 +84,20 @@ function resolveBaseRef(projectRoot: string): string | null {
     candidates.push(trimmed);
   }
   candidates.push("origin/master", "origin/main", "master", "main");
+  let sawCurrentHead = false;
   for (const candidate of candidates) {
-    const verified = git(["rev-parse", "--verify", "-q", candidate], projectRoot);
-    if (verified !== null && verified.status === 0) {
-      return candidate;
+    const sha = verifiedCommit(candidate, projectRoot);
+    if (sha === null) continue;
+    if (head !== null && sha === head) {
+      sawCurrentHead = true;
+      continue;
     }
+    return candidate;
   }
+  if (!sawCurrentHead || head === null) return null;
+  const parent = verifiedCommit("HEAD~1", projectRoot);
+  if (parent !== null && parent !== head) return "HEAD~1";
+  if (worktreeDirty(projectRoot)) return "HEAD";
   return null;
 }
 

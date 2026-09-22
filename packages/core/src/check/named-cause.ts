@@ -62,8 +62,18 @@ const VBRIEF_VALIDATE_BASENAME_REMEDY =
   "A basename the change set adds or renames stays a hard filename error, including dots and uppercase, on create, promote, activate, and on that change-set name. " +
   "Do not edit JSON for a basename miss, and do not rename landed records.";
 
+/**
+ * Canonical filename diagnostic (filename 'name' does not match convention ... (D7)).
+ * A schema line that only quotes (D7) or "does not match convention" is not a miss.
+ */
+const VBRIEF_BASENAME_MISS_LINE =
+  /^(?:FAIL:\s+)?\S+: filename '[^'\r\n]+' does not match convention .+ \(D7\)$/;
+
 function isVbriefBasenameMiss(text: string): boolean {
-  return text.includes("(D7)") || text.includes("does not match convention");
+  for (const line of text.split(/\r?\n/)) {
+    if (VBRIEF_BASENAME_MISS_LINE.test(line.trim())) return true;
+  }
+  return false;
 }
 
 function vbriefBasenameRemedy(gateId: string, cause: string, raw: string): string | null {
