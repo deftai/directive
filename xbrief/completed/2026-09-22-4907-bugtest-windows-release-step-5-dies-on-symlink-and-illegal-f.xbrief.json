@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4907",
-    "updated": "2026-09-22T17:04:26Z"
+    "updated": "2026-09-22T18:06:30Z"
   },
   "plan": {
     "title": "bug(test): Windows release Step 5 dies on symlink and illegal-filename fixtures",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(test): Windows release Step 5 dies on symlink and illegal-filename fixtures",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4907",
@@ -16,43 +16,95 @@
     "items": [
       {
         "title": "Split the four finishes. Do not bind one it.skipIf(win32) across all four.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/release-input.test.ts + packages/core/src/hooks/scope.test.ts + packages/core/src/scope/acceptance-evidence.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4909"
+        }
       },
       {
         "title": "xbrief root (release-input.test.ts:180): on win32 create the link as a junction, keep unsafe-node and payloadReads 0. Do not skip.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/release-input.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4909"
+        }
       },
       {
         "title": "Escaping file symlink (acceptance-evidence.test.ts:1964): skip only when symlinkSync returns EPERM or EACCES, using the #4344 capability probe. Keep the assertion on a host that can create the file symlink. A junction is not this case.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4909"
+        }
       },
       {
         "title": "Newline basename (scope.test.ts:158): skip on win32. Keep the Linux file-create assertion. A fence of the same string in operator copy without creating a file may stay as extra coverage.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4909"
+        }
       },
       {
         "title": "POSIX backslash git filename (release-input.test.ts:229): skip the git-integration half on win32. Keep the Linux assertion. Byte-preservation of a backslash in a git -z record may be asserted through splitGitNulRecordsStrict with a synthetic buffer on every platform.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/release-input.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4909"
+        }
       },
       {
         "title": "No behaviour loses its assertion on a platform where that behaviour is reachable.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/release-input.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4909"
+        }
       },
       {
         "title": "Success for this pain is the four named tests finishing on win32 under that split. It is not the whole of task check. verify:orphan-active on run 35747255508 stays out.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/release-input.test.ts + packages/core/src/hooks/scope.test.ts + packages/core/src/scope/acceptance-evidence.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4909"
+        }
       },
       {
         "title": "Unguarded symlinkSync in other test files, and a verify lane for the #4344 itSymlink convention, are leftover of this instance set. They are not this pain.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "The bound remedy says other symlinkSync call sites and a verify lane for the #4344 convention are leftover, not this pain. PR 4909 did not change them.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedVia": "bound remedy lean 5780512503, accepted by Scott when he sent 4907 through merge"
+          },
+          "recorded_at": "2026-09-22T12:00:00Z"
+        }
       }
     ],
     "tags": [
@@ -413,9 +465,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "636eb3592bcbc82bfd75a5d0fdd1ec6dd323c428797bff5fcbfaa0aa57e75091"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4909,
+        "prBase": null,
+        "mergeCommit": "e3c48c684d987084e68e6e25d3beab6e152ae79b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e3c48c684d987084e68e6e25d3beab6e152ae79b",
+        "verifiedAt": "2026-09-22T18:06:30Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T18:06:30Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T18:06:30Z"
       }
     },
     "id": "github.issue.5542432243",
-    "updated": "2026-09-22T17:04:26Z"
+    "updated": "2026-09-22T18:06:30Z"
   }
 }
