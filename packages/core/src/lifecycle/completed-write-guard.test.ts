@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ACTIVE_TWIN_RESTAMP_REMEDIATION,
   COMPLETED_WRITE_GUARD_MAX_BYTES,
   evaluateCompletedWriteGuard,
   scanCompletedWriteCorpus,
@@ -657,5 +658,176 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  it("refuses a lone active deletion when the completed twin is already on the base (#4906)", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-base-twin-"));
+    try {
+      gitOk(["init", "-q", "-b", "master"], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "base"], root);
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+      writeFileSync(join(root, active), withOrigin(runningSource(), ISSUE_URI), "utf8");
+      writeFileSync(join(root, completed), withOrigin(stamped(), ISSUE_URI), "utf8");
+      gitOk(["add", active, completed], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "-m", "track twin"], root);
+      const base = spawnSync("git", ["rev-parse", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+        env: isolatedGitEnv(root),
+      });
+      expect(base.status).toBe(0);
+      gitOk(["rm", "-f", active], root);
+      const result = evaluateCompletedWriteGuard(root, { baseRef: base.stdout.trim() });
+      expect(result.code).toBe(1);
+      expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+      expect(result.message).toContain(ACTIVE_TWIN_RESTAMP_REMEDIATION);
+      expect(result.message).not.toContain(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
+      expect(result.message).not.toContain("task scope:complete");
+      expect(result.message).not.toContain("task scope:cancel");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts an active deletion paired with a complete-stamped completed modification (#4906)", () => {
+    const injected = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}`,
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource()],
+      ]),
+    });
+    expect(injected.code).toBe(0);
+    expect(injected.findings).toHaveLength(0);
+
+    const root = mkdtempSync(join(tmpdir(), "completed-write-restamp-"));
+    try {
+      gitOk(["init", "-q", "-b", "master"], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "base"], root);
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+      writeFileSync(join(root, active), withOrigin(runningSource(), ISSUE_URI), "utf8");
+      writeFileSync(join(root, completed), withOrigin(stamped(), ISSUE_URI), "utf8");
+      gitOk(["add", active, completed], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "-m", "track twin"], root);
+      const base = spawnSync("git", ["rev-parse", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+        env: isolatedGitEnv(root),
+      });
+      expect(base.status).toBe(0);
+      const modified = JSON.parse(withOrigin(stamped(), ISSUE_URI)) as {
+        plan: { metadata: { lifecycleWrite: { writtenAt: string } } };
+      };
+      modified.plan.metadata.lifecycleWrite.writtenAt = "2026-09-22T18:00:00Z";
+      writeFileSync(join(root, completed), JSON.stringify(modified), "utf8");
+      gitOk(["rm", "-f", active], root);
+      const shown = spawnSync(
+        "git",
+        ["diff", "-M", "--name-status", "--diff-filter=ARDM", "HEAD"],
+        { cwd: root, encoding: "utf8", env: isolatedGitEnv(root) },
+      );
+      expect(shown.status).toBe(0);
+      expect(shown.stdout).toContain("D\t" + active);
+      expect(shown.stdout).toContain("M\t" + completed);
+      expect(shown.stdout).not.toMatch(/^R/m);
+      const result = evaluateCompletedWriteGuard(root, { baseRef: base.stdout.trim() });
+      expect(result.code, result.message).toBe(0);
+      expect(result.findings).toHaveLength(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a completed modification whose identity does not match the active deletion (#4906)", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}`,
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource("victim")],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
+  it("refuses an active deletion when the completed path is deleted in the same candidate (#4906)", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}\nD\t${completed}`,
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource()],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
+  it("refuses an active deletion when the completed path is renamed away in the same candidate (#4906)", () => {
+    const elsewhere = "xbrief/cancelled/2026-08-25-story.xbrief.json";
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}\nR100\t${completed}\t${elsewhere}`,
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource()],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
+  it("does not let an unstamped or non-complete modification authorize an active deletion (#4906)", () => {
+    const unstamped = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}`,
+      payloads: new Map([
+        [completed, husk()],
+        [active, runningSource("husk")],
+      ]),
+    });
+    expect(unstamped.code).toBe(1);
+    expect(unstamped.findings.some((f) => f.relPath === active)).toBe(true);
+
+    const failed = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}`,
+      payloads: new Map([
+        [completed, stamped("failed")],
+        [active, runningSource()],
+      ]),
+    });
+    expect(failed.code).toBe(1);
+    expect(failed.findings.some((f) => f.relPath === active)).toBe(true);
+
+    const legacy = JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "stamped",
+        status: "completed",
+        metadata: { completedAt: "2026-08-25T00:00:00Z" },
+      },
+    });
+    const legacyResult = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}`,
+      payloads: new Map([
+        [completed, legacy],
+        [active, runningSource()],
+      ]),
+    });
+    expect(legacyResult.code).toBe(1);
+    expect(legacyResult.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
+  it("caps a completed modification and does not authorize the active deletion (#4906)", () => {
+    const huge = "x".repeat(COMPLETED_WRITE_GUARD_MAX_BYTES + 1);
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nM\t${completed}`,
+      payloads: new Map([
+        [completed, huge],
+        [active, runningSource()],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.detail.includes("byte read limit"))).toBe(true);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
   });
 });

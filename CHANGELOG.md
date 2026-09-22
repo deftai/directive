@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A restamp of a completed brief can pair deletion of its leftover active twin (#4906).**
 - **Records #4907 complete after the Windows fixture split landed.**
 - **Windows release Step 5 fixture tests finish instead of failing during setup (#4907).**
 - **Literal AC accepts closed `python -m pytest`, `python3 -m pytest`, and `py -m pytest` (#4702).** Stamp-time acceptance runs the same command-safety check. `plan.acceptance` validation reports every stamp refusal, not only no-op reasons. The `-m` flag and `pytest` module are exact; `-M` and `PYTEST` stay refused. Other interpreter modes, uv, bare pytest, go test, and node --test stay refused.

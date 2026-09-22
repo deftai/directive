@@ -1,0 +1,427 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4906",
+    "updated": "2026-09-22T16:47:53Z"
+  },
+  "plan": {
+    "title": "bug(lifecycle): a leftover active brief cannot be deleted once its completed twin is already on the base",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(lifecycle): a leftover active brief cannot be deleted once its completed twin is already on the base",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4906",
+      "Overview": "\n\n- Do not authorize a lone deletion of active/ from merge-base presence plus matching title and origin.\n- Admit a Modified completed/ file whose plan carries a complete lifecycleWrite, whose pairingKey and planIdentity match the deleted active source, and whose plan passes transitionWriteFitsFolder for completed. Scan that M with the same stamp check the Added path already uses.\n- The cleanup diff is M of completed/X plus D of active/X. The completed brief stays the only terminal record.\n- The candidate must still have completed/X as a regular file. Refuse a D or R of that completed path in the same candidate.\n- Cap any base or blob read at COMPLETED_WRITE_GUARD_MAX_BYTES.\n- Twin identity stays the guard's existing planIdentity plus pairingKey. Do not add a fourth identity predicate.\n- Printed remediations that still tell the operator to run scope:complete against that leftover active path are wrong for this case. The admitted cleanup is the M+D restamp. The wet leftover-complete arm that calls complete against an active path whose completed twin already exists is leftover of #4798.\n- Once that active path is gone, Release Step 3 no longer lists it. scope:cancel is not the cleanup.\n\n\n",
+      "Labels": "bug, agent-experience, area:vbrief, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Do not authorize a lone deletion of active/ from merge-base presence plus matching title and origin.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Admit a Modified completed/ file whose plan carries a complete lifecycleWrite, whose pairingKey and planIdentity match the deleted active source, and whose plan passes transitionWriteFitsFolder for completed. Scan that M with the same stamp check the Added path already uses.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "The cleanup diff is M of completed/X plus D of active/X. The completed brief stays the only terminal record.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "The candidate must still have completed/X as a regular file. Refuse a D or R of that completed path in the same candidate.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Cap any base or blob read at COMPLETED_WRITE_GUARD_MAX_BYTES.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Twin identity stays the guard's existing planIdentity plus pairingKey. Do not add a fourth identity predicate.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Printed remediations that still tell the operator to run scope:complete against that leftover active path are wrong for this case. The admitted cleanup is the M+D restamp. The wet leftover-complete arm that calls complete against an active path whose completed twin already exists is leftover of #4798.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Once that active path is gone, Release Step 3 no longer lists it. scope:cancel is not the cleanup.",
+        "status": "proposed",
+        "id": "clause.8"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:vbrief",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4906",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4906: bug(lifecycle): a leftover active brief cannot be deleted once its completed twin is already on the base"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4840",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4840"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not authorize a lone deletion of active/ from merge-base presence plus matching title and origin.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Admit a Modified completed/ file whose plan carries a complete lifecycleWrite, whose pairingKey and planIdentity match the deleted active source, and whose plan passes transitionWriteFitsFolder for completed. Scan that M with the same stamp check the Added path already uses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The cleanup diff is M of completed/X plus D of active/X. The completed brief stays the only terminal record.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The candidate must still have completed/X as a regular file. Refuse a D or R of that completed path in the same candidate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Cap any base or blob read at COMPLETED_WRITE_GUARD_MAX_BYTES.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Twin identity stays the guard's existing planIdentity plus pairingKey. Do not add a fourth identity predicate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Printed remediations that still tell the operator to run scope:complete against that leftover active path are wrong for this case. The admitted cleanup is the M+D restamp. The wet leftover-complete arm that calls complete against an active path whose completed twin already exists is leftover of #4798.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Once that active path is gone, Release Step 3 no longer lists it. scope:cancel is not the cleanup.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a leftover active brief with a completed twin already on the base has no legal delete path, and that is a mechanism the write-guard owns.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4906-dc\norigin-ref: origin/HEAD\ndispatch-sha: 7712f482781c4885fd9d395756e2c316785730dd\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend: N≥3\nspend-ask: resolved\nspend-why: whole-motion lifecycle write-guard hang; operator arc yolo no-ingest\n\nDual-stop cap: 3 round-1 critic posts; a fourth post needs an operator raise\n\nrefutation-target: verify_completed_write_guard must allow a lone deletion of leftover active/ when the same-basename completed/ file is already on the merge base, with matching title and origin, so Release Step 3 stops reporting that closed issue.\n\ntarget: #4906\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is leftover xbrief/active/ for closed #4840 while completed/ is already on master from PR 4863. Release Step 3 counts that active file as a closed-issue brief outside completed/ and cancelled/. PR 4904 showed a lone-D cleanup failing the write-guard on 47189598e. scope:complete refuses because the completed target exists. reconcile:issues --apply-lifecycle-fixes skips the basename collision. scope:cancel would pair only by adding cancelled/ beside the completed brief.\n\nPin-read at dispatch-sha 7712f482781c4885fd9d395756e2c316785730dd:\n\n- packages/core/src/lifecycle/completed-write-guard.ts authorizedDests (lines 455-511) are filled only from Added completed/ or cancel-stamped cancelled/ files in the current name-status records.\n- A D of active/ is authorized only when some dest in that same diff has pairingKey plus planIdentity match (lines 549-579).\n- UNPAIRED_ACTIVE_DELETE_REMEDIATION (lines 69-71) says lone-D untracking is not an authorization token.\n\nNot #4001 and not #4784. No ingest from this parent.\n\n",
+          "id": 5779932383,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5779932383",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:13:54Z",
+          "updated_at": "2026-09-22T16:13:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5779950628\nfamilies: grok, claude, codex",
+          "id": 5779950628,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5779950628",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:14:51Z",
+          "updated_at": "2026-09-22T16:14:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\\nrole: critic\\n\\naudit-targets: none\\n\\nThe premise on comment 5779932383 is blocked. verify_completed_write_guard can allow a lone deletion of leftover active/ only when the surviving completed blob is the already-landed twin and the active blob is still the pre-completion leftover. Matching title and origin against the merge-base blob is a wider token than that leftover.\\n\\n## blocks-the-design: merge-base title match is a standing delete token\\n\\nEvidence. At 7712f482781c4885fd9d395756e2c316785730dd, planIdentity is title plus the sorted github-issue origin (packages/core/src/lifecycle/completed-write-guard.ts lines 117-143). pairingKey is family plus basename (lines 145-153). authorizedDests receives a path only after the current name-status set marks it A or R (lines 437-441) and transitionWriteFitsFolder accepts it (lines 465-511). A D of active/ pairs when one of those dests matches pairingKey and planIdentity (lines 549-566). discoverNameStatusRecords uses git diff --diff-filter=ARD (line 261), so a modification of an existing completed/ file never enters the set. The guard never reads a completed blob merely because it is on the merge base. readPayload runs only for a path already chosen as a dest (lines 298-357). sourceIdentity (lines 513-546) is the recovery for the deleted active side. UNPAIRED_ACTIVE_DELETE_REMEDIATION (lines 69-71) still says a lone D is not an authorization token.\\n\\nThe #4840 pair on that SHA is the one active-plus-completed basename twin in the tree. plan.title and the github-issue origin match, so planIdentity matches. The completed blob has metadata.lifecycleWrite action complete and metadata.completedAt 2026-09-22T13:05:05Z. The active blob is 55df594a0bf7d5d3528f13f9fd48621e2650f7d6, the same at 148d019c86bdd441661864be56e36cccd7b040cc^ and at HEAD, and no later commit touches that active path. Item cores match. The completed side adds x-directive/evidence and clause artifact_path values. Issue 4840 is closed with state_reason completed. Its anchor on the active file is the references github-issue, because the file has no planRef and no parent_issue. PR 4904, head 47189598e1af91430a6d219da80c682295354740, deletes only that active path and is unmerged. The merge-gate annotation on that head is verify:completed-write-guard exit 1.\\n\\nFailure mode. The written predicate authorizes every later active file that keeps the basename, title, and origin, including a resumed story whose items changed after the completed twin landed. Same-diff tests already pair when item titles and narratives differ. The same diff can also remove or rewrite the completed file: a D of completed/ is ignored by the dest loop, and an M is excluded by the ARD filter. A merge-base read then treats the pre-change bytes as the pair, and the terminal record can leave with the active file. This is an authority change over shared git state. The control belongs in the guard at diff time.\\n\\nDisposition. This heading stays open while the predicate is presence on the merge base plus matching title and origin. A bindable pair requires all of the following: the tip completed blob is byte-identical to the merge-base blob, transitionWriteFitsFolder accepts that plan for folder completed, pairingKey and planIdentity match the sourceIdentity of the deleted active file, and the active blob is unchanged since the commit that introduced that completed file. The #4840 blobs meet that test. A later edit to the active file keeps the current halt. The remediation string stays the halt for every other lone D.\\n\\n## sharpens-framing: the guard stays the owner, and Step 3 clears when this active path is gone\\n\\nEvidence. checkVbriefLifecycleSyncNative records a mismatch for each report.no_open_issue path that fails isTerminalLifecyclePath (packages/core/src/release/native-steps.ts lines 76-90). The completed #4840 path is terminal. The active path is the one that Step 3 lists while issue 4840 is closed. scope:complete returns Target already exists before unlink when the dest file is present (packages/core/src/scope/transition.ts lines 427-428). applyLifecycleFixes, for state_reason completed, finds the completed basename and skips without unlinking (packages/core/src/intake/reconcile-issues.ts lines 1053-1062). scope:cancel targets cancelled/ from every source folder (packages/core/src/scope/constants.ts lines 34-37) and refuses only when that cancelled path already exists, so the shipped story would gain a cancelled twin beside the completed brief. The same-diff guard pairs a cancel-stamped cancelled dest.\\n\\nFailure mode. A Step 3 exemption leaves the running active file tracked. A reconcile unlink is the same lone D that PR 4904 already failed. A cancel stamp records the shipped story as cancelled beside the completed brief.\\n\\nDisposition. The lean can bind with the write-guard as the owner and with the predicate in the blocking heading as the pair. The acceptance case is the #4840 blob pair measured above. scope:complete, the reconcile basename skip, and scope:cancel stay as they are. Once that active path is gone, Step 3 no longer lists it.\\n\\n## footnote: Stop 1 pin-read held\\n\\nThe pin-read on comment 5779932383 matches the D-pairing rule and the remediation string. The dest set also includes rename dests, because lines 437-441 treat status R like status A. A rename into completed/ is still a dest in the same diff. A file that is already on the base stays outside that set. The cited ranges 69-71, 455-511, and 549-579 are the functions that implement this.\\n\\nRoad not taken: exempt Release Step 3 and leave the active file tracked. That alternative becomes the fix if the Done line allows the leftover copy to stay. The Done line requires the leftover copy to be gone and the completed brief to remain the only terminal record.\\n\\nSteelman: a completed twin already on the base is the same pair #3766 already trusts, absent from name-status because this diff did not add it. That is why the change belongs in the guard, and it is true of the single #4840 twin measured here. The token that preserves that reading is the byte-identical surviving blob plus the unchanged active leftover, together with the stamp, pairingKey, and planIdentity the same-diff path already uses.\\n",
+          "id": 5780038799,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5780038799",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:21:04Z",
+          "updated_at": "2026-09-22T16:21:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 fresh critic, refutation charter. Input ceiling 5779950628 honored; issue comments above that id were not read. Tree reads and checks were pinned to `7712f482781c4885fd9d395756e2c316785730dd`.\n\n## footnote — the reported deadlock and the concrete #4840 pair hold\n\nI re-ran the repository-state checks rather than accepting the line cites. `git diff --name-status 7712f482... 47189598...` is exactly one `D` of the #4840 active path. At the dispatch SHA, active and completed have the same basename, byte-equal `plan.title`, and the same GitHub-issue origin; active is `running`, while completed is `completed` with `plan.metadata.lifecycleWrite.action = complete`. The current guard cannot authorize that diff: `authorizedDests` is populated only from `A`/`R` records in the candidate, and an active `D` pairs only against that list (`completed-write-guard.ts` 437-511, 549-579). `scope:complete` also still returns `Target already exists` before writing the destination (`scope/transition.ts` 423-429). The issue is real, and the actual pair can satisfy a stronger repair predicate than the refutation target states.\n\n## blocks-the-design — title/origin identity is not lifecycle authorization\n\nEvidence: `planIdentity` is only trimmed `plan.title` plus sorted GitHub-issue URIs (`completed-write-guard.ts` 117-142). The guard deliberately keeps that separate from authorization: a newly added completed destination enters `authorizedDests` only after `transitionWriteFitsFolder(plan, \"completed\")` succeeds (465-510). Historical completed artifacts are advisory, so merge-base presence plus identity can include an unstamped or folder-inconsistent artifact.\n\nConcrete failure mode: a malformed pre-existing `completed/<basename>` with copied title/origin would authorize deletion of the only valid running record even though no lifecycle verb ever created a valid terminal record. That reopens the #3679/#3766 bypass the guard exists to close.\n\nDisposition consequence: the refutation target cannot bind as written. The base twin must satisfy completion-specific authority—reuse `hasCompleteTransitionWrite` (including its legacy-complete rule), require terminal `plan.status`, and then apply the existing basename/title/origin pairing. The real #4840 completed artifact passes this stronger conjunct, so this does not block the repair case.\n\n## blocks-the-design — merge-base existence does not prove the terminal twin survives the candidate\n\nEvidence: discovery includes `D`/`R` records for every lifecycle path, but the finding loop examines only sources under `active/`; a `D` of `completed/` has no finding path (`completed-write-guard.ts` 259-290, 549-579). Therefore a predicate that asks only whether the twin exists on the merge base can see a valid twin even when the same candidate deletes or renames that twin away.\n\nConcrete failure mode: a candidate containing `D active/<basename>` plus `D completed/<basename>` would satisfy the stated base-twin/title/origin premise, the existing loop would ignore the completed deletion, and the change would leave zero terminal records. A modification of the twin is similarly invisible because discovery filters to `ARD`, not `M`.\n\nDisposition consequence: authorization must be candidate-state-sensitive. Require the same completed path to remain present as a regular file in the candidate and still satisfy the completion/identity predicate; explicitly refuse a same-path `D`/`R`, and validate an `M` rather than treating base state as current state. “Lone deletion” needs to be a checked condition, not prose.\n\n## sharpens-framing — the base-object reader must retain the guard's bounded-input control\n\nEvidence: candidate payload reads reject symlinks/non-files and cap input at 1 MiB before parsing (`readPayload`, 298-357). The existing historical source recovery uses uncapped `git show` (513-546); copying that pattern for the base completed twin would add a second unbounded parse path over repository-controlled JSON.\n\nConcrete failure mode: a large or non-regular base object can consume unbounded memory on the required merge gate, turning the repair exception into a denial-of-service surface.\n\nDisposition consequence: inspect object mode and size before reading the base blob, or reuse a capped blob reader with the same 1 MiB failure behavior. This sharpens implementation scope but does not change the repaired lifecycle rule.\n\n## Injection and shared-state lens\n\nThe relevant untrusted fields are title and origin. Equality comparison is safe; neither should become authority without the stamped-terminal checks above, and any diagnostic echo stays sanitized. Concurrent cleanup branches need no new lock: Git's path conflict handles two deletions, while the guard must evaluate each candidate against its own merge base and candidate tree.\n\n## Road not taken\n\nA new repair manifest or a synthetic cancelled destination would create a second authorization mechanism or falsify terminal state. Reusing the existing completion stamp, identity, size cap, and candidate-path checks is the smaller rule.\n\n## Steelman\n\nThe strongest case for the proposed carve-out is that same-basename/title/origin is already the guard's D+A pairing identity, and the measured #4840 completed twin carries the exact complete stamp needed. That case flips both blocking verdicts if the proposal explicitly requires a valid complete-authorized base twin that remains valid and present in the candidate. Identity alone does not flip them.",
+          "id": 5780073932,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5780073932",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:23:41Z",
+          "updated_at": "2026-09-22T16:23:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nCharter is refutation. Every Stop 1 anchor re-verified at 7712f482 by running checks against that SHA, not by re-reading the cited lines.\n\n## Anchors\n\n- The three pinned ranges hold. UNPAIRED_ACTIVE_DELETE_REMEDIATION at `packages/core/src/lifecycle/completed-write-guard.ts:69-71`. `authorizedDests` declared at `:455`, filled only through `rememberDest` (`:457-463`, `:510`) from `added`, which is built at `:438-441` as A-or-R status only. The D/R arm at `:549-580`.\n- Behavioural, not a line cite: the Merge gate job for PR 4904 head `47189598e` printed `verify_completed_write_guard: 1 finding(s) (#3679 / #3766)`, then `deleted from active/ with no paired stamped destination`, then the halt copy. That PR's file list is one removed entry. The lone-D refusal is observed, not inferred.\n- The other three blocks hold: `packages/core/src/scope/transition.ts:427-428` refuses with the target-already-exists message; `packages/core/src/intake/reconcile-issues.ts:1054-1063` skips the basename collision and says it left the source in place for manual cleanup (#2622); a cancel stamp does pair, via `transitionWriteFitsFolder(plan, \"cancelled\")` at `completed-write-guard.ts:465-472`.\n- Step 3 is `checkVbriefLifecycleSyncNative` (`packages/core/src/release/native-steps.ts:38-95`), filtering `report.no_open_issue` through `isTerminalLifecyclePath`.\n- The pair matches on every identity field the recorded target names: identical `plan.title`, identical single `x-xbrief/github-issue` ref to 4840, identical `plan.id`. The target is applicable. The fight is over what that match licenses.\n\n## Finding 1 -- blocks-the-design: base existence is not stamp evidence\n\nEvidence: at 7712f482, `git grep -L lifecycleWrite <sha> -- xbrief/completed vbrief/completed` returns 1327 paths out of 1598. The guard header (`:5-7`) and the doctor arm (`:662`, \"historical advisory\") say that corpus is deliberately advisory. The recorded target authorizes on the same-basename completed file already being on the merge base with matching title and origin. It carries no stamp term.\n\nFailure mode: a pull request whose entire diff is a D of `xbrief/active/X.xbrief.json`. The base holds `completed/X` with equal title and equal github-issue refs and no `lifecycleWrite`. The guard returns clean. The reviewer sees a deletion and no in-diff authorization artifact. 1327 of 1598 basenames become grandfathered authorization tokens, and the gate carries, as its own halt copy, the sentence saying lone-D untracking cleanup is not an authorization token, while having just treated one as exactly that.\n\nDisposition consequence: cannot bind as written. Add the stamp term -- the base twin must carry `lifecycleWrite`. The motivating case survives that tightening: the completed 4840 twin carries a complete stamp written at 2026-09-22T13:05:05Z. The admitted set drops from 1598 to 271.\n\n## Finding 2 -- blocks-the-design: #4798 already owns this case and its wet arm is structurally dead\n\nEvidence: `packages/core/src/swarm/complete-cohort.ts:71-76` records the governing rule -- leftover-complete must move, and add-completed-only is not leftover-complete. `findTrackedActiveTwins` (`:86-111`) returns a path only when `existsSync(completedPath)` is true. `sweepCohort` (`:538-552`) hands each twin to `completeStory`, which in the wet path calls `runTransition` with action complete against the active path (`:334-339`), which refuses at `transition.ts:427-428` because the destination is precisely the file the twin predicate required to exist. The selector guarantees the transition it feeds will fail.\n\nCoverage: the only sweep test is `packages/core/src/product-first-done-gate/product-first-done-gate.test.ts:856-884`, and it passes dryRun true. `completeStory` returns at the dry-run early exit (`:313-332`) before `runTransition` is ever called. The wet arm is untested.\n\nFailure mode: `task swarm:complete-cohort` over the real 4840 pair yields a failed action with the target-already-exists message. The same dead end is printed from two more places: `packages/core/src/orphan-active/evaluate.ts:422-432` prints `task scope:complete -- <active path>` for confirmed-shipped orphans and then offers `swarm:complete-cohort`; the write-guard halt copy names `scope:complete` or `scope:cancel`. Three printed remediations, one underlying call, guaranteed refusal.\n\nDisposition consequence: widening the guard leaves all three remediations wrong and makes a bare `git rm` the only path that produces the now-admitted diff. That is the shape #3766 exists to refuse. The repair site has to be named at the #4798 twin arm and at the transition, not only at the gate that reports last.\n\n## Finding 3 -- sharpens-framing: the scope:complete refusal is true only of the active-path invocation\n\nEvidence: `transition.ts:176` sets `restampCompleted` when the action is complete and the current folder is completed, dispatched at `:238-250` into `restampCompletedBrief` (`:568-600`), which runs the delivery gate and calls `stampLifecycleWrite` in place. The #3679 remediation string advertises the arm: `packages/core/src/scope/lifecycle-write.ts:24-25` says to run `task scope:complete` and notes that it can stamp a brief already in completed/. Pointed at `xbrief/completed/X`, that verb succeeds and produces a Modified `completed/X` carrying a fresh stamp.\n\nFailure mode -- of the current code, not of the proposal: that M is discarded at `completed-write-guard.ts:438-441`, where the added set filters to A and R. The stamped authorization artifact is present in the diff and the pairing scan structurally cannot see it. The issue's second bullet reads as though the verb is unavailable; it is available, and the gap is one set membership.\n\nDisposition consequence: restate the target. The smaller lever is a single predicate -- admit an M of `completed/` whose plan carries a `lifecycleWrite`, keeping the existing `pairingKey` plus `planIdentity` match -- after which the cleanup diff is M of `completed/X` plus D of `active/X`, and is not a lone deletion at all. The authorization evidence stays inside the diff, where the reviewer and the gate read the same bytes. No merge-base semantics, no new identity notion. Honest caveat: an M of `completed/` is unscanned by the #3679 half today, so admitting it as a token means bringing M under the same `transitionWriteFitsFolder` check in the same change. Forgeability of the stamp key itself is unchanged and already equal on the A path.\n\n## Finding 4 -- sharpens-framing: the target introduces a fourth twin-identity predicate\n\nEvidence: the guard uses `planIdentity`, which is title plus sorted github-issue uris (`completed-write-guard.ts:116-143`). #4798 uses `plan.id` equality (`complete-cohort.ts:102-107`), and its tests at `product-first-done-gate.test.ts:826-856` make `plan.id` alone the twin test. #2622 reconcile keys on basename only (`reconcile-issues.ts:1054`). The recorded target names a fourth: same basename plus matching title and origin, read from the merge base.\n\nFailure mode: at 7712f482 the 4840 pair satisfies all four, so the divergence is invisible in the motivating case. A pair whose active twin was retitled passes the #4798 selector and fails the guard match; the operator gets two mechanisms disagreeing about whether two files are the same story, with no recorded precedence between them.\n\nDisposition consequence: scope the target to name one authoritative twin predicate, or it ships a fourth.\n\n## Footnote -- blast radius today is one file\n\nAt 7712f482 there are 3 tracked active artifacts against 1598 completed ones, and the basename intersection is exactly the 4840 file. Bears on urgency and on how much gate surface the fix is worth, not on whether the target binds. Not residual.\n\n## Injection / swarm lens\n\nFires: the target changes an authority mechanism on a required merge gate, over contributor-controlled diffs and shared base state.\n\n- The proposal relocates the authorization input from inside the reviewed diff to repository state outside it. Diff review and gate review stop reading the same evidence. The current design keeps them aligned, and that alignment is the property being spent.\n- Plumbing is not the objection and should not be offered as one. The guard already reads the base: `sourceIdentity` falls back to a `git show` of the base ref spec for the source path at `:529-530`, with `pairingBaseRef` resolved at `:370` and `:403`. Feasibility is not in dispute; authorization semantics is.\n- Byte discipline is asymmetric. `readPayload` is capped at `COMPLETED_WRITE_GUARD_MAX_BYTES` (`:60-61`), which the header calls out as the reason a huge contributor-controlled add fails through the gate instead of exhausting memory. The `git show` fallback is bounded only by the default `maxBuffer` of `spawnSync`, not by that declared cap. A base-read arm widens that uncapped surface from D-sources to every candidate twin, so the cap belongs on it explicitly.\n\n## Road not taken\n\nRepairing at Step 3 -- teaching the mismatch filter to skip an active brief that has a terminal same-basename twin. Rejected: it satisfies only the third Done bullet. The tracked active copy stays, `verify:orphan-active` still refuses it as a shipped orphan, and the first Done bullet goes unmet. Symptom, not mechanism.\n\n## Steelman and what flips the verdict\n\nThe strongest rejected position: the base twin is legitimate evidence, because anything that reached the base under `completed/` passed this same gate on the way in, so base presence is a stamp by transitivity. That argument is sound for work landed after #3679 and false for the corpus that predates it, which is 1327 of 1598 files and which the guard itself classifies as advisory. What flips finding 1 from blocks-the-design to sharpens-framing: a `lifecycleWrite` term on the base twin in the predicate, so the grandfathered corpus cannot participate. Finding 2 does not move under that change -- the dead #4798 wet arm is independent of where the guard reads from.\n\n",
+          "id": 5780118912,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5780118912",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:26:58Z",
+          "updated_at": "2026-09-22T16:26:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** round-1 takes over the three critic posts.\n\nSpec-path:\n\nTarget-digest: sha256:06602a2e93b41b9ec29877f4253bf9dfe989d8e7f72023a0ccf260b6f82f4f97\n\n## In plain English\n\nClosed issue 4840 still has a running brief in active/, while its completed brief is already on master. Release counting treats that leftover as a closed-issue brief in the wrong folder. A pull request that only deletes the leftover fails the completed-write guard, because that guard only trusts a new completed or cancelled file in the same change.\n\nThe panel blocked a rule that would treat any matching completed file already on the base as enough permission to delete. Confirming this map binds a smaller change: restamp the existing completed file in the same diff that deletes the leftover active file, keep the completed file as the only terminal record, and refuse a delete of that completed file in the same change.\n\nForward verdict: the recorded refutation-target does not survive as worded; the leftover-active deadlock does. Disposition: the bound remedy below. Non-self-arbitration: this parent also wrote the Stop 1 triage; the takes below accept critic headings. This lean does not implement or close the issue.\n\n## Round\n\nround: 1\nsiblings: 3\nleaning-over: 5780038799, 5780073932, 5780118912\nsupersedes: 5779932383\n\n## Bound remedy\n\n- Do not authorize a lone deletion of active/ from merge-base presence plus matching title and origin.\n- Admit a Modified completed/ file whose plan carries a complete lifecycleWrite, whose pairingKey and planIdentity match the deleted active source, and whose plan passes transitionWriteFitsFolder for completed. Scan that M with the same stamp check the Added path already uses.\n- The cleanup diff is M of completed/X plus D of active/X. The completed brief stays the only terminal record.\n- The candidate must still have completed/X as a regular file. Refuse a D or R of that completed path in the same candidate.\n- Cap any base or blob read at COMPLETED_WRITE_GUARD_MAX_BYTES.\n- Twin identity stays the guard's existing planIdentity plus pairingKey. Do not add a fourth identity predicate.\n- Printed remediations that still tell the operator to run scope:complete against that leftover active path are wrong for this case. The admitted cleanup is the M+D restamp. The wet leftover-complete arm that calls complete against an active path whose completed twin already exists is leftover of #4798.\n- Once that active path is gone, Release Step 3 no longer lists it. scope:cancel is not the cleanup.\n\n## Per-heading takes\n\n### Grok 5780038799\n\n- merge-base title match is a standing delete token — accept-into-contract\n- the guard stays the owner, and Step 3 clears when this active path is gone — accept-into-contract\n\n### Codex 5780073932\n\n- title/origin identity is not lifecycle authorization — accept-into-contract\n- merge-base existence does not prove the terminal twin survives the candidate — accept-into-contract\n- the base-object reader must retain the guard's bounded-input control — accept-into-contract\n\n### Claude 5780118912\n\n- 1 base existence is not stamp evidence — accept-into-contract\n- 2 #4798 already owns this case and its wet arm is structurally dead — accept-into-contract\n- 3 the scope:complete refusal is true only of the active-path invocation — accept-into-contract\n- 4 the target introduces a fourth twin-identity predicate — accept-into-contract\n\nResidual: none.\n\nrelieves: P1\n\n",
+          "id": 5780175632,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5780175632",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:30:52Z",
+          "updated_at": "2026-09-22T16:30:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nThe relieves cite for P1 on bind lean 5780175632 holds against Stop 1 5779932383 and that lean's bound-remedy list. Census is footnote-only.\n\nStop 1 names one pain. Closed #4840 still has a running brief in active/ while the completed twin is already on master. Release Step 3 counts that active path. A lone deletion fails the completed-write guard. scope:complete on the active path stops because the completed target exists. reconcile skips the basename collision. scope:cancel would add a cancelled twin beside the completed brief.\n\nChecked at 7712f482781c4885fd9d395756e2c316785730dd by reading the tree and the guard, not by trusting the cited line numbers.\n\nThe bound list refuses a lone deletion authorized by merge-base presence plus matching title and origin. It admits one other diff: modify the completed file in that same change, delete the active file, keep the completed file as a regular file, and refuse a deletion or rename of that completed path in the candidate. The modified plan must carry a complete lifecycleWrite, match the guard's existing pairingKey and planIdentity, and pass the completed-folder stamp check. Blob reads stay capped at COMPLETED_WRITE_GUARD_MAX_BYTES.\n\nThat diff is a legal delete the guard does not admit today. authorizedDests is filled only from added and renamed paths (completed-write-guard.ts, the added filter around 437-441 and rememberDest around 457-510). Discovery uses git diff --diff-filter=ARD (around 261), so a modification never enters the dest set. An active deletion pairs only against that set (around 549-566). Admitting this modification gives the deletion a paired dest inside the diff.\n\nThe #4840 pair meets that predicate. It is the only basename present in both active/ and completed/ (3 active files, 1598 completed). Both plans share the same title and the same github-issue origin for 4840. Both plan.id values are github.issue.5528773505. The completed plan status is completed, and lifecycleWrite.action is complete, written at 2026-09-22T13:05:05Z. The active plan status is running and has no lifecycleWrite. The active blob at HEAD is 55df594a0bf7d5d3528f13f9fd48621e2650f7d6, the same blob as at the parent of 148d019c86bdd441661864be56e36cccd7b040cc, the commit that added the completed file.\n\nAfter that active path is gone, Step 3 no longer lists it. checkVbriefLifecycleSyncNative records a mismatch only for a no_open_issue path that fails isTerminalLifecyclePath. Anchor paths are folder/filename. completed/ and cancelled/ are the terminal folders. The completed twin stays terminal.\n\nscope:complete on the active path still returns target-already-exists before the write (transition.ts around 427-428). reconcile still skips a completed basename and leaves the source in place (reconcile-issues.ts around 1053-1062). scope:cancel still targets cancelled/. The bound list leaves those three as the wrong cleanup for this pair. The admitted cleanup is the modification plus the deletion. restampCompletedBrief writes the completed file in place and stamps lifecycleWrite action complete (transition.ts around 568-600), so that modification is the existing restamp verb. The complete-cohort wet arm still calls complete on the active path. The bound list names that arm as leftover of #4798. That caller sits outside this pain.\n\n## footnote: the folder helper admits more than a complete action stamp\n\ntransitionWriteFitsFolder for completed returns hasTransitionWrite (lifecycle-write.ts). That helper is true for a complete stamp, and also for a fail stamp, legacy metadata.completedAt, and status failed. The bound bullet requires a complete lifecycleWrite and also says to scan the modification with the check the added path already uses. Those name two predicates.\n\nThe #4840 completed plan carries action complete, so this pair is admitted by the complete action stamp. The relieves cite stays on that pair. The bound list stays as written.\n\n## footnote: the #4798 caller stays outside this pain\n\nfindTrackedActiveTwins selects this pair because the basename exists in both folders and plan.id matches (complete-cohort.ts around 86-111). completeStory then calls runTransition complete on the active path (around 334-339), and the target-already-exists check refuses it. The bound list names that arm as leftover of #4798 and keeps P1 on the relieves cite. Stop 1's pain is the missing legal delete. The admitted diff supplies that delete without this caller.\n\nThe authorization token is the in-diff modification plus the existing identity match. Title and origin stay equality checks. A deletion or rename of the completed path in the same candidate is refused, so the terminal file stays in the candidate with the active deletion. Reads stay inside the existing byte cap.\n\nRoad not taken: treat the wider folder helper as a failed cite. That reading still admits this pair, because the completed plan's action is complete. It would flip if this completed plan had only legacy completedAt or a fail stamp.\n\nSteelman: the cite would fail if the only remaining moves were scope:complete on the active path, reconcile, and scope:cancel. Those three stay refused. The cite holds because the list admits the other diff, which restamp of the completed file can write.\n\n",
+          "id": 5780264847,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5780264847",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:10Z",
+          "updated_at": "2026-09-22T16:37:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Lone-D of leftover active/ fails the write-guard because dests are A/R only | Pin-read completed-write-guard.ts at 7712f482781c4885fd9d395756e2c316785730dd; PR 4904 name-status is one D | held |\n| 2 | The #4840 pair is the only active/completed basename twin and already carries a complete stamp | Tree census 3 active vs 1598 completed; planIdentity and lifecycleWrite on the completed blob | held |\n| 3 | An M of completed/ plus D of active/ is the admitted cleanup; lone merge-base title match is not | Bound-remedy on lean 5780175632; restampCompletedBrief writes that M | held |\n| 4 | After that active path is gone, Step 3 no longer lists it | checkVbriefLifecycleSyncNative + isTerminalLifecyclePath | held |\n\n",
+          "id": 5780276489,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5780276489",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:54Z",
+          "updated_at": "2026-09-22T16:37:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nClosed issue 4840 still has a running brief in active/, while its completed brief is already on master. The accepted change is to restamp that completed file in the same diff that deletes the leftover active file. A matching completed file already on the base is not enough permission to delete by itself.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5780175632.\n\n",
+          "id": 5780276747,
+          "html_url": "https://github.com/deftai/directive/issues/4906#issuecomment-5780276747",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:55Z",
+          "updated_at": "2026-09-22T16:37:55Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happened\n#4840 is closed. Its completed brief is on master from PR 4863. The same basename is still tracked in `xbrief/active/` with `plan.status` running. Release Step 3 counts that active file as a closed-issue brief outside `completed/` and `cancelled/`.\n\nThe cleanup diff cannot land:\n- A pull request that only deletes the active file fails `verify_completed_write_guard` (#3679 / #3766). Pairing needs an Added `completed/` or `cancelled/` file in the same diff, with the same basename, title, and origin. The completed path is already on the base, so the diff is a lone deletion. PR 4904 showed this on `47189598e` and was closed without merge.\n- `scope:complete` refuses because the completed target already exists.\n- `reconcile:issues --apply-lifecycle-fixes` skips that basename collision and does not delete the source (#2622).\n- `scope:cancel` would add `cancelled/` and could pair, but it would record the shipped story as cancelled beside the completed brief.\n\n## Done\n- One change can remove the leftover active copy while the existing completed brief stays the only terminal record.\n- That change passes `verify_completed_write_guard` without a cancel stamp and without treating an unpaired deletion as success.\n- Release Step 3 no longer reports #4840 for this file.\n\nNot #4001 (a superseded proposal routed to `completed/`) and not #4784 (a same-diff completion whose identity fields changed).\n\nRefs #4840, #3766, #4784, #2622, #4001.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5542072669,
+        "origin": "deftai/directive#4906",
+        "id": "github.issue.5542072669"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "06602a2e93b41b9ec29877f4253bf9dfe989d8e7f72023a0ccf260b6f82f4f97"
+      }
+    },
+    "id": "github.issue.5542072669",
+    "updated": "2026-09-22T16:47:53Z"
+  }
+}

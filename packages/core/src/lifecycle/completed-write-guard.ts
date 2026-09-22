@@ -3,12 +3,17 @@
  * and refuse a source D or rename-from of active/ with no paired stamped
  * destination (#3766).
  *
+ * A modification of an existing completed/ file can pair an active deletion
+ * when that plan carries a complete lifecycleWrite, pairingKey and planIdentity
+ * match, and transitionWriteFitsFolder accepts completed (#4906). Merge-base
+ * presence alone does not. A D or R of that completed path does not.
+ *
  * Historical corpus is advisory (doctor). New work in the change set is hard
  * (verify:completed-write-guard). Does not read completionProvenance and does
  * not change verify:completed-tracked.
  *
  * Disk reads are capped at COMPLETED_WRITE_GUARD_MAX_BYTES so a huge
- * contributor-controlled completed/ add fails through the guard instead of
+ * contributor-controlled completed/ blob fails through the guard instead of
  * exhausting memory on the required gate path.
  */
 
@@ -65,13 +70,23 @@ const COMPLETED_REL_RE = /^(?:xbrief|vbrief)\/completed\/[^/]+$/;
 const ACTIVE_REL_RE = /^(?:xbrief|vbrief)\/active\/[^/]+$/;
 const CANCELLED_REL_RE = /^(?:xbrief|vbrief)\/cancelled\/[^/]+$/;
 
-/** Halt copy for unpaired active/ D or rename-from (#3766). */
+/** Halt copy for a true unpaired active/ D or rename-from (#3766). */
 export const UNPAIRED_ACTIVE_DELETE_REMEDIATION =
   "Halt: run `task scope:complete` or `task scope:cancel` so the destination is stamped, or leave the brief untracked. " +
   "Lone-D untracking cleanup is not an authorization token (#3766).";
 
+/**
+ * Halt when a same-basename completed twin survives, but this diff is not the
+ * admitted restamp (#4906). Does not send scope:complete at the leftover active path.
+ */
+export const ACTIVE_TWIN_RESTAMP_REMEDIATION =
+  "Halt: restamp the existing completed/ twin in this same change and delete the leftover active file together. " +
+  "The admitted cleanup is that modification plus the deletion. " +
+  "Do not point scope:complete at the leftover active file. " +
+  "Lone-D untracking cleanup is not an authorization token (#3766).";
+
 interface NameStatusRecord {
-  readonly status: "A" | "D" | "R";
+  readonly status: "A" | "D" | "M" | "R";
   readonly src: string;
   readonly dest: string;
 }
@@ -152,6 +167,36 @@ function pairingKey(relPath: string): string | null {
   return `${family}/${base}`;
 }
 
+function completedTwinRel(activeRel: string): string | null {
+  const n = normalizeRepoRelPath(activeRel);
+  const base = lastPathSegment(n);
+  if (base.length === 0) {
+    return null;
+  }
+  if (n.startsWith("xbrief/active/")) {
+    return `xbrief/completed/${base}`;
+  }
+  if (n.startsWith("vbrief/active/")) {
+    return `vbrief/completed/${base}`;
+  }
+  return null;
+}
+
+/** Complete action stamp. Legacy completedAt and fail stamps are not this token (#4906). */
+function hasCompleteLifecycleWrite(plan: Record<string, unknown>): boolean {
+  const meta = plan.metadata;
+  if (typeof meta !== "object" || meta === null || Array.isArray(meta)) {
+    return false;
+  }
+  const stamp = (meta as Record<string, unknown>).lifecycleWrite;
+  if (typeof stamp !== "object" || stamp === null || Array.isArray(stamp)) {
+    return false;
+  }
+  const rec = stamp as Record<string, unknown>;
+  const writtenAt = rec.writtenAt;
+  return rec.action === "complete" && typeof writtenAt === "string" && writtenAt.trim().length > 0;
+}
+
 function parsePlan(raw: string): Record<string, unknown> | null {
   try {
     const data = JSON.parse(raw) as unknown;
@@ -222,6 +267,12 @@ function parseNameStatusRecords(stdout: string): NameStatusRecord[] {
         const n = normalizeRepoRelPath(unquoteGitPath(path));
         out.push({ status: "D", src: n, dest: n });
       }
+    } else if (status.startsWith("M")) {
+      const path = parts[1];
+      if (path !== undefined) {
+        const n = normalizeRepoRelPath(unquoteGitPath(path));
+        out.push({ status: "M", src: n, dest: n });
+      }
     } else if (status.startsWith("R")) {
       const srcRaw = parts[1];
       const destRaw = parts[2] ?? parts[1];
@@ -258,7 +309,7 @@ function discoverNameStatusRecords(projectRoot: string, baseRef: string): NameSt
   }
   const records: NameStatusRecord[] = [];
   const range = resolved.includes("...") ? resolved : `${resolved}...HEAD`;
-  const committed = git(["diff", "-M", "--name-status", "--diff-filter=ARD", range], projectRoot);
+  const committed = git(["diff", "-M", "--name-status", "--diff-filter=ARDM", range], projectRoot);
   if (committed.status !== 0) {
     const detail =
       committed.stdout.trim() || `git diff ${range} exited ${String(committed.status)}`;
@@ -268,7 +319,7 @@ function discoverNameStatusRecords(projectRoot: string, baseRef: string): NameSt
     );
   }
   records.push(...parseNameStatusRecords(committed.stdout));
-  const vsHead = git(["diff", "-M", "--name-status", "--diff-filter=ARD", "HEAD"], projectRoot);
+  const vsHead = git(["diff", "-M", "--name-status", "--diff-filter=ARDM", "HEAD"], projectRoot);
   if (vsHead.status !== 0) {
     const detail = vsHead.stdout.trim() || `git diff HEAD exited ${String(vsHead.status)}`;
     throw new GitCommandError(`working-tree change-set unavailable: ${detail}`);
@@ -447,6 +498,8 @@ export function evaluateCompletedWriteGuard(
   // plan.title and origin issue refs to match the recovered source so a copied
   // stamp cannot authorize an unrelated deletion. Item titles and narratives
   // are not pairing identity (#4784).
+  // An M of completed/ is a dest only with a complete lifecycleWrite plus the
+  // same folder stamp check (#4906). A D or R of that path is not a surviving twin.
   interface AuthDest {
     readonly rel: string;
     readonly key: string;
@@ -454,7 +507,14 @@ export function evaluateCompletedWriteGuard(
   }
   const authorizedDests: AuthDest[] = [];
 
+  const removedSrc = new Set(
+    records.filter((rec) => rec.status === "D" || rec.status === "R").map((rec) => rec.src),
+  );
+
   const rememberDest = (rel: string, plan: Record<string, unknown>): void => {
+    if (removedSrc.has(rel)) {
+      return;
+    }
     const key = pairingKey(rel);
     const identity = planIdentity(plan);
     if (key !== null && identity.length > 0) {
@@ -510,6 +570,58 @@ export function evaluateCompletedWriteGuard(
     rememberDest(rel, plan);
   }
 
+  const activePairKeys = new Set(
+    records
+      .filter((rec) => (rec.status === "D" || rec.status === "R") && isActiveArtifactRel(rec.src))
+      .map((rec) => pairingKey(rec.src))
+      .filter((key): key is string => key !== null),
+  );
+  for (const rec of records) {
+    if (rec.status !== "M" || !isCompletedArtifactRel(rec.src)) {
+      continue;
+    }
+    const rel = rec.src;
+    const key = pairingKey(rel);
+    // Same capped read and completed-folder stamp check as an added dest (#4906).
+    if (key === null || !activePairKeys.has(key) || removedSrc.has(rel)) {
+      continue;
+    }
+    const payload = readPayload(root, rel, options.payloads);
+    if (payload.kind === "missing") {
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(`${rel}: modified under completed/ but unreadable`),
+      });
+      continue;
+    }
+    if (payload.kind === "unsafe") {
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(payload.detail),
+      });
+      continue;
+    }
+    const plan = parsePlan(payload.raw);
+    if (plan === null) {
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(`${rel}: modified under completed/ with unreadable plan`),
+      });
+      continue;
+    }
+    if (!transitionWriteFitsFolder(plan, "completed")) {
+      findings.push({
+        relPath: rel,
+        detail: sanitizeDetail(`${rel}: modified under completed/ without a runTransition write`),
+      });
+      continue;
+    }
+    if (!hasCompleteLifecycleWrite(plan)) {
+      continue;
+    }
+    rememberDest(rel, plan);
+  }
+
   const sourceIdentity = (src: string): string => {
     const payload = readPayload(root, src, options.payloads);
     if (payload.kind === "ok") {
@@ -547,6 +659,27 @@ export function evaluateCompletedWriteGuard(
   };
 
   const seenActive = new Set<string>();
+  const twinHalts = new Set<string>();
+  const survivingCompletedTwin = (activeSrc: string): boolean => {
+    const twin = completedTwinRel(activeSrc);
+    if (twin === null || removedSrc.has(twin)) {
+      return false;
+    }
+    const freshDest = records.some(
+      (rec) => (rec.status === "A" || rec.status === "R") && rec.dest === twin,
+    );
+    if (freshDest) {
+      return false;
+    }
+    if (records.some((rec) => rec.status === "M" && rec.src === twin)) {
+      return true;
+    }
+    if (options.nameStatus !== undefined) {
+      return false;
+    }
+    const payload = readPayload(root, twin, options.payloads);
+    return payload.kind === "ok";
+  };
   for (const rec of records) {
     if (rec.status !== "D" && rec.status !== "R") {
       continue;
@@ -572,6 +705,9 @@ export function evaluateCompletedWriteGuard(
       continue;
     }
     seenActive.add(rec.src);
+    if (survivingCompletedTwin(rec.src)) {
+      twinHalts.add(rec.src);
+    }
     const verb = rec.status === "R" ? "renamed away from" : "deleted from";
     findings.push({
       relPath: rec.src,
@@ -607,7 +743,12 @@ export function evaluateCompletedWriteGuard(
   if (destFindings.length > 0) {
     parts.push(LEFTOVER_LAND_PR_REMEDIATION);
   }
-  parts.push(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
+  if (deleteFindings.some((finding) => !twinHalts.has(finding.relPath))) {
+    parts.push(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
+  }
+  if (deleteFindings.some((finding) => twinHalts.has(finding.relPath))) {
+    parts.push(ACTIVE_TWIN_RESTAMP_REMEDIATION);
+  }
   return {
     code: 1,
     findings,
