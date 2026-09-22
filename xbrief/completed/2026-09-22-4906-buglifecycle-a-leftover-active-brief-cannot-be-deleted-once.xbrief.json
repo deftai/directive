@@ -97,7 +97,7 @@
         "id": "clause.8",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "pointer": "packages/core/src/release/native-steps.test.ts",
           "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4910"
         }
