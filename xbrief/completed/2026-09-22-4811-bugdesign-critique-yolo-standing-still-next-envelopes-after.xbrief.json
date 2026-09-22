@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4811",
-    "updated": "2026-09-22T00:12:46Z"
+    "updated": "2026-09-22T14:14:13Z"
   },
   "plan": {
     "title": "bug(design-critique): yolo standing still next-envelopes after an all-accept successor lean when Stop 1 pain is uncited",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(design-critique): yolo standing still next-envelopes after an all-accept successor lean when Stop 1 pain is uncited",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4811",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "Contract: under yolo standing, an all-accept first successor lean on an arc whose Stop 1 named pain is bind-capable (honest pain cites). No free-English intermediate hatch. Intermediate recuts carry none does not default that first lean to uncited.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4852"
+        }
       },
       {
         "title": "Uncited first map stays Handoff. Do not publish that path-1 unrelieved-pain or missing-pain on an uncited Spec-path lean is a conversation non-halt. Do not recut evaluateHandoffPrint in this leftover.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4852"
+        }
       },
       {
         "title": "After an operative first relieves, path-1 unresolved-pain-audit is not a conversation halt while Dual-stop numbered or reserved slot remains: parent fills a pain-audit brief (new ceiling at the bind map, process-only, dest cwd-without-occupy). Yolo-confirm is not ingest and not next-envelope.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4852"
+        }
       },
       {
         "title": "Thin skill EXIT / motion pointer names continuation after a bind-capable lean under yolo. Mid-arc EXIT does not default to operator next-envelope in that case. Pointer-only. Content-contract tests lock those strings. Live parent turns may stay unenforced.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4852"
+        }
       },
       {
         "title": "Leave leftover-split confirm, Handoff, and Dual-stop halt-for-human in place. Dual-stop raise stays a raise. Do not waive #4592. Do not auto-ingest. Do not skill-auto-dispatch. Do not reuse round-1 as pain-audit.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-design-critique/SKILL.md",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4852"
+        }
       }
     ],
     "tags": [
@@ -479,9 +509,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "02473cf2d552f7fd731132edb6e8a6a7cca4edc865f6084744ca42f67a6a4cf3"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4852,
+        "prBase": null,
+        "mergeCommit": "be3faeaadee33e195d8a2a593eb8e45a456a5625",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:14:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:14:13Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:14:13Z"
       }
     },
     "id": "github.issue.5515533425",
-    "updated": "2026-09-22T00:12:46Z"
+    "updated": "2026-09-22T14:14:13Z"
   }
 }

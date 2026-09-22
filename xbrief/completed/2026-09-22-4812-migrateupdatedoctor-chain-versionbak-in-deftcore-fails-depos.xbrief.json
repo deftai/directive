@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4812",
-    "updated": "2026-09-22T00:12:42Z"
+    "updated": "2026-09-22T14:16:42Z"
   },
   "plan": {
     "title": "migrate/update/doctor chain: VERSION.bak in .deft/core fails deposit hygiene, update's prune silently no-ops, doctor omits the failure from its summary",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "migrate/update/doctor chain: VERSION.bak in .deft/core fails deposit hygiene, update's prune silently no-ops, doctor omits the failure from its summary",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4812",
@@ -16,18 +16,36 @@
     "items": [
       {
         "title": "Write the VERSION backup outside `.deft/core` using the existing out-of-tree root (user-cache `deft/backups` / OS temp, or tmpdir `deft-core-bak-*`). Do not harvest project-local `.deft/backups/`. Do not widen `isDepositGeneratedMetadata` to `VERSION.bak.*`.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hygiene.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4856"
+        }
       },
       {
         "title": "Prune must dest-unlink or fail closed. Never report a path in `mutations.deleted` that still exists. Record-mode planning JSON is not dest proof. Lock a `VERSION.bak.<ts>` prune test.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hygiene.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4856"
+        }
       },
       {
         "title": "Doctor summary text, JSON `ok`, session coda, and exit must derive from one status that includes deposit hygiene. A mid-report `Deposit hygiene: fail` plus `System check passed!` is not showing the fail. `--json` must not skip the hygiene wrapper.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/session-coda.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4856"
+        }
       }
     ],
     "tags": [
@@ -355,9 +373,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "fa027b36667ea2cf2d0b9536f797d902faca435b8a25fd758ae301276ab51b43"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4856,
+        "prBase": null,
+        "mergeCommit": "ef3e995f8b9e4cea92acf919f7f15a4fc9b4b455",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:16:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:16:42Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:16:42Z"
       }
     },
     "id": "github.issue.5515624254",
-    "updated": "2026-09-22T00:12:42Z"
+    "updated": "2026-09-22T14:16:42Z"
   }
 }

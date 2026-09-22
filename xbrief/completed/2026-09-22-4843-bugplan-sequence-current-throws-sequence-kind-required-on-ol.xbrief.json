@@ -1,0 +1,336 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4843",
+    "updated": "2026-09-22T14:21:23Z"
+  },
+  "plan": {
+    "title": "bug(plan-sequence): current throws sequence_kind required on older sequence files",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(plan-sequence): current throws sequence_kind required on older sequence files",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4843",
+      "Overview": "\n\n1. plan-sequence:current and verify:plan-sequence name the sequence file, the missing sequence_kind field, and the terminal-lifecycle fact when the pending current entry's origin is already in completed or cancelled.\n2. That report does not return an authorized sequence. A non-string sequence_kind still does not parse as a sequence.\n3. The predicate is that one pending current entry. It is not \"every entry is already completed\".\n4. set and createPlanSequence refusing a non-string sequence_kind before write is outside this remedy.",
+      "Labels": "bug, agent-experience, process, area:cli, dogfood, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "plan-sequence:current and verify:plan-sequence name the sequence file, the missing sequence_kind field, and the terminal-lifecycle fact when the pending current entry's origin is already in completed or cancelled.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/missing-kind.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4858"
+        }
+      },
+      {
+        "title": "That report does not return an authorized sequence. A non-string sequence_kind still does not parse as a sequence.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/missing-kind.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4858"
+        }
+      },
+      {
+        "title": "The predicate is that one pending current entry. It is not \"every entry is already completed\".",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/plan-sequence/missing-kind.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4858"
+        }
+      },
+      {
+        "title": "set and createPlanSequence refusing a non-string sequence_kind before write is outside this remedy.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/plan-sequence/missing-kind.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4858"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4843",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4843: bug(plan-sequence): current throws sequence_kind required on older sequence files"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "plan-sequence:current and verify:plan-sequence name the sequence file, the missing sequence_kind field, and the terminal-lifecycle fact when the pending current entry's origin is already in completed or cancelled.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "That report does not return an authorized sequence. A non-string sequence_kind still does not parse as a sequence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The predicate is that one pending current entry. It is not \"every entry is already completed\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "set and createPlanSequence refusing a non-string sequence_kind before write is outside this remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the premise is that a sequence file missing sequence_kind must not throw before drift detection, and the one remediation must name the file, the field, and terminal drift when every entry is already completed.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4843-dc\norigin-ref: origin/HEAD\ndispatch-sha: 549e639a525e013616c7582b3825584d15f20f09\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick on the launching utterance (\"with appropriate n\"); Desired is a tight bug (name the file and the missing field; report terminal drift when every entry is completed), not an open RFC, so N=1.\n\nrefutation-target: parsePlanSequence must throw sequence_kind required before drift detection when an older file omits the field, and that throw is the correct fail-closed check.\n\ntarget: #4843\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is plan-sequence:current and verify:plan-sequence throwing sequence_kind required on a present older .deft/plan-sequence.json, with no path and no repair, so pre-pr treats the non-zero exit as do not open a PR. Completed entries never reach drift detection.\n\nPin-read at dispatch-sha 549e639a525e013616c7582b3825584d15f20f09: packages/core/src/plan-sequence/types.ts throws when sequence_kind is not a string. Inventory: #4433 is a different open plan-sequence bug (batching_allowed), not this throw. No implement and no ingest from this parent.\n\nEval: triage:evaluate sha12=549e639a525e invocation=a486d463-3c46-4328-951d-a002b04fcd35 validity=still-open wip=0. Unreleased on origin/master does not list #4843. Not a duplicate of #4433.",
+          "id": 5769407008,
+          "html_url": "https://github.com/deftai/directive/issues/4843#issuecomment-5769407008",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:14:30Z",
+          "updated_at": "2026-09-22T00:14:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, fresh, charter refutation. Input ceiling 5769407008. Reads and the run are pinned to 549e639a525e013616c7582b3825584d15f20f09. The refutation target does not hold.\n\n## 1. Throw-before-drift is not the check\n\nblocks-the-design\n\nEvidence. Imported parsePlanSequence, detectTerminalEntryDrift, createPlanSequence, readPlanSequence, writePlanSequence, and verifyPlanTarget from that SHA and ran them.\n\n- parsePlanSequence on an object with sequence_id \"undefined\", no sequence_kind, current_index 0, exhausted false, and one pending story entry throws \"plan-sequence: sequence_kind required\".\n- The current-verb order (parse, then detectTerminalEntryDrift) throws that message. The drift helper was called 0 times.\n- The verify-verb order (readPlanSequence, then verifyPlanTarget) throws that message. verifyPlanTarget was not called.\n- detectTerminalEntryDrift does not read sequence_kind. On a pending current story whose origin is in completed/, it returns drifted true, code terminal-lifecycle, and: \"Current ordered-plan entry story:m0-gap (#285) is already terminal in xbrief/completed/m0-gap.xbrief.json (completed/). The sequence still lists it as the authorized next target.\" The rest of the message tells the operator to stop and ask whether to advance, replace, or clear.\n- The hasUnexhaustedPlanSequence catch, executed against that same readPlanSequence on a written file with sequence_kind omitted, takes the catch and yields no kind. detectWorkSelection itself was not loaded: its import graph needs @deftai/directive-types, and this worktree has no install. The catch body is packages/core/src/session/verify-session-ritual.ts.\n- Read at the same SHA, not executed as a CLI: plan-sequence current catches and returns 1 with the Error message alone. A missing file returns 1 with \"No active ordered-plan sequence (.deft/plan-sequence.json missing).\" verify-plan-sequence main has no catch. A missing file returns 0 and prints the skipped line. dispatch's catch writes \"directive: \" plus the message and returns 2. deft-directive-pre-pr treats a non-zero verify exit as do not open the PR, and treats the skipped exit 0 as proceed. commands.md states that a pending current entry whose origin is already in completed/ or cancelled/ fails closed with terminal-lifecycle on both verbs.\n- Issue 4433 is open, title \"bug(plan-sequence): batching_allowed is persisted but never authorizes parallel entries\". CHANGELOG at this SHA does not mention 4843.\n\nFailure mode. A present .deft/plan-sequence.json whose pending current entry is already terminal makes current exit 1 and verify exit 2, and the only text is sequence_kind required. Pre-pr treats that as do not open a PR. The terminal-lifecycle message, which already names the entry, the path, and the repair ask, never runs. The session work-selection catch treats the same file as no sequence. One file is invisible to ritual and blocking at pre-pr. Neither caller performs the published terminal-lifecycle check.\n\nDisposition. This target cannot bind. parsePlanSequence still refuses to return a PlanSequence when sequence_kind is not a string, so verifyPlanTarget and the ritual kind branch never receive an authorized sequence. plan-sequence:current and verify:plan-sequence still name .deft/plan-sequence.json, the missing field, and the terminal-lifecycle fact when the pending current entry's origin is already in completed/ or cancelled/. That fact is computed without a successful parse return. Calling detectTerminalEntryDrift on a returned PlanSequence in place of the throw cannot bind: the helper's message says the entry is the authorized next target.\n\n## 2. Drift does not mean every entry is terminal\n\nsharpens-framing\n\nEvidence. Same run, same helper. A pending current entry with a matching completed origin returns drifted true. A sequence whose later entry matches, and whose current entry does not, returns drifted false. A current entry already status completed returns drifted false. An exhausted sequence returns drifted false.\n\nFailure mode. A remedy written as \"if every entry is in xbrief/completed/, report terminal drift\" names the wrong case. The #4129 helper reports one case: the pending current entry's origin is already terminal. It stays silent when the sequence is exhausted, when the current entry is already marked completed or skipped, and when only a non-current entry is terminal.\n\nDisposition. The lean states the #4129 condition. \"Every entry is already in xbrief/completed/\" stays out of the predicate.\n\n## 3. set writes the file current cannot read\n\nsharpens-framing\n\nEvidence. createPlanSequence with sequence_id String(undefined), sequence_kind undefined, and authorized_by \"\" JSON-serializes to sequence_id \"undefined\" and drops sequence_kind. writePlanSequence persisted that object. readPlanSequence then threw \"plan-sequence: sequence_kind required\". That is the file shape in the issue. createPlanSequence does not check that sequence_kind is a string. The set path uses createPlanSequence when current_index is absent and exhausted is not true, and it passes raw.sequence_kind through.\n\nFailure mode. plan-sequence:set can exit 0 after writing a file the next current and verify reject. A reader-only report still lets the next set mint another unreadable file.\n\nDisposition. The lean says whether set and createPlanSequence refuse a non-string sequence_kind before write. A reader report can bind without that writer refusal. The scope line has to say which one it is.\n\n## 4. The kind gate accepts any string\n\nfootnote\n\nparsePlanSequence with sequence_kind \"nope\" returns that string. The throw is a presence check. Closed-enum validation of PlanSequenceKind is a separate change and stays out of this remedy.\n\n## Road not taken\n\nKeep the throw and append the file path plus a clear or set hint. That names the field and a repair, and it still refuses a PlanSequence return. It leaves the terminal-lifecycle fact unreported, so a pending current entry whose brief is already in completed/ stays a bare sequence_kind required failure at pre-pr. That misses the recorded pain. What would flip this verdict: a rule at this SHA that terminal-lifecycle runs only after parse succeeds. commands.md states that check for both verbs with no sequence_kind precondition.\n\n## Steelman\n\nThe helper's message treats the current entry as the authorized next target. Returning a PlanSequence with a filled-in kind would make the ritual catch classify a non-\"triage\" kind as ordered-plan. Refusing the return is the authorization boundary. The throw text, with no path and with drift unreached, is not the check those two verbs already publish.\n\n## Authority\n\n.deft/plan-sequence.json is the record that authorizes the next PR or story. A lenient parse followed by the terminal-lifecycle message would describe an invalid file as that authorization. The ritual catch already drops the file to no sequence, while verify blocks the PR. The control is the split in finding 1: no PlanSequence return without a string sequence_kind, and a current/verify report of the file, the field, and the terminal-origin fact that does not grant that return.\r\n\n",
+          "id": 5769498606,
+          "html_url": "https://github.com/deftai/directive/issues/4843#issuecomment-5769498606",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:26:03Z",
+          "updated_at": "2026-09-22T00:26:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn older plan-sequence file with no sequence kind makes current and verify throw before they can say the current entry is already finished. Pre-pr reads that throw as do not open a PR. The session ritual catch reads the same file as no sequence. The change this arc would accept is a report from those two verbs: the file, the missing field, and the case where the pending current entry's brief is already terminal. That report does not hand back an authorized sequence. \"Every entry is completed\" is not the case that report names. Refusing the set command before it writes another unreadable file is outside this remedy. The same parent wrote the opening triage and these takes.\n\n**Lean:** round 1, critic 5769498606. Supersedes 5769407008.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:acc16314b799d47c881107f608c14392e8bbb309336b121d4342aad0ec628227\n\naccept-into-contract: Throw-before-drift is not the check\naccept-into-contract: Drift does not mean every entry is terminal\naccept-into-contract: set writes the file current cannot read\n\nrelieves: P1\n\n## Bound remedy\n\n1. plan-sequence:current and verify:plan-sequence name the sequence file, the missing sequence_kind field, and the terminal-lifecycle fact when the pending current entry's origin is already in completed or cancelled.\n2. That report does not return an authorized sequence. A non-string sequence_kind still does not parse as a sequence.\n3. The predicate is that one pending current entry. It is not \"every entry is already completed\".\n4. set and createPlanSequence refusing a non-string sequence_kind before write is outside this remedy.",
+          "id": 5769543834,
+          "html_url": "https://github.com/deftai/directive/issues/4843#issuecomment-5769543834",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:31:08Z",
+          "updated_at": "2026-09-22T00:31:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of the bound list on comment 5769543834. Ceiling 5769543834 inclusive. Code and the run are pinned to 549e639a525e013616c7582b3825584d15f20f09. P1 is plan-sequence:current and verify:plan-sequence throwing sequence_kind required before drift detection, with no path and no repair.\n\n## 1. Bound list covers the throw, the path, and the repair\n\nfootnote\n\nEvidence. At that SHA, parsePlanSequence throws \"plan-sequence: sequence_kind required\" when sequence_kind is absent (packages/core/src/plan-sequence/types.ts). That string is the whole error. readPlanSequence sends a present file through that parse (packages/core/src/plan-sequence/store.ts). plan-sequence current calls readPlanSequence and only then detectTerminalEntryDrift; the catch writes Error.message and returns 1 (packages/cli/src/plan-sequence.ts). verify:plan-sequence calls readPlanSequence and only then verifyPlanTarget, and main lets the throw propagate (packages/cli/src/verify-plan-sequence.ts). verifyPlanTarget calls detectTerminalEntryDrift only once it holds a PlanSequence.\n\nRan those two helpers from that tree. An object with sequence_id \"undefined\", sequence_kind omitted, current_index 0, exhausted false, and one pending story entry m0-gap issue 285 threw \"plan-sequence: sequence_kind required\". The drift helper ran 0 times. The same object with sequence_kind \"delivery\", plus a completed origin at xbrief/completed/m0-gap.xbrief.json, returned drifted true. The message ends with \"Stop and ask the operator whether to advance, replace, or clear the sequence.\" A sequence whose later entry matches that origin, and whose current entry does not, returned drifted false.\n\nBound item 1 requires both verbs to name the sequence file, the missing sequence_kind field, and the terminal-lifecycle fact when the pending current entry's origin is already in completed or cancelled. The sequence file is the path: planSequencePath joins .deft and plan-sequence.json. The fact is that message, and its last line is the repair. Item 2 withholds an authorized sequence from that report, so pre-pr still fail-closes when verify exits non-zero (content/skills/deft-directive-pre-pr/SKILL.md: exit non-zero means do not open an unauthorized PR). Item 3 is the helper's predicate, the one pending current entry. Item 4 places set and createPlanSequence outside this remedy. P1 names the two read verbs.\n\nThe same comment's plain-English paragraph lists the file and the missing field as the report, and the terminal case as the third part of that report. Under that reading, item 1 covers this pain.\n\nFailure mode. None. A report of the file, the missing field, and the existing terminal-lifecycle message supplies the path and the repair, and it states the drift fact the throw currently hides.\n\nDisposition. The relief cite on 5769543834 covers P1. The bound list stands.\n\n## Road not taken\n\nCall the cite short because item 1 never writes the words \"advance, replace, or clear\". That reading would block the list. It sets aside the published fact. Both verbs already print drift.message when drift runs, and that message is the ask. What would flip this verdict: a terminal-lifecycle message at this SHA with no repair line, or a bound item 1 that omitted the fact.\n\n## Steelman\n\nThe strongest rejected reading treats \"when\" as scoping all of item 1, so a missing sequence_kind whose current entry is still open could keep the bare throw, and treats \"name the fact\" as a one-word flag. The same comment's opening paragraph lists the file and the field as the report and describes the terminal case as part of that report. The fact executed here is five lines. The last line is the repair. That is the mechanism item 1 names.\n\n## Authority\n\n.deft/plan-sequence.json is the record that authorizes the next target. Item 2 withholds that authorization when sequence_kind is not a string. The terminal-lifecycle message tells the operator to stop and ask. The pain is the bare throw. The report adds the file, the field, and the repair, and it does so while withholding the authorized return.\r\n\n",
+          "id": 5769677174,
+          "html_url": "https://github.com/deftai/directive/issues/4843#issuecomment-5769677174",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:48:42Z",
+          "updated_at": "2026-09-22T00:48:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSame parent wrote the opening triage and the successor lean. The round-1 critic and the pain-audit critic were separate posts. Rows are that critic's execution at 549e639a525e013616c7582b3825584d15f20f09. They are not marked verified: this parent did not re-run the helpers, and the second seat was the same model family.\n\n| Claim | Evidence | Method | Mark |\n| --- | --- | --- | --- |\n| A file with no sequence_kind throws before drift detection | parsePlanSequence throw; drift helper called 0 times | Critic imported the helpers and ran them | not verified |\n| The same file with a kind and a completed current origin reports terminal-lifecycle, including the repair line | detectTerminalEntryDrift returned drifted true and the stop-and-ask message | Critic run at the dispatch SHA | not verified |\n| A later entry being terminal does not trip that helper | drifted false when only a non-current entry matched | Critic run at the dispatch SHA | not verified |\n| current and verify reach drift only after a successful read | plan-sequence.ts and verify-plan-sequence.ts call order | Critic read at the dispatch SHA | not verified |",
+          "id": 5769758886,
+          "html_url": "https://github.com/deftai/directive/issues/4843#issuecomment-5769758886",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:01:57Z",
+          "updated_at": "2026-09-22T01:01:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn older plan-sequence file with no sequence kind makes current and verify throw before they can say the current entry is already finished, and pre-pr treats that throw as do not open a PR. The record accepts a report from those two verbs: the file, the missing field, and the case where the pending current entry is already terminal, without handing back an authorized sequence. Every-entry-completed is not that case. Refusing set before it writes another unreadable file stays outside this remedy.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5769543834\nverified-claims table 5769758886",
+          "id": 5769777169,
+          "html_url": "https://github.com/deftai/directive/issues/4843#issuecomment-5769777169",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:04:48Z",
+          "updated_at": "2026-09-22T01:04:48Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`deft plan-sequence:current` and `deft verify:plan-sequence` throw `plan-sequence: sequence_kind required` when `.deft/plan-sequence.json` is an older file that has no `sequence_kind`. The ordered-plan gate then cannot tell \"no sequence\" from \"unreadable sequence\", and it prints no path and no repair.\n\n## Actual\n\nNoteTechnic, Directive `0.119.6`, 2026-09-21.\n\n`.deft/plan-sequence.json` was written 2026-09-14. `sequence_id` is the string `\"undefined\"`, `authorized_by` is empty, and `sequence_kind` is absent. `current_index` is 0 and `exhausted` is false. The entries are M0 gap stories whose briefs now live under `xbrief/completed/`.\n\n```\ndeft plan-sequence:current -- --json\nplan-sequence: sequence_kind required\n```\n\nExit 1.\n\n```\ndeft verify:plan-sequence -- --target-kind issue --target 285\ndirective: plan-sequence: sequence_kind required\n```\n\nExit 2.\n\n`readPlanSequence` → `parsePlanSequence` throws at `typeof obj.sequence_kind !== \"string\"` (`packages` consumer pin `@deftai/directive-core` `dist/plan-sequence/types.js`). `current` only special-cases a missing file (`No active ordered-plan sequence`). A present file with the new required field omitted never reaches `detectTerminalEntryDrift`, so completed entries stay hidden.\n\n`deft-directive-pre-pr` treats any non-zero `verify:plan-sequence` as \"do not open a PR\". A closeout the operator just asked for is fail-closed, with no remediation string.\n\n## Expected\n\nOne fail-closed check and one remediation. For a sequence file missing `sequence_kind`, name the file and the missing field, and say how to repair or clear it. If every entry is already in `xbrief/completed/`, say that the sequence is terminal drift instead of throwing before drift detection.\n\n## Environment\n\n`@deftai/directive@0.119.6` (global CLI). Consumer `deftai/notetechnic`. Grok session `host:grok:v1:01a0c53c-0c3e-7133-b342-cebcc12dd0ce`.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5531077220,
+        "origin": "deftai/directive#4843",
+        "id": "github.issue.5531077220"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "acc16314b799d47c881107f608c14392e8bbb309336b121d4342aad0ec628227"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4858,
+        "prBase": null,
+        "mergeCommit": "a1bbe325cf11c9cf77756b7cf3958131652e8e26",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:21:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:21:23Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:21:23Z"
+      }
+    },
+    "id": "github.issue.5531077220",
+    "updated": "2026-09-22T14:21:23Z"
+  }
+}

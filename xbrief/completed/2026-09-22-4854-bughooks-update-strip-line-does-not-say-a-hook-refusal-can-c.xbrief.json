@@ -1,0 +1,318 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4854",
+    "updated": "2026-09-22T14:22:31Z"
+  },
+  "plan": {
+    "title": "bug(hooks): update strip line does not say a hook refusal can clear",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(hooks): update strip line does not say a hook refusal can clear",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4854",
+      "Overview": "\n\n1. The leftover-free empty-object write stays.\n2. One sentence is added on the Removed printf in agent-hooks.ts and on HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE. It names a hook refusal in the current session clearing because the gate was removed.\n3. The ledger \"stripped:\" line stays a path list. The sentence is not added there.",
+      "Labels": "bug, agent-experience, harness, area:installer, dogfood, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "The leftover-free empty-object write stays.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4861"
+        }
+      },
+      {
+        "title": "One sentence is added on the Removed printf in agent-hooks.ts and on HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE. It names a hook refusal in the current session clearing because the gate was removed.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.test.ts + packages/core/src/policy/host-hooks.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4861"
+        }
+      },
+      {
+        "title": "The ledger \"stripped:\" line stays a path list. The sentence is not added there.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/fs/mutation-ledger.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4861"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "harness",
+      "area:installer",
+      "dogfood",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4854",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4854: bug(hooks): update strip line does not say a hook refusal can clear"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The leftover-free empty-object write stays.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One sentence is added on the Removed printf in agent-hooks.ts and on HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE. It names a hook refusal in the current session clearing because the gate was removed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The ledger \"stripped:\" line stays a path list. The sentence is not added there.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the premise is that the update strip line and the disable disclosure do not say a hook refusal can clear because the gate left, and that premise is a claim about those two sentences rather than a request to stop the empty-object write.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4854-dc\norigin-ref: origin/HEAD\ndispatch-sha: a7379670e1a87a3f32b0f154ef6390bc4d35473d\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said do the same label arc as the prior yolo no-ingest pass, which delegated N; Desired is one already-specified sentence, not an open RFC, so N=1.\n\nrefutation-target: the update strip line and HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE already say that a hook refusal in the current session can clear because the gate was removed, so the new sentence is already present.\n\ntarget: #4854\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the missing sentence. The empty-object write stays. #4845 is the refuted stop-the-strip parent, not this remedy.\n\nPin-read at dispatch-sha a7379670e1a87a3f32b0f154ef6390bc4d35473d: packages/core/src/init-deposit/agent-hooks.ts prints \"Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): ...\". packages/core/src/policy/host-hooks.ts HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE says leftover-free files write {} and that disable is not a timeout or live-probe fix. Neither line says a current-session hook refusal can clear because the gate left. No implement and no ingest from this parent.\n\nEval: triage:evaluate sha12=a7379670e1a8 invocation=153a501f-c0e0-47aa-8fe5-b945a36d9c7d validity=still-open wip=0. Unreleased on origin/master does not list #4854. Not a duplicate of #4845.",
+          "id": 5769967872,
+          "html_url": "https://github.com/deftai/directive/issues/4854#issuecomment-5769967872",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:31:45Z",
+          "updated_at": "2026-09-22T01:31:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe refutation target does not hold. At a7379670e1a87a3f32b0f154ef6390bc4d35473d the update strip sentence and HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE do not say that a hook refusal in the current session can clear because the gate was removed.\n\n### already-present\n\nsharpens-framing\n\nEvidence: Same pin-read as the ceiling write-back (id 5769967872), re-checked on git show of that SHA. packages/core/src/init-deposit/agent-hooks.ts prints only \"Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out):\" plus the path list. packages/core/src/policy/host-hooks.ts HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE says disabling removes deft-hook pre-execution guardrails for anyone who later opens the repo, that the result is tracked, that opted-out hosts skip deposit and leftover-free files write {}, and that this is not a timeout or live-probe fix. A four-clause predicate (refusal; clear or succeed; current session; gate-removed cause) matched none of the four on either string. The ceiling anchors for the {} clause, the timeout sentence, and the Removed sentence match that pin-read.\n\nFailure mode: Treating the target as true drops the new sentence as redundant, so the missing current-session clause stays unsaid. The shorter bound-remedy wording, \"a hook refusal can clear because the gate was removed,\" can still be read as the existing \"later opens\" and \"hooks removed\" lines.\n\nDisposition: The add stays. The sentence that binds names a hook refusal in the current session clearing because the gate was removed, and it stays a description of that effect. The empty-object write stays.\n\n### edit-site\n\nsharpens-framing\n\nEvidence: deft update also prints \"stripped:\" from formatMutationSummary in packages/core/src/fs/mutation-ledger.ts. refresh.ts prints that summary and calls writeAgentHookDeposit, which is where the Removed sentence is printed. The same predicate matched no clause on the ledger template. That line is a path list for every stripped mutation.\n\nFailure mode: Putting the new sentence on the ledger line would attach hook-refusal prose to every stripped path.\n\nDisposition: One sentence on the Removed printf, and the same sentence on HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE. The ledger line stays a path list.\n\n### other-surfaces\n\nfootnote\n\ncontent/commands.md \"Refresh and opt-out\" restates the disclosure and fails the same predicate. disableHostHooks confirm-success stdout (\"deft-hook guardrails removed\"; then run deft update to strip) is a third string, prints only after --confirm, and also fails the predicate. The disclosure constant prints on the unconfirmed disable path. None of these already carries the current-session clause.\n\nRoad not taken: Count \"removes deft-hook pre-execution guardrails for anyone who later opens this repo\" plus the Removed printf as the sentence already being present.\n\nSteelman: Those two lines already tell a reader the gate left, so a refusal caused by that gate would clear, and a new sentence would only repeat them. What would flip this verdict: either anchor containing a current-session clause that a hook refusal can start succeeding because those commands left the file. \"later opens\" is the other time. \"not a timeout or live-probe fix\" is a different cause. Neither anchor has the clause.\r\n\n",
+          "id": 5770014544,
+          "html_url": "https://github.com/deftai/directive/issues/4854#issuecomment-5770014544",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:38:41Z",
+          "updated_at": "2026-09-22T01:38:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe update line and the disable disclosure do not say that a hook refusal in the current session can clear because the gate left. A shorter new sentence can still be read as the existing \"later opens\" and \"hooks removed\" lines. The record would accept one sentence on the Removed printf and on the disable disclosure, naming a hook refusal in the current session clearing because the gate was removed. The ledger \"stripped:\" line stays a path list. The empty-object write stays. The same parent wrote the opening triage and these takes.\n\n**Lean:** round 1, critic 5770014544. Supersedes 5769967872.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:5e0a491eab90f8bdbf368517d482524056b719e1c8e33322bd4bdca8b68b36db\n\naccept-into-contract: already-present\naccept-into-contract: edit-site\n\nrelieves: P1\n\n## Bound remedy\n\n1. The leftover-free empty-object write stays.\n2. One sentence is added on the Removed printf in agent-hooks.ts and on HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE. It names a hook refusal in the current session clearing because the gate was removed.\n3. The ledger \"stripped:\" line stays a path list. The sentence is not added there.",
+          "id": 5770023142,
+          "html_url": "https://github.com/deftai/directive/issues/4854#issuecomment-5770023142",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:39:57Z",
+          "updated_at": "2026-09-22T01:39:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nSuccessor lean 5770023142 covers pain P1. Bound remedy item 2 adds the missing sentence on the update strip line and on the disable disclosure.\n\n### sentence-coverage\n\nfootnote\n\nPin-read at a7379670e1a87a3f32b0f154ef6390bc4d35473d. In packages/core/src/init-deposit/agent-hooks.ts, a non-empty strip prints only \"Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out):\" plus the path list. In packages/core/src/policy/host-hooks.ts, HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE says disabling removes deft-hook pre-execution guardrails for anyone who later opens the repo, that the result is tracked, that opted-out hosts skip deposit and leftover-free files write {}, and that this is not a timeout or live-probe fix. The four-clause sentence is absent from both strings.\n\nBound remedy item 2 on 5770023142 adds one sentence on that Removed printf and on HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE. The sentence names a hook refusal in the current session clearing because the gate was removed. That is P1: the missing sentence, with refusal, current session, the clear effect, and the gate-removed cause, on both sites the pain names.\n\nItem 1 keeps the leftover-free empty-object write. At that SHA, stripManagedNestedConfig and stripManagedCursorConfig return the object that remains after managed hook keys are removed, so a Directive-only file writes {}. Item 3 keeps the ledger stripped line as a path list. In packages/core/src/fs/mutation-ledger.ts, formatMutationSummary emits \"stripped:\" plus joined paths. The pain's update strip line is the Removed printf. Item 2 places the sentence there and on the disclosure.\n\nThe participle \"clearing\" names the same effect as \"can clear\" once the sentence also names the current session and the gate-removed cause. The harvested list already says that.\n\nRoad not taken: read \"clearing\" as a different sentence from \"can clear\" and refuse the cite.\n\nSteelman: \"can clear\" is ability and \"clearing\" is an effect underway, so item 2 could name a sentence P1 did not ask for. What would flip this verdict: item 2 dropping the current session, dropping the clear effect, or placing the sentence only on the ledger path list. Item 2 keeps the current session, the clear effect, and the gate-removed cause, on the Removed printf and on the disclosure. The bind lean stands.",
+          "id": 5770059749,
+          "html_url": "https://github.com/deftai/directive/issues/4854#issuecomment-5770059749",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:45:05Z",
+          "updated_at": "2026-09-22T01:45:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSame parent wrote the opening triage and the successor lean. The round-1 critic and the pain-audit critic were separate posts. Rows are that critic's pin-read at a7379670e1a87a3f32b0f154ef6390bc4d35473d. They are not marked verified: this parent did not re-read the strings, and the second seat was the same model family.\n\n| Claim | Evidence | Method | Mark |\n| --- | --- | --- | --- |\n| The Removed printf and the disable disclosure lack a current-session refusal clause | agent-hooks.ts Removed sentence; HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE | Critic pin-read at the dispatch SHA | not verified |\n| A Directive-only file writes {} | stripManagedNestedConfig and stripManagedCursorConfig | Critic pin-read at the dispatch SHA | not verified |\n| The ledger stripped line is a path list | formatMutationSummary emits \"stripped:\" plus joined paths | Critic pin-read at the dispatch SHA | not verified |",
+          "id": 5770067789,
+          "html_url": "https://github.com/deftai/directive/issues/4854#issuecomment-5770067789",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:46:13Z",
+          "updated_at": "2026-09-22T01:46:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe update line and the disable disclosure do not say that a hook refusal in the current session can clear because the gate left. The record accepts one sentence on the Removed printf and on the disable disclosure that names that current-session effect. The ledger stripped line stays a path list. The empty-object write stays.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5770023142\nverified-claims table 5770067789",
+          "id": 5770070907,
+          "html_url": "https://github.com/deftai/directive/issues/4854#issuecomment-5770070907",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:46:39Z",
+          "updated_at": "2026-09-22T01:46:39Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "# Update strip line does not say a hook refusal can clear\n\nLeftover of #4845 after critic 5769478889, successor lean 5769543828, and Handoff 5769547277. Operator confirmed filing on 2026-09-21. The empty-object write stays. Do not ingest #4845 as \"stop writing {}\".\n\n## Summary\n\nWhen a host is already opted out and the hook file has no unrelated keys, `deft update` rewrites that tracked file to `{}`. That write is the leftover-free host-disable strip. An agent blocked by a hook refusal can run `deft update`, see the refusal clear, and commit the emptied file as the fix.\n\nThe update line already says the hooks were removed for an opt-out. It does not say a refusal can clear because the gate left. The disable disclosure has the same gap.\n\n## Bound remedy\n\n1. Keep the leftover-free `{}` write when the host is already disabled and the file has no unrelated keys.\n2. Add one sentence on the existing update strip line and on the disable disclosure: a hook refusal can clear because the gate was removed.\n\n## Measured (dispatch-sha 549e639a525e013616c7582b3825584d15f20f09)\n\n- `packages/core/src/init-deposit/agent-hooks.ts` strips a host only when that host is disabled and the file already exists. A Directive-only file becomes `{}`. The test \"writes leftover-free opted-out Directive-only deposits as empty objects\" expects `{}\\n` for `.claude/settings.json` and `.grok/hooks/deft.json`.\n- Update prints `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): ...` and `stripped: ...`. Neither sentence says a hook refusal can start succeeding because the gate left.\n- `HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE` in `packages/core/src/policy/host-hooks.ts` says opted-out hosts lose deft-hook guardrails and leftover-free files write `{}`. It does not say a refusal in the current session can clear because those commands were removed.\n\n## Out of scope\n\nDo not stop the `{}` write. Do not leave the commands in the tracked file. Do not replace `{}` with a marker object. Those were the refuted part of #4845.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5534247926,
+        "origin": "deftai/directive#4854",
+        "id": "github.issue.5534247926"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5e0a491eab90f8bdbf368517d482524056b719e1c8e33322bd4bdca8b68b36db"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4861,
+        "prBase": null,
+        "mergeCommit": "c962d14abab1c2097d4736cba16229b4580ff05a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:22:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:22:31Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:22:31Z"
+      }
+    },
+    "id": "github.issue.5534247926",
+    "updated": "2026-09-22T14:22:31Z"
+  }
+}
