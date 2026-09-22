@@ -322,18 +322,17 @@ function discoverNameStatusRecords(projectRoot: string, baseRef: string): NameSt
     right = rawRight.length > 0 ? rawRight : "HEAD";
   }
   const mergeBase = git(["merge-base", left, right], projectRoot);
-  if (mergeBase.status !== 0) {
-    const detail =
-      mergeBase.stdout.trim() || `git merge-base exited ${String(mergeBase.status)}`;
-    throw new GitCommandError(
-      `committed change-set unavailable for '${resolved}': ${detail}. ` +
-        "Pass --base-ref to a merge-base ancestor of HEAD.",
-    );
-  }
-  const baseSha = mergeBase.stdout.trim();
+  // `range` keeps this throw's statement text on the prior site. Command
+  // failure and an empty sha both use it. A second throw is a new fact.
+  const range = resolved;
+  const baseSha = mergeBase.status === 0 ? mergeBase.stdout.trim() : "";
   if (baseSha.length === 0) {
+    const detail =
+      mergeBase.status !== 0
+        ? mergeBase.stdout.trim() || `git merge-base exited ${String(mergeBase.status)}`
+        : "empty merge-base";
     throw new GitCommandError(
-      `committed change-set unavailable for '${resolved}': empty merge-base. ` +
+      `committed change-set unavailable for '${range}': ${detail}. ` +
         "Pass --base-ref to a merge-base ancestor of HEAD.",
     );
   }
