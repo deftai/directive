@@ -423,6 +423,43 @@ describe("cmdDoctor session coda wiring (#2712)", () => {
     expect(out).toContain("DEFT_SESSION_CODA");
     expect(out).toContain(SESSION_CODA_OFF_HINT);
   });
+
+  it("deposit hygiene failure is not a passed summary or success coda (#4812)", () => {
+    const { exit, out } = captureDoctor(["--full"], {
+      ...baseSeams,
+      sessionCodaEnv: "1",
+      depositHygiene: {
+        failed: true,
+        absent: ["VERSION.bak.2026-09-20T03-51-10Z"],
+        line: "Deposit hygiene: fail",
+      },
+    });
+    expect(exit).toBe(1);
+    expect(out).toContain("System check failed");
+    expect(out).toContain("deposit hygiene");
+    expect(out).not.toContain("System check passed!");
+    expect(out).not.toContain("\u2726");
+  });
+
+  it("json ok and exit follow deposit hygiene (#4812)", () => {
+    const { exit, out } = captureDoctor(["--full", "--json"], {
+      ...baseSeams,
+      depositHygiene: {
+        failed: true,
+        absent: ["VERSION.bak.2026-09-20T03-51-10Z"],
+        line: "Deposit hygiene: fail",
+      },
+    });
+    expect(exit).toBe(1);
+    const payload = JSON.parse(out.trim()) as {
+      ok: boolean;
+      deposit_hygiene: { ok: boolean; absent: string[] };
+    };
+    expect(payload.ok).toBe(false);
+    expect(payload.deposit_hygiene.ok).toBe(false);
+    expect(payload.deposit_hygiene.absent).toContain("VERSION.bak.2026-09-20T03-51-10Z");
+    expect(out).not.toContain("System check passed!");
+  });
 });
 
 describe("copy not in AGENTS templates or skill bodies", () => {

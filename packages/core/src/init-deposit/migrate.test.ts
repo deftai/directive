@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseInstallManifest } from "../doctor/manifest.js";
 import {
+  defaultVersionBackupRootDir,
   detectCanonicalVendoredManifest,
   isNpmManaged,
   NPM_MANAGED_SENTINEL_KEY,
@@ -16,6 +17,14 @@ import {
 } from "./migrate.js";
 
 const tmpDirs: string[] = [];
+
+function outsideBackupRoot(projectRoot: string): string {
+  const slug = projectRoot.split(/[\\/]/).pop() ?? "bak";
+  const dir = join(projectRoot, "..", `migrate-bak-${slug}`);
+  mkdirSync(dir, { recursive: true });
+  tmpDirs.push(dir);
+  return dir;
+}
 
 function makeProject(manifestBody: string | null): string {
   const root = mkdtempSync(join(tmpdir(), "migrate-test-"));
@@ -87,9 +96,11 @@ describe("stampManifestText / isNpmManaged", () => {
 describe("runMigrate three-state", () => {
   it("migrates a canonical-vendored deposit: stamps sentinel + writes timestamped backup", () => {
     const root = makeProject(VENDORED_MANIFEST);
+    const backupRoot = outsideBackupRoot(root);
     const result = runMigrate(root, {
       resolveEngine: enginePresent,
       nowIso: () => "2026-06-24T21:20:43Z",
+      backupRootDir: () => backupRoot,
     });
 
     expect(result.outcome).toBe("migrated");
@@ -103,25 +114,35 @@ describe("runMigrate three-state", () => {
     expect(manifest.ref).toBe("v0.40.0");
     expect(manifest.sha).toBe("deadbeefcafef00ddeadbeefcafef00ddeadbeef");
 
-    expect(result.backupPath).toBe(`${manifestPath}.bak.2026-06-24T21-20-43Z`);
-    expect(existsSync(result.backupPath ?? "")).toBe(true);
+    const backupFile = join(backupRoot, "VERSION.bak.2026-06-24T21-20-43Z");
+    expect(result.backupPath).toBe(backupFile);
+    expect(existsSync(backupFile)).toBe(true);
+    expect(existsSync(join(root, ".deft", "core", "VERSION.bak.2026-06-24T21-20-43Z"))).toBe(false);
+    expect(existsSync(join(root, ".deft", "backups"))).toBe(false);
     // backup captures the pre-stamp content
     expect(readFileSync(result.backupPath ?? "", "utf8")).toBe(VENDORED_MANIFEST);
   });
 
   it("is idempotent: second run is already-hybrid no-op (exit 0, no new backup)", () => {
     const root = makeProject(VENDORED_MANIFEST);
-    runMigrate(root, { resolveEngine: enginePresent, nowIso: () => "2026-06-24T21:20:43Z" });
+    const backupRoot = outsideBackupRoot(root);
+    runMigrate(root, {
+      resolveEngine: enginePresent,
+      nowIso: () => "2026-06-24T21:20:43Z",
+      backupRootDir: () => backupRoot,
+    });
 
     const second = runMigrate(root, {
       resolveEngine: enginePresent,
       nowIso: () => "2026-06-24T22:00:00Z",
+      backupRootDir: () => backupRoot,
     });
     expect(second.outcome).toBe("already-hybrid");
     expect(second.exitCode).toBe(0);
     expect(second.backupPath).toBeNull();
     // no backup at the second timestamp was created
     expect(existsSync(join(root, ".deft", "core", "VERSION.bak.2026-06-24T22-00-00Z"))).toBe(false);
+    expect(existsSync(join(backupRoot, "VERSION.bak.2026-06-24T22-00-00Z"))).toBe(false);
   });
 
   it("engine-missing: signposts README and exits 1 without stamping or downloading", () => {
@@ -168,7 +189,12 @@ describe("runMigrate three-state", () => {
     mkdirSync(join(root, ".deft", "core", "skills"), { recursive: true });
     writeFileSync(skillPath, "content", "utf8");
 
-    runMigrate(root, { resolveEngine: enginePresent, nowIso: () => "2026-06-24T21:20:43Z" });
+    const backupRoot = outsideBackupRoot(root);
+    runMigrate(root, {
+      resolveEngine: enginePresent,
+      nowIso: () => "2026-06-24T21:20:43Z",
+      backupRootDir: () => backupRoot,
+    });
 
     expect(existsSync(skillPath)).toBe(true);
     expect(readFileSync(skillPath, "utf8")).toBe("content");
@@ -185,7 +211,11 @@ describe("runMigrateCli", () => {
       jsonOut: false,
       writeOut: (t) => out.push(t),
       writeErr: (t) => err.push(t),
-      seams: { resolveEngine: enginePresent, nowIso: () => "2026-06-24T21:20:43Z" },
+      seams: {
+        resolveEngine: enginePresent,
+        nowIso: () => "2026-06-24T21:20:43Z",
+        backupRootDir: () => outsideBackupRoot(root),
+      },
     });
     expect(code).toBe(0);
     expect(out.join("")).toContain("stamped");
@@ -215,7 +245,11 @@ describe("runMigrateCli", () => {
       jsonOut: true,
       writeOut: (t) => out.push(t),
       writeErr: () => {},
-      seams: { resolveEngine: enginePresent, nowIso: () => "2026-06-24T21:20:43Z" },
+      seams: {
+        resolveEngine: enginePresent,
+        nowIso: () => "2026-06-24T21:20:43Z",
+        backupRootDir: () => outsideBackupRoot(root),
+      },
     });
     expect(code).toBe(0);
     const parsedUnknown: unknown = JSON.parse(out.join(""));
@@ -270,5 +304,41 @@ describe("shouldEmitMigrateNudge / printMigrateNudgeIfNeeded (#2059)", () => {
     const lines: string[] = [];
     printMigrateNudgeIfNeeded(root, { printf: (text) => lines.push(text) });
     expect(lines.join("")).toBe("");
+  });
+});
+
+describe("VERSION backup stays outside the deposit (#4812)", () => {
+  it("uses the user-cache deft/backups root", () => {
+    const winLocal = join("C:", "Users", "me", "AppData", "Local");
+    expect(defaultVersionBackupRootDir({ LOCALAPPDATA: winLocal }, "win32")).toBe(
+      join(winLocal, "deft", "backups"),
+    );
+    expect(defaultVersionBackupRootDir({ HOME: "/home/me" }, "linux")).toBe(
+      join("/home/me", ".cache", "deft", "backups"),
+    );
+    expect(
+      defaultVersionBackupRootDir({ XDG_CACHE_HOME: "/var/cache", HOME: "/home/me" }, "linux"),
+    ).toBe(join("/var/cache", "deft", "backups"));
+    expect(defaultVersionBackupRootDir({ HOME: "/Users/me" }, "darwin")).toBe(
+      join("/Users/me", "Library", "Caches", "deft", "backups"),
+    );
+  });
+
+  it("does not write VERSION.bak under the project or .deft/backups", () => {
+    const project = makeProject(VENDORED_MANIFEST);
+    const inTree = join(project, ".deft", "backups");
+    const result = runMigrate(project, {
+      resolveEngine: enginePresent,
+      nowIso: () => "2026-06-24T21:20:43Z",
+      backupRootDir: () => inTree,
+    });
+    const backup = result.backupPath ?? "";
+    expect(backup.length).toBeGreaterThan(0);
+    expect(relative(resolve(project), resolve(backup)).startsWith("..")).toBe(true);
+    expect(existsSync(join(project, ".deft", "core", "VERSION.bak.2026-06-24T21-20-43Z"))).toBe(
+      false,
+    );
+    expect(existsSync(join(inTree, "VERSION.bak.2026-06-24T21-20-43Z"))).toBe(false);
+    expect(readFileSync(backup, "utf8")).toBe(VENDORED_MANIFEST);
   });
 });

@@ -79,6 +79,84 @@ describe("main human-mode branches", () => {
     }
   });
 
+  it("throttle skip fails when deposit hygiene failed (#4812)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-hygiene-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    const lines: string[] = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      lines.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(
+        cmdDoctor(["--project-root", root], {
+          whichFn: () => "/bin/x",
+          readState: () => ({
+            lastRunAt: new Date(),
+            lastExitCode: 0,
+            lastFindingCount: 0,
+            lastErrorCount: 0,
+          }),
+          now: () => new Date(),
+          engineProbe: () => ({ reachable: false, version: null }),
+          depositHygiene: {
+            failed: true,
+            absent: ["VERSION.bak.2026-09-20T03-51-10Z"],
+            line: "Deposit hygiene: fail",
+          },
+        }),
+      ).toBe(1);
+      const output = lines.join("");
+      expect(output).toContain("deposit hygiene");
+      expect(output).not.toContain("System check passed!");
+    } finally {
+      process.stdout.write = orig;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("throttle skip json ok follows deposit hygiene (#4812)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-hygiene-json-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    const lines: string[] = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      lines.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      expect(
+        cmdDoctor(["--json", "--project-root", root], {
+          whichFn: () => "/bin/x",
+          readState: () => ({
+            lastRunAt: new Date(),
+            lastExitCode: 0,
+            lastFindingCount: 0,
+            lastErrorCount: 0,
+          }),
+          now: () => new Date(),
+          engineProbe: () => ({ reachable: false, version: null }),
+          depositHygiene: {
+            failed: true,
+            absent: ["VERSION.bak.2026-09-20T03-51-10Z"],
+            line: "Deposit hygiene: fail",
+          },
+        }),
+      ).toBe(1);
+      const payload = JSON.parse(lines.join("").trim()) as {
+        ok: boolean;
+        deposit_hygiene: { ok: boolean; absent: string[] };
+      };
+      expect(payload.ok).toBe(false);
+      expect(payload.deposit_hygiene.ok).toBe(false);
+      expect(payload.deposit_hygiene.absent).toContain("VERSION.bak.2026-09-20T03-51-10Z");
+    } finally {
+      process.stdout.write = orig;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("labels throttle-skipped registry warnings as configuration advisories", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
     mkdirSync(join(root, ".deft", "core"), { recursive: true });

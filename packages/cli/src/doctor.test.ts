@@ -91,6 +91,7 @@ async function captureStdout(fn: () => void | Promise<void>): Promise<string> {
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.mocked(cmdDoctor).mockImplementation(() => 0);
   vi.mocked(resolveInstalledContentRoot).mockRejectedValue(
     new Error("not installed in doctor CLI unit tests"),
   );
@@ -107,7 +108,10 @@ describe("doctor CLI", () => {
     await captureStdout(async () => {
       expect(await run(["--full", "--json"])).toBe(0);
     });
-    expect(cmdDoctor).toHaveBeenCalledWith(["--full", "--json"]);
+    expect(cmdDoctor).toHaveBeenCalledWith(
+      ["--full", "--json"],
+      expect.objectContaining({ depositHygiene: expect.any(Object) }),
+    );
   });
 
   it("suppresses the precutover line under --json so JSON output stays valid", async () => {
@@ -117,7 +121,10 @@ describe("doctor CLI", () => {
       expect(await run(["--json", "--project-root", root])).toBe(0);
     });
     expect(out).toBe("");
-    expect(cmdDoctor).toHaveBeenCalledWith(["--json", "--project-root", root]);
+    expect(cmdDoctor).toHaveBeenCalledWith(
+      ["--json", "--project-root", root],
+      expect.objectContaining({ depositHygiene: expect.any(Object) }),
+    );
   });
 
   it("suppresses the precutover line for an invalid invocation (unknown flag)", async () => {
@@ -375,9 +382,47 @@ describe("doctor CLI", () => {
       "package main\n",
       "utf8",
     );
-    await captureStdout(async () => {
+    vi.mocked(cmdDoctor).mockImplementation((_args, seams) => {
+      const hygiene = (seams as { depositHygiene?: { failed?: boolean } } | undefined)
+        ?.depositHygiene;
+      return hygiene?.failed === true ? 1 : 0;
+    });
+    const out = await captureStdout(async () => {
       expect(await run(["--full", "--project-root", root])).toBe(1);
     });
+    expect(out).toContain("Deposit hygiene: fail");
+    expect(out).not.toContain("System check passed!");
+    expect(cmdDoctor).toHaveBeenCalledWith(
+      ["--full", "--project-root", root],
+      expect.objectContaining({
+        depositHygiene: expect.objectContaining({ failed: true }),
+      }),
+    );
+  });
+
+  it("passes deposit hygiene into --json without a human prefix (#4812)", async () => {
+    const root = makeRoot("doctor-json-hygiene-");
+    makeLifecycleDirs(root);
+    seedContentPackage(root);
+    mkdirSync(join(root, ".deft", "core", "cmd", "deft-install"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "cmd", "deft-install", "main.go"),
+      "package main\n",
+      "utf8",
+    );
+    const out = await captureStdout(async () => {
+      await run(["--full", "--json", "--project-root", root]);
+    });
+    expect(out).not.toContain("Deposit hygiene:");
+    expect(cmdDoctor).toHaveBeenCalledWith(
+      ["--full", "--json", "--project-root", root],
+      expect.objectContaining({
+        depositHygiene: expect.objectContaining({
+          failed: true,
+          absent: expect.arrayContaining([expect.stringContaining("main.go")]),
+        }),
+      }),
+    );
   });
 
   it("flags stray packages/ under .deft/core (#2142 / #2804)", async () => {
@@ -503,6 +548,11 @@ describe("doctor CLI", () => {
     writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
     writeFileSync(join(root, ".deft", "core", "walk-only.md"), "stale\n", "utf8");
     vi.mocked(resolveInstalledContentRoot).mockResolvedValueOnce(installedRoot);
+    vi.mocked(cmdDoctor).mockImplementation((_args, seams) => {
+      const hygiene = (seams as { depositHygiene?: { failed?: boolean } } | undefined)
+        ?.depositHygiene;
+      return hygiene?.failed === true ? 1 : 0;
+    });
     const out = await captureStdout(async () => {
       expect(await run(["--full", "--project-root", root])).toBe(1);
     });
@@ -510,5 +560,14 @@ describe("doctor CLI", () => {
     expect(out).toContain("walk-only.md");
     expect(out).toContain("Compared content root:");
     expect(out).toContain(installedRoot);
+    expect(cmdDoctor).toHaveBeenCalledWith(
+      ["--full", "--project-root", root],
+      expect.objectContaining({
+        depositHygiene: expect.objectContaining({
+          failed: true,
+          absent: expect.arrayContaining([expect.stringContaining("walk-only.md")]),
+        }),
+      }),
+    );
   });
 });

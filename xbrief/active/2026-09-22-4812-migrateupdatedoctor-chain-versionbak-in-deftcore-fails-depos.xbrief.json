@@ -1,0 +1,363 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4812",
+    "updated": "2026-09-22T00:12:42Z"
+  },
+  "plan": {
+    "title": "migrate/update/doctor chain: VERSION.bak in .deft/core fails deposit hygiene, update's prune silently no-ops, doctor omits the failure from its summary",
+    "status": "running",
+    "narratives": {
+      "Description": "migrate/update/doctor chain: VERSION.bak in .deft/core fails deposit hygiene, update's prune silently no-ops, doctor omits the failure from its summary",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4812",
+      "Overview": "\n\n- Write the VERSION backup outside `.deft/core` using the existing out-of-tree root (user-cache `deft/backups` / OS temp, or tmpdir `deft-core-bak-*`). Do not harvest project-local `.deft/backups/`. Do not widen `isDepositGeneratedMetadata` to `VERSION.bak.*`.\n- Prune must dest-unlink or fail closed. Never report a path in `mutations.deleted` that still exists. Record-mode planning JSON is not dest proof. Lock a `VERSION.bak.<ts>` prune test.\n- Doctor summary text, JSON `ok`, session coda, and exit must derive from one status that includes deposit hygiene. A mid-report `Deposit hygiene: fail` plus `System check passed!` is not showing the fail. `--json` must not skip the hygiene wrapper.",
+      "Labels": "bug, agent-experience, process, area:installer, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Write the VERSION backup outside `.deft/core` using the existing out-of-tree root (user-cache `deft/backups` / OS temp, or tmpdir `deft-core-bak-*`). Do not harvest project-local `.deft/backups/`. Do not widen `isDepositGeneratedMetadata` to `VERSION.bak.*`.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Prune must dest-unlink or fail closed. Never report a path in `mutations.deleted` that still exists. Record-mode planning JSON is not dest proof. Lock a `VERSION.bak.<ts>` prune test.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Doctor summary text, JSON `ok`, session coda, and exit must derive from one status that includes deposit hygiene. A mid-report `Deposit hygiene: fail` plus `System check passed!` is not showing the fail. `--json` must not skip the hygiene wrapper.",
+        "status": "proposed",
+        "id": "clause.3"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4812",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4812: migrate/update/doctor chain: VERSION.bak in .deft/core fails deposit hygiene, update's prune silently no-ops, doctor omits the failure from its summary"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Write the VERSION backup outside `.deft/core` using the existing out-of-tree root (user-cache `deft/backups` / OS temp, or tmpdir `deft-core-bak-*`). Do not harvest project-local `.deft/backups/`. Do not widen `isDepositGeneratedMetadata` to `VERSION.bak.*`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Prune must dest-unlink or fail closed. Never report a path in `mutations.deleted` that still exists. Record-mode planning JSON is not dest proof. Lock a `VERSION.bak.<ts>` prune test.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Doctor summary text, JSON `ok`, session coda, and exit must derive from one status that includes deposit hygiene. A mid-report `Deposit hygiene: fail` plus `System check passed!` is not showing the fail. `--json` must not skip the hygiene wrapper.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the documented init-doctor-migrate path writes VERSION.bak into .deft/core, update reports that file deleted while it remains on disk, and doctor --full prints System check passed while exiting 1.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4812-dc\norigin-ref: origin/master\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick on the launching utterance (\"use appropriate n and no need to ask me\"); leftover Desired is backup outside deposit, prune unlinks, summary matches exit, so N=1.\n\nrefutation-target: a VERSION.bak written next to VERSION inside .deft/core is hygiene-safe because update auto-prunes it and doctor will show the fail.\n\ntarget: #4812\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\npain: P2\npain: P3\n\n## Gate stamp\n\nP1 is migrate writing `VERSION.bak.<ts>` into `.deft/core`. Pin: `packages/core/src/init-deposit/migrate.test.ts` first-run backup path is `${manifestPath}.bak.<ts>` beside VERSION. Hygiene treats package-absent files in `.deft/core` as fail (#2804).\n\nP2 is update listing that path in `mutations.deleted` while the file remains. Doctor's remedy is `directive update` to auto-prune (#2804). A claimed delete that leaves the file is an unrecoverable documented path.\n\nP3 is `doctor --full` printing `✓ System check passed!` while exiting 1. Pin: `packages/core/src/doctor/main.ts` `finalSuccess(\"System check passed!\")` only when `errorCount === 0 && warningCount === 0`; hygiene fail can still set exit 1 without incrementing those counters. Inverse also measured: throttled doctor warning summary with exit 0.\n\nDo not register VERSION.bak as expected-absent solely to green hygiene if the prune still lies. Companion #4814 is downstream, not this chain.\n\nPin-read at dispatch-sha 7011e07402257adcda6fa496fac079cd8aa54d42: migrate.ts / migrate.test.ts; init-deposit refresh mutations.deleted; doctor/main.ts; packages/cli/src/doctor.ts #2804 copy. Inventory: #2804, #2347. No implement and no ingest from this parent.\n\nEval: `triage:evaluate` sha12=7011e0740225 invocation=060891fd-ef6b-4946-917c-ebf0bde1915b validity=still-open wip=0. Unreleased does not list #4812.",
+          "id": 5749833612,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5749833612",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:35:35Z",
+          "updated_at": "2026-09-20T12:35:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation-target does not survive. A VERSION.bak next to VERSION inside .deft/core is the hygiene failure. Update listing that path in mutations.deleted is not dest-unlink. Doctor printing Deposit hygiene: fail is not the verdict line. The lean cannot bind bak-in-core as hygiene-safe.\n\n## 1. Bak beside VERSION is the #2804 fail\n\nclass: blocks-the-design\n\nEvidence: runMigrate writes `${manifestPath}.bak.<ts>` (packages/core/src/init-deposit/migrate.ts). Tests lock that path as .deft/core/VERSION.bak.<ts>. DEPOSIT_GENERATED_METADATA_PATHS is the exact string VERSION only (isDepositGeneratedMetadata). I ran that matcher and the pinned finder algorithm on a fixture with VERSION, main.md, and VERSION.bak.2026-09-20T03-51-10Z against a content root that ships only main.md. Result: bakIsMetadata=false, absent=[\"VERSION.bak.2026-09-20T03-51-10Z\"]. Doctor's own recovery line for that class is: Run `directive update` to auto-prune these stale deposit files (#2804).\n\nFailure mode: the documented first-run path is init, then doctor, then migrate. Migrate is the last verb on that path and is what seeds the dest-only file in the one directory whose file-set must match @deftai/directive-content. \"Hygiene-safe because update auto-prunes\" names a later verb that path does not run. Between migrate and a later update, every doctor sees a package-absent file migrate just wrote.\n\nDisposition: cannot bind bak-in-core. Write the backup outside .deft/core (the issue's .deft/backups/ shape, or any non-deposit path). That is the remedy that does not create the fail.\n\n## 2. Doctor does not show the fail as the verdict\n\nclass: blocks-the-design\n\nEvidence: packages/cli/src/doctor.ts run() prints renderDepositFileSetHygieneLine and sets depositHygieneExit=1 only when human --full and absent.length > 0. It then calls cmdDoctor and returns Math.max(depositHygieneExit, doctorExit). cmdDoctor (packages/core/src/doctor/main.ts) computes errorCount / warningCount only from findings, then finalSuccess(\"System check passed!\") when both are 0. Deposit hygiene is not a finding. --json skips the whole wrapper hygiene block, including the exit. After migrate, checkCanonicalVendoredNpmSignpost becomes skip (already npm-managed); that check is the warning finding that had been making the summary honest. Session coda after finalSuccess uses exitOk: true even when the wrapper will return 1. Doctor tests lock --full exit 1 and the Deposit hygiene: fail line; they do not lock absence of System check passed.\n\nFailure mode: a clean-finding install with a bak leftover prints Deposit hygiene: fail, then System check passed, then exits 1 on --full. Without --full, the fail line is present and exit is 0. --json --full can omit the fail from output and from exit. Humans, agents, and CI that read the last line or JSON ok conclude passed. The inverse the issue measured (warning summary, exit 0) is the same split: summary text and process status are two sources.\n\nDisposition: cannot bind \"doctor will show the fail\". Summary, JSON ok, coda, and exit must derive from one status that includes deposit hygiene. A mid-report fail line plus a passed footer is not showing the fail.\n\n## 3. mutations.deleted is not dest-unlink\n\nclass: blocks-the-design\n\nEvidence: containedRemove in port-record mode records deleted and returns removed: true without unlinking (packages/core/src/fs/contained-write.ts; test \"records dest write/remove/chmod/exec/rename and skips dest IO\" leaves keep.txt on disk). reconcileDepositToContentPackage then re-scans; if paths remain and isPortRecordMode(), it returns success instead of throwing #2913. CLI directive update always runs a runInPortRecordMode planning pass before live apply (packages/core/src/init-deposit/refresh.ts). Live prunePackageAbsentDepositPaths does call containedRemove and generic dest-only tests do unlink (agents/stale-skill.md, cmd/deft-install/main.go). No test in hygiene.test.ts uses VERSION.bak.<ts>. I could not execute vitest in this dest (no node_modules).\n\nFailure mode: the safety case treats a claimed delete as the #2804 remedy. Record-mode (planning, dry-run, ADR-004 port) produces exactly the issue's JSON shape: path in mutations.deleted, file still on disk, no reconcile throw. Re-running update keeps claiming success. Even if live apply usually unlinks generic dest-only files, that is not locked for the filename migrate writes, and the ledger is not dest proof. Doctor's recovery text still names directive update.\n\nDisposition: cannot bind \"because update auto-prunes\". Prune must dest-unlink or fail closed: never report a path in mutations.deleted that still exists. Live remainder of VERSION.bak.<ts> after apply is an untested hole at this SHA, not a reason to keep bak-in-core.\n\n## 4. Do not allowlist VERSION.bak.* as generated metadata\n\nclass: sharpens-framing\n\nEvidence: Stop 1 already says not to register VERSION.bak as expected-absent solely to green hygiene if the prune still lies. isDepositGeneratedMetadata is exact VERSION. Widening it to VERSION.bak.* would make finding 1's finder return empty while migrate still writes dest-only bytes into .deft/core.\n\nFailure mode: hygiene goes green, doctor summary stays honest for this one file, and #2913's dest-only class gains a prefix hole. Other dest-only leftovers still hit finding 2's summary split. The first-run path still writes junk into the payload tree.\n\nDisposition: if a successor map binds, bind \"move the backup out of the deposit\" plus findings 2 and 3. Do not bind \"expected-absent the pollution.\" What would flip this: a measured reader that never walks .deft/core except VERSION itself, and a prune that cannot lie. Neither holds here.\n\n## 5. No VERSION.bak prune test\n\nclass: footnote\n\nMigrate tests lock the bak path. Finder and prune tests never use that filename. Record-mode skip-IO is tested on keep.txt, not on migrate's sidecar. That is why finding 3 cannot treat live unlink as locked.\n\n## Injection / swarm (shared state)\n\n.deft/core is the shared payload. #2913 exists so dest-only stale or malicious files cannot survive a refresh that claims success. A bak that is ledgered deleted and left on disk is that class, even though migrate wrote it. This is not an envelope or identity change; it is dest-only shared-state remaining after a claimed prune.\n\n## Road not taken\n\nAllowlisting VERSION.bak.* as generated metadata, same class as VERSION. Strongest form: the bak is migrate's private sidecar, never loaded as main.md, so ignoring it would green doctor without moving files. Rejected: it leaves dest-only bytes in the payload tree #2913 keeps empty, it is a prefix hole, and it does not fix the summary split for any other leftover. Flip would require the finder to stop walking .deft/core and prune to be dest-honest. Folding hygiene into cmdDoctor findings without moving the backup was the other fork; it would make finding 2 bindable and would still leave migrate creating a fail the next doctor must report. Smaller than moving the backup, and it still needs finding 3. The load-bearing bind is: do not write the bak into .deft/core.\n\n",
+          "id": 5749892761,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5749892761",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:47:35Z",
+          "updated_at": "2026-09-20T12:47:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMigrate must not write VERSION.bak into .deft/core. Update must not list a deleted path that is still on disk. Doctor summary, JSON, and exit must come from one status that includes deposit hygiene.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut leftover. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 audit:pain-P2 audit:pain-P3 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4812 deposit-hygiene chain after critic 5749892761. Cites critic 5749892761. Supersedes write-back 5749833612.\n\nTarget-digest: sha256:fa027b36667ea2cf2d0b9536f797d902faca435b8a25fd758ae301276ab51b43\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4812-dc\norigin-ref: origin/master\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\ntarget shape: single-issue\n\nTakes:\n\n- 5749892761 1 Bak beside VERSION is the #2804 fail — accept-into-contract\n- 5749892761 2 Doctor does not show the fail as the verdict — accept-into-contract\n- 5749892761 3 mutations.deleted is not dest-unlink — accept-into-contract\n- 5749892761 4 Do not allowlist VERSION.bak as generated metadata — accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749892761 reading=asserted\naudit:pain-P2 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749892761 reading=asserted\naudit:pain-P3 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749892761 reading=asserted\n\n## Bound remedy\n\n- Write the VERSION backup outside `.deft/core` (for example `.deft/backups/`). Do not bind bak-in-core as hygiene-safe. Do not widen `isDepositGeneratedMetadata` to `VERSION.bak.*`.\n- Prune must dest-unlink or fail closed. Never report a path in `mutations.deleted` that still exists. Record-mode planning JSON is not dest proof. Lock a `VERSION.bak.<ts>` prune test.\n- Doctor summary text, JSON `ok`, session coda, and exit must derive from one status that includes deposit hygiene. A mid-report `Deposit hygiene: fail` plus `System check passed!` is not showing the fail. `--json` must not skip the hygiene wrapper.",
+          "id": 5749898415,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5749898415",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:48:45Z",
+          "updated_at": "2026-09-20T12:48:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\n\nBound-remedy on successor lean 5749898415 relieves Stop 1 P1, P2, and P3. Pin-read at dispatch-sha 7011e07402257adcda6fa496fac079cd8aa54d42. Ceiling 5749898415; no later comments in envelope.\n\n## 1. P1 relieves; do not harvest in-tree `.deft/backups/`\n\nclass: sharpens-framing\n\nEvidence: runMigrate writes `${manifestPath}.bak.<ts>` beside VERSION (packages/core/src/init-deposit/migrate.ts). migrate.test.ts locks `.deft/core/VERSION.bak.<ts>`. isDepositGeneratedMetadata is the exact string VERSION. Re-ran the finder on VERSION + main.md + VERSION.bak.2026-09-20T03-51-10Z against a content root that ships only main.md: bakIsMetadata=false, absent=[VERSION.bak.2026-09-20T03-51-10Z]. evaluateDepositFileSetHygiene walks only `.deft/core`. Bound-remedy item 1 (write the backup outside `.deft/core`; do not allowlist VERSION.bak.*) therefore stops migrate from seeding the #2804 fail.\n\nThe parenthetical location does not. Go swap already owns an out-of-tree backup root: defaultBackupRootDir is user-cache `deft/backups` (Windows %LocalAppData%\\deft\\backups, Linux ~/.cache/deft/backups), OS temp fallback (#1445 / cmd/deft-install/upgrade.go). Tests refuse in-tree `*.bak-*` because consumers commit `.deft/core` for reproducibility and `.deft/` is not blanket-ignored, so `git add -A` traps the artefact. npm replaceTree uses tmpdir `deft-core-bak-*`, also out of the working tree.\n\nFailure mode: Spec-path harvests the Bound-remedy list item as written. A builder who copies `.deft/backups/` writes an in-tree homonym of the existing cache root. Hygiene goes green (not under `.deft/core`) and the next `git add -A` stages the pre-stamp VERSION. That is the #1445 class, not P1.\n\nDisposition: P1 relieves. Bind \"outside `.deft/core`\". Replace the example with the existing out-of-tree root (user-cache `deft/backups` / OS temp, or tmpdir `deft-core-bak-*`). Do not harvest project-local `.deft/backups/`.\n\n## 2. P2 relieves: live unlink-or-throw, bak prune test\n\nclass: footnote\n\nEvidence: alreadyCurrent still calls reconcileDepositToContentPackage (refresh.ts). prunePackageAbsentDepositPaths uses containedRemove. Live containedRemove unlinks then ledgers; port-record records deleted and returns removed:true without dest IO. Reconcile, if paths remain, throws unless isPortRecordMode() (hygiene.ts #2913). Generic dest-only tests unlink (hygiene.test.ts agents/stale-skill.md). No test uses VERSION.bak.<ts>. CLI update runs a silent runInPortRecordMode plan before live apply; success JSON is the live ledger (refresh.ts runWithMutationLedger).\n\nFailure mode: the issue shape (path in mutations.deleted, file still on disk, success) is record-mode skip-IO, or an untested live bak remainder. Bound-remedy already names both: dest-unlink or fail closed, never report a deleted path that still exists, record-mode planning JSON is not dest proof, lock a VERSION.bak.<ts> prune test.\n\nDisposition: P2 relieves as written. No further scope change. Live `directive update` success is the never-report surface; ADR-004 planning / --dry-run skip-IO stays.\n\n## 3. P3 relieves: one status including hygiene, including --json\n\nclass: footnote\n\nEvidence: cmdDoctor counts errorCount / warningCount from findings only, then finalSuccess(\"System check passed!\") when both are 0 (packages/core/src/doctor/main.ts). Deposit hygiene is not a finding. CLI wrapper prints the fail line and sets depositHygieneExit=1 only when human --full and absent.length > 0, then Math.max with doctorExit (packages/cli/src/doctor.ts). --json skips that wrapper; doctor.test.ts expects run([\"--full\", \"--json\"]) exit 0 and empty stdout for --json. Session coda after finalSuccess uses exitOk: true. Doctor tests lock --full exit 1 and the fail line; they do not lock absence of System check passed.\n\nFailure mode: after migrate, --full prints Deposit hygiene: fail, then System check passed, then exits 1. --json can omit the fail from output and from exit. Bound-remedy item 3 already requires summary text, JSON ok, session coda, and exit from one status that includes deposit hygiene, and says --json must not skip the hygiene wrapper.\n\nDisposition: P3 relieves as written. The throttled warning-summary / exit 0 path is cmdDoctor warnings-are-not-errors, not this hygiene split.\n\n## Injection / swarm (shared state)\n\n.deft/core is the shared payload. #2913 exists so dest-only stale or malicious files cannot survive a refresh that claims success. Moving the bak out of that tree and making prune dest-unlink or throw are the controls. An in-tree `.deft/backups/` would be a new dest artefact in a tree that is not blanket-gitignored. Out-of-tree cache/temp is the existing control.\n\n## Road not taken\n\nKeep `.deft/backups/` so migrate JSON backup_path is a path next to the project. Strongest form: operator can open the pre-stamp VERSION without leaving the repo. Rejected as the harvested location: #1445 already moved this class out of the working tree because git add -A stages it, and the cache root is already named `deft/backups`. Flip would require `.deft/` to be blanket-ignored, which it is not.\n\n",
+          "id": 5749953477,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5749953477",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T12:59:55Z",
+          "updated_at": "2026-09-20T12:59:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe backup must leave .deft/core, but not into project-local .deft/backups/. Use the existing out-of-tree cache or temp root so git add -A cannot stage it.\n\nThis is not an instruction to a later builder.\n\n**Lean:** #4812 harvest recut after pain-audit 5749953477. Cites critic 5749953477. Supersedes lean 5749898415. Intermediate recut: no relieves.\n\nTarget-digest: sha256:fa027b36667ea2cf2d0b9536f797d902faca435b8a25fd758ae301276ab51b43\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4812-dc\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\ntarget shape: single-issue\n\nTakes:\n\n- 5749953477 1 do not harvest in-tree .deft/backups/ — accept-into-contract\n\n## Bound remedy\n\n- Write the VERSION backup outside `.deft/core` using the existing out-of-tree root (user-cache `deft/backups` / OS temp, or tmpdir `deft-core-bak-*`). Do not harvest project-local `.deft/backups/`. Do not widen `isDepositGeneratedMetadata` to `VERSION.bak.*`.",
+          "id": 5749959205,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5749959205",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T13:01:01Z",
+          "updated_at": "2026-09-20T13:01:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMigrate must not write VERSION.bak into .deft/core. Put it in the existing out-of-tree cache or temp root. Update must not list a deleted path that is still on disk. Doctor summary, JSON, and exit must come from one status that includes deposit hygiene.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut leftover. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 audit:pain-P2 audit:pain-P3 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4812 bind after out-of-tree harvest recut. Cites critic 5749953477. Supersedes intermediate recut. Predecessor does not carry relieves.\n\nTarget-digest: sha256:fa027b36667ea2cf2d0b9536f797d902faca435b8a25fd758ae301276ab51b43\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4812-dc\norigin-ref: origin/master\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\ntarget shape: single-issue\n\nTakes:\n\n- 5749892761 1 Bak beside VERSION is the #2804 fail — accept-into-contract\n- 5749892761 2 Doctor does not show the fail as the verdict — accept-into-contract\n- 5749892761 3 mutations.deleted is not dest-unlink — accept-into-contract\n- 5749892761 4 Do not allowlist VERSION.bak as generated metadata — accept-into-contract\n- 5749953477 1 do not harvest in-tree .deft/backups/ — accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749953477 reading=asserted\naudit:pain-P2 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749953477 reading=asserted\naudit:pain-P3 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5749953477 reading=asserted\n\n## Bound remedy\n\n- Write the VERSION backup outside `.deft/core` using the existing out-of-tree root (user-cache `deft/backups` / OS temp, or tmpdir `deft-core-bak-*`). Do not harvest project-local `.deft/backups/`. Do not widen `isDepositGeneratedMetadata` to `VERSION.bak.*`.\n- Prune must dest-unlink or fail closed. Never report a path in `mutations.deleted` that still exists. Record-mode planning JSON is not dest proof. Lock a `VERSION.bak.<ts>` prune test.\n- Doctor summary text, JSON `ok`, session coda, and exit must derive from one status that includes deposit hygiene. A mid-report `Deposit hygiene: fail` plus `System check passed!` is not showing the fail. `--json` must not skip the hygiene wrapper.",
+          "id": 5749959284,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5749959284",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T13:01:02Z",
+          "updated_at": "2026-09-20T13:01:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\n\nBound-remedy on successor lean 5749959284 relieves Stop 1 P1, P2, and P3. Pin-read at dispatch-sha 7011e07402257adcda6fa496fac079cd8aa54d42. Ceiling 5749959284; no later comments in envelope.\n\n## 1. P1 relieves; backup is existing out-of-tree cache/temp, not project-local `.deft/backups/`\n\nclass: footnote\n\nEvidence: runMigrate still writes `${manifestPath}.bak.<ts>` beside VERSION (`packages/core/src/init-deposit/migrate.ts`). migrate.test.ts locks `.deft/core/VERSION.bak.<ts>`. isDepositGeneratedMetadata is the exact string VERSION. Re-ran the finder on VERSION + main.md + VERSION.bak.2026-09-20T03-51-10Z against a content root that ships only main.md: bakIsMetadata=false, absent=[VERSION.bak.2026-09-20T03-51-10Z]. evaluateDepositFileSetHygiene walks only `.deft/core`.\n\nThe harvested location is the existing out-of-tree root, not a new in-tree homonym. defaultBackupRootDir is user-cache `deft/backups` (`%LocalAppData%\\deft\\backups` on Windows, `~/.cache/deft/backups` on Linux) with OS temp fallback (`cmd/deft-install/upgrade.go`). replaceTree uses tmpdir `deft-core-bak-*` (`packages/core/src/deposit/copy-tree.ts`). upgrade_backup_test.go refuses in-tree `*.bak-*` because `git add -A` stages it (#1445). CANONICAL_GITIGNORE_BASELINE has `.deft/cache/` and `.deft/*.bak-*`, not `.deft/backups/`. Re-ran the coverage matcher: `.deft/backups/VERSION.bak.*` is covered by NONE; the glob `.deft/*.bak-*` does not match a nested backups/ path. containedWrite rooted at projectRoot accepts `.deft/backups/` and refuses the user-cache and tmpdir roots (CONTAINED_WRITE_ESCAPE). Bound-remedy item 1 names those existing out-of-tree roots and says do not harvest project-local `.deft/backups/`.\n\nFailure mode: if harvest had kept `.deft/backups/`, migrate's current write seam would still accept it, hygiene would go green (not under `.deft/core`), and the next `git add -A` would stage the pre-stamp VERSION. That is the #1445 class, not P1. The recut closed that.\n\nDisposition: P1 relieves as written. Bind the existing out-of-tree cache/temp root. Do not harvest project-local `.deft/backups/`. Do not widen isDepositGeneratedMetadata to VERSION.bak.*.\n\n## 2. P2 relieves: live unlink-or-throw, bak prune test\n\nclass: footnote\n\nEvidence: alreadyCurrent still calls reconcileDepositToContentPackage (refresh.ts). prunePackageAbsentDepositPaths uses containedRemove. Live containedRemove unlinks then ledgers; port-record records deleted and returns removed:true without dest IO (contained-write.test.ts keep.txt). Reconcile throws on remainder unless isPortRecordMode() (hygiene.ts #2913). CLI update runs a silent runInPortRecordMode plan, then live runWithMutationLedger apply; success JSON is the live ledger (refresh.ts). No hygiene.test.ts case uses VERSION.bak.<ts>.\n\nFailure mode: the issue shape (path in mutations.deleted, file still on disk, success) is record-mode skip-IO, or an untested live bak remainder. Bound-remedy already names both: dest-unlink or fail closed, never report a deleted path that still exists, record-mode planning JSON is not dest proof, lock a VERSION.bak.<ts> prune test.\n\nDisposition: P2 relieves as written. Live `directive update` success is the never-report surface; ADR-004 planning / --dry-run skip-IO stays.\n\n## 3. P3 relieves: one status including hygiene, including --json\n\nclass: footnote\n\nEvidence: cmdDoctor counts errorCount / warningCount from findings only, then finalSuccess(\"System check passed!\") when both are 0 (`packages/core/src/doctor/main.ts`). Deposit hygiene is not a finding. CLI wrapper prints the fail line and sets depositHygieneExit=1 only when human --full and absent.length > 0, then Math.max with doctorExit (`packages/cli/src/doctor.ts`). --json skips that wrapper; doctor.test.ts expects run([\"--full\", \"--json\"]) exit 0. Session coda after finalSuccess uses exitOk: true.\n\nFailure mode: after migrate, --full prints Deposit hygiene: fail, then System check passed, then exits 1. --json can omit the fail from output and from exit. Bound-remedy item 3 already requires summary text, JSON ok, session coda, and exit from one status that includes deposit hygiene, and says --json must not skip the hygiene wrapper.\n\nDisposition: P3 relieves as written. The throttled warning-summary / exit 0 path is cmdDoctor warnings-are-not-errors, not this hygiene split.\n\n## Injection / swarm (shared state)\n\n`.deft/core` is the shared payload. #2913 exists so dest-only stale or malicious files cannot survive a refresh that claims success. Moving the bak to the existing out-of-tree cache/temp root, and making prune dest-unlink or throw, are the controls. Project-local `.deft/backups/` would be a new dest artefact in a tree that is not blanket-gitignored. Out-of-tree cache/temp is the existing control.\n\n## Road not taken\n\nKeep project-local `.deft/backups/` so migrate's containedWrite-under-projectRoot still works and backup_path stays next to the repo. Strongest form: operator can open the pre-stamp VERSION without leaving the working tree. Rejected as the harvested location: containedWrite accepts that path today, canonical gitignore does not cover it, and #1445 already moved this class to user-cache `deft/backups` / OS temp because `git add -A` stages it. Flip would require adding `.deft/backups/` to CANONICAL_GITIGNORE_BASELINE, which is a new ignore line, not the existing out-of-tree root. Migrate's writeText seam currently refuses the harvested roots (ESCAPE); copy backupDirOutsideTree or tmpdir `deft-core-bak-*`, do not squeeze those paths through containedWrite rooted at projectRoot. That is an implementation seam of item 1, not a harvest change.\n\n",
+          "id": 5750002578,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5750002578",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T13:09:28Z",
+          "updated_at": "2026-09-20T13:09:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nPain-audit 5750002578 is footnote-only. Bind remains successor lean 5749959284. No extra Lean heading.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Migrate writes VERSION.bak beside VERSION in .deft/core | verified | critic 5749892761 pin-read migrate.ts; finder bak package-absent |\n| mutations.deleted can list a path still on disk | verified | containedRemove port-record skip-IO; pain-audit 5750002578 |\n| Doctor prints passed while hygiene fail sets exit 1 | verified | doctor/main.ts findings-only; wrapper Math.max |\n| Out-of-tree cache/temp is the backup root, not .deft/backups/ | verified | pain-audit 5750002578 #1445 defaultBackupRootDir |",
+          "id": 5750005933,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5750005933",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T13:10:06Z",
+          "updated_at": "2026-09-20T13:10:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMigrate must not write VERSION.bak into .deft/core. Put it in the existing out-of-tree cache or temp root. Update must not list a deleted path that is still on disk. Doctor summary, JSON, and exit must come from one status that includes deposit hygiene.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5749959284.",
+          "id": 5750006005,
+          "html_url": "https://github.com/deftai/directive/issues/4812#issuecomment-5750006005",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T13:10:07Z",
+          "updated_at": "2026-09-20T13:10:07Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nOn a clean install of `@deftai/directive@0.119.5`, the documented first-run path (`init` → `doctor` → `migrate`) deterministically ends with the install in a failing deposit-hygiene state, and the two mechanisms that should surface or fix that state both misbehave. Three defects chain:\n\n1. `directive migrate` writes `VERSION.bak.<ts>` **into `.deft/core`**, the one directory whose file-set must match `@deftai/directive-content` — so migrate creates the hygiene failure.\n2. `directive update` reports deleting that file in `mutations.deleted` but **leaves it on disk**, so the `#2804` auto-prune remedy never clears the condition and re-running it keeps claiming success.\n3. `directive doctor --full` **omits the hygiene failure from its summary line**, printing `✓ System check passed!` while exiting `1`.\n\nNet effect: the documented upgrade path leaves a broken install, the documented fix silently no-ops, and the diagnostic tells you everything passed.\n\n## Environment\n\n- `@deftai/directive@0.119.5` (engine `@deftai/directive-core@0.119.5`, content 0.119.5, pin 0.119.5 — aligned)\n- Operating mode: hybrid (vendored `.deft/core/` + managed AGENTS.md)\n- Node v22.22.1, npm 9.2.0, Linux 7.0.0-31-generic\n- Fresh empty directory, `git init`, no prior Deft install\n\n## Reproduction\n\n```bash\nmkdir demo && cd demo && git init\nnpm i -g @deftai/directive       # 0.119.5\ndirective init\ndirective doctor                 # warns: install not yet npm-managed → run `directive migrate`\ndirective migrate                # creates .deft/core/VERSION.bak.<ts>\ndirective doctor --full          # Deposit hygiene: fail  +  \"✓ System check passed!\"  + exit 1\ndirective update                 # mutations.deleted lists the .bak — but it is still there\nls .deft/core/VERSION.bak.*      # still present\n```\n\n### 1. `migrate` seeds the failure\n\n```\ndirective migrate: stamped /…/.deft/core/VERSION npm-managed (managed_by: 'npm');\nbackup written to /…/.deft/core/VERSION.bak.2026-09-20T03-51-10Z.\n```\n\nThe backup lands inside `.deft/core`. `doctor` classifies anything there not shipped by `@deftai/directive-content` as a stale deposit file, so the backup immediately fails hygiene. The backup differs from `VERSION` by exactly one line (`managed_by: 'npm'`).\n\n### 2. `update` reports a deletion it does not perform\n\n```json\n\"mutations\": {\n  \"wrote\": [], \"stripped\": [],\n  \"deleted\": [\".deft/core/VERSION.bak.2026-09-20T03-51-10Z\"],\n  \"chmod\": [], \"exec\": []\n}\n```\n\nImmediately after, the file is still on disk:\n\n```\n-rw-r--r-- 1 ben ben 146 Sep 19 23:51 VERSION.bak.2026-09-20T03-51-10Z\n```\n\nThis is the remedy `doctor` explicitly recommends for `#2804`, so the failure is unrecoverable via the documented path.\n\n### 3. `doctor --full` hides the failure from its summary\n\nSingle run, both lines present:\n\n```\nDeposit hygiene: fail -- 1 package-absent file(s) in .deft/core (not shipped by\n@deftai/directive-content). Examples: VERSION.bak.2026-09-20T03-51-10Z.\nRun `directive update` to auto-prune these stale deposit files (#2804).\n…\n✓ System check passed!\n```\n\nExit code was `1`. The failure reaches `$?` but never the summary line, so console readers and log scrapers both conclude the check passed. Note the inverse also occurred earlier in the same session: the throttled (non-`--full`) run printed `⚠ System check completed with 1 warning(s).` and exited `0`. Summary text and exit status disagree in both directions, which makes `doctor` unsafe to gate CI on.\n\n## Confirmation that the stale file is the only cause\n\nDeleting the backup by hand is the only thing that clears it:\n\n```bash\nrm .deft/core/VERSION.bak.2026-09-20T03-51-10Z\ndirective doctor --full\n# Deposit hygiene: none -- .deft/core file-set matches @deftai/directive-content.\n# ✓ System check passed!     exit 0\n```\n\nWith hygiene passing, summary and exit code agree — confirming defect 3 is specifically that a hygiene `fail` is not propagated into the summary, not a general summary bug.\n\n## Suggested fixes\n\n- **migrate**: write the backup outside the deposit tree (e.g. `.deft/backups/`), or register `VERSION.bak.*` as an expected-absent pattern in the hygiene check.\n- **update**: make the prune actually unlink, and fail loudly if it cannot — never report a path in `mutations.deleted` that still exists.\n- **doctor**: fold deposit-hygiene status into the summary line, and make the summary text and exit code derive from one source.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5515624254,
+        "origin": "deftai/directive#4812",
+        "id": "github.issue.5515624254"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fa027b36667ea2cf2d0b9536f797d902faca435b8a25fd758ae301276ab51b43"
+      }
+    },
+    "id": "github.issue.5515624254",
+    "updated": "2026-09-22T00:12:42Z"
+  }
+}

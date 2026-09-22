@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   activeMutationLedger,
+  runInPortRecordMode,
   runWithMutationLedger,
   snapshotMutationSummary,
 } from "../fs/mutation-ledger.js";
@@ -1620,6 +1621,7 @@ describe("package-absent deposit prune (#2804)", () => {
   it("treats VERSION as generated deposit metadata", () => {
     expect(isDepositGeneratedMetadata("VERSION")).toBe(true);
     expect(isDepositGeneratedMetadata("main.md")).toBe(false);
+    expect(isDepositGeneratedMetadata("VERSION.bak.2026-09-20T03-51-10Z")).toBe(false);
   });
 
   it("finds bridge-era leftovers absent from the content package", () => {
@@ -1707,6 +1709,53 @@ describe("package-absent deposit prune (#2804)", () => {
 
     expect(existsSync(join(deftDir, "agents", "stale-skill.md"))).toBe(false);
     expect(summary.deleted).toContain(".deft/core/agents/stale-skill.md");
+  });
+
+  it("unlinks VERSION.bak.<ts> and does not ledger a path that remains (#4812)", async () => {
+    const project = freshRoot("version-bak-prune-");
+    const deftDir = join(project, ".deft", "core");
+    const contentRoot = join(project, "content-pkg");
+    const bakName = "VERSION.bak.2026-09-20T03-51-10Z";
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
+    writeFileSync(join(deftDir, bakName), "old\n", "utf8");
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const summary = await runWithMutationLedger(project, async () => {
+      await reconcileDepositToContentPackage(deftDir, contentRoot, { printf: () => {} });
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(deftDir, bakName))).toBe(false);
+    expect(existsSync(join(deftDir, "VERSION"))).toBe(true);
+    expect(summary.deleted.some((rel) => rel.endsWith(bakName))).toBe(true);
+    for (const rel of summary.deleted) {
+      expect(existsSync(join(project, rel))).toBe(false);
+    }
+  });
+
+  it("record-mode VERSION.bak.<ts> planning is not a dest unlink (#4812)", async () => {
+    const project = freshRoot("version-bak-plan-");
+    const deftDir = join(project, ".deft", "core");
+    const contentRoot = join(project, "content-pkg");
+    const bakName = "VERSION.bak.2026-09-20T03-51-10Z";
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(join(deftDir, bakName), "old\n", "utf8");
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const summary = await runInPortRecordMode(() =>
+      runWithMutationLedger(project, async () => {
+        await prunePackageAbsentDepositPaths(deftDir, contentRoot, { printf: () => {} });
+        return snapshotMutationSummary();
+      }),
+    );
+
+    expect(existsSync(join(deftDir, bakName))).toBe(true);
+    expect(summary.deleted.some((rel) => rel.endsWith(bakName))).toBe(true);
   });
 });
 

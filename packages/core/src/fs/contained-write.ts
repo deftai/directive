@@ -737,6 +737,9 @@ export function containedRemove(input: ContainedRemoveInput): ContainedRemoveRes
       offendingPath: targetAbs,
     });
   }
+  if (existsSync(targetAbs)) {
+    return { path: targetAbs, removed: false };
+  }
   recordRemoveMutation(targetAbs, input.mutation);
   return { path: targetAbs, removed: true };
 }

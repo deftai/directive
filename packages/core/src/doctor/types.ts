@@ -112,6 +112,13 @@ export interface DoctorState {
   readonly lastErrorCount: number;
 }
 
+/** Deposit file-set hygiene folded into the one doctor status (#4812). */
+export interface DoctorDepositHygiene {
+  readonly failed: boolean;
+  readonly absent?: readonly string[];
+  readonly line?: string;
+}
+
 export interface DoctorSeams {
   readonly whichFn?: (cmd: string) => string | null;
   readonly frameworkRoot?: string;
@@ -215,4 +222,9 @@ export interface DoctorSeams {
   readonly openclawEnv?: NodeJS.ProcessEnv;
   readonly openclawHomeDir?: () => string;
   readonly openclawContentRootFor?: (frameworkRoot: string) => string;
+  /**
+   * Deposit hygiene included in summary, JSON `ok`, session coda, and exit (#4812).
+   * Absent means this invocation did not evaluate hygiene.
+   */
+  readonly depositHygiene?: DoctorDepositHygiene;
 }

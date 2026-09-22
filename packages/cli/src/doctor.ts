@@ -137,44 +137,44 @@ async function resolveEngineContentRoot(): Promise<string | null> {
 }
 
 export async function run(argv: string[]): Promise<number> {
-  // #2022: surface pre-cutover (pre-v0.20 document model) migration state alongside the
-  // core doctor report. Only emit on a valid, human-readable invocation: suppressed under
-  // --json (so the machine-readable report stays valid), on --help, and when unknown flags
-  // are present (so an invalid invocation still mirrors the core error path exactly).
+  // Human advisory lines stay off --json so the machine report stays one object.
+  // Deposit hygiene is still passed into cmdDoctor, including --json (#4812).
   const flags = parseDoctorFlags(argv);
-  let depositHygieneExit = 0;
   const installedRoot = await resolveEngineContentRoot();
   if (installedRoot !== null) {
     setDoctorAgentsTemplateRoot(installedRoot);
   }
   try {
-    if (!flags.json && !flags.help && flags.unknown.length === 0) {
-      const projectRoot = flags.projectRoot ?? process.cwd();
-      const walkRoot = resolveContentPackageRoot(projectRoot);
-      const depositResult = evaluateDepositFileSetHygiene(projectRoot, {
-        contentRoot: installedRoot ?? undefined,
-        walkRoot,
-        installedRoot,
-      });
+    if (flags.help || flags.unknown.length > 0) {
+      return cmdDoctor(argv);
+    }
+    const projectRoot = flags.projectRoot ?? process.cwd();
+    const walkRoot = resolveContentPackageRoot(projectRoot);
+    const depositResult = evaluateDepositFileSetHygiene(projectRoot, {
+      contentRoot: installedRoot ?? undefined,
+      walkRoot,
+      installedRoot,
+    });
+    const closure = evaluateInstalledDepositClosure(projectRoot);
+    const fileSetFailed = !depositResult.skipped && depositResult.absent.length > 0;
+    const closureFailed =
+      flags.full && !closure.skipped && (closure.missing.length > 0 || closure.error !== null);
+    const line = renderDepositFileSetHygieneLine(projectRoot, depositResult);
+    if (!flags.json) {
       process.stdout.write(`${renderPrecutoverLine(projectRoot)}\n`);
       process.stdout.write(`${renderXbriefMigrationLine(projectRoot)}\n`);
       process.stdout.write(`${renderStaleHeaderLine(projectRoot)}\n`);
-      process.stdout.write(`${renderDepositFileSetHygieneLine(projectRoot, depositResult)}\n`);
-      const closure = evaluateInstalledDepositClosure(projectRoot);
+      process.stdout.write(`${line}\n`);
       process.stdout.write(`${renderDeclaredDepositClosureLine(closure)}\n`);
-      if (flags.full && !depositResult.skipped && depositResult.absent.length > 0) {
-        depositHygieneExit = 1;
-      }
-      if (
-        flags.full &&
-        !closure.skipped &&
-        (closure.missing.length > 0 || closure.error !== null)
-      ) {
-        depositHygieneExit = 1;
-      }
     }
-    const doctorExit = cmdDoctor(argv);
-    return Math.max(depositHygieneExit, doctorExit);
+    const closureLine = renderDeclaredDepositClosureLine(closure);
+    return cmdDoctor(argv, {
+      depositHygiene: {
+        failed: fileSetFailed || closureFailed,
+        absent: depositResult.absent,
+        line: fileSetFailed ? line : closureFailed ? closureLine : line,
+      },
+    });
   } finally {
     setDoctorAgentsTemplateRoot(undefined);
   }

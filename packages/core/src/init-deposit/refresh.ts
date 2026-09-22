@@ -37,6 +37,7 @@ import {
   isPortRecordMode,
   type MutationSummary,
   mutationSummaryJson,
+  omitReportedDeletesStillPresent,
   runInPortRecordMode,
   runWithMutationLedger,
   snapshotMutationSummary,
@@ -1522,6 +1523,30 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
         }
         return 1;
       }
+      const honestDeletes = omitReportedDeletesStillPresent(result.mutations, (rel) =>
+        existsSync(join(result.projectDir, rel)),
+      );
+      if (honestDeletes.omitted.length > 0) {
+        const message =
+          "refused to report deleted path(s) that still exist: " +
+          honestDeletes.omitted.slice(0, 5).join(", ");
+        options.writeErr(`directive update: ${message}\n`);
+        if (options.jsonOut) {
+          options.writeOut(
+            `${JSON.stringify(
+              {
+                success: false,
+                error: message,
+                error_code: "refresh_deposit_failed",
+                mutations: mutationSummaryJson(honestDeletes.summary),
+              },
+              null,
+              2,
+            )}\n`,
+          );
+        }
+        return 1;
+      }
       const readiness = evaluateAgentHookReadinessSafely(
         result.projectDir,
         options.seams?.evaluateAgentHookReadiness ?? evaluateAgentHookReadiness,
@@ -1565,7 +1590,9 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
         return LEGACY_LAYOUT_REFUSED_EXIT_CODE;
       }
       const message = cause instanceof Error ? cause.message : String(cause);
-      const mutations = snapshotMutationSummary();
+      const mutations = omitReportedDeletesStillPresent(snapshotMutationSummary(), (rel) =>
+        existsSync(join(projectDir, rel)),
+      ).summary;
       options.writeErr(`directive update: ${message}\n`);
       if (options.jsonOut) {
         options.writeOut(

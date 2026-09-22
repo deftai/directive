@@ -163,3 +163,29 @@ export function mutationSummaryJson(summary: MutationSummary): {
     exec: [...summary.exec],
   };
 }
+
+/**
+ * Drop `deleted` entries that are still on disk (#4812).
+ * A reported delete is a dest claim. Record-mode planning is not that claim.
+ */
+export function omitReportedDeletesStillPresent(
+  summary: MutationSummary,
+  stillPresent: (path: string) => boolean,
+): { summary: MutationSummary; omitted: readonly string[] } {
+  const omitted = summary.deleted.filter((rel) => stillPresent(rel));
+  if (omitted.length === 0) return { summary, omitted };
+  const drop = new Set(omitted);
+  return {
+    omitted,
+    summary: {
+      wrote: summary.wrote,
+      stripped: summary.stripped,
+      deleted: summary.deleted.filter((rel) => !drop.has(rel)),
+      chmod: summary.chmod,
+      exec: summary.exec,
+      mutations: summary.mutations.filter(
+        (entry) => entry.kind !== "deleted" || !drop.has(entry.path),
+      ),
+    },
+  };
+}

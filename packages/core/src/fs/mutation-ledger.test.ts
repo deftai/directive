@@ -7,6 +7,7 @@ import {
   formatMutationSummary,
   isAtomicWriteTemp,
   mutationSummaryJson,
+  omitReportedDeletesStillPresent,
   recordActiveMutation,
   runWithMutationLedger,
   snapshotMutationSummary,
@@ -105,5 +106,33 @@ describe("MutationLedger (#3392)", () => {
       expect(snapshotMutationSummary().deleted).toEqual([]);
     });
     expect(activeMutationLedger()).toBeUndefined();
+  });
+});
+
+describe("omitReportedDeletesStillPresent (#4812)", () => {
+  const summary = {
+    wrote: ["kept.txt"],
+    stripped: [],
+    deleted: [".deft/core/VERSION.bak.2026-09-20T03-51-10Z", ".deft/core/gone.txt"],
+    chmod: [],
+    exec: [],
+    mutations: [
+      { kind: "wrote" as const, path: "kept.txt" },
+      { kind: "deleted" as const, path: ".deft/core/VERSION.bak.2026-09-20T03-51-10Z" },
+      { kind: "deleted" as const, path: ".deft/core/gone.txt" },
+    ],
+  };
+
+  it("drops a deleted path that still exists", () => {
+    const result = omitReportedDeletesStillPresent(summary, (rel) => rel.includes("VERSION.bak"));
+    expect(result.omitted).toEqual([".deft/core/VERSION.bak.2026-09-20T03-51-10Z"]);
+    expect(result.summary.deleted).toEqual([".deft/core/gone.txt"]);
+    expect(result.summary.wrote).toEqual(["kept.txt"]);
+  });
+
+  it("returns the same summary when every delete is gone", () => {
+    const result = omitReportedDeletesStillPresent(summary, () => false);
+    expect(result.omitted).toEqual([]);
+    expect(result.summary).toBe(summary);
   });
 });

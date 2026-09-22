@@ -285,6 +285,21 @@ function resolveDoctorPackageManager(projectRoot: string, seams: DoctorSeams): P
   });
 }
 
+function depositHygieneFailed(seams: DoctorSeams): boolean {
+  return seams.depositHygiene?.failed === true;
+}
+
+function depositHygieneJson(seams: DoctorSeams): Record<string, unknown> | undefined {
+  const hygiene = seams.depositHygiene;
+  if (hygiene === undefined) return undefined;
+  const line = hygiene.line ?? "";
+  return {
+    ok: hygiene.failed !== true,
+    absent: [...(hygiene.absent ?? [])],
+    ...(line.length > 0 ? { line } : {}),
+  };
+}
+
 export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): number {
   const flags = parseDoctorFlags(args);
   if (flags.unknown.length > 0) {
@@ -409,6 +424,8 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         seams,
       );
       const hint = decision.dirty ? dirtyDoctorHint() : "--full forces";
+      const hygieneFailed = depositHygieneFailed(seams);
+      const hygieneJson = depositHygieneJson(seams);
       if (jsonMode) {
         const payload = {
           status: "throttle-skipped",
@@ -419,18 +436,23 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
           next_eligible_at: formatIsoZ(decision.nextEligibleAt),
           hint,
           ...(throttleFindings.length > 0 ? { signpost_findings: throttleFindings } : {}),
+          ...(hygieneJson
+            ? { deposit_hygiene: hygieneJson, ok: !hygieneFailed && !decision.dirty }
+            : {}),
         };
         process.stdout.write(`${pythonJsonDump(payload)}\n`);
       } else {
         process.stdout.write(`${renderDoctorStatusLine(decision, nowFn())}\n`);
       }
       const signpostWarnings = throttleFindings.filter((f) => f.severity === "warning").length;
-      if (signpostWarnings > 0 && !jsonMode) {
+      if (hygieneFailed && !jsonMode) {
+        throttleSink.finalError("System check failed with 1 error(s) including deposit hygiene.");
+      } else if (signpostWarnings > 0 && !jsonMode) {
         throttleSink.finalWarn(
           `Signpost advisory: ${signpostWarnings} local configuration / layout note(s) above (throttle-skipped full probe).`,
         );
       }
-      return decision.dirty ? 1 : 0;
+      return hygieneFailed || decision.dirty ? 1 : 0;
     }
   }
 
@@ -713,14 +735,17 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     resolution = runResolutionDecision(projectRoot, jsonMode, sink, addFinding, seams);
   }
 
-  const errorCount = findings.filter((f) => f.severity === "error").length;
+  const findingErrors = findings.filter((f) => f.severity === "error").length;
   const warningCount = findings.filter((f) => f.severity === "warning").length;
+  const hygieneFailed = depositHygieneFailed(seams);
+  const errorCount = findingErrors + (hygieneFailed ? 1 : 0);
   const exitCode = errorCount > 0 ? 1 : 0;
+  const hygieneJson = depositHygieneJson(seams);
 
   const persist = seams.writeState ?? writeState;
   persist(projectRoot, {
     exitCode,
-    findingCount: findings.filter((f) => f.severity !== "skip").length,
+    findingCount: findings.filter((f) => f.severity !== "skip").length + (hygieneFailed ? 1 : 0),
     errorCount,
     now: nowFn(),
   });
@@ -731,6 +756,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       ok: exitCode === 0,
       findings,
       summary: { errors: errorCount, warnings: warningCount },
+      ...(hygieneJson ? { deposit_hygiene: hygieneJson } : {}),
       project_root: projectRoot,
       user_md: {
         path: userMd.path,
@@ -774,10 +800,11 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     return 0;
   }
   if (errorCount) {
+    const hygieneNote = hygieneFailed ? " including deposit hygiene" : "";
     sink.finalError(
       `System check failed with ${errorCount} error(s)` +
         (warningCount ? ` and ${warningCount} warning(s)` : "") +
-        ".",
+        `${hygieneNote}.`,
     );
     return 1;
   }
