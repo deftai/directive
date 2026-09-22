@@ -396,6 +396,8 @@ var canonicalGitignoreLines = []string{
 	".deft/occupancy.json",
 	".deft/routing.local.json",
 	".claude/worktrees/",
+	// Swarm worktree default (#4841). Directory rule, same shape as the line above.
+	".deft-scratch/",
 	".claude/settings.local.json",
 	".deft-run-summary.json",
 	".deft-directive-disable",

@@ -431,6 +431,11 @@ describe("init-deposit gitignore projection containment (#2839)", () => {
       expect(covering).toEqual([]);
     }
   });
+
+  it("ignores the swarm scratch root the same way as .claude/worktrees/", () => {
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain(".deft-scratch/");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("temp/");
+  });
 });
 
 describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {

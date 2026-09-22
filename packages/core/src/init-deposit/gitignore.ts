@@ -65,6 +65,8 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   // Un-ignored agent worktrees leave a permanently dirty tree, which refuses
   // release Step 1 for every consumer that dispatches subagents.
   ".claude/worktrees/",
+  // Swarm worktree default (#4841). Directory rule, same shape as the line above.
+  ".deft-scratch/",
   ".claude/settings.local.json",
   // #3282: opt-in default run-summary JSONL at repo root (collectible; must not dirty trees).
   ".deft-run-summary.json",

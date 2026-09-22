@@ -1,0 +1,303 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4841",
+    "updated": "2026-09-22T00:12:30Z"
+  },
+  "plan": {
+    "title": ".deft-scratch/ is the swarm worktree default but is not in the framework-generated .gitignore",
+    "status": "running",
+    "narratives": {
+      "Description": ".deft-scratch/ is the swarm worktree default but is not in the framework-generated .gitignore",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4841",
+      "Overview": "\n\n- Add `.deft-scratch/` to `CANONICAL_GITIGNORE_BASELINE` and `canonicalGitignoreLines`, same shape as `.claude/worktrees/`.\n- Lock the TypeScript list with `toContain(\".deft-scratch/\")`. The existing subset test then requires the Go list to carry it. Init, update, and `EnsureGitignoreLines` pick the line up from those arrays.\n- Acceptance is an untracked path: once the line is present, `git add -A` does not stage `.deft-scratch/worktrees/<story>`. A path already in the index stays until `git rm --cached`. Keep that removal off `directive update`.\n- Do not add `temp/` to either baseline. Do not register `.deft-scratch` on `RUNTIME_WRITER_PATHS_LOCAL_CACHE`. Do not move the swarm default outside the repository.\n\nFootnotes stay footnotes: Phase 0f ask-before-edit; in-worktree scratch on a branch that lacks the line; `git check-ignore -- .deft-scratch` vs trailing slash.\n\n",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Add `.deft-scratch/` to `CANONICAL_GITIGNORE_BASELINE` and `canonicalGitignoreLines`, same shape as `.claude/worktrees/`.",
+        "status": "proposed",
+        "id": "clause:1"
+      },
+      {
+        "title": "Lock the TypeScript list with `toContain(\".deft-scratch/\")`. The existing subset test then requires the Go list to carry it. Init, update, and `EnsureGitignoreLines` pick the line up from those arrays.",
+        "status": "proposed",
+        "id": "clause:2"
+      },
+      {
+        "title": "Acceptance is an untracked path: once the line is present, `git add -A` does not stage `.deft-scratch/worktrees/<story>`. A path already in the index stays until `git rm --cached`. Keep that removal off `directive update`.",
+        "status": "proposed",
+        "id": "clause:3"
+      },
+      {
+        "title": "Do not add `temp/` to either baseline. Do not register `.deft-scratch` on `RUNTIME_WRITER_PATHS_LOCAL_CACHE`. Do not move the swarm default outside the repository.",
+        "status": "proposed",
+        "id": "clause:4"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4841",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4841: .deft-scratch/ is the swarm worktree default but is not in the framework-generated .gitignore"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git add -A",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "git rm --cached",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "directive update",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the swarm skill defaults worktrees to `.deft-scratch/worktrees/<story-id>` and describes that path as a deterministic ignored scratch location, while CANONICAL_GITIGNORE_BASELINE and the Go installer twin omit `.deft-scratch/`, so `git add -A` stages embedded worktrees and other scratch.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4841-dc\norigin-ref: origin/master\ndispatch-sha: 557873cf26f14fe17a289eea4a297584b4a1432e\n\ncharter: open critique\nspend: N=1\nspend-ask: asked\nspend-why: operator utterance `use n=1 or n=3 as needed`. Per-issue Stop 2: named consumer gitignore baseline miss; no open solution space. N=1.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #4841\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: the maintainer-repo `.gitignore` line for `.deft-scratch/` is sufficient because consumers inherit that file\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This write-back is the round-1 ceiling.\n\nP1 is that `packages/core/src/init-deposit/gitignore.ts` `CANONICAL_GITIGNORE_BASELINE` and `cmd/deft-install/setup.go` `canonicalGitignoreLines` list `.deft-cache/` and do not list `.deft-scratch/`, while `content/skills/deft-directive-swarm/references/core-phase-1-2.md` defaults one worktree per agent under `.deft-scratch/worktrees/<story-id>` and Phase 0 already checks gitignore coverage for `.deft-scratch/`. Maintainer `.gitignore` line 185 is a separate surface. Observed on Directive 0.119.5 consumer: `git check-ignore -q .deft-scratch` → NOT-ignored; `git add -A` warns on embedded git repository.\n\nWhat this P1 is not:\n\n- Not changing swarm default placement.\n- Not the #4007 assist-scratch exemption itself.\n- Not a recut of maintainer `.gitignore`.\n\nExpected first ship is adding `.deft-scratch/` to both consumer baselines so `directive init` / `deft update` pick it up. Re-measured at `557873cf26f14fe17a289eea4a297584b4a1432e`.\n\n",
+          "id": 5765365119,
+          "html_url": "https://github.com/deftai/directive/issues/4841#issuecomment-5765365119",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T18:19:15Z",
+          "updated_at": "2026-09-21T18:19:15Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, fresh critic. Open critique of #4841. Ceiling 5765365119 is the only in-envelope comment. Re-measured at `557873cf26f14fe17a289eea4a297584b4a1432e`.\n\n## What holds\n\nAdding `.deft-scratch/` to the two consumer baselines is the deposit path that already exists. A throwaway repo confirms the line stops the reported `git add`.\n\nFrom that tree:\n\n- `CANONICAL_GITIGNORE_BASELINE` has 41 lines. `canonicalGitignoreLines` has 48. Neither list contains `deft-scratch` or `temp/`. Every TypeScript line is in the Go list. The seven Go-only lines are legacy `vbrief/.eval/*` entries.\n- Init (`init-deposit.ts`) and update (`refresh.ts`) both call `ensureInitGitignoreLines`. That function appends absent baseline lines. Doctor `checkGitignoreCoverage` compares the consumer file to the same TypeScript list and is advisory.\n- The Go installer writes `canonicalGitignoreLines` in `EnsureGitignoreLines`. `TestCanonicalGitignoreContainsTypeScriptBaseline` requires each TypeScript line to be present in Go.\n- This repo's `.gitignore` already lists `.deft-scratch/`, next to maintainer-only patterns (`docs/incidents/`, `handoff-*.md`). Init and update write the baseline into a consumer. They leave this repo's `.gitignore` where it is.\n- `.claude/worktrees/` is already on both baselines so an agent worktree does not dirty the tree. `gitignore.test.ts` locks it with `toContain`. It is absent from `RUNTIME_WRITER_PATHS`.\n- `defaultWorktree` always returns `<project>/.deft-scratch/worktrees/<story-id>`. No file under `packages/core/src/swarm` calls `git check-ignore`.\n\nThrowaway repos, TypeScript baseline taken from that blob:\n\n- With no `.deft-scratch/` rule, `git worktree add .deft-scratch/worktrees/story` (the worktree `.git` is a file) and `git add -A` print `warning: adding embedded git repository: .deft-scratch/worktrees/story` and stage `A  .deft-scratch/worktrees/story` (index mode 160000). A nested `git init` prints the same warning.\n- With `.deft-scratch/` appended, `git check-ignore` matches the directory, the worktree, and a file inside it. `git add -A` stages `.gitignore` and leaves the worktree out.\n- `git worktree add` into a directory that is already ignored exits 0. The parent `git status` stays empty.\n\n## Inventory\n\n| Need | Existing mechanism |\n| --- | --- |\n| Deposit the ignore on init and on update | `CANONICAL_GITIGNORE_BASELINE` through `ensureInitGitignoreLines` |\n| Same line on the installer rail | `canonicalGitignoreLines` through `EnsureGitignoreLines`; TypeScript lines must be a subset |\n| Keep an agent-worktree directory ignored | `.claude/worktrees/` on both baselines, plus `toContain` |\n| Fail-closed coverage of `.deft/` local-cache writers | `RUNTIME_WRITER_PATHS_LOCAL_CACHE` and `runtime-writer-paths.json` |\n| Remove a tracked path on purpose | `migrate --untrack-core`, scoped to `.deft/core` |\n| Phase 0 gitignore check | Phase 0f skill prose. It asks before a gitignore edit. Launch does not call it |\n\n## Findings\n\n### 1. Refresh appends the line and leaves a committed gitlink in the index. `sharpens-framing`\n\n**Evidence.** In a throwaway repo I committed the worktree gitlink, then committed `.deft-scratch/` in `.gitignore`. `git status --short` was empty. `git ls-files -s -- .deft-scratch` still showed mode `160000` for `.deft-scratch/worktrees/story`. `git check-ignore -v -- .deft-scratch/worktrees/story` exited 1. A new file `.deft-scratch/other/n.txt` stayed out of `git ls-files` on the next `git add -A`. The gitlink stayed. `refresh.ts` says `ensureInitGitignoreLines` writes `.gitignore` and leaves tracked paths tracked. The cached-remove verb on this surface is `migrate --untrack-core`, and it targets `.deft/core`.\n\n**Failure mode.** A consumer who already ran `git add -A` has the gitlink on the branch. The next `directive update` appends the ignore. Status can look clean. `git ls-files` still contains `.deft-scratch/worktrees/<story>`. Clones still receive that gitlink.\n\n**Disposition.** Bind append-only. Acceptance is an untracked path: once the line is present, `git add -A` does not stage `.deft-scratch/worktrees/<story>`. A path already in the index stays there until `git rm --cached` removes it. Keep that removal off `directive update`.\n\n### 2. Lock the line the way `.claude/worktrees/` is locked. `sharpens-framing`\n\n**Evidence.** `gitignore.test.ts` asserts `toContain(\".claude/worktrees/\")`. The runtime-writer manifest's local-cache entries are `.deft/` roots (`authz`, `metrics`, cache paths). `.deft-scratch` is absent. `TestCanonicalGitignoreContainsTypeScriptBaseline` fails when a TypeScript line is missing from Go. Removing one line from both lists leaves that test green. `TestRuntimeWritersCoveredByGoBaseline` stays green while the path is unregistered. Doctor compares the consumer file to the baseline, so it stays green when the baseline and the file move together.\n\n**Failure mode.** The line lands on both baselines with no `toContain`. A later edit deletes it from both lists. Parity stays green, writer coverage stays green, and doctor stays green. `git add -A` stages the worktree gitlink again.\n\n**Disposition.** Add `.deft-scratch/` beside `.claude/worktrees/` on both baselines, and add the same `toContain` on the TypeScript list. The existing subset test then requires the Go list to carry it. Init, update, and `EnsureGitignoreLines` all pick the line up from those two arrays.\n\n**Road not taken.** Registering `.deft-scratch` on `RUNTIME_WRITER_PATHS_LOCAL_CACHE` and `runtime-writer-paths.json`. That registry is the local-cache versus tracked-provenance split for `.deft/` writer roots. `.claude/worktrees/` is the worktree-ignore precedent, and it lives outside the registry. Folding a nested-worktree root into local-cache would put it in the class whose throwaway test seeds probe files and expects a clean status. I would take the registry if `.deft-scratch` were a `.deft/` writer root, or if `.claude/worktrees/` were already in the manifest.\n\n### 3. Leave `temp/` off this baseline change. `sharpens-framing`\n\n**Evidence.** `ASSIST_SCRATCH_ROOT_PREFIXES` is `.deft-scratch/` and `temp/`. The allowlist matches the path prefix and does not call `git check-ignore`. Both prefixes are absent from both baselines. This repo's `.gitignore` ignores both. `reconcileGitignoreFile` appends a baseline line again after a consumer deletes it.\n\n**Failure mode.** An implementer deposits both prefixes because the allowlist comment calls them gitignored. `temp/` is a generic directory name. A consumer who tracks `temp/` deletes the deposited line, and the next update appends it again. `.deft-scratch/` is a framework path and does not collide that way.\n\n**Disposition.** The lean adds `.deft-scratch/` only. `temp/` stays off both baselines.\n\n## Footnotes\n\n- Phase 0f tells a greenfield swarm to look at `.gitignore` coverage for `.deft-scratch/` and to ask before editing it. `defaultWorktree` does not consult that step. Headless launch still creates the directory.\n- Parent branch containing the rule, worker branch cut from the commit before it: parent `git status` stayed empty, and `git add -A` inside the worktree staged `.deft-scratch/subagent-status/a.json`. A branch that lacks the line can still commit in-worktree scratch.\n- `git check-ignore -- .deft-scratch` misses the pattern `.deft-scratch/` while that directory is absent. The same command matches after `mkdir`. `git check-ignore -- .deft-scratch/` matches before the directory exists. The issue's command is the right check once the directory is there.\n- The seven extra Go `vbrief/.eval/*` lines are already there. Update reads the TypeScript list. The installer reads the Go list. This change edits both.\n\n## Chosen mechanism\n\nAdd the directory rule `.deft-scratch/` to both consumer baselines, same shape as `.claude/worktrees/`. Init and update append it. `git worktree add` under that ignored directory succeeds, so the swarm default path can stay. `git rm --cached` of an already indexed gitlink stays a separate operator step. `temp/` stays off the baseline. The runtime-writer registry stays the `.deft/` writer set.\n\nMoving the default outside the repository is the other live option (the issue's workaround). It avoids the gitlink. I left it. The skill's reason for the in-repo path is to keep worktrees out of the projects folder, and `git worktree add` into the ignored directory exits 0. I would move the default if worktree creation under an ignored `.deft-scratch/` failed, or if parent `git status` still showed the worktree after the rule.\n\n",
+          "id": 5765516077,
+          "html_url": "https://github.com/deftai/directive/issues/4841#issuecomment-5765516077",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T18:30:58Z",
+          "updated_at": "2026-09-21T18:30:58Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nConsumer init/update omit `.deft-scratch/` while swarm defaults worktrees there. Confirming this map recuts first-ship to adding that directory rule on both consumer baselines, locked with the same `toContain` used for `.claude/worktrees/`. Append-only. An already-indexed gitlink stays until `git rm --cached`. `temp/` stays off the baseline.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after one critic. Cites critic 5765516077. Supersedes Stop 1 write-back 5765365119. Round 1 sibling count 1.\n\nTarget-digest: sha256:679d4618f9b87d4d682fc6d9527ec8c390e06294ed09767b05b223a12a8b21e4\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4841-dc\norigin-ref: origin/master\ndispatch-sha: 557873cf26f14fe17a289eea4a297584b4a1432e\ntarget shape: single-issue\nround: 1\nsiblings: 1\nDual-stop cap: 6 posts\n\nTakes:\n\n- 5765516077 Refresh appends the line and leaves a committed gitlink in the index — accept-into-contract\n- 5765516077 Lock the line the way `.claude/worktrees/` is locked — accept-into-contract\n- 5765516077 Leave `temp/` off this baseline change — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Add `.deft-scratch/` to `CANONICAL_GITIGNORE_BASELINE` and `canonicalGitignoreLines`, same shape as `.claude/worktrees/`.\n- Lock the TypeScript list with `toContain(\".deft-scratch/\")`. The existing subset test then requires the Go list to carry it. Init, update, and `EnsureGitignoreLines` pick the line up from those arrays.\n- Acceptance is an untracked path: once the line is present, `git add -A` does not stage `.deft-scratch/worktrees/<story>`. A path already in the index stays until `git rm --cached`. Keep that removal off `directive update`.\n- Do not add `temp/` to either baseline. Do not register `.deft-scratch` on `RUNTIME_WRITER_PATHS_LOCAL_CACHE`. Do not move the swarm default outside the repository.\n\nFootnotes stay footnotes: Phase 0f ask-before-edit; in-worktree scratch on a branch that lacks the line; `git check-ignore -- .deft-scratch` vs trailing slash.\n\n",
+          "id": 5765537044,
+          "html_url": "https://github.com/deftai/directive/issues/4841#issuecomment-5765537044",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T18:32:33Z",
+          "updated_at": "2026-09-21T18:32:33Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nRound 2 pain-audit, fresh critic. Ceiling is comment 5765537044. Tree reads are `git show 557873cf26f14fe17a289eea4a297584b4a1432e:<path>`.\n\n## Verdict\n\nYes. The Bound remedy on successor lean 5765537044 covers the P1 named on the Stop 1 write-back (comment 5765365119).\n\nP1 is that `CANONICAL_GITIGNORE_BASELINE` and `canonicalGitignoreLines` list `.deft-cache/` and omit `.deft-scratch/`, while `defaultWorktree` places each agent at `.deft-scratch/worktrees/<story-id>`. The remedy adds the directory rule `.deft-scratch/` to both arrays, locks the TypeScript list with `toContain(\".deft-scratch/\")`, and takes acceptance as: once the line is present, `git add -A` does not stage an untracked `.deft-scratch/worktrees/<story>`. That is what I measured.\n\nFinding class on this pass: `footnote`.\n\n## Re-measured\n\nParsed both arrays from that blob. TypeScript has 41 lines. Go has 48. Every TypeScript line is in the Go list. The seven Go-only lines are legacy `vbrief/.eval/*` entries. Neither list contains `deft-scratch` or `temp/`. Both contain `.deft-cache/` and `.claude/worktrees/`.\n\nDeposit path on the same blob:\n\n- `directive init` calls `ensureInitGitignoreLines` (`packages/core/src/init-deposit/init-deposit.ts`). `directive update` calls it from `refresh.ts`. `reconcileGitignoreFile` appends each baseline line whose exact text is absent. It does not run `git rm --cached`.\n- The installer calls `EnsureGitignoreLines`, which appends absent `canonicalGitignoreLines` the same way.\n- `TestCanonicalGitignoreContainsTypeScriptBaseline` fails when a quoted TypeScript line is missing from Go. `gitignore.test.ts` already locks `.claude/worktrees/` with `toContain`.\n- `checkGitignoreCoverage` compares the consumer file to `CANONICAL_GITIGNORE_BASELINE` by exact line. After the TypeScript array grows, a consumer file that lacks the new line fails that advisory check and the detail points at `directive update`.\n- `defaultWorktree` in `packages/core/src/swarm/launch.ts` returns `<project>/.deft-scratch/worktrees/<safe-story-id>`. No file under `packages/core/src/swarm` calls `git check-ignore`. Phase 0f is skill prose that asks before a gitignore edit.\n- Maintainer `.gitignore` on this blob already has `.deft-scratch/` at line 185. Init and update write the consumer baseline into the consumer file. The write-back keeps the maintainer file out of P1.\n\nThrowaway repos, git 2.50.1, `core.excludesFile` pointed at `/dev/null`:\n\n- No rule: `git worktree add .deft-scratch/worktrees/story`, then `git add -A`, warns `adding embedded git repository: .deft-scratch/worktrees/story` and stages mode `160000` plus `.deft-scratch/envelopes/a.json`.\n- Rule `.deft-scratch/` present and those paths untracked: `git check-ignore -v` matches the directory, the worktree, and the envelope. `git add -A` stages only `.gitignore`.\n- Rule committed first: `git worktree add` into that ignored directory exits 0. Parent `git status --short` is empty. `git add .deft-scratch/worktrees/story` is refused as ignored. Inside that worktree, `git add -A` does not stage `.deft-scratch/subagent-status/a.json`.\n- Gitlink already committed, then the rule is added: `git ls-files` still shows mode `160000` for the worktree and the envelope blob. `git status --short` shows only the `.gitignore` change. A new untracked `.deft-scratch/other/n.txt` stays out of the index. `git check-ignore` on the tracked worktree path exits 1.\n\n## Inventory\n\n| Need | Existing mechanism |\n| --- | --- |\n| Deposit the line on init and on update | `CANONICAL_GITIGNORE_BASELINE` through `ensureInitGitignoreLines` |\n| Same line on the installer | `canonicalGitignoreLines` through `EnsureGitignoreLines`; TypeScript lines must be a subset |\n| Lock one consumer ignore line | `toContain(\".claude/worktrees/\")` in `gitignore.test.ts` |\n| Warn when a consumer file lags the TypeScript list | `checkGitignoreCoverage` |\n| Place the swarm worktree | `defaultWorktree` |\n| Drop a tracked path on purpose | `migrate --untrack-core`, scoped to `.deft/core` |\n| Triage bootstrap gitignore | Appends `.deft-cache/` and selective triage-cache lines. It is not this canonical baseline |\n\nThe remedy uses those deposit and lock mechanisms. It does not add a third writer.\n\n## Footnotes\n\n### 1. `git check-ignore -q .deft-scratch` misses a trailing-slash rule while the directory is absent. `footnote`\n\n**Evidence.** With only `.deft-scratch/` in `.gitignore`, `git check-ignore -q .deft-scratch` exits 1 before `mkdir` and exits 0 after it. `git check-ignore -q .deft-scratch/` exits 0 either way.\n\nThe Stop 1 observation ran that command on a consumer with no rule. After the line exists, the same command still exits 1 until the directory is created. Swarm creates the directory before `git add -A`. The acceptance check named in the remedy is that add, and that add left the worktree unstaged.\n\n### 2. A worktree checkout that lacks the line can still commit in-worktree scratch. `footnote`\n\n**Evidence.** Worktree cut from the commit before `.deft-scratch/` existed: inside it, `git add -A` staged `.deft-scratch/subagent-status/a.json`. The same add on the commit that contains the line staged nothing.\n\n`swarm:pre-dispatch` creates `<worktree>/.deft-scratch/subagent-status/`. That file sits in the worker checkout. The worker ignores it when the worker's `.gitignore` contains the line. A branch cut from a parent commit that does not yet contain the line can still commit it. The remedy's acceptance sentence is the line being present on the checkout that runs `git add`.\n\n### 3. An indexed gitlink stays indexed. `footnote`\n\n**Evidence.** After the gitlink and the envelope file were committed, adding `.deft-scratch/` left both in `git ls-files`. `refresh.ts` states that `ensureInitGitignoreLines` writes `.gitignore` and leaves tracked paths tracked. The cached-remove verb on this surface is `migrate --untrack-core`, and it targets `.deft/core`.\n\nThis matches the remedy's acceptance bullet: a path already in the index stays until `git rm --cached`, and that removal stays off `directive update`.\n\nThese footnotes leave the four Bound-remedy bullets as written.\n\n",
+          "id": 5765656223,
+          "html_url": "https://github.com/deftai/directive/issues/4841#issuecomment-5765656223",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T18:41:52Z",
+          "updated_at": "2026-09-21T18:41:52Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5765537044.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5765537044 are accept-into-contract | critic 5765516077 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers adding `.deft-scratch/` to both consumer baselines | pain-audit 5765656223 | pin-read of CANONICAL_GITIGNORE_BASELINE and canonicalGitignoreLines; throwaway git add; blocking census empty |\n\n",
+          "id": 5765760609,
+          "html_url": "https://github.com/deftai/directive/issues/4841#issuecomment-5765760609",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T18:50:07Z",
+          "updated_at": "2026-09-21T18:50:07Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nConsumer init/update omit `.deft-scratch/` while swarm defaults worktrees there. The accepted next-build is adding that directory rule on both consumer baselines, locked with `toContain(\".deft-scratch/\")`. Append-only. An already-indexed gitlink stays until `git rm --cached`. `temp/` stays off the baseline.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5765537044.\n\n",
+          "id": 5765760760,
+          "html_url": "https://github.com/deftai/directive/issues/4841#issuecomment-5765760760",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T18:50:08Z",
+          "updated_at": "2026-09-21T18:50:08Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe swarm skill defaults agent worktrees to `.deft-scratch/worktrees/<story-id>`, describing that location as a \"deterministic **ignored** scratch path\". The framework-generated `.gitignore` does not ignore `.deft-scratch/`, so the default location is tracked.\n\n## Evidence\n\n`.gitignore` in a consumer project, framework-generated (its own header says so):\n\n```\n# Deft framework: ignore local-only caches and scratch directories\n# Hybrid deposit (#1942): reconstituted by `directive init` like node_modules.\n.deft-cache/\n.deft/cache/\n.deft/.cli/\n...\n.deft/core/\n```\n\n`.deft-cache/` is listed. `.deft-scratch/` is not. Meanwhile `skills/deft-directive-swarm/references/core-phase-1-2.md:51`:\n\n> ! One worktree per agent under deterministic ignored scratch paths by default: `.deft-scratch/worktrees/<story-id>`.\n\n```\n$ git check-ignore -q .deft-scratch && echo ignored || echo NOT-ignored\nNOT-ignored\n```\n\n## Consequence\n\nA `git add -A` in a project that has used the swarm default stages the worktrees:\n\n```\nwarning: adding embedded git repository: .deft-scratch/worktrees/<name>\nhint: You've added another git repository inside your current repository.\n```\n\nIt also stages any other scratch written there — in this project, design-critique envelopes. An agent following the swarm skill's own default produces a repository state that the next ordinary `git add -A` corrupts.\n\nRelated: `.deft-scratch/` is also the path the #4007 write-fence message offers as its disposable-notes exemption, which is a second reason it should be reliably ignored.\n\n## Expected\n\n`directive init` / `deft update` should include `.deft-scratch/` in the generated `.gitignore`, alongside `.deft-cache/`. Existing projects would pick it up on the next deposit refresh.\n\n## Workaround\n\nPlace swarm worktrees in sibling directories outside the repository instead of the documented default.\n\n## Environment\n\nDirective 0.119.5, consumer project, macOS. Observed while running a two-story swarm cohort.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5529171202,
+        "origin": "deftai/directive#4841",
+        "id": "github.issue.5529171202"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "679d4618f9b87d4d682fc6d9527ec8c390e06294ed09767b05b223a12a8b21e4"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add `.deft-scratch/` to `CANONICAL_GITIGNORE_BASELINE` and `canonicalGitignoreLines`, same shape as `.claude/worktrees/`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Lock the TypeScript list with `toContain(\".deft-scratch/\")`. The existing subset test then requires the Go list to carry it. Init, update, and `EnsureGitignoreLines` pick the line up from those arrays.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Acceptance is an untracked path: once the line is present, `git add -A` does not stage `.deft-scratch/worktrees/<story>`. A path already in the index stays until `git rm --cached`. Keep that removal off `directive update`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not add `temp/` to either baseline. Do not register `.deft-scratch` on `RUNTIME_WRITER_PATHS_LOCAL_CACHE`. Do not move the swarm default outside the repository.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5529171202",
+    "updated": "2026-09-22T00:12:30Z"
+  }
+}
