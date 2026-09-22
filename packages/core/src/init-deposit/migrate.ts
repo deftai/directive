@@ -34,9 +34,9 @@ import { fileURLToPath } from "node:url";
 import { resolveContentPackageRoot } from "../content-root.js";
 import { locateManifest, parseInstallManifest } from "../doctor/manifest.js";
 import {
-  containedWrite,
   ContainedWriteError,
   ContainedWriteErrorCode,
+  containedWrite,
 } from "../fs/contained-write.js";
 import { CANONICAL_INSTALL_ROOT } from "./scaffold.js";
 
