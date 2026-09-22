@@ -21,7 +21,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4850"
         }
       },
@@ -32,7 +32,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4850"
         }
       },
@@ -42,8 +42,8 @@
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "review",
-          "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "pointer": "https://github.com/deftai/directive/pull/4850",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4850"
         }
       },
@@ -53,8 +53,8 @@
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "review",
-          "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "pointer": "packages/core/src/init-deposit/runtime-writers.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4850"
         }
       }
