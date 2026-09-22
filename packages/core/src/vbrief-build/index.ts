@@ -29,6 +29,14 @@ export {
   SAMPLE_SPEC_VBRIEF,
 } from "./parity-scenarios.js";
 export {
+  applyPhase2Narratives,
+  PHASE2_NARRATIVE_KEYS,
+  type Phase2NarrativeKey,
+  type Phase2Narratives,
+  type Phase2NarrativeWrite,
+  parsePhase2NarrativeDocument,
+} from "./phase2-narratives.js";
+export {
   atomicWriteProjectDefinition,
   CONFIGURED_PROJECT_DEFINITION_LABEL,
   loadProjectDefinitionForMutation,

@@ -539,7 +539,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ### Branch-policy persistence gate (#3609)
 
-! This gate applies to **every track**, including default/greenfield and keep/re-entry paths. For greenfield setup, first write the confirmed PROJECT-DEFINITION base without any hand-authored policy block. On re-entry, merge base changes while preserving the existing policy block byte-for-byte: keep a legacy-only bare `plan.policy` intact until the shared writer migrates the whole block, and keep a namespaced block intact until that writer updates it. Never delete or reconstruct a legacy-only block before the writer because it may contain unrelated keys such as `wipCap`. Then invoke exactly one public writer:
+! This gate applies to **every track**, including default/greenfield and keep/re-entry paths. For greenfield setup, first store the confirmed Phase 2 narrative strings Overview, TechStack, Strategy, Quality, ProjectRules, and Branching with `deft project:write-narratives --project-root <policy-project-root> --narratives-file <path>`. That command writes `xbrief/PROJECT-DEFINITION.xbrief.json`, or the `$DEFT_PROJECT_PATH` file when that variable is set, while `xbrief/active/` is empty. It is not an agent patch of that file. It does not set policy keys and it does not hand-author a policy block. On re-entry, the same command merges those six strings and leaves the existing policy block byte-for-byte: keep a legacy-only bare `plan.policy` intact until the shared writer migrates the whole block, and keep a namespaced block intact until that writer updates it. Never delete or reconstruct a legacy-only block before the writer because it may contain unrelated keys such as `wipCap`. Then invoke exactly one public writer:
 
 - Branch-based/greenfield-default/keep-false: `deft policy:enforce-branches --actor agent:deft-directive-setup --project-root <policy-project-root>`
 - Explicitly confirmed trunk-based/keep-true/Track 2 or 3 existing-true: `deft policy:allow-direct-commits --confirm --actor agent:deft-directive-setup --project-root <policy-project-root>`
@@ -588,6 +588,8 @@ omit = [
 ### Template
 
 ! The output MUST conform to the canonical xBRIEF v0.8 schema (`xbrief/schemas/xbrief-core-0.8.schema.json`, strict `const: "0.8"`). See [`../../conventions/references.md`](../../conventions/references.md). Write-path default is **0.8 only** (#2971); legacy 0.6 remains read-accepted until `deft migrate:xbrief`.
+
+! Do not write this document onto `xbrief/PROJECT-DEFINITION.xbrief.json` yourself. After confirmation, write it to a temporary narratives file that is not that artifact, then run `deft project:write-narratives --project-root <policy-project-root> --narratives-file <path>`. The command stores Overview, TechStack, Strategy, Quality, ProjectRules, and Branching while `xbrief/active/` is empty. Optional `--title` sets `plan.title` only. A policy block in the temporary file is ignored. Policy still goes through the public writer in the gate above.
 
 ```json
 {
@@ -937,6 +939,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Invent a full `deft config` verb family for experimental meta when setup re-entry suffices (#46)
 - ⊗ Default identity-only Phase 3 to Add-scope because PROJECT-DEFINITION exists (#4390)
 - ⊗ Synthesize the first proposed scope from Overview, directory name, or init seed (#4390)
+- ⊗ Patch `xbrief/PROJECT-DEFINITION.xbrief.json` or the `$DEFT_PROJECT_PATH` file to store Phase 2 narratives. Use `deft project:write-narratives`.
 - ⊗ Skip emit-hints after Phase 3 writes to `xbrief/proposed/` (#4426)
 - ⊗ Agent-asserted `parent_issue` / `plan.references` at setup emission (#4426)
 - ⊗ Fill speculative intent-constraint values at park, or mint `scope:record-intent-constraint` beside `scope:record-approved-scope` (#4587)

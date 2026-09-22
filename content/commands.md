@@ -196,6 +196,7 @@ Directive exposes the logical field as `plan.policy.allowDirectCommitsToMaster`,
 - Inspect: `deft policy:show --field=plan.policy.allowDirectCommitsToMaster`
 - Enforce feature branches: `deft policy:enforce-branches --actor <actor>`
 - Allow confirmed trunk work: `deft policy:allow-direct-commits --confirm --actor <actor>`
+- Store Phase 2 narratives without policy keys: `deft project:write-narratives --project-root <root> --narratives-file <path>`
 
 Every policy writer fails with config exit 2 when bare `plan.policy` and namespaced `plan["x-directive/policy"]` coexist, including when their branch values match. Recovery is lossless and manual: inventory both blocks, fold every bare-only key into the namespaced block, explicitly resolve each collision, delete bare `plan.policy`, then rerun the command. The failure writes neither PROJECT-DEFINITION nor `meta/policy-changes.log`.
 

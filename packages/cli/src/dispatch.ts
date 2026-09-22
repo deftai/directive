@@ -246,6 +246,7 @@ export const CORE_MODULE_VERBS = [
   "prd-render",
   "export-spec",
   "project-render",
+  "project-write-narratives",
   "roadmap-render",
   "rule-map",
   "spec-render",
@@ -490,6 +491,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "spec:render": "spec-render",
   "prd:render": "prd-render",
   "project:render": "project-render",
+  "project:write-narratives": "project-write-narratives",
   "docs:rule-map": "rule-map",
   "project:export-spec": "export-spec",
   "pr:watch": "pr-watch",
@@ -2889,6 +2891,12 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       const { runProjectRenderCli } = await import("./render-cli/project-render-cli.js");
       return (argv) => runProjectRenderCli(argv);
     }
+    case "project-write-narratives": {
+      const { writePhase2NarrativesMain } = await import(
+        "@deftai/directive-core/dist/render/phase2-narratives-cli.js"
+      );
+      return (argv) => writePhase2NarrativesMain(argv);
+    }
     case "rule-map": {
       const { runRuleMapCli } = await import("./render-cli/rule-map-cli.js");
       return (argv) => runRuleMapCli(argv);
@@ -3183,6 +3191,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
     title: "Project artifacts",
     commands: [
       { name: "project:render", summary: "Render PROJECT-DEFINITION projection" },
+      {
+        name: "project:write-narratives",
+        summary: "Store Phase 2 narratives in PROJECT-DEFINITION without policy keys",
+      },
       { name: "spec:render", summary: "Render specification projection" },
     ],
   },

@@ -6,6 +6,10 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import {
+  applyPhase2Narratives,
+  type Phase2NarrativeWrite,
+} from "../vbrief-build/phase2-narratives.js";
 import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import {
   deriveRegistryItemStatus,
@@ -250,9 +254,24 @@ export function createSkeleton(
 
 export interface RenderProjectOptions {
   readonly now?: Date;
+  /**
+   * Phase 2 narrative store (#4663). When set, this render persists those
+   * strings and does not scan lifecycle items or assign policy keys.
+   */
+  readonly phase2Narratives?: Phase2NarrativeWrite;
 }
 
 export type RenderProjectResult = readonly [boolean, string];
+
+/** Store Phase 2 narratives through the shared PROJECT-DEFINITION lock (#4663). */
+export function storePhase2Narratives(
+  projectRoot: string,
+  phase2Narratives: Phase2NarrativeWrite,
+): RenderProjectResult {
+  return renderProjectDefinition(join(resolve(projectRoot), MIGRATED_ARTIFACT_DIR), {
+    phase2Narratives,
+  });
+}
 
 /**
  * Regenerate the PROJECT-DEFINITION artifact for `vbriefDir`.
@@ -271,6 +290,12 @@ export function renderProjectDefinition(
   // materialised items/metadata write (or vice versa) (#1260).
   const projectRoot = resolve(vbriefDir, "..");
   return withProjectDefinitionMutation(projectRoot, (mutation): RenderProjectResult => {
+    if (options.phase2Narratives !== undefined) {
+      const applied = applyPhase2Narratives(mutation, options.phase2Narratives);
+      if (!applied.ok) return [false, applied.message];
+      mutation.persist(applied.data);
+      return [true, applied.message];
+    }
     const nowDate = options.now ?? new Date();
     const now = nowDate.toISOString().replace(/\.\d{3}Z$/, "Z");
     const layout = resolveProjectDefinitionLayout(vbriefDir);

@@ -35,6 +35,7 @@ export {
   parseStalenessReview,
   renderProjectDefinition,
   scanLifecycleFolders,
+  storePhase2Narratives,
   unacknowledgedCompletedItems,
 } from "./project-render.js";
 export * as roadmapRender from "./roadmap-render.js";

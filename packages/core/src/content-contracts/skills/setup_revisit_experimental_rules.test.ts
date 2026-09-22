@@ -109,6 +109,14 @@ describe("setup namespaced branch-policy contract (#3609)", () => {
       expect(text).toContain("deft verify:vbrief-conformance --project-root <policy-project-root>");
     });
 
+    it(`${surface} setup stores Phase 2 narratives through project:write-narratives (#4663)`, () => {
+      expect(text).toContain("deft project:write-narratives");
+      expect(text).toContain("Overview, TechStack, Strategy, Quality, ProjectRules, and Branching");
+      expect(text).toContain("It is not an agent patch of that file");
+      expect(text).toContain("It does not set policy keys");
+      expect(text).toContain("while `xbrief/active/` is empty");
+    });
+
     it(`${surface} setup contains no legacy branch-policy output recipe`, () => {
       expect(text).not.toContain("Allow direct commits to master: true");
       expect(text).not.toContain("write `plan.policy.allowDirectCommitsToMaster");

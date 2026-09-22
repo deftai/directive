@@ -28,6 +28,18 @@ tasks:
         vars:
           ENGINE_CMD: 'project-render --project-root "{{.USER_WORKING_DIR}}"'
 
+  write-narratives:
+    desc: >-
+      Store Phase 2 narrative strings in PROJECT-DEFINITION without setting policy keys (#4663).
+      -- task project:write-narratives -- --narratives-file <path> [--title <text>]
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'project-write-narratives --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   ack-staleness:
     desc: >-
       Acknowledge reviewed PROJECT-DEFINITION artifact narrative staleness (#640).

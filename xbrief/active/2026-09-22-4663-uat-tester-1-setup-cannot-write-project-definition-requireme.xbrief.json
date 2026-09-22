@@ -1,0 +1,449 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4663",
+    "updated": "2026-09-22T21:03:11Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 1] Setup cannot write PROJECT-DEFINITION: requirements posture vs mutation needing an active xBRIEF",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 1] Setup cannot write PROJECT-DEFINITION: requirements posture vs mutation needing an active xBRIEF",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4663",
+      "Overview": "\n\n- A writer stores the Phase 2 narrative strings Overview, TechStack, Strategy, Quality, ProjectRules, and Branching in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty. That write is not an agent patch of that file. That writer does not set policy keys.\n- Policy mutation stays on policy:enforce-branches and policy:allow-direct-commits.\n- An agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture stays denied with code write-requirements-out-of-class.\n- The same patch under mutation posture with an empty xbrief/active/ stays denied with code scope-not-ready.\n- Session start with an empty active set stays exit 0.\n\nrelieves: P1\n\nTarget-digest: sha256:c89a03b5e27c069a970f146594e2824965a97f5294b0b85607ba7d09dc837079\r\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:cli, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "title": "A writer stores the Phase 2 narrative strings Overview, TechStack, Strategy, Quality, ProjectRules, and Branching in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty. That write is not an agent patch of that file. That writer does not set policy keys.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Policy mutation stays on policy:enforce-branches and policy:allow-direct-commits.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "An agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture stays denied with code write-requirements-out-of-class.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "The same patch under mutation posture with an empty xbrief/active/ stays denied with code scope-not-ready.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Session start with an empty active set stays exit 0.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4663",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4663: [UAT Tester 1] Setup cannot write PROJECT-DEFINITION: requirements posture vs mutation needing an active xBRIEF"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A writer stores the Phase 2 narrative strings Overview, TechStack, Strategy, Quality, ProjectRules, and Branching in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty. That write is not an agent patch of that file. That writer does not set policy keys.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Policy mutation stays on policy:enforce-branches and policy:allow-direct-commits.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "An agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture stays denied with code write-requirements-out-of-class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The same patch under mutation posture with an empty xbrief/active/ stays denied with code scope-not-ready.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Session start with an empty active set stays exit 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705169133,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5705169133",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:58:52Z",
+          "updated_at": "2026-09-16T21:58:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Planning: the conversation before any code. Directive is supposed to learn what the person wants, write down the project, and agree the scope before an agent starts building.\n\nWhat a new person hits: Setup cannot save the project definition. Writing it down requires a work record that does not exist yet, and creating that record requires the definition.\n\nWhy that ruins the product for them: They are stuck in a circle during setup. Nothing is wrong with their idea. The product cannot record it.\n\nHow likely: High on the first-run setup path. People who get this far have already invested the interview and still cannot finish.\n\n",
+          "id": 5780264659,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5780264659",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:09Z",
+          "updated_at": "2026-09-22T16:37:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because requirements posture still denies a write of xbrief/PROJECT-DEFINITION.xbrief.json, and the only upgrade path demands an active xBRIEF that setup has not created yet.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4663-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; the Desired shape is one named failure, so N=1.\n\nrefutation-target: After Phase 1, setup cannot write project identity into PROJECT-DEFINITION because requirements posture refuses that path and mutation session:start requires an active xBRIEF that does not exist yet.\n\ntarget: #4663\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the setup deadlock: PROJECT-DEFINITION is not a requirements-class path, and the upgrade sentence requires an active xBRIEF before that write.\n\nPin-read at dispatch-sha b6425115eab5a25877735acd70ca7d693594dda8: packages/core/src/session/posture.ts REQUIREMENTS_DEFAULT_ALLOW_PATHS lists docs, specs, README, REQUIREMENTS.md, and xbrief/proposed/**. It does not list xbrief/PROJECT-DEFINITION.xbrief.json. REQUIREMENTS_UPGRADE_PATH is \"Run deft session:start (mutation posture) with an active xBRIEF for product-code writes.\" packages/core/src/hooks/dispatcher.ts denies write-requirements-out-of-class with \"requirements posture does not authorize this path.\" plus that upgrade sentence. CHANGELOG at this SHA does not name #4663. No open PR.\n\nNo implement and no ingest from this parent.\r\n\n",
+          "id": 5782790348,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5782790348",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:38:29Z",
+          "updated_at": "2026-09-22T19:38:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nround: 1\ncharter: refutation\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\n\n## Verdict\n\nAn agent apply_patch of xbrief/PROJECT-DEFINITION.xbrief.json is still denied after Phase 1. The recorded cause splits. Requirements posture refuses that path. Mutation session:start does not require an active xBRIEF. With mutation posture and an empty active set, the same apply_patch is denied later, as scope-not-ready.\n\n## The upgrade sentence is not a session:start precondition\n\nsharpens-framing\n\nEvidence. Pinned at b6425115eab5a25877735acd70ca7d693594dda8. REQUIREMENTS_DEFAULT_ALLOW_PATHS is docs/**, specs/**, README.md, README, REQUIREMENTS.md, xbrief/proposed/**, and vbrief/proposed/** (packages/core/src/session/posture.ts). evaluateRuntimeAuthorityPath on that fence returns deny-allowlist for xbrief/PROJECT-DEFINITION.xbrief.json and allow for a file under xbrief/proposed/. isProposedLifecycleWrite is false for the project-definition path and true for xbrief/proposed/*.xbrief.json. decideHook on apply_patch of /project/xbrief/PROJECT-DEFINITION.xbrief.json with DEFT_SESSION_POSTURE=requirements returns deny, code write-requirements-out-of-class, and the message includes \"Run deft session:start (mutation posture) with an active xBRIEF for product-code writes.\" The same apply_patch with DEFT_SESSION_POSTURE=mutation and inspectScope not ready returns deny, code scope-not-ready, and the message starts with \"No active xBRIEF artifact was found under xbrief/active/\". That upgrade sentence is absent there. runSessionStart's gated steps are agent_hooks, doctor, and cache_fresh. The unit test \"treats no active xBRIEF as a normal skip, not a fault (#4411)\" passed on this tree: an empty active set returns code 0. packages/core/src/session/session-start-hook.ts records that empty set as the routine steady state.\n\nFailure mode. A successor lean that relaxes session:start so it can run without an active xBRIEF changes a check this tree does not fail. The apply_patch of project identity still dies: write-requirements-out-of-class while the posture is requirements, then scope-not-ready once mutation posture is up and xbrief/active/ is empty.\n\nDisposition. Bind the cannot-write. Name those two write-gate codes. Leave \"mutation session:start requires an active xBRIEF\" unbound.\n\nThe upgrade sentence is still the only recovery the requirements deny prints, so an agent that obeys it will go looking for an active xBRIEF before it retries. That advice matches the later scope-not-ready deny. It would become a real session:start failure if the empty-active hook exited non-zero. The #4411 test exits 0, so the sentence stays write-gate copy.\n\n## Interview identity has no writer, and the file also holds policy\n\nsharpens-framing\n\nEvidence. Existing mechanisms, checked before any new one. The requirements allow-list and the proposed-lifecycle exemption both admit xbrief/proposed/** and both miss xbrief/PROJECT-DEFINITION.xbrief.json. Setup Phase 2 writes that project-definition file from the interview, with no hand-authored policy block, then calls one public writer: deft policy:enforce-branches or deft policy:allow-direct-commits (content/skills/deft-directive-setup/SKILL.md, Phase 2 output path). Phase 2's process-only exit keeps that identity and does not write xbrief/proposed/*.xbrief.json. The brownfield detector treats PROJECT-DEFINITION as identity, separate from a scope record. renderProjectDefinition createSkeleton copies SKELETON_NARRATIVES, and those Overview and companion values are empty strings. seedMinimalProjectDefinition leaves an existing file untouched. The project:render CLI flags are --help, --acknowledge-staleness, and --project-root. requirementsPostureMessage says this posture skips gated ritual and story-start.\n\nFailure mode. Routing the identity write through a manufactured active scope contradicts that process-only exit and still does not store the interview narratives. Putting the whole PROJECT-DEFINITION path on the requirements allow-list lets apply_patch change plan policy on a posture that skips the gated ritual, which walks around the public policy writer Phase 2 already calls.\n\nDisposition. Keep policy mutation on those public writers. A bound remedy fills the interview narratives on a path outside xbrief/proposed/**, and narrower than the whole project-definition file. This comment does not choose that writer.\n\nThis target changes project identity and write authority. The requirements token comes from session:start or DEFT_SESSION_POSTURE. A payload posture field is not that producer. The deterministic control for policy keys is the public writer above.\r\n\n",
+          "id": 5783037580,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5783037580",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:52:28Z",
+          "updated_at": "2026-09-22T19:52:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** The project-definition file stays unwritable by an agent patch. The recorded session-start cause does not bind. Two write-gate codes do.\n\n## In plain English\n\nThe setup interview still cannot save project identity by patching the project-definition file. Requirements posture refuses that path. A mutation session with an empty active folder refuses the same patch for a different reason. Starting a session does not itself demand an active work record; an empty active folder is a normal session start on this tree. The accepted account keeps both write refusals, leaves that session start able to finish, keeps policy changes on the existing policy commands, and fills interview text through a narrower write than replacing the whole project-definition file. Confirming this map asserts that account. It does not assert that session start fails without an active work record. The same parent wrote the opening warrant and these takes. This map does not choose which narrower writer fills the interview text.\n\n## Takes\n\n- The upgrade sentence is not a session:start precondition. Class sharpens-framing. Take accept-into-contract. Critic comment 5783037580.\n- Interview identity has no writer, and the file also holds policy. Class sharpens-framing. Take accept-into-contract. Critic comment 5783037580.\n\nSupersedes comment 5782790348.\n\nRound 1 siblings: 1. Cited critic comment 5783037580.\n\nSpec-path:\n\n## Bound remedy\n\n- An agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture stays denied with code write-requirements-out-of-class.\n- The same patch under mutation posture with an empty xbrief/active/ stays denied with code scope-not-ready.\n- The upgrade sentence stays write-gate copy. Session start with an empty active set stays exit 0.\n- Interview narratives are filled on a path outside xbrief/proposed/** and narrower than the whole project-definition file.\n- Policy mutation stays on the public policy writers Phase 2 already calls.\n\nrelieves: P1\n\nTarget-digest: sha256:c89a03b5e27c069a970f146594e2824965a97f5294b0b85607ba7d09dc837079\r\n\n",
+          "id": 5783136130,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5783136130",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:57:37Z",
+          "updated_at": "2026-09-22T19:57:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\n## Bound remedy does not cover P1\n\nblocks-the-design\n\nEvidence. Pinned at b6425115eab5a25877735acd70ca7d693594dda8. Stop 1 comment 5782790348 names P1 as the setup deadlock: PROJECT-DEFINITION is not a requirements-class path, and the upgrade sentence requires an active xBRIEF before that write. The issue expects that after Phase 1, setup can write project identity into PROJECT-DEFINITION. Bind lean 5783136130 harvests five Bound-remedy bullets and cites relief for P1. Bullets 1-3 and 5 match this tree. REQUIREMENTS_DEFAULT_ALLOW_PATHS is docs/**, specs/**, README.md, README, REQUIREMENTS.md, xbrief/proposed/**, and vbrief/proposed/** (packages/core/src/session/posture.ts). An out-of-class write under requirements posture is denied with code write-requirements-out-of-class plus REQUIREMENTS_UPGRADE_PATH (packages/core/src/hooks/dispatcher.ts). With mutation posture and an empty active set, the same in-repo write reaches scope-not-ready. That message is \"No active xBRIEF artifact was found under xbrief/active/ (or the legacy vbrief/active/ compatibility path).\" (packages/core/src/hooks/scope.ts). runSessionStartHookWrite returns code 0 when no active artifact exists and records that empty set as the routine steady state (packages/core/src/session/session-start-hook.ts). isProposedLifecycleWrite is true only for an artifact under xbrief/proposed/ or vbrief/proposed/. Phase 2 process-only writes no file under xbrief/proposed/, so active/ is empty at the identity write (content/skills/deft-directive-setup/SKILL.md). The public policy writers assign allowDirectCommitsToMaster on the policy block (packages/core/src/policy/resolve.ts). renderProjectDefinition on create copies SKELETON_NARRATIVES, all empty strings, and takes no interview text. On an existing file it updates items and staleness metadata (packages/core/src/render/project-render.ts, packages/core/src/render/constants.ts). seedMinimalProjectDefinition leaves an existing file untouched. No command on this tree accepts the Phase 2 narrative strings Overview, TechStack, Strategy, Quality, ProjectRules, and Branching.\n\nFailure mode. The five bullets can be implemented and the deadlock stays. Bullet 4 is satisfied by writing the interview text under docs/**. That path is requirements-class, outside xbrief/proposed/**, and narrower than the project-definition file. Bullets 1 and 2 still deny an agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture and under mutation posture with an empty xbrief/active/. Those are the postures setup has before an active xBRIEF exists. A narrative-field edit of that same file is still that agent patch. The upgrade sentence stays the recovery on the requirements deny. Session start exit 0 leaves the later scope-not-ready deny in place. Phase 2 still has to write ./xbrief/PROJECT-DEFINITION.xbrief.json from the interview, then call one policy writer. After that implementation, the Tester 1 apply_patch dies the same way, and PROJECT-DEFINITION still lacks the interview identity.\n\nThe same harvest leaves the policy control unnamed. Narratives and the policy block share one JSON object, and the mutation lock persists the whole object. Requirements posture allows an in-class write with no gated ritual. \"Narrower than the whole file\" names no key set. A writer that persists the object can set allowDirectCommitsToMaster while bullet 5 still looks satisfied. The control already on this tree is the public writer that assigns that one boolean.\n\nDisposition. This lean cannot bind. The relief cite for P1 is not relief. Retract the map before any path-1 stamp. A replacement harvest names a writer that stores those Phase 2 narrative strings in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty, states that the write is not an agent patch of that file, and states that the writer does not set policy keys. Policy mutation stays on policy:enforce-branches and policy:allow-direct-commits.\n\nRoad not taken. Treat bullet 4, read with the plain-English sentence in the same lean, as already naming that writer, and leave the function name as an implementation detail. That reading would let this map bind. The harvest is the list under the Bound remedy heading. That list's path constraint is met by docs/**, and this tree has no writer that takes the interview strings.\n\nWhat would flip. A Bound-remedy bullet that names the writer and the two constraints in the disposition. This heading would then not block.",
+          "id": 5783286989,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5783286989",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T20:06:10Z",
+          "updated_at": "2026-09-22T20:06:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** Retract the prior map. The pain-audit blocked the coverage claim. That map does not bind.\n\n## In plain English\n\nThe setup interview still cannot save project identity by patching the project-definition file. The earlier map said that pain was covered by keeping those refusals and filling the interview text through a narrower write. The pain-audit found that this narrower write can land on a requirements-class document path and still leave the project-definition file without the interview. The coverage claim is withdrawn. A later map would need a writer that stores the Phase 2 narrative strings in the project-definition file while the active folder is empty, that is not an agent patch of that file, and that does not set policy keys. This retraction does not name that writer. The same parent wrote the withdrawn map and this retraction.\n\n## Takes\n\n- Bound remedy does not cover P1. Class blocks-the-design. Take accept-into-contract. Critic comment 5783286989.\n\nSupersedes comment 5783136130.\n\nSpec-path:\n\n## Bound remedy\n\n- The prior coverage claim is withdrawn.\n- An agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture stays denied with code write-requirements-out-of-class.\n- The same patch under mutation posture with an empty xbrief/active/ stays denied with code scope-not-ready.\n- This map names no writer for the Phase 2 narrative strings.\n\ndoes-not-relieve: P1\n\nTarget-digest: sha256:c89a03b5e27c069a970f146594e2824965a97f5294b0b85607ba7d09dc837079\r\n\n",
+          "id": 5783682998,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5783682998",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T20:32:06Z",
+          "updated_at": "2026-09-22T20:32:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nHandoff\n\nThe pain-audit critic comment 5783286989 blocked the coverage claim, and the retraction comment 5783682998 withdraws it. The named pain stays unmet. The deliverable remainder is a writer that stores the Phase 2 narrative strings in the project-definition file while the active folder is empty, that is not an agent patch of that file, and that does not set policy keys. One leftover path is a new issue for that writer. The other is to halt this arc. This comment does not file that issue.\n\nopen-question: Should a later issue name a writer that stores the Phase 2 narrative strings in the project-definition file while the active folder is empty, without an agent patch of that file and without setting policy keys?\r\n\n",
+          "id": 5783687096,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5783687096",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T20:32:24Z",
+          "updated_at": "2026-09-22T20:32:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** This issue builds the writer. The deadlock stays the work. The false session-start cause stays unbound.\n\n## In plain English\n\nSetup still cannot save the interview into the project-definition file. Requirements posture denies an agent patch of that file, and a mutation session with an empty active folder denies the same patch again. Session start itself finishes when that folder is empty. The earlier coverage claim failed because a narrower write could miss the project-definition file entirely. The accepted close stores the Phase 2 narrative strings in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty, through a writer that is not an agent patch of that file and that does not set policy keys. Policy changes stay on the existing policy commands. The two patch denials stay. Confirming this map asserts that writer as the build on this issue. The same parent wrote the opening warrant and these takes.\n\n## Takes\n\n- The upgrade sentence is not a session:start precondition. Class sharpens-framing. Take accept-into-contract. Critic comment 5783037580.\n- Interview identity has no writer, and the file also holds policy. Class sharpens-framing. Take accept-into-contract. Critic comment 5783037580.\n- Bound remedy does not cover P1. Class blocks-the-design. Take accept-into-contract. Critic comment 5783286989.\n\nSupersedes comment 5783682998.\n\nSpec-path:\n\n## Bound remedy\n\n- A writer stores the Phase 2 narrative strings Overview, TechStack, Strategy, Quality, ProjectRules, and Branching in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty. That write is not an agent patch of that file. That writer does not set policy keys.\n- Policy mutation stays on policy:enforce-branches and policy:allow-direct-commits.\n- An agent patch of xbrief/PROJECT-DEFINITION.xbrief.json under requirements posture stays denied with code write-requirements-out-of-class.\n- The same patch under mutation posture with an empty xbrief/active/ stays denied with code scope-not-ready.\n- Session start with an empty active set stays exit 0.\n\nrelieves: P1\n\nTarget-digest: sha256:c89a03b5e27c069a970f146594e2824965a97f5294b0b85607ba7d09dc837079\r\n\n",
+          "id": 5783900527,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5783900527",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T20:47:24Z",
+          "updated_at": "2026-09-22T20:47:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\n## Bound remedy covers P1\n\nfootnote\n\nEvidence. Pinned at b6425115eab5a25877735acd70ca7d693594dda8. Stop 1 comment 5782790348 names P1 as the setup deadlock: PROJECT-DEFINITION is not a requirements-class path, and the upgrade sentence requires an active xBRIEF before that write. Comment 5783900527 is the successor lean under audit. Its Bound-remedy list has five bullets and cites relief for P1. Comment 5783286989 blocked an older harvest because that list could be met by a requirements-class write under docs/** and left the policy-key control unnamed.\n\nPin-read of this tree. REQUIREMENTS_DEFAULT_ALLOW_PATHS is docs/**, specs/**, README.md, README, REQUIREMENTS.md, xbrief/proposed/**, and vbrief/proposed/** (packages/core/src/session/posture.ts). An out-of-class write under requirements posture is denied with code write-requirements-out-of-class and REQUIREMENTS_UPGRADE_PATH (packages/core/src/hooks/dispatcher.ts). With an empty active set, an in-repo agent patch is denied with code scope-not-ready and the message \"No active xBRIEF artifact was found under xbrief/active/ (or the legacy vbrief/active/ compatibility path).\" (packages/core/src/hooks/scope.ts). runSessionStartHookWrite returns code 0 when no active artifact exists (packages/core/src/session/session-start-hook.ts). A shell command reaches that mutation gate when it is a recognized write dest (set-content, out-file, add-content, python-pathlib, io-writealltext) or, when shell dest-forms are enforce, a recognized product dest. A deft command is outside launcher-family argv (grok, claude, codex) and outside those write dests, so it stays on the unclassifiable shell allow. withProjectDefinitionMutation persists the captured artifact and does not consult posture or active scope (packages/core/src/vbrief-build/project-definition-mutation.ts). setPolicy assigns allowDirectCommitsToMaster and throws when the artifact is absent (packages/core/src/policy/resolve.ts). policy:enforce-branches and policy:allow-direct-commits route to that assignment (packages/cli/src/cli-router/route-argv.ts). renderProjectDefinition on create copies empty SKELETON_NARRATIVES and takes no interview text; on an existing file it keeps the narratives object (packages/core/src/render/project-render.ts). The Phase 2 template stores Overview, TechStack, Strategy, Quality, ProjectRules, and Branching (content/skills/deft-directive-setup/SKILL.md).\n\nThe five bullets cover that deadlock. The first bullet requires those six strings in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty, by a write that is not an agent patch and that does not set policy keys. The shared lock can perform that write from a deft command while the folder is empty. The two deny bullets match the hook codes on an agent patch. The session-start bullet matches exit 0. Policy assignment stays on the two commands, and those commands throw until the artifact exists. The skeleton renderer has no interview input, so it is not this writer. The new write authority is that in-process persist. The same bullets keep branch-policy assignment on the existing commands.\n\nThis note does not change the harvested list.\n\nRoad not taken. Count the canonical path as a miss because projectDefinitionPath honors DEFT_PROJECT_PATH when that variable is set (packages/core/src/vbrief-build/project-definition-io.ts). The skill's Phase 2 output path uses the same override. A writer that ignored the resolver would leave the configured file without the six strings, and an agent patch of that file would still die on the two deny codes. That reading would sharpen or block. Stop 1 names the canonical allow-list miss. The bullet leaves the shared resolver available, and the resolver writes the canonical file when the variable is unset.\n\nWhat would flip. A pin-read showing the shared lock refuses to persist while xbrief/active/ is empty, or showing a deft command classified as an agent patch of xbrief/PROJECT-DEFINITION.xbrief.json. This heading would then block.\r\n\n",
+          "id": 5784023494,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5784023494",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T20:55:59Z",
+          "updated_at": "2026-09-22T20:55:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSetup cannot save the interview by patching the project-definition file. Requirements posture denies that patch, and a mutation session with an empty active folder denies it again. Session start itself finishes when that folder is empty. The accepted build stores the Phase 2 narrative strings in that file while the active folder is empty, through a writer that is not an agent patch and that does not set policy keys. Policy changes stay on the existing policy commands.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5783900527.\r\n\n",
+          "id": 5784060517,
+          "html_url": "https://github.com/deftai/directive/issues/4663#issuecomment-5784060517",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T20:58:49Z",
+          "updated_at": "2026-09-22T20:58:49Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C5 FAIL\n**Defect:** 10\n\n### Expected\nAfter Phase 1 answers exist in USER.md, setup can write project identity into PROJECT-DEFINITION.\n\n### What happened\n`apply_patch` denied: \"requirements posture does not authorize this path. Run deft session:start (mutation posture) with an active xBRIEF for product-code writes.\" Setup has not created an xBRIEF yet. Deadlock.\n\n### Evidence\nSecond Codex session after execution-policy workaround.\n\n### Environment\nDirective 0.119.1. Codex.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480358534,
+        "origin": "deftai/directive#4663",
+        "id": "github.issue.5480358534"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c89a03b5e27c069a970f146594e2824965a97f5294b0b85607ba7d09dc837079"
+      }
+    },
+    "id": "github.issue.5480358534",
+    "updated": "2026-09-22T21:03:11Z"
+  }
+}
