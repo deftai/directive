@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4755",
-    "updated": "2026-09-22T22:36:14Z"
+    "updated": "2026-09-22T23:26:04Z"
   },
   "plan": {
     "title": "directive doctor: help promises \"one next step\" but resolution is \"proceed\" and warning contains two commands",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "directive doctor: help promises \"one next step\" but resolution is \"proceed\" and warning contains two commands",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4755",
@@ -16,33 +16,69 @@
     "items": [
       {
         "title": "Prefix the per-check `sink.warn` emission that currently prints the signpost detail with the existing `Signpost advisory:` label.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4927",
+          "recorded_at": "2026-09-22T23:25:35Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Signpost fail detail reuses `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only). Do not concatenate `CANONICAL_UPGRADE_COMMAND` onto a matching-pin proceed.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4927",
+          "recorded_at": "2026-09-22T23:25:35Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Matching-pin stay `Resolution: proceed`. Keep `canonical-vendored-npm-signpost` in `DOCTOR_ADVISORY_FAIL_CHECKS`.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4927",
+          "recorded_at": "2026-09-22T23:25:35Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Keep the throttle parenthetical `(throttle-skipped full probe)` on the throttle closer only.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4927",
+          "recorded_at": "2026-09-22T23:25:35Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The `note:` printer after proceed remains available for the migrate sentence if the warn line carries the label alone.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4927",
+          "recorded_at": "2026-09-22T23:25:35Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Do not promote migrate to primary `Next command:`. Do not add a `healthy` `plan.mode`. Do not stamp `managed_by` at init.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4927",
+          "recorded_at": "2026-09-22T23:25:35Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -422,9 +458,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "94b190dee04a060f6e853888f24f33685ba6fd82a268a8ce0ff9c37425885207"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4927,
+        "prBase": null,
+        "mergeCommit": "d1203942a7784fea83f1cc1bcb2c80e5e7f85e38",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d1203942a7784fea83f1cc1bcb2c80e5e7f85e38",
+        "verifiedAt": "2026-09-22T23:26:04Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T23:26:04Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "cognitive-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T23:26:04Z"
       }
     },
     "id": "github.issue.5501284140",
-    "updated": "2026-09-22T22:36:14Z"
+    "updated": "2026-09-22T23:26:04Z"
   }
 }
