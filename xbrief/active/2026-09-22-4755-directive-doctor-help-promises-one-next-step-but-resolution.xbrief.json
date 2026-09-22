@@ -1,0 +1,430 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4755",
+    "updated": "2026-09-22T22:36:14Z"
+  },
+  "plan": {
+    "title": "directive doctor: help promises \"one next step\" but resolution is \"proceed\" and warning contains two commands",
+    "status": "running",
+    "narratives": {
+      "Description": "directive doctor: help promises \"one next step\" but resolution is \"proceed\" and warning contains two commands",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4755",
+      "Overview": "\n\n- Prefix the per-check `sink.warn` emission that currently prints the signpost detail with the existing `Signpost advisory:` label.\n- Signpost fail detail reuses `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only). Do not concatenate `CANONICAL_UPGRADE_COMMAND` onto a matching-pin proceed.\n- Matching-pin stay `Resolution: proceed`. Keep `canonical-vendored-npm-signpost` in `DOCTOR_ADVISORY_FAIL_CHECKS`.\n- Keep the throttle parenthetical `(throttle-skipped full probe)` on the throttle closer only.\n- The `note:` printer after proceed remains available for the migrate sentence if the warn line carries the label alone.\n- Do not promote migrate to primary `Next command:`. Do not add a `healthy` `plan.mode`. Do not stamp `managed_by` at init.\n\n",
+      "Labels": "adoption-blocker, doctor, docs, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "Prefix the per-check `sink.warn` emission that currently prints the signpost detail with the existing `Signpost advisory:` label.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Signpost fail detail reuses `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only). Do not concatenate `CANONICAL_UPGRADE_COMMAND` onto a matching-pin proceed.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Matching-pin stay `Resolution: proceed`. Keep `canonical-vendored-npm-signpost` in `DOCTOR_ADVISORY_FAIL_CHECKS`.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Keep the throttle parenthetical `(throttle-skipped full probe)` on the throttle closer only.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "The `note:` printer after proceed remains available for the migrate sentence if the warn line carries the label alone.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Do not promote migrate to primary `Next command:`. Do not add a `healthy` `plan.mode`. Do not stamp `managed_by` at init.",
+        "status": "proposed",
+        "id": "clause.6"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "doctor",
+      "docs",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4755",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4755: directive doctor: help promises \"one next step\" but resolution is \"proceed\" and warning contains two commands"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Prefix the per-check `sink.warn` emission that currently prints the signpost detail with the existing `Signpost advisory:` label.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Signpost fail detail reuses `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only). Do not concatenate `CANONICAL_UPGRADE_COMMAND` onto a matching-pin proceed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Matching-pin stay `Resolution: proceed`. Keep `canonical-vendored-npm-signpost` in `DOCTOR_ADVISORY_FAIL_CHECKS`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep the throttle parenthetical `(throttle-skipped full probe)` on the throttle closer only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The `note:` printer after proceed remains available for the migrate sentence if the warn line carries the label alone.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Do not promote migrate to primary `Next command:`. Do not add a `healthy` `plan.mode`. Do not stamp `managed_by` at init.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Hold (2026-09-18 eval of 4749-4765 vs current WIP and Unreleased/0.119.3). UAT was on 0.119.1. v0.119.3 #4718 recut Doctor Next command. Remaining help copy (one next step) vs Resolution: proceed is polish, not a current blocker versus in-progress #4723.",
+          "id": 5732771226,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5732771226",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T16:10:34Z",
+          "updated_at": "2026-09-18T16:10:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Lifecycle: installing Directive, updating it, and getting one clear next step when something looks wrong. It also covers whether the version someone thinks they installed is the version that is actually running.\n\nWhat a new person hits: The help text says the doctor command will print the one next step. In practice it says \"proceed,\" which is not a command, and the warning lists two different commands.\n\nWhy that ruins the product for them: The command they run when they are lost does not tell them what to do. Two testers, on different machines, stopped on this.\n\nHow likely: High. Doctor is the advertised way to find out what to do next, so people run it on the first day.\n\n",
+          "id": 5780262014,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5780262014",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:36:59Z",
+          "updated_at": "2026-09-22T16:36:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because doctor help and the CLI summary still promise \"print the one next step\" while a matching-pin consumer run can exit 0 with Resolution: proceed (not a command) plus canonical-vendored-npm-signpost warning text that names two commands (`npm i -g @deftai/directive@latest`, then `directive migrate`).\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4755-dc\norigin-ref: origin/HEAD\ndispatch-sha: ef4f29f5ab595faf26a3b00194d3dbdc9f97a085\n\ncharter: open critique\nspend: N=1\nspend-ask: asked\nspend-why: operator utterance `appropriate n`. Per-issue Stop 2: help/copy versus Resolution: proceed plus a two-command advisory is a specified doctor contract recut, not an open mechanism fork. Default motion N=1.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #4755\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: the advertised one-next-step contract is already satisfied when Resolution is proceed and the warning lists two commands.\n\n## Gate stamp\n\nP1 is that the advertised one-next-step contract is unsatisfied when the primary resolution line is `proceed` and an advisory warning still enumerates two commands.\n\nRe-measured at dispatch SHA `ef4f29f5ab595faf26a3b00194d3dbdc9f97a085`:\n\n- `packages/core/src/doctor/help.ts` still says \"Diagnose the Directive install and print the one next step.\"\n- `packages/cli/src/dispatch.ts` doctor summary uses the same phrase.\n- `runResolutionDecision` prints `Resolution: proceed -- ${rootCauseLine}.` when `plan.mode` is proceed (no `Next command:` line).\n- `checkCanonicalVendoredNpmSignpost` fail detail still concatenates `CANONICAL_UPGRADE_COMMAND` (`npm i -g @deftai/directive@latest`) then `directive migrate`.\n- That check is in `DOCTOR_ADVISORY_FAIL_CHECKS`, so it is a warning and lastErrorCount stays 0.\n- Warning-only path prints `System check completed with N warning(s).` and exits 0.\n\n#4718 recut Next command (align-pin). #4723 recut missing-core clean skip. #4767 closed as duplicate of this number. Those lands do not rewrite help.ts or collapse the two-command signpost.\n\nWhat this P1 is not:\n\n- Not the dirty UNRESOLVED versus --full proceed split (#4886 / #4701).\n- Not README --full omission (#4673).\n- Not a new migrate verb.\n\nOpen forks the critic may take: a genuine healthy verdict when pin matches; one Next command with a documented re-run; or an advisory labeled as not a next step.\n\n",
+          "id": 5782322897,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782322897",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:04:45Z",
+          "updated_at": "2026-09-22T19:04:45Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRe-verified at dispatch SHA `ef4f29f5ab595faf26a3b00194d3dbdc9f97a085` by executing string assertions against `git show <sha>:<path>` blobs for help.ts, dispatch.ts, main.ts, checks.ts, plan.ts, constants.ts, migrate.ts, and signpost-checks.ts. Dest HEAD is that SHA. Vitest was not run (no dest `node_modules`).\n\n## 1. The P1 is unlabeled advisory copy on a matching-pin proceed `sharpens-framing`\n\nEvidence: `plan()` already returns mode `proceed` with `command: null` and root cause `engine ${effectiveEngine} matches pin ${facts.pinVersion} and content is current` (`packages/core/src/resolution/plan.ts`). `runResolutionDecision` prints `Resolution: proceed -- ${rootCauseLine}.` and emits `Next command:` only when `actionRequired` (`plan.mode !== \"proceed\"`). That proceed branch is tested (`healthy deposit + legacy vbrief -> proceed; secondary migrate advice only after primary clears`; `countNextCommands === 0`). `checkCanonicalVendoredNpmSignpost` is in `DOCTOR_ADVISORY_FAIL_CHECKS`, `stampAdvisory`s the fail, and `runInstallIntegrityChecks` maps it to `severity: \"warning\"` so `errorCount` / `lastErrorCount` stay 0. Warning-only footer is `System check completed with ${warningCount} warning(s).` (exit 0). Help still says \"Diagnose the Directive install and print the one next step.\" (`help.ts`); CLI summary is the same phrase (`dispatch.ts`). The signpost fail detail concatenates `` `CANONICAL_UPGRADE_COMMAND` `` (`npm i -g @deftai/directive@latest`) then `` `directive migrate` ``. Throttle-skip already labels the same class of findings `Signpost advisory: N local configuration / layout note(s)`. Full probe prints the raw detail as a generic warning. Init writes VERSION without `managedBy` (`init-deposit.ts` `manifestFields`), then `printMigrateNudgeIfNeeded` emits `MIGRATE_COMPLETION_NUDGE` (one command, provenance, idempotent). Session-start uses the same nudge. That is the UAT path: init, then doctor, matching pin, one advisory, two verbs in the warning.\n\nFailure mode: A first-day consumer is promised one next step, sees `proceed` (not a command), and reads two upgrade verbs in a warning that still exits 0. Two UAT testers stopped on that screen.\n\nDisposition: Bind as fork (c) plus the two help strings. Full-probe footer reuses the throttle `Signpost advisory:` label so the warning cannot be read as the next step. Signpost detail reuses `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only). Help and CLI summary follow the existing resolution contract: one `Next command:` when `actionRequired`, else `Resolution: proceed`. `System check passed!` remains the zero-warning footer.\n\n## 2. Fork (b) on this path copies an upgrade recipe `sharpens-framing`\n\nEvidence: `directive migrate` is a thin provenance stamp: on-disk shape unchanged, never downloads (`init-deposit/migrate.ts`). `CANONICAL_UPGRADE_COMMAND` is the post-freeze global upgrade (`doctor/constants.ts`). `VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND` (`${CANONICAL_UPGRADE_COMMAND} && deft update`) is the stale-payload suggestion in `payload-staleness.ts`, a different row. The signpost inlines the upgrade recipe onto a matching-pin install. `plan()` already chose proceed with `command: null`. Secondary migrate advice already prints as `note:` after proceed.\n\nFailure mode: A Bound-remedy that lifts the current signpost pair, or `@latest` alone, into `Next command:` upgrades a pin-matched engine. The next doctor run is then skew / `align-pin` (#4718), a new problem the tester did not have.\n\nDisposition: If synthesis keeps a documented-re-run fork, the command is `directive migrate`, kept as advisory/`note:` (same pattern as proceed + `migrate:xbrief`). `plan.mode` stays `proceed`. The check stays in `DOCTOR_ADVISORY_FAIL_CHECKS`.\n\n## 3. The three open forks already have homes `sharpens-framing`\n\nInventory at this SHA: `runResolutionDecision` (exactly one primary `Next command:`); `plan.warnings` as `note:`; `isDoctorAdvisoryFail` / `DOCTOR_ADVISORY_FAIL_CHECKS` / `stampAdvisory`; throttle `Signpost advisory:`; `System check passed!` when `warningCount === 0`; `MIGRATE_COMPLETION_NUDGE` / `shouldEmitMigrateNudge` / `printMigrateNudgeIfNeeded` on init, update, and session-start.\n\nFailure mode: A new `healthy` `plan.mode`, a fourth next-action surface, or stamping `managed_by` at init would recut the classifier, the #3379 advisory-fail set, or the #2059 one-time migrate verb. Stop 1 already excluded a new migrate verb.\n\nDisposition: Map fork (a) onto `Resolution: proceed` plus `System check passed!` / labeled advisories. Map fork (b) onto `MIGRATE_COMPLETION_NUDGE` as a labeled note. Map fork (c) onto the throttle advisory label extended to the full probe. Reuse those; do not add a parallel doctor contract.\n\n## Road not taken\n\nA new `healthy` resolution token. Steelman: testers wanted a done verdict. Flip: the Bound-remedy needs a word other than proceed and `System check passed!`. Those two already exist; advisory labeling is what unblocks the passed footer.\n\nPromoting `directive migrate` to primary `Next command:`. Steelman: it is runnable and re-verifiable (signpost skips after stamp). Flip: unstamped provenance must fail-close first-day doctor. That recuts #3379 and the proceed + secondary-note test. The stamped P1 is the advertised copy contract.\n\n## Footnotes `footnote`\n\n- Injection / swarm lens does not fire: this recut is doctor help and advisory copy.\n- #4718 remains the align-pin Next-command row (engine ahead, content at engine). It does not rewrite `help.ts` or the signpost detail.\n- `signpost-checks.test.ts` asserts the check name only. The two-command fail detail is unpinned.\n\n",
+          "id": 5782430527,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782430527",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:12:18Z",
+          "updated_at": "2026-09-22T19:12:18Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDoctor still advertises one next step. On a matching pin the screen says proceed, which is not a command, and a warning still names two upgrade verbs. Confirming this map recuts first-ship to keep proceed as the matching-pin resolution, label that warning as a signpost advisory, and leave migrate as the one-command provenance nudge.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after one isolated critic. Cites critic 5782430527. Supersedes Stop 1 write-back 5782322897. Round 1 sibling count 1.\n\nTarget-digest: sha256:94b190dee04a060f6e853888f24f33685ba6fd82a268a8ce0ff9c37425885207\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4755-dc\norigin-ref: origin/HEAD\ndispatch-sha: ef4f29f5ab595faf26a3b00194d3dbdc9f97a085\n\n## Takes\n\n1. The P1 is unlabeled advisory copy on a matching-pin proceed — accept-into-contract\n2. Fork (b) on this path copies an upgrade recipe — accept-into-contract\n3. The three open forks already have homes — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Full-probe warning footer reuses the existing throttle label `Signpost advisory:` so that warning cannot be read as the next step.\n- Signpost fail detail reuses `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only). Do not concatenate `CANONICAL_UPGRADE_COMMAND` onto a matching-pin proceed.\n- Help and CLI doctor summary follow the existing resolution contract: `Next command:` only when `actionRequired`; matching-pin stay `Resolution: proceed`.\n- Keep `canonical-vendored-npm-signpost` in `DOCTOR_ADVISORY_FAIL_CHECKS`. Do not promote migrate to primary `Next command:`. Do not add a `healthy` `plan.mode`. Do not stamp `managed_by` at init.\n\n",
+          "id": 5782446454,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782446454",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:13:22Z",
+          "updated_at": "2026-09-22T19:13:22Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nRe-verified at dispatch SHA `ef4f29f5ab595faf26a3b00194d3dbdc9f97a085` by executing string membership against `git show <sha>:<path>` blobs for `packages/core/src/doctor/help.ts`, `packages/cli/src/dispatch.ts`, `packages/core/src/doctor/checks.ts`, `packages/core/src/doctor/main.ts`, `packages/core/src/doctor/output.ts`, `packages/core/src/doctor/signpost-checks.ts`, `packages/core/src/init-deposit/migrate.ts`, `packages/core/src/resolution/plan.ts`, and `packages/core/src/doctor/constants.ts`. Dest HEAD is that SHA.\n\nAnswer: Bound-remedy on successor lean 5782446454 leaves P1 on Stop 1 write-back comment 5782322897 uncovered.\n\n## 1. Footer reuse leaves the proceed-plus-command pair on the UAT screen `sharpens-framing`\n\nEvidence: Stop 1 P1 is the advertised one-next-step contract unsatisfied when the primary resolution line is proceed and the advisory warning enumerates two commands. Full probe prints that warning as `sink.warn(`${name}: ${detail}`)` inside `runInstallIntegrityChecks`. The fail detail concatenates `CANONICAL_UPGRADE_COMMAND` (`npm i -g @deftai/directive@latest`) then `directive migrate`. Later `runResolutionDecision` prints `Resolution: proceed -- ${rootCauseLine}.` when `actionRequired` is false (`plan.mode` proceed, `command: null`, root cause `engine ${effectiveEngine} matches pin ${facts.pinVersion} and content is current`). Later `finalWarn` prints `System check completed with ${warningCount} warning(s).` `warn` and `finalWarn` both write `⚠ ${msg}`. The existing `Signpost advisory:` string is a `finalWarn` on the throttle early-return, which returns before `runInstallIntegrityChecks` and before `runResolutionDecision`. Bound-remedy bullet 1 moves that footer label onto the full-probe closer. Bullet 2 replaces the two-command detail with `MIGRATE_COMPLETION_NUDGE` (`[deft] One-time: run `directive migrate` to stamp npm provenance (idempotent). See content/UPGRADING.md.`). Help still says \"Diagnose the Directive install and print the one next step.\" CLI summary uses the same phrase. The check stays in `DOCTOR_ADVISORY_FAIL_CHECKS`, so `warningCount` stays at least 1 and `System check passed!` stays the zero-warning closer. Inventory already on this path: throttle `Signpost advisory:` closer; advisory-fail `sink.warn`; `plan.warnings` as `note:` after proceed; `MIGRATE_COMPLETION_NUDGE`.\n\nFailure mode: A matching-pin first-day run still prints a ⚠ line that contains a runnable command, then `Resolution: proceed`, then a ⚠ closer. The pair Stop 1 named remains on one screen. Collapsing the recipe from two verbs to one leaves that pair. Relabeling the closer after proceed leaves the earlier warn line readable as the next step. Throttle's advisory closer never shares a screen with proceed, so copying it onto full probe does not import the screen shape that made the label work.\n\nDisposition: Recut Bound-remedy bullet 1 so the existing `Signpost advisory:` label prefixes the per-check warn emission that currently prints the signpost detail. Keep bullet 2 (`MIGRATE_COMPLETION_NUDGE` / `directive migrate` only). Keep matching-pin `Resolution: proceed`. Keep the check in `DOCTOR_ADVISORY_FAIL_CHECKS`. Keep the throttle parenthetical `(throttle-skipped full probe)` on the throttle closer only. The `note:` printer after proceed remains available for the migrate sentence if the warn line should carry the label alone. This changes the harvested Bound-remedy on successor lean 5782446454. Parent posts a new bind lean with that harvest, then another pain-audit. The current harvest does not cover P1.\n\n## Road not taken\n\nClassifying this as `blocks-the-design` and handing off. Steelman: a ⚠ command plus proceed is the P1 pair, and footer reuse cannot break it. Flip: Stop 1 listed a labeled advisory as a complete fork, and the throttle already labels with the same ⚠ glyph. Prefixing the existing warn emission with the existing `Signpost advisory:` token is that fork. Promoting `directive migrate` to `Next command:` and adding a `healthy` `plan.mode` stay excluded.\n\n## Footnotes `footnote`\n\n- `help.ts` and `dispatch.ts` still promise \"the one next step.\" Under Stop 1 fork (c) that copy can stay once the command-bearing warn line carries the advisory label.\n- `signpost-checks.test.ts` still asserts the check name only. The two-command fail detail stays unpinned at this SHA.\n\n",
+          "id": 5782583570,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782583570",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:23:27Z",
+          "updated_at": "2026-09-22T19:23:27Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDoctor still advertises one next step. On a matching pin the screen says proceed and a warning still names upgrade verbs. Confirming this map recuts first-ship so the existing Signpost advisory label prefixes the per-check warn that prints the signpost detail, that detail is migrate-only, and matching-pin stay proceed. Relabeling the later footer does not cover P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** post-pain-audit successor of #4755. Cites critic 5782583570. Supersedes successor lean 5782446454. Round 1 sibling count 1.\n\nTarget-digest: sha256:94b190dee04a060f6e853888f24f33685ba6fd82a268a8ce0ff9c37425885207\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4755-dc\norigin-ref: origin/HEAD\ndispatch-sha: ef4f29f5ab595faf26a3b00194d3dbdc9f97a085\n\n## Takes\n\n1. Footer reuse leaves the proceed-plus-command pair on the UAT screen — accept-into-contract\n1. The P1 is unlabeled advisory copy on a matching-pin proceed — accept-into-contract (5782430527)\n2. Fork (b) on this path copies an upgrade recipe — accept-into-contract (5782430527)\n3. The three open forks already have homes — accept-into-contract (5782430527)\n\nrelieves: P1\n\n## Bound remedy\n\n- Prefix the per-check `sink.warn` emission that currently prints the signpost detail with the existing `Signpost advisory:` label.\n- Signpost fail detail reuses `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only). Do not concatenate `CANONICAL_UPGRADE_COMMAND` onto a matching-pin proceed.\n- Matching-pin stay `Resolution: proceed`. Keep `canonical-vendored-npm-signpost` in `DOCTOR_ADVISORY_FAIL_CHECKS`.\n- Keep the throttle parenthetical `(throttle-skipped full probe)` on the throttle closer only.\n- The `note:` printer after proceed remains available for the migrate sentence if the warn line carries the label alone.\n- Do not promote migrate to primary `Next command:`. Do not add a `healthy` `plan.mode`. Do not stamp `managed_by` at init.\n\n",
+          "id": 5782597830,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782597830",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:24:32Z",
+          "updated_at": "2026-09-22T19:24:32Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nRe-verified at dispatch SHA `ef4f29f5ab595faf26a3b00194d3dbdc9f97a085` by executing string membership against `git show <sha>:<path>` blobs for `packages/core/src/doctor/help.ts`, `packages/cli/src/dispatch.ts`, `packages/core/src/doctor/checks.ts`, `packages/core/src/doctor/main.ts`, `packages/core/src/doctor/output.ts`, `packages/core/src/doctor/signpost-checks.ts`, `packages/core/src/init-deposit/migrate.ts`, `packages/core/src/resolution/plan.ts`, `packages/core/src/doctor/constants.ts`, `packages/core/src/doctor/signpost-checks.test.ts`, and `packages/core/src/doctor/main.test.ts`. Dest HEAD is that SHA.\n\nAnswer: Bound-remedy on successor lean 5782597830 relieves P1 on Stop 1 write-back 5782322897.\n\nStop 1 stamps P1 as the advertised one-next-step contract unsatisfied when the primary resolution line is proceed and an advisory warning still enumerates two commands. Lean 5782597830 carries the 5782583570 recut on the harvest: prefix the per-check `sink.warn` that prints the signpost detail with `Signpost advisory:`; reuse `MIGRATE_COMPLETION_NUDGE` (`directive migrate` only) as that detail; matching-pin stay proceed; keep `canonical-vendored-npm-signpost` in `DOCTOR_ADVISORY_FAIL_CHECKS`.\n\nExecuted membership at this SHA:\n\n- Help and CLI still contain \"print the one next step.\"\n- `checkCanonicalVendoredNpmSignpost` fail detail concatenates `CANONICAL_UPGRADE_COMMAND` (`npm i -g @deftai/directive@latest`) then `directive migrate`.\n- Full-probe advisory fails print `sink.warn(`${name}: ${detail}`)` inside `runInstallIntegrityChecks` (⚠ via `output.ts`).\n- Later `runResolutionDecision` prints `Resolution: proceed -- ${rootCauseLine}.` when `plan.mode` is proceed (`command: null`; root cause `engine ${effectiveEngine} matches pin ${facts.pinVersion} and content is current`).\n- Warning-only closer is `System check completed with ${warningCount} warning(s).`\n- Throttle skip returns before those printers. Its closer is already `Signpost advisory:` plus a count of notes above, with `(throttle-skipped full probe)` on that closer.\n- `MIGRATE_COMPLETION_NUDGE` is the one-command init/update/session sentence.\n- After proceed, `plan.warnings` already print as `note:`.\n- `signpost-checks.test.ts` asserts the check name. The two-command fail detail is unpinned.\n\nOn that harvest the matching-pin full-probe screen keeps proceed, replaces the two-verb signpost recipe with the migrate-only nudge, and puts the existing advisory token on the command-bearing warn. That is Stop 1 fork (c), and the two-command conjunct in the P1 when-clause is gone. Inventory already on this path: throttle `Signpost advisory:` closer; advisory-fail `sink.warn`; `MIGRATE_COMPLETION_NUDGE`; `note:` after proceed; `Next command:` only when `actionRequired`.\n\n## Road not taken\n\nClassifying leftover ⚠-plus-command-plus-proceed as `blocks-the-design`. Steelman: a first-day user still sees a ⚠ line that tells them to run `directive migrate`, then proceed, and `Signpost advisory:` reads as jargon beside a runnable verb. Flip: Stop 1's P1 when-clause names two commands, and Stop 1 already listed a labeled advisory as a complete fork. Prefixing the existing warn emission with the existing `Signpost advisory:` token is that fork. Promoting migrate to `Next command:` and adding a `healthy` `plan.mode` remain outside this harvest.\n\n## Footnotes `footnote`\n\n- The advisory-fail `sink.warn(`${name}: ${detail}`)` loop is shared by the nine `DOCTOR_ADVISORY_FAIL_CHECKS` names. Harvest English already points at the emission that prints the signpost detail; gate the prefix on `canonical-vendored-npm-signpost` or put the token in that check's detail constructor.\n- The `note:` bullet is permission for a second screen (label-alone warn, migrate sentence after proceed). Both screens keep the advisory label and a single migrate verb.\n- Help and CLI copy stay under fork (c) once the command-bearing warn carries the advisory token.\n- Throttle `runLocalSignpostChecks` prints `sink.warn(result.detail)` and returns before `runResolutionDecision`, so that path has no proceed line.\n- Injection / swarm lens stays idle: this recut is doctor help and advisory copy.\n\n",
+          "id": 5782711632,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782711632",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:32:46Z",
+          "updated_at": "2026-09-22T19:32:46Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5782597830.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5782597830 are accept-into-contract | critics 5782430527, 5782583570 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers proceed plus two-command advisory via Signpost advisory prefix on the signpost warn emission and migrate-only detail | pain-audit 5782711632 | pin-read of sink.warn, runResolutionDecision, MIGRATE_COMPLETION_NUDGE; footnote-only census |\n\n",
+          "id": 5782726532,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782726532",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:33:42Z",
+          "updated_at": "2026-09-22T19:33:42Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDoctor still advertises one next step. On a matching pin the screen says proceed and a warning still names upgrade verbs. The accepted next-build prefixes that warn with Signpost advisory, keeps migrate-only detail, and keeps matching-pin proceed.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5782597830.\n\n",
+          "id": 5782726740,
+          "html_url": "https://github.com/deftai/directive/issues/4755#issuecomment-5782726740",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:33:43Z",
+          "updated_at": "2026-09-22T19:33:43Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "**Tester 3 · focused-test-pass-1**\n\n## Summary\n`directive doctor`'s help text says it will \"print the one next step.\" In practice a run can exit 0 with 1 warning where the single-next-action block says `proceed` (not a command) and the warning body enumerates **two** commands (`npm i -g @deftai/directive@latest`, then `directive migrate`). Neither arm of the contract is satisfied.\n\n## Steps to reproduce\n1. Install Directive: `npm i -g @deftai/directive`.\n2. `directive init` in a fresh project.\n3. Run:\n   ```\n   directive doctor\n   ```\n\n## Expected\nEither doctor reports \"healthy\" clearly, or it prints exactly one actionable next command that can be run and re-verified.\n\n## Actual\n- Exit 0, 0 errors, 1 warning (`canonical-vendored-npm-signpost`).\n- Closing line: `System check completed with 1 warning(s).`\n- Resolution block: `✓ Resolution: proceed -- engine 0.119.1 matches pin 0.119.1 and content is current.`\n- Warning body lists two commands: `npm i -g @deftai/directive@latest`, then `directive migrate`.\n\nBecause \"proceed\" isn't a command, users can't verify the fix. Because there are two commands in the warning, \"one next step\" is inaccurate.\n\n## Suggested fix\nCollapse this to one of: (a) a genuine `healthy` verdict, (b) a single actionable command with a documented re-run, or (c) a labeled advisory that explicitly is not a \"next step.\"\n\n## Environment\n- Directive: `@deftai/directive-core@0.119.1`\n- OS: macOS\n\n## Also reported\n\n#4767 (UAT Tester 4, Windows, 0.119.2 and again after upgrade to 0.119.3) is the same doctor contract break: exit 0, no single next command, canonical-vendored warning. Closed as a duplicate of this Tester 3 report. Two testers move this from Medium to High.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5501284140,
+        "origin": "deftai/directive#4755",
+        "id": "github.issue.5501284140"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "94b190dee04a060f6e853888f24f33685ba6fd82a268a8ce0ff9c37425885207"
+      }
+    },
+    "id": "github.issue.5501284140",
+    "updated": "2026-09-22T22:36:14Z"
+  }
+}

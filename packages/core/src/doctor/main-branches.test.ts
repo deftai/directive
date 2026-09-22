@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { MIGRATE_COMPLETION_NUDGE } from "../init-deposit/migrate.js";
 import { agentsRefreshPlan } from "./agents-md.js";
 import * as checks from "./checks.js";
 import { decideThrottle, readState, writeState } from "./doctor-state.js";
@@ -184,7 +185,15 @@ describe("main human-mode branches", () => {
       ).toBe(0);
       const output = lines.join("");
       expect(output).toContain("local configuration / layout note(s)");
+      expect(output).toContain("(throttle-skipped full probe)");
       expect(output).not.toContain("npm-migration note(s)");
+      const advisoryLines = output
+        .split("\n")
+        .filter((line) => line.includes("Signpost advisory:"));
+      expect(advisoryLines.length).toBeGreaterThan(0);
+      for (const line of advisoryLines) {
+        expect(line).toContain("(throttle-skipped full probe)");
+      }
     } finally {
       process.stdout.write = orig;
       rmSync(root, { recursive: true, force: true });
@@ -197,6 +206,54 @@ function writeConsumerRoot(root: string): void {
   writeFileSync(join(root, ".deft", "core", "QUICK-START.md"), "# qs\n", "utf8");
   writeFileSync(join(root, "AGENTS.md"), "Deft is installed in .deft/core.\n", "utf8");
 }
+
+describe("full-probe signpost advisory (#4755)", () => {
+  it("prefixes only the canonical-vendored warn and does not promote migrate", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-4755-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    const lines: string[] = [];
+    const orig = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      lines.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      cmdDoctor(["--full", "--project-root", root], {
+        whichFn: () => "/usr/bin/x",
+        engineProbe: () => ({ reachable: true, version: "0.119.1" }),
+        runChecks: () => ({
+          checks: [
+            {
+              name: "canonical-vendored-npm-signpost",
+              status: "fail",
+              detail: MIGRATE_COMPLETION_NUDGE,
+              data: { advisory: true },
+            },
+            {
+              name: "legacy-layout",
+              status: "fail",
+              detail: "Dual Deft layout detected",
+              data: { advisory: true },
+            },
+          ],
+          errors: [],
+        }),
+      });
+    } finally {
+      process.stdout.write = orig;
+      rmSync(root, { recursive: true, force: true });
+    }
+    const output = lines.join("");
+    expect(output).toContain(
+      `Signpost advisory: canonical-vendored-npm-signpost: ${MIGRATE_COMPLETION_NUDGE}`,
+    );
+    expect(output).toContain("legacy-layout: Dual Deft layout detected");
+    expect(output).not.toContain("Signpost advisory: legacy-layout:");
+    expect(output).not.toContain("throttle-skipped full probe");
+    expect(output).not.toContain("npm i -g @deftai/directive@latest");
+    expect(output).not.toMatch(/Next command:.*directive migrate(?!:)/);
+  });
+});
 
 describe("taskfile interactive fix", () => {
   it("writes Taskfile on fix approval", () => {

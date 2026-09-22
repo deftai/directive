@@ -53,7 +53,9 @@ import {
 import {
   checkXbriefEnvelopeMajorVersion,
   DOCTOR_ADVISORY_FAIL_CHECKS,
+  prefixCanonicalVendoredSignpostWarn,
   runChecks,
+  SIGNPOST_ADVISORY_LABEL,
   XBRIEF_ENVELOPE_MAJOR_CHECK,
   XBRIEF_ENVELOPE_MIGRATE_COMMAND,
 } from "./checks.js";
@@ -449,7 +451,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         throttleSink.finalError("System check failed with 1 error(s) including deposit hygiene.");
       } else if (signpostWarnings > 0 && !jsonMode) {
         throttleSink.finalWarn(
-          `Signpost advisory: ${signpostWarnings} local configuration / layout note(s) above (throttle-skipped full probe).`,
+          `${SIGNPOST_ADVISORY_LABEL} ${signpostWarnings} local configuration / layout note(s) above (throttle-skipped full probe).`,
         );
       }
       return hygieneFailed || decision.dirty ? 1 : 0;
@@ -1049,7 +1051,7 @@ function runInstallIntegrityChecks(
         continue;
       }
       if (status === "fail" && (data.advisory === true || DOCTOR_ADVISORY_FAIL_CHECKS.has(name))) {
-        sink.warn(`${name}: ${detail}`);
+        sink.warn(prefixCanonicalVendoredSignpostWarn(name, `${name}: ${detail}`));
         addFinding({
           severity: "warning",
           message: detail || `${name} ${status}`,

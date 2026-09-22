@@ -3,8 +3,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
+import { MIGRATE_COMPLETION_NUDGE } from "../init-deposit/migrate.js";
 import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
 import {
+  checkCanonicalVendoredNpmSignpost,
   checkCompletedLifecycleConsistency,
   checkCompletedOpenItems,
   checkCompletedUnguardedWrite,
@@ -23,11 +25,14 @@ import {
   DOCTOR_ADVISORY_FAIL_CHECKS,
   deriveExitCode,
   isDoctorAdvisoryFail,
+  prefixCanonicalVendoredSignpostWarn,
   runChecks,
   runChecksImpl,
+  SIGNPOST_ADVISORY_LABEL,
   scanXbriefEnvelopeVersions,
   XBRIEF_ENVELOPE_MIGRATE_COMMAND,
 } from "./checks.js";
+import { CANONICAL_UPGRADE_COMMAND } from "./constants.js";
 
 describe("checks", () => {
   it("derives exit codes", () => {
@@ -60,6 +65,50 @@ describe("checks", () => {
     expect(isDoctorAdvisoryFail(synthetic.name, synthetic.data)).toBe(true);
     expect(deriveExitCode([synthetic], [])).toBe(0);
     expect(deriveExitCode([{ ...synthetic, data: {} }], [])).toBe(1);
+  });
+
+  it("canonical-vendored signpost fail is the migrate nudge and stays advisory (#4755)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-cv-4755-"));
+    try {
+      const core = join(root, ".deft", "core");
+      mkdirSync(core, { recursive: true });
+      writeFileSync(join(core, "VERSION"), "tag: 'v0.119.1'\nsha: abc\n", "utf8");
+      const result = checkCanonicalVendoredNpmSignpost(root);
+      expect(result.name).toBe("canonical-vendored-npm-signpost");
+      expect(result.status).toBe("fail");
+      expect(result.detail).toBe(MIGRATE_COMPLETION_NUDGE);
+      expect(result.detail).not.toContain(CANONICAL_UPGRADE_COMMAND);
+      expect(result.detail).not.toContain("npm i -g");
+      expect(result.data?.advisory).toBe(true);
+      expect(DOCTOR_ADVISORY_FAIL_CHECKS.has("canonical-vendored-npm-signpost")).toBe(true);
+      const warn = prefixCanonicalVendoredSignpostWarn(
+        result.name,
+        `${result.name}: ${result.detail}`,
+      );
+      expect(warn.startsWith(`${SIGNPOST_ADVISORY_LABEL} `)).toBe(true);
+      expect(warn).toContain(MIGRATE_COMPLETION_NUDGE);
+      expect(warn).not.toContain("throttle-skipped full probe");
+      expect(prefixCanonicalVendoredSignpostWarn("legacy-layout", "legacy-layout: dual")).toBe(
+        "legacy-layout: dual",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("canonical-vendored signpost skips an npm-managed deposit (#4755)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-cv-4755-managed-"));
+    try {
+      const core = join(root, ".deft", "core");
+      mkdirSync(core, { recursive: true });
+      writeFileSync(join(core, "VERSION"), "tag: 'v0.119.1'\nmanaged_by: 'npm'\n", "utf8");
+      const result = checkCanonicalVendoredNpmSignpost(root);
+      expect(result.status).toBe("skip");
+      expect(result.detail).not.toContain("directive migrate");
+      expect(result.detail).not.toContain(CANONICAL_UPGRADE_COMMAND);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("fails closed when completed/ plan.status is running (#3242)", () => {

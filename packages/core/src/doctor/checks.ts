@@ -12,6 +12,7 @@ import {
 import {
   detectCanonicalVendoredManifest,
   isNpmManaged,
+  MIGRATE_COMPLETION_NUDGE,
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
 } from "../init-deposit/migrate.js";
@@ -84,6 +85,18 @@ export function isDoctorAdvisoryFail(
   data?: Readonly<Record<string, unknown>> | null,
 ): boolean {
   return data?.advisory === true || DOCTOR_ADVISORY_FAIL_CHECKS.has(name);
+}
+
+/** Label already used by the throttle closer. Signpost warns reuse it (#4755). */
+export const SIGNPOST_ADVISORY_LABEL = "Signpost advisory:";
+
+/**
+ * Prefix only the canonical-vendored signpost warn.
+ * `(throttle-skipped full probe)` stays on the throttle closer.
+ */
+export function prefixCanonicalVendoredSignpostWarn(name: string, line: string): string {
+  if (name !== "canonical-vendored-npm-signpost") return line;
+  return `${SIGNPOST_ADVISORY_LABEL} ${line}`;
 }
 
 function stampAdvisory(data: Record<string, unknown>): Record<string, unknown> {
@@ -876,15 +889,10 @@ export function checkCanonicalVendoredNpmSignpost(
       data: { canonical_vendored: true, npm_managed: true },
     };
   }
-  const detail =
-    "Canonical-vendored install (.deft/core/) is not yet npm-managed. " +
-    "Post-freeze upgrades run via npm: install the engine with " +
-    `\`${CANONICAL_UPGRADE_COMMAND}\`, then run \`directive migrate\` ` +
-    `to stamp provenance. See ${UPGRADING_DOC_URL}.`;
   return {
     name: "canonical-vendored-npm-signpost",
     status: "fail",
-    detail,
+    detail: MIGRATE_COMPLETION_NUDGE,
     data: stampAdvisory({
       canonical_vendored: true,
       npm_managed: false,

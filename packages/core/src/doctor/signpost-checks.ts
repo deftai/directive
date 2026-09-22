@@ -1,4 +1,9 @@
-import { type CheckSeams, checkCanonicalVendoredNpmSignpost, checkLegacyLayout } from "./checks.js";
+import {
+  type CheckSeams,
+  checkCanonicalVendoredNpmSignpost,
+  checkLegacyLayout,
+  prefixCanonicalVendoredSignpostWarn,
+} from "./checks.js";
 import { type NpmRegistryMirrorSeams, runNpmRegistryMirrorCheck } from "./npm-registry.js";
 import type { OutputSink } from "./output.js";
 import { runningInsideDeftRepo } from "./paths.js";
@@ -29,7 +34,7 @@ export function runLocalSignpostChecks(
       continue;
     }
     if (result.status === "fail") {
-      sink.warn(result.detail);
+      sink.warn(prefixCanonicalVendoredSignpostWarn(result.name, result.detail));
       addFinding({
         severity: "warning",
         message: result.detail,

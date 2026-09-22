@@ -2,6 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { MIGRATE_COMPLETION_NUDGE } from "../init-deposit/migrate.js";
+import { CANONICAL_UPGRADE_COMMAND } from "./constants.js";
 import { createPlainSink } from "./output.js";
 import { runLocalSignpostChecks } from "./signpost-checks.js";
 import type { Finding } from "./types.js";
@@ -15,10 +17,23 @@ describe("runLocalSignpostChecks (#1997)", () => {
       writeFileSync(join(core, "VERSION"), "tag: v0.56.0\nsha: abc\n", "utf8");
       writeFileSync(join(root, "AGENTS.md"), "Deft is installed in .deft/core/.\n", "utf8");
       const findings: Finding[] = [];
-      runLocalSignpostChecks(root, createPlainSink(), (f) => findings.push(f), {
-        runNpmConfigGet: () => ({ ok: false, value: "" }),
-      });
-      expect(findings.some((f) => f.check === "canonical-vendored-npm-signpost")).toBe(true);
+      const lines: string[] = [];
+      runLocalSignpostChecks(
+        root,
+        createPlainSink({ write: (text) => lines.push(text) }),
+        (f) => findings.push(f),
+        {
+          runNpmConfigGet: () => ({ ok: false, value: "" }),
+        },
+      );
+      const finding = findings.find((f) => f.check === "canonical-vendored-npm-signpost");
+      expect(finding?.message).toBe(MIGRATE_COMPLETION_NUDGE);
+      expect(finding?.message).not.toContain(CANONICAL_UPGRADE_COMMAND);
+      const warn = lines.find((line) => line.includes("directive migrate"));
+      expect(warn).toContain("Signpost advisory:");
+      expect(warn).toContain(MIGRATE_COMPLETION_NUDGE);
+      expect(warn).not.toContain("throttle-skipped full probe");
+      expect(lines.join("")).not.toContain(CANONICAL_UPGRADE_COMMAND);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
