@@ -21,9 +21,14 @@ export function disableHostHooksInvocation(trailing = " --host <host> --confirm"
   return policyColonInvocation(DISABLE_HOST_HOOKS_SUBCOMMAND, trailing);
 }
 
-/** #4854. Same sentence on the update Removed printf. */
-export const HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS =
-  "A hook refusal in the current session is clearing because the gate was removed.";
+/** #4854. Unconfirmed disable path: exit 1, changed false, gate still in place. */
+export const HOST_HOOKS_DISABLE_DISCLOSURE_REFUSAL_CAN_CLEAR =
+  "A hook refusal in the current session can clear when the gate is removed.";
+
+/** #4854. Removed printf: registration files changed; a cached host has not. */
+export const HOST_HOOKS_REMOVED_PRINTF_REFUSAL_CAN_CLEAR =
+  "A hook refusal in the current session can clear because the gate was removed. " +
+  "The running host has to reload or relaunch before the refusal clears.";
 
 export const HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE =
   "\u26a0 Capability-cost disclosure -- disabling hostHooks for a host removes " +
@@ -31,7 +36,7 @@ export const HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE =
   "The result is tracked.\n" +
   "  \u2022 Opted-out hosts skip Directive hook deposit; leftover-free files write {}.\n" +
   "  \u2022 " +
-  HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS +
+  HOST_HOOKS_DISABLE_DISCLOSURE_REFUSAL_CAN_CLEAR +
   "\n" +
   "  \u2022 This is not a timeout or live-probe fix. Retry the gated ritual when load is the cause.\n" +
   "  \u2022 Inspect: `" +

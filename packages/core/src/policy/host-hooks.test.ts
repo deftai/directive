@@ -7,8 +7,8 @@ import {
   disableHostHooks,
   disableHostHooksInvocation,
   FIELD_HOST_HOOKS_CLI_ALIAS,
-  HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS,
   HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE,
+  HOST_HOOKS_DISABLE_DISCLOSURE_REFUSAL_CAN_CLEAR,
   inspectHostHooks,
   isHostHookDepositEnabled,
   loadHostHooksPolicyFromProject,
@@ -95,10 +95,12 @@ describe("hostHooks policy (#2752)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.changed).toBe(false);
     expect(result.stdout).toContain(HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE);
-    expect(result.stdout).toContain(HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS);
+    expect(result.stdout).toContain(HOST_HOOKS_DISABLE_DISCLOSURE_REFUSAL_CAN_CLEAR);
     expect(HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE).toContain(
-      "A hook refusal in the current session is clearing because the gate was removed.",
+      "A hook refusal in the current session can clear when the gate is removed.",
     );
+    expect(HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE).not.toContain("is clearing");
+    expect(HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE).not.toContain("was removed");
     expect(result.stdout).toContain("--confirm");
     expect(result.stdout).toContain("deft-hook pre-execution guardrails");
     expect(result.stdout).toContain("tracked");

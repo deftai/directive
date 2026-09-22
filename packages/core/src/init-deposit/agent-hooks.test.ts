@@ -17,7 +17,10 @@ import {
   isSpawnTool,
   SPAWN_TOOL_NAMES,
 } from "../hooks/tools.js";
-import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
+import {
+  DEFAULT_HOST_HOOKS_POLICY,
+  HOST_HOOKS_REMOVED_PRINTF_REFUSAL_CAN_CLEAR,
+} from "../policy/host-hooks.js";
 import {
   AGENT_HOOK_PATHS,
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
@@ -532,9 +535,12 @@ describe("writeAgentHookDeposit", () => {
     expect(printed).toContain(
       "Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out):",
     );
-    expect(printed).toContain(
-      "A hook refusal in the current session is clearing because the gate was removed.",
-    );
+    const removedRefusal =
+      "A hook refusal in the current session can clear because the gate was removed. " +
+      "The running host has to reload or relaunch before the refusal clears.";
+    expect(HOST_HOOKS_REMOVED_PRINTF_REFUSAL_CAN_CLEAR).toBe(removedRefusal);
+    expect(printed).toContain(removedRefusal);
+    expect(printed).not.toContain("is clearing");
     expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toBe("{}\n");
     expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toBe("{}\n");
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toBe("{}\n");

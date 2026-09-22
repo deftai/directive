@@ -93,7 +93,13 @@ describe("MutationLedger (#3392)", () => {
     expect(strippedLine).toBe(`stripped: ${json.stripped.join(", ")}`);
     expect(strippedLine).not.toContain("hook refusal");
     expect(text).not.toContain(
-      "A hook refusal in the current session is clearing because the gate was removed.",
+      "A hook refusal in the current session can clear when the gate is removed.",
+    );
+    expect(text).not.toContain(
+      "A hook refusal in the current session can clear because the gate was removed.",
+    );
+    expect(text).not.toContain(
+      "The running host has to reload or relaunch before the refusal clears.",
     );
   });
 

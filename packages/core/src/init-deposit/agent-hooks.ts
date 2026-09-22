@@ -10,7 +10,7 @@ import {
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
 import {
-  HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS,
+  HOST_HOOKS_REMOVED_PRINTF_REFUSAL_CAN_CLEAR,
   type HostHooksPolicy,
   isHostHookDepositEnabled,
   loadHostHooksPolicyFromProject,
@@ -444,7 +444,7 @@ export function writeAgentHookDeposit(
   }
   if (strippedPaths.length > 0) {
     io.printf(
-      `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): ${strippedPaths.join(", ")}\n${HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS}\n`,
+      `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): ${strippedPaths.join(", ")}\n${HOST_HOOKS_REMOVED_PRINTF_REFUSAL_CAN_CLEAR}\n`,
     );
   }
   if (changedPaths.length === 0 && strippedPaths.length === 0 && adaptersRemoved === 0) {
