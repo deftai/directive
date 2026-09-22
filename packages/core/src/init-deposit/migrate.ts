@@ -26,7 +26,8 @@
  * Refs #1941, #1912 (freeze prerequisite b), #1933 (never-first-start), #1670.
  */
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -81,8 +82,8 @@ export interface MigrateSeams {
    */
   backupRootDir?: () => string;
   /**
-   * Backup bytes. Default writes the file directly. Do not route this through
-   * containedWrite rooted at the project — that seam refuses the cache and temp roots.
+   * Backup bytes. Default is containedWrite rooted at the backup directory,
+   * not the project. A project root refuses the cache and temp paths.
    */
   writeBackup?: (path: string, text: string) => void;
 }
@@ -112,6 +113,29 @@ function defaultResolveEngine(): string | null {
 /** Filesystem-safe rendering of an ISO-8601 timestamp for a backup suffix. */
 function backupSuffix(nowIso: string): string {
   return nowIso.replace(/:/g, "-");
+}
+
+/** Stable per-project key so one shared backup directory cannot collide (#4812). */
+function projectBackupKey(projectRoot: string): string {
+  const abs = resolve(projectRoot);
+  const canonical = process.platform === "win32" ? abs.toLowerCase() : abs;
+  return createHash("sha256").update(canonical).digest("hex").slice(0, 12);
+}
+
+/** `VERSION.bak.<project-key>.<suffix>`. The key is not a path and not in-tree. */
+export function migrateVersionBackupName(projectRoot: string, suffix: string): string {
+  return `VERSION.bak.${projectBackupKey(projectRoot)}.${suffix}`;
+}
+
+function unusedBackupFile(dir: string, baseName: string): string {
+  const first = join(dir, baseName);
+  if (!existsSync(first)) return first;
+  const pid = process.pid;
+  for (let n = 1; n < 10000; n += 1) {
+    const candidate = join(dir, `${baseName}.${pid}.${n}`);
+    if (!existsSync(candidate)) return candidate;
+  }
+  return join(dir, `${baseName}.${pid}.${Date.now()}`);
 }
 
 function userCacheDir(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string | null {
@@ -157,7 +181,7 @@ export function resolveMigrateBackupFile(
   suffix: string,
   backupRootDir?: () => string,
 ): string {
-  const fileName = `VERSION.bak.${suffix}`;
+  const fileName = migrateVersionBackupName(projectRoot, suffix);
   const roots = [
     backupRootDir ?? (() => defaultVersionBackupRootDir()),
     () => join(tmpdir(), "deft-backups"),
@@ -171,7 +195,7 @@ export function resolveMigrateBackupFile(
     } catch {
       continue;
     }
-    const candidate = join(dir, fileName);
+    const candidate = unusedBackupFile(dir, fileName);
     if (pathIsInside(projectRoot, candidate)) continue;
     return candidate;
   }
@@ -179,8 +203,15 @@ export function resolveMigrateBackupFile(
 }
 
 function writeBackupFile(path: string, text: string): void {
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, text, "utf8");
+  const root = dirname(path);
+  mkdirSync(root, { recursive: true });
+  // Root is the backup directory, not the project. create refuses an overwrite.
+  containedWrite({
+    root,
+    target: path,
+    data: text,
+    mode: "create",
+  });
 }
 
 /**

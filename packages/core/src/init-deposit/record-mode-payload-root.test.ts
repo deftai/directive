@@ -225,7 +225,7 @@ describe("directive update record-mode payload-root (#4446)", () => {
     );
     expect(
       mutations.deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md")),
-    ).toBe(true);
+    ).toBe(false);
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("STALE-DEST-TEMPLATE-4446");
     expect(readFileSync(destOnly, "utf8")).toBe("EVIL\n");
     const liveOut: string[] = [];

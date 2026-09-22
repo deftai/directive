@@ -372,6 +372,61 @@ describe("doctor CLI", () => {
     expect(renderDepositFileSetHygieneLine(root)).toContain("#2804");
   });
 
+  it("keeps package-absent files diagnostic unless --full (#4812)", async () => {
+    const root = makeRoot("doctor-absent-diagnostic-");
+    makeLifecycleDirs(root);
+    seedContentPackage(root);
+    mkdirSync(join(root, ".deft", "core", "cmd", "deft-install"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "cmd", "deft-install", "main.go"),
+      "package main\n",
+      "utf8",
+    );
+    vi.mocked(cmdDoctor).mockImplementation((_args, seams) => {
+      const hygiene = (seams as { depositHygiene?: { failed?: boolean } } | undefined)
+        ?.depositHygiene;
+      return hygiene?.failed === true ? 1 : 0;
+    });
+    const out = await captureStdout(async () => {
+      expect(await run(["--project-root", root])).toBe(0);
+    });
+    expect(out).toContain("Deposit hygiene: fail");
+    expect(cmdDoctor).toHaveBeenCalledWith(
+      ["--project-root", root],
+      expect.objectContaining({
+        depositHygiene: expect.objectContaining({
+          failed: false,
+          absent: expect.arrayContaining([expect.stringContaining("main.go")]),
+        }),
+      }),
+    );
+  });
+
+  it("passes diagnostic hygiene into non-full --json (#4812)", async () => {
+    const root = makeRoot("doctor-json-diagnostic-");
+    makeLifecycleDirs(root);
+    seedContentPackage(root);
+    mkdirSync(join(root, ".deft", "core", "cmd", "deft-install"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "cmd", "deft-install", "main.go"),
+      "package main\n",
+      "utf8",
+    );
+    const out = await captureStdout(async () => {
+      expect(await run(["--json", "--project-root", root])).toBe(0);
+    });
+    expect(out).not.toContain("Deposit hygiene:");
+    expect(cmdDoctor).toHaveBeenCalledWith(
+      ["--json", "--project-root", root],
+      expect.objectContaining({
+        depositHygiene: expect.objectContaining({
+          failed: false,
+          absent: expect.arrayContaining([expect.stringContaining("main.go")]),
+        }),
+      }),
+    );
+  });
+
   it("returns exit 1 on --full when package-absent deposit files remain (#2804)", async () => {
     const root = makeRoot("doctor-full-fail-");
     makeLifecycleDirs(root);

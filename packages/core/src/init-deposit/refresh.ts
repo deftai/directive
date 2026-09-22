@@ -1279,6 +1279,10 @@ function emitGitRefusal(
   const message = decision.message ?? "directive update: Git preflight refused";
   io.printf(`${message}\n`);
   printMeasuredDirt(io, decision.preflight);
+  const reported = dryRun
+    ? omitReportedDeletesStillPresent(destMutations, (rel) => existsSync(join(projectDir, rel)))
+        .summary
+    : destMutations;
   if (options.jsonOut) {
     options.writeOut(
       `${JSON.stringify(
@@ -1292,7 +1296,7 @@ function emitGitRefusal(
           ...gitPreflightJsonFields(decision.preflight),
           ...(options.allowDirtyNoStage === true ? { allow_dirty_no_stage: true } : {}),
           ...(dryRun ? { dry_run: true } : {}),
-          mutations: mutationSummaryJson(destMutations),
+          mutations: mutationSummaryJson(reported),
         },
         null,
         2,
@@ -1322,7 +1326,11 @@ async function emitDryRunPlan(
     io.printf(`${skewHeadline}\n`);
   }
   printMeasuredDirt(io, gitPreflight);
-  printDestPlanLines(io, classification, destResult.mutations);
+  // Record mode did not unlink. Do not list a delete that is still on disk.
+  const mutations = omitReportedDeletesStillPresent(destResult.mutations, (rel) =>
+    existsSync(join(projectDir, rel)),
+  ).summary;
+  printDestPlanLines(io, classification, mutations);
   if (options.jsonOut) {
     options.writeOut(
       `${JSON.stringify(
@@ -1338,7 +1346,7 @@ async function emitDryRunPlan(
           deposit_refresh_pending: refreshPending,
           next_action: resolutionPlan.nextAction,
           warnings: resolutionPlan.warnings,
-          mutations: mutationSummaryJson(destResult.mutations),
+          mutations: mutationSummaryJson(mutations),
           exclusions: [...UPDATE_DRY_RUN_EXCLUSIONS],
           ...gitPreflightJsonFields(gitPreflight),
           ...(options.allowDirtyNoStage === true

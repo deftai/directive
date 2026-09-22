@@ -7,6 +7,7 @@ import {
   defaultVersionBackupRootDir,
   detectCanonicalVendoredManifest,
   isNpmManaged,
+  migrateVersionBackupName,
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
   printMigrateNudgeIfNeeded,
@@ -114,7 +115,7 @@ describe("runMigrate three-state", () => {
     expect(manifest.ref).toBe("v0.40.0");
     expect(manifest.sha).toBe("deadbeefcafef00ddeadbeefcafef00ddeadbeef");
 
-    const backupFile = join(backupRoot, "VERSION.bak.2026-06-24T21-20-43Z");
+    const backupFile = join(backupRoot, migrateVersionBackupName(root, "2026-06-24T21-20-43Z"));
     expect(result.backupPath).toBe(backupFile);
     expect(existsSync(backupFile)).toBe(true);
     expect(existsSync(join(root, ".deft", "core", "VERSION.bak.2026-06-24T21-20-43Z"))).toBe(false);
@@ -340,5 +341,42 @@ describe("VERSION backup stays outside the deposit (#4812)", () => {
     );
     expect(existsSync(join(inTree, "VERSION.bak.2026-06-24T21-20-43Z"))).toBe(false);
     expect(readFileSync(backup, "utf8")).toBe(VENDORED_MANIFEST);
+  });
+
+  it("keeps two projects in the same second from sharing one backup (#4812)", () => {
+    const firstRoot = makeProject(VENDORED_MANIFEST);
+    const secondRoot = makeProject(`${VENDORED_MANIFEST}note: 'other'\n`);
+    const backupRoot = outsideBackupRoot(firstRoot);
+    const suffix = "2026-06-24T21-20-43Z";
+    const seams = {
+      resolveEngine: enginePresent,
+      nowIso: () => "2026-06-24T21:20:43Z",
+      backupRootDir: () => backupRoot,
+    };
+    const first = runMigrate(firstRoot, seams);
+    const second = runMigrate(secondRoot, seams);
+    expect(first.backupPath).toBe(join(backupRoot, migrateVersionBackupName(firstRoot, suffix)));
+    expect(second.backupPath).toBe(join(backupRoot, migrateVersionBackupName(secondRoot, suffix)));
+    expect(first.backupPath).not.toBe(second.backupPath);
+    expect(readFileSync(first.backupPath ?? "", "utf8")).toBe(VENDORED_MANIFEST);
+    expect(readFileSync(second.backupPath ?? "", "utf8")).toContain("note: 'other'");
+  });
+
+  it("does not overwrite an existing backup for the same project and second (#4812)", () => {
+    const root = makeProject(VENDORED_MANIFEST);
+    const backupRoot = outsideBackupRoot(root);
+    const existing = join(backupRoot, migrateVersionBackupName(root, "2026-06-24T21-20-43Z"));
+    mkdirSync(backupRoot, { recursive: true });
+    writeFileSync(existing, "KEEP\n", "utf8");
+    const result = runMigrate(root, {
+      resolveEngine: enginePresent,
+      nowIso: () => "2026-06-24T21:20:43Z",
+      backupRootDir: () => backupRoot,
+    });
+    expect(readFileSync(existing, "utf8")).toBe("KEEP\n");
+    expect(result.backupPath).not.toBe(existing);
+    expect(existsSync(result.backupPath ?? "")).toBe(true);
+    expect(readFileSync(result.backupPath ?? "", "utf8")).toBe(VENDORED_MANIFEST);
+    expect(relative(resolve(root), resolve(result.backupPath ?? "")).startsWith("..")).toBe(true);
   });
 });

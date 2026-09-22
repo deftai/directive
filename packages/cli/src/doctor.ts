@@ -156,7 +156,9 @@ export async function run(argv: string[]): Promise<number> {
       installedRoot,
     });
     const closure = evaluateInstalledDepositClosure(projectRoot);
-    const fileSetFailed = !depositResult.skipped && depositResult.absent.length > 0;
+    // Package-absent files stay diagnostic unless --full. A real hygiene failure
+    // (full file-set or declared closure) is the one status cmdDoctor shares.
+    const fileSetFailed = flags.full && !depositResult.skipped && depositResult.absent.length > 0;
     const closureFailed =
       flags.full && !closure.skipped && (closure.missing.length > 0 || closure.error !== null);
     const line = renderDepositFileSetHygieneLine(projectRoot, depositResult);

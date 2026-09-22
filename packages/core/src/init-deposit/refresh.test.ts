@@ -1666,7 +1666,8 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(hashFixtureTree(project)).toBe(before);
     const payload = parseJsonObject(out.join(""));
     const deleted = (payload.mutations as { deleted: string[] }).deleted;
-    expect(deleted).toContain("xbrief/vbrief.md");
+    expect(deleted).not.toContain("xbrief/vbrief.md");
+    expect(existsSync(staleNarrative)).toBe(true);
     expect(payload.exclusions).toEqual([...UPDATE_DRY_RUN_EXCLUSIONS]);
   });
 
@@ -1720,7 +1721,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toBe(beforeAgents);
   });
 
-  it("skewed dry-run records dest-only core deletes without failing reconcile (ADR-004)", async () => {
+  it("skewed dry-run does not list an unperformed dest-only delete (#4812)", async () => {
     const project = freshRoot("update-dryrun-destonly-");
     const contentRoot = installFakeContentPackage(project, "0.103.0");
     writeInitializedProject(project, { contentVersion: "0.78.0", pinVersion: "0.103.0" });
@@ -1748,7 +1749,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(readFileSync(destOnly, "utf8")).toBe(before);
     const payload = parseJsonObject(out.join(""));
     const deleted = (payload.mutations as { deleted: string[] }).deleted;
-    expect(deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md"))).toBe(true);
+    expect(deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md"))).toBe(false);
   });
 
   it("dry-run prints a plan when dest names pruned helpers and incoming is C3-clean (#4389)", async () => {
