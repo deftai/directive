@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4819",
-    "updated": "2026-09-22T00:12:38Z"
+    "updated": "2026-09-22T15:14:35Z"
   },
   "plan": {
     "title": "leftover(#4814): add .js to forward-coverage SOURCE_EXTENSIONS",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "leftover(#4814): add .js to forward-coverage SOURCE_EXTENSIONS",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4819",
@@ -16,18 +16,40 @@
     "items": [
       {
         "title": "Include .js in the correspondence triple: SOURCE_EXTENSIONS plus isTestFile plus expectedTestBasenames (.test.js / .spec.js). Reuse DEFAULT_TEST_FILE_PATTERNS / intent-constraint JS names. Do not bind the Desired OR. Do not add .js to the set alone.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/forward-coverage/evaluate.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4853"
+        }
       },
       {
         "title": "Fixture the UAT shape: staged src/app.js plus src/untested.js exit 1; colocated .test.js / .spec.js exit 0.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Scott deferred this clause on 2026-09-22. The landed proof is the unit-test fixture in evaluate.test.ts (PR 4853, squash a7379670e). The clause text is read as a UAT axis, and that unit test cannot satisfy UAT. No UAT probe was part of the shipped change.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedVia": "operator instruction in grok session 2026-09-22"
+          },
+          "recorded_at": "2026-09-22T12:00:00Z"
+        }
       },
       {
         "title": "Do not recut #4814 P1/P2. Do not grow harvest to .mjs/.cjs/.jsx unless a later leftover says so. Do not invent a second JS list.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/forward-coverage/evaluate.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4853"
+        }
       }
     ],
     "tags": [
@@ -298,9 +320,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "a6a278514009b75b98f5e31f5392fb799778f1020ef1a7ef4a32b62b8652e460"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4853,
+        "prBase": null,
+        "mergeCommit": "a7379670e1a87a3f32b0f154ef6390bc4d35473d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "aba2407f86bbef9b21f1b07d85ce396886d6bef5",
+        "verifiedAt": "2026-09-22T15:14:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T15:14:35Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T15:14:35Z"
       }
     },
     "id": "github.issue.5518433214",
-    "updated": "2026-09-22T00:12:38Z"
+    "updated": "2026-09-22T15:14:35Z"
   }
 }
