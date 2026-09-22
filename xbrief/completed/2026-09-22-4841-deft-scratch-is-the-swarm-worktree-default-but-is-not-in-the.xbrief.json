@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4841",
-    "updated": "2026-09-22T00:12:30Z"
+    "updated": "2026-09-22T14:21:10Z"
   },
   "plan": {
     "title": ".deft-scratch/ is the swarm worktree default but is not in the framework-generated .gitignore",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": ".deft-scratch/ is the swarm worktree default but is not in the framework-generated .gitignore",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4841",
@@ -16,23 +16,47 @@
     "items": [
       {
         "title": "Add `.deft-scratch/` to `CANONICAL_GITIGNORE_BASELINE` and `canonicalGitignoreLines`, same shape as `.claude/worktrees/`.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4850"
+        }
       },
       {
         "title": "Lock the TypeScript list with `toContain(\".deft-scratch/\")`. The existing subset test then requires the Go list to carry it. Init, update, and `EnsureGitignoreLines` pick the line up from those arrays.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4850"
+        }
       },
       {
         "title": "Acceptance is an untracked path: once the line is present, `git add -A` does not stage `.deft-scratch/worktrees/<story>`. A path already in the index stays until `git rm --cached`. Keep that removal off `directive update`.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4850"
+        }
       },
       {
         "title": "Do not add `temp/` to either baseline. Do not register `.deft-scratch` on `RUNTIME_WRITER_PATHS_LOCAL_CACHE`. Do not move the swarm default outside the repository.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/init-deposit/gitignore.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4850"
+        }
       }
     ],
     "tags": [
@@ -258,6 +282,29 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "679d4618f9b87d4d682fc6d9527ec8c390e06294ed09767b05b223a12a8b21e4"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4850,
+        "prBase": null,
+        "mergeCommit": "4bc8e09574dc55660e06daf74de41c3d07c65d8b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:21:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:21:10Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:21:10Z"
       }
     },
     "acceptance": {
@@ -298,6 +345,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5529171202",
-    "updated": "2026-09-22T00:12:30Z"
+    "updated": "2026-09-22T14:21:10Z"
   }
 }
