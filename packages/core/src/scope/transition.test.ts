@@ -92,6 +92,28 @@ describe("runTransition", () => {
     expect(activated.message).toContain("(D7)");
   });
 
+  it("refuses promote and activate of a dotted slug (#4844)", () => {
+    root = makeRepo();
+    const proposed = writeVbrief(
+      root,
+      "proposed",
+      "proposed",
+      "2026-09-15-m0.5-discovery.xbrief.json",
+    );
+    const promoted = runTransition("promote", proposed);
+    expect(promoted.ok).toBe(false);
+    expect(promoted.message).toContain("(D7)");
+    const pending = writeVbrief(
+      root,
+      "pending",
+      "pending",
+      "2026-09-15-m0.5-discovery.xbrief.json",
+    );
+    const activated = runTransition("activate", pending);
+    expect(activated.ok).toBe(false);
+    expect(activated.message).toContain("(D7)");
+  });
+
   it("promotes proposed to pending", () => {
     root = makeRepo();
     const file = writeVbrief(root, "proposed", "proposed");

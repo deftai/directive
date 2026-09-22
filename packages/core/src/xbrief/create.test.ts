@@ -306,6 +306,23 @@ describe("CLI entry points (#3057)", () => {
     expect(notes.exitCode).toBe(0);
   });
 
+  it("refuses a dotted slug when --out is a lifecycle scope path (#4844)", () => {
+    const root = freshRoot("xbrief-d7-dot-");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const created = createXbrief({
+      format: "json",
+      out: "xbrief/proposed/2026-09-15-m0.5-discovery",
+      style: "scope",
+      title: "M0.5",
+      projectRoot: root,
+    });
+    expect(created.exitCode).toBe(1);
+    expect(created.stderr).toContain("(D7)");
+    expect(
+      existsSync(join(root, "xbrief", "proposed", "2026-09-15-m0.5-discovery.xbrief.json")),
+    ).toBe(false);
+  });
+
   it("rejects empty path and project-root stem", () => {
     expect(() => expandUserPath("")).toThrow(XbriefPathError);
     const root = freshRoot("xbrief-root-stem-");

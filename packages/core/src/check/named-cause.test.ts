@@ -277,4 +277,44 @@ describe("named-cause gate failures (#3282)", () => {
     expect(msg.cause).not.toMatch(/engine:_ts-build/);
     expect(msg.cause).not.toMatch(/set -eu/);
   });
+
+  it("names the non-renaming scope for a vbrief:validate basename miss (#4844)", () => {
+    const msg = formatNamedCauseFailure({
+      gateId: "vbrief:validate",
+      exitCode: 1,
+      stdout:
+        "FAIL: xbrief/completed/2026-09-11-M0-01-monorepo-scaffold.xbrief.json: filename '2026-09-11-M0-01-monorepo-scaffold.xbrief.json' does not match convention YYYY-MM-DD-descriptive-slug.xbrief.json (D7)\n",
+    });
+    expect(msg.remedy).toBe(
+      "An unchanged completed name that already landed does not fail this gate. " +
+        "A basename the change set adds or renames stays a hard filename error, including dots and uppercase, on create, promote, activate, and on that change-set name. " +
+        "Do not edit JSON for a basename miss, and do not rename landed records.",
+    );
+    expect(msg.remedy).not.toContain("schema");
+  });
+
+  it("keeps the basename remedy when the D7 marker is truncated off the cause (#4844)", () => {
+    const longPath = `${"x".repeat(300)}/completed/2026-09-11-M0-01-monorepo-scaffold.xbrief.json`;
+    const msg = formatNamedCauseFailure({
+      gateId: "vbrief:validate",
+      exitCode: 1,
+      stdout:
+        `FAIL: ${longPath}: filename '2026-09-11-M0-01-monorepo-scaffold.xbrief.json' ` +
+        "does not match convention YYYY-MM-DD-descriptive-slug.xbrief.json (D7)\n",
+    });
+    expect(msg.cause.length).toBeLessThanOrEqual(240);
+    expect(msg.cause).not.toContain("(D7)");
+    expect(msg.remedy).toContain("already landed");
+    expect(msg.remedy).not.toContain("schema");
+  });
+
+  it("keeps the schema remedy when vbrief:validate did not report a basename miss (#4844)", () => {
+    const msg = formatNamedCauseFailure({
+      gateId: "vbrief:validate",
+      exitCode: 1,
+      stdout:
+        "FAIL: xbrief/active/2026-01-01-good.xbrief.json: 'plan' missing required field 'items'\n",
+    });
+    expect(msg.remedy).toBe("Fix xBRIEF/vBRIEF schema errors reported by the gate");
+  });
 });

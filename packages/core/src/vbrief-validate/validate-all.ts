@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { hasArtifactSuffix, MIGRATED_ARTIFACT_DIR } from "../layout/resolve.js";
 import { validateCreatedUpdatedChronology } from "./chronology.js";
 import { LIFECYCLE_FOLDERS } from "./constants.js";
@@ -7,6 +7,7 @@ import { validateNoRootDecompositionDrafts } from "./decomposition.js";
 import { validateEpicStoryLinks } from "./epic-links.js";
 import { validateFilename } from "./filename.js";
 import { validateFolderStatus } from "./folder-status.js";
+import { landedUnchangedCompletedPaths } from "./landed-filename.js";
 import { validateOriginProvenance } from "./origin.js";
 import { validateDeprecatedPlaceholders } from "./placeholders.js";
 import { validateProjectDefinition } from "./project-definition.js";
@@ -33,6 +34,29 @@ function normalizeVbriefDir(vbriefDir: string): string {
     end -= 1;
   }
   return forward.slice(0, end);
+}
+
+function isCompletedDisplay(display: string): boolean {
+  const parts = display.split("/");
+  return parts.length >= 2 && parts[parts.length - 2] === "completed";
+}
+
+/**
+ * D7 only. An unchanged completed name that already landed is not a check
+ * error (#4844). Other folders, and a completed name the change set adds
+ * or renames, stay hard. Null discovery does not exempt.
+ */
+function isLandedUnchangedCompleted(
+  vbriefDir: string,
+  absolute: string,
+  landedCompleted: ReadonlySet<string> | null,
+): boolean {
+  if (landedCompleted === null) return false;
+  const folder = basename(dirname(absolute));
+  if (folder !== "completed") return false;
+  const rootName = basename(normalizeVbriefDir(vbriefDir));
+  if (rootName !== "xbrief" && rootName !== "vbrief") return false;
+  return landedCompleted.has(`${rootName}/completed/${basename(absolute)}`);
 }
 
 function toDisplayPath(vbriefDir: string, folder: string, name: string): string {
@@ -88,6 +112,9 @@ export function validateAll(
 
   const scopeFiles = discoverVbriefs(vbriefDir);
   errors.push(...validateNoRootDecompositionDrafts(vbriefDir));
+  const landedCompleted = scopeFiles.some((file) => isCompletedDisplay(file.display))
+    ? landedUnchangedCompletedPaths(dirname(resolve(vbriefDir)))
+    : null;
 
   for (const { display, absolute } of scopeFiles) {
     const { data, error } = loadVbrief(absolute);
@@ -104,7 +131,13 @@ export function validateAll(
     resolvedToOriginal.set(resolved, display);
 
     errors.push(...validateVbriefSchema(data, display, warnings));
-    errors.push(...validateFilename(display));
+    const filenameErrors = validateFilename(display);
+    if (
+      filenameErrors.length > 0 &&
+      !isLandedUnchangedCompleted(vbriefDir, absolute, landedCompleted)
+    ) {
+      errors.push(...filenameErrors);
+    }
     errors.push(...validateFolderStatus(display, data, vbriefDir));
     warnings.push(...validateOriginProvenance(display, data, vbriefDir, strictOriginTypes));
     warnings.push(...validateCreatedUpdatedChronology(data, display));
