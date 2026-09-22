@@ -286,6 +286,55 @@ describe("finalizeCohort", () => {
     vi.mocked(runTransition).mockClear();
   });
 
+  it("dry-run reports FINALIZE INCOMPLETE when acceptance evidence is missing (#4839)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-dry-"));
+    const storyPath = writeActiveStory(project, "story-dry", 4839);
+    const before = readFileSync(storyPath, "utf8");
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      dryRun: true,
+      noCommit: true,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stdout).toContain("FINALIZE INCOMPLETE");
+    expect(result.stdout).not.toContain("FINALIZE CLEAN");
+    expect(result.stdout).toContain("#3240");
+    expect(result.stdout).toContain("[FAILED]");
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("dry-run reports FINALIZE CLEAN when acceptance evidence passes (#4839)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-dry-ok-"));
+    const storyPath = writeActiveStory(project, "story-dry-ok", 4839);
+    const doc = JSON.parse(readFileSync(storyPath, "utf8")) as {
+      plan: { items: Array<Record<string, unknown>> };
+    };
+    const item = doc.plan.items[0];
+    if (item !== undefined) {
+      item["x-directive/evidence"] = {
+        kind: "test",
+        pointer: "packages/core/src/swarm/finalize-cohort.test.ts",
+        recorded_at: "2026-09-21T00:00:00Z",
+        recorded_by: "vitest",
+      };
+    }
+    writeFileSync(storyPath, JSON.stringify(doc), "utf8");
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      dryRun: true,
+      noCommit: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("FINALIZE CLEAN");
+    expect(result.stdout).toContain("would complete");
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("finalizes merged PR stories to completed via explicit --stories", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-"));
     const storyPath = writeActiveStory(project, "story-a", 2225);

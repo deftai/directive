@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,6 +21,17 @@ import {
   retractLaunchOccupancyRecord,
   swarmLaunch,
 } from "./launch.js";
+
+function acceptanceEvidence(pointer: string): Record<string, unknown> {
+  return {
+    "x-directive/evidence": {
+      kind: "test",
+      pointer,
+      recorded_at: "2026-09-21T00:00:00Z",
+      recorded_by: "vitest",
+    },
+  };
+}
 
 function writeActiveStory(project: string, storyId: string): string {
   const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
@@ -129,13 +140,99 @@ describe("complete cohort live sweep with mocked transition", () => {
           title: "child-act",
           status: "running",
           planRef: "active/parent-act.xbrief.json",
-          items: [{ id: "i1", title: "t", status: "pending" }],
+          items: [
+            {
+              id: "i1",
+              title: "t",
+              status: "pending",
+              ...acceptanceEvidence("packages/core/src/swarm/complete-cohort-sweep.test.ts"),
+            },
+          ],
         },
       }),
       "utf8",
     );
     const sweep = sweepCohort([childPath], project, true);
-    expect(sweep.parents.some((p) => p.action === "complete")).toBe(true);
+    expect(sweep.stories[0]?.ok).toBe(true);
+    expect(sweep.stories[0]?.action).toBe("complete");
+    expect(sweep.parents.some((p) => p.action === "complete" && p.ok)).toBe(true);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("dry-run fails an active story that lacks acceptance evidence (#4839)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-dry-miss-"));
+    const storyPath = writeActiveStory(project, "miss-a");
+    const raw = JSON.parse(readFileSync(storyPath, "utf8")) as {
+      plan: { items: Array<Record<string, unknown>> };
+    };
+    delete raw.plan.items[0]?.["x-directive/evidence"];
+    writeFileSync(storyPath, JSON.stringify(raw), "utf8");
+    const before = readFileSync(storyPath, "utf8");
+    const sweep = sweepCohort([storyPath], project, true);
+    expect(sweep.ok).toBe(false);
+    expect(sweep.stories[0]?.action).toBe("failed");
+    expect(sweep.stories[0]?.ok).toBe(false);
+    expect(sweep.stories[0]?.detail).toContain(
+      "Acceptance evidence required for scope:complete (#3240 / #3305)",
+    );
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("dry-run fails an already-active parent after persist on a clone (#4839)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-dry-parent-"));
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    const childPath = join(project, "xbrief", "completed", "child-gap.xbrief.json");
+    writeFileSync(
+      childPath,
+      JSON.stringify({
+        plan: {
+          id: "child-gap",
+          title: "child-gap",
+          status: "completed",
+          planRef: "active/parent-gap.xbrief.json",
+          items: [
+            {
+              id: "i1",
+              title: "t",
+              status: "done",
+              ...acceptanceEvidence("packages/core/src/swarm/complete-cohort-sweep.test.ts"),
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const parentPath = join(project, "xbrief", "active", "parent-gap.xbrief.json");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      parentPath,
+      JSON.stringify({
+        plan: {
+          id: "parent-gap",
+          title: "Parent gap",
+          status: "running",
+          references: [{ type: "x-vbrief/plan", uri: "completed/child-gap.xbrief.json" }],
+          metadata: { kind: "epic" },
+          acceptance: { clauses: [{ id: 1, text: "clause one" }] },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const before = readFileSync(parentPath, "utf8");
+    const sweep = sweepCohort([childPath], project, true);
+    const parent = sweep.parents.find((p) => p.path.replace(/\\/g, "/").includes("parent-gap"));
+    expect(parent?.action).toBe("failed");
+    expect(parent?.ok).toBe(false);
+    expect(parent?.detail).toContain(
+      "Acceptance evidence required for scope:complete (#3240 / #3305)",
+    );
+    expect(readFileSync(parentPath, "utf8")).toBe(before);
+    expect(before).not.toContain("clause.1");
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     rmSync(project, { recursive: true, force: true });
   });
 

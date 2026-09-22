@@ -143,6 +143,22 @@ function writeReadyStory(
   return full;
 }
 
+function withItemEvidence(storyPath: string): string {
+  const doc = JSON.parse(readFileSync(storyPath, "utf8")) as {
+    plan: { items?: Array<Record<string, unknown>> };
+  };
+  for (const item of doc.plan.items ?? []) {
+    item["x-directive/evidence"] = {
+      kind: "test",
+      pointer: "packages/core/src/swarm/swarm-deep-coverage.test.ts",
+      recorded_at: "2026-09-21T00:00:00Z",
+      recorded_by: "vitest",
+    };
+  }
+  writeFileSync(storyPath, JSON.stringify(doc), "utf8");
+  return storyPath;
+}
+
 function stubLaunchGates() {
   return {
     preflightGate: () => ({ exitCode: 0, message: "ok" }),
@@ -494,7 +510,7 @@ describe("swarm complete-cohort deep coverage", () => {
   it("dry-run sweeps parent epic after child settles", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-parent-"));
     mkdirSync(join(project, "xbrief", "pending"), { recursive: true });
-    const childPath = writeReadyStory(project, "child-s", 8070);
+    const childPath = withItemEvidence(writeReadyStory(project, "child-s", 8070));
     const parentPath = join(project, "xbrief", "pending", "parent-e.xbrief.json");
     writeFileSync(
       parentPath,
@@ -551,21 +567,48 @@ describe("swarm complete-cohort deep coverage", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-cctext-"));
     const storyPath = writeReadyStory(project, "cctext-a", 8080);
     const result = completeCohort({ projectRoot: project, stories: [storyPath], dryRun: true });
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain("SWEEP INCOMPLETE");
+    expect(result.stdout).toContain("#3240");
+    expect(result.stdout).not.toContain("SWEEP CLEAN");
+    expect(completeCohortMain(["--project-root", project, "--dry-run", storyPath])).toBe(1);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("completeCohort text mode reports SWEEP CLEAN when evidence is present", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-cctext-ok-"));
+    const storyPath = withItemEvidence(writeReadyStory(project, "cctext-ok", 8082));
+    const result = completeCohort({ projectRoot: project, stories: [storyPath], dryRun: true });
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("SWEEP CLEAN");
-    expect(completeCohortMain(["--project-root", project, "--dry-run", storyPath])).toBe(0);
+    expect(result.stdout).toContain("would complete");
     rmSync(project, { recursive: true, force: true });
   });
 
   it("dry-run sweep completes active story", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-sweep-"));
     const storyPath = writeReadyStory(project, "sweep-a", 8040);
+    const before = readFileSync(storyPath, "utf8");
+    const sweep = sweepCohort([storyPath], project, true);
+    expect(sweep.ok).toBe(false);
+    expect(sweep.stories[0]?.action).toBe("failed");
+    expect(sweep.stories[0]?.ok).toBe(false);
+    expect(sweep.stories[0]?.detail).toContain("#3240");
+    const text = renderSweepText(sweep);
+    expect(text).toContain("DRY-RUN");
+    expect(text).toContain("SWEEP INCOMPLETE");
+    expect(sweepResultToDict(sweep).ok).toBe(false);
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("dry-run sweep completes active story when evidence is present", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-sweep-ok-"));
+    const storyPath = withItemEvidence(writeReadyStory(project, "sweep-ok", 8042));
     const sweep = sweepCohort([storyPath], project, true);
     expect(sweep.ok).toBe(true);
     expect(sweep.stories[0]?.action).toBe("complete");
-    const text = renderSweepText(sweep);
-    expect(text).toContain("DRY-RUN");
-    expect(sweepResultToDict(sweep).ok).toBe(true);
+    expect(sweep.stories[0]?.detail).toBe("would complete active/ -> completed/");
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -586,7 +629,7 @@ describe("swarm complete-cohort deep coverage", () => {
 
   it("completeCohort json mode with cohort glob", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-ccjson-"));
-    const storyPath = writeReadyStory(project, "ccjson-a", 8050);
+    const storyPath = withItemEvidence(writeReadyStory(project, "ccjson-a", 8050));
     const result = completeCohort({
       projectRoot: project,
       cohortGlobs: ["xbrief/active/*.xbrief.json"],

@@ -1,6 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
+import {
+  evaluateAcceptanceEvidenceGate,
+  persistClauseKeyedPendingItems,
+} from "../scope/acceptance-evidence.js";
 import { detectLifecycleFolder } from "../scope/decomposed-refs.js";
 import {
   classifyStoredDeliveryDisposition,
@@ -227,6 +231,26 @@ function parentCandidatesFrom(plan: Record<string, unknown>, vbriefDir: string):
   return out;
 }
 
+/**
+ * #3240 on a clone. Persist mutates items in place; the clone is not written.
+ * Derivation stays on the pending folder (#4839).
+ */
+function dryRunAcceptanceEvidenceGate(
+  path: string,
+): { ok: true } | { ok: false; detail: string } {
+  const plan = loadPlan(path);
+  if (plan === null) {
+    return { ok: false, detail: `cannot read plan for acceptance evidence gate: ${path}` };
+  }
+  const clone = structuredClone(plan);
+  persistClauseKeyedPendingItems(clone);
+  const gate = evaluateAcceptanceEvidenceGate(clone);
+  if (!gate.ok) {
+    return { ok: false, detail: gate.message };
+  }
+  return { ok: true };
+}
+
 function transitionOptionsFor(
   storyPath: string,
   delivery: CohortDeliveryContext | null | undefined,
@@ -289,6 +313,16 @@ function completeStory(args: CompleteStoryArgs): TransitionRecord {
   }
 
   if (dryRun) {
+    const gate = dryRunAcceptanceEvidenceGate(storyPath);
+    if (!gate.ok) {
+      return {
+        kind: "story",
+        path: relpath,
+        action: "failed",
+        ok: false,
+        detail: gate.detail,
+      };
+    }
     settled.add(resolve(storyPath));
     return {
       kind: "story",
@@ -361,6 +395,18 @@ function completeParent(args: CompleteParentArgs): TransitionRecord {
   }
 
   if (dryRun) {
+    if (folder === "active") {
+      const gate = dryRunAcceptanceEvidenceGate(parentPath);
+      if (!gate.ok) {
+        return {
+          kind: "epic",
+          path: relpath,
+          action: "failed",
+          ok: false,
+          detail: gate.detail,
+        };
+      }
+    }
     settled.add(resolve(parentPath));
     const action = folder === "pending" ? "activate+complete" : "complete";
     return {
