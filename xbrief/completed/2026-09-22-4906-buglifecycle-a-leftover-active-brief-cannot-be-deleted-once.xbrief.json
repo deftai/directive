@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4906",
-    "updated": "2026-09-22T16:47:53Z"
+    "updated": "2026-09-22T18:49:35Z"
   },
   "plan": {
     "title": "bug(lifecycle): a leftover active brief cannot be deleted once its completed twin is already on the base",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(lifecycle): a leftover active brief cannot be deleted once its completed twin is already on the base",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4906",
@@ -16,43 +16,91 @@
     "items": [
       {
         "title": "Do not authorize a lone deletion of active/ from merge-base presence plus matching title and origin.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       },
       {
         "title": "Admit a Modified completed/ file whose plan carries a complete lifecycleWrite, whose pairingKey and planIdentity match the deleted active source, and whose plan passes transitionWriteFitsFolder for completed. Scan that M with the same stamp check the Added path already uses.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       },
       {
         "title": "The cleanup diff is M of completed/X plus D of active/X. The completed brief stays the only terminal record.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       },
       {
         "title": "The candidate must still have completed/X as a regular file. Refuse a D or R of that completed path in the same candidate.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       },
       {
         "title": "Cap any base or blob read at COMPLETED_WRITE_GUARD_MAX_BYTES.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       },
       {
         "title": "Twin identity stays the guard's existing planIdentity plus pairingKey. Do not add a fourth identity predicate.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       },
       {
         "title": "Printed remediations that still tell the operator to run scope:complete against that leftover active path are wrong for this case. The admitted cleanup is the M+D restamp. The wet leftover-complete arm that calls complete against an active path whose completed twin already exists is leftover of #4798.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       },
       {
         "title": "Once that active path is gone, Release Step 3 no longer lists it. scope:cancel is not the cleanup.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "recorded_at": "2026-09-22T12:00:00Z",
+          "recorded_by": "closer/4910"
+        }
       }
     ],
     "tags": [
@@ -419,9 +467,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "06602a2e93b41b9ec29877f4253bf9dfe989d8e7f72023a0ccf260b6f82f4f97"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4910,
+        "prBase": null,
+        "mergeCommit": "ef4f29f5ab595faf26a3b00194d3dbdc9f97a085",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ef4f29f5ab595faf26a3b00194d3dbdc9f97a085",
+        "verifiedAt": "2026-09-22T18:49:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T18:49:35Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T18:49:35Z"
       }
     },
     "id": "github.issue.5542072669",
-    "updated": "2026-09-22T16:47:53Z"
+    "updated": "2026-09-22T18:49:35Z"
   }
 }

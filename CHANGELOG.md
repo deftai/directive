@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Records #4906 complete after the completed-twin restamp landed.**
 - **A restamp of a completed brief can pair deletion of its leftover active twin (#4906).**
 - **Records #4907 complete after the Windows fixture split landed.**
 - **Windows release Step 5 fixture tests finish instead of failing during setup (#4907).**
