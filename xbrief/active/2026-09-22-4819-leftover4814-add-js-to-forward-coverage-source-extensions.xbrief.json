@@ -17,17 +17,17 @@
       {
         "title": "Include .js in the correspondence triple: SOURCE_EXTENSIONS plus isTestFile plus expectedTestBasenames (.test.js / .spec.js). Reuse DEFAULT_TEST_FILE_PATTERNS / intent-constraint JS names. Do not bind the Desired OR. Do not add .js to the set alone.",
         "status": "proposed",
-        "id": "clause:1"
+        "id": "clause.1"
       },
       {
         "title": "Fixture the UAT shape: staged src/app.js plus src/untested.js exit 1; colocated .test.js / .spec.js exit 0.",
         "status": "proposed",
-        "id": "clause:2"
+        "id": "clause.2"
       },
       {
         "title": "Do not recut #4814 P1/P2. Do not grow harvest to .mjs/.cjs/.jsx unless a later leftover says so. Do not invent a second JS list.",
         "status": "proposed",
-        "id": "clause:3"
+        "id": "clause.3"
       }
     ],
     "tags": [
