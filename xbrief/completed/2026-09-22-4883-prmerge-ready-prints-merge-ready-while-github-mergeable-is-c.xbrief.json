@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4883",
-    "updated": "2026-09-22T22:36:39Z"
+    "updated": "2026-09-22T23:51:55Z"
   },
   "plan": {
     "title": "pr:merge-ready prints MERGE-READY while GitHub mergeable is CONFLICTING",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "pr:merge-ready prints MERGE-READY while GitHub mergeable is CONFLICTING",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4883",
@@ -16,13 +16,25 @@
     "items": [
       {
         "title": "The empty-failure return in finalizeVerdictGate does not yield MERGE-READY unless isGithubMergeableClean holds.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4928",
+          "recorded_at": "2026-09-22T23:51:27Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "That check reuses fetchMergeability and isGithubMergeableClean. The fallback2 display is not that check.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4928",
+          "recorded_at": "2026-09-22T23:51:27Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -290,9 +302,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "c2c6a3f5ddb4c8201109a4e50f3e4c7eefb5d8a582e1eb8db866bf9fdbd7bf18"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4928,
+        "prBase": null,
+        "mergeCommit": "e7f66889af33350409519f5d10a54d36e173cce3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e7f66889af33350409519f5d10a54d36e173cce3",
+        "verifiedAt": "2026-09-22T23:51:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T23:51:55Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T23:51:55Z"
       }
     },
     "id": "github.issue.5540575294",
-    "updated": "2026-09-22T22:36:39Z"
+    "updated": "2026-09-22T23:51:55Z"
   }
 }
