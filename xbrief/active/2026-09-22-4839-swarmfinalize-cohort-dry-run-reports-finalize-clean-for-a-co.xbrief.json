@@ -17,22 +17,22 @@
       {
         "title": "`completeParent` for a brief already in `active/` clones the plan, runs `persistClauseKeyedPendingItems`, then `evaluateAcceptanceEvidenceGate`. Skip `atomicWriteBrief`. Skip `runTransition`. Skip `applyClauseDerivationToPlan`.",
         "status": "proposed",
-        "id": "clause:1"
+        "id": "clause.1"
       },
       {
         "title": "The same persist-and-gate check on `completeStory`. Derivation stays on the pending folder.",
         "status": "proposed",
-        "id": "clause:2"
+        "id": "clause.2"
       },
       {
         "title": "Failed gate: `action: failed`, `ok: false`, `detail` the gate message, path left out of `settled`. Gate ok true keeps today's would-complete record and the settled add.",
         "status": "proposed",
-        "id": "clause:3"
+        "id": "clause.3"
       },
       {
         "title": "Update fixtures that currently expect dry-run CLEAN on pending items with no `x-directive/evidence`.",
         "status": "proposed",
-        "id": "clause:4"
+        "id": "clause.4"
       }
     ],
     "tags": [
