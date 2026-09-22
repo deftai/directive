@@ -1,0 +1,341 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4844",
+    "updated": "2026-09-22T14:22:17Z"
+  },
+  "plan": {
+    "title": "bug(xbrief): vbrief:validate fails deft check on legacy completed filenames",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(xbrief): vbrief:validate fails deft check on legacy completed filenames",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4844",
+      "Overview": "\n\n1. An unchanged completed name that already landed does not fail the check gate.\n2. A basename the change set adds or renames stays a hard filename error, including dots and uppercase, on create, promote, activate, and on that change-set name.\n3. The printed vbrief:validate remedy names that non-renaming scope. It does not send the operator to edit JSON for a basename miss, and it does not call for renaming landed records.\n4. A folder-wide completed exemption and a universal warn are not the remedy.",
+      "Labels": "bug, agent-experience, process, area:vbrief, dogfood, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "An unchanged completed name that already landed does not fail the check gate.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/landed-filename.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4857"
+        }
+      },
+      {
+        "title": "A basename the change set adds or renames stays a hard filename error, including dots and uppercase, on create, promote, activate, and on that change-set name.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-validate/landed-filename.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4857"
+        }
+      },
+      {
+        "title": "The printed vbrief:validate remedy names that non-renaming scope. It does not send the operator to edit JSON for a basename miss, and it does not call for renaming landed records.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4857"
+        }
+      },
+      {
+        "title": "A folder-wide completed exemption and a universal warn are not the remedy.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/vbrief-validate/landed-filename.test.ts",
+          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_by": "closer/4857"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "area:vbrief",
+      "dogfood",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4844",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4844: bug(xbrief): vbrief:validate fails deft check on legacy completed filenames"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4578",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4578"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "An unchanged completed name that already landed does not fail the check gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A basename the change set adds or renames stays a hard filename error, including dots and uppercase, on create, promote, activate, and on that change-set name.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The printed vbrief:validate remedy names that non-renaming scope. It does not send the operator to edit JSON for a basename miss, and it does not call for renaming landed records.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A folder-wide completed exemption and a universal warn are not the remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the premise is that D7 must not fail deft check on historical completed filenames when the change is a new conforming brief, and the printed remedy must name a non-renaming grandfather, warn, or migration.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4844-dc\norigin-ref: origin/HEAD\ndispatch-sha: 549e639a525e013616c7582b3825584d15f20f09\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick on the launching utterance (\"with appropriate n\"); Desired is a tight bug (a new conforming brief can pass check; legacy completed names do not fail the suite), not an open RFC, so N=1.\n\nrefutation-target: D7 filename regex must fail deft check on historical completed xBRIEFs, and the remedy is to rename those immutable records.\n\ntarget: #4844\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is vbrief:validate D7 failing the whole deft check (exit 201, later gates skipped) on 15 historical completed names, including M0-*, M0.5-*, and directive-adoption.xbrief.json, while the brief being completed already matches the pattern.\n\nPin-read at dispatch-sha 549e639a525e013616c7582b3825584d15f20f09: packages/core/src/vbrief-validate/filename.ts D7 check. Inventory: #4578 is closed and covered the new-file uppercase case, not this historical corpus. No implement and no ingest from this parent.\n\nEval: triage:evaluate sha12=549e639a525e invocation=a486d463-3c46-4328-951d-a002b04fcd35 validity=still-open wip=0. Unreleased on origin/master does not list #4844. Not a duplicate of #4578.",
+          "id": 5769407010,
+          "html_url": "https://github.com/deftai/directive/issues/4844#issuecomment-5769407010",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:14:30Z",
+          "updated_at": "2026-09-22T00:14:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation-target does not survive. D7 fails a basename that breaks YYYY-MM-DD plus a lowercase slug, in every lifecycle folder the check walks, including completed/. It does not fail historical completed xBRIEFs as a class. The remedy the gate prints is a schema sentence, and a rename of those records is not that remedy.\n\n## 1. Historical completed is not the failing class\n\nclass: blocks-the-design\n\nEvidence: At 549e639a525e013616c7582b3825584d15f20f09, validateAll in packages/core/src/vbrief-validate/validate-all.ts discovers every file under LIFECYCLE_FOLDERS (proposed, pending, active, completed, cancelled) and pushes validateFilename onto errors. runValidate in packages/core/src/vbrief-validate/main.ts prints FAIL: plus that string and returns 1. The check task in tasks/vbrief.yml is vbrief:validate --project-root, and cmdVbriefValidate routes that argv to runValidate. It does not pass --all, --staged, or --allow-list, so the conformance allow-list never runs on deft check. CONSUMER_CHECK_GATES places vbrief:validate before verify:consumer-test-lane, and FRAMEWORK_CHECK_GATES places it before ts:check-lane. Both of those ids are in SUITE_CHECK_GATE_IDS. A non-zero fast gate returns that exit code and writes the skip line for remaining gates including the suite (#3188).\n\nI executed the pinned matchesFilenameConvention and validateFilename bodies from packages/core/src/vbrief-validate/filename.ts, and the published pattern in content/conventions/vbrief-filenames.md. Importing the module fails in this dest because @deftai/directive-types is absent. The function body and the regex agreed on every name below.\n\n- 2026-09-11-M0-01-monorepo-scaffold.xbrief.json fails. The line is xbrief/completed/2026-09-11-M0-01-monorepo-scaffold.xbrief.json: filename '2026-09-11-M0-01-monorepo-scaffold.xbrief.json' does not match convention YYYY-MM-DD-descriptive-slug.xbrief.json (D7).\n- 2026-09-12-M0.5-01-discovery-blocking.xbrief.json fails the same way. That is the historical M0.5 shape #4578 already named.\n- directive-adoption.xbrief.json fails. The stem has no date.\n- 2026-09-21-285-wikilink-resolve-existing.xbrief.json passes. The lowercased m0-01 form passes too.\n- git ls-tree of xbrief/completed and vbrief/completed at this SHA: 1588 artifact names, 0 failures, 0 disagreements between the function and the published regex.\n\nxbrief:create refuses a bad basename (packages/core/src/xbrief/create.ts). scope transition calls validateFilename on promote and activate only (packages/core/src/scope/transition.ts). complete does not. Unchanged files already in completed/ are outside those verbs and inside validateAll.\n\n#4578 is closed (2026-09-16). Its body is the new-file uppercase case and the .vbrief.json message. It names historical M0.5 names as precedents that are not templates for new writes. CHANGELOG Unreleased at this SHA does not list #4844. completed-write-guard already splits this folder: the header says the historical corpus is advisory for doctor, and new work in the change set is hard. D7 on the check path does not use that split.\n\nFailure mode: a conforming completion stays red because some other completed basename has an uppercase letter, a dot, or no date. The same basename would fail in active/. This tree's 1588 completed records pass, so completed-ness is not what fails the gate. The suite never starts. The operator's next sentence talks about schema errors while the error is the basename.\n\nDisposition: cannot bind \"D7 filename regex must fail deft check on historical completed xBRIEFs\". The bindable check stays hard for a basename the change set adds or renames, which is the split completed-write-guard already uses, and for the new writes create, promote, and activate already refuse. An unchanged completed name that already landed does not fail the gate.\n\n## 2. Rename is not the remedy\n\nclass: blocks-the-design\n\nEvidence: remedyForGate for vbrief:validate is the static string \"Fix xBRIEF/vBRIEF schema errors reported by the gate\" (packages/core/src/check/named-cause.ts). content/conventions/vbrief-filenames.md applies the pattern to completed/ and, under When You Need to Rename, says prefer keeping the original slug. A rename must update every planRef and references uri in the same commit. The date prefix is immutable. content/templates/agents-entry.md records completed xBRIEFs as what is, with zero authority over what to build next (#3383). evaluateCompletedWriteGuard treats an R destination under completed/ as an added completed artifact. A destination whose plan lacks a fitting runTransition write fails that gate as an unguarded completed add. A stamped rename still changes the path other briefs cite.\n\nFailure mode: renaming landed files to satisfy D7 rewrites record identity. An unstamped historical file fails verify:completed-write-guard on the way. The printed check remedy still says schema errors, so the operator is sent to edit JSON while the failure is the basename.\n\nDisposition: cannot bind \"the remedy is to rename those immutable records\". The printed remedy has to name a non-renaming outcome for completed names the change set did not touch.\n\n## 3. A folder-wide completed exemption admits a new bad name\n\nclass: sharpens-framing\n\nEvidence: discoverVbriefs has no diff filter. Skipping every file under completed/ would drop validateFilename for a new uppercase or dotted file placed directly in that folder. create, promote, and activate never see that path. completed-write-guard refuses an unstamped add and does not check the slug. Conformance accepts --allow-list and --staged; the check argv passes neither. The conformance D7 header says dots in the slug are not exempt (#4245). Chronology problems are warnings. Filename misses are errors. Default runValidate returns 1 on errors, and returns 1 on warnings only with --warnings-as-errors, which check does not pass.\n\nFailure mode: binding \"completed/ is exempt\", or warning on every D7 hit, lets a new dotted or uppercase completed name pass the check gate. That is the weakening #4245 refused. A universal warn also treats the new bad name the same as the landed one.\n\nDisposition: a non-renaming bind can stand when it is scoped to unchanged historical names. Dots and uppercase stay illegal on create, promote, activate, and on any name the change set adds or renames. The printed remedy names that scope. A folder exemption or a universal warn does not.\n\n## 4. Quote, count, and exit 201\n\nclass: footnote\n\nThe stdout line runValidate prints includes filename '<basename>'. The issue text drops that clause. I did not run deft check, so I did not reproduce exit 201. runValidate returns 1, and the orchestrator returns the gate exit code. This tree documents go-task exit 200/201 as task-missing (packages/core/src/check/consumer-gate-integrity.ts). The count of 15 files is the consumer corpus. It is not in this tree. The three name classes named on the issue do fail the pinned function.\n\n## Injection / swarm (shared state)\n\nCompleted basenames are the identity other planRef and references uri values point at. validateAll gives an untouched historical basename the authority to skip the suite. That is shared-state authority on the check graph. It is not an envelope, prompt, or worktree change. A rename rewrites that identity across the corpus.\n\n## Road not taken\n\nA one-time rename that lowercases, strips dots, prefixes a date, and rewrites every planRef in one commit, leaving the pattern untouched. Strongest form: #4245 refused to weaken D7 for version dots, the convention forbids uppercase, and the files are simply non-compliant. Rejected because this tree's completed corpus already passes, new writes are already refused at create and promote/activate, the convention says prefer keeping the slug, and an unstamped rename is a new completed add under the write-guard. What would flip this: a measurement that create, promote, and activate do not refuse these names, plus an operator inventory where every citing planRef is updated in the same commit and the consumer accepts the path churn. The first measurement does not hold at this SHA.",
+          "id": 5769513879,
+          "html_url": "https://github.com/deftai/directive/issues/4844#issuecomment-5769513879",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:27:43Z",
+          "updated_at": "2026-09-22T00:27:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`deft check` dies on a filename rule before the suite runs, and the printed remedy talks about schema errors. The names that fail are basenames that break a date plus a lowercase slug. They fail in any lifecycle folder. They do not fail because they sit in completed. This tree's landed completed names already pass. A new conforming brief stays red only when some other basename in the tree breaks the rule. The change this arc would accept is narrower than a folder exemption: an unchanged completed name that already landed does not fail the gate, a name the change set adds or renames stays illegal, and the printed remedy says that. Renaming landed records is not the remedy. The same parent wrote the opening triage and these takes.\n\n**Lean:** round 1, critic 5769513879. Supersedes 5769407010.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:4735eede75b75e06428309988f678f79d6de3d8fa57fe4018f1df7ad39be0ae9\n\naccept-into-contract: Historical completed is not the failing class\naccept-into-contract: Rename is not the remedy\naccept-into-contract: A folder-wide completed exemption admits a new bad name\n\nrelieves: P1\n\n## Bound remedy\n\n1. An unchanged completed name that already landed does not fail the check gate.\n2. A basename the change set adds or renames stays a hard filename error, including dots and uppercase, on create, promote, activate, and on that change-set name.\n3. The printed vbrief:validate remedy names that non-renaming scope. It does not send the operator to edit JSON for a basename miss, and it does not call for renaming landed records.\n4. A folder-wide completed exemption and a universal warn are not the remedy.",
+          "id": 5769543833,
+          "html_url": "https://github.com/deftai/directive/issues/4844#issuecomment-5769543833",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:31:08Z",
+          "updated_at": "2026-09-22T00:31:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of successor lean 5769543833, read through that comment id. P1 is vbrief:validate D7 failing the whole deft check on historical completed names while a new conforming brief is the change. The Bound remedy list on that lean covers P1. The bind lean stands.\n\n## 1. The reported names match item 1 and the reported change passes D7\n\nclass: footnote\n\nEvidence: At 549e639a525e013616c7582b3825584d15f20f09 I executed the matchesFilenameConvention body from packages/core/src/vbrief-validate/filename.ts. 2026-09-11-M0-01-monorepo-scaffold.xbrief.json fails. 2026-09-12-M0.5-01-discovery-blocking.xbrief.json fails. directive-adoption.xbrief.json fails. 2026-09-21-285-wikilink-resolve-existing.xbrief.json passes. validateAll pushes validateFilename for every artifact discoverVbriefs finds under LIFECYCLE_FOLDERS. The check task argv is vbrief:validate --project-root, and runValidate returns 1 when that walk has errors. Consumer gates place vbrief:validate before verify:consumer-test-lane. A non-zero non-suite gate returns that exit and skips later gates, including the suite. Bound remedy item 1 says an unchanged completed name that already landed does not fail the check gate. The 15 historical names are that class. Item 2 keeps a hard filename error, including dots and uppercase, on a basename the change set adds or renames. The reported change is the name that passes, so it sits outside that error shape.\n\n## 2. The pinned completed corpus is a different tree\n\nclass: footnote\n\nEvidence: git ls-tree of xbrief/completed and vbrief/completed at this SHA is 1588 artifact names, and the same matcher fails 0. The 15 names are the consumer corpus on the issue. They are not in this tree. I did not re-run deft check there. The issue FAIL lines are the filename rule. completed-write-guard already splits the historical corpus from new work in the change set, for a different gate. xbrief create calls validateFilename. Scope transition calls it for promote and activate. The check walk is the path that fails the reported tree, and items 1 and 2 are that walk.\n\n## 3. The printed sentence is item 3\n\nclass: footnote\n\nEvidence: named-cause.ts maps vbrief:validate to \"Fix xBRIEF/vBRIEF schema errors reported by the gate\". runValidate returns 1. The orchestrator forwards the gate exit. consumer-gate-integrity.ts documents go-task 200/201 for a missing task. The issue text includes the D7 FAIL lines, so this run is the gate, and item 1 is what stops that failure. Item 3 names the non-renaming scope in the printed remedy. Item 4 keeps the exemption off a folder-wide completed skip and off a universal warn. Item 1 remains the coverage of the 15 names.\n\n## Injection / swarm (shared state)\n\nAn unchanged landed completed basename currently has authority to skip the rest of deft check. Item 1 takes that authority off those names. Item 2 leaves it on a change-set basename that breaks the filename rule. That is shared-state authority on the check graph. The remedy does not change envelopes, prompts, identity, or worktrees.",
+          "id": 5769611516,
+          "html_url": "https://github.com/deftai/directive/issues/4844#issuecomment-5769611516",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T00:40:04Z",
+          "updated_at": "2026-09-22T00:40:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSame parent wrote the opening triage and the successor lean. The round-1 critic and the pain-audit critic were separate posts. Rows are that critic's execution at 549e639a525e013616c7582b3825584d15f20f09. They are not marked verified: this parent did not re-run the matcher, and the second seat was the same model family.\n\n| Claim | Evidence | Method | Mark |\n| --- | --- | --- | --- |\n| M0, M0.5, and directive-adoption basenames fail D7; the reported new brief passes | Critic executed matchesFilenameConvention from filename.ts | Critic run at the dispatch SHA | not verified |\n| Landed completed names in this tree do not fail that matcher | git ls-tree of completed at the SHA, 1588 names, 0 failures | Critic run at the dispatch SHA | not verified |\n| The check walk is what fails a consumer tree; create, promote, and activate already refuse a bad new name | validateAll, runValidate argv, scope transition | Critic read and run at the dispatch SHA | not verified |\n| The printed remedy currently says schema errors | named-cause.ts static string | Critic read at the dispatch SHA | not verified |",
+          "id": 5769758897,
+          "html_url": "https://github.com/deftai/directive/issues/4844#issuecomment-5769758897",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:01:57Z",
+          "updated_at": "2026-09-22T01:01:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nCheck dies before the suite when a completed filename breaks the date-and-lowercase-slug rule, and the printed remedy talks about schema errors. The record accepts a narrower change: an unchanged completed name that already landed does not fail the gate, a name the change set adds or renames stays a hard filename error, and the printed remedy names that scope. A folder-wide exemption and a universal warn stay out. Renaming landed records stays out.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5769543833\nverified-claims table 5769758897",
+          "id": 5769777168,
+          "html_url": "https://github.com/deftai/directive/issues/4844#issuecomment-5769777168",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T01:04:48Z",
+          "updated_at": "2026-09-22T01:04:48Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nOn Directive 0.119.6, `deft check` dies at `vbrief:validate` because 15 historical completed xBRIEFs fail D7. The brief being completed matches the pattern. The gate then skips the rest of check, including the suite.\n\n## Actual\n\nNoteTechnic, global `@deftai/directive@0.119.6`, 2026-09-21. `deft check` on `chore/complete-285-wikilink-xbrief` (one rename of `xbrief/active/2026-09-21-285-wikilink-resolve-existing.xbrief.json` into `completed/`, which matches `YYYY-MM-DD-descriptive-slug`):\n\n```\nFAIL: xbrief/completed/2026-09-11-M0-01-monorepo-scaffold.xbrief.json: filename does not match convention YYYY-MM-DD-descriptive-slug.xbrief.json (D7)\n```\n\nSame failure for the other `M0-*` files, both `M0.5-*` files, and `directive-adoption.xbrief.json`. 15 errors. Exit 201. Remedy printed: \"Fix xBRIEF/vBRIEF schema errors reported by the gate\". Remaining gates skipped (#3188).\n\n`conventions/vbrief-filenames.md` applies that regex to `completed/` and also says prefer not to churn an existing slug. These files are already the lifecycle record on main.\n\n## Expected\n\nA new, conforming brief can pass `deft check`. Legacy completed names need a grandfather, a warn, or a migration with a path that does not rename immutable records just to unlock the suite. The printed remedy should say which of those it is.\n\n## Related\n\n#4578 closed the new-file uppercase case and already named these historical `M0.5` filenames. This run is the full check still red on that corpus after 0.119.6.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5531124890,
+        "origin": "deftai/directive#4844",
+        "id": "github.issue.5531124890"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4735eede75b75e06428309988f678f79d6de3d8fa57fe4018f1df7ad39be0ae9"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4857,
+        "prBase": null,
+        "mergeCommit": "5ce322d3336879ca059e2d54d4765e31af5c38fc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0cc383ac9ccb6ef0db697db6bfbfd9c92107289",
+        "verifiedAt": "2026-09-22T14:22:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-22T14:22:17Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-22T14:22:17Z"
+      }
+    },
+    "id": "github.issue.5531124890",
+    "updated": "2026-09-22T14:22:17Z"
+  }
+}
