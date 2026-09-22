@@ -7,6 +7,7 @@ import {
   disableHostHooks,
   disableHostHooksInvocation,
   FIELD_HOST_HOOKS_CLI_ALIAS,
+  HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS,
   HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE,
   inspectHostHooks,
   isHostHookDepositEnabled,
@@ -94,6 +95,10 @@ describe("hostHooks policy (#2752)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.changed).toBe(false);
     expect(result.stdout).toContain(HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE);
+    expect(result.stdout).toContain(HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS);
+    expect(HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE).toContain(
+      "A hook refusal in the current session is clearing because the gate was removed.",
+    );
     expect(result.stdout).toContain("--confirm");
     expect(result.stdout).toContain("deft-hook pre-execution guardrails");
     expect(result.stdout).toContain("tracked");

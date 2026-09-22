@@ -526,7 +526,15 @@ describe("writeAgentHookDeposit", () => {
     const root = project();
     writeAgentHookDeposit(root);
     const policy = { claude: false, grok: false, cursor: false, codex: false };
-    writeAgentHookDeposit(root, { printf: () => undefined }, policy);
+    const lines: string[] = [];
+    writeAgentHookDeposit(root, { printf: (text) => lines.push(text) }, policy);
+    const printed = lines.join("");
+    expect(printed).toContain(
+      "Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out):",
+    );
+    expect(printed).toContain(
+      "A hook refusal in the current session is clearing because the gate was removed.",
+    );
     expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toBe("{}\n");
     expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toBe("{}\n");
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toBe("{}\n");

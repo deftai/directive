@@ -21,11 +21,18 @@ export function disableHostHooksInvocation(trailing = " --host <host> --confirm"
   return policyColonInvocation(DISABLE_HOST_HOOKS_SUBCOMMAND, trailing);
 }
 
+/** #4854. Same sentence on the update Removed printf. */
+export const HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS =
+  "A hook refusal in the current session is clearing because the gate was removed.";
+
 export const HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE =
   "\u26a0 Capability-cost disclosure -- disabling hostHooks for a host removes " +
   "deft-hook pre-execution guardrails for anyone who later opens this repo in that host. " +
   "The result is tracked.\n" +
   "  \u2022 Opted-out hosts skip Directive hook deposit; leftover-free files write {}.\n" +
+  "  \u2022 " +
+  HOST_HOOKS_CURRENT_SESSION_REFUSAL_CLEARS +
+  "\n" +
   "  \u2022 This is not a timeout or live-probe fix. Retry the gated ritual when load is the cause.\n" +
   "  \u2022 Inspect: `" +
   policyColonInvocation("show", " --field=hostHooks") +
