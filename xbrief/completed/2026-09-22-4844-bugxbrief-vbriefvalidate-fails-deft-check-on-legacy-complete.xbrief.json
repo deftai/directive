@@ -21,7 +21,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/vbrief-validate/landed-filename.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4857"
         }
       },
@@ -32,7 +32,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/vbrief-validate/landed-filename.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4857"
         }
       },
@@ -43,7 +43,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/check/named-cause.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4857"
         }
       },
@@ -52,9 +52,9 @@
         "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
-          "kind": "review",
+          "kind": "test",
           "pointer": "packages/core/src/vbrief-validate/landed-filename.test.ts",
-          "recorded_at": "2026-09-22T16:20:00Z",
+          "recorded_at": "2026-09-22T12:00:00Z",
           "recorded_by": "closer/4857"
         }
       }
