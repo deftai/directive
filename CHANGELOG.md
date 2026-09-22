@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **First-run init success keeps what was created and one next step (#4656).** The init success path no longer prints the upgrade commit recipe or the fresh-init migrate nudge. The next-step list keeps only opening the AI coding assistant in the project directory. Tracking #4656.
-- **Setup can store Phase 2 narratives while no scope xBRIEF is active (#4663).** `project:write-narratives` writes Overview, TechStack, Strategy, Quality, ProjectRules, and Branching into PROJECT-DEFINITION. The write is that command, not an agent patch. It does not set policy keys. Policy changes stay on `policy:enforce-branches` and `policy:allow-direct-commits`. An agent patch of that file stays denied. Tracking #4663.
+- **Setup can store Phase 2 narratives while no scope xBRIEF is active (#4663).** `project:write-narratives` writes Overview, TechStack, Strategy, Quality, ProjectRules, and Branching into PROJECT-DEFINITION. The write is that command, not an agent patch. It does not set policy keys. Re-entry keeps those policy keys and values; JSON whitespace may change. Consumers must not patch that file. `agentsMdBudget.absoluteMaxBytes` 19200→19314. Policy changes stay on `policy:enforce-branches` and `policy:allow-direct-commits`. An agent patch of that file stays denied. Tracking #4663.
 
 ### Removed
 

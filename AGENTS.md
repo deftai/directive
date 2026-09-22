@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=a4bb0675fc00 refreshed=2026-09-20T17:53:37Z session=3594473abca7 -->
+<!-- deft:managed-section v3 sha=19d4aaed2608 refreshed=2026-09-22T21:49:12Z session=afc55cfac2a1 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -194,6 +194,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ! Writes: `./xbrief/` (`PROJECT-DEFINITION.xbrief.json`, `plan.xbrief.json`, `specification.xbrief.json`) as `"xBRIEFInfo"` `"version": "0.8"`. Legacy `vbrief/`; `deft migrate:xbrief`.
 ! Completed xBRIEFs are record of *what is*, zero authority over *what to build next* (#3383). Current contract = active xBRIEF + human operator live instruction.
 ⊗ Treat a completed xBRIEF as the next-build contract. ⊗ Emit `"version": "0.6"` on new writes. ⊗ No xBRIEF DeftVersion stamps (#4271).
+⊗ Patch `xbrief/PROJECT-DEFINITION.xbrief.json` or the `$DEFT_PROJECT_PATH` file to store Phase 2 narratives. Use `deft project:write-narratives`.
 
 ## Unmanaged project header (#2065)
 
