@@ -311,7 +311,7 @@ export function buildAcceptanceFromIntakeCapture(
   };
 }
 
-const STATEMENT_SENTENCE_NARRATIVE_KEYS = [
+export const STATEMENT_SENTENCE_NARRATIVE_KEYS = [
   "Overview",
   "Description",
   "Acceptance",

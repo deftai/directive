@@ -66,7 +66,12 @@ import {
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
 } from "../verify-ac/evaluate.js";
-import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
+import {
+  readPlanAcceptance,
+  STATEMENT_SENTENCE_NARRATIVE_KEYS,
+  stampAcceptanceFromLiteralCapture,
+  validatePlanAcceptance,
+} from "./acceptance.js";
 import {
   type AcceptanceLedgerEntry,
   acceptanceLedgersEqual,
@@ -1146,6 +1151,61 @@ function joinFloorMessage(floor: string, prior: string): string {
   return `${floor}\n${prior}`;
 }
 
+function asPlanRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+/**
+ * Narrative text the production stamp reads. A generated brief carries this
+ * body. A bare title or an evidence item is not that body (#3550).
+ */
+function planCarriesNarrativeStatement(plan: Record<string, unknown>): boolean {
+  const narratives = asPlanRecord(plan.narratives);
+  if (narratives === null) {
+    return false;
+  }
+  for (const key of STATEMENT_SENTENCE_NARRATIVE_KEYS) {
+    const value = narratives[key];
+    if (typeof value === "string" && /[A-Za-z]/.test(value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function walkedClauseCount(walked: unknown): number {
+  const clauses = asPlanRecord(walked)?.clauses;
+  return Array.isArray(clauses) ? clauses.length : 0;
+}
+
+/**
+ * The sentence list the floor checks. A stored list wins. A generated brief
+ * that has clauses and narrative statement text, but has not stored a list,
+ * still goes through the production stamp (#3550).
+ */
+function acceptanceForSentenceFloor(plan: Record<string, unknown>, walked: unknown): unknown {
+  const current = plan.acceptance ?? walked;
+  const stored = asPlanRecord(plan.acceptance);
+  if (stored !== null && Object.hasOwn(stored, "sentences") && stored.sentences !== undefined) {
+    return stored;
+  }
+  if (walkedClauseCount(walked) === 0 || !planCarriesNarrativeStatement(plan)) {
+    return current;
+  }
+  try {
+    const stamped = stampAcceptanceFromLiteralCapture(plan);
+    if (stamped.acceptance !== undefined) {
+      return stamped.acceptance;
+    }
+  } catch {
+    // A safety refusal is already the walk verdict. Do not replace it with a throw.
+  }
+  return current;
+}
+
 /**
  * Fail closed when a sentence on the brief is neither a clause nor a confession.
  * Runs for every reader that reaches the oracle walk. Does not read a file (#3550).
@@ -1156,9 +1216,11 @@ function applyStatementSentenceFloor(
   quiet: boolean,
 ): VerifyAcResult {
   const coverage = evaluateStatementSentenceCoverage(
-    plan.acceptance ?? result.acceptance,
+    acceptanceForSentenceFloor(plan, result.acceptance),
     result.acceptance.clauses ?? [],
   );
+  // No list means the brief has no statement sentences. Clauseless plans and
+  // plans with no narrative body do not enter the production stamp.
   if (!coverage.hasSentenceList) {
     return result;
   }

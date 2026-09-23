@@ -1226,10 +1226,16 @@ function isMarkdownHeadingLine(line: string): boolean {
   return /^#{1,6}(?:\s|$)/.test(line);
 }
 
+/** A list item is its own sentence. Wrapped prose around it stays separate (#3550). */
+function isListItemLine(line: string): boolean {
+  return /^(?:[-*+]|\d{1,3}[.)])\s+\S/.test(line);
+}
+
 /**
  * Text after the last terminator, or the whole part when it has none.
- * One line stays one sentence. A multi-line tail is one sentence per line
- * so a following list does not glue into a single unmapped blob (#3550).
+ * Wrapped prose with no terminator is one sentence: whitespace collapses the
+ * same way clause text does. A heading or a list item breaks that run, so a
+ * following list does not glue into one unmapped blob (#3550).
  */
 function emitUnterminatedSpan(
   source: string,
@@ -1249,12 +1255,27 @@ function emitUnterminatedSpan(
     pushStatementSentence(out, seen, content[0] ?? "");
     return;
   }
+  const prose: string[] = [];
+  const flushProse = (): void => {
+    if (prose.length === 0) {
+      return;
+    }
+    pushStatementSentence(out, seen, prose.join(" "));
+    prose.length = 0;
+  };
   for (const line of content) {
     if (isMarkdownHeadingLine(line)) {
+      flushProse();
       continue;
     }
-    pushStatementSentence(out, seen, line);
+    if (isListItemLine(line)) {
+      flushProse();
+      pushStatementSentence(out, seen, line);
+      continue;
+    }
+    prose.push(line);
   }
+  flushProse();
 }
 
 /**

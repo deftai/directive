@@ -12,6 +12,7 @@ import { buildIssueVbrief } from "../intake/issue-ingest.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { evaluateScopeCompleteAcceptanceWalk } from "../scope/acceptance-evidence.js";
 import {
+  collectPlanItemAcceptanceSurface,
   evaluateStatementSentenceCoverage,
   extractStatementSentences,
   stampDerivedClausesOnAcceptance,
@@ -345,6 +346,27 @@ describe("statement sentence floor (#3550)", () => {
     expect(result.unmappedSentenceCount).toBeUndefined();
   });
 
+  it("fails a generated brief that did not pre-write sentences when a statement is unmapped", () => {
+    const plan = generatedSentenceBrief();
+    const acceptance = plan.acceptance as { sentences?: string[] };
+    delete acceptance.sentences;
+    expect(Object.hasOwn(plan.acceptance as object, "sentences")).toBe(false);
+
+    bindProbeClauses(plan);
+    const result = evaluateVerifyAcFromPlan(plan, baseOptions(writeProbeRoot()));
+    expect(result.clauseOutcomes?.map((row) => row.outcome)).toEqual(["verified", "verified"]);
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(1);
+    expect(result.resolution).toBe("fail");
+    expect(result.cause).toBe("unmapped_statement_sentence");
+    expect(result.unmappedSentenceCount).toBe(2);
+    expect(result.behavioralClauseCount).toBe(0);
+    expect(result.message).toContain("Workers");
+    expect(result.message).toContain(INTAKE_SENTENCE);
+    expect(result.message).not.toContain("artifact missing");
+    expect(result.message).not.toContain("was read");
+  });
+
   it("treats a missing or malformed list as not a sentence floor", () => {
     expect(evaluateStatementSentenceCoverage(null, []).hasSentenceList).toBe(false);
     expect(
@@ -529,6 +551,24 @@ describe("statement sentence floor (#3550)", () => {
       PUNCTUATION_FREE,
     ]);
     expect(extractStatementSentences("Ship probe.txt now")).toEqual(["Ship probe.txt now"]);
+    const wrapped = [
+      "Initialize workers from the config",
+      "and propagate derived quantities to the parent",
+    ].join("\n");
+    const wrappedClause = collectPlanItemAcceptanceSurface({ items: [{ title: wrapped }] });
+    expect(wrappedClause).toEqual([
+      "Initialize workers from the config and propagate derived quantities to the parent",
+    ]);
+    expect(extractStatementSentences(wrapped)).toEqual(wrappedClause);
+    expect(
+      extractStatementSentences(
+        [wrapped, "- probe.txt exists", '- probe.txt contains "marker-token-3550"'].join("\n"),
+      ),
+    ).toEqual([
+      "Initialize workers from the config and propagate derived quantities to the parent",
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ]);
     expect(
       extractStatementSentences(
         '## Acceptance Criteria\n- probe.txt exists\n- probe.txt contains "marker-token-3550"',
@@ -556,6 +596,59 @@ describe("statement sentence floor (#3550)", () => {
     const acceptance = restamped.acceptance as { sentences?: string[]; confessions?: string[] };
     expect(acceptance.sentences).toEqual([INTAKE_SENTENCE]);
     expect(acceptance.confessions).toEqual(["Propagate derived quantities to the parent."]);
+  });
+
+  it("passes a wrapped unpunctuated statement that matches its clause and still fails a truly unmapped sentence", () => {
+    const wrapped = [
+      "Initialize workers from the config",
+      "and propagate derived quantities to the parent",
+    ].join("\n");
+    const clauseText = collectPlanItemAcceptanceSurface({ items: [{ title: wrapped }] })[0] ?? "";
+    expect(extractStatementSentences(wrapped)).toEqual([clauseText]);
+    const root = writeProbeRoot();
+    const clauses = [
+      EXISTENCE,
+      QUOTED,
+      {
+        id: 3,
+        text: clauseText,
+        artifact_path: "probe.txt",
+        ambiguous: false as const,
+      },
+    ];
+    const passed = evaluateVerifyAcFromPlan(
+      floorPlan({
+        acceptance: floorAcceptance({ sentences: [clauseText], clauses }),
+      }),
+      baseOptions(root),
+    );
+    expect(passed.ok).toBe(true);
+    expect(passed.unmappedSentenceCount).toBe(0);
+    expect(passed.clauseOutcomes?.slice(0, 2).map((row) => row.outcome)).toEqual([
+      "verified",
+      "verified",
+    ]);
+
+    const unmapped = "Ship the fence without recording a clause";
+    const failed = evaluateVerifyAcFromPlan(
+      floorPlan({
+        acceptance: floorAcceptance({ sentences: [clauseText, unmapped], clauses }),
+      }),
+      baseOptions(root),
+    );
+    expect(failed.ok).toBe(false);
+    expect(failed.code).toBe(1);
+    expect(failed.resolution).toBe("fail");
+    expect(failed.cause).toBe("unmapped_statement_sentence");
+    expect(failed.unmappedSentenceCount).toBe(1);
+    expect(failed.behavioralClauseCount).toBe(1);
+    expect(failed.message).toContain(unmapped);
+    expect(failed.clauseOutcomes?.slice(0, 2).map((row) => row.outcome)).toEqual([
+      "verified",
+      "verified",
+    ]);
+    expect(failed.message).not.toContain("artifact missing");
+    expect(failed.message).not.toContain("was read");
   });
 
   it("rejects a sentence list that is not an array of non-empty strings", () => {
