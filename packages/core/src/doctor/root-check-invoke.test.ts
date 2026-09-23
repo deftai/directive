@@ -89,6 +89,71 @@ describe("classifyRootCheckDirective (#4947)", () => {
     );
   });
 
+  it("judges a folded block as one command and keeps literal lines separate", () => {
+    expect(kind(withCheck("    cmds:\n      - >\n        echo\n        deft check\n"))).toBe(
+      "does-not-invoke",
+    );
+    expect(kind(withCheck("    cmds:\n      - >-\n        echo\n        deft check\n"))).toBe(
+      "does-not-invoke",
+    );
+    expect(
+      kind(withCheck("    cmds:\n      - cmd: >\n          echo\n          deft check\n")),
+    ).toBe("does-not-invoke");
+    expect(kind(withCheck("    cmds:\n      - >\n        deft check\n        --json\n"))).toBe(
+      "invokes",
+    );
+    expect(kind(withCheck("    cmds:\n      - >\n        deft\n        check\n"))).toBe("invokes");
+    expect(kind(withCheck("    cmds:\n      - |\n        echo\n        deft check\n"))).toBe(
+      "invokes",
+    );
+    expect(kind(withCheck("    cmds:\n      - |\n        deft\n        check\n"))).toBe(
+      "does-not-invoke",
+    );
+    expect(kind(withCheck("    cmds:\n      - >\n        echo\n          deft check\n"))).toBe(
+      "invokes",
+    );
+  });
+
+  it("does not count ignore_error on an entry or on the check task", () => {
+    expect(
+      kind(withCheck("    cmds:\n      - task: deft:check\n        ignore_error: true\n")),
+    ).toBe("does-not-invoke");
+    expect(
+      kind(withCheck("    cmds:\n      - cmd: deft check\n        ignore_error: true\n")),
+    ).toBe("does-not-invoke");
+    expect(
+      kind(withCheck("    deps:\n      - task: deft:check\n        ignore_error: true\n")),
+    ).toBe("does-not-invoke");
+    expect(kind(withCheck("    ignore_error: true\n    cmds:\n      - deft check\n"))).toBe(
+      "does-not-invoke",
+    );
+    expect(kind(withCheck("    ignore_error: true\n    deps: [deft:check]\n"))).toBe(
+      "does-not-invoke",
+    );
+    expect(
+      kind(
+        withCheck(
+          "    cmds:\n      - task: deft:check\n        ignore_error: true\n      - deft check\n",
+        ),
+      ),
+    ).toBe("invokes");
+    expect(
+      kind(withCheck("    cmds:\n      - cmd: deft check\n        ignore_error: false\n")),
+    ).toBe("invokes");
+  });
+
+  it("counts a flow-style deps entry that names deft:check", () => {
+    expect(kind(withCheck("    deps: [deft:check]\n"))).toBe("invokes");
+    expect(kind(withCheck("    deps: [lint, deft:check:consumer]\n"))).toBe("invokes");
+    expect(kind(withCheck('    deps: ["deft:check:framework-source"]\n'))).toBe("invokes");
+    expect(kind(withCheck("    deps: [{task: deft:check}]\n"))).toBe("invokes");
+    expect(kind(withCheck("    deps: [{task: deft:check, ignore_error: true}]\n"))).toBe(
+      "does-not-invoke",
+    );
+    expect(kind(withCheck("    deps: [deft:check:lint]\n"))).toBe("does-not-invoke");
+    expect(kind(withCheck("    deps: [lint, test]\n"))).toBe("does-not-invoke");
+  });
+
   it("does not count a consumer-owned engine:invoke paired with ENGINE_CMD check", () => {
     const text = `${withCheck(`    cmds:
       - task: engine:invoke

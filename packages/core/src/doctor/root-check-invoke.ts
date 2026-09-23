@@ -1,6 +1,8 @@
 /**
  * Root `check` invocation for the doctor gates-surface warning (#4947).
  * Comment lines are dropped with stripTaskBodyComments before any match.
+ * A folded block command is one joined shell command. A literal block keeps
+ * one command per line. ignore_error: true is not an invocation.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -43,6 +45,12 @@ interface CmdEntry {
   taskName: string | null;
   shell: string[];
   engineCmd: string | null;
+  ignoreError: boolean;
+}
+
+interface ShellPiece {
+  indent: number;
+  text: string;
 }
 
 /** Body of one `tasks:` key, or null when that exact key is absent. */
@@ -168,19 +176,155 @@ function sectionKind(stripped: string): "cmds" | "deps" | null {
   return null;
 }
 
-function isBlockScalar(rest: string): boolean {
-  return rest === "|" || rest === ">" || rest.startsWith("|") || rest.startsWith(">");
+const LITERAL_BLOCK_RE = /^\|(?:[+-]?[1-9]?|[1-9][+-]?)$/;
+const FOLDED_BLOCK_RE = /^>(?:[+-]?[1-9]?|[1-9][+-]?)$/;
+
+function blockScalarStyle(rest: string): "literal" | "folded" | null {
+  const head = stripInlineComment(rest).trim();
+  if (LITERAL_BLOCK_RE.test(head)) return "literal";
+  if (FOLDED_BLOCK_RE.test(head)) return "folded";
+  return null;
+}
+
+function scalarIsTrue(value: string): boolean {
+  return value.trim().toLowerCase() === "true";
+}
+
+/** Same-indent folded lines join. A deeper line stays its own command. */
+function foldCommands(pieces: readonly ShellPiece[]): string[] {
+  const commands: string[] = [];
+  let bucket: string[] = [];
+  const flush = (): void => {
+    const joined = bucket.join(" ").trim();
+    if (joined.length > 0) commands.push(joined);
+    bucket = [];
+  };
+  let base = -1;
+  for (const piece of pieces) {
+    if (piece.text.length === 0) {
+      flush();
+      continue;
+    }
+    if (base < 0) base = piece.indent;
+    if (piece.indent > base) {
+      flush();
+      commands.push(piece.text);
+      continue;
+    }
+    bucket.push(piece.text);
+  }
+  flush();
+  return commands;
+}
+
+function splitFlowItems(inner: string): string[] | null {
+  const items: string[] = [];
+  let current = "";
+  let depth = 0;
+  let quote: string | null = null;
+  for (let i = 0; i < inner.length; i += 1) {
+    const ch = inner[i] ?? "";
+    if (quote !== null) {
+      current += ch;
+      if (ch === quote && inner[i - 1] !== "\\") quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      current += ch;
+      continue;
+    }
+    if (ch === "{" || ch === "[") {
+      depth += 1;
+      current += ch;
+      continue;
+    }
+    if (ch === "}" || ch === "]") {
+      depth -= 1;
+      if (depth < 0) return null;
+      current += ch;
+      continue;
+    }
+    if (ch === "," && depth === 0) {
+      items.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (quote !== null || depth !== 0) return null;
+  const last = current.trim();
+  if (last.length > 0) items.push(last);
+  return items;
+}
+
+function flowItemToEntry(item: string): CmdEntry | null {
+  if (item.startsWith("{") && item.endsWith("}")) {
+    const fields = splitFlowItems(item.slice(1, -1));
+    if (fields === null) return null;
+    let taskName: string | null = null;
+    let ignoreError = false;
+    for (const field of fields) {
+      const idx = field.indexOf(":");
+      if (idx < 0) continue;
+      const key = field.slice(0, idx).trim();
+      const value = unquoteScalar(stripInlineComment(field.slice(idx + 1)));
+      if (key === "task") taskName = value;
+      if (key === "ignore_error" && scalarIsTrue(value)) ignoreError = true;
+    }
+    if (taskName === null || taskName.length === 0) return null;
+    return { taskName, shell: [], engineCmd: null, ignoreError };
+  }
+  const taskName = unquoteScalar(stripInlineComment(item));
+  if (taskName.length === 0) return null;
+  return { taskName, shell: [], engineCmd: null, ignoreError: false };
+}
+
+/** Same-line `deps: [deft:check]` flow sequence. Null when the line is not one. */
+function parseFlowDeps(rest: string): CmdEntry[] | null {
+  const trimmed = rest.trim();
+  if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return null;
+  const items = splitFlowItems(trimmed.slice(1, -1));
+  if (items === null) return null;
+  const parsed: CmdEntry[] = [];
+  for (const item of items) {
+    if (item.length === 0) continue;
+    const entry = flowItemToEntry(item);
+    if (entry !== null) parsed.push(entry);
+  }
+  return parsed;
+}
+
+function taskLevelIgnoresError(body: string): boolean {
+  const lines = stripTaskBodyComments(body).split("\n");
+  let keyIndent: number | null = null;
+  for (const raw of lines) {
+    if (raw.trim().length === 0) continue;
+    const indent = raw.length - raw.trimStart().length;
+    if (keyIndent === null || indent < keyIndent) keyIndent = indent;
+  }
+  if (keyIndent === null) return false;
+  for (const raw of lines) {
+    if (raw.trim().length === 0) continue;
+    const indent = raw.length - raw.trimStart().length;
+    if (indent !== keyIndent) continue;
+    const stripped = raw.trim();
+    if (/^ignore_error\s*:/.test(stripped) && scalarIsTrue(scalarAfterColon(stripped))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function applyEntryHead(entry: CmdEntry, rest: string, section: "cmds" | "deps"): void {
-  if (rest.length === 0 || isBlockScalar(rest)) return;
+  if (rest.length === 0 || blockScalarStyle(rest) !== null) return;
   if (rest.startsWith("task:")) {
     entry.taskName = scalarAfterColon(rest);
     return;
   }
   if (rest.startsWith("cmd:")) {
     const cmd = scalarAfterColon(rest);
-    if (!isBlockScalar(cmd)) entry.shell.push(cmd);
+    if (blockScalarStyle(cmd) === null) entry.shell.push(cmd);
     return;
   }
   const scalar = unquoteScalar(stripInlineComment(rest));
@@ -200,11 +344,42 @@ function parseEntries(body: string): CmdEntry[] {
   let entryIndent = -1;
   let block: "shell" | "vars" | null = null;
   let blockIndent = -1;
+  let blockStyle: "literal" | "folded" | null = null;
+  let contentIndent = -1;
+  let shellPieces: ShellPiece[] = [];
+
+  const commitShell = (): void => {
+    const current = entry;
+    if (current !== null && blockStyle !== null) {
+      if (blockStyle === "literal") {
+        for (const piece of shellPieces) {
+          if (piece.text.length > 0) current.shell.push(piece.text);
+        }
+      } else {
+        for (const command of foldCommands(shellPieces)) current.shell.push(command);
+      }
+    }
+    shellPieces = [];
+    blockStyle = null;
+    contentIndent = -1;
+    if (block === "shell") block = null;
+  };
 
   const finish = (): void => {
+    commitShell();
     if (entry !== null) entries.push(entry);
     entry = null;
     block = null;
+  };
+
+  const beginShell = (indicator: string, indicatorIndent: number): void => {
+    const style = blockScalarStyle(indicator);
+    if (style === null) return;
+    block = "shell";
+    blockStyle = style;
+    blockIndent = indicatorIndent;
+    contentIndent = -1;
+    shellPieces = [];
   };
 
   for (const raw of lines) {
@@ -221,34 +396,47 @@ function parseEntries(body: string): CmdEntry[] {
       if (kind !== null) {
         section = kind;
         sectionIndent = indent;
+        if (kind === "deps") {
+          const flow = parseFlowDeps(scalarAfterColon(stripped));
+          if (flow !== null) {
+            for (const item of flow) entries.push(item);
+          }
+        }
       }
       continue;
     }
 
     if (stripped.startsWith("-")) {
       finish();
-      entry = { taskName: null, shell: [], engineCmd: null };
+      entry = { taskName: null, shell: [], engineCmd: null, ignoreError: false };
       entryIndent = indent;
       block = null;
       const rest = stripped.replace(/^-\s*/, "");
       applyEntryHead(entry, rest, section);
-      if (isBlockScalar(rest)) {
-        block = "shell";
-        blockIndent = indent;
+      if (blockScalarStyle(rest) !== null) {
+        beginShell(rest, indent);
       } else if (rest.startsWith("cmd:")) {
         const cmd = scalarAfterColon(rest);
-        if (isBlockScalar(cmd)) {
-          block = "shell";
-          blockIndent = indent;
-        }
+        if (blockScalarStyle(cmd) !== null) beginShell(cmd, indent);
       }
       continue;
     }
 
     if (entry === null) continue;
+    const current = entry;
 
-    if (block === "shell" && indent > entryIndent) {
-      entry.shell.push(raw.trim());
+    if (block === "shell") {
+      const endsBlock = indent <= blockIndent || (contentIndent >= 0 && indent < contentIndent);
+      if (!endsBlock) {
+        if (contentIndent < 0) contentIndent = indent;
+        shellPieces.push({ indent, text: stripped });
+        continue;
+      }
+      commitShell();
+    }
+
+    if (/^ignore_error\s*:/.test(stripped) && indent > entryIndent) {
+      if (scalarIsTrue(scalarAfterColon(stripped))) current.ignoreError = true;
       continue;
     }
     if (/^vars\s*:/.test(stripped)) {
@@ -258,20 +446,19 @@ function parseEntries(body: string): CmdEntry[] {
     }
     if (block === "vars" && indent > blockIndent) {
       const match = stripped.match(/^ENGINE_CMD\s*:\s*(.*)$/);
-      if (match?.[1] !== undefined) entry.engineCmd = match[1].trim();
+      if (match?.[1] !== undefined) current.engineCmd = match[1].trim();
       continue;
     }
-    if (/^task\s*:/.test(stripped) && entry.taskName === null) {
-      entry.taskName = scalarAfterColon(stripped);
+    if (/^task\s*:/.test(stripped) && current.taskName === null) {
+      current.taskName = scalarAfterColon(stripped);
       continue;
     }
     if (/^cmd\s*:/.test(stripped)) {
       const cmd = scalarAfterColon(stripped);
-      if (isBlockScalar(cmd)) {
-        block = "shell";
-        blockIndent = indent;
+      if (blockScalarStyle(cmd) !== null) {
+        beginShell(cmd, indent);
       } else {
-        entry.shell.push(cmd);
+        current.shell.push(cmd);
       }
     }
   }
@@ -284,8 +471,10 @@ function checkBodyInvokesDirective(
   taskfileText: string,
   body: string,
 ): boolean {
+  if (taskLevelIgnoresError(body)) return false;
   const deposited = engineInvokeIsDepositedDispatcher(projectRoot, taskfileText);
   for (const entry of parseEntries(body)) {
+    if (entry.ignoreError) continue;
     if (entry.taskName !== null && DIRECTIVE_TASK_NAMES.has(entry.taskName)) return true;
     if (deposited && entry.taskName === "engine:invoke" && engineCmdIsCheck(entry.engineCmd)) {
       return true;
