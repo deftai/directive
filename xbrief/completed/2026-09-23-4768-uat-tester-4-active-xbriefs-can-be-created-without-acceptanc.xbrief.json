@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4768",
-    "updated": "2026-09-23T17:00:11Z"
+    "updated": "2026-09-23T22:08:28Z"
   },
   "plan": {
     "title": "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4768",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "Keep the #3284 intake floor legal before activate (`commands=[]` plus `none_stated:true`). Do not bind \"active briefs must not carry that object.\"",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/transition.test.ts",
+          "recorded_at": "2026-09-23T22:08:27.800Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step. Do not commit the floor into `active/` on that no-op.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/transition.test.ts",
+          "recorded_at": "2026-09-23T22:08:27.800Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "Keep empty-resolution readers (`soft_empty` / complete refuse). Do not reverse #3826 0-verified pre-product pass as a side effect.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8482df089465611eda8ed20c5b49c4427131cf24",
+          "recorded_at": "2026-09-23T22:08:27.800Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "Recovery is an operator-visible definition step, or a derivable declared surface (list items / `test:` / `acceptance:` lines per #4374). Not silent agent authorship from the issue thread.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/transition.test.ts",
+          "recorded_at": "2026-09-23T22:08:27.800Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "No new `plan.acceptance` writer. Exclusive writer stays #4374 derivation.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8482df089465611eda8ed20c5b49c4427131cf24",
+          "recorded_at": "2026-09-23T22:08:27.800Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "tags": [
@@ -319,6 +349,29 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "c28f74e53835f29c93bf29fddbc9956a08f54ddf3ab40087e415941f96624099"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4984,
+        "prBase": null,
+        "mergeCommit": "8482df089465611eda8ed20c5b49c4427131cf24",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5959871d49ea429712b4a5bd05e1fdc7efa98a69",
+        "verifiedAt": "2026-09-23T22:08:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T22:08:28Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T22:08:28Z"
       }
     },
     "acceptance": {
@@ -380,6 +433,6 @@
       ]
     },
     "id": "github.issue.5501877140",
-    "updated": "2026-09-23T17:00:11Z"
+    "updated": "2026-09-23T22:08:28Z"
   }
 }
