@@ -1,0 +1,618 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4543",
+    "updated": "2026-09-23T18:57:38Z"
+  },
+  "plan": {
+    "title": "Forward-coverage gate is satisfied by placeholder tests (string-search / typeof)",
+    "status": "running",
+    "narratives": {
+      "Description": "Forward-coverage gate is satisfied by placeholder tests (string-search / typeof)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4543",
+      "Overview": "\n\n- The forward-coverage existence result fails for every language expectedTestBasenames already pairs, when the paired test's assertions only say the export is a function, including typeof, toBeDefined, toBeTypeOf, callable, and the same condition in another spelling.\n- The same result fails when the paired test reads the paired source as text and expects strings, whichever API performs the read.\n- That failure is the existence sentence, with one remediation.\n- The remediation does not grant a pass to a different read API.\n- The miss that can still pass is a file that does not read the paired source as text and does not only assert that the export is a function.\n- A warn-first sibling does not bind.\n- A never-imports rule does not bind.\n\nRecut: the next build is the Bound remedy list on this lean.\n\nrelieves: P1\n\nTarget-digest: sha256:1ecaa5e021e7e8e42dc3aaf0e6c733f9d94b6e826cc070fc2273634e66d28ad5\n\n",
+      "Labels": "bug, adoption-blocker, test-debt, agent-experience, process, area:cli, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "The forward-coverage existence result fails for every language expectedTestBasenames already pairs, when the paired test's assertions only say the export is a function, including typeof, toBeDefined, toBeTypeOf, callable, and the same condition in another spelling.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "The same result fails when the paired test reads the paired source as text and expects strings, whichever API performs the read.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "That failure is the existence sentence, with one remediation.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "The remediation does not grant a pass to a different read API.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "The miss that can still pass is a file that does not read the paired source as text and does not only assert that the export is a function.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "A warn-first sibling does not bind.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "A never-imports rule does not bind.",
+        "status": "proposed",
+        "id": "clause.7"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "test-debt",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4543",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4543: Forward-coverage gate is satisfied by placeholder tests (string-search / typeof)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The forward-coverage existence result fails for every language expectedTestBasenames already pairs, when the paired test's assertions only say the export is a function, including typeof, toBeDefined, toBeTypeOf, callable, and the same condition in another spelling.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The same result fails when the paired test reads the paired source as text and expects strings, whichever API performs the read.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "That failure is the existence sentence, with one remediation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The remediation does not grant a pass to a different read API.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The miss that can still pass is a file that does not read the paired source as text and does not only assert that the export is a function.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A warn-first sibling does not bind.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A never-imports rule does not bind.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: The coverage check is satisfied by tests that only search the source for strings. Those tests do not exercise the program.\n\nWhy that ruins the product for them: A small generated project looks tested. The check they were sold is decorating the work, not checking it.\n\nHow likely: High for a first project where the agent writes the tests, which is the usual way a new person gets tests at all.\n\n",
+          "id": 5780274789,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5780274789",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:47Z",
+          "updated_at": "2026-09-22T16:37:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because forward-coverage treats a paired test filename as coverage, including a file that only string-searches the source or only asserts that an export is a function.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4543-dc\norigin-ref: origin/HEAD\ndispatch-sha: 20eac1de2e510186bdf813efda44e2e641696a6d\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; the Desired shape is one warn-first substance check, so N=1.\n\nrefutation-target: a string-search or typeof-only test file does not satisfy forward-coverage, because pairing reads the test body or a substance check already fails those files.\n\ntarget: #4543\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is filename pairing. A test file that reads the paired source as text and expects strings, or that only asserts an export is a function, still counts as the new test file.\n\nPin-read at dispatch-sha 20eac1de2e510186bdf813efda44e2e641696a6d: packages/core/src/forward-coverage/correspondence.ts isTestFile and expectedTestBasenames match suffixes and stems. They do not read the test body. That tree has no verify:test-substance verb.\n\nCensus: Stage A still-open at origin/master 011539679c6c, wip none, no open PR, not named in Unreleased. The pin moved to 20eac1de2e510186bdf813efda44e2e641696a6d for the #4668 xbrief complete only. Ingest is a later verb.\n\n",
+          "id": 5787635654,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5787635654",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T01:56:27Z",
+          "updated_at": "2026-09-23T01:56:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nround: 1\ncharter: refutation\nsha: 20eac1de2e510186bdf813efda44e2e641696a6d\nceiling: 5787635654\n\n## Verdict\n\nThe recorded target does not hold. A string-search test file and a typeof-only test file both satisfy `evaluateForwardCoverage` at this SHA. Pairing matches a path. This tree has no substance check that fails those files.\n\nRecorded target, from the Stop 1 write-back 5787635654: a string-search or typeof-only test file does not satisfy forward-coverage, because pairing reads the test body or a substance check already fails those files.\n\nMethod reproduced from that write-back, then run. `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/correspondence.ts` `isTestFile` (lines 86-107) is basename suffixes (`.test.ts`, `.spec.ts`, `.test.tsx`, `.spec.tsx`, policy `.test.js` / `.spec.js`, `*_test.go`, `test_*.py` / `*_test.py`). `expectedTestBasenames` (lines 125-147) is stem plus those suffixes. `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/evaluate.ts` `listedTestFiles` (lines 290-312) keeps paths for which `isTestFile` is true. The existence decision (lines 388-401) is `expectedTestPaths(rel, policy).some(candidate => existingTests.has(candidate))`. `git grep test-substance 20eac1de2e510186bdf813efda44e2e641696a6d -- packages/cli/src/dispatch.ts` has no match. The verify verbs next to this gate are `verify:forward-coverage` (dispatch.ts line 376) and `verify:test-boundary` (line 377).\n\nRun, staged mode, `evaluateForwardCoverage` loaded from that file. `isTestFile` was called with the path only: `src/app/page.test.ts` true, `src/components/shell.test.ts` true, `src/app/page.tsx` false.\n\n| Fixture | Report | enforce | exit | missing | existence sentence |\n|---|---|---|---|---|---|\n| `page.test.ts` readFileSync of `page.tsx`, `toContain(\"deleteVehicleAction\")` | absent | no | 0 | none | all have forward coverage |\n| `shell.test.ts` `expect(typeof Shell).toBe(\"function\")` | absent | no | 0 | none | all have forward coverage |\n| `page.tsx` with no test file | absent | no | 1 | `src/app/page.tsx` | missing-test sentence |\n| same string-search pair, synthetic report, 2 uncovered branches on line 2 | present | no | 0 | none | all have forward coverage, plus ADVISORY |\n| same pair and report | present | yes | 1 | none | existence sentence still present |\n\nThe header of `evaluate.ts` (lines 5-16) matches the run: missing `coverage-final.json` skips the diff half; default diff posture is warn, exit 0; `--enforce` is what turns uncovered changed branches into exit 1. On that last row `missing` stays empty. The diff half reads the coverage report (`git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/diff-coverage.ts` lines 98-110), not the test source.\n\nInventory before any new check: existence pairing (path), diff coverage (report, skip when absent, warn unless enforce), `verify:test-boundary` (placement and production references to test roots), `verify:consumer-test-lane` (runs the declared test script). None of them fail a file for being a string search or a typeof assertion.\n\n## blocks-the-design — A warn-first sibling leaves the existence result green\n\nEvidence. The issue's suggested direction asks for one thin fail-closed check, for example `deft verify:test-substance`, and then says warn-first, same as the 90% per-diff threshold. The measured existence result for both placeholder shapes is exit 0 and the sentence \"all have forward coverage\". `evaluate.ts` lines 428-433 keep that sentence whenever `missing` is empty, and set exit 1 only when enforce is on and the diff half has findings. The warn row above is that 90% posture: uncovered branches, exit 0, existence sentence still true.\n\nFailure mode. Binding the suggestion as written ships a second warning. `evaluateForwardCoverage` still reports the placeholder as forward coverage. The doorway result the issue calls fed stays green. The same paragraph cannot be both the fail-closed existence result and a warn that leaves exit 0.\n\nDisposition. This suggestion cannot bind as the remedy while those two exit stories stand. The existence result for the two measured shapes has to become a failure with one remediation, or the pain statement has to say the existence sentence will stay true.\n\nRoad not taken. Put a scoped predicate in the existence half of `evaluateForwardCoverage`, so `missing` is non-empty for the two measured shapes, fail closed, one remediation. A separate warn-first verb is the written alternative, and the run shows it leaves the existence sentence in place.\n\nSteelman. Warn-first matches the #3514 choice to keep a partial or missing coverage report off the iteration-lane failure path, and a loose heuristic will flag golden-file tests and same-package Go tests. What flips this verdict: a predicate that fails the two measured fixtures and still passes a behavioral colocated test, with that failure carried by the existence result. Discovery-only remains available if the pain statement says the existence sentence stays true.\n\n## sharpens-framing — Scope the predicate to the two observed shapes\n\nEvidence. The three bullets are OR'd on the whole file. The typeof example in the issue imports `Shell` (`expect(typeof Shell).toBe(\"function\")`). \"Never imports the paired module\" does not fire on that file. \"Every assertion is typeof or toBeDefined\" does, and one further assertion makes that bullet false. \"readFileSync / fs.readFile on a path ending in the paired source filename\" matches the issue's `page.test.ts`, and it also matches a file that does that once and behavior-tests the module the rest of the time. `expectedTestBasenames` for `.go` is `${stem}_test.go` (correspondence.ts lines 140-141). A same-package Go test has no import of the package under test, so a universal \"never imports\" bullet flags a file forward-coverage is built to accept. `fs.promises.readFile`, or a path that does not end in the source basename, misses the read bullet. `expect(source.includes(\"deleteVehicleAction\")).toBe(true)` misses the typeof bullet.\n\nFailure mode. Fail-closed on those three bullets flags same-package Go tests and mixed files, and still accepts a string-search file that imports the module, reads it through another API, and uses one non-typeof assertion. The check's text is the evasion list for the agent that already wrote the placeholders. That input is untrusted test source, and a green existence result is what the gate authorizes.\n\nDisposition. The lean can bind with the predicate limited to the observed TS/JS shapes: a paired file whose assertions are only `typeof` / `toBeDefined`, or a paired file that reads the paired source as text. State the miss (one extra assertion, another read API) in the remediation. Leave `.go` / `.py` pairing on the path rules already in `correspondence.ts`.\n\n## footnote — Adjacent reads do not judge assertion shape\n\n`evaluate.ts` line 234 `readFileSync` counts lines of untracked files inside `changedLinesByFile` (head mode). The staged run above does not take that branch. `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/test-boundary/evaluate.ts` lines 358-377 classify test paths and can record `test-under-source-root` for any matching basename under a source root. Lines 380-407 read file text for `scanProductionReferences` (production file mentions a test root). `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/consumer-test-lane/evaluate.ts` reads package metadata and runs the declared test command. A placeholder that passes its runner stays green there. The enforce row in the table is uncovered branches in a coverage report, with `missing` still empty.",
+          "id": 5787747597,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5787747597",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:10:19Z",
+          "updated_at": "2026-09-23T02:10:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:**\n\n## In plain English\n\nA test file that only searches the source for strings, or only checks that an export is a function, still counts as coverage. A second warning would leave that green result in place. Confirming this map makes the coverage result fail for those two TypeScript and JavaScript shapes, with one remediation. Go and Python stay on the path rules already in the tree. The same author wrote the opening stamp and these takes.\n\nSupersedes write-back 5787635654. Critic 5787747597.\n\n| Heading | Class | Take | Comment |\n|---|---|---|---|\n| A warn-first sibling leaves the existence result green | blocks-the-design | accept-into-contract | 5787747597 |\n| Scope the predicate to the two observed shapes | sharpens-framing | accept-into-contract | 5787747597 |\n\n## Bound remedy\n\n- The forward-coverage existence result fails for a paired TypeScript or JavaScript test whose assertions are only typeof or toBeDefined, or that reads the paired source as text.\n- That failure carries one remediation, and the existence sentence for those files is a failure.\n- Go and Python stay on the existing path rules.\n\nSpec-path: the next build is the Bound remedy list on this lean.\n\nrelieves: P1\n\nTarget-digest: sha256:1ecaa5e021e7e8e42dc3aaf0e6c733f9d94b6e826cc070fc2273634e66d28ad5\n\n",
+          "id": 5787798149,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5787798149",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:16:47Z",
+          "updated_at": "2026-09-23T02:16:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nround: pain-audit\nsha: 20eac1de2e510186bdf813efda44e2e641696a6d\nceiling: 5787798149\n\n## Verdict\n\nP1 stays true under the Bound remedy on successor lean 5787798149. The lean's `relieves: P1` cite does not hold.\n\nP1 on write-back 5787635654: a test file that reads the paired source as text and expects strings, or that only asserts an export is a function, still counts as the new test file.\n\n## blocks-the-design -- Bound remedy leaves P1 true\n\nEvidence. The harvest fails the forward-coverage existence result for a paired TypeScript or JavaScript test whose assertions are only typeof or toBeDefined, or that reads the paired source as text. For that set, the existence sentence is a failure, with one remediation. Go and Python stay on the path rules.\n\n`git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/correspondence.ts` `isTestFile` (lines 86-106) takes the path and matches basenames: `.test.ts`, `.test.tsx`, `.spec.ts`, `.spec.tsx`, `JS_POLICY_TEST_SUFFIXES` (line 96), `*_test.go`, and `test_*.py` / `*_test.py`. It does not read the file body. `expectedTestBasenames` (lines 125-142) pairs `.ts`, `.tsx`, `.js`, `.py`, and `.go`. Source extensions (line 15) are those five. `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/evaluate.ts` `listedTestFiles` (lines 305-308) keeps a path when `isTestFile` is true. The existence decision (lines 394-398) is `expectedTestPaths(rel, policy).some(candidate => existingTests.has(candidate))`. An empty `missing` list emits the sentence at lines 437-439, `all have forward coverage`. A non-empty list exits 1 at lines 420-434 with the missing-test sentence. `git grep test-substance 20eac1de2e510186bdf813efda44e2e641696a6d -- packages/cli/src/dispatch.ts` has no match. Adjacent verbs are `verify:forward-coverage` (dispatch.ts line 376) and `verify:test-boundary` (line 377).\n\nRun, staged mode, `evaluateForwardCoverage` loaded from that tree. These repos had no `coverage-final.json`. The header (lines 15-16) skips the diff half in that case, and the existence sentence still ran.\n\n| Fixture | Body | exit | missing | existence sentence |\n|---|---|---|---|---|\n| `src/page.test.ts` | `readFileSync` of `page.tsx`, `toContain(\"deleteVehicleAction\")` | 0 | none | all have forward coverage |\n| `src/shell.test.ts` | `expect(typeof Shell).toBe(\"function\")` | 0 | none | all have forward coverage |\n| `src/shell.test.ts` | `expect(Shell).toBeTypeOf(\"function\")` | 0 | none | all have forward coverage |\n| `cmd/widget_test.go` | `os.ReadFile(\"widget.go\")`, `strings.Contains(..., \"func Widget\")` | 0 | none | all have forward coverage |\n| `scripts/test_store.py` | `assert callable(build)` | 0 | none | all have forward coverage |\n| `scripts/test_store.py` | `open(\"store.py\")`, `assert \"def build\" in source` | 0 | none | all have forward coverage |\n| `src/page.tsx` with no test |  | 1 | `src/page.tsx` | missing-test sentence |\n\nThe first two rows are the shapes the first bullet names. Built as written, that bullet turns their existence sentence into a failure. The next four rows match the P1 sentence and stay on the green sentence under the harvest. Go and Python stay there by the third bullet. `toBeTypeOf(\"function\")` stays there because that assertion is neither typeof nor toBeDefined. The test body is untrusted input. The green sentence is what authorizes the new source. The third bullet leaves Go and Python on the path check an author can select.\n\nFailure mode. After this harvest is built, `cmd/widget.go` plus `cmd/widget_test.go` that reads the paired source and expects a string, `scripts/store.py` plus `scripts/test_store.py` that only asserts `callable(build)` or reads the source and expects a string, and `src/shell.ts` plus `src/shell.test.ts` that only uses `toBeTypeOf(\"function\")`, still take the empty-`missing` branch. Exit stays 0. The sentence stays `all have forward coverage`. P1 says those files still count as the new test file. They still do.\n\nDisposition. This lean cannot bind as written. `relieves: P1` is false while those four fixtures keep the green existence sentence.\n\nRoad not taken. Fail the existence result for every language `expectedTestBasenames` already pairs, when the test reads the paired source as text and expects strings, or when its assertions only say the export is a function. One remediation. The posted harvest keeps Go and Python on path rules and, inside TypeScript and JavaScript, fails only typeof and toBeDefined.\n\nSteelman. A same-package Go test has no import of the package under test, so a never-imports rule fails files this gate is built to accept. The consumer files behind the warrant were TypeScript, and the first two bullets do turn the measured `readFileSync` plus `toContain` file and the measured `typeof` file into an existence failure. What flips this verdict: a Stop 1 pain sentence limited to those TypeScript and JavaScript token shapes, or a Bound remedy whose failure set includes the four green fixtures above.\r\n\n",
+          "id": 5787894482,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5787894482",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:27:35Z",
+          "updated_at": "2026-09-23T02:27:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:**\n\n## In plain English\n\nThe earlier map said the coverage result would fail for a TypeScript or JavaScript test that only checks typeof or toBeDefined, or that reads the paired source as text. The pain-audit re-ran the coverage check. Those two shapes would fail, and four others that the stamped pain still names would stay green: a Go test that reads the paired source, a Python test that only checks the export is callable, a Python test that reads the source, and a TypeScript test that uses toBeTypeOf. That earlier map does not bind. The stamped pain stays open. The same author wrote the opening stamp and this retraction. No new issue was filed.\n\nThis retraction supersedes successor lean 5787798149. Pain-audit 5787894482.\n\n| Heading | Class | Take | Comment |\n|---|---|---|---|\n| Bound remedy leaves P1 true | blocks-the-design | accept-into-contract | 5787894482 |\n\n## Bound remedy\n\n- The earlier harvest does not bind.\n- Go, Python, and a toBeTypeOf-only test stay on the green existence sentence under that harvest.\n\nSpec-path: the next build is the Bound remedy list on this lean.\n\ndoes-not-relieve: P1\n\nTarget-digest: sha256:1ecaa5e021e7e8e42dc3aaf0e6c733f9d94b6e826cc070fc2273634e66d28ad5\n\n",
+          "id": 5787932924,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5787932924",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:31:47Z",
+          "updated_at": "2026-09-23T02:31:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nHandoff\n\nopen-question: Widen the failure set to every paired language and to toBeTypeOf, or narrow the stamped pain to the TypeScript token shapes the first critic measured?\n\nRetraction 5787932924 cites does-not-relieve: P1 after pain-audit 5787894482. No leftover issue was filed.\n\n",
+          "id": 5787933059,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5787933059",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:31:48Z",
+          "updated_at": "2026-09-23T02:31:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:**\n\n## In plain English\n\nA placeholder test still counts as the new test file. The last map would fail only two TypeScript spellings. A Go test that reads its source, a Python test that only checks the export is callable, a Python test that reads the source, and a TypeScript toBeTypeOf test would stay green. Confirming this map makes the existence result fail for every language the check already pairs, when the test only says the export is a function, or when it reads the paired source as text and expects strings. One remediation. A warn-first extra check stays out. A never-imports rule stays out. The same author wrote the opening stamp and this map. One real assertion beside the placeholder, or a different read API, can still pass, and the remediation names that miss.\n\nSupersedes 5787932924. Pain-audit 5787894482. Round-1 critic 5787747597.\n\n| Heading | Class | Take | Comment |\n|---|---|---|---|\n| A warn-first sibling leaves the existence result green | blocks-the-design | accept-into-contract | 5787747597 |\n| Scope the predicate to the two observed shapes | sharpens-framing | disagree | 5787747597 |\n| Bound remedy leaves P1 true | blocks-the-design | accept-into-contract | 5787894482 |\n\n## Bound remedy\n\n- The forward-coverage existence result fails for every language expectedTestBasenames already pairs, when the paired test's assertions only say the export is a function, including typeof, toBeDefined, toBeTypeOf, and callable.\n- The same result fails when the paired test reads the paired source as text and expects strings.\n- That failure is the existence sentence, with one remediation.\n- A warn-first sibling does not bind.\n- A never-imports rule does not bind.\n- The remediation names the miss: one real assertion beside the placeholder, or a different read API, can still pass.\n\nRecut: the next build is the Bound remedy list on this lean.\n\nrelieves: P1\n\nTarget-digest: sha256:1ecaa5e021e7e8e42dc3aaf0e6c733f9d94b6e826cc070fc2273634e66d28ad5\n\n",
+          "id": 5788116478,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5788116478",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:49:26Z",
+          "updated_at": "2026-09-23T02:49:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nAccept the recut on successor lean 5788116478.\n\nAccept \"A warn-first sibling leaves the existence result green\" — critic 5787747597 — accept-into-contract.\nAccept the disagree on \"Scope the predicate to the two observed shapes\" — critic 5787747597. The failure is not limited to two TypeScript spellings.\nAccept \"Bound remedy leaves P1 true\" — pain-audit 5787894482 — accept-into-contract.\n\nTakes on 5788116478 are bound. The build is the Bound remedy on that lean. This is not synthesis.\r\n\n",
+          "id": 5795161500,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5795161500",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:50:51Z",
+          "updated_at": "2026-09-23T12:50:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nround: pain-audit\nsha: 20eac1de2e510186bdf813efda44e2e641696a6d\nceiling: 5788116478\n\n## Verdict\n\nP1 stays true under the Bound remedy on successor lean 5788116478. The lean's `relieves: P1` cite does not hold.\n\nP1 on write-back 5787635654: a test file that reads the paired source as text and expects strings, or that only asserts an export is a function, still counts as the new test file.\n\nThe first two bullets put the four fixtures from pain-audit 5787894482 on the failing existence sentence: a Go test that reads the paired source, a Python `callable` test, a Python test that reads the source, and a TypeScript `toBeTypeOf(\"function\")` test. The sixth bullet then leaves another file of the first P1 shape on the green sentence. That file reads the paired source as text through a different API and expects a string.\n\n## blocks-the-design — A different read API still counts\n\nEvidence. The harvest fails the existence result for every language `expectedTestBasenames` already pairs, when the paired test's assertions only say the export is a function, including `typeof`, `toBeDefined`, `toBeTypeOf`, and `callable`. It fails that same result when the paired test reads the paired source as text and expects strings. The failure is the existence sentence, with one remediation. The sixth bullet says the remediation names this miss: one real assertion beside the placeholder, or a different read API, can still pass. The plain-English closer states that pass as what confirming asserts.\n\n`git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/correspondence.ts` `isTestFile` (lines 86-106) matches the basename. It does not read the file. `expectedTestBasenames` (lines 125-142) pairs `.ts`, `.tsx`, `.js`, `.py`, and `.go`. Source extensions (line 15) are those five. JS suffixes come from `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/test-boundary/policy.ts` `DEFAULT_TEST_FILE_PATTERNS` (lines 43-57): `.test.js` and `.spec.js`. `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/evaluate.ts` `listedTestFiles` (lines 304-308) keeps a path when `isTestFile` is true. The existence decision (lines 394-395) is `expectedTestPaths(rel, policy).some(candidate => existingTests.has(candidate))`. An empty `missing` list emits the sentence at lines 437-439, `all have forward coverage`. A non-empty list exits 1 at lines 420-434. `git grep -n test-substance 20eac1de2e510186bdf813efda44e2e641696a6d -- packages` has no match. Adjacent verbs are `verify:forward-coverage` and `verify:test-boundary` at `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/cli/src/dispatch.ts` lines 376-377. `verify:test-boundary` places files. It does not judge assertion shape.\n\nRun, staged mode, `evaluateForwardCoverage` loaded from that tree. No `coverage-final.json`. `isTestFile(\"src/page.test.ts\")` was true and `isTestFile(\"src/page.tsx\")` was false, from the path alone.\n\n| Fixture | Body | exit | missing | existence sentence |\n|---|---|---|---|---|\n| `src/page.test.ts` | `readFileSync` of `page.tsx`, `toContain(\"deleteVehicleAction\")` | 0 | none | all have forward coverage |\n| `src/page.test.ts` | `fs.promises.readFile` of `page.tsx`, `toContain(\"deleteVehicleAction\")` | 0 | none | all have forward coverage |\n| `src/shell.test.ts` | `expect(typeof Shell).toBe(\"function\")` | 0 | none | all have forward coverage |\n| `src/shell.test.ts` | `expect(Shell).toBeTypeOf(\"function\")` | 0 | none | all have forward coverage |\n| `cmd/widget_test.go` | `os.ReadFile(\"widget.go\")`, `strings.Contains(..., \"func Widget\")` | 0 | none | all have forward coverage |\n| `scripts/test_store.py` | `assert callable(build)` | 0 | none | all have forward coverage |\n| `scripts/test_store.py` | `open(\"store.py\")`, `assert \"def build\" in source` | 0 | none | all have forward coverage |\n| `src/page.tsx` with no test |  | 1 | `src/page.tsx` | missing-test sentence |\n\nBuilt as written, the first two bullets turn the `readFileSync`, `os.ReadFile`, `open`, `typeof`, `toBeTypeOf`, and `callable` rows into the missing-test sentence. The `fs.promises.readFile` row is the same P1 shape, a read of the paired source as text that expects a string, and the sixth bullet leaves it on the green sentence. The same grant covers `pathlib.Path.read_text` beside `open`, and `os.Open` beside `os.ReadFile`. The test body is untrusted input. The author who already wrote the placeholder picks the API the remediation says can pass. The green sentence is what authorizes the new source.\n\n`one real assertion beside the placeholder` leaves P1 false when that file no longer only asserts the export is a function and does not read the paired source. The same phrase leaves P1 true when it also lets a string-search file pass once a real call is added. The posted sentence grants both passes in one miss.\n\nThe first bullet's condition is assertions that only say the export is a function. `typeof`, `toBeDefined`, `toBeTypeOf`, and `callable` are members of that set. `inspect.isfunction` and `expect.any(Function)` sit under that same condition.\n\nFailure mode. After this harvest is built, `src/page.tsx` plus `src/page.test.ts` that reads `page.tsx` with `fs.promises.readFile` and expects `deleteVehicleAction` still takes the empty-`missing` branch. Exit stays 0. The sentence stays `all have forward coverage`. P1 says a file that reads the paired source as text and expects strings still counts. That file still does.\n\nDisposition. This lean cannot bind as written. `relieves: P1` is false while a different read API that still reads the paired source and expects strings stays on the green existence sentence.\n\nRoad not taken. Accept `relieves: P1` on the first two bullets, and treat the sixth bullet as warning copy about a finite detector. The plain-English closer states the pass as what confirming asserts, and the sixth bullet is a harvest item, so that reading leaves the P1 file on the success sentence by the map's own words.\n\nSteelman. A finite check cannot name every read API, the round-1 critic asked to name that miss, and the four fixtures that blocked the last audit are failures under the first two bullets. What flips this verdict: the sixth bullet no longer grants a pass to a test that reads the paired source as text and expects strings. That file fails under the second bullet, whichever API performs the read. The miss that can still pass is a file that does not do that and does not only assert that the export is a function.\r\n\n",
+          "id": 5795326000,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5795326000",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:02:27Z",
+          "updated_at": "2026-09-23T13:02:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:**\n\n## In plain English\n\nThe accepted map fails a placeholder that uses the named read calls or only says the export is a function. It also says a different read API can still pass. A test that reads the paired source with fs.promises.readFile and expects a string stays on the green existence sentence. That file is the stamped pain. This map does not bind. The same author wrote the opening stamp and this retraction. No new issue was filed.\n\nThis retraction supersedes successor lean 5788116478. Pain-audit 5795326000. Accept 5795161500 bound the takes on the superseded lean. Those takes do not make the relief cite true.\n\n| Heading | Class | Take | Comment |\n|---|---|---|---|\n| A different read API still counts | blocks-the-design | accept-into-contract | 5795326000 |\n\n## Bound remedy\n\n- Successor lean 5788116478 does not bind while a different read API that still reads the paired source and expects strings stays on the green existence sentence.\n- The four fixtures from pain-audit 5787894482 are failures under the first two bullets of that lean. That does not cover the fs.promises.readFile fixture.\n\nRecut: the next build is the Bound remedy list on this lean.\n\ndoes-not-relieve: P1\n\nTarget-digest: sha256:1ecaa5e021e7e8e42dc3aaf0e6c733f9d94b6e826cc070fc2273634e66d28ad5\r\n\n",
+          "id": 5795337741,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5795337741",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:03:17Z",
+          "updated_at": "2026-09-23T13:03:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nHandoff\n\nopen-question: Drop the grant that a different read API can pass, so any paired-source text read fails the existence sentence, or keep that miss and narrow the stamped pain to the named APIs?\n\nRetraction 5795337741 cites does-not-relieve: P1 after pain-audit 5795326000. No leftover issue was filed.\r\n\n",
+          "id": 5795340239,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5795340239",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:03:27Z",
+          "updated_at": "2026-09-23T13:03:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:**\n\n## In plain English\n\nThe last map failed the named read calls and the function-only assertions, and it said a different read API could still pass. A test that reads the paired source through another API and expects a string stayed on the green existence sentence. Confirming this map fails any read of the paired source as text that expects strings, whichever API performs the read, and fails assertions that only say the export is a function. The miss that can still pass is a file that does neither. A warn-first extra check stays out. A never-imports rule stays out. The same author wrote the opening stamp and this map.\n\nSupersedes 5795337741. Pain-audit 5795326000.\n\n| Heading | Class | Take | Comment |\n|---|---|---|---|\n| A warn-first sibling leaves the existence result green | blocks-the-design | accept-into-contract | 5787747597 |\n| Scope the predicate to the two observed shapes | sharpens-framing | disagree | 5787747597 |\n| Bound remedy leaves P1 true | blocks-the-design | accept-into-contract | 5787894482 |\n| A different read API still counts | blocks-the-design | accept-into-contract | 5795326000 |\n\n## Bound remedy\n\n- The forward-coverage existence result fails for every language expectedTestBasenames already pairs, when the paired test's assertions only say the export is a function, including typeof, toBeDefined, toBeTypeOf, callable, and the same condition in another spelling.\n- The same result fails when the paired test reads the paired source as text and expects strings, whichever API performs the read.\n- That failure is the existence sentence, with one remediation.\n- The remediation does not grant a pass to a different read API.\n- The miss that can still pass is a file that does not read the paired source as text and does not only assert that the export is a function.\n- A warn-first sibling does not bind.\n- A never-imports rule does not bind.\n\nRecut: the next build is the Bound remedy list on this lean.\n\nrelieves: P1\n\nTarget-digest: sha256:1ecaa5e021e7e8e42dc3aaf0e6c733f9d94b6e826cc070fc2273634e66d28ad5\n\n",
+          "id": 5798686185,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5798686185",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T16:33:29Z",
+          "updated_at": "2026-09-23T16:33:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nround: pain-audit\nsha: 20eac1de2e510186bdf813efda44e2e641696a6d\nceiling: 5798686185\n\n## Verdict\n\nP1 becomes false under the Bound remedy on successor lean 5798686185. The lean's `relieves: P1` cite holds.\n\nP1 on write-back 5787635654: a test file that reads the paired source as text and expects strings, or that only asserts an export is a function, still counts as the new test file.\n\nThe harvest fails the existence sentence for both of those shapes, for every language `expectedTestBasenames` already pairs. The miss that can still pass is a file outside that sentence.\n\n## Evidence\n\n`git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/correspondence.ts` `isTestFile` (lines 86-107) matches the basename. It does not read the file. `expectedTestBasenames` (line 125) pairs `.ts`, `.tsx`, `.js`, `.py`, and `.go`. `SOURCE_EXTENSIONS` (line 15) is those five. JS suffixes come from `policyTestSuffixes` (line 22) over `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/test-boundary/policy.ts` `DEFAULT_TEST_FILE_PATTERNS` lines 50 and 54, `**/*.test.js` and `**/*.spec.js`. The final-extension check keeps `.js` and drops `.jsx`.\n\n`git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/forward-coverage/evaluate.ts` `listedTestFiles` (line 285) keeps a path when `isTestFile` is true (line 306). The existence decision (line 395) is `expectedTestPaths(rel, policy).some(candidate => existingTests.has(candidate))`. A non-empty `missing` list exits 1 at line 420. An empty list emits the sentence at lines 438-439, `all have forward coverage`. `git grep -n test-substance 20eac1de2e510186bdf813efda44e2e641696a6d -- packages` has no match. Adjacent verbs are `verify:forward-coverage` and `verify:test-boundary` at `git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/cli/src/dispatch.ts` lines 376-377. `verify:test-boundary` places files. It does not judge assertion shape.\n\nRun, staged mode, `evaluateForwardCoverage` loaded from that tree. No `coverage-final.json`. `isTestFile(\"src/page.test.ts\")` was true and `isTestFile(\"src/page.tsx\")` was false, from the path alone. Every paired body below took the empty-`missing` branch. Exit 0. Sentence: `verify_forward_coverage: 1 new source file(s) checked -- all have forward coverage (#1310 / #4009).`\n\n| Fixture | Body | This tree | Harvest, built as written |\n|---|---|---|---|\n| `src/page.test.ts` | `readFileSync` of `page.tsx`, `toContain(\"deleteVehicleAction\")` | exit 0, green sentence | fails, bullet 2 |\n| `src/page.test.ts` | `fs.promises.readFile` of `page.tsx`, `toContain(\"deleteVehicleAction\")` | exit 0, green sentence | fails, bullets 2 and 4 |\n| `src/page.test.ts` | `import src from \"./page.tsx?raw\"`, `toContain(\"deleteVehicleAction\")` | exit 0, green sentence | fails, bullet 2 |\n| `src/page.test.ts` | `readFileSync` plus `toContain`, and `expect(deleteVehicleAction()).toBe(1)` | exit 0, green sentence | fails, bullet 2 |\n| `src/shell.test.ts` | `expect(typeof Shell).toBe(\"function\")` | exit 0, green sentence | fails, bullet 1 |\n| `src/shell.test.ts` | `expect(Shell).toBeDefined()` | exit 0, green sentence | fails, bullet 1 |\n| `src/shell.test.ts` | `expect(Shell).toBeTypeOf(\"function\")` | exit 0, green sentence | fails, bullet 1 |\n| `src/shell.test.ts` | `expect(Shell).toEqual(expect.any(Function))` | exit 0, green sentence | fails, bullet 1 |\n| `cmd/widget_test.go` | `os.ReadFile(\"widget.go\")`, `strings.Contains(..., \"func Widget\")` | exit 0, green sentence | fails, bullet 2 |\n| `cmd/widget_test.go` | `os.Open` plus `io.ReadAll`, `strings.Contains(..., \"func Widget\")` | exit 0, green sentence | fails, bullet 2 |\n| `scripts/test_store.py` | `assert callable(build)` | exit 0, green sentence | fails, bullet 1 |\n| `scripts/test_store.py` | `assert inspect.isfunction(build)` | exit 0, green sentence | fails, bullet 1 |\n| `scripts/test_store.py` | `open(\"store.py\")`, `assert \"def build\" in source` | exit 0, green sentence | fails, bullet 2 |\n| `scripts/test_store.py` | `Path(\"store.py\").read_text`, `assert \"def build\" in source` | exit 0, green sentence | fails, bullet 2 |\n| `src/page.test.ts` | empty file | exit 0, green sentence | passes, bullet 5 |\n| `src/page.tsx` | no paired test | exit 1, missing `src/page.tsx` | already the missing-test sentence |\n\nBullet 1 fails the existence result when the paired test's assertions only say the export is a function, including `typeof`, `toBeDefined`, `toBeTypeOf`, `callable`, and the same condition in another spelling. `expect.any(Function)` and `inspect.isfunction` are that condition. The head of the bullet is the whole function-only set, for every paired language.\n\nBullet 2 fails that same result when the paired test reads the paired source as text and expects strings, whichever API performs the read. That covers `readFileSync`, `fs.promises.readFile`, `os.ReadFile`, `os.Open`, `open`, `Path.read_text`, and a raw import of the paired source. A file that also calls the export still reads the paired source and expects a string, so bullet 2 still fails it.\n\nBullet 3 makes that failure the existence sentence, with one remediation. On this tree that sentence is the exit-1 missing-test branch at line 420, the branch the unpaired `src/page.tsx` row already takes.\n\nBullet 4 says the remediation does not grant a pass to a different read API. `fs.promises.readFile` stays in the bullet 2 failure set.\n\nBullet 5's miss is a file that does not read the paired source as text and does not only assert that the export is a function. The P1 rows are outside that miss.\n\nBullets 6 and 7 leave a warn-first sibling and a never-imports rule unbound. The failure stays on the existence sentence. The test body is untrusted input, and the green sentence is what authorizes the new source. The control in the harvest is that sentence failing closed.\n\n## footnote — An empty paired file stays on the green sentence\n\nEvidence. Bullet 5 leaves `src/page.test.ts` with an empty body on the green sentence. The run did: exit 0, missing none, `all have forward coverage`.\n\nFailure mode. After this harvest is built, an empty paired file still takes the empty-`missing` branch.\n\nDisposition. This file is outside the P1 sentence. It does not read the paired source and it does not assert that an export is a function. The finding does not change the harvested Bound remedy.\n\nRoad not taken. Treat \"whichever API\" as a hope and block until the harvest names a closed detector. The failure conditions are the two P1 predicates, and no bullet grants a pass to a file that meets either one.\n\nSteelman. A finite body check can miss some read, and that missed file would stay on today's green sentence, so a narrow implementation would leave P1 true. What flips this verdict: a harvest bullet that grants a pass to a file that reads the paired source as text and expects strings, or that only asserts the export is a function. Bullets 2, 4, and 5 do the opposite.\r\n\n",
+          "id": 5798868163,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5798868163",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T16:46:17Z",
+          "updated_at": "2026-09-23T16:46:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Method | Result |\n|---|---|---|\n| A paired test that reads the source and expects a string, or that only says the export is a function, takes the empty-missing branch and exits 0 with the green existence sentence | Pain-audit 5798868163 re-executed evaluateForwardCoverage at 20eac1de2e510186bdf813efda44e2e641696a6d, staged, with no coverage report | Holds on the tree today |\n| The Bound remedy on successor lean 5798686185 fails that existence sentence for both shapes, for every language the check already pairs, whichever read API performs the read | Pain-audit 5798868163 compared bullets 2, 4, and 5 of that lean to the executed walk | Covers the stamped pain. This row is not a measurement of code already shipped |\n| An empty paired file stays on the green sentence | Same run, empty src/page.test.ts | Outside the stamped pain. Does not change the harvest |\n\nNon-self-arbitration: the synthesis author also wrote the opening stamp. These rows use the pain-audit's re-execution, not agreement alone.\n\n",
+          "id": 5800288334,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5800288334",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:09:53Z",
+          "updated_at": "2026-09-23T18:09:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA placeholder that reads the paired source or only says the export is a function still counts as coverage. The accepted map makes that existence sentence a failure for every language the check already pairs, whichever API performs the read, and for assertions that only say the export is a function. The pain-audit re-ran the check and found that map covers the stamped pain. An empty paired file stays green and is outside the pain. The operator accepted synthesis. The same author wrote the opening stamp.\n\nSuccessor lean 5798686185. Verified-claims table 5800288334.\n\ndesign-critique: synthesis accepted, because the operator accepted synthesis on successor lean 5798686185 after pain-audit 5798868163 found the widened remedy covers the stamped pain\n\n",
+          "id": 5800288680,
+          "html_url": "https://github.com/deftai/directive/issues/4543#issuecomment-5800288680",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:09:54Z",
+          "updated_at": "2026-09-23T18:09:54Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe forward-coverage rule (\"new source files must have corresponding new test files\", #1310 / #3514) can be satisfied by test files that don't test anything. In a consumer build, the agent produced 26 test files; 15 of them are placeholders that either read the source file as a string and check that certain identifiers appear in it, or assert that an export is a function.\n\n## Environment\n\n- `@deftai/directive` 0.118.1, consumer project (`.deft/core/` deposit layout)\n- Host: Grok Build, ceremony tier `rapid`\n- Greenfield Next.js 16 + Vitest app built from a single prompt\n\n## Observed\n\nExamples from the consumer repo:\n\n```ts\n// src/app/vehicles/[id]/page.test.ts\nit(\"supports edit and delete of the vehicle and its records\", () => {\n  const source = readFileSync(join(dir, \"page.tsx\"), \"utf8\");\n  expect(source).toContain(\"deleteVehicleAction\");\n  expect(source).toContain(\"deleteServiceAction\");\n});\n\n// src/components/shell.test.ts\nit(\"exports a component\", () => {\n  expect(typeof Shell).toBe(\"function\");\n});\n```\n\nSame pattern in `middleware.test.ts`, `app/actions.test.ts`, `app/page.test.ts`, `app/layout.test.ts`, every `app/**/page.test.ts`, `components/*.test.ts`, `lib/types.test.ts`.\n\nThe 11 remaining files are real (e.g. 21 behavioural tests on `lib/garage.ts`, disk round-trip on `lib/file-store.ts`).\n\n## Why it matters\n\nGate Integrity (#3156) forbids clearing a red gate by editing the gate. This is the adjacent loophole: the gate wasn't edited, it was fed. A file-count check can't distinguish a real test from a string search, so the framework reports forward coverage that isn't there.\n\n## Suggested direction\n\nOne thin fail-closed check (per #3265), e.g. `deft verify:test-substance`, that flags a test file when:\n\n- it never imports the module it is paired with, or\n- it calls `readFileSync` / `fs.readFile` on a path ending in the paired source filename, or\n- every assertion is `typeof x === \"function\"` / `toBeDefined()` with no call into the module.\n\nWarn-first, same as the 90% per-diff threshold, with one remediation string.\n\n## Evidence\n\nSide-by-side write-up of this build vs. a no-framework baseline from the same prompt: available on request.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5453260736,
+        "origin": "deftai/directive#4543",
+        "id": "github.issue.5453260736"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1ecaa5e021e7e8e42dc3aaf0e6c733f9d94b6e826cc070fc2273634e66d28ad5"
+      }
+    },
+    "id": "github.issue.5453260736",
+    "updated": "2026-09-23T18:57:38Z"
+  }
+}
