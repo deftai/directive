@@ -140,9 +140,7 @@ function mentionsPairedFile(value: string, basename: string): boolean {
 function isRawImport(site: StringSite): boolean {
   if (!isImportShaped(site.codeBefore)) return false;
   if (/\?(?:raw|text|source)\b/.test(site.value)) return true;
-  return /\b(?:assert|with)\s*:?\s*\{[^}]*type\s*:\s*["'](?:text|string)["']/.test(
-    site.codeAfter,
-  );
+  return /\b(?:assert|with)\s*:?\s*\{[^}]*type\s*:\s*["'](?:text|string)["']/.test(site.codeAfter);
 }
 
 function isNormalImport(site: StringSite): boolean {
