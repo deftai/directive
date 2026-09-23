@@ -1,0 +1,249 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4937",
+    "updated": "2026-09-23T01:06:10Z"
+  },
+  "plan": {
+    "title": "bug(swarm): through-merge should complete the xbrief for the issue it was given",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(swarm): through-merge should complete the xbrief for the issue it was given",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4937",
+      "Overview": "\n\n1. The closer that was given issue N and merged product pull request M runs swarm:finalize-cohort with both. When closingIssuesReferences is empty and exactly one pull request has passed fetchPrDeliverySnapshot and verifyDeliveryAncestry, that snapshot is delivery evidence for N. N alone is not the invocation. M alone is not the invocation.\n2. The lifecycle commit is cut from a checkout of origin/deliveryBranch. The implement feature branch is not that checkout. A failed fast-forward does not leave the brief moved and uncommitted in the implement worktree.\n3. Exit 0 of the sweep is not done. Done for the brief is the completed file on origin/deliveryBranch. The command waits for the lifecycle pull request to merge and does not merge it past the operator. After that land, the same command runs the origin-close pass with N and M. The issue closes only then. requireHumanMerge is unchanged.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:982451ee99c7817258175a00ecc412c1c05d53e4550a81d2b6fe4837a8405939\r\n\n",
+      "Labels": "bug, swarm, agent-experience, process, area:cli, area:vbrief, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "The closer that was given issue N and merged product pull request M runs swarm:finalize-cohort with both. When closingIssuesReferences is empty and exactly one pull request has passed fetchPrDeliverySnapshot and verifyDeliveryAncestry, that snapshot is delivery evidence for N. N alone is not the invocation. M alone is not the invocation.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "The lifecycle commit is cut from a checkout of origin/deliveryBranch. The implement feature branch is not that checkout. A failed fast-forward does not leave the brief moved and uncommitted in the implement worktree.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Exit 0 of the sweep is not done. Done for the brief is the completed file on origin/deliveryBranch. The command waits for the lifecycle pull request to merge and does not merge it past the operator. After that land, the same command runs the origin-close pass with N and M. The issue closes only then. requireHumanMerge is unchanged.",
+        "status": "proposed",
+        "id": "clause.3"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4937",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4937: bug(swarm): through-merge should complete the xbrief for the issue it was given"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The closer that was given issue N and merged product pull request M runs swarm:finalize-cohort with both. When closingIssuesReferences is empty and exactly one pull request has passed fetchPrDeliverySnapshot and verifyDeliveryAncestry, that snapshot is delivery evidence for N. N alone is not the invocation. M alone is not the invocation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The lifecycle commit is cut from a checkout of origin/deliveryBranch. The implement feature branch is not that checkout. A failed fast-forward does not leave the brief moved and uncommitted in the implement worktree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Exit 0 of the sweep is not done. Done for the brief is the completed file on origin/deliveryBranch. The command waits for the lifecycle pull request to merge and does not merge it past the operator. After that land, the same command runs the origin-close pass with N and M. The issue closes only then. requireHumanMerge is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a through-merge command that was given an issue number still ends at the product merge, and the filed remedy names the closer, the sweep, and the done condition.\n\ncharter: refutation\nrefutation-target: The through-merge closer that was given N finishes that story by running swarm:finalize-cohort with N after the product pull request has merged, and the command is done when the completed brief is on the delivery branch.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator said the count was probably 1. That matches the class. The closer finishes a brief for an issue it was already given, using a sweep that already exists. This is not a whole-motion session-start loop.\n\npain: P1, P2\n\nP1. Through-merge for an issue ends when the product pull request merges, so the brief stays in xbrief/active and the issue stays open.\nP2. Finalize called with only that pull request number reports clean on a Tracking body and does not move the brief.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4937-dc\norigin-ref: origin/master\ndispatch-sha: 48ef4debc008356cec8b976fa18b283bdcbb5cbe\npin-kind: origin-default\n\nPin reads use git show 48ef4debc008356cec8b976fa18b283bdcbb5cbe. The issue body is the proposal under test. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5787065843,
+          "html_url": "https://github.com/deftai/directive/issues/4937#issuecomment-5787065843",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T00:49:27Z",
+          "updated_at": "2026-09-23T00:49:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe refutation target does not survive.\n\n## Passing N does not attach delivery evidence\nblocks-the-design\nEvidence: git rev-parse HEAD is 48ef4debc008356cec8b976fa18b283bdcbb5cbe. git show of that SHA for packages/core/src/swarm/finalize-cohort.ts, packages/core/src/scope/delivery-evidence.ts, and packages/core/src/scope/transition.ts. Closing issues are filled only from fetchClosingIssuesReferences. defaultEvidence is assigned only at finalize-cohort.ts line 1167 when validatedPrs.length === 1 and evidenceByIssue.size > 0. hasDelivery at line 1190 is evidenceByPath.size > 0 or defaultEvidence !== null. A Tracking pull request with an empty closing list leaves that set empty, so a resolved story token for N still calls completeCohort with delivery null. evaluateDeliveryGate returns not ok at delivery-evidence.ts line 425 when evidence is null and the plan is code-bearing. hasGithubIssueRef at line 186 makes an issue-linked brief code-bearing unless an earlier delivery.required false, docs-only or process-only tag, or kind docs, process, or research applies. transition.ts lines 321-322 return that failure before mkdirSync at line 425. This worktree has no installed module graph, so the check executed those predicates from the git show text. Issue token only, and issue token plus a merged pull request with an empty closing list, both come out gate-fail: the brief stays in active and the issue stays open.\nFailure mode: The closer runs swarm:finalize-cohort with N after the product pull request has merged. On a Tracking body the sweep fails closed. The brief stays in xbrief/active and the issue stays open.\nDisposition: Before bind, state that the merged product pull request delivery snapshot is evidence for N when closingIssuesReferences is empty. Passing N, or N plus a pull request whose closing list is empty, is not the finishing invocation. The single-pull-request inheritance at line 1167 requires a non-empty closing set.\n\n## Command exit is not the brief on the delivery branch\nblocks-the-design\nEvidence: Same finalize-cohort.ts show. closeOriginsAfterLeftoverComplete runs after the sweep at line 1262. A completed path missing from git ls-tree of origin/deliveryBranch is a warning at line 507. ok at line 1275 is errors.length === 0, so that warning still exits 0. pushAndOpenPr pushes the lifecycle branch and calls gh pr create. A scan of that function in the same show found no merge call. Origin close PATCHes the issue when no active story remains, the completed brief is already on origin/deliveryBranch, and --pr is present. With N and no --pr, line 477 warns parked-with-no-merged-PR and does not PATCH. The same predicate check: an active story whose pull request closing list contains N exits 0 with the brief off the delivery branch and the issue open. A brief already on the delivery branch plus --pr closes the issue and does not move the brief. A brief already on the delivery branch with only N exits 0 and leaves the issue open.\nFailure mode: A closer that stops on command exit leaves a lifecycle pull request open, the completed brief off origin/deliveryBranch, and the issue open. A closer that stops once the brief is on the delivery branch stops before that origin close, so the issue stays open. The command does not merge the lifecycle pull request. requireHumanMerge is unchanged. Passing N does not grant merge authority or issue-close authority.\nDisposition: Before bind, split done into the two passes that already exist. The sweep pass is not done at exit 0. Done is the completed brief on origin/deliveryBranch, then the later finalize pass that origin-closes with N and the product pull request number. Issue close stays after that land.\n\n## The lifecycle commit follows the current branch\nsharpens-framing\nEvidence: git show of packages/core/src/branch/evaluate.ts. A non-default branch returns exit 0 at line 138. master or main with allowDirectCommitsToMaster false returns exit 1 at line 201. In finalize-cohort.ts, exit 1 at line 642 is the path that creates the sweep branch. Exit 0 returns the current branch at line 671. syncBaseBranch runs git merge --ff-only origin/deliveryBranch in that cwd at line 624, and completeCohort still runs when that merge adds an error. The commit at line 1236 is skipped once errors are present, after the sweep. The predicate check maps feature/story-4937 to exit 0 and master to exit 1. content/skills/deft-directive-swarm/SKILL.md records swarm:finalize-cohort as leftover after merge, and records that it is not the product squash-merge.\nFailure mode: The closer that was given N runs in the implement worktree on the feature branch. The lifecycle commit is written on that branch. A failed fast-forward still lets a sweep that has delivery evidence move the brief, then skips the commit, so the move sits uncommitted in the implement worktree. The commit is not cut from a checkout of origin/deliveryBranch.\nDisposition: Name the worktree before bind. Cut the lifecycle commit from a checkout of origin/deliveryBranch, where branch policy exits 1 and ensureFeatureBranch creates the sweep branch. That naming does not grant merge or issue-close authority.\n\n## Finalize tests stub the transition\nfootnote\nEvidence: git show of packages/core/src/swarm/finalize-cohort.test.ts lines 6-7 replace runTransition with a function that always returns ok.\nFailure mode: Those tests can show exit 0 while the delivery gate never runs, so they do not show that a Tracking story finishes.\nDisposition: No change to the target. The gate behavior above is from the unmocked transition and delivery modules.\n\nReading with N as --stories N plus the product pull request is the path the comment at line 1164 calls common. That reading still fails, because defaultEvidence requires a non-empty closing set. It would flip if one validated pull request supplied defaultEvidence when closingIssuesReferences is empty.\n\nThe strongest reading that could survive is that the sentence names a desired finish and the sweep that already exists is the tool. That reading still has to name the empty-closing evidence attachment and the later origin-close pass. As written, the finishing invocation and the done state are not the same event.\n\n",
+          "id": 5787140083,
+          "html_url": "https://github.com/deftai/directive/issues/4937#issuecomment-5787140083",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T00:58:50Z",
+          "updated_at": "2026-09-23T00:58:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA through-merge command that was given an issue number still stops when the product pull request merges. The brief stays active and the issue stays open. Calling finalize with only that pull request number reports clean on a Tracking body and moves nothing.\n\nThe closer keeps both numbers. The merged product pull request is delivery evidence for that issue even when the body has no closing keyword. The lifecycle commit is cut from a checkout of the delivery branch, not from the implement branch. A clean exit of that sweep is not the finish. The command waits until the completed brief is on the delivery branch, and only then closes the issue. It does not merge the lifecycle pull request past the operator.\n\nConfirming this map means this list is the build contract. The same parent wrote the Stop 1 warrant and this map. The critic comment is the check on the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive as written. The merged product pull request is the evidence for N. Done is the brief on the delivery branch, then the close. Comment 5787140083. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 48ef4debc008356cec8b976fa18b283bdcbb5cbe\n\n## Takes\n\n- 5787140083 Passing N does not attach delivery evidence — accept-into-contract\n- 5787140083 Command exit is not the brief on the delivery branch — accept-into-contract\n- 5787140083 The lifecycle commit follows the current branch — accept-into-contract\n- 5787140083 Finalize tests stub the transition — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. The closer that was given issue N and merged product pull request M runs swarm:finalize-cohort with both. When closingIssuesReferences is empty and exactly one pull request has passed fetchPrDeliverySnapshot and verifyDeliveryAncestry, that snapshot is delivery evidence for N. N alone is not the invocation. M alone is not the invocation.\n2. The lifecycle commit is cut from a checkout of origin/deliveryBranch. The implement feature branch is not that checkout. A failed fast-forward does not leave the brief moved and uncommitted in the implement worktree.\n3. Exit 0 of the sweep is not done. Done for the brief is the completed file on origin/deliveryBranch. The command waits for the lifecycle pull request to merge and does not merge it past the operator. After that land, the same command runs the origin-close pass with N and M. The issue closes only then. requireHumanMerge is unchanged.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:982451ee99c7817258175a00ecc412c1c05d53e4550a81d2b6fe4837a8405939\r\n\n",
+          "id": 5787149678,
+          "html_url": "https://github.com/deftai/directive/issues/4937#issuecomment-5787149678",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T01:00:04Z",
+          "updated_at": "2026-09-23T01:00:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\n\nPain-audit of [bind comment 5787149678](https://github.com/deftai/directive/issues/4937#issuecomment-5787149678), against the two pains owned by [Stop 1](https://github.com/deftai/directive/issues/4937#issuecomment-5787065843). Both coverage cites hold as a build contract. No blocking or sharpening findings; the harvested Bound remedy does not change.\n\n## P1: the closer owns the remaining lifecycle\nfootnote\n\nBound remedy items 2 and 3 require a lifecycle checkout based on the delivery branch, wait for the completed file to land on origin/deliveryBranch, and then run the origin-close pass with N and M. Product merge and sweep exit 0 are explicitly not completion. This covers the active-brief/open-issue pain without granting permission to bypass the human merge gate.\n\nI independently checked packages/core/src/swarm/finalize-cohort.ts at the dispatch SHA. Its explicit-story resolution permits retry when N already has a completed brief; the no-active-story branch calls closeOriginsAfterLeftoverComplete with retained origin issues. That function checks the completed path on the remote delivery ref and checks that the remote brief references N before closing. The current sweep can run after a base-sync error, and its warning-only result need not mean completion. Those are existing failure paths the bound checkout and completion requirements address, not grounds to reject the revised contract.\n\n## P2: explicit issue identity plus validated product evidence covers Tracking\nfootnote\n\nBound remedy item 1 retains both N and M and explicitly supplies the validated single-PR snapshot as evidence for N when closingIssuesReferences is empty. This addresses both losses in a PR-only Tracking invocation: discovery of the intended brief and evidence needed to complete it. The remedy need not make an arbitrary M-only sweep discover N; the scoped closer already received N and now must retain it.\n\nI extracted and executed the current default-evidence condition from the pinned finalize-cohort.ts. One validated PR with an empty evidenceByIssue map returned false; with a populated map it returned true. I also read the null-evidence refusal in packages/core/src/scope/delivery-evidence.ts. Thus merely passing both numbers would still fail today, but the bound contract explicitly requires the missing evidence attachment. Repeating the old implementation failure would not refute that proposed change.\n\n## Verification and authority boundary\nfootnote\n\nHEAD was confirmed as 48ef4debc008356cec8b976fa18b283bdcbb5cbe. Repository reads used git show at that SHA; thread inputs were restricted to comment ids at or below 5787149678. Checks were source assertions and execution of the extracted evidence predicate, not an end-to-end lifecycle test or a claim that the remedy is implemented.\n\nThe worktree/shared-state and authority checks found no additional pain gap in the bound remedy: it separates the lifecycle checkout from the implement branch, requires product delivery validation, preserves the human merge gate, and delays issue closure until lifecycle land. The issue number comes from the authorized through-merge input rather than instruction-shaped PR body text. No new design or harvest change is requested.",
+          "id": 5787167886,
+          "html_url": "https://github.com/deftai/directive/issues/4937#issuecomment-5787167886",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T01:02:08Z",
+          "updated_at": "2026-09-23T01:02:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA through-merge command that was given an issue number was ending at the product merge. The brief stayed active and the issue stayed open. A pull-request-only finalize reported clean on a Tracking body and moved nothing.\n\nThe build contract is the bound list on the successor lean. The closer keeps the issue number and the merged product pull request. That pull request is delivery evidence when the body has no closing keyword. The lifecycle commit is cut from a checkout of the delivery branch. The command waits until the completed brief is on that branch, then closes the issue. It does not merge the lifecycle pull request past the operator.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5787149678.\n\n## Verified-claims table\n\n| Verified claim | Result |\n| --- | --- |\n| One validated pull request with an empty closing list does not attach delivery evidence in the current sweep | The bound contract requires that snapshot as evidence for the issue the command was given |\n| Exit 0 of the sweep is not the completed brief on the delivery branch | Done is that brief on the delivery branch, then the origin-close pass with both numbers |\n| Human merge gate | Unchanged. The command waits. It does not merge the lifecycle pull request past the operator |\r\n\n",
+          "id": 5787177890,
+          "html_url": "https://github.com/deftai/directive/issues/4937#issuecomment-5787177890",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T01:03:22Z",
+          "updated_at": "2026-09-23T01:03:22Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happens\n\nSaying \"take through merge issue N\" merges the product pull request. The body says Tracking, so the issue stays open and the brief stays in `xbrief/active/`. Completing the brief is a second instruction after that merge.\n\nThat second step works. The command already had N the whole time.\n\n## What the command should do\n\nThe through-merge owner that was given N keeps N until the work is finished.\n\n1. Wait until the product pull request is merged. The human merge gate still applies. The command waits. It does not merge past the operator.\n2. After that merge, complete the xbrief for N. The sweep is `swarm:finalize-cohort` with the issue it was given, not a pull-request-only sweep. A Tracking body has no closing keyword, so `--pr` alone reports clean and moves nothing.\n3. The command is not done until the completed brief is on `origin/<deliveryBranch>`. The issue closes only after that.\n\nThe implementer that stops at an open pull request still must not complete the brief. The closer that merges owns this step.\n\nCompleting the brief before the product commit is on the delivery branch stays forbidden. The completion is a second change after the merge, the same order as the two instructions today.\n\n## What this does not cover\n\nA pull request merged after that command is already gone still has no owner holding N. Finding those stories is #4919. This issue does not replace that scan.\n\n#3791 asks to automate the post-merge sweep from merged pull request numbers. This issue is narrower. The through-merge command uses the issue number it was given, because a Tracking pull request will not yield that number from its body.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5547156474,
+        "origin": "deftai/directive#4937",
+        "id": "github.issue.5547156474"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "982451ee99c7817258175a00ecc412c1c05d53e4550a81d2b6fe4837a8405939"
+      }
+    },
+    "id": "github.issue.5547156474",
+    "updated": "2026-09-23T01:06:10Z"
+  }
+}

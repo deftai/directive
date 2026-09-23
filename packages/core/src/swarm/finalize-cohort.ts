@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
@@ -59,6 +59,10 @@ export interface FinalizeCohortArgs {
   readonly emitJson?: boolean;
   readonly runGh?: RunGhFn;
   readonly runGit?: typeof runText;
+  /** Test seam. Omitted probes use the production wait budget. */
+  readonly landProbeLimit?: number;
+  /** Test seam. Omitted pauses use the production wait. */
+  readonly sleep?: (ms: number) => void;
 }
 
 function splitCsv(values: readonly string[]): string[] {
@@ -780,6 +784,227 @@ function pushAndOpenPr(
   return { ok: true, error: null, prUrl: create.stdout.trim() };
 }
 
+interface LifecycleCheckout {
+  readonly checkout: string;
+  readonly parent: string;
+}
+
+function releaseLifecycleCheckout(
+  projectRoot: string,
+  lifecycle: LifecycleCheckout | null,
+  runGit: typeof runText,
+): void {
+  if (lifecycle === null) {
+    return;
+  }
+  runGit(["git", "worktree", "remove", "--force", lifecycle.checkout], { cwd: projectRoot });
+  rmSync(lifecycle.parent, { recursive: true, force: true });
+}
+
+/**
+ * Checkout of origin/deliveryBranch. Not the implement feature branch.
+ * A failed fetch, worktree add, or fast-forward returns before any brief move.
+ */
+function prepareLifecycleCheckout(
+  projectRoot: string,
+  deliveryBranch: string,
+  runGit: typeof runText,
+): { ok: true; checkout: string; parent: string } | { ok: false; error: string } {
+  const fetch = runGit(["git", "fetch", "origin", deliveryBranch], { cwd: projectRoot });
+  if (fetch.returncode !== 0) {
+    return {
+      ok: false,
+      error:
+        `git fetch origin ${deliveryBranch} failed: ${fetch.stderr.trim() || fetch.stdout.trim()}. ` +
+        "The implement worktree was not updated.",
+    };
+  }
+  const parent = mkdtempSync(join(tmpdir(), "deft-finalize-lifecycle-"));
+  const checkout = join(parent, "checkout");
+  const add = runGit(["git", "worktree", "add", "--detach", checkout, `origin/${deliveryBranch}`], {
+    cwd: projectRoot,
+  });
+  if (add.returncode !== 0) {
+    rmSync(parent, { recursive: true, force: true });
+    return {
+      ok: false,
+      error:
+        `git worktree add --detach origin/${deliveryBranch} failed: ` +
+        `${add.stderr.trim() || add.stdout.trim()}. The implement worktree was not updated.`,
+    };
+  }
+  const synced = syncBaseBranch(checkout, deliveryBranch, runGit);
+  if (!synced.ok) {
+    const detail = synced.error ?? "lifecycle checkout update failed";
+    releaseLifecycleCheckout(projectRoot, { checkout, parent }, runGit);
+    const error = detail.includes("--ff-only")
+      ? `failed fast-forward in the lifecycle checkout: ${detail} The implement worktree was not updated.`
+      : `${detail} The implement worktree was not updated.`;
+    return { ok: false, error };
+  }
+  return { ok: true, checkout, parent };
+}
+
+function expectedCompletedRel(projectRoot: string, storyPath: string): string {
+  const rel = posixProjectRel(projectRoot, storyPath);
+  return rel.replace("/active/", "/completed/");
+}
+
+function remapStoriesToCheckout(
+  projectRoot: string,
+  checkout: string,
+  storyPaths: readonly string[],
+  evidenceByPath: ReadonlyMap<string, DeliveryEvidenceInput>,
+  deliveryBranch: string,
+  runGit: typeof runText,
+):
+  | {
+      ok: true;
+      paths: string[];
+      evidence: Map<string, DeliveryEvidenceInput>;
+      alreadyLanded: boolean;
+    }
+  | { ok: false; error: string } {
+  const paths: string[] = [];
+  const evidence = new Map<string, DeliveryEvidenceInput>();
+  let landedCount = 0;
+  for (const storyPath of storyPaths) {
+    const rel = posixProjectRel(projectRoot, storyPath);
+    const next = resolve(checkout, rel);
+    if (!existsSync(next)) {
+      const completedRel = expectedCompletedRel(projectRoot, storyPath);
+      const landed = listLandedCompletedRelpaths(projectRoot, deliveryBranch, runGit);
+      if (landed.error === null && landed.names.has(completedRel)) {
+        landedCount += 1;
+        continue;
+      }
+      return {
+        ok: false,
+        error:
+          `lifecycle checkout is missing ${rel}. ` +
+          "Refusing to move the brief in the implement worktree.",
+      };
+    }
+    paths.push(next);
+    const bound = evidenceByPath.get(resolve(storyPath));
+    if (bound !== undefined) {
+      evidence.set(resolve(next), bound);
+    }
+  }
+  if (landedCount > 0 && paths.length > 0) {
+    return {
+      ok: false,
+      error: `cohort is split between active briefs and completed files already on origin/${deliveryBranch}.`,
+    };
+  }
+  return { ok: true, paths, evidence, alreadyLanded: landedCount > 0 && paths.length === 0 };
+}
+
+function originCloseRoot(checkout: string | null, projectRoot: string): string {
+  if (checkout === null) {
+    return projectRoot;
+  }
+  if (
+    existsSync(resolve(checkout, "xbrief", "completed")) ||
+    existsSync(resolve(checkout, "vbrief", "completed"))
+  ) {
+    return checkout;
+  }
+  return projectRoot;
+}
+
+function lifecyclePrNumber(prUrl: string): number | null {
+  const match = /\/pull\/(\d+)\s*$/.exec(prUrl.trim());
+  if (match === null || match[1] === undefined) {
+    return null;
+  }
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function resolveLandProbeLimit(override: number | undefined): number {
+  if (override !== undefined && Number.isInteger(override) && override > 0) {
+    return override;
+  }
+  return 120;
+}
+
+function pauseLandProbe(sleep: ((ms: number) => void) | undefined): void {
+  const pauseMs = 15 * 1000;
+  if (sleep !== undefined) {
+    sleep(pauseMs);
+    return;
+  }
+  const shared = new SharedArrayBuffer(4);
+  Atomics.wait(new Int32Array(shared), 0, 0, pauseMs);
+}
+
+function waitForLifecycleLand(args: {
+  readonly projectRoot: string;
+  readonly deliveryBranch: string;
+  readonly repo: string;
+  readonly prNumber: number;
+  readonly completedRels: readonly string[];
+  readonly runGh: RunGhFn;
+  readonly runGit: typeof runText;
+  readonly probeLimit: number;
+  readonly sleep: ((ms: number) => void) | undefined;
+}): { ok: true } | { ok: false; error: string } {
+  const parsed = parseRepo(args.repo);
+  if (parsed === null) {
+    return { ok: false, error: `invalid --repo value: ${JSON.stringify(args.repo)}` };
+  }
+  const path = `repos/${parsed.owner}/${parsed.name}/pulls/${String(args.prNumber)}`;
+  let last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
+  for (let attempt = 0; attempt < args.probeLimit; attempt += 1) {
+    const result = args.runGh(["gh", "api", path]);
+    if (result.returncode !== 0) {
+      last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
+    } else {
+      try {
+        const body = JSON.parse(result.stdout) as Record<string, unknown>;
+        const mergedAt = body.merged_at;
+        const state = typeof body.state === "string" ? body.state : "";
+        if (state === "closed" && (mergedAt === null || mergedAt === undefined)) {
+          return {
+            ok: false,
+            error: `lifecycle pull request #${String(args.prNumber)} closed without merging; issue left open`,
+          };
+        }
+        if (typeof mergedAt === "string" && mergedAt.length > 0) {
+          const landed = listLandedCompletedRelpaths(
+            args.projectRoot,
+            args.deliveryBranch,
+            args.runGit,
+          );
+          if (landed.error !== null) {
+            last = landed.error;
+          } else {
+            const missing = args.completedRels.filter((rel) => !landed.names.has(rel));
+            if (missing.length === 0) {
+              return { ok: true };
+            }
+            last = `completed brief not on origin/${args.deliveryBranch}: ${missing.join(", ")}`;
+          }
+        } else {
+          last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
+        }
+      } catch {
+        last = `lifecycle pull request #${String(args.prNumber)} status was unreadable`;
+      }
+    }
+    if (attempt + 1 < args.probeLimit) {
+      pauseLandProbe(args.sleep);
+    }
+  }
+  return {
+    ok: false,
+    error:
+      `${last}. The command does not merge the lifecycle pull request. ` +
+      `Issue left open until the completed brief is on origin/${args.deliveryBranch}.`,
+  };
+}
+
 export function finalizeCohort(args: FinalizeCohortArgs): {
   exitCode: number;
   stdout: string;
@@ -877,7 +1102,9 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const closingIssues = new Set<number>();
   /** Per-closing-issue delivery evidence so multi-PR cohorts do not collapse provenance (#3041). */
   const evidenceByIssue = new Map<number, DeliveryEvidenceInput>();
+  const validatedEvidence = new Map<number, DeliveryEvidenceInput>();
   const validatedPrs: number[] = [];
+  let closingLookupFailed = false;
 
   if (prNumbers.length > 0 && errors.length === 0) {
     if (repo === null || repo.length === 0) {
@@ -932,10 +1159,12 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           deliveryCommit: ancestry.remoteTip,
           verifier: "swarm:finalize-cohort",
         };
+        validatedEvidence.set(prNumber, prEvidence);
 
         const closing = fetchClosingIssues(prNumber, repo, runGh);
         if (closing.error !== null) {
           errors.push(closing.error);
+          closingLookupFailed = true;
         }
         for (const issue of closing.issues) {
           closingIssues.add(issue);
@@ -1163,136 +1392,254 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   }
   // Single-PR cohorts: every story inherits that PR's evidence when issue binding misses
   // (operator --stories + one --pr is the common finalize path).
+  // Empty closingIssuesReferences: the one validated snapshot is evidence for the given N.
+  // N alone and M alone are not that invocation.
   let defaultEvidence: DeliveryEvidenceInput | null = null;
   if (validatedPrs.length === 1 && evidenceByIssue.size > 0) {
     defaultEvidence = evidenceByIssue.values().next().value ?? null;
+  } else if (
+    validatedPrs.length === 1 &&
+    closingIssues.size === 0 &&
+    !closingLookupFailed &&
+    storyTokens.length > 0
+  ) {
+    const solePr = validatedPrs[0];
+    defaultEvidence = solePr === undefined ? null : (validatedEvidence.get(solePr) ?? null);
+    if (defaultEvidence !== null) {
+      for (const storyPath of storyPaths) {
+        evidenceByPath.set(resolve(storyPath), defaultEvidence);
+      }
+    }
   }
 
   let commitSha: string | null = null;
   let branch: string | null = null;
   let prUrl: string | null = null;
+  let createdSweepBranch: string | null = null;
+  let lifecycle: LifecycleCheckout | null = null;
 
-  if (!dryRun && !noCommit) {
-    const sync = syncBaseBranch(projectRoot, baseBranch, runGit);
-    if (!sync.ok) {
-      errors.push(sync.error ?? "base branch sync failed");
-    } else {
-      const branchName = `swarm/finalize/${deriveLabel(args.label, prNumbers, storyTokens)}`;
-      const branchResult = ensureFeatureBranch(projectRoot, branchName, runGit);
-      if (!branchResult.ok) {
-        errors.push(branchResult.error ?? "branch setup failed");
-      } else {
-        branch = branchResult.branch;
-      }
-    }
-  }
-
-  const hasDelivery = evidenceByPath.size > 0 || defaultEvidence !== null;
-  const sweepResult = completeCohort({
-    stories: storyPaths,
-    projectRoot,
-    dryRun,
-    emitJson: false,
-    delivery: hasDelivery
-      ? {
-          evidenceByPath,
-          defaultEvidence,
-          // Ancestry already verified above; avoid double remote fetch on each story.
-          assumeEvidenceValidated: true,
-          verifier: "swarm:finalize-cohort",
-        }
-      : null,
-  });
-  const sweep = sweepResult.sweep;
-  if (sweepResult.exitCode !== 0) {
-    errors.push("cohort completion sweep failed.");
-    if (sweep !== null) {
-      errors.push(...sweepDetailLines(sweep));
-    } else if (sweepResult.stdout.trim().length > 0) {
-      errors.push(sweepResult.stdout.trim());
-    }
-    return buildResponse({
+  const respond = (partial: {
+    sweep: SweepResult | null;
+    commitSha: string | null;
+    branch: string | null;
+    prUrl: string | null;
+    ok: boolean;
+    exitCode: number;
+  }) =>
+    buildResponse({
       projectRoot,
       dryRun,
       noCommit,
       prNumbers,
       storyPaths,
       closingIssues: [...closingIssues],
-      sweep,
-      commitSha: null,
-      branch: null,
-      prUrl: null,
       deliveryBranch,
       sweepBase: baseBranch,
       deliveryErrors,
       errors,
       warnings,
-      ok: false,
       emitJson: args.emitJson ?? false,
-      exitCode: EXIT_GATE_FAILED,
+      ...partial,
     });
-  }
 
-  if (!dryRun && !noCommit && errors.length === 0) {
-    const commitResult = commitLifecycleMoves(projectRoot, storyPaths, runGit);
-    if (!commitResult.ok) {
-      errors.push(commitResult.error ?? "commit failed");
-    } else {
-      commitSha = commitResult.sha;
-      if (!noOpenPr && repo !== null && branch !== null && branch.length > 0) {
-        const prResult = pushAndOpenPr(
-          projectRoot,
-          branch,
-          repo,
-          baseBranch,
-          storyPaths,
-          prNumbers,
-          runGit,
-          runGh,
-        );
-        if (!prResult.ok) {
-          errors.push(prResult.error ?? "PR open failed");
+  try {
+    let sweepRoot = projectRoot;
+    let sweepStories = storyPaths;
+    let sweepEvidence = evidenceByPath;
+    let skipSweep = false;
+    let alreadyLanded = false;
+
+    if (!dryRun && !noCommit) {
+      if (errors.length > 0) {
+        skipSweep = true;
+      } else {
+        const prepared = prepareLifecycleCheckout(projectRoot, deliveryBranch, runGit);
+        if (!prepared.ok) {
+          errors.push(prepared.error);
+          skipSweep = true;
         } else {
-          prUrl = prResult.prUrl;
+          lifecycle = { checkout: prepared.checkout, parent: prepared.parent };
+          const remapped = remapStoriesToCheckout(
+            projectRoot,
+            prepared.checkout,
+            storyPaths,
+            evidenceByPath,
+            deliveryBranch,
+            runGit,
+          );
+          if (!remapped.ok) {
+            errors.push(remapped.error);
+            skipSweep = true;
+          } else if (remapped.alreadyLanded) {
+            alreadyLanded = true;
+            skipSweep = true;
+          } else {
+            sweepRoot = prepared.checkout;
+            sweepStories = remapped.paths;
+            sweepEvidence = remapped.evidence;
+            const branchName = `swarm/finalize/${deriveLabel(args.label, prNumbers, storyTokens)}`;
+            const branchResult = ensureFeatureBranch(prepared.checkout, branchName, runGit);
+            if (!branchResult.ok) {
+              errors.push(branchResult.error ?? "branch setup failed");
+              skipSweep = true;
+            } else {
+              branch = branchResult.branch;
+              if (branchResult.branch === branchName) {
+                createdSweepBranch = branchName;
+              }
+            }
+          }
         }
       }
     }
+
+    let sweep: SweepResult | null = null;
+    if (!skipSweep) {
+      const hasDelivery = sweepEvidence.size > 0 || defaultEvidence !== null;
+      const sweepResult = completeCohort({
+        stories: sweepStories,
+        projectRoot: sweepRoot,
+        dryRun,
+        emitJson: false,
+        delivery: hasDelivery
+          ? {
+              evidenceByPath: sweepEvidence,
+              defaultEvidence,
+              // Ancestry already verified above; avoid double remote fetch on each story.
+              assumeEvidenceValidated: true,
+              verifier: "swarm:finalize-cohort",
+            }
+          : null,
+      });
+      sweep = sweepResult.sweep;
+      if (sweepResult.exitCode !== 0) {
+        errors.push("cohort completion sweep failed.");
+        if (sweep !== null) {
+          errors.push(...sweepDetailLines(sweep));
+        } else if (sweepResult.stdout.trim().length > 0) {
+          errors.push(sweepResult.stdout.trim());
+        }
+        return respond({
+          sweep,
+          commitSha: null,
+          branch,
+          prUrl: null,
+          ok: false,
+          exitCode: EXIT_GATE_FAILED,
+        });
+      }
+    } else if (!dryRun && !noCommit && errors.length > 0) {
+      return respond({
+        sweep: null,
+        commitSha: null,
+        branch,
+        prUrl: null,
+        ok: false,
+        exitCode: EXIT_GATE_FAILED,
+      });
+    }
+
+    const completedRels = storyPaths.map((storyPath) =>
+      expectedCompletedRel(projectRoot, storyPath),
+    );
+    const closeRoot = originCloseRoot(lifecycle?.checkout ?? null, projectRoot);
+
+    if (!dryRun && !noCommit && !skipSweep && errors.length === 0) {
+      const commitResult = commitLifecycleMoves(sweepRoot, storyPaths, runGit);
+      if (!commitResult.ok) {
+        errors.push(commitResult.error ?? "commit failed");
+      } else {
+        commitSha = commitResult.sha;
+        if (!noOpenPr && repo !== null && branch !== null && branch.length > 0) {
+          const prResult = pushAndOpenPr(
+            sweepRoot,
+            branch,
+            repo,
+            baseBranch,
+            storyPaths,
+            prNumbers,
+            runGit,
+            runGh,
+          );
+          if (!prResult.ok) {
+            errors.push(prResult.error ?? "PR open failed");
+          } else {
+            prUrl = prResult.prUrl;
+          }
+        }
+      }
+      const lifecyclePr = prUrl === null ? null : lifecyclePrNumber(prUrl);
+      if (errors.length === 0 && repo !== null && lifecyclePr !== null) {
+        // requireHumanMerge is unchanged: wait, never merge the lifecycle pull request.
+        const landed = waitForLifecycleLand({
+          projectRoot,
+          deliveryBranch,
+          repo,
+          prNumber: lifecyclePr,
+          completedRels,
+          runGh,
+          runGit,
+          probeLimit: resolveLandProbeLimit(args.landProbeLimit),
+          sleep: args.sleep,
+        });
+        if (!landed.ok) {
+          errors.push(landed.error);
+        } else {
+          const originClose = closeOriginsAfterLeftoverComplete({
+            projectRoot: closeRoot,
+            deliveryBranch,
+            originIssues,
+            prNumbers,
+            repo,
+            dryRun,
+            runGh,
+            runGit,
+          });
+          errors.push(...originClose.errors);
+          warnings.push(...originClose.warnings);
+        }
+      } else if (errors.length === 0) {
+        errors.push(
+          `lifecycle sweep is not done: the completed brief is not on origin/${deliveryBranch}. ` +
+            "Issue left open.",
+        );
+      }
+    } else if (alreadyLanded || dryRun || noCommit) {
+      const originClose = closeOriginsAfterLeftoverComplete({
+        projectRoot: alreadyLanded ? closeRoot : projectRoot,
+        deliveryBranch,
+        originIssues,
+        prNumbers,
+        repo,
+        dryRun,
+        runGh,
+        runGit,
+      });
+      errors.push(...originClose.errors);
+      warnings.push(...originClose.warnings);
+    } else if (!dryRun && !noCommit) {
+      errors.push(
+        `lifecycle sweep is not done: the completed brief is not on origin/${deliveryBranch}. ` +
+          "Issue left open.",
+      );
+    }
+
+    const ok = errors.length === 0;
+    return respond({
+      sweep,
+      commitSha,
+      branch,
+      prUrl,
+      ok,
+      exitCode: ok ? EXIT_OK : EXIT_GATE_FAILED,
+    });
+  } finally {
+    const dropBranch = commitSha === null && prUrl === null ? createdSweepBranch : null;
+    releaseLifecycleCheckout(projectRoot, lifecycle, runGit);
+    if (dropBranch !== null) {
+      runGit(["git", "branch", "-D", dropBranch], { cwd: projectRoot });
+    }
   }
-
-  const originClose = closeOriginsAfterLeftoverComplete({
-    projectRoot,
-    deliveryBranch,
-    originIssues,
-    prNumbers,
-    repo,
-    dryRun,
-    runGh,
-    runGit,
-  });
-  errors.push(...originClose.errors);
-  warnings.push(...originClose.warnings);
-
-  const ok = errors.length === 0;
-  return buildResponse({
-    projectRoot,
-    dryRun,
-    noCommit,
-    prNumbers,
-    storyPaths,
-    closingIssues: [...closingIssues],
-    sweep,
-    commitSha,
-    branch,
-    prUrl,
-    deliveryBranch,
-    sweepBase: baseBranch,
-    deliveryErrors,
-    errors,
-    warnings,
-    ok,
-    emitJson: args.emitJson ?? false,
-    exitCode: ok ? EXIT_OK : EXIT_GATE_FAILED,
-  });
 }
 
 function buildResponse(input: {

@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -199,12 +207,37 @@ interface MockGitOpts {
   readonly notAncestor?: boolean;
   readonly closedSurfaceAdd?: boolean;
   readonly landedCompleted?: readonly string[];
+  readonly ffFail?: boolean;
+  readonly checkoutOmitsActive?: boolean;
 }
 
-function mockRunGit(opts: MockGitOpts = {}): (command: readonly string[]) => TextCaptureResult {
+function mockRunGit(
+  opts: MockGitOpts = {},
+): (command: readonly string[], options?: { cwd?: string }) => TextCaptureResult {
   let currentBranch = "";
-  return (command) => {
+  return (command, options) => {
     const joined = command.join(" ");
+    if (command[1] === "worktree" && command[2] === "add") {
+      const detachAt = command.indexOf("--detach");
+      const dest = detachAt >= 0 ? command[detachAt + 1] : undefined;
+      const cwd = options?.cwd;
+      if (dest !== undefined && dest.length > 0) {
+        mkdirSync(dest, { recursive: true });
+        if (cwd !== undefined && existsSync(join(cwd, "xbrief"))) {
+          cpSync(join(cwd, "xbrief"), join(dest, "xbrief"), { recursive: true });
+          if (opts.checkoutOmitsActive === true) {
+            rmSync(join(dest, "xbrief", "active"), { recursive: true, force: true });
+          }
+        }
+      }
+      return { returncode: 0, stdout: "", stderr: "" };
+    }
+    if (joined.includes("--ff-only")) {
+      if (opts.ffFail === true) {
+        return { returncode: 1, stdout: "", stderr: "Not possible to fast-forward" };
+      }
+      return { returncode: 0, stdout: "Already up to date\n", stderr: "" };
+    }
     if (joined.includes("ls-tree")) {
       if (opts.lsTreeFail) {
         return { returncode: 1, stdout: "", stderr: "ls-tree failed" };
@@ -530,8 +563,13 @@ describe("finalizeCohort", () => {
         onCommit: () => {
           committed = true;
         },
+        landedCompleted: ["xbrief/completed/story-d.xbrief.json"],
       }),
-      runGh: mockRunGh({}),
+      runGh: mockRunGh({
+        9999: { merged: true, closingIssues: [], baseRef: "main" },
+      }),
+      landProbeLimit: 1,
+      sleep: () => {},
     });
     expect(result.exitCode).toBe(0);
     expect(committed).toBe(true);
@@ -553,6 +591,13 @@ describe("finalizeCohort", () => {
           stderr: "",
         };
       }
+      if (cmd.some((part) => part.includes("/pulls/9999"))) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ merged_at: "2026-07-02T12:00:00Z", state: "closed" }),
+          stderr: "",
+        };
+      }
       return { returncode: 0, stdout: "", stderr: "" };
     };
     const result = finalizeCohort({
@@ -561,8 +606,10 @@ describe("finalizeCohort", () => {
       label: "story-f",
       repo: "deftai/directive",
       baseBranch: "develop",
-      runGit: mockRunGit(),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-f.xbrief.json"] }),
       runGh: capturingRunGh,
+      landProbeLimit: 1,
+      sleep: () => {},
     });
     expect(result.exitCode).toBe(0);
     const createCall = ghCalls.find((c) => c.includes("pr") && c.includes("create"));
@@ -603,6 +650,8 @@ describe("finalizeCohort", () => {
       repo: "deftai/directive",
       runGit: mockRunGit({ closedSurfaceAdd: true }),
       runGh: capturingRunGh,
+      landProbeLimit: 1,
+      sleep: () => {},
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.result.errors.some((e) => e.includes("verify:docs-impact"))).toBe(true);
@@ -1124,20 +1173,285 @@ describe("finalizeCohort", () => {
     expect(ghCalls.some((c) => c.some((part) => part.includes("/issues/1997")))).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
+
+  it("uses the validated snapshot as delivery evidence when closing refs are empty (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-empty-closing-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 42: { merged: true, closingIssues: [], baseRef: "master" } }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({
+        assumeEvidenceValidated: true,
+        deliveryEvidence: expect.objectContaining({ prNumber: 42, prBase: "master" }),
+      }),
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not attach delivery evidence when only issue N is passed (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-n-alone-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      noCommit: true,
+      deliveryBranch: "master",
+      runGit: mockRunGit(),
+    });
+    expect(result.result.warnings.some((w) => w.includes("No --pr supplied"))).toBe(true);
+    const delivery = vi.mocked(runTransition).mock.calls[0]?.[3] as
+      | { deliveryEvidence?: unknown }
+      | undefined;
+    expect(delivery?.deliveryEvidence).toBeUndefined();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not treat pull request M alone as the invocation when closing refs are empty (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-m-alone-"));
+    writeActiveStory(project, "story-4937", 4937);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [42],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({ 42: { merged: true, closingIssues: [], baseRef: "master" } }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("empty cohort"))).toBe(true);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not attach one snapshot when two validated pull requests have empty closing refs (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-two-pr-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42, 43],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        42: { merged: true, closingIssues: [], baseRef: "master" },
+        43: { merged: true, closingIssues: [], baseRef: "master" },
+      }),
+      runGit: mockRunGit(),
+    });
+    const delivery = vi.mocked(runTransition).mock.calls[0]?.[3] as
+      | { deliveryEvidence?: unknown }
+      | undefined;
+    expect(delivery?.deliveryEvidence).toBeUndefined();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("leaves the implement brief unmoved when the lifecycle fast-forward fails (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-ff-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const before = readFileSync(storyPath, "utf8");
+    const calls: { cmd: string[]; cwd?: string }[] = [];
+    const inner = mockRunGit({ ffFail: true });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "ff-fail",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: (command, options) => {
+        calls.push({ cmd: [...command], cwd: options?.cwd });
+        return inner(command, options);
+      },
+      runGh: mockRunGh({}),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.toLowerCase().includes("fast-forward"))).toBe(true);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    const merges = calls.filter((call) => call.cmd.includes("--ff-only"));
+    expect(merges.length).toBeGreaterThan(0);
+    expect(merges.every((call) => call.cwd !== project)).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("commits the lifecycle move in the delivery checkout, not the implement tree (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-checkout-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const before = readFileSync(storyPath, "utf8");
+    const calls: { cmd: string[]; cwd?: string }[] = [];
+    const inner = mockRunGit({
+      landedCompleted: ["xbrief/completed/story-4937.xbrief.json"],
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-4937",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: (command, options) => {
+        calls.push({ cmd: [...command], cwd: options?.cwd });
+        return inner(command, options);
+      },
+      runGh: mockRunGh({
+        9999: { merged: true, closingIssues: [], baseRef: "master" },
+      }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.branch).toBe("swarm/finalize/story-4937");
+    const commit = calls.find((call) => call.cmd.includes("commit"));
+    const created = calls.find((call) => call.cmd.includes("switch"));
+    expect(commit?.cwd).toBeDefined();
+    expect(commit?.cwd).not.toBe(project);
+    expect(created?.cwd).not.toBe(project);
+    const swept = vi.mocked(runTransition).mock.calls[0]?.[1];
+    expect(typeof swept).toBe("string");
+    expect(String(swept).startsWith(project)).toBe(false);
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not origin-close or merge before the lifecycle pull request lands (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-wait-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      { 42: { merged: true, closingIssues: [], baseRef: "master" } },
+      { 4937: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      label: "story-4937",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 2,
+      sleep: () => {},
+      runGit: mockRunGit(),
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("does not merge"))).toBe(true);
+    expect(ghCalls.some((cmd) => cmd.includes("PATCH"))).toBe(false);
+    expect(ghCalls.some((cmd) => cmd.includes("merge"))).toBe(false);
+    expect(existsSync(storyPath)).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("origin-closes with N and M after the lifecycle pull request lands (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-landed-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    writeCompletedStory(project, "story-4937", 4937);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        42: { merged: true, closingIssues: [], baseRef: "master" },
+        9999: { merged: true, closingIssues: [], baseRef: "master" },
+      },
+      { 4937: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      label: "story-4937",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: mockRunGit({
+        landedCompleted: ["xbrief/completed/story-4937.xbrief.json"],
+      }),
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+    });
+    expect(result.exitCode).toBe(0);
+    const comment = ghCalls.find((cmd) => cmd.includes("POST"));
+    expect(comment?.some((part) => part.includes("Completed in #42"))).toBe(true);
+    expect(comment?.some((part) => part.includes("#9999"))).toBe(false);
+    expect(
+      ghCalls.some(
+        (cmd) => cmd.includes("PATCH") && cmd.some((part) => part.includes("/issues/4937")),
+      ),
+    ).toBe(true);
+    expect(ghCalls.some((cmd) => cmd.includes("merge"))).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("origin-closes without moving the implement brief when the completed file is already on the delivery branch (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-already-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const before = readFileSync(storyPath, "utf8");
+    writeCompletedStory(project, "story-4937", 4937);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      { 42: { merged: true, closingIssues: [], baseRef: "master" } },
+      { 4937: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: mockRunGit({
+        checkoutOmitsActive: true,
+        landedCompleted: ["xbrief/completed/story-4937.xbrief.json"],
+      }),
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    expect(ghCalls.some((cmd) => cmd.includes("pr") && cmd.includes("create"))).toBe(false);
+    expect(
+      ghCalls.some(
+        (cmd) => cmd.includes("PATCH") && cmd.some((part) => part.includes("/issues/4937")),
+      ),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
 });
 
 describe("finalize-cohort sweep base and argv (#3554)", () => {
-  function capturingGit(): {
-    runGit: (command: readonly string[]) => TextCaptureResult;
+  function capturingGit(opts: MockGitOpts = {}): {
+    runGit: (command: readonly string[], options?: { cwd?: string }) => TextCaptureResult;
     commands: string[][];
   } {
     const commands: string[][] = [];
-    const inner = mockRunGit();
+    const inner = mockRunGit(opts);
     return {
       commands,
-      runGit: (command) => {
+      runGit: (command, options) => {
         commands.push([...command]);
-        return inner(command);
+        return inner(command, options);
       },
     };
   }
@@ -1145,14 +1459,20 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
   it("defaults sweep base to the resolved delivery branch and does not fetch origin/master", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-main-"));
     const storyPath = writeActiveStory(project, "story-main", 3554, { deliveryBranch: "main" });
-    const { runGit, commands } = capturingGit();
+    const { runGit, commands } = capturingGit({
+      landedCompleted: ["xbrief/completed/story-main.xbrief.json"],
+    });
     const result = finalizeCohort({
       projectRoot: project,
       storyTokens: [storyPath],
       label: "story-main",
       repo: "deftai/directive",
       runGit,
-      runGh: mockRunGh({}),
+      runGh: mockRunGh({
+        9999: { merged: true, closingIssues: [], baseRef: "main" },
+      }),
+      landProbeLimit: 1,
+      sleep: () => {},
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.sweep_base).toBe("main");
@@ -1168,7 +1488,9 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
   it("prints both names and proceeds when an explicit --base-branch differs from delivery", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-override-"));
     const storyPath = writeActiveStory(project, "story-over", 3554, { deliveryBranch: "main" });
-    const { runGit, commands } = capturingGit();
+    const { runGit, commands } = capturingGit({
+      landedCompleted: ["xbrief/completed/story-over.xbrief.json"],
+    });
     const result = finalizeCohort({
       projectRoot: project,
       storyTokens: [storyPath],
@@ -1176,7 +1498,11 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
       repo: "deftai/directive",
       baseBranch: "develop",
       runGit,
-      runGh: mockRunGh({}),
+      runGh: mockRunGh({
+        9999: { merged: true, closingIssues: [], baseRef: "main" },
+      }),
+      landProbeLimit: 1,
+      sleep: () => {},
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.ok).toBe(true);
@@ -1185,7 +1511,7 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
     expect(result.stdout).toContain("Delivery branch: main");
     expect(result.stdout).toContain("Sweep base: develop");
     const fetches = commands.filter((c) => c.includes("fetch"));
-    expect(fetches.some((c) => c.includes("origin") && c.includes("develop"))).toBe(true);
+    expect(fetches.some((c) => c.includes("origin") && c.includes("main"))).toBe(true);
     expect(fetches.some((c) => c.includes("origin") && c.includes("master"))).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
