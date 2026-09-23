@@ -162,9 +162,14 @@ function pathIsInside(root: string, target: string): boolean {
   return targetKey === rootKey || targetKey.startsWith(`${rootKey}\\`);
 }
 
+/** cmd-shim text is Windows-shaped. realpath needs host separators or a junction never matches. */
+function hostPath(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
 function realpathIsInside(root: string, target: string): boolean {
   try {
-    return pathIsInside(realpathSync(root), realpathSync(target));
+    return pathIsInside(realpathSync(hostPath(root)), realpathSync(hostPath(target)));
   } catch {
     return false;
   }
