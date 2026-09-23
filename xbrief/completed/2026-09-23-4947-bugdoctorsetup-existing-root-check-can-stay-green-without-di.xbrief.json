@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4947",
-    "updated": "2026-09-23T17:00:15Z"
+    "updated": "2026-09-23T18:08:57Z"
   },
   "plan": {
     "title": "bug(doctor,setup): existing root check can stay green without Directive, and setup still says task check",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(doctor,setup): existing root check can stay green without Directive, and setup still says task check",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4947",
@@ -16,18 +16,36 @@
     "items": [
       {
         "title": "On the include-ok path, when a root task named check exists and does not invoke Directive's check, record a warning finding and do not emit Gates-surface ready. Leave the process exit at 0. Do not write the file, including through the fixMode yes branch. Emit Gates-surface ready only when that root check task is absent, or when it invokes Directive's check.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/root-check-doctor.test.ts",
+          "recorded_at": "2026-09-23T18:08:50.314Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "Count invocation only as command-position deft check or directive check that is not failure-masked; command-position task deft:check, task deft:check:consumer, or task deft:check:framework-source as the whole task token; a go-task cmds or deps entry whose task name is one of those three; or engine:invoke paired with ENGINE_CMD check when that task is the dispatcher the deft include deposits. A consumer-owned task of the same name does not count. Do not count bare task check, task check followed by some other suffix, comments, echo, or a masked status. Keep stripTaskBodyComments. Read the file resolveConsumerTaskfile already selected. Do not call evaluateConsumerCheckContract for this warning.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/root-check-invoke.test.ts",
+          "recorded_at": "2026-09-23T18:08:50.314Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "Write the Quality clause as the prefer/else sentence already in agents-entry: prefer deft check, else task deft:check on an include-only consumer, one gate, not two runs. Keep the coverage clause and the secrets clause. Use that same pair on the setup-copied pull-request checklist item. Do not add a root check task to MINIMAL_TASKFILE. Rebuild the skills pack from the skill when the sentence changes. Leave the framework-repo skip in place.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/root-check-invoke.test.ts",
+          "recorded_at": "2026-09-23T18:08:50.314Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "tags": [
@@ -362,9 +380,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "20ff52d92bcdd6dae2c6bf0becd70d930c2c68356e47c8e23a2c054887c1a3e7"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4971,
+        "prBase": null,
+        "mergeCommit": "cae371d0161bb7c03df0ab9fc312c477f7c524cc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cae371d0161bb7c03df0ab9fc312c477f7c524cc",
+        "verifiedAt": "2026-09-23T18:08:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T18:08:57Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T18:08:57Z"
       }
     },
     "id": "github.issue.5547975384",
-    "updated": "2026-09-23T17:00:15Z"
+    "updated": "2026-09-23T18:08:57Z"
   }
 }
