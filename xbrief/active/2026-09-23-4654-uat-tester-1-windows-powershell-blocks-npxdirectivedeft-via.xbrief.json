@@ -1,0 +1,396 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4654",
+    "updated": "2026-09-23T17:00:07Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 1] Windows PowerShell blocks npx/directive/deft via .ps1 execution policy",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 1] Windows PowerShell blocks npx/directive/deft via .ps1 execution policy",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4654",
+      "Overview": "\n\n1. After install, Get-Command for each name in the package bin map is not a .ps1 under a policy that refuses scripts. Those names are directive, deft, deft-ts, deft-hook, and deft-verify-encoding. The linker does not leave the generated .ps1 beside the .cmd. The bare name then reaches the .cmd.\n2. This issue does not change npx.ps1 or npm.ps1. It does not change the operator's execution policy. It does not restore ExecutionPolicy Bypass. It does not add a doctor check or a JavaScript error for a shim PowerShell has already refused.\n3. The public wording a person reads before any shim runs stays on #4662.\n\nrelieves: P1\noperator-deferred: P2 #4662\n\nTarget-digest: sha256:ede584c2faa1bdb5bebc8d93dc76cf1feb451e88272382bd7302936a52b61082\r\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, area:installer, platform:windows, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "After install, Get-Command for each name in the package bin map is not a .ps1 under a policy that refuses scripts. Those names are directive, deft, deft-ts, deft-hook, and deft-verify-encoding. The linker does not leave the generated .ps1 beside the .cmd. The bare name then reaches the .cmd.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "This issue does not change npx.ps1 or npm.ps1. It does not change the operator's execution policy. It does not restore ExecutionPolicy Bypass. It does not add a doctor check or a JavaScript error for a shim PowerShell has already refused.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "The public wording a person reads before any shim runs stays on #4662.",
+        "status": "proposed",
+        "id": "clause.3"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "area:installer",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4654",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4654: [UAT Tester 1] Windows PowerShell blocks npx/directive/deft via .ps1 execution policy"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "After install, Get-Command for each name in the package bin map is not a .ps1 under a policy that refuses scripts. Those names are directive, deft, deft-ts, deft-hook, and deft-verify-encoding. The linker does not leave the generated .ps1 beside the .cmd. The bare name then reaches the .cmd.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "This issue does not change npx.ps1 or npm.ps1. It does not change the operator's execution policy. It does not restore ExecutionPolicy Bypass. It does not add a doctor check or a JavaScript error for a shim PowerShell has already refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The public wording a person reads before any shim runs stays on #4662.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705167509,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5705167509",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:58:43Z",
+          "updated_at": "2026-09-16T21:58:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Related, not merged. #4662 tracks the README gap for this same Windows `.ps1` execution-policy failure. The command failure stays here.",
+          "id": 5777811306,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5777811306",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T13:55:43Z",
+          "updated_at": "2026-09-22T13:55:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Lifecycle: installing Directive, updating it, and getting one clear next step when something looks wrong. It also covers whether the version someone thinks they installed is the version that is actually running.\n\nWhat a new person hits: On Windows, PowerShell refuses to run the Directive commands because of a script-security setting. The install looks finished, and the first command fails.\n\nWhy that ruins the product for them: They never get to try the product. There is no project, no interview, and no sample change. The trial ends at the terminal.\n\nHow likely: High for anyone on Windows, which is a large share of people who will download this. They hit it before they have done anything else.\n\n",
+          "id": 5780258993,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5780258993",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:36:48Z",
+          "updated_at": "2026-09-22T16:36:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a current npm bin of directive and deft is still a JavaScript file, and Windows PowerShell still selects the generated .ps1 shim before the program starts. The .cmd shim for the same command is the one that runs. The README gap for this failure is #4662. The command failure stays here.\n\ncharter: open critique\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is the Windows entry against the landed .cmd shim and the landed decision not to use ExecutionPolicy Bypass. It is not a whole-motion session-start loop. N=1.\n\npain: P1, P2\n\nP1. On Windows PowerShell, the documented npx and global directive and deft commands do not start, because PowerShell refuses the generated .ps1 shim.\nP2. The refusal happens before Directive runs, so the product never explains that the .cmd shim for the same command does start.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4654-dc\norigin-ref: origin/master\ndispatch-sha: c7cae4d44e40abf4fb00ee25aceacf32d06168d9\npin-kind: origin-default\n\nPin reads use git show c7cae4d44e40abf4fb00ee25aceacf32d06168d9. The issue body is the report under test. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched. Do not restore ExecutionPolicy Bypass. That removal is #2178.\r\n\n",
+          "id": 5795826512,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5795826512",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:35:08Z",
+          "updated_at": "2026-09-23T13:35:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## Node owns the npx and npm shims\nsharpens-framing\nEvidence: git show c7cae4d44e40abf4fb00ee25aceacf32d06168d9:packages/cli/package.json maps directive, deft, and deft-ts to ./dist/bin.js, deft-hook to ./dist/hook-bin.js, and deft-verify-encoding to ./dist/verify-encoding.js. The scripts field is build only. packages/cli/src/bin.ts line 1 is the node shebang. README at that SHA tells a cold start to run npm i -g @deftai/directive and npx @deftai/directive. git grep -F for \"execution policy\", \"directive.cmd\", and \".ps1\" in README.md and content/docs/getting-started.md at that SHA found no lines. On this host, powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Restricted (process-local flag; the registry policy was not changed) refused C:\\Program Files\\nodejs\\npx.ps1 for npx --version and C:\\Program Files\\nodejs\\npm.ps1 for npm --version. npm.cmd --version printed 11.16.0. The same Restricted host refused %APPDATA%\\npm\\directive.ps1 and deft.ps1. directive.cmd --version and deft.cmd --version each printed @deftai/directive (engine: @deftai/directive-core@0.119.7). Those two ps1 files are cmd-shim wrappers that invoke dist/bin.js. Issue #4662 is open and its body is the README gap for this Windows failure.\nFailure mode: A remedy bound as one in-package bin change leaves the documented npx and npm commands refused. Those shims are files Node installed under Program Files\\nodejs. This package does not publish them, and the bare install command npm still has to get past npm.ps1 before any bin link of ours exists.\nDisposition: State P1 as two owners before bind. This issue's build contract can change the shims npm writes for the package bin map. It cannot change npx.ps1 or npm.ps1. The public-doc wording is #4662. pnpm dlx is also named in that README and was not measured here.\n\n## Directive does not run on the refused path\nsharpens-framing\nEvidence: The Restricted directive --version and deft --version failures are PowerShell's message that the .ps1 cannot be loaded because running scripts is disabled. The engine version line is absent there and present on the .cmd form. git grep at the dispatch SHA shows packages/cli/src/dispatch.ts passes \"-ExecutionPolicy\" and \"RemoteSigned\" (lines 1863-1864) to a powershell or pwsh process the product spawns for a hash-verified local ghx installer. The comment above that argv says the path does not use Bypass. Issue #2178 is closed; its body is the remote installer pipe and the Socket heuristic. CONTRIBUTING.md line 43 and tasks/setup.yml line 34 still pass Bypass for the maintainer script scripts/setup_windows.ps1. A search of doctor sources for an execution-policy check found none.\nFailure mode: A remedy bound as a doctor line, an error thrown from the JavaScript entry, or a copy of the #2178 RemoteSigned flag never starts, because the operator's shell refuses the .ps1 before Node is created. That already-open shell has no parent argv where a policy flag could be attached. Set-ExecutionPolicy for CurrentUser would widen script authority for every local script that account runs, and the refused shim cannot launch that call. Putting Bypass back on the ghx installer, or on the maintainer setup lines, does not select a different file for the bare command.\nDisposition: P2 cannot be met by text the refused process never reaches. The build contract can speak only from a command that PowerShell actually starts. It cannot change the operator's execution policy, and it cannot restore Bypass. The place that can explain the .cmd names before any shim runs is the README, which is #4662.\n\n## The .ps1 is selected ahead of .cmd and .exe\nsharpens-framing\nEvidence: This host's npm 11.16.0 vendors cmd-shim 8.0.0. cmdShim(from, to) writes the extensionless shim, the .cmd, and the .ps1 on every path through writeShim_, and bin-links shimBin lists those three suffixes with no skip argument. In one temp directory I placed probebin.ps1, probebin.cmd, and a copy of where.exe named probebin.exe. Under -ExecutionPolicy Restricted, both powershell.exe and pwsh.exe resolved bare probebin to the .ps1 (Get-Command Source was that .ps1) and refused it. Explicit probebin.cmd printed SELECTED-CMD. A second directory that contained only probebin.cmd ran that .cmd for the bare name under both hosts (SELECTED-CMD-ONLY). With -ExecutionPolicy Bypass, the bare name printed SELECTED-PS1, so the script also wins when policy allows it. The global prefix beside directive.ps1 and deft.ps1 also contains deft-ts.ps1, deft-hook.ps1, and deft-verify-encoding.ps1, each with a .cmd sibling. I executed directive and deft only.\nFailure mode: A remedy bound as shipping an exe, pointing bin at a .cmd, or treating the existing .cmd as the fallback does not start the bare name while the .ps1 remains in that directory. PowerShell stops on the refusal and does not continue to the exe or the .cmd. The bare name reaches the .cmd when the .ps1 is absent. This package has no code that removes the generated .ps1.\nDisposition: The command-start condition to bind is precedence after install: Get-Command for each name in the package bin map must not be a .ps1 under a policy that refuses scripts. The build contract can change the files the linker writes for that map, including the three sibling names that share it. It cannot win a same-directory tie against a .ps1 that is still present, and it cannot apply that change to Node's npx.ps1 or npm.ps1. The road not taken is loosening the user execution policy so the current .ps1 runs, which is the workaround the UAT recorded. That would become the better bind if an operator-asked policy change were reachable from a process that actually starts and stayed limited to this package's scripts. A sibling exe does not win the tie the measurement ran, so an exe launcher does not satisfy the precedence condition while cmd-shim still emits the .ps1.\r\n\n",
+          "id": 5795964441,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5795964441",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:44:09Z",
+          "updated_at": "2026-09-23T13:44:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOn Windows PowerShell, the documented npx, directive, and deft commands do not start. PowerShell selects the .ps1 shim and refuses it. The .cmd form of directive and deft does start. Node owns npx.ps1 and npm.ps1. This package owns the shims npm writes for its own bin names.\n\nThe build contract for this issue is those package shims. After install, Get-Command for directive, deft, deft-ts, deft-hook, and deft-verify-encoding is not a .ps1, so the bare name reaches the .cmd. This issue does not change npx or npm. It does not change the operator's execution policy, and it does not put Bypass back. A doctor line or an error inside the JavaScript entry never runs on the refused path. The words a person can read before any shim starts stay on #4662.\n\nConfirming this map does not close both pains. The documented npx command still does not start. The explanation of the .cmd names is the other issue.\n\n**Lean:** the package bin map must not leave a .ps1. npx, npm, and the pre-start explanation are outside this issue. Comment 5795964441. Not a full bind of the two pains.\n\nsiblings: 1\nRound: 1\nResidual: none\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: c7cae4d44e40abf4fb00ee25aceacf32d06168d9\n\n## Takes\n\n- 5795964441 Node owns the npx and npm shims — accept-into-contract\n- 5795964441 Directive does not run on the refused path — accept-into-contract\n- 5795964441 The .ps1 is selected ahead of .cmd and .exe — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. After install, Get-Command for each name in the package bin map is not a .ps1 under a policy that refuses scripts. Those names are directive, deft, deft-ts, deft-hook, and deft-verify-encoding. The linker does not leave the generated .ps1 beside the .cmd. The bare name then reaches the .cmd.\n2. This issue does not change npx.ps1 or npm.ps1. It does not change the operator's execution policy. It does not restore ExecutionPolicy Bypass. It does not add a doctor check or a JavaScript error for a shim PowerShell has already refused.\n3. The public wording a person reads before any shim runs stays on #4662.\n\ndoes-not-relieve: P1\noperator-deferred: P2 #4662\n\nTarget-digest: sha256:ede584c2faa1bdb5bebc8d93dc76cf1feb451e88272382bd7302936a52b61082\r\n\n",
+          "id": 5795980873,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5795980873",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:45:13Z",
+          "updated_at": "2026-09-23T13:45:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe arc stops here. This issue can make the package's own commands start: after install, directive, deft, and the three sibling names must not resolve to a .ps1, so the bare name reaches the .cmd. It cannot make npx or npm start. Those shims belong to Node. It also cannot explain the .cmd names from inside a process PowerShell never starts. That explanation is already #4662.\n\nThe deliverable remainder is the package-shim change, and it can stay on this issue. The npx, npm, and README half stays on #4662. Filing a third issue waits on an explicit leftover. Nothing was ingested.\n\nopen-question: Whether this issue only stops npm from leaving a .ps1 for the package bin names, and the npx, npm, and README explanation stay on #4662.\r\n\n",
+          "id": 5795984692,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5795984692",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:45:28Z",
+          "updated_at": "2026-09-23T13:45:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe documented npx command is Node's shim, and this package cannot make it start. The package's own names can start. PowerShell stops on a .ps1 and never reaches the .cmd. When that .ps1 is absent, the bare name runs the .cmd.\n\nThis issue's pain is those package names. After install, directive, deft, deft-ts, deft-hook, and deft-verify-encoding must not resolve to a .ps1. The explanation a person can read before any shim starts, and the npx and npm shims, stay on #4662. The operator's execution policy stays unchanged, and Bypass stays out.\n\nConfirming this map means this list is the build contract for the package names. The explanation pain stays on the other issue. The operator raised the cap by one post so a critic can check both cites. The same parent wrote the withdrawn split and this one.\n\n**Lean:** recut after the raise. P1 is the five package bin names. P2 stays on #4662. Supersedes 5795980873. This map is the bind.\n\nPrior takes on comment 5795980873 stay accept-into-contract.\nraise: operator, one additional critic post for the pain-audit of this lean\nDual-stop cap: 7 posts\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: c7cae4d44e40abf4fb00ee25aceacf32d06168d9\n\n## Takes\n\n- 5795964441 Node owns the npx and npm shims — accept-into-contract\n- 5795964441 Directive does not run on the refused path — accept-into-contract\n- 5795964441 The .ps1 is selected ahead of .cmd and .exe — accept-into-contract\n\npain: P1, P2\n\nP1. After install, directive, deft, deft-ts, deft-hook, and deft-verify-encoding resolve to a .ps1, so the bare name does not start under a policy that refuses scripts.\nP2. The refusal happens before Directive runs, so the product never explains that the .cmd shim for the same command does start. That explanation is #4662.\n\nSpec-path:\n\n## Bound remedy\n\n1. After install, Get-Command for each name in the package bin map is not a .ps1 under a policy that refuses scripts. Those names are directive, deft, deft-ts, deft-hook, and deft-verify-encoding. The linker does not leave the generated .ps1 beside the .cmd. The bare name then reaches the .cmd.\n2. This issue does not change npx.ps1 or npm.ps1. It does not change the operator's execution policy. It does not restore ExecutionPolicy Bypass. It does not add a doctor check or a JavaScript error for a shim PowerShell has already refused.\n3. The public wording a person reads before any shim runs stays on #4662.\n\nrelieves: P1\noperator-deferred: P2 #4662\n\nTarget-digest: sha256:ede584c2faa1bdb5bebc8d93dc76cf1feb451e88272382bd7302936a52b61082\r\n\n",
+          "id": 5796209249,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5796209249",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T13:59:47Z",
+          "updated_at": "2026-09-23T13:59:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\n\n## P1: the bound post-install condition covers the five package names\nfootnote\n\nI audited the pain wording and Bound remedy in [5796209249](https://github.com/deftai/directive/issues/4654#issuecomment-5796209249), as the dispatch requires. HEAD equals c7cae4d44e40abf4fb00ee25aceacf32d06168d9. SHA-pinned packages/cli/package.json declares exactly directive, deft, deft-ts, deft-hook, and deft-verify-encoding; the first three use dist/bin.js and the other two have separate JavaScript entries. The pinned bin.ts starts with the Node shebang. This is a design audit, not evidence that the proposed installer change already exists.\n\nI independently tested the decisive precedence claim in an isolated OS-temp directory with a harmless painprobe.ps1 and painprobe.cmd. In a fresh powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Restricted process, Get-Command selected the .ps1, the bare command raised PSSecurityException, and explicit painprobe.cmd printed CMD_STARTED. After renaming only the temporary .ps1 out of command resolution, a fresh Restricted process selected the .cmd and the bare command printed CMD_STARTED. No persistent execution policy or installed package files changed.\n\nThe failure is selection of the refused script before Node starts. Bound remedy item 1 directly removes that condition and additionally requires successful bare-name routing to the .cmd for every declared bin name after install. Its coverage is stronger than merely shipping another executable beside an unchanged .ps1. The narrowed P1 cite holds as a required outcome. This does not claim relief for Node-owned npm/npx, nor certify an as-yet-unimplemented linker mechanism. No change to the harvest is needed.\n\n## P2: the pre-start explanation belongs in the existing README issue\nfootnote\n\nI read #4662 and its comments through the dispatch ceiling. Its body specifically reports that users had to discover npx.cmd, directive.cmd, and deft.cmd without README help. [Comment 5777811015](https://github.com/deftai/directive/issues/4662#issuecomment-5777811015) explicitly separates that README gap from #4654's command failure. A SHA-pinned search of README.md and content/docs/getting-started.md found no execution-policy, directive.cmd, or npx.cmd explanation.\n\nThe probe above also confirms why an explanation placed inside the refused command cannot address the initial refusal: its script never executes. Public instructions can be read before invoking it. Deferring P2 to #4662 therefore has a concrete, matching owner and does not pretend the shim change supplies the missing explanation. That issue's report mentions a user policy workaround, but the bind here requires no policy change and restores no Bypass. The deferral cite holds; the pain remains deferred rather than fixed by this issue. No change to the harvest is needed.\n\nThis is a footnote-only audit of both targeted cites. The bound remedy remains unchanged.",
+          "id": 5796243762,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5796243762",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T14:01:58Z",
+          "updated_at": "2026-09-23T14:01:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOn Windows PowerShell the package commands do not start, because PowerShell selects the .ps1 shim and refuses it. The .cmd form of those commands does start. npx and npm are Node's shims, and this package cannot change them.\n\nThe build contract is the bound list on the successor lean. After install, directive, deft, deft-ts, deft-hook, and deft-verify-encoding must not resolve to a .ps1, so the bare name reaches the .cmd. Execution policy stays unchanged, and Bypass stays out. The words a person can read before any shim starts stay on #4662.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5796209249.\n\n## Verified-claims table\n\n| Verified claim | Result |\n| --- | --- |\n| Under Restricted, Get-Command selects a sibling .ps1 and the bare name raises PSSecurityException | After that .ps1 is removed from resolution, the bare name runs the .cmd |\n| The package bin map is directive, deft, deft-ts, deft-hook, and deft-verify-encoding | The bound contract covers those five names and does not cover npx.ps1 or npm.ps1 |\n| A message inside the refused command never runs | The explanation of the .cmd names stays on #4662 |\r\n\n",
+          "id": 5796259896,
+          "html_url": "https://github.com/deftai/directive/issues/4654#issuecomment-5796259896",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T14:03:01Z",
+          "updated_at": "2026-09-23T14:03:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Checks:** C1 FAIL, C6 FAIL\n**Defect:** 1\n\n### Expected\n`npx @deftai/directive doctor` and `directive --version` run as documented on a cold machine.\n\n### What happened\nPowerShell refused `npx.ps1` / `directive.ps1` / `deft.ps1` (`PSSecurityException`: running scripts is disabled). `npx.cmd` / `directive.cmd` worked. README does not mention this.\n\n### Evidence\n- `npx @deftai/directive doctor` -> `npx.ps1 cannot be loaded because running scripts is disabled`\n- Same for `directive --version` after global install\n- Workaround: `*.cmd`, later `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`\n\n### Environment\nWindows Codex VM (`C:\\Users\\codex`). Directive 0.119.1. Harness: Codex TUI.\nUAT repo: https://github.com/nheroux-bit/show-env-report-uat\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480356922,
+        "origin": "deftai/directive#4654",
+        "id": "github.issue.5480356922"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ede584c2faa1bdb5bebc8d93dc76cf1feb451e88272382bd7302936a52b61082"
+      }
+    },
+    "id": "github.issue.5480356922",
+    "updated": "2026-09-23T17:00:07Z"
+  }
+}

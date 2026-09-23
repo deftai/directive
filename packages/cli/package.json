@@ -22,7 +22,8 @@
   },
   "files": [
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "scripts/remove-windows-ps1-shims.mjs"
   ],
   "repository": {
     "type": "git",
@@ -38,6 +39,7 @@
     "@deftai/directive-content": "workspace:*"
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "postinstall": "node ./scripts/remove-windows-ps1-shims.mjs"
   }
 }
