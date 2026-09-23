@@ -6,6 +6,7 @@
  * Refs #1942, #11, #1430.
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { basename, join, resolve } from "node:path";
@@ -190,8 +191,46 @@ function assertLockfileAllowsPinWrite(projectDir: string, pinVersion: string): v
 /** Local commit named on the stdout summary (#4665). */
 const INIT_PAYLOAD_COMMIT_COMMAND = 'git commit -m "chore(deft): update framework payload"';
 
-/** Step 1. Not a commit on unborn main or master; verify:branch rejects that (#4665). */
-const INIT_PAYLOAD_NEXT_STEP = `git switch -c feat/first-project, then ${INIT_PAYLOAD_COMMIT_COMMAND}`;
+/** verify:branch still rejects these. This step does not change that gate (#4665). */
+const INIT_PAYLOAD_DEFAULT_BRANCHES = new Set(["main", "master"]);
+
+/** Unborn HEAD, main, and master. No branch name (#4665). */
+const INIT_PAYLOAD_BRANCH_THEN_COMMIT = `Create a new feature branch first, then ${INIT_PAYLOAD_COMMIT_COMMAND}`;
+
+function gitProjectText(projectDir: string, args: readonly string[]): string | null {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    const upper = key.toUpperCase();
+    if (upper === "GIT_DIR" || upper === "GIT_WORK_TREE") delete env[key];
+  }
+  try {
+    const stdout = execFileSync("git", [...args], {
+      cwd: projectDir,
+      env,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    const text = stdout.trim();
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Step 1 follows HEAD. A branch other than main or master, including one
+ * with no commit yet, is only the payload commit. Unborn main or master,
+ * those branches with commits, detached HEAD, and a non-repo say to create
+ * a feature branch first (#4665).
+ */
+function initPayloadNextStep(projectDir: string): string {
+  const branch = gitProjectText(projectDir, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  if (branch !== null && !INIT_PAYLOAD_DEFAULT_BRANCHES.has(branch.toLowerCase())) {
+    return INIT_PAYLOAD_COMMIT_COMMAND;
+  }
+  return INIT_PAYLOAD_BRANCH_THEN_COMMIT;
+}
 
 export function buildInstallSummaryJson(input: {
   result: InitDepositResult;
@@ -238,7 +277,7 @@ export function printNextSteps(result: InitDepositResult, io: InitDepositIo): vo
   io.printf(`  User config  : ${result.configDir}\n`);
   // No migrate nudge: fresh-init VERSION has no managedBy. Update still nudges (#4656).
   io.printf("\nNext steps:\n");
-  io.printf(`  1. ${INIT_PAYLOAD_NEXT_STEP}\n`);
+  io.printf(`  1. ${initPayloadNextStep(result.projectDir)}\n`);
   io.printf("\n");
 }
 
