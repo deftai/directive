@@ -187,8 +187,11 @@ function assertLockfileAllowsPinWrite(projectDir: string, pinVersion: string): v
   );
 }
 
-/** Local commit named on init Next steps step 1 and the stdout summary (#4665). */
+/** Local commit named on the stdout summary (#4665). */
 const INIT_PAYLOAD_COMMIT_COMMAND = 'git commit -m "chore(deft): update framework payload"';
+
+/** Step 1. Not a commit on unborn main or master; verify:branch rejects that (#4665). */
+const INIT_PAYLOAD_NEXT_STEP = `git switch -c feat/first-project, then ${INIT_PAYLOAD_COMMIT_COMMAND}`;
 
 export function buildInstallSummaryJson(input: {
   result: InitDepositResult;
@@ -235,7 +238,7 @@ export function printNextSteps(result: InitDepositResult, io: InitDepositIo): vo
   io.printf(`  User config  : ${result.configDir}\n`);
   // No migrate nudge: fresh-init VERSION has no managedBy. Update still nudges (#4656).
   io.printf("\nNext steps:\n");
-  io.printf(`  1. ${INIT_PAYLOAD_COMMIT_COMMAND}\n`);
+  io.printf(`  1. ${INIT_PAYLOAD_NEXT_STEP}\n`);
   io.printf("\n");
 }
 

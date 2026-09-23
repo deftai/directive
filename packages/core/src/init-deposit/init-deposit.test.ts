@@ -329,9 +329,10 @@ describe("runInitDeposit", () => {
     expect(errText).not.toContain("Commit hygiene");
     expect(errText).not.toContain("directive migrate");
     const nextSteps = errText.slice(errText.indexOf("Next steps:"));
-    expect(nextSteps).toContain('1. git commit -m "chore(deft): update framework payload"');
+    expect(nextSteps).toContain('git commit -m "chore(deft): update framework payload"');
+    expect(nextSteps).toContain("git switch -c feat/first-project");
     expect(nextSteps.match(/^\s*\d+\..*$/gm)).toEqual([
-      '  1. git commit -m "chore(deft): update framework payload"',
+      '  1. git switch -c feat/first-project, then git commit -m "chore(deft): update framework payload"',
     ]);
     expect(nextSteps).not.toContain("git push");
     expect(nextSteps).not.toContain("gh pr");
@@ -419,9 +420,10 @@ describe("runInitDeposit", () => {
     expect(text).toContain("AGENTS.md    : updated");
     expect(text).toContain("Skills       : .agents/skills/ created");
     expect(text).toContain("User config  : /cfg");
-    expect(text).toContain('1. git commit -m "chore(deft): update framework payload"');
+    expect(text).toContain('git commit -m "chore(deft): update framework payload"');
+    expect(text).toContain("git switch -c feat/first-project");
     expect(text.match(/^\s*\d+\..*$/gm)).toEqual([
-      '  1. git commit -m "chore(deft): update framework payload"',
+      '  1. git switch -c feat/first-project, then git commit -m "chore(deft): update framework payload"',
     ]);
     expect(text).not.toContain("git push");
     expect(text).not.toContain("gh pr");
