@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4654",
-    "updated": "2026-09-23T17:00:07Z"
+    "updated": "2026-09-23T20:54:22Z"
   },
   "plan": {
     "title": "[UAT Tester 1] Windows PowerShell blocks npx/directive/deft via .ps1 execution policy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 1] Windows PowerShell blocks npx/directive/deft via .ps1 execution policy",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4654",
@@ -16,18 +16,36 @@
     "items": [
       {
         "title": "After install, Get-Command for each name in the package bin map is not a .ps1 under a policy that refuses scripts. Those names are directive, deft, deft-ts, deft-hook, and deft-verify-encoding. The linker does not leave the generated .ps1 beside the .cmd. The bare name then reaches the .cmd.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/windows-bin-ps1.test.ts",
+          "recorded_at": "2026-09-23T20:54:21.792Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "This issue does not change npx.ps1 or npm.ps1. It does not change the operator's execution policy. It does not restore ExecutionPolicy Bypass. It does not add a doctor check or a JavaScript error for a shim PowerShell has already refused.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/windows-bin-ps1.test.ts",
+          "recorded_at": "2026-09-23T20:54:21.792Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "The public wording a person reads before any shim runs stays on #4662.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a",
+          "recorded_at": "2026-09-23T20:54:21.792Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "tags": [
@@ -388,9 +406,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "ede584c2faa1bdb5bebc8d93dc76cf1feb451e88272382bd7302936a52b61082"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4974,
+        "prBase": null,
+        "mergeCommit": "ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5f7ba7c784e21dbf2a65ef666c4ae667630ae499",
+        "verifiedAt": "2026-09-23T20:54:22Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T20:54:22Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T20:54:22Z"
       }
     },
     "id": "github.issue.5480356922",
-    "updated": "2026-09-23T17:00:07Z"
+    "updated": "2026-09-23T20:54:22Z"
   }
 }
