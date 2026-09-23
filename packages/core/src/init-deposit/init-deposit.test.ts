@@ -309,6 +309,10 @@ describe("runInitDeposit", () => {
     }
     const payload = parsed as Record<string, unknown>;
     expect(payload.success).toBe(true);
+    expect(payload.commit_command).toBe('git commit -m "chore(deft): update framework payload"');
+    expect(JSON.stringify(payload)).not.toContain("git push");
+    expect(JSON.stringify(payload)).not.toContain("gh pr");
+    expect(JSON.stringify(payload)).not.toContain("pull request");
     expect(payload.deposit_completed).toBe(true);
     expect(payload.action).toBe("install");
     expect(payload.taskfile_wired).toBe(true);
@@ -325,10 +329,14 @@ describe("runInitDeposit", () => {
     expect(errText).not.toContain("Commit hygiene");
     expect(errText).not.toContain("directive migrate");
     const nextSteps = errText.slice(errText.indexOf("Next steps:"));
-    expect(nextSteps).toContain(`1. Open your AI coding assistant in ${project}`);
+    expect(nextSteps).toContain('1. git commit -m "chore(deft): update framework payload"');
     expect(nextSteps.match(/^\s*\d+\..*$/gm)).toEqual([
-      `  1. Open your AI coding assistant in ${project}`,
+      '  1. git commit -m "chore(deft): update framework payload"',
     ]);
+    expect(nextSteps).not.toContain("git push");
+    expect(nextSteps).not.toContain("gh pr");
+    expect(nextSteps).not.toContain("pull request");
+    expect(nextSteps).not.toContain("Open your AI coding assistant");
     expect(nextSteps).not.toContain("Use AGENTS.md");
     expect(nextSteps).not.toContain("project:render");
     expect(nextSteps).not.toContain("`");
@@ -358,6 +366,7 @@ describe("runInitDeposit", () => {
     expect(existsSync(join(project, ".codex", "hooks.json"))).toBe(true);
     expect(parseJsonObject(out.join(""))).toMatchObject({
       success: false,
+      commit_command: 'git commit -m "chore(deft): update framework payload"',
       deposit_completed: true,
       agent_hook_readiness: {
         ready: false,
@@ -384,9 +393,14 @@ describe("runInitDeposit", () => {
     expect(summary.missing_tools).toEqual([]);
     expect(summary.dirty_files).toEqual([]);
     expect(summary.staged_paths).toEqual(["Taskfile.yml", ".deft/core"]);
+    expect(summary.success).toBe(true);
+    expect(summary.commit_command).toBe('git commit -m "chore(deft): update framework payload"');
+    expect(JSON.stringify(summary)).not.toContain("git push");
+    expect(JSON.stringify(summary)).not.toContain("gh pr");
+    expect(JSON.stringify(summary)).not.toContain("pull request");
   });
 
-  it("printNextSteps names what was created and one next step (#4656)", () => {
+  it("printNextSteps names what was created and the payload commit (#4665)", () => {
     const lines: string[] = [];
     printNextSteps(
       {
@@ -405,8 +419,14 @@ describe("runInitDeposit", () => {
     expect(text).toContain("AGENTS.md    : updated");
     expect(text).toContain("Skills       : .agents/skills/ created");
     expect(text).toContain("User config  : /cfg");
-    expect(text).toContain("1. Open your AI coding assistant in /proj");
-    expect(text.match(/^\s*\d+\..*$/gm)).toEqual(["  1. Open your AI coding assistant in /proj"]);
+    expect(text).toContain('1. git commit -m "chore(deft): update framework payload"');
+    expect(text.match(/^\s*\d+\..*$/gm)).toEqual([
+      '  1. git commit -m "chore(deft): update framework payload"',
+    ]);
+    expect(text).not.toContain("git push");
+    expect(text).not.toContain("gh pr");
+    expect(text).not.toContain("pull request");
+    expect(text).not.toContain("Open your AI coding assistant");
     expect(text).not.toContain("Use AGENTS.md");
     expect(text).not.toContain("project:render");
     expect(text).not.toContain("`");

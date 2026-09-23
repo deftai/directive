@@ -187,6 +187,9 @@ function assertLockfileAllowsPinWrite(projectDir: string, pinVersion: string): v
   );
 }
 
+/** Local commit named on init Next steps step 1 and the stdout summary (#4665). */
+const INIT_PAYLOAD_COMMIT_COMMAND = 'git commit -m "chore(deft): update framework payload"';
+
 export function buildInstallSummaryJson(input: {
   result: InitDepositResult;
   options: InitDepositArgs;
@@ -219,6 +222,7 @@ export function buildInstallSummaryJson(input: {
     staged_paths: result.stagedPaths,
     backup_path: "",
     previous_version: "",
+    commit_command: INIT_PAYLOAD_COMMIT_COMMAND,
   };
 }
 
@@ -231,7 +235,7 @@ export function printNextSteps(result: InitDepositResult, io: InitDepositIo): vo
   io.printf(`  User config  : ${result.configDir}\n`);
   // No migrate nudge: fresh-init VERSION has no managedBy. Update still nudges (#4656).
   io.printf("\nNext steps:\n");
-  io.printf(`  1. Open your AI coding assistant in ${result.projectDir}\n`);
+  io.printf(`  1. ${INIT_PAYLOAD_COMMIT_COMMAND}\n`);
   io.printf("\n");
 }
 
