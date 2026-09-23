@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4772",
-    "updated": "2026-09-22T22:36:27Z"
+    "updated": "2026-09-23T00:31:16Z"
   },
   "plan": {
     "title": "[UAT Tester 4] Windows paths containing spaces break Directive gates and Taskfile wrappers",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 4] Windows paths containing spaces break Directive gates and Taskfile wrappers",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4772",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "Recut Expected: engine-invoke.cjs cmd.exe /d /s /c spawn without windowsVerbatimArguments is the splitter. The garbled xBRIEF path is path.resolve of a quote-prefixed fragment from that split, not a #2126 dir: hop. Do not bind that hop.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4931",
+          "recorded_at": "2026-09-23T00:30:29Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Reuse toolchain-check.ts windowsVerbatimArguments plus outer /s quoting. Touch the sibling cmd.exe spawn sites, not the 38 Taskfile ENGINE_CMD lines.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4931",
+          "recorded_at": "2026-09-23T00:30:29Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Keep JSON env transport, shell:false, and #2911 containment. Do not drop quotes or set shell:true.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4931",
+          "recorded_at": "2026-09-23T00:30:29Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Acceptance is a live Windows cmd.exe argv round-trip with a space in the project directory, a space in the resolved deft.cmd shim path, and extra token a&b on that same first-and-last-quoted spawn, plus the existing deposited-consumer smoke given a space in the directory. Do not treat space or quote as that extra token.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "smoke",
+          "pointer": "packages/core/src/check/cli-native-gates.test.ts",
+          "recorded_at": "2026-09-23T00:31:09Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Vendored argv path is not the defect.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4931",
+          "recorded_at": "2026-09-23T00:30:29Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -727,9 +757,34 @@
         "github_issue_id": 5501878513,
         "origin": "deftai/directive#4772",
         "id": "github.issue.5501878513"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4931,
+        "prBase": null,
+        "mergeCommit": "2a6a59c58fb5b23705f55ce702fb458b386f1b60",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2a6a59c58fb5b23705f55ce702fb458b386f1b60",
+        "verifiedAt": "2026-09-23T00:31:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T00:31:16Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T00:31:16Z"
       }
     },
     "id": "github.issue.5501878513",
-    "updated": "2026-09-22T22:36:27Z"
+    "updated": "2026-09-23T00:31:16Z"
   }
 }
