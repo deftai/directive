@@ -45,6 +45,10 @@ import {
 } from "./gate-lists.js";
 import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
 import {
+  RAPID_ZERO_VERIFIED_CHECK_NOTICE,
+  rapidCheckRejectsZeroVerifiedWalk,
+} from "./rapid-zero-verified.js";
+import {
   pruneSuiteTees,
   readTeeText,
   runSupervisedGate,
@@ -167,7 +171,10 @@ function firstImpactingMissingFinding(
  * Modes (env / ceremony dial / hard budget — see resolveProductFirstCheckMode):
  *  - full: AC hard → hygiene hard → suite
  *  - pressure: AC hard → hygiene advisory → suite
- *  - rapid: AC only (ceremony dial rapid/minimal positive content)
+ *  - rapid: AC only (ceremony dial rapid/minimal positive content).
+ *    Exit is not 0 when that walk reports zero verified clauses (#4866).
+ *    Unverifiable clauses still do not fail verify:ac. The other gates
+ *    stay off the rapid list.
  *
  * #3282: toolchain preflight enables degraded skip report when go-task/pnpm
  * are missing; gate failures print named cause + remedy; run-summary JSONL
@@ -601,6 +608,26 @@ export function dispatchCachedTaskCheck(
         );
       }
       return finish(result.exitCode, degraded);
+    }
+
+    // #4866: rapid check exit only. verify:ac already returned 0; do not
+    // relabel that gate as a failure of unverifiable clauses, and do not
+    // start the gates rapid mode already dropped.
+    if (
+      rapidCheckRejectsZeroVerifiedWalk({
+        mode: modeResolution.mode,
+        gateId,
+        text: `${result.stdout}\n${result.stderr}`,
+      })
+    ) {
+      process.stderr.write(RAPID_ZERO_VERIFIED_CHECK_NOTICE);
+      gateOutcomes.push({
+        id: gateId,
+        status: "run",
+        exit_code: 0,
+        from_cache: result.fromCache,
+      });
+      return finish(1, false);
     }
 
     if (isSuiteCheckGate(gateSpec) && lastSuiteTeeRel !== null) {

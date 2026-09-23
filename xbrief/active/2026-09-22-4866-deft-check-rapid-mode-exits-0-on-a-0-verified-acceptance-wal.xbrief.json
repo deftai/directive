@@ -1,0 +1,298 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4866",
+    "updated": "2026-09-22T22:36:20Z"
+  },
+  "plan": {
+    "title": "deft check rapid mode exits 0 on a 0-verified acceptance walk",
+    "status": "running",
+    "narratives": {
+      "Description": "deft check rapid mode exits 0 on a 0-verified acceptance walk",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4866",
+      "Overview": "\n\n1. A rapid product-first check does not exit 0 when the acceptance walk reports zero verified clauses.\n2. That change is not a claim that unverifiable clauses already fail verify:ac, and not a claim that the other gates still run.\r\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:cli, dogfood, status:child, design-critique:ingest-ready, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "A rapid product-first check does not exit 0 when the acceptance walk reports zero verified clauses.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "That change is not a claim that unverifiable clauses already fail verify:ac, and not a claim that the other gates still run.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "dogfood",
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4866",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4866: deft check rapid mode exits 0 on a 0-verified acceptance walk"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A rapid product-first check does not exit 0 when the acceptance walk reports zero verified clauses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "That change is not a claim that unverifiable clauses already fail verify:ac, and not a claim that the other gates still run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because with a story active, deft check in rapid mode can exit 0 after verify:ac reports zero verified clauses, and that pass skips tests, coverage, the branch gate, and hygiene.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4866-dc\norigin-ref: origin/HEAD\ndispatch-sha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; Desired is one named failure, not an open RFC, so N=1.\n\nrefutation-target: rapid acOnly does not exit 0 on a zero-verified acceptance walk, because unverifiable clauses fail verify:ac or the skipped gates still run.\n\ntarget: #4866\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is a rapid deft check exit 0 when verify:ac verified nothing. Parent #4814 stays the tracker.\n\nPin-read at dispatch-sha aba2407f86bbef9b21f1b07d85ce396886d6bef5: packages/core/src/check/cached-orchestrator.ts prints the product-first line with acOnly (#3284). packages/cli/src/verify-ac.ts clampVerifyAcExit returns 0 when result.ok. packages/core/src/verify-ac/clauses.ts keeps unverifiable distinct from failed. No implement and no ingest from this parent.\n\nCensus: still-open, 0 comments, wip active=0 pending=0. Unreleased on origin/master does not name #4866.",
+          "id": 5779053609,
+          "html_url": "https://github.com/deftai/directive/issues/4866#issuecomment-5779053609",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:15:31Z",
+          "updated_at": "2026-09-22T15:15:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nround: 1\ncharter: refutation\nsha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\nid-ceiling: 5779053609\n\n## Finding\n\nblocks-the-design\n\nNamed failure: unbound-unverifiable rapid pass.\n\nA zero-verified acceptance walk exits 0 under rapid acOnly. Five clauses with `artifact_path: null`, evaluated on the check-integrated profile, returned ok with code 0. The pass lead was `verify:ac passed (#3284) (0 verified, 5 unverifiable) [rung=derived]`. Ceremony depth rapid resolved mode rapid and acOnly true, and the framework check list filtered to `verify:ac` alone.\n\nEvidence. At aba2407f86bbef9b21f1b07d85ce396886d6bef5 this worktree ran two checks. `evaluateVerifyAcFromPlan` with `checkIntegrated: true`, `captureFromNarratives: false`, empty `commands`, and five unbound clauses returned `{ok: true, code: 0}` and that pass lead, with no FAILED line. `resolveProductFirstCheckMode` with `ceremonyDepth: \"rapid\"` returned `{mode: \"rapid\", acOnly: true}`. `applyProductFirstGateMode(FRAMEWORK_CHECK_GATES, \"rapid\")` returned `[\"verify:ac\"]`. The same filter on `\"pressure\"` returned 48 gates, including `verify:branch`. The shipped test \"still exits 0 on a no-oracle walk and leads with the counts\" passed in `packages/core/src/product-first-done-gate/acceptance-resolver.test.ts`.\n\n`walkOne` records a null artifact path as unverifiable and `adjudicable: false`. `walkAcceptanceClauses` is ok when nothing failed and `countUnverifiedAdjudicableClauses` is 0. `clauseWalkBlocks` returns false when `adjudicableUnverified` is 0. `clampVerifyAcExit` returns 0 when `ok` is true. `runCachedCheck` iterates that filtered list and takes `finish(0)` after a zero exit when the run is not toolchain-degraded.\n\nFailure mode. Ceremony rapid makes `task check` a product-first authority stamp on a walk that verified nothing. The hygiene, branch, coverage, and suite gates are absent from the list that loop runs, so a zero-verified acceptance walk is a green check.\n\nDisposition. The refutation target cannot bind. The pain on #4866 is this exit. A take that treats an unverifiable clause as a verify:ac failure, or that treats acOnly as a mode whose other gates still run, names a cause this tree does not execute.\n\n## Existing mechanisms\n\n#3284 rapid composition keeps the product AC gate (`applyProductFirstGateMode` in `packages/core/src/product-first-done-gate/check-mode.ts`; the loop is `packages/core/src/check/cached-orchestrator.ts`). #3826 leaves a no-oracle clause unverifiable and non-adjudicable, so an all-unbound set can pass (`packages/core/src/verify-ac/clauses.ts`). #4380 prints the counts on that pass lead. `clauseWalkBlocks` in `packages/core/src/product-first-done-gate/acceptance-resolver.ts` blocks a failed clause, and an adjudicable clause that did not verify when no green executable run exists. #3497 is that shared predicate. `clampVerifyAcExit` in `packages/cli/src/verify-ac.ts` maps `ok` to exit 0.\n\n## Road not taken\n\nPressure mode. `applyProductFirstGateMode` on `\"pressure\"` keeps the full framework list (48 gates on this tree, including `verify:branch`). Pressure sets `acOnly` false and continues after a hygiene failure because `hygieneAdvisory` is true. Rapid is the mode that sets `acOnly` true and drops those gates before the loop. The printed `acOnly=true` line is rapid.\n\n## Steelman\n\nThe strongest reading of \"unverifiable clauses fail verify:ac\" is the #3497 wording that a clause the walk cannot decide blocks when nothing else verified the product. That reading would make this walk a failure. It flips if `clauseWalkBlocks` counts non-adjudicable unverifiable rows as `adjudicableUnverified`. The function counts adjudicable rows that are not verified. #3826 records why an empty oracle set stays a pass: requiring `verified > 0` from clauses that can only be unverifiable is unsatisfiable by correct work. #4380 kept that pass and moved the counts onto the lead.\n\n## Footnote\n\nfootnote. A toolchain-degraded run whose every composed gate is skipped returns `finish(2)` before the walk. Under rapid the composed list is still only `verify:ac`. That exit is missing tooling. This critic measured the filter and the walk. `runCachedCheck` was read at the pin.\r\n\n",
+          "id": 5779294113,
+          "html_url": "https://github.com/deftai/directive/issues/4866#issuecomment-5779294113",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:31:23Z",
+          "updated_at": "2026-09-22T15:31:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA rapid check exits 0 when the acceptance walk verified nothing. The other gates are not on the list that runs. Confirming this map means that exit is not a pass. The same parent wrote the opening triage and these takes.\n\n**Lean:** round 1, critic 5779294113. Supersedes 5779053609.\n\nSpec-path: next-build contract is the bound-remedy list, not the issue body.\n\nTarget-digest: sha256:f31c84b0242bd362165181b8aea9c95ac4143d7c7ac1006b78c5235f6fcbec8b\n\naccept-into-contract: unbound-unverifiable rapid pass\n\nrelieves: P1\n\n## Bound remedy\n\n1. A rapid product-first check does not exit 0 when the acceptance walk reports zero verified clauses.\n2. That change is not a claim that unverifiable clauses already fail verify:ac, and not a claim that the other gates still run.\r\n\n",
+          "id": 5779344810,
+          "html_url": "https://github.com/deftai/directive/issues/4866#issuecomment-5779344810",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:34:50Z",
+          "updated_at": "2026-09-22T15:34:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nround: pain-audit\nsha: aba2407f86bbef9b21f1b07d85ce396886d6bef5\nid-ceiling: 5779344810\nsuccessor-comment: 5779344810\n\n## Coverage\n\nThe bound remedy on comment 5779344810 covers pain P1 from the Stop 1 write-back 5779053609. The bind map can stay.\n\nP1 is a rapid deft check that exits 0 after verify:ac reports zero verified clauses. Bound-remedy sentence 1 forbids that exit on a rapid product-first check when the acceptance walk reports zero verified clauses. Sentence 2 keeps the two refuted accounts out of the contract: unverifiable clauses already failing verify:ac, and the other gates still running. The exit change in sentence 1 is the relief.\n\n## Evidence\n\nAt sha aba2407f86bbef9b21f1b07d85ce396886d6bef5 this worktree executed the pinned modules.\n\nevaluateVerifyAcFromPlan with checkIntegrated true, captureFromNarratives false, empty commands, reuseMode never, and five clauses with artifact_path null returned ok true, code 0, resolution empty-pass. The pass lead was verify:ac passed (#3284) (0 verified, 5 unverifiable) [rung=derived]. The message contained 0 verified and contained no FAILED line. clampVerifyAcExit, taken from packages/cli/src/verify-ac.ts, returned 0 for that ok.\n\nwalkAcceptanceClauses returned 0 verified, 5 unverifiable, 0 failed, ok true, and every row adjudicable false. clauseWalkBlocks with failed 0, walked 5, adjudicableUnverified 0, and hasGreenExecutableRun false returned false.\n\nresolveProductFirstCheckMode with ceremonyDepth rapid returned mode rapid and acOnly true. applyProductFirstGateMode on FRAMEWORK_CHECK_GATES for rapid returned [verify:ac]. The pressure filter returned 48 gates, including verify:branch.\n\nrunCachedCheck prints the product-first line from that mode resolution and returns finish(0) when the composed gate exits 0 and the run is not toolchain-degraded. Under rapid the composed list is that one gate.\n\n## Existing mechanisms\n\nok stays true because clauseWalkBlocks does not block non-adjudicable unverifiable rows (#3826, packages/core/src/product-first-done-gate/acceptance-resolver.ts). The pass lead is applied later and leaves ok and code unchanged (#4380, relabelVerifyAcPassLead). Rapid mode drops the other gates before the loop (applyProductFirstGateMode). clampVerifyAcExit maps ok true to exit 0.\n\nSentence 1 is met by a non-zero exit from the rapid check when the walk reports zero verified. Putting the pressure gates back on the list leaves this exit in place whenever those gates pass.\n\n## Authority\n\nThe check exit is the authority stamp. Five null artifact paths, which are story input, are enough to reach ok true and exit 0 while rapid skips the rest of the list. Sentence 1 withdraws that stamp when the walk reports zero verified. The remedy adds no prompt, envelope, identity, worktree, or shared-state channel.\n\n## Road not taken\n\nRead sentence 2 as cancelling sentence 1, so the cite would only restate the refuted claim with both reasons withdrawn.\n\n## Steelman\n\nThat reading is the strongest way to call the cite empty. The refutation target already said the rapid check does not exit 0, and the round-1 critic showed both because-clauses are false. Sentence 2 repeats that those accounts are false. What remains is sentence 1 as an outcome on the rapid check. This run showed that outcome is currently an exit 0 with a zero-verified report. The verdict flips if the rapid check can still exit 0 while the walk reports zero verified and sentence 1 is satisfied, or if the measured walk does not report zero verified. This run reported zero verified and exited 0. Sentence 1 names that pair.\n\n## Footnote\n\nfootnote. Pass-lead edit. relabelVerifyAcPassLead leaves ok and code unchanged. A lead-only edit leaves the exit sentence 1 forbids.\n\nfootnote. Clause-less empty-pass. A walk with no clauses skips the count report and can still clamp to 0. Stop 1's because-clause is the walk that reports zero verified clauses. This run is that walk. The clause-less pass sits outside the report sentence 1 names.\r\n\n",
+          "id": 5779578242,
+          "html_url": "https://github.com/deftai/directive/issues/4866#issuecomment-5779578242",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:50:25Z",
+          "updated_at": "2026-09-22T15:50:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSame parent wrote the opening triage and the successor lean. The round-1 critic and the pain-audit critic were separate posts. Rows are those critics runs at aba2407f86bbef9b21f1b07d85ce396886d6bef5. They are not marked verified: this parent did not re-run the call, and the second seat was the same model family.\n\n| Claim | Evidence | Method | Mark |\n| --- | --- | --- | --- |\n| A rapid check exits 0 when the walk reports zero verified clauses | Five unbound clauses, ok true, code 0, lead 0 verified and 5 unverifiable, rapid gate list verify:ac only | Critic call at the dispatch SHA | not verified |\n| The bound remedy covers that exit | Sentence 1 forbids exit 0 on a rapid product-first check when the walk reports zero verified clauses | Pain-audit footnote at the dispatch SHA | not verified |\r\n\n",
+          "id": 5779599690,
+          "html_url": "https://github.com/deftai/directive/issues/4866#issuecomment-5779599690",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:51:59Z",
+          "updated_at": "2026-09-22T15:51:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA rapid check exits 0 when the acceptance walk verified nothing. The record accepts making that exit a non-pass when the walk reports zero verified clauses. The same parent wrote the opening triage and this record.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5779344810\nverified-claims table 5779599690\r\n\n",
+          "id": 5779601438,
+          "html_url": "https://github.com/deftai/directive/issues/4866#issuecomment-5779601438",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T15:52:07Z",
+          "updated_at": "2026-09-22T15:52:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: With a story in progress, the main check prints success, verifies none of the acceptance criteria, and skips the tests and the branch rules.\n\nWhy that ruins the product for them: The moment they ask \"is this actually ok\" the product says yes without looking. Trust breaks on the first check.\n\nHow likely: High once they have any work in progress, which is the point of the first afternoon.\n\n",
+          "id": 5780270181,
+          "html_url": "https://github.com/deftai/directive/issues/4866#issuecomment-5780270181",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:30Z",
+          "updated_at": "2026-09-22T16:37:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Parent: #4814\n\n## Finding\n\nWith a story active, deft check printed product-first mode=rapid acOnly=true, verify:ac passed (0 verified, 5 unverifiable), and ran no tests, coverage, branch gate, or hygiene. The same repo with nothing active failed verify:branch.\n\nSplit out of #4814 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: Urgent (audit scale S1)\n- Source: #4814\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540554831,
+        "origin": "deftai/directive#4866",
+        "id": "github.issue.5540554831"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f31c84b0242bd362165181b8aea9c95ac4143d7c7ac1006b78c5235f6fcbec8b"
+      }
+    },
+    "id": "github.issue.5540554831",
+    "updated": "2026-09-22T22:36:20Z"
+  }
+}

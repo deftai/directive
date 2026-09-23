@@ -10,6 +10,7 @@ import {
   isFrameworkSourceContext,
   resolveCheckTarget,
 } from "./orchestrator.js";
+import { RAPID_ZERO_VERIFIED_CHECK_NOTICE } from "./rapid-zero-verified.js";
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
 const tempDirs: string[] = [];
@@ -584,5 +585,86 @@ tasks:
     expect(ac?.status).toBe("skipped");
     expect(ac?.cause).toMatch(/no acceptance stamped/);
     errWrite.mockRestore();
+  });
+});
+
+const ZERO_VERIFIED_AC =
+  "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed\n" +
+  "verify:ac passed (#3284) (0 verified, 5 unverifiable) [rung=derived]\n";
+
+describe("dispatchCachedTaskCheck rapid zero-verified walk (#4866)", () => {
+  function runMode(
+    mode: "rapid" | "full" | "pressure",
+    acStdout: string,
+  ): {
+    code: number;
+    started: string[];
+    logs: string;
+    acGate: { status?: string; exit_code?: number } | undefined;
+  } {
+    const started: string[] = [];
+    let acGate: { status?: string; exit_code?: number } | undefined;
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = dispatchCachedTaskCheck(`/fw-root-4866-${mode}`, `/fw-root-4866-${mode}`, {
+      noCache: true,
+      preflight: null,
+      emitRunSummary: false,
+      env: { DEFT_CHECK_MODE: mode },
+      onGateStart: (gateId) => {
+        started.push(gateId);
+      },
+      onCheckComplete: ({ gates }) => {
+        acGate = gates.find((gate) => gate.id === "verify:ac");
+      },
+      gateSpawnFn: (gateId) => {
+        if (gateId === "verify:ac") {
+          return { exitCode: 0, stdout: acStdout, stderr: "" };
+        }
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+    const logs = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    errWrite.mockRestore();
+    return { code, started, logs, acGate };
+  }
+
+  it("does not exit 0 when rapid verify:ac reports zero verified clauses", () => {
+    const { code, started, logs, acGate } = runMode("rapid", ZERO_VERIFIED_AC);
+    expect(code).not.toBe(0);
+    expect(code).toBe(1);
+    expect(started).toEqual(["verify:ac"]);
+    expect(acGate?.status).toBe("run");
+    expect(acGate?.exit_code).toBe(0);
+    expect(logs).toContain(RAPID_ZERO_VERIFIED_CHECK_NOTICE);
+    expect(logs).not.toMatch(/verify:ac failed/i);
+  });
+
+  it("still exits 0 in rapid mode when the walk reports a verified clause", () => {
+    const { code, started, logs } = runMode(
+      "rapid",
+      "verify:ac passed (#3284) (1 verified, 4 unverifiable) [rung=derived]\n",
+    );
+    expect(code).toBe(0);
+    expect(started).toEqual(["verify:ac"]);
+    expect(logs).not.toContain(RAPID_ZERO_VERIFIED_CHECK_NOTICE);
+  });
+
+  it("still exits 0 in rapid mode when the walk does not report a verified count", () => {
+    const { code, started } = runMode("rapid", "verify:ac passed (#3284) [rung=derived]\n");
+    expect(code).toBe(0);
+    expect(started).toEqual(["verify:ac"]);
+  });
+
+  it("does not fail full or pressure mode, and those modes still run later gates", () => {
+    const full = runMode("full", ZERO_VERIFIED_AC);
+    expect(full.code).toBe(0);
+    expect(full.started).toContain("verify:ac");
+    expect(full.started).toContain("verify:branch");
+    expect(full.logs).not.toContain(RAPID_ZERO_VERIFIED_CHECK_NOTICE);
+
+    const pressure = runMode("pressure", ZERO_VERIFIED_AC);
+    expect(pressure.code).toBe(0);
+    expect(pressure.started).toContain("verify:branch");
+    expect(pressure.logs).not.toContain(RAPID_ZERO_VERIFIED_CHECK_NOTICE);
   });
 });

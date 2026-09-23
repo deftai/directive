@@ -308,8 +308,9 @@ const PASS_LINE = /^verify:ac passed \(#3284\)/;
 /**
  * Put clause-walk counts on the first line of a green verify:ac message (#4380).
  *
- * Does not change `ok` / `code`. A later lean that wants fail-closed on
- * zero-verified must reverse #3826 and name the reader.
+ * Does not change `ok` / `code`. A rapid check that must not exit 0 when
+ * this lead reports zero verified is #4866 in the check orchestrator, not
+ * a reversal of #3826 here.
  */
 export function relabelVerifyAcPassLead(input: {
   readonly ok: boolean;
