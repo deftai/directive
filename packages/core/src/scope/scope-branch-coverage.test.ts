@@ -494,7 +494,11 @@ describe("scope branch coverage", () => {
   it("scope cli entry executes lifecycleMain", () => {
     root = mkdtempSync(join(tmpdir(), "cli-"));
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
-    writeVbrief(join(root, "xbrief", "proposed"), "2026-01-01-cli.xbrief.json", "proposed");
+    writeVbrief(join(root, "xbrief", "proposed"), "2026-01-01-cli.xbrief.json", "proposed", {
+      narratives: {
+        AcceptanceCriteria: "- The cli entry promotes this brief",
+      },
+    });
     const cliPath = join(process.cwd(), "packages", "core", "dist", "scope", "cli.js");
     const file = join(root, "xbrief", "proposed", "2026-01-01-cli.xbrief.json");
     const r = spawnSync("node", [cliPath, "promote", file, "--project-root", root], {
