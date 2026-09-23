@@ -122,5 +122,49 @@ describe("setup namespaced branch-policy contract (#3609)", () => {
       expect(text).not.toContain("write `plan.policy.allowDirectCommitsToMaster");
       expect(text).not.toContain("plan.ProjectConfig.policy");
     });
+
+    it(`${surface} setup stores the Phase 2 depth answer and does not re-ask (#4668)`, () => {
+      expect(text).toContain("### Track Detection (#4668)");
+      expect(text).toContain("write that number to USER.md");
+      expect(text).toContain("`**Depth**: {n}`");
+      expect(text).toContain("do not ask the depth question");
+      expect(text).toContain("A preferences file with no Depth field is asked once");
+      expect(text).toContain("The next setup entry finds the field and does not ask again");
+      expect(text).not.toContain("always ask");
+      expect(text).not.toContain("the user's track is unknown");
+    });
+
+    it(`${surface} setup does not infer the track from strategy or coverage (#4668)`, () => {
+      expect(text).toContain("Infer the track from strategy, coverage, or any other USER.md field");
+      expect(text).toContain(
+        "Infer setup depth from strategy or coverage, or re-ask the Phase 2 depth question",
+      );
+    });
+
+    it(`${surface} setup does not treat an empty project seed as missing answers (#4668)`, () => {
+      expect(text).toContain("is not a missing-answers detector");
+      expect(text).toContain("including a seed whose narrative strings are empty");
+      expect(text).toContain(
+        "including empty narrative strings, is not a missing-answers detector",
+      );
+      expect(text).toContain(
+        "Treat empty Overview, TechStack, Strategy, Quality, ProjectRules, or Branching as missing interview answers",
+      );
+      expect(text).toContain("re-provide a previous setup summary");
+    });
+
+    it(`${surface} setup reads project identity from project:write-narratives (#4668)`, () => {
+      expect(text).toContain(
+        "Project identity strings are `deft project:write-narratives` (#4663)",
+      );
+      expect(text).toContain("A return visit reads that file");
+      expect(text).toContain("Do not reimplement that writer");
+      expect(text).toContain(
+        "Do not set policy keys from the depth question or from empty narratives",
+      );
+      expect(text).toContain(
+        "Reimplement `deft project:write-narratives` or set policy keys from the depth answer",
+      );
+    });
   }
 });

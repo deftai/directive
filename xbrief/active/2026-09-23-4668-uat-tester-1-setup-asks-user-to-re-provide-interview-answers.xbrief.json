@@ -1,0 +1,507 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4668",
+    "updated": "2026-09-23T00:47:43Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 1] Setup asks user to re-provide interview answers after saying not to repeat the interview",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 1] Setup asks user to re-provide interview answers after saying not to repeat the interview",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4668",
+      "Overview": "\n\n- The depth answer given at the Phase 2 question is written to USER.md.\n- When that field is present, setup does not ask the depth question again.\n- The track is not inferred from strategy or coverage.\n- An existing project-definition seed, including empty narratives, is not a missing-answers detector.\n- Project identity strings are the writer on issue 4663. A return visit reads that file.\n\nrelieves: P1\n\nTarget-digest: sha256:e599f722205b56ab0cdfe36039e7a15f93b617ab1e1a074a3e9aa4c34010f300\r\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:cli, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "title": "The depth answer given at the Phase 2 question is written to USER.md.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "When that field is present, setup does not ask the depth question again.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "The track is not inferred from strategy or coverage.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "An existing project-definition seed, including empty narratives, is not a missing-answers detector.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Project identity strings are the writer on issue 4663. A return visit reads that file.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4668",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4668: [UAT Tester 1] Setup asks user to re-provide interview answers after saying not to repeat the interview"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The depth answer given at the Phase 2 question is written to USER.md.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When that field is present, setup does not ask the depth question again.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The track is not inferred from strategy or coverage.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "An existing project-definition seed, including empty narratives, is not a missing-answers detector.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Project identity strings are the writer on issue 4663. A return visit reads that file.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "UAT: **focused-test-pass-1**\n\n`nheroux-bit` cannot apply labels on this repo (`AddLabelsToLabelable` denied). Please add the `focused-test-pass-1` label to this issue.",
+          "id": 5705170143,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5705170143",
+          "user": {
+            "login": "nheroux-bit",
+            "id": 278998440,
+            "node_id": "U_kgDOEKEtqA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/278998440?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/nheroux-bit",
+            "html_url": "https://github.com/nheroux-bit",
+            "followers_url": "https://api.github.com/users/nheroux-bit/followers",
+            "following_url": "https://api.github.com/users/nheroux-bit/following{/other_user}",
+            "gists_url": "https://api.github.com/users/nheroux-bit/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/nheroux-bit/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/nheroux-bit/subscriptions",
+            "organizations_url": "https://api.github.com/users/nheroux-bit/orgs",
+            "repos_url": "https://api.github.com/users/nheroux-bit/repos",
+            "events_url": "https://api.github.com/users/nheroux-bit/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/nheroux-bit/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T21:58:57Z",
+          "updated_at": "2026-09-16T21:58:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Planning: the conversation before any code. Directive is supposed to learn what the person wants, write down the project, and agree the scope before an agent starts building.\n\nWhat a new person hits: The product tells them not to repeat the interview, then asks for the same answers again.\n\nWhy that ruins the product for them: It feels careless. They already gave their time, and the tool did not remember, then blamed them for not repeating it.\n\nHow likely: High for people who get through the interview once. It lands in the same first session as the save failure.\n\n",
+          "id": 5780266411,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5780266411",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:16Z",
+          "updated_at": "2026-09-22T16:37:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a fresh USER.md tells setup not to re-run Phase 1, then Phase 2 asks the depth question again, and project answers live only in PROJECT-DEFINITION, which is still the empty init seed.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4668-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; the Desired shape is one named failure, so N=1.\n\nrefutation-target: When USER.md already exists, setup still asks the operator to re-provide interview answers because project-level answers were never stored and the resume path treats the empty PROJECT-DEFINITION seed as missing product answers.\n\ntarget: #4668\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is that re-ask: the product says not to repeat the interview, then asks for the same answers.\n\nPin-read at dispatch-sha b6425115eab5a25877735acd70ca7d693594dda8: content/skills/deft-directive-setup/SKILL.md says a fresh USER.md must not re-run Phase 1 and must offer the returning-user menu. The same file says if Phase 1 was skipped the track is unknown and Phase 2 must ask \"How deep do you want to go?\" again, and must not infer the track from USER.md. Project identity is Phase 2 output at xbrief/PROJECT-DEFINITION.xbrief.json. CHANGELOG at this SHA does not name #4668. No open PR. Distinct from #4663 and #4660: those are the write refuses; this is the next session asking again.\n\nNo implement and no ingest from this parent.\r\n\n",
+          "id": 5782790736,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5782790736",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:38:31Z",
+          "updated_at": "2026-09-22T19:38:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nsha: b6425115eab5a25877735acd70ca7d693594dda8\n\nRecorded refutation-target on #issuecomment-5782790736:\n\n> When USER.md already exists, setup still asks the operator to re-provide interview answers because project-level answers were never stored and the resume path treats the empty PROJECT-DEFINITION seed as missing product answers.\n\nThe write-back's pin-read of the setup skill matches the file. A fresh USER.md skips Phase 1, and a skipped Phase 1 asks the depth question again. Those sentences are the track rule. The because-clause names a resume classifier this tree does not contain.\n\n## Empty seed is a file that exists\n\nblocks-the-design\n\nEvidence. Pin-read at b6425115eab5a25877735acd70ca7d693594dda8.\n\nSession routing sends setup to Phase 1/2 when USER.md or PROJECT-DEFINITION is missing, and otherwise reads the file that is there (`missing USER.md / PROJECT-DEFINITION → setup Phase 1/2` in content/templates/agents-entry.md; the same sentence is locked in packages/core/src/content-contracts/skills/agents_md.test.ts). `seedMinimalProjectDefinition` in packages/core/src/init-deposit/init-deposit.ts writes PROJECT-DEFINITION only when the file is absent, and leaves an existing file intact. The init next-step tells the agent to run `task project:render` once and to keep that refresh off identity invention. content/commands.md, Multi-scope turn/cache budget (#3009), states the same rule: the init seed is a minimal render-ready PROJECT-DEFINITION, and `project:render` is a one-shot lifecycle refresh, not identity research (#3013).\n\nThe bytes of that seed are `createSkeleton`. `SKELETON_NARRATIVES` in packages/core/src/render/constants.ts sets Overview, tech stack, Architecture, RisksAndUnknowns, and Configuration to empty strings. When the file already exists, `renderProjectDefinition` in packages/core/src/render/project-render.ts refreshes `plan.items` and staleness flags and leaves narratives as they are.\n\nPhase 2 in content/skills/deft-directive-setup/SKILL.md skips when `./xbrief/PROJECT-DEFINITION.xbrief.json` exists and the operator does not want to replace it. Project answers are that phase's confirmed write: the Output Path template, then the Post-Interview Confirmation Gate (explicit yes, confirmed, or approve). A search of this tree finds no product instruction with the text \"previous setup summary\", \"saved product answers\", or \"repeat the interview\". The issue body records those words as what the agent said.\n\nThe open siblings named from the write-back are the write refuses. REST titles: #4660 \"Setup interview cannot persist: no host session identity / read-only session:start\"; #4663 \"Setup cannot write PROJECT-DEFINITION: requirements posture vs mutation needing an active xBRIEF\". An untouched seed is what a refused write leaves on disk.\n\nFailure mode. Binding the target as written authorizes a new seed-versus-answers detector, or a second store of project answers, aimed at a resume rule that is absent from the skill, the session-routing sentence, and the seed writer. That detector would sit beside the Phase 2 write #4660 and #4663 already say is refusing, and the track question would remain. Accepting a pasted \"previous setup summary\" from the tester transcript would also promote untrusted session text into project identity. The confirmation gate and the seed writer's refusal to overwrite are the controls that already bound that write.\n\nDisposition. This refutation-target cannot bind as the cause. The bindable residue is a premise that names a control present at this SHA. The #3013 seed is those empty strings behind a file-exists check.\n\nRoad not taken. The closest prose is the returning-user menu line that recommends Continue to Phase 2 \"when project config is still missing.\" The Phase 2 skip beside it is a should-level rule. Read against empty skeleton strings, that line can send an agent back into Phase 2, which is the steelman of the target. It remains an undefined recommendation next to the existence skip. The verdict flips if a pin-read at this SHA shows an instruction that empty skeleton narratives mean the product answers are missing and the operator must re-supply the interview. That instruction is absent from the setup skill, the session-routing sentence, and the seed writer.\n\n## Track question is the specified repeat\n\nsharpens-framing\n\nEvidence. Same skill, Track Detection: when Phase 1 was skipped because USER.md already existed, the track is unknown, and Phase 2 asks \"How deep do you want to go?\" before any Phase 2 question. The skill forbids taking the track from USER.md, including from strategy or coverage. Freshness Detection's expected USER.md fields are Name, Custom Rules, Default Strategy, and optional Coverage and Experimental Rules. The track is not one of those fields, and it is not a PROJECT-DEFINITION narrative. Phase 1 Step 0 uses the same question text on a first interview. Phase 2 fields that already have a USER.md value are asked as keep-or-change. Phase 3's identity-only detector (empty `plan.items` and no scope file) defaults to starting a new specification and forbids synthesizing the first scope from the init seed. That path asks what to build.\n\nFailure mode. A change that drops every question once USER.md exists also drops this required track question. Filling the seed, or teaching the agent that the seed counts as finished identity, leaves the question in place. Its predicate is that Phase 1 was skipped, and it is asked before Phase 2 questions whatever the narratives contain.\n\nDisposition. The track question can bind as its own premise: one specified question, with inference from USER.md forbidden. The recorded because-clause stays unbound. The named pain stays the operator being asked again. This heading is the cause a later premise may state.\n\n## Re-checked anchors\n\nfootnote\n\nCHANGELOG.md at this SHA does not name 4668. The issue timeline through this input has labels, three comments (5705170143, 5780266411, 5782790736), and a cross-reference. It has no connected pull request.\n\n",
+          "id": 5783008222,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5783008222",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:50:57Z",
+          "updated_at": "2026-09-22T19:50:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** The empty seed is a file that exists. The re-ask that the skill specifies is the track question. The recorded because-clause does not bind.\n\n## In plain English\n\nA fresh preferences file already skips the first interview. The product then asks how deep to go because the track was not saved. An existing project-definition seed is a file that is present, including when its narrative fields are empty. Nothing in the tree says those empty fields mean the person must re-supply the interview. The accepted account keeps the depth question and does not add a detector that treats the seed as missing answers. Confirming this map asserts that account. It does not stop the depth question. The same parent wrote the opening warrant and these takes. The named pain stays open.\n\n## Takes\n\n- Empty seed is a file that exists. Class blocks-the-design. Take accept-into-contract. Critic comment 5783008222.\n- Track question is the specified repeat. Class sharpens-framing. Take accept-into-contract. Critic comment 5783008222.\n\nSupersedes comment 5782790736.\n\nRound 1 siblings: 1. Cited critic comment 5783008222.\n\nFootnote kept in the census, outside the take map: the changelog does not name this issue and the timeline has no connected pull request. Critic comment 5783008222.\n\nSpec-path:\n\n## Bound remedy\n\n- An existing project-definition seed stays a file that exists. Empty skeleton narratives are not a missing-answers detector.\n- When Phase 1 was skipped, Phase 2 still asks how deep to go, and the track is not inferred from the preferences file.\n- The recorded because-clause does not bind.\n\ndoes-not-relieve: P1\n\nTarget-digest: sha256:e599f722205b56ab0cdfe36039e7a15f93b617ab1e1a074a3e9aa4c34010f300\r\n\n",
+          "id": 5783136697,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5783136697",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:57:39Z",
+          "updated_at": "2026-09-22T19:57:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nHandoff\n\nThe round-1 critic comment 5783008222 blocked the empty-seed resume story, and the successor map comment 5783136697 accepts that block and the specified track question. The named pain stays unmet because that question still asks again. The deliverable remainder is a later premise about that track question alone. One leftover path is a new issue for that question. The other is to halt this arc. This comment does not file that issue.\n\nopen-question: Should a later issue change only the track question that Phase 2 asks after a fresh preferences file, without adding a missing-answers detector for the seed?\r\n\n",
+          "id": 5783148287,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5783148287",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:58:15Z",
+          "updated_at": "2026-09-22T19:58:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** Store the track on the preferences file and ask the depth question only when that answer is absent. An empty project-definition seed stays a file that exists.\n\n## In plain English\n\nA fresh preferences file already skips the first interview, and the product then asks how deep to go because the track was never stored. An existing project-definition seed is a file that is present. The accepted account stores the track answer on the preferences file during the first interview and does not ask that depth question when the answer is already there. The track is not taken from strategy or coverage. Empty narratives are not treated as missing answers. Project identity strings stay the writer on issue 4663, and a return visit reads that file. Confirming this map asserts that account as the build on this issue. The same parent wrote the opening warrant and these takes.\n\n## Takes\n\n- Empty seed is a file that exists. Class blocks-the-design. Take accept-into-contract. Critic comment 5783008222.\n- Track question is the specified repeat. Class sharpens-framing. Take accept-into-contract. Critic comment 5783008222.\n\nSupersedes comment 5783136697.\n\n## Parent-side substantiation\n\naudit:track-reask sha=b6425115eab5a25877735acd70ca7d693594dda8 pointer=content/skills/deft-directive-setup/SKILL.md:439-452 reading=measured\n\nSpec-path:\n\n## Bound remedy\n\n- Phase 1 stores the track answer on USER.md.\n- When that field is present, setup does not ask the depth question again.\n- The track is not inferred from strategy or coverage.\n- An existing project-definition seed, including empty narratives, is not a missing-answers detector.\n- Project identity strings are the writer on issue 4663. A return visit reads that file.\n\nrelieves: P1\n\nTarget-digest: sha256:e599f722205b56ab0cdfe36039e7a15f93b617ab1e1a074a3e9aa4c34010f300\r\n\n",
+          "id": 5786133269,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5786133269",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T23:33:47Z",
+          "updated_at": "2026-09-22T23:33:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nsha: b6425115eab5a25877735acd70ca7d693594dda8\n\nComment 5786133269 is the map under audit. Stop 1 pain P1 is comment 5782790736. Pin-read at dispatch SHA b6425115eab5a25877735acd70ca7d693594dda8.\n\n## Track store sits on the skipped path\n\nblocks-the-design\n\nEvidence. Pin-read of content/skills/deft-directive-setup/SKILL.md at that SHA.\n\nPhase 1 is skipped when USER.md already exists (line 189). Freshness Detection refuses a full Phase 1 re-run when deft_version matches and the expected fields are present (lines 200-202). Those fields are Name, Custom Rules, Default Strategy, and optional Coverage and Experimental Rules. Track is not among them. Phase 1 Step 0 asks \"How deep do you want to go?\" (lines 238-244). The Phase 1 template that gets written (lines 280-322) has no track field.\n\nThe re-ask is Phase 2 Track Detection (lines 440-453). When Phase 1 was skipped, the track is unknown, and the skill asks that same depth question before any Phase 2 question. It forbids inferring the track from USER.md, including from strategy or coverage, and it says to always ask.\n\nThe bound remedy stores the track during Phase 1 and skips the depth question only when that field is present. Its inference bullet matches lines 452-453: a stored answer is read, and strategy and coverage stay unused as a track. Phase 1 does not run on the path that asks. The remedy does not write the Phase 2 answer onto USER.md. Freshness does not query a track field when the version already matches.\n\nFailure mode. Implementing the remedy as written leaves every existing USER.md, and every answer given at the Phase 2 question, without a track field. The skip stays false. The next session skips Phase 1 again and asks \"How deep do you want to go?\" again. That is P1. An operative `relieves: P1` on this map would bind a store the pain path does not execute.\n\nDisposition. This map cannot bind as relief of P1. The seed bullet matches the tree. The issue 4663 bullet leaves project identity on that writer. Relief holds when the track answer given on the Phase 2 ask is written to USER.md, or when a missing track is the one freshness field-query that writes USER.md, and the depth question is skipped once that field is present.\n\nRoad not taken. Read \"Phase 1 stores\" as the owner of the answer rather than the phase that runs. The steelman is that a legacy USER.md is asked once and that answer is the track the preferences file keeps. The verdict flips if the bound remedy says the Phase 2 answer is written to USER.md, or if freshness lists track as a missing field that is queried and stored. The posted remedy says neither.\n\n## Seed and identity clauses hold\n\nfootnote\n\nPin-read. SKELETON_NARRATIVES in packages/core/src/render/constants.ts sets Overview, tech stack, Architecture, RisksAndUnknowns, and Configuration to empty strings. seedMinimalProjectDefinition in packages/core/src/init-deposit/init-deposit.ts writes PROJECT-DEFINITION only when the file is absent and leaves an existing file intact. Session routing in content/templates/agents-entry.md sends setup to Phase 1/2 when USER.md or PROJECT-DEFINITION is missing, and otherwise reads the file that is there. The remedy's refusal to treat that seed as a missing-answers detector matches those controls. Project identity strings stay the writer on issue 4663. Those two bullets have no separate failure.\n\n## Injection lens\n\nfootnote\n\nThe depth answer is the operator's numbered-menu choice, stored as a preference. The remedy leaves the tester transcript and the empty seed out of project identity. No separate failure.",
+          "id": 5786271652,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5786271652",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T23:42:13Z",
+          "updated_at": "2026-09-22T23:42:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** Retract the prior map. Storing the track during Phase 1 does not run on the return visit. That map does not bind as relief.\n\n## In plain English\n\nThe map stored the track during the first interview. That interview does not run when the preferences file already exists, so the store never happens on the return visit. The depth question is asked again. The coverage claim is withdrawn. A later map would write the depth answer given at that later question onto the preferences file, and would skip the question once the field is present. This retraction does not bind that store. The same parent wrote the withdrawn map and this retraction.\n\n## Takes\n\n- Track store sits on the skipped path. Class blocks-the-design. Take accept-into-contract. Critic comment 5786271652.\n\nSupersedes comment 5786133269.\n\nSpec-path:\n\n## Bound remedy\n\n- The prior coverage claim is withdrawn.\n- Phase 1 does not run when USER.md already exists, so a Phase 1 store does not reach the return visit.\n- An existing project-definition seed, including empty narratives, is not a missing-answers detector.\n- This map does not write the Phase 2 depth answer onto USER.md.\n\ndoes-not-relieve: P1\n\nTarget-digest: sha256:e599f722205b56ab0cdfe36039e7a15f93b617ab1e1a074a3e9aa4c34010f300\r\n\n",
+          "id": 5786366962,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5786366962",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T23:47:16Z",
+          "updated_at": "2026-09-22T23:47:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nHandoff\n\nThe pain-audit critic comment 5786271652 blocked the coverage claim, and the retraction comment 5786366962 withdraws it. The named pain stays unmet. Phase 1 does not run when the preferences file already exists, so a store during Phase 1 never reaches the return visit. The deliverable remainder is a bound remedy that writes the depth answer given at the Phase 2 question onto USER.md, and skips that question once the field is present. One path is a later map with that bullet. The other is to halt this arc. This comment does not file an issue.\n\nopen-question: Should the next map say that the depth answer given at the Phase 2 question is written to USER.md, and that the depth question is skipped once that field is present?\r\n\n",
+          "id": 5786372128,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5786372128",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T23:47:36Z",
+          "updated_at": "2026-09-22T23:47:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:** The depth answer given at the Phase 2 question is written to USER.md. The depth question is skipped once that field is present.\n\n## In plain English\n\nA return visit already skips the first interview, then asks how deep to go because the track was never stored. Storing the track during that first interview does not run on the return visit. The accepted account writes the depth answer given at the later question onto the preferences file, and does not ask that question again once the field is present. A preferences file with no track field is asked once. The track is not taken from strategy or coverage. An empty project-definition seed stays a file that exists. Project identity strings stay the writer on issue 4663, and a return visit reads that file. Confirming this map asserts that account as the build on this issue. The same parent wrote the opening warrant and these takes.\n\n## Takes\n\n- Empty seed is a file that exists. Class blocks-the-design. Take accept-into-contract. Critic comment 5783008222.\n- Track question is the specified repeat. Class sharpens-framing. Take accept-into-contract. Critic comment 5783008222.\n- Track store sits on the skipped path. Class blocks-the-design. Take accept-into-contract. Critic comment 5786271652.\n\nSupersedes comment 5786366962.\n\n## Parent-side substantiation\n\naudit:phase2-track-reask sha=b6425115eab5a25877735acd70ca7d693594dda8 pointer=content/skills/deft-directive-setup/SKILL.md:439-453 reading=measured\n\nSpec-path:\n\n## Bound remedy\n\n- The depth answer given at the Phase 2 question is written to USER.md.\n- When that field is present, setup does not ask the depth question again.\n- The track is not inferred from strategy or coverage.\n- An existing project-definition seed, including empty narratives, is not a missing-answers detector.\n- Project identity strings are the writer on issue 4663. A return visit reads that file.\n\nrelieves: P1\n\nTarget-digest: sha256:e599f722205b56ab0cdfe36039e7a15f93b617ab1e1a074a3e9aa4c34010f300\r\n\n",
+          "id": 5786661653,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5786661653",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T00:13:17Z",
+          "updated_at": "2026-09-23T00:13:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nsha: b6425115eab5a25877735acd70ca7d693594dda8\n\nComment 5786661653 is the lean under audit. Stop 1 pain P1 is comment 5782790736. The prior pain-audit is comment 5786271652. Pin-read at dispatch SHA b6425115eab5a25877735acd70ca7d693594dda8.\n\n## Phase 2 store covers the re-ask\n\nfootnote\n\nEvidence. Pin-read of content/skills/deft-directive-setup/SKILL.md at that SHA.\n\nPhase 1 is skipped when USER.md already exists (line 189). Freshness refuses a full Phase 1 re-run when deft_version matches and the expected fields are present (lines 200-202). Those fields are Name, Custom Rules, Default Strategy, and optional Coverage and Experimental Rules. Track is not among them. Phase 1 Step 0 asks the depth question (lines 238-244). The Phase 1 template (lines 280-322) has no track field.\n\nThe re-ask is Phase 2 Track Detection (lines 442-453). When Phase 1 was skipped, the track is unknown, and the skill asks \"How deep do you want to go?\" before any Phase 2 question. It forbids inferring the track from USER.md, including from strategy or coverage, and it says to always ask. That ask runs on this path. Phase 1 does not.\n\nThe bound remedy writes the depth answer given at that question to USER.md, and setup does not ask the depth question again once that field is present. The write and the skip sit on the ask at lines 442-453. A preferences file with no such field still reaches that ask; the answer is written; the next entry finds the field and does not ask. Strategy and coverage stay unused as the track (lines 452-453).\n\nThe failure named by comment 5786271652 was a store on Phase 1. This remedy does not use that store. The two bullets stop the repeat of the depth question that comment 5782790736 names as P1.\n\nRoad not taken. Leave the ask unconditional whenever Phase 1 was skipped, so a stored field never suppresses line 453. That would keep the repeat. The posted remedy suppresses the ask once the field is present.\n\n## Empty seed is not the re-ask\n\nfootnote\n\nPin-read. seedMinimalProjectDefinition in packages/core/src/init-deposit/init-deposit.ts leaves an existing PROJECT-DEFINITION intact (lines 261-263). createSkeleton copies SKELETON_NARRATIVES from packages/core/src/render/constants.ts (lines 104-110): Overview, tech stack, Architecture, RisksAndUnknowns, and Configuration are empty strings. Session routing in content/templates/agents-entry.md (line 20) sends setup to Phase 1/2 when USER.md or PROJECT-DEFINITION is missing, and otherwise reads the file that is there. Phase 2 skip (SKILL.md line 420) is file existence plus the operator not wanting to replace. Phase 3 identity-only (SKILL.md lines 655-675) refuses to synthesize a scope from the seed and asks what to build for a new specification. That question is not the depth re-ask. Project identity strings stay the writer on issue 4663. No separate failure.\n\n## Injection lens\n\nfootnote\n\nThe depth answer is the operator's numbered-menu choice, stored on USER.md. It is not copied into project identity. No separate failure.\n\n",
+          "id": 5786766350,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5786766350",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T00:21:47Z",
+          "updated_at": "2026-09-23T00:21:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA return visit already skips the first interview, then asks how deep to go because the track was never stored. The accepted build writes the depth answer given at that later question onto the preferences file, and does not ask the question again once the field is present. A preferences file with no track field is asked once. The track is not taken from strategy or coverage. An empty project-definition seed stays a file that exists. Project identity stays the writer on issue 4663.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5786661653.\r\n\n",
+          "id": 5786784505,
+          "html_url": "https://github.com/deftai/directive/issues/4668#issuecomment-5786784505",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T00:23:04Z",
+          "updated_at": "2026-09-23T00:23:04Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Tester 1 (Codex / Windows / @deftai/directive@0.119.1)\n\n**Defect:** 15\n\n### Expected\nIf USER.md exists, setup resumes without re-asking Phase 1.\n\n### What happened\nNew session: \"Do not repeat the interview.\" Then: no saved product answers in the workspace (PD still empty seed), please provide the previous setup summary. USER.md had name/strategy; project-level answers were never persisted.\n\n### Evidence\nThird Codex session transcript.\n\n### Environment\nDirective 0.119.1.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5480359520,
+        "origin": "deftai/directive#4668",
+        "id": "github.issue.5480359520"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e599f722205b56ab0cdfe36039e7a15f93b617ab1e1a074a3e9aa4c34010f300"
+      }
+    },
+    "id": "github.issue.5480359520",
+    "updated": "2026-09-23T00:47:43Z"
+  }
+}

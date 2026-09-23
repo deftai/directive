@@ -418,6 +418,7 @@ for project-scoped settings (strategy, coverage).
 ! **Path Resolution Anchor**: Resolve ALL paths relative to the user's working directory (pwd) at skill entry -- never relative to the skill file location, AGENTS.md location, or any framework directory (e.g. `./deft/`). When deft is cloned as a subdirectory, the skill file lives inside the clone but all project artifacts (`./xbrief/PROJECT-DEFINITION.xbrief.json`, build files, etc.) must be resolved from the user's pwd.
 
 - ~ Skip if `./xbrief/PROJECT-DEFINITION.xbrief.json` exists (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
+- ! That existing file, including empty narrative strings, is not a missing-answers detector (#4668). Read it on a return visit. Do not ask for a previous setup summary.
 - ⊗ Count `./deft/PROJECT-DEFINITION.xbrief.json` or `./deft/core/project.md` as the user's project config — those are framework-internal
 
 ### Re-entry shadow guard (#3609)
@@ -437,20 +438,35 @@ for project-scoped settings (strategy, coverage).
 - ⊗ Run git commands inside `./deft/` to determine project identity — that directory is the framework repo, not the user's project.
 - ~ If no build files are found at the project root, default the project name to the current directory name and ask for confirmation.
 
-### Track Detection
+### Track Detection (#4668)
 
-! If Phase 1 was skipped (USER.md already existed), the user's track is unknown.
-Before asking any Phase 2 questions, ask the depth question:
+! If Phase 1 was skipped (USER.md already existed), read USER.md for a `**Depth**:` line before any Phase 2 question.
+
+! When `**Depth**:` is `1`, `2`, or `3`, do not ask the depth question. Follow that track in the Question Sequence below. `1` is Track 1 (technical), `2` is Track 2 (middle ground), `3` is Track 3 (non-technical). Skipping this question is not skipping Phase 2.
+
+! When `**Depth**:` is absent, ask the depth question before any other Phase 2 question. A preferences file with no Depth field is asked once.
 
 > "How deep do you want to go?"
 > 1. I'm technical — ask me everything
 > 2. I have some opinions but keep it simple
 > 3. Just pick good defaults — I care about the product, not the tools
 
-Wait for answer. Then follow the corresponding track in the Question Sequence below.
+! After the operator answers `1`, `2`, or `3`, write that number to USER.md before any other Phase 2 question. Insert or replace one Personal-section line, `**Depth**: {n}`. Write UTF-8 with no BOM. Leave every other USER.md line unchanged. This field write is the exception to the end-of-phase confirmation gate. It is not the Phase 2 narrative write and it does not set policy keys. The next setup entry finds the field and does not ask again.
 
-⊗ Assume Track 1 (technical) because USER.md exists or contains strategy/coverage fields.
-⊗ Infer the track from USER.md content — always ask.
+! Depth is not an expected freshness field. A missing Depth field does not re-run Phase 1. Phase 1 still asks its own opening question in that session and does not store Depth. The store is this Phase 2 answer.
+
+⊗ Infer the track from strategy, coverage, or any other USER.md field.
+⊗ Assume Track 1 (technical) because USER.md exists or contains strategy or coverage fields.
+⊗ Ask the depth question again when `**Depth**:` is already `1`, `2`, or `3`.
+
+### Existing project definition (#4668)
+
+! An existing `./xbrief/PROJECT-DEFINITION.xbrief.json` (or `$DEFT_PROJECT_PATH`), including a seed whose narrative strings are empty, is a file that exists. Read it. It is not a missing-answers detector.
+
+! Project identity strings are `deft project:write-narratives` (#4663). A return visit reads that file. Do not reimplement that writer. Do not set policy keys from the depth question or from empty narratives.
+
+⊗ Ask the operator to re-provide a previous setup summary because narratives are empty.
+⊗ Treat empty Overview, TechStack, Strategy, Quality, ProjectRules, or Branching as missing interview answers.
 
 ### Defaults in Agentic Mode
 
@@ -905,7 +921,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ## Post-Interview Confirmation Gate
 
-! After completing ALL interview questions for any phase (Phase 1, Phase 2, or Phase 3), but BEFORE writing any files:
+! After completing ALL interview questions for any phase (Phase 1, Phase 2, or Phase 3), but BEFORE writing any files other than the Phase 2 `**Depth**:` line (#4668):
 
 1. ! Display a **summary of all captured values** in a clearly formatted list -- include every field that will be written to the output file (e.g. name, strategy, coverage, languages, project type, custom rules, etc.)
 2. ! Ask the user for explicit confirmation: "These are the values I captured. Write files? (yes/no)"
@@ -913,7 +929,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 4. ! If the user says `no`: re-display the values and ask which ones to correct, then re-confirm before writing
 5. ! If any value appears to be auto-generated filler (e.g. repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly: "Some values look like they may have been auto-filled rather than provided by you. Please review carefully."
 
-⊗ Write USER.md, PROJECT-DEFINITION.xbrief.json, lifecycle scope xBRIEFs, or any other deft-directive-setup artifact without first displaying captured values and receiving explicit user confirmation.
+⊗ Write USER.md, PROJECT-DEFINITION.xbrief.json, lifecycle scope xBRIEFs, or any other deft-directive-setup artifact without first displaying captured values and receiving explicit user confirmation. The Phase 2 `**Depth**:` line (#4668) is the only exception, and it changes only that line.
 ⊗ Create `specification.xbrief.json` on a greenfield Light or Full path solely to satisfy export, cost, or build handoff.
 ⊗ Treat a broad "proceed" or "continue" as confirmation to write files -- the user must explicitly confirm the displayed values.
 
@@ -930,7 +946,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Ask jargon-heavy questions to non-technical users
 - ⊗ Ask about things inferable from codebase (Phase 2+)
 - ⊗ Skip phases without asking
-- ⊗ Generate files without confirming content
+- ⊗ Generate files without confirming content, except the Phase 2 Depth line (#4668), which is confirmed by the operator's 1, 2, or 3 answer
 - ⊗ Present choices through a host UI that replaces the canonical numbers with alphabetic affordances or unlabeled buttons
 - ⊗ Resolve paths relative to the skill file, AGENTS.md, or framework directory instead of the user's pwd at skill entry
 - ⊗ Generate an authoritative PRD.md — PRD.md is a read-only export via `task prd:render`, never a source of truth
@@ -943,3 +959,6 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Skip emit-hints after Phase 3 writes to `xbrief/proposed/` (#4426)
 - ⊗ Agent-asserted `parent_issue` / `plan.references` at setup emission (#4426)
 - ⊗ Fill speculative intent-constraint values at park, or mint `scope:record-intent-constraint` beside `scope:record-approved-scope` (#4587)
+- ⊗ Infer setup depth from strategy or coverage, or re-ask the Phase 2 depth question when USER.md already has `**Depth**:` `1`, `2`, or `3` (#4668)
+- ⊗ Treat an existing PROJECT-DEFINITION seed, including empty narratives, as missing interview answers (#4668)
+- ⊗ Reimplement `deft project:write-narratives` or set policy keys from the depth answer (#4668 / #4663)
