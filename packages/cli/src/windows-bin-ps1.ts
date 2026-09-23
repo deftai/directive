@@ -3,10 +3,12 @@
  * PowerShell selects that .ps1 and stops when script execution is refused, so
  * the bare name never reaches the .cmd. This runs from postinstall, after
  * that link, and removes only this package's generated .ps1 files.
+ * A .ps1 is removed only when its sibling .cmd records a target inside this
+ * install, so an ambient PNPM_HOME from another install is left alone.
  * It does not change npx.ps1, npm.ps1, or the operator's execution policy.
  */
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { existsSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
+import { basename, dirname, join, win32 } from "node:path";
 
 /** Fallback when package.json cannot be read. Keep aligned with the bin map. */
 export const PACKAGE_BIN_NAMES = [
@@ -95,6 +97,7 @@ export function candidateBinDirs(opts: {
     if (prefix !== undefined && prefix.length > 0) {
       dirs.push(opts.platform === "win32" ? prefix : join(prefix, "bin"));
     }
+    // Candidate only. Removal still requires the .cmd to target this install.
     const pnpmHome = opts.env.PNPM_HOME;
     if (pnpmHome !== undefined && pnpmHome.length > 0) dirs.push(pnpmHome);
   } else {
@@ -147,6 +150,49 @@ export function removeGeneratedPs1Shims(opts: {
   return { removed, failed };
 }
 
+function normalizedWinPath(p: string): string {
+  const norm = win32.normalize(p).replace(/[\\/]+/g, "\\");
+  const trimmed = norm.length > 3 && norm.endsWith("\\") ? norm.slice(0, -1) : norm;
+  return trimmed.toLowerCase();
+}
+
+function pathIsInside(root: string, target: string): boolean {
+  const rootKey = normalizedWinPath(root);
+  const targetKey = normalizedWinPath(target);
+  return targetKey === rootKey || targetKey.startsWith(`${rootKey}\\`);
+}
+
+function realpathIsInside(root: string, target: string): boolean {
+  try {
+    return pathIsInside(realpathSync(root), realpathSync(target));
+  } catch {
+    return false;
+  }
+}
+
+/** True when cmd-shim text records a target path inside this install. */
+export function cmdShimTargetsPackage(cmdText: string, binDir: string, pkgDir: string): boolean {
+  const re = /%(?:dp0%|~dp0)(?:\\+|\/+)([^"\r\n\s]+)/gi;
+  for (const match of cmdText.matchAll(re)) {
+    const rel = match[1];
+    if (rel === undefined || rel.length === 0) continue;
+    const resolved = win32.normalize(win32.join(binDir, rel.replace(/\//g, "\\")));
+    if (pathIsInside(pkgDir, resolved) || realpathIsInside(pkgDir, resolved)) return true;
+  }
+  return false;
+}
+
+function cmdLinksCurrentInstall(binDir: string, name: string, pkgDir: string): boolean {
+  if (!isSafeBinName(name)) return false;
+  let text: string;
+  try {
+    text = readFileSync(join(binDir, `${name}.cmd`), "utf8");
+  } catch {
+    return false;
+  }
+  return cmdShimTargetsPackage(text, binDir, pkgDir);
+}
+
 export function readPackageBinNames(packageJsonText: string): string[] {
   let parsed: unknown;
   try {
@@ -177,9 +223,10 @@ export function removeInstalledWindowsPs1Shims(opts: {
   const removed: string[] = [];
   const failed: string[] = [];
   for (const binDir of candidateBinDirs(opts)) {
+    const linked = names.filter((name) => cmdLinksCurrentInstall(binDir, name, opts.pkgDir));
     const result = removeGeneratedPs1Shims({
       binDir,
-      binNames: names,
+      binNames: linked,
       platform: opts.platform,
     });
     removed.push(...result.removed);

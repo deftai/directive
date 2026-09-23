@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   candidateBinDirs,
+  cmdShimTargetsPackage,
   linkerBinDir,
   NODE_OWNED_SHIM_NAMES,
   nodeModulesDir,
@@ -29,6 +30,24 @@ function writePair(dir: string, name: string): void {
   writeFileSync(join(dir, name), "#!/bin/sh\necho SELECTED-SH\n");
   writeFileSync(join(dir, `${name}.cmd`), "@echo off\r\necho SELECTED-CMD\r\n");
   writeFileSync(join(dir, `${name}.ps1`), "Write-Output SELECTED-PS1\r\n");
+}
+
+function writeOwnedPair(
+  binDir: string,
+  name: string,
+  pkgDir: string,
+  form: "dp0" | "tilde" | "slash" = "dp0",
+): void {
+  const rel = relative(binDir, join(pkgDir, "dist", "bin.js"));
+  const batchRel = rel.split("/").join("\\");
+  const slashRel = rel.split("\\").join("/");
+  let token = `%dp0%\\${batchRel}`;
+  if (form === "tilde") token = `%~dp0\\${batchRel}`;
+  if (form === "slash") token = `%dp0%/${slashRel}`;
+  const cmd = `@echo off\r\nREM "${token}"\r\necho SELECTED-CMD\r\n`;
+  writeFileSync(join(binDir, name), "#!/bin/sh\necho SELECTED-SH\n");
+  writeFileSync(join(binDir, `${name}.cmd`), cmd);
+  writeFileSync(join(binDir, `${name}.ps1`), "Write-Output SELECTED-PS1\r\n");
 }
 
 describe("windows bin .ps1 removal (#4654)", () => {
@@ -169,9 +188,9 @@ describe("windows bin .ps1 removal (#4654)", () => {
       join(pkgDir, "package.json"),
       JSON.stringify({ bin: { directive: "./dist/bin.js", npm: "./dist/bin.js" } }),
     );
-    writePair(binDir, "directive");
+    writeOwnedPair(binDir, "directive", pkgDir);
     writePair(binDir, "npm");
-    writePair(binDir, "deft");
+    writeOwnedPair(binDir, "deft", pkgDir);
     const removed = removeInstalledWindowsPs1Shims({
       pkgDir,
       env: {},
@@ -190,7 +209,7 @@ describe("windows bin .ps1 removal (#4654)", () => {
       }),
     ).toEqual({ removed: [], failed: [] });
     const fromThrow = removeInstalledWindowsPs1Shims({
-      pkgDir: binDir,
+      pkgDir,
       env: {},
       platform: "win32",
       readText: () => {
@@ -198,6 +217,95 @@ describe("windows bin .ps1 removal (#4654)", () => {
       },
     });
     expect(fromThrow.removed).toEqual([join(binDir, "deft.ps1")]);
+  });
+
+  it("does not clean an unrelated PNPM_HOME during a global npm install", () => {
+    const root = tempDir();
+    const prefix = join(root, "npm-prefix");
+    const pkgDir = join(prefix, "node_modules", "@deftai", "directive");
+    const pnpmHome = join(root, "pnpm-home");
+    const otherPkg = join(root, "pnpm-global", "node_modules", "@deftai", "directive");
+    mkdirSync(pkgDir, { recursive: true });
+    mkdirSync(pnpmHome, { recursive: true });
+    mkdirSync(otherPkg, { recursive: true });
+    const binMap = Object.fromEntries(PACKAGE_BIN_NAMES.map((name) => [name, "./dist/bin.js"]));
+    writeFileSync(join(pkgDir, "package.json"), JSON.stringify({ bin: binMap }));
+    for (const name of PACKAGE_BIN_NAMES) {
+      writeOwnedPair(prefix, name, pkgDir);
+      writeOwnedPair(pnpmHome, name, otherPkg);
+    }
+
+    const removed = removeInstalledWindowsPs1Shims({
+      pkgDir,
+      env: { npm_config_global: "true", npm_config_prefix: prefix, PNPM_HOME: pnpmHome },
+      platform: "win32",
+    });
+    expect(removed.failed).toEqual([]);
+    expect(removed.removed).toEqual(PACKAGE_BIN_NAMES.map((name) => join(prefix, `${name}.ps1`)));
+    for (const name of PACKAGE_BIN_NAMES) {
+      expect(existsSync(join(prefix, `${name}.ps1`))).toBe(false);
+      expect(existsSync(join(prefix, `${name}.cmd`))).toBe(true);
+      expect(existsSync(join(pnpmHome, `${name}.ps1`))).toBe(true);
+      expect(existsSync(join(pnpmHome, `${name}.cmd`))).toBe(true);
+    }
+    expect(cmdShimTargetsPackage("@echo off\r\n", prefix, pkgDir)).toBe(false);
+    expect(cmdShimTargetsPackage('"%dp0%\\node.exe"', prefix, pkgDir)).toBe(false);
+  });
+
+  it("cleans PNPM_HOME when its shims target this install", () => {
+    const root = tempDir();
+    const prefix = join(root, "npm-prefix");
+    const pkgDir = join(prefix, "node_modules", "@deftai", "directive");
+    const pnpmHome = join(root, "pnpm-home");
+    mkdirSync(pkgDir, { recursive: true });
+    mkdirSync(pnpmHome, { recursive: true });
+    const binMap = Object.fromEntries(PACKAGE_BIN_NAMES.map((name) => [name, "./dist/bin.js"]));
+    writeFileSync(join(pkgDir, "package.json"), JSON.stringify({ bin: binMap }));
+    for (const name of PACKAGE_BIN_NAMES) {
+      const form = name === "directive" ? "tilde" : name === "deft" ? "slash" : "dp0";
+      writeOwnedPair(pnpmHome, name, pkgDir, form);
+    }
+
+    const removed = removeInstalledWindowsPs1Shims({
+      pkgDir,
+      env: { npm_config_global: "true", npm_config_prefix: prefix, PNPM_HOME: pnpmHome },
+      platform: "win32",
+    });
+    expect(removed.failed).toEqual([]);
+    expect(removed.removed).toEqual(PACKAGE_BIN_NAMES.map((name) => join(pnpmHome, `${name}.ps1`)));
+    for (const name of PACKAGE_BIN_NAMES) {
+      expect(existsSync(join(pnpmHome, `${name}.ps1`))).toBe(false);
+      expect(existsSync(join(pnpmHome, `${name}.cmd`))).toBe(true);
+    }
+  });
+
+  it("cleans a shim whose cmd-shim target is this install through a junction", () => {
+    const root = tempDir();
+    const realPkg = join(root, "real", "node_modules", "@deftai", "directive");
+    const linkPkg = join(root, "link", "pkg");
+    const pnpmHome = join(root, "pnpm-home");
+    mkdirSync(realPkg, { recursive: true });
+    mkdirSync(join(realPkg, "dist"), { recursive: true });
+    writeFileSync(join(realPkg, "dist", "bin.js"), "process.exit(0)\n");
+    writeFileSync(
+      join(realPkg, "package.json"),
+      JSON.stringify({ bin: { directive: "./dist/bin.js" } }),
+    );
+    mkdirSync(join(root, "link"), { recursive: true });
+    symlinkSync(realPkg, linkPkg, "junction");
+    try {
+      mkdirSync(pnpmHome, { recursive: true });
+      writeOwnedPair(pnpmHome, "directive", realPkg);
+      const removed = removeInstalledWindowsPs1Shims({
+        pkgDir: linkPkg,
+        env: { npm_config_global: "true", PNPM_HOME: pnpmHome },
+        platform: "win32",
+      });
+      expect(removed.failed).toEqual([]);
+      expect(removed.removed).toEqual([join(pnpmHome, "directive.ps1")]);
+    } finally {
+      rmSync(linkPkg, { force: true });
+    }
   });
 });
 
@@ -212,7 +320,7 @@ describe("windows Get-Command after install (#4654)", () => {
       mkdirSync(pkgDir, { recursive: true });
       const binMap = Object.fromEntries(PACKAGE_BIN_NAMES.map((name) => [name, "./dist/bin.js"]));
       writeFileSync(join(pkgDir, "package.json"), JSON.stringify({ bin: binMap }));
-      for (const name of PACKAGE_BIN_NAMES) writePair(prefix, name);
+      for (const name of PACKAGE_BIN_NAMES) writeOwnedPair(prefix, name, pkgDir);
       writePair(prefix, "npm");
       writePair(prefix, "npx");
 
