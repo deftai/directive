@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4668",
-    "updated": "2026-09-23T00:47:43Z"
+    "updated": "2026-09-23T01:33:07Z"
   },
   "plan": {
     "title": "[UAT Tester 1] Setup asks user to re-provide interview answers after saying not to repeat the interview",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 1] Setup asks user to re-provide interview answers after saying not to repeat the interview",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4668",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "The depth answer given at the Phase 2 question is written to USER.md.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4938",
+          "recorded_at": "2026-09-23T01:32:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "When that field is present, setup does not ask the depth question again.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4938",
+          "recorded_at": "2026-09-23T01:32:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The track is not inferred from strategy or coverage.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4938",
+          "recorded_at": "2026-09-23T01:32:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "An existing project-definition seed, including empty narratives, is not a missing-answers detector.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4938",
+          "recorded_at": "2026-09-23T01:32:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Project identity strings are the writer on issue 4663. A return visit reads that file.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4938",
+          "recorded_at": "2026-09-23T01:32:31Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -499,9 +529,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "e599f722205b56ab0cdfe36039e7a15f93b617ab1e1a074a3e9aa4c34010f300"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4938,
+        "prBase": null,
+        "mergeCommit": "011539679c6c8e356f533aa0151dc3a772ce1d74",
+        "deliveryBranch": "master",
+        "deliveryCommit": "011539679c6c8e356f533aa0151dc3a772ce1d74",
+        "verifiedAt": "2026-09-23T01:33:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T01:33:07Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T01:33:07Z"
       }
     },
     "id": "github.issue.5480359520",
-    "updated": "2026-09-23T00:47:43Z"
+    "updated": "2026-09-23T01:33:07Z"
   }
 }
