@@ -688,6 +688,25 @@ describe("one-PR-unit solo arity (#4494)", () => {
     });
   });
 
+  it("surfaces a malformed claims file as the resolver message", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    const store = mkdtempSync(join(tmpdir(), "opu-bad-claims-"));
+    writeFileSync(join(store, "claims.json"), "{");
+    temps.push(store);
+    withApp(store, () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: base,
+        declaredOrigins: fiveOrigins,
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.message.startsWith(ONE_PR_UNIT_APP_CREATE_FAILED)).toBe(true);
+      expect(result.message).not.toMatch(/mint an operator-origin/);
+    });
+  });
+
   it("surfaces a file store path as the resolver message", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
     const path = writeVbrief(base);

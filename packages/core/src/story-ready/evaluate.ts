@@ -1,5 +1,6 @@
 import { type PathLike, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { ONE_PR_UNIT_APP_CREATE_FAILED } from "../one-pr-unit/app-store.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import { loadOnePrUnitGrant, resolveProductionAppStore } from "../one-pr-unit/store.js";
 import {
@@ -165,6 +166,15 @@ function readyMessage(treeNote: string, suffix: string): string {
   return `OK: ready to start -- ${treeNote}, vBRIEF active+running, ${suffix}`;
 }
 
+function storeLoadFailure(err: unknown): string {
+  let code = "unknown";
+  if (typeof err === "object" && err !== null && "code" in err) {
+    const value = (err as { code?: unknown }).code;
+    if (typeof value === "string" && value.length > 0) code = value;
+  }
+  return `${ONE_PR_UNIT_APP_CREATE_FAILED} (${code})`;
+}
+
 function resolveStoryReadyGrant(
   grantId: string | null,
   options: EvaluateOptions,
@@ -175,14 +185,18 @@ function resolveStoryReadyGrant(
   if (grantId === null) {
     return { ok: true, grant: null };
   }
-  const resolved = resolveProductionAppStore(process.env);
-  if (!resolved.ok) {
-    return { ok: false, message: resolved.message };
+  try {
+    const resolved = resolveProductionAppStore(process.env);
+    if (!resolved.ok) {
+      return { ok: false, message: resolved.message };
+    }
+    return {
+      ok: true,
+      grant: loadOnePrUnitGrant(options.projectRoot ?? "", grantId, resolved.store),
+    };
+  } catch (err: unknown) {
+    return { ok: false, message: storeLoadFailure(err) };
   }
-  return {
-    ok: true,
-    grant: loadOnePrUnitGrant(options.projectRoot ?? "", grantId, resolved.store),
-  };
 }
 
 function classifyAllocation(
