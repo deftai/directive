@@ -110,6 +110,8 @@ export interface DoctorState {
   readonly lastExitCode: number;
   readonly lastFindingCount: number;
   readonly lastErrorCount: number;
+  /** Deposit presence from the last completed probe. Absent on old files (#4886). */
+  readonly lastHasDeftCore?: boolean;
 }
 
 /** Deposit file-set hygiene folded into the one doctor status (#4812). */
@@ -138,6 +140,8 @@ export interface DoctorSeams {
       exitCode: number;
       findingCount: number;
       errorCount: number;
+      /** Live `classify().hasDeftCore` at the completed probe (#4886). */
+      hasDeftCore?: boolean;
       now?: Date;
     },
   ) => string | null;

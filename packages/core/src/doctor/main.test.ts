@@ -61,7 +61,11 @@ describe("cmdDoctor", () => {
           lastExitCode: 1,
           lastFindingCount: 2,
           lastErrorCount: 1,
+          lastHasDeftCore: true,
         }),
+        writeState: () => {
+          throw new Error("matching dirty skip must not persist");
+        },
         now: () => now,
         engineProbe: () => ({ reachable: false, version: null }),
       });
@@ -75,6 +79,101 @@ describe("cmdDoctor", () => {
     expect(payload.hint).toContain("hard errors");
     expect(payload.hint).toContain("advisory warnings do not block writes");
     expect(payload.hint).not.toContain("address findings");
+  });
+
+  function runDepositSkipProbe(
+    args: readonly string[],
+    remembered: {
+      lastHasDeftCore?: boolean;
+    },
+    withCore: boolean,
+  ): {
+    exit: number;
+    output: string;
+    persisted: Array<{ errorCount: number; hasDeftCore?: boolean }>;
+  } {
+    const now = new Date("2026-01-01T12:00:00Z");
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-deposit-"));
+    if (withCore) {
+      mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    }
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    const persisted: Array<{ errorCount: number; hasDeftCore?: boolean }> = [];
+    let exit = -1;
+    try {
+      exit = cmdDoctor([...args, "--project-root", root], {
+        whichFn: () => "/usr/bin/x",
+        readState: () => ({
+          lastRunAt: new Date("2026-01-01T10:00:00Z"),
+          lastExitCode: 1,
+          lastFindingCount: 2,
+          lastErrorCount: 1,
+          ...(remembered.lastHasDeftCore === undefined
+            ? {}
+            : { lastHasDeftCore: remembered.lastHasDeftCore }),
+        }),
+        writeState: (_projectRoot, payload) => {
+          persisted.push({ errorCount: payload.errorCount, hasDeftCore: payload.hasDeftCore });
+          return null;
+        },
+        now: () => now,
+        engineProbe: () => ({ reachable: false, version: null }),
+      });
+    } finally {
+      process.stdout.write = origWrite;
+      rmSync(root, { recursive: true, force: true });
+    }
+    return { exit, output: stdout.join(""), persisted };
+  }
+
+  it("falls through remembered dirty when the stored deposit bit is absent (#4886)", () => {
+    const { output, persisted } = runDepositSkipProbe(["--json"], {}, true);
+    const payload = JSON.parse(output) as { status?: string };
+    expect(payload.status).toBe("completed");
+    expect(output).not.toContain("throttle-skipped");
+    expect(output).not.toContain("UNRESOLVED");
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0]?.hasDeftCore).toBe(true);
+    expect(typeof persisted[0]?.errorCount).toBe("number");
+  });
+
+  it("falls through remembered dirty when the stored deposit bit is false (#4886)", () => {
+    const { output, persisted } = runDepositSkipProbe(["--json"], { lastHasDeftCore: false }, true);
+    const payload = JSON.parse(output) as { status?: string };
+    expect(payload.status).toBe("completed");
+    expect(output).not.toContain("UNRESOLVED");
+    expect(persisted[0]?.hasDeftCore).toBe(true);
+  });
+
+  it("does not print remembered UNRESOLVED after deposit presence changes (#4886)", () => {
+    const { output, persisted } = runDepositSkipProbe([], { lastHasDeftCore: false }, true);
+    expect(output).not.toContain("UNRESOLVED");
+    expect(output).toContain("Checking system dependencies");
+    expect(persisted[0]?.hasDeftCore).toBe(true);
+  });
+
+  it("full mode still probes when a matching dirty deposit bit would skip (#4886)", () => {
+    const { output, persisted } = runDepositSkipProbe(
+      ["--full", "--json"],
+      { lastHasDeftCore: true },
+      true,
+    );
+    const payload = JSON.parse(output) as { status?: string };
+    expect(payload.status).toBe("completed");
+    expect(output).not.toContain("throttle-skipped");
+    expect(persisted[0]?.hasDeftCore).toBe(true);
+  });
+
+  it("does not skip when remembered and live deposit are both absent (#4723)", () => {
+    const { output } = runDepositSkipProbe([], { lastHasDeftCore: false }, false);
+    expect(output).not.toContain("[doctor] ran");
+    expect(output).not.toContain("UNRESOLVED");
+    expect(output).toContain("Checking system dependencies");
   });
 
   it("bypasses throttle with --full", () => {

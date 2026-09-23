@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { DIRTY_WINDOW_HOURS } from "./constants.js";
 import {
   DOCTOR_DIRTY_REPROBE_HINT,
   DOCTOR_HARD_ERROR_NOTE,
@@ -9,6 +10,7 @@ import {
   dirtyDoctorHint,
   formatIsoZ,
   readState,
+  rememberedDepositMatches,
   renderDoctorStatusLine,
   statePath,
   writeState,
@@ -265,7 +267,7 @@ describe("doctor-state", () => {
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
     try {
       const { code, output } = captureDoctor(["--project-root", root], {
-        readState: () => REMEMBERED_CLEAN,
+        readState: () => ({ ...REMEMBERED_CLEAN, lastHasDeftCore: true }),
         now: () => new Date(),
         whichFn: () => "/bin/x",
         engineProbe: () => ({ reachable: false, version: null }),
@@ -273,6 +275,70 @@ describe("doctor-state", () => {
       expect(code).toBe(0);
       expect(output).toContain("[doctor] ran");
       expect(output).toContain("clean");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("absent deposit bit does not match live core (#4886)", () => {
+    expect(rememberedDepositMatches(undefined, true)).toBe(false);
+    expect(rememberedDepositMatches(undefined, false)).toBe(false);
+    expect(rememberedDepositMatches(false, true)).toBe(false);
+    expect(rememberedDepositMatches(true, true)).toBe(true);
+    expect(rememberedDepositMatches(false, false)).toBe(true);
+    expect(rememberedDepositMatches(true, false)).toBe(false);
+  });
+
+  it("keeps the dirty window when the last probe found live errors (#4886)", () => {
+    expect(DIRTY_WINDOW_HOURS).toBe(4);
+    const start = new Date("2026-01-01T12:00:00Z");
+    const state = {
+      lastRunAt: start,
+      lastExitCode: 1,
+      lastFindingCount: 1,
+      lastErrorCount: 1,
+      lastHasDeftCore: true,
+    };
+    const inside = new Date(start.getTime() + (DIRTY_WINDOW_HOURS - 1) * 3_600_000);
+    const outside = new Date(start.getTime() + (DIRTY_WINDOW_HOURS + 1) * 3_600_000);
+    expect(decideThrottle(state, inside).skip).toBe(true);
+    expect(decideThrottle(state, inside).dirty).toBe(true);
+    expect(decideThrottle(state, outside).skip).toBe(false);
+  });
+
+  it("readState leaves an absent or non-boolean deposit bit unset (#4886)", () => {
+    const absent = readState("/tmp", () =>
+      JSON.stringify({
+        last_run_at: "2026-01-01T00:00:00Z",
+        last_error_count: 1,
+      }),
+    );
+    expect(absent?.lastErrorCount).toBe(1);
+    expect(absent?.lastHasDeftCore).toBeUndefined();
+    const junk = readState("/tmp", () =>
+      JSON.stringify({
+        last_run_at: "2026-01-01T00:00:00Z",
+        last_has_deft_core: "yes",
+      }),
+    );
+    expect(junk?.lastHasDeftCore).toBeUndefined();
+  });
+
+  it("persists last_has_deft_core next to last_error_count (#4886)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-state-bit-"));
+    try {
+      writeState(root, {
+        exitCode: 0,
+        findingCount: 0,
+        errorCount: 0,
+        hasDeftCore: true,
+        now: new Date("2026-01-01T00:00:00Z"),
+      });
+      const state = readState(root);
+      expect(state?.lastHasDeftCore).toBe(true);
+      expect(state?.lastErrorCount).toBe(0);
+      const raw = readFileSync(statePath(root), "utf8");
+      expect(raw.indexOf("last_has_deft_core")).toBeGreaterThan(raw.indexOf("last_error_count"));
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

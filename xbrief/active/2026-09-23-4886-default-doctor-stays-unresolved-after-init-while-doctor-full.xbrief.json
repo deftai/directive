@@ -1,0 +1,329 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4886",
+    "updated": "2026-09-23T00:57:42Z"
+  },
+  "plan": {
+    "title": "Default doctor stays UNRESOLVED after init while doctor --full says proceed",
+    "status": "running",
+    "narratives": {
+      "Description": "Default doctor stays UNRESOLVED after init while doctor --full says proceed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4886",
+      "Overview": "\n\n- Default skip may fire only when the remembered probe's deposit presence matches live `classify().hasDeftCore`. Persist that boolean next to `last_error_count`. Absent field on old files: fall through once, then persist.\n- After deposit presence changes, the next default `directive doctor` completes a probe and persists live counts. `--full` stays the remaining-skip bypass.\n- Copy follow-through (stale versus UNRESOLVED) is allowed only after skip falls through.\n- Recut `honours throttle skip when dirty` so remembered-dirty plus live core is skip only when the stored deposit bit is also true.\n- Init or update unlinking `statePath()` may be extra. Do not drop `DIRTY_WINDOW_HOURS` for installed trees whose last completed probe already found live errors.\n\n",
+      "Labels": "adoption-blocker, status:child, design-critique:ingest-ready, core-capabilities, promise:lifecycle"
+    },
+    "items": [
+      {
+        "title": "Default skip may fire only when the remembered probe's deposit presence matches live `classify().hasDeftCore`. Persist that boolean next to `last_error_count`. Absent field on old files: fall through once, then persist.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "After deposit presence changes, the next default `directive doctor` completes a probe and persists live counts. `--full` stays the remaining-skip bypass.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Copy follow-through (stale versus UNRESOLVED) is allowed only after skip falls through.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Recut `honours throttle skip when dirty` so remembered-dirty plus live core is skip only when the stored deposit bit is also true.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Init or update unlinking `statePath()` may be extra. Do not drop `DIRTY_WINDOW_HOURS` for installed trees whose last completed probe already found live errors.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "status:child",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:lifecycle"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4886",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4886: Default doctor stays UNRESOLVED after init while doctor --full says proceed"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Default skip may fire only when the remembered probe's deposit presence matches live `classify().hasDeftCore`. Persist that boolean next to `last_error_count`. Absent field on old files: fall through once, then persist.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "After deposit presence changes, the next default `directive doctor` completes a probe and persists live counts. `--full` stays the remaining-skip bypass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Copy follow-through (stale versus UNRESOLVED) is allowed only after skip falls through.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut `honours throttle skip when dirty` so remembered-dirty plus live core is skip only when the stored deposit bit is also true.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Init or update unlinking `statePath()` may be extra. Do not drop `DIRTY_WINDOW_HOURS` for installed trees whose last completed probe already found live errors.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Lifecycle: installing Directive, updating it, and getting one clear next step when something looks wrong. It also covers whether the version someone thinks they installed is the version that is actually running.\n\nWhat a new person hits: Right after setup, the ordinary doctor command says the project is still unresolved. The fuller doctor command, on the same project, says to go ahead.\n\nWhy that ruins the product for them: They cannot tell whether setup worked. The product disagrees with itself on minute one.\n\nHow likely: High. This shows up immediately after a fresh setup, before they have built anything.\n\n",
+          "id": 5780262812,
+          "html_url": "https://github.com/deftai/directive/issues/4886#issuecomment-5780262812",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:02Z",
+          "updated_at": "2026-09-22T16:37:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because after init, default doctor can still print the dirty throttle-skip UNRESOLVED line from remembered lastErrorCount while doctor --full on the same initialized tree prints Resolution: proceed.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4886-dc\norigin-ref: origin/HEAD\ndispatch-sha: ef4f29f5ab595faf26a3b00194d3dbdc9f97a085\n\ncharter: open critique\nspend: N=1\nspend-ask: asked\nspend-why: operator utterance `appropriate n`. Per-issue Stop 2: remembered dirty skip versus live --full on a just-initialized tree is a specified doctor-state disagreement. Inventory existing throttle. N=1.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #4886\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: default doctor after init is already a live diagnosis of the initialized tree when it prints UNRESOLVED.\n\n## Gate stamp\n\nP1 is that default doctor and doctor --full disagree on a tree that was just initialized: the default path can still look UNRESOLVED while --full says proceed. Parent #4701 recorded `4 errors / 2 warnings -- UNRESOLVED` after init, then --full Resolution: proceed. This number is that split.\n\nRe-measured at dispatch SHA `ef4f29f5ab595faf26a3b00194d3dbdc9f97a085`:\n\n- The string `UNRESOLVED` is emitted only by `renderDoctorStatusLine` when `decision.dirty` (`lastErrorCount > 0`).\n- Default skip requires `decision.skip && classify().hasDeftCore` (#4723). After init, `.deft/core` exists, so a pre-init dirty `doctor-state.json` still skips.\n- `--full` bypasses that block and `runResolutionDecision` can print `Resolution: proceed`.\n- Persist writes `lastErrorCount` from findings with `severity === \"error\"` on a completed probe, including a pre-init run.\n- #4673 recut warning-only skip so it does not print `clean`. That is not this UNRESOLVED line.\n- #4723 recut missing-core clean skip. That is not this dirty skip after init restored the deposit.\n\nWhat this P1 is not:\n\n- Not the help versus proceed copy contract (#4755).\n- Not README --full omission (#4673).\n- Not a tracker recut of parent #4701.\n\nOpen forks the critic may take: invalidate doctor-state across init; require --full after deposit create; or print remembered-dirty as stale rather than UNRESOLVED.\n\n",
+          "id": 5782323100,
+          "html_url": "https://github.com/deftai/directive/issues/4886#issuecomment-5782323100",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:04:46Z",
+          "updated_at": "2026-09-22T19:04:46Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nOpen critique of #4886 P1 and the three recorded forks, at dispatch SHA `ef4f29f5ab595faf26a3b00194d3dbdc9f97a085`. Dest had no `node_modules`; `npx vitest` returned npm E401. Re-verification is `git show` of that SHA: `cmdDoctor` skip/persist, `renderDoctorStatusLine`, `classify()`, `defaultRitualRunner`, `plan()` missing-core rows, and the #4723 / dirty-skip tests.\n\nP1 is real. `renderDoctorStatusLine` emits `UNRESOLVED` only when `decision.dirty` (`lastErrorCount > 0`). Default skip is `decision.skip && classify().hasDeftCore`. `--full` sets `fullMode` and never enters that block. Completed probes persist `errorCount` from `severity === \"error\"` (plus deposit-hygiene); the skip return does not call `writeState`. #4723 fall-through on missing core is what writes that dirty persist; after init restores `.deft/core`, the same skip predicate reprints it.\n\n## 1. Stale wording leaves the ritual halt\n`blocks-the-design`\n\n**Evidence:** Skip returns `hygieneFailed || decision.dirty ? 1 : 0`. `defaultRitualRunner` for verb `doctor` calls `cmdDoctor([\"--project-root\", projectRoot, ...rest])` with no `--full`. SPEC #1308: persistent-dirty-within-window stops session-start. `DIRTY_WINDOW_HOURS` is 4. Parent #4701 / this issue: after a successful init, default doctor should read healthy.\n\n**Failure mode:** For up to four hours after init, default doctor still exits 1. The status word can change to \"stale\" while session-start still refuses to proceed. `--full` on the same tree can print `Resolution: proceed` and persist `errorCount` 0, so the two surfaces still disagree until that bypass.\n\n**Disposition:** A successor lean that binds \"print remembered-dirty as stale rather than UNRESOLVED\" as the P1 remedy cannot bind. Copy follow-through is allowed after skip falls through and a completed probe persists the live counts.\n\n## 2. Operator `--full` after deposit create keeps the archaeology\n`sharpens-framing`\n\n**Evidence:** A live probe already runs when `fullMode` is false and the skip `if` does not take (`!decision.skip` or `!hasDeftCore`). `--full` is the remaining-skip bypass. `DOCTOR_DIRTY_REPROBE_HINT` already names `deft doctor --full` on dirty skip. The UAT loop was install → doctor → init → default doctor still looking broken, with `--full` as hidden recovery.\n\n**Failure mode:** Binding \"require `--full` after deposit create\" as the human next command keeps default doctor skip-printing remembered dirty and keeps ritual at exit 1 until someone discovers the flag. Binding it as init internally invoking `--full` heals persist on that verb only.\n\n**Disposition:** Restate this fork as: after deposit presence changes, the next default `directive doctor` completes a probe and persists. `--full` stays the remaining-skip bypass. Init-internal `--full` is one producer-side persist heal; every deposit-create verb has to do the same work.\n\n## 3. Invalidate on deposit-presence change at the #4723 skip predicate\n`sharpens-framing`\n\n**Evidence:** `classify()` sets `hasDeftCore` from `isDir(.deft/core)`. Skip already live-classifies that bit. `plan()` missing-core rows: hybrid clone with managed AGENTS.md → `directive init`; linked worktree with managed section → `directive update`. `reconstituteLinkedWorktreeDeposit` also creates `.deft/core`. Tests at this SHA lock remembered skip once core exists: `throttle-skip still fires when .deft/core is present (#4723)` and `honours throttle skip when dirty` (`mkdirSync(.deft/core)` plus injected `lastErrorCount: 1` → exit 1). `DoctorState` / `writeState` persist `last_run_at`, `last_exit_code`, `last_finding_count`, `last_error_count` only. Init gitignores `doctor-state.json` and does not unlink it. `statePath()` honours `DEFT_DOCTOR_STATE_PATH`.\n\n**Failure mode:** Binding \"invalidate doctor-state across init\" as the sole wipe leaves `directive update` reconstituting `.deft/core`, worktree reconstitute, and an ENV override path still skip-printing pre-deposit errors. A new generation counter duplicates the fact skip already reads.\n\n**Disposition:** Extend the existing skip `if`: allow skip only when the remembered probe's deposit presence matches live `classify().hasDeftCore`. Persist that boolean next to `last_error_count`. Absent field on old files: fall through once, then persist. Init/update unlinking `statePath()` can be extra. Recut `honours throttle skip when dirty` so remembered-dirty plus live core is skip only when the stored deposit bit is also true.\n\n## 4. #4673 warning-only skip is a different line\n`footnote`\n\n`decideThrottle` `isDirty` is `lastErrorCount > 0`. Warning-only skip already prints `advisory; throttle-skipped` and never takes the `UNRESOLVED` branch. #4755 help-versus-proceed is a different number.\n\n## Road not taken\n\nAlways fall through when `decision.dirty` (drop the 4h dirty skip). No schema, and every stale dirty heals, including non-deposit changes. Steelman: ritual already wants a halt on live errors; a completed probe after init is the diagnosis; dirty skip only saves probe cost on a still-broken tree. Flip: keep `DIRTY_WINDOW_HOURS` for installed trees whose last completed probe already found live errors. That cost skip is why #1308 exists; dropping it is a larger recut than P1.\n\nCompare `.deft/core` mtime to `last_run_at` as a no-schema heuristic. Flip: a copy/replace that preserves old directory mtimes would miss update/reconstitute. The `classify()` boolean is already in the skip predicate.\n\n",
+          "id": 5782444576,
+          "html_url": "https://github.com/deftai/directive/issues/4886#issuecomment-5782444576",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:13:14Z",
+          "updated_at": "2026-09-22T19:13:14Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter init, default doctor can still reprint a pre-init dirty skip as UNRESOLVED and exit 1, while --full on the same tree says proceed. Confirming this map recuts first-ship so skip is allowed only when the remembered probe's deposit presence matches live `.deft/core`, and so a deposit-presence change falls through to a completed probe that persists live counts. Changing the word UNRESOLVED to stale is not the P1 remedy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after one isolated critic. Cites critic 5782444576. Supersedes Stop 1 write-back 5782323100. Round 1 sibling count 1.\n\nTarget-digest: sha256:0b5fb739e5ecf02db654302589f4088fef41c5f5742f2847ca878f2788f44f71\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4886-dc\norigin-ref: origin/HEAD\ndispatch-sha: ef4f29f5ab595faf26a3b00194d3dbdc9f97a085\n\n## Takes\n\n1. Stale wording leaves the ritual halt — accept-into-contract\n2. Operator `--full` after deposit create keeps the archaeology — accept-into-contract\n3. Invalidate on deposit-presence change at the #4723 skip predicate — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Default skip may fire only when the remembered probe's deposit presence matches live `classify().hasDeftCore`. Persist that boolean next to `last_error_count`. Absent field on old files: fall through once, then persist.\n- After deposit presence changes, the next default `directive doctor` completes a probe and persists live counts. `--full` stays the remaining-skip bypass.\n- Copy follow-through (stale versus UNRESOLVED) is allowed only after skip falls through.\n- Recut `honours throttle skip when dirty` so remembered-dirty plus live core is skip only when the stored deposit bit is also true.\n- Init or update unlinking `statePath()` may be extra. Do not drop `DIRTY_WINDOW_HOURS` for installed trees whose last completed probe already found live errors.\n\n",
+          "id": 5782467081,
+          "html_url": "https://github.com/deftai/directive/issues/4886#issuecomment-5782467081",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:14:52Z",
+          "updated_at": "2026-09-22T19:14:52Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of Bound remedy on successor lean 5782467081 against Stop 1 P1 on 5782323100, at dispatch SHA `ef4f29f5ab595faf26a3b00194d3dbdc9f97a085`. Re-verification is `git show` of that SHA for `cmdDoctor` skip and persist, `renderDoctorStatusLine`, `classify()`, `writeState` / `readState` / `DoctorState`, `defaultRitualRunner`, `GATED_ENTRYPOINT_COMMANDS.doctor`, init-deposit gitignore, and the #4723 / dirty-skip tests. Dest has no `node_modules`; vitest did not run.\n\nP1 is default doctor reprinting a remembered dirty skip as UNRESOLVED after init, while `--full` on the same initialized tree prints `Resolution: proceed`. Bound remedy on 5782467081 covers that split.\n\n## 1. Deposit-presence match on the existing skip if covers P1\n`footnote`\n\nSkip prints UNRESOLVED only through `renderDoctorStatusLine` when `decision.dirty` (`lastErrorCount > 0`). That write lives on the `!fullMode` skip return: `decision.skip && classify(projectRoot, seams).hasDeftCore`. `classify()` sets `hasDeftCore` from `isDir(.deft/core)`. The skip return exits `hygieneFailed || decision.dirty ? 1 : 0` and does not call `writeState`. `--full` sets `fullMode` and never enters that block. A completed probe persists `last_error_count` from `severity === \"error\"` findings (plus deposit-hygiene) and runs `runResolutionDecision`, which prints `Resolution: proceed` when `plan().mode` is `proceed`.\n\n#4723 already refuses skip when `.deft/core` is absent, so a pre-init default doctor completes a probe and can persist `lastErrorCount > 0`. Init-deposit gitignores `xbrief/.triage-cache/doctor-state.json` and `vbrief/.triage-cache/doctor-state.json` and does not unlink `statePath()`. After init restores `.deft/core`, the same skip predicate reprints that persist as UNRESOLVED. Gated ritual doctor is `[\"doctor\"]` with no `--full`.\n\nBound remedy persists deposit presence next to `last_error_count` and allows skip only when that remembered bit matches live `hasDeftCore`. Absent field falls through once, then persists. After init the remembered bit is false or absent and live `hasDeftCore` is true, so the next default doctor completes a probe and persists live counts. `--full` stays the remaining-skip bypass. Copy follow-through stays after that fall-through. `honours throttle skip when dirty` is recut so remembered-dirty plus live core skips only when the stored bit is also true.\n\nThat is the P1 healer. Installed trees whose last completed probe already found live errors keep `DIRTY_WINDOW_HOURS`.\n\n## 2. Live hasDeftCore stays on the existing skip if\n`footnote`\n\nHarvest bullet 1 is a necessary condition on skip. The skip `if` already requires live `classify().hasDeftCore`. #4723 tests lock fall-through when `.deft/core` is gone, including `throttle-skip still fires when .deft/core is present (#4723)` and the missing-core fall-through cases. Implementers extend that `if` with the stored-bit match. Tests that inject `DoctorState` without the new field take the absent-field fall-through once.\n\n## 3. doctor-state.json trust matches last_error_count\n`footnote`\n\nThe new boolean lives in the same `doctor-state.json` `writeState` already trusts for `last_error_count`. `statePath()` already honours `DEFT_DOCTOR_STATE_PATH`. Linked-worktree reconstitute that creates `.deft/core` is the same false-to-true presence flip the skip match already heals. No extra persist channel.\n\n## Road not taken\n\nProducer-side unlink of `statePath()` on init or update only. Steelman: no schema field. Flip: skip already live-classifies `hasDeftCore`; a remembered bit at that same `if` heals every deposit-presence producer, including worktree reconstitute. Harvest already allows unlink as extra.\n\n",
+          "id": 5782588237,
+          "html_url": "https://github.com/deftai/directive/issues/4886#issuecomment-5782588237",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:23:49Z",
+          "updated_at": "2026-09-22T19:23:49Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5782467081.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5782467081 are accept-into-contract | critic 5782444576 | posted take-map |\n| Empty disagreement set | this round | no disagree or defer |\n| relieves P1 covers post-init UNRESOLVED skip versus --full proceed via deposit-presence match on the existing skip if | pain-audit 5782588237 | pin-read of cmdDoctor skip/persist, classify hasDeftCore, writeState; footnote-only census |\n\n",
+          "id": 5782612968,
+          "html_url": "https://github.com/deftai/directive/issues/4886#issuecomment-5782612968",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:25:40Z",
+          "updated_at": "2026-09-22T19:25:40Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter init, default doctor can still reprint a pre-init dirty skip as UNRESOLVED, while --full on the same tree says proceed. The accepted next-build is skip only when remembered deposit presence matches live .deft/core, then a completed probe persists live counts.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5782467081.\n\n",
+          "id": 5782613136,
+          "html_url": "https://github.com/deftai/directive/issues/4886#issuecomment-5782613136",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T19:25:41Z",
+          "updated_at": "2026-09-22T19:25:41Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "Parent: #4701\n\n## Finding\n\nAfter init, plain doctor still looked unresolved, and doctor --full on the same tree said to proceed. The false UNRESOLVED is not the clean-cache throttle: the full probe and the default probe disagree about a tree that was just initialized.\n\nSplit out of #4701 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: LIFECYCLE\n- Priority: High (audit scale S2)\n- Source: #4701\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540578170,
+        "origin": "deftai/directive#4886",
+        "id": "github.issue.5540578170"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0b5fb739e5ecf02db654302589f4088fef41c5f5742f2847ca878f2788f44f71"
+      }
+    },
+    "id": "github.issue.5540578170",
+    "updated": "2026-09-23T00:57:42Z"
+  }
+}

@@ -79,6 +79,7 @@ import {
   dirtyDoctorHint,
   formatIsoZ,
   readState,
+  rememberedDepositMatches,
   renderDoctorStatusLine,
   writeState,
 } from "./doctor-state.js";
@@ -413,8 +414,15 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (!fullMode) {
     const state = (seams.readState ?? readState)(projectRoot);
     const decision = decideThrottle(state, nowFn());
+    const liveHasDeftCore = classify(projectRoot, seams).hasDeftCore;
     // Missing .deft/core cannot inherit a remembered-clean skip (#4723).
-    if (decision.skip && classify(projectRoot, seams).hasDeftCore) {
+    // Skip only when the remembered deposit bit matches that live core (#4886).
+    // Absent bit falls through once; the completed probe persists it.
+    if (
+      decision.skip &&
+      liveHasDeftCore &&
+      rememberedDepositMatches(state?.lastHasDeftCore, liveHasDeftCore)
+    ) {
       const throttleFindings: Finding[] = [];
       const throttleSink = createPlainSink({ jsonMode, quietMode });
       runLocalSignpostChecks(
@@ -749,6 +757,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     exitCode,
     findingCount: findings.filter((f) => f.severity !== "skip").length + (hygieneFailed ? 1 : 0),
     errorCount,
+    hasDeftCore: classify(projectRoot, seams).hasDeftCore,
     now: nowFn(),
   });
 

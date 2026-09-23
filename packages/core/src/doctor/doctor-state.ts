@@ -39,11 +39,13 @@ export function readState(projectRoot: string, readFile = defaultReadFile): Doct
     if (!lastRunAt) {
       return null;
     }
+    const rememberedDeposit = data.last_has_deft_core;
     return {
       lastRunAt,
       lastExitCode: Number(data.last_exit_code ?? 0),
       lastFindingCount: Number(data.last_finding_count ?? 0),
       lastErrorCount: Number(data.last_error_count ?? 0),
+      ...(typeof rememberedDeposit === "boolean" ? { lastHasDeftCore: rememberedDeposit } : {}),
     };
   } catch {
     return null;
@@ -60,6 +62,8 @@ export function writeState(
     exitCode: number;
     findingCount: number;
     errorCount: number;
+    /** Live deposit presence. Omitted leaves old files without the field (#4886). */
+    hasDeftCore?: boolean;
     now?: Date;
   },
 ): string | null {
@@ -69,6 +73,9 @@ export function writeState(
     last_exit_code: payload.exitCode,
     last_finding_count: payload.findingCount,
     last_error_count: payload.errorCount,
+    ...(typeof payload.hasDeftCore === "boolean"
+      ? { last_has_deft_core: payload.hasDeftCore }
+      : {}),
   };
   const path = statePath(projectRoot);
   try {
@@ -100,6 +107,17 @@ export function writeState(
   } catch {
     return null;
   }
+}
+
+/**
+ * Stored deposit bit equals live `classify().hasDeftCore`.
+ * An absent field does not match. Both-false matches; skip still requires live core (#4723 / #4886).
+ */
+export function rememberedDepositMatches(
+  remembered: boolean | undefined,
+  liveHasDeftCore: boolean,
+): boolean {
+  return remembered === liveHasDeftCore;
 }
 
 export function decideThrottle(state: DoctorState | null, now = new Date()): ThrottleDecision {
