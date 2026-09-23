@@ -27,7 +27,7 @@ rationale: "Replace this quoted sentence with the actual documentation-impact ra
 
 ## Checklist
 
-- [ ] `task check` passes locally (validate + lint + test; see `coding/testing.md`)
+- [ ] Prefer `deft check`; else `task deft:check` on an include-only consumer. One gate, not two runs (validate + lint + test; see `coding/testing.md`)
 - [ ] `CHANGELOG.md` has an `[Unreleased]` entry covering these changes
 - [ ] All affected vBRIEFs pass `task vbrief:validate`
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) format
