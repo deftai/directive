@@ -464,4 +464,116 @@ describe("evaluateForwardCoverage", () => {
     expect(result.diffCoverage?.uncovered).toEqual([]);
     expect(result.message).not.toContain("uncovered changed branch");
   });
+
+  it("fails existence when the paired test only asserts the export is a function", () => {
+    const root = buildRepo({
+      "src/shell.ts": "export function Shell() { return 1; }\n",
+      "src/shell.test.ts":
+        'import { Shell } from "./shell";\nexpect(typeof Shell).toBe("function");\n',
+    });
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(1);
+    expect(result.missing.map((m) => m.path)).toEqual(["src/shell.ts"]);
+    expect(result.message).toContain("without a corresponding test");
+    expect(result.message).toContain("does not count");
+    expect(result.message).not.toContain("all have forward coverage");
+    expect(result.message.split("Add a colocated test").length - 1).toBe(1);
+  });
+
+  it("fails existence when the paired test reads the source through more than one API", () => {
+    const sync = buildRepo({
+      "src/page.tsx": "export const deleteVehicleAction = 1;\n",
+      "src/page.test.ts":
+        'import { readFileSync } from "node:fs";\n' +
+        'const source = readFileSync("page.tsx", "utf8");\n' +
+        'expect(source).toContain("deleteVehicleAction");\n',
+    });
+    stage(sync);
+    const syncResult = evaluateForwardCoverage(sync, { mode: "staged" });
+    expect(syncResult.exitCode).toBe(1);
+    expect(syncResult.missing.map((m) => m.path)).toEqual(["src/page.tsx"]);
+    expect(syncResult.message).not.toContain("all have forward coverage");
+
+    const promised = buildRepo({
+      "src/page.tsx": "export const deleteVehicleAction = 1;\n",
+      "src/page.test.ts":
+        'const source = await fs.promises.readFile("page.tsx", "utf8");\n' +
+        'expect(source).toContain("deleteVehicleAction");\n',
+    });
+    stage(promised);
+    const promisedResult = evaluateForwardCoverage(promised, { mode: "staged" });
+    expect(promisedResult.exitCode).toBe(1);
+    expect(promisedResult.missing.map((m) => m.path)).toEqual(["src/page.tsx"]);
+  });
+
+  it("keeps an empty paired file and a behavioral test on the green existence sentence", () => {
+    const empty = buildRepo({
+      "src/page.tsx": "export const page = 1;\n",
+      "src/page.test.ts": "",
+    });
+    stage(empty);
+    const emptyResult = evaluateForwardCoverage(empty, { mode: "staged" });
+    expect(emptyResult.exitCode).toBe(0);
+    expect(emptyResult.missing).toEqual([]);
+    expect(emptyResult.message).toContain("all have forward coverage");
+
+    const behavioral = buildRepo({
+      "src/foo.ts": "export function foo() { return 1; }\n",
+      "src/foo.test.ts": 'import { foo } from "./foo";\nexpect(foo()).toBe(1);\n',
+    });
+    stage(behavioral);
+    const behavioralResult = evaluateForwardCoverage(behavioral, { mode: "staged" });
+    expect(behavioralResult.exitCode).toBe(0);
+    expect(behavioralResult.missing).toEqual([]);
+  });
+
+  it("still fails a text read when the paired test also calls the export", () => {
+    const root = buildRepo({
+      "src/page.tsx": "export function deleteVehicleAction() { return 1; }\n",
+      "src/page.test.ts":
+        'const source = readFileSync("page.tsx", "utf8");\n' +
+        'expect(source).toContain("deleteVehicleAction");\n' +
+        "expect(deleteVehicleAction()).toBe(1);\n",
+    });
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(1);
+    expect(result.missing.map((m) => m.path)).toEqual(["src/page.tsx"]);
+  });
+
+  it("does not let a worktree test satisfy staged coverage when the index blob is unreadable", () => {
+    const root = buildRepo({
+      "src/foo.ts": "export function foo() { return 1; }\n",
+      "src/foo.test.ts": 'import { foo } from "./foo";\nexpect(foo()).toBe(1);\n',
+    });
+    execFileSync("git", ["add", "src/foo.ts"], { cwd: root });
+    execFileSync("git", ["add", "src/foo.test.ts"], { cwd: root });
+    // Stage a missing blob so `git show :path` fails. The worktree test must not count.
+    execFileSync(
+      "git",
+      [
+        "update-index",
+        "--cacheinfo",
+        "100644,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,src/foo.test.ts",
+      ],
+      { cwd: root },
+    );
+    const staged = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(staged.exitCode).toBe(1);
+    expect(staged.missing.map((m) => m.path)).toEqual(["src/foo.ts"]);
+    expect(staged.message).not.toContain("all have forward coverage");
+  });
+
+  it("counts a real spec beside a function-only test file", () => {
+    const root = buildRepo({
+      "src/shell.ts": "export function Shell() { return 1; }\n",
+      "src/shell.test.ts": 'expect(typeof Shell).toBe("function");\n',
+      "src/shell.spec.ts": "expect(Shell()).toBe(1);\n",
+    });
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(0);
+    expect(result.missing).toEqual([]);
+  });
 });

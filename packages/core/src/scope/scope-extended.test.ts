@@ -55,6 +55,15 @@ function makeDecomposedPair(root: string): { parent: string; child: string } {
       title: "Parent",
       status: "pending",
       items: [],
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          { id: 1, text: "Parent stays activatable", artifact_path: null, ambiguous: false },
+        ],
+      },
       references: [{ uri: `pending/${CHILD}`, type: "x-vbrief/plan", title: "Child" }],
     },
   });
@@ -63,6 +72,15 @@ function makeDecomposedPair(root: string): { parent: string; child: string } {
       title: "Child",
       status: "pending",
       items: [],
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          { id: 1, text: "Child stays activatable", artifact_path: null, ambiguous: false },
+        ],
+      },
       planRef: `pending/${PARENT}`,
     },
   });
@@ -134,7 +152,9 @@ describe("scope extended coverage", () => {
         ?.uri,
     ).toContain("active/");
     runTransition("activate", parent);
-    runTransition("complete", join(root, "xbrief", "active", PARENT));
+    runTransition("complete", join(root, "xbrief", "active", PARENT), new Date(), {
+      skipAcceptanceEvidenceGate: true,
+    });
     const childData = JSON.parse(readFileSync(activeChild, "utf8"));
     expect(String(childData.plan.planRef)).toContain("completed/");
   });
@@ -238,7 +258,27 @@ describe("scope extended coverage", () => {
   it("covers lifecycle and demote CLI paths", () => {
     root = makeRepo();
     const file = join(root, "xbrief", "proposed", "2026-01-01-cli.xbrief.json");
-    writeVbrief(file, { plan: { title: "T", status: "proposed", items: [] } });
+    writeVbrief(file, {
+      plan: {
+        title: "T",
+        status: "proposed",
+        items: [],
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: [
+            {
+              id: 1,
+              text: "CLI promote keeps the derived stamp",
+              artifact_path: null,
+              ambiguous: false,
+            },
+          ],
+        },
+      },
+    });
     expect(lifecycleMain(["promote", file, "--project-root", root])).toBe(0);
     expect(lifecycleMain(["not-an-action", file, "--project-root", root])).toBe(2);
     const pending = join(root, "xbrief", "pending", "2026-01-01-cli.xbrief.json");

@@ -356,6 +356,7 @@ describe("accept", () => {
           status: "proposed",
           narratives: {
             Origin: "Ingested from https://github.com/deftai/directive/issues/77",
+            AcceptanceCriteria: "- The ingested brief promotes into pending",
           },
           items: [],
           references: [

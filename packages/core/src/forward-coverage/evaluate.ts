@@ -3,9 +3,11 @@
  * (#1310 / #3514).
  *
  * Two halves:
- *  1. Fail-closed new-file existence (#1310): each NEW source file
+ *  1. Fail-closed new-file existence (#1310 / #4543): each NEW source file
  *     (`*.py` / `*.go` / `*.ts` / `*.tsx` / `*.js`, excluding tests and `*.d.ts`)
  *     must have a corresponding test at a searched path (pre-existing tests count).
+ *     A paired file does not count when its assertions only say an export is a
+ *     function, or when it reads the paired source as text and expects strings.
  *  2. Warn-first diff coverage (#3514): intersect `coverage-final.json`
  *     with added/modified lines and report uncovered changed branches.
  *     Default threshold is 90% of those branches. That 90% is per-change
@@ -20,7 +22,7 @@
 
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import { fnmatchCase } from "../encoding/text.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
@@ -37,6 +39,7 @@ import {
   countFileLines,
   parseUnifiedDiffAddedLines,
 } from "./diff-lines.js";
+import { placeholderReason } from "./placeholder.js";
 
 export {
   DEFAULT_DIFF_COVERAGE_THRESHOLD,
@@ -310,6 +313,34 @@ function listedTestFiles(
   return tests;
 }
 
+/** Index bytes in staged mode; worktree bytes otherwise. A failed index read does not use the worktree. */
+function readPairedTest(
+  projectRoot: string,
+  rel: string,
+  mode: ForwardCoverageMode,
+): string | null {
+  if (mode === "staged") {
+    const shown = git(["show", `:${rel}`], projectRoot);
+    return shown.status === 0 ? shown.stdout : null;
+  }
+  try {
+    return readFileSync(join(projectRoot, rel), "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function pairedTestCounts(
+  projectRoot: string,
+  candidate: string,
+  sourceBasename: string,
+  mode: ForwardCoverageMode,
+): boolean {
+  const text = readPairedTest(projectRoot, candidate, mode);
+  if (text === null) return false;
+  return placeholderReason(text, candidate, sourceBasename) === null;
+}
+
 /**
  * Pure evaluation returning `{ exitCode, missing, message }`. Three-state exit
  * (0 clean / 1 missing forward coverage / 2 config error). Mirrors the shape of
@@ -392,7 +423,12 @@ export function evaluateForwardCoverage(
     }
     checked += 1;
     const expected = expectedTestPaths(rel, policy);
-    const covered = expected.some((candidate) => existingTests.has(candidate));
+    const sourceBasename = basename(rel);
+    const covered = expected.some(
+      (candidate) =>
+        existingTests.has(candidate) &&
+        pairedTestCounts(projectRoot, candidate, sourceBasename, mode),
+    );
     if (!covered) {
       missing.push({ path: rel, expectedTests: expected });
     }
@@ -423,6 +459,7 @@ export function evaluateForwardCoverage(
       "corresponding test (#1310 / #4009).\n" +
       "  Rule: a new source file MUST have a corresponding test at a searched path.\n" +
       "  Pre-existing tests count; a same-stem file in an unrelated directory does not.\n" +
+      "  A paired file does not count when its assertions only say an export is a function, or when it reads the paired source as text and expects strings.\n" +
       "  Correspondence uses the test-boundary policy (#3145), not a second testRoots config.\n" +
       "  Add a colocated test, a sibling __tests__/ file, or a path under a declared test root,\n" +
       "  or allow-list a documented exception via --allow-list <path>.";

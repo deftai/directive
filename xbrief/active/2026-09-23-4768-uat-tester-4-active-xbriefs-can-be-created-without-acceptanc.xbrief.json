@@ -1,0 +1,385 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4768",
+    "updated": "2026-09-23T17:00:11Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4768",
+      "Overview": "\n\n- Keep the #3284 intake floor legal before activate (`commands=[]` plus `none_stated:true`). Do not bind \"active briefs must not carry that object.\"\n- On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step. Do not commit the floor into `active/` on that no-op.\n- Keep empty-resolution readers (`soft_empty` / complete refuse). Do not reverse #3826 0-verified pre-product pass as a side effect.\n- Recovery is an operator-visible definition step, or a derivable declared surface (list items / `test:` / `acceptance:` lines per #4374). Not silent agent authorship from the issue thread.\n- No new `plan.acceptance` writer. Exclusive writer stays #4374 derivation.",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:vbrief, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:requirements"
+    },
+    "items": [
+      {
+        "title": "Keep the #3284 intake floor legal before activate (`commands=[]` plus `none_stated:true`). Do not bind \"active briefs must not carry that object.\"",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step. Do not commit the floor into `active/` on that no-op.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Keep empty-resolution readers (`soft_empty` / complete refuse). Do not reverse #3826 0-verified pre-product pass as a side effect.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Recovery is an operator-visible definition step, or a derivable declared surface (list items / `test:` / `acceptance:` lines per #4374). Not silent agent authorship from the issue thread.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "No new `plan.acceptance` writer. Exclusive writer stays #4374 derivation.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4768",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4768: [UAT Tester 4] Active xBRIEFs can be created without acceptance commands"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "applied: false",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because ingest/activate of issues without shell AC stamps the #3284 intake floor (`commands=[]`, `none_stated=true`, floor until agent derives) and UAT saw that stamp on active briefs without an operator-visible acceptance-definition step or `clauses[]`.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4768-dc\norigin-ref: origin/master\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator delegated N pick on the launching utterance (\"use appropriate n and no need to ask me\"); UAT Desired is actionable AC or an explicit acceptance-definition step, so N=1.\n\nrefutation-target: empty commands plus `none_stated:true` is a sufficient active stamp, so activate may complete without derived clauses or an explicit acceptance-definition step.\n\ntarget: #4768\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is an active brief whose `plan.acceptance` is the intake floor only. `buildAcceptanceFromIntakeCapture` with no captured commands returns `none_stated:true`, `source_rung:project_floor`, and `derived_reason` matching the UAT JSON. #3360 says activate/promote then derives `clauses[]`. The reported stamp omitted `clauses[]` and `source_rung`. This is not a request to restore pattern-only AC.\n\nPin-read at dispatch-sha 7011e07402257adcda6fa496fac079cd8aa54d42: `packages/core/src/product-first-done-gate/acceptance.ts` `buildAcceptanceFromIntakeCapture`; `content/docs/plan-acceptance.md`. Inventory: #3284, #3323, #3360, #3334, #4374, #4380. No implement and no ingest from this parent.\n\nEval: `triage:evaluate` sha12=7011e0740225 invocation=12fd9631-a862-4870-9f74-d87b77adaa7f validity=still-open wip=0. Unreleased does not list #4768. Not working-as-designed solely because `none_stated` exists; the gap is activate without the #3360 clause stamp or an explicit step.",
+          "id": 5746989060,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5746989060",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:18:01Z",
+          "updated_at": "2026-09-20T02:18:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRefutation of the recorded target on #issuecomment-5746989060: empty commands plus `none_stated:true` is a sufficient active stamp.\n\nVerdict: the target does not hold as a unitary active-stamp claim. `{ commands: [], none_stated: true }` is the #3284 intake floor. The tree already says that object is not a stamp. Activate may still land it only when #3360 derivation is a 0-clause no-op. Binding \"ban the floor on active\" recuts shipped gates. Bind the 0-clause commit instead.\n\nPin: `7011e07402257adcda6fa496fac079cd8aa54d42`. Envelope ceiling honored: only #issuecomment-5746989060 is in-envelope. Dest has no `node_modules`; behavioral re-verify is the pin-SHA tests plus the functions they lock, not a live vitest run.\n\n## Inventory (existing mechanisms)\n\nDo not add a second acceptance writer. These already own the object:\n\n- Intake floor: `buildAcceptanceFromIntakeCapture` / `stampAcceptanceFromLiteralCapture` (`packages/core/src/product-first-done-gate/acceptance.ts`). Empty capture → `none_stated:true`, `source_rung:project_floor`, `derived_reason` matching the UAT JSON (`floor until agent derives AC`).\n- Ingest derive: `stampDerivedClausesOnAcceptance` then `applyClauseQualityForIngest` (`issue-ingest.ts`). No stated commands → numbered clauses when the statement parses; 0 clauses leave the floor. Ingested clauses keep `artifact_path: null` (#3835; untrusted issue/thread must not select a file).\n- Activate/promote derive: `needsClauseDerivation` + `applyClauseDerivationToPlan` (`clause-derivation.ts`) from `runTransition` (#3360). True for absent, empty-with-`none_stated`, or command-only. False only when `clauses[]` is already non-empty. Exclusive writer named in `content/docs/plan-acceptance.md` (#4374).\n- Presence gate: `evaluateAcceptanceActivateGate` (#3334). Refuses *absent* or *invalid* `plan.acceptance` when narratives are acceptance-shaped. Comment on the function: a stamped (even empty/`none_stated`) block is enough — that is presence, not quality.\n- Empty-resolution readers: `verify:ac` `soft_empty` (#3334 / `empty-resolution.ts`); `evaluateScopeCompleteAcceptanceWalk` refuses the same floor object (`bank-aware-complete.test.ts`). Pre-product `verify:ac` 0-verified still passes (#3826). `stampedAmbiguityAttestationError`: command-only / empty floor blocks are not stamps; they keep the empty-resolution path (#3559).\n- Closed inventory from Stop 1: #3284, #3323, #3360, #3334, #4374, #4380 (all closed). This issue is the leftover UAT of that stack, not a missing writer.\n\n## Finding 1 — `blocks-the-design`\n\nThe floor is not a sufficient *active stamp*. The code already withholds that name.\n\n**Evidence.** `needsClauseDerivation({ commands: [], none_stated: true })` is locked true (`clause-derivation.test.ts` `#3360`). `stampedAmbiguityAttestationError` documents that empty floor blocks are not stamps. `plan-acceptance.md`: `#4374` derivation is the exclusive writer of `plan.acceptance`. When derivation applies, the post-activate object is still `none_stated:true` *and* `source_rung:derived` *and* `clauses[]` (`transition.test.ts` \"activates a hand-authored brief only after #3323 clause derivation\"). The UAT three-field JSON is `buildAcceptanceFromIntakeCapture`, not that exclusive writer (`derived N independently testable clauses from the task statement before product edit (#3323)`).\n\n**Failure mode.** A bound lean that treats empty+`none_stated` as the defect will refuse the #3284 schema (`validatePlanAcceptance`: empty commands are legal only with `none_stated:true`), refuse ingest of issues with no shell AC, and collide with the #3334 presence gate, which is \"block is present and schema-valid,\" not \"block is derived.\"\n\n**Disposition.** Do not bind \"active briefs must not carry `{ commands: [], none_stated: true }`.\" Keep the floor at ingest/pending. The target as written cannot bind.\n\n## Finding 2 — `sharpens-framing`\n\nThe live hole is: activate/promote still commit when derivation returns `applied: false`.\n\n**Evidence.** `applyClauseDerivationToPlan` on 0 extractable clauses returns `applied: false` and does not mutate (`clause-derivation.test.ts` \"no-ops when no extractable clauses exist\"; `#4374` bare-prose AcceptanceCriteria leaves `plan.acceptance` undefined unless a floor is already present). `runTransition` records the notice and continues (`transition.ts` after `applyClauseDerivationToPlan`; no `applied` check). Locked: \"activates when acceptance-shaped narratives have plan.acceptance stamped (#3334)\" activates `{ commands: [], none_stated: true, source_rung: \"project_floor\" }` plus bare-prose `AcceptanceCriteria`. Locked: promote of bare-prose AcceptanceCriteria is `ok: true` with the `#4374` 0-clause notice. Locked: mocked `applied: false` activate is still `ok: true` and only surfaces the `#3398` remediation. `formatZeroClauseAcceptanceShapedNotice` already says \"Do not stamp write-time plan.acceptance { none_stated: true }\" — and the presence gate then accepts a floor that was stamped earlier.\n\n**Failure mode.** UAT \"ingest issue without shell AC → activate → inspect `acceptance`\" lands the intake floor in `active/` whenever the issue body is not list-shaped / labeled. That matches Tester 4. It is not evidence that activate skipped #3360; #3360 ran and no-op'd. A successor that restates the target as \"floor is sufficient\" will patch the wrong predicate (`none_stated` vs `applied`).\n\n**Disposition.** Recut the bindable claim to: on `scope:activate` / `scope:promote`, `applied: false` with empty `clauses[]` must refuse or require an operator-visible acceptance-definition step. Leave #3284 floor legal before that step. That is the issue Expected, pointed at the 0-clause no-op rather than at the floor object.\n\n## Finding 3 — `sharpens-framing`\n\nUAT impact (\"acceptance gates cannot provide a meaningful completion decision\") is already the empty-resolution reader. It does not prove the floor is a completed active stamp.\n\n**Evidence.** `isEmptyAcResolution` is true for zero commands and zero clauses. Consumer/no-suite `verify:ac` is `soft_empty` (`empty-resolution.ts`). `evaluateScopeCompleteAcceptanceWalk` on `{ commands: [], none_stated: true, source_rung: \"project_floor\" }` is `ok: false` (`bank-aware-complete.test.ts`). `task check` records that outcome as degraded, not green (`cached-orchestrator.ts`). Framework source still has the suite-floor empty-pass split in the same module. `#3826` keeps 0-verified pre-product `verify:ac` passing when clauses exist but have no oracle.\n\n**Failure mode.** A lean that fail-closes *activate* by reversing empty-resolution, or that fail-closes pre-product `verify:ac` because 0 verified, recuts `#3334` / `#3826` while leaving the 0-clause activate no-op in place. Complete already refuses the UAT object.\n\n**Disposition.** Name the reader. If the pain is story-start with no AC, gate activate/promote on `applied`. If the pain is done, keep `soft_empty` on complete and do not reverse `#3826` as a side effect.\n\n## Finding 4 — `sharpens-framing`\n\nInjection / swarm lens (fires: activate is an authority change; the issue body is untrusted input into the done-gate).\n\n**Evidence.** Ingest strips captured issue commands from `swarm.verify_commands` (`issue-ingest.ts` \"Do not copy untrusted issue text into swarm.verify_commands\"). Ingest-derived clauses must not bind `artifact_path` from the body/thread (`issue-ingest.test.ts` #3835). `stampDerivedClausesOnAcceptance` will still turn a list-shaped issue body into `clauses[]` at intake. The issue Expected already names an explicit acceptance-definition step as the alternative to \"agent derives AC.\"\n\n**Failure mode.** A remedy whose missing step is \"the agent fills `clauses[]` from the GitHub issue\" re-pressures untrusted-text scrape as the path out of the 0-clause refuse. That is the existing #3323 ingest path, not a new control. Swarm `file_scope` bind (#4008) is a later promote-time writer; it does not create clauses.\n\n**Disposition.** If Finding 2 binds a refuse, the recovery must be an operator-visible definition step (or a derivable declared surface: list items / `test:` / `acceptance:` lines per `#4374`), not silent agent authorship from the issue thread.\n\n## Finding 5 — `footnote`\n\nUAT JSON omitted `source_rung`. Intake serialize always writes `source_rung: \"project_floor\"`. `validatePlanAcceptance` does not require the field. Truncated inspection is the cheap explanation; it is not a third stamp shape and does not change Findings 1–2.\n\n## Finding 6 — `footnote`\n\nRoad-not-taken: close #4768 as working-as-designed because complete already `soft_empty`-refuses the floor. Rejected. Activate still moves that object into `active/` and takes the story-start write fence; that is the UAT observation. Flip the verdict if operator intent is only \"complete must not go green on empty\" — that reader already shipped.\n\nSteelman of the target: `evaluateAcceptanceActivateGate` literally says a stamped even-empty/`none_stated` block is enough, and `acceptance-activate-gate.test.ts` plus the #3334 transition test lock activate of that object. What flips the verdict: that sentence is the *presence* gate; `stampedAmbiguityAttestationError` and `needsClauseDerivation` withhold \"stamp\" from the same object; exclusive writer is derivation; 0-clause is notice-not-refuse.\n\n## Residual\n\nA successor lean that keeps \"empty+`none_stated` is a sufficient active stamp\" as the premise cannot bind (Finding 1). Recut to the 0-clause activate/promote no-op (Finding 2), name the reader (Finding 3), and keep recovery operator-visible (Finding 4). No new `plan.acceptance` writer.",
+          "id": 5747032463,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5747032463",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:26:12Z",
+          "updated_at": "2026-09-20T02:26:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUAT saw an active brief with the intake floor: empty commands and none_stated. That object is legal before activate. Activate still commits when clause derivation returns applied false (zero extractable clauses). The recut is refuse or require an operator-visible acceptance-definition step at that no-op, not ban the floor object.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut leftover. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4768 0-clause activate no-op after critic 5747032463. Cites critic 5747032463. Supersedes write-back 5746989060.\n\nTarget-digest: sha256:c28f74e53835f29c93bf29fddbc9956a08f54ddf3ab40087e415941f96624099\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4768-dc\norigin-ref: origin/master\ndispatch-sha: 7011e07402257adcda6fa496fac079cd8aa54d42\ntarget shape: single-issue\n\nTakes:\n\n- 5747032463 1 The floor is not a sufficient active stamp — accept-into-contract\n- 5747032463 2 Activate still commits when derivation returns applied false — accept-into-contract\n- 5747032463 3 Empty-resolution reader already names the UAT impact — accept-into-contract\n- 5747032463 4 Recovery must be an operator-visible definition step — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=7011e07402257adcda6fa496fac079cd8aa54d42 pointer=comment:5747032463 reading=asserted\n\n## Bound remedy\n\n- Keep the #3284 intake floor legal before activate (`commands=[]` plus `none_stated:true`). Do not bind \"active briefs must not carry that object.\"\n- On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step. Do not commit the floor into `active/` on that no-op.\n- Keep empty-resolution readers (`soft_empty` / complete refuse). Do not reverse #3826 0-verified pre-product pass as a side effect.\n- Recovery is an operator-visible definition step, or a derivable declared surface (list items / `test:` / `acceptance:` lines per #4374). Not silent agent authorship from the issue thread.\n- No new `plan.acceptance` writer. Exclusive writer stays #4374 derivation.",
+          "id": 5747039324,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5747039324",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:27:30Z",
+          "updated_at": "2026-09-20T02:27:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of relieves on successor lean 5747039324 against Stop 1 P1 (5746989060).\n\nVerdict: Bound-remedy relieves P1. P1 is an active brief whose plan.acceptance is the #3284 intake floor only. Bullet 2 fail-closes committing that object into active/ when applyClauseDerivationToPlan returns applied: false with empty clauses[]. That is the UAT ingest-then-activate path.\n\nPin: 7011e07402257adcda6fa496fac079cd8aa54d42. Ceiling honored (through 5747039324). Dest has no node_modules; re-verify is pin-SHA functions plus the tests that lock them, not a live vitest run.\n\n## Inventory\n\nNo new plan.acceptance writer. Owners unchanged:\n\n- Floor: buildAcceptanceFromIntakeCapture empty capture → none_stated:true, source_rung:project_floor, derived_reason matching the UAT JSON (code appends \" (#3284 ladder)\").\n- Derive: needsClauseDerivation is true for empty-with-none_stated. applyClauseDerivationToPlan on 0 extractable clauses returns { applied: false, clauses: [] } and does not mutate (clause-derivation.test.ts \"no-ops when no extractable clauses exist\"; #4374 bare-prose AcceptanceCriteria).\n- Commit: runTransition records derivation.notice and continues with no applied check (transition.ts after applyClauseDerivationToPlan). Locked P1 landing: transition.test.ts \"activates when acceptance-shaped narratives have plan.acceptance stamped (#3334)\" moves { commands: [], none_stated: true, source_rung: \"project_floor\" } into xbrief/active/. Locked: mocked applied: false activate stays ok: true (#3398).\n- Presence: evaluateAcceptanceActivateGate — a stamped even-empty/none_stated block is enough. Activate-only. That is presence, not quality.\n- Complete: evaluateScopeCompleteAcceptanceWalk already refuses that floor (bank-aware-complete.test.ts \"empty acceptance still refuses\"). Different reader.\n\n## Finding 1 — sharpens-framing\n\nHarvest bullet 1 keeps the floor legal before activate and says do not bind \"active briefs must not carry that object.\" \"That object\" is written as commands=[] plus none_stated:true, which is also the post-derivation stamp (none_stated:true with clauses[]; transition.test.ts #3360 hand-authored activate).\n\nEvidence. Critic 5747032463 Finding 1 forbade banning empty+none_stated wholesale because the exclusive writer keeps those fields when it stamps clauses. Stop 1 P1 is the floor only (no clauses[]). Bullet 2 is the P1 conjunct. Bullet 1 is the anti-overban.\n\nFailure mode. A Spec-path reader that implements bullet 1 as \"active may carry the UAT three-field floor\" and treats \"refuse or require\" as today's notice-and-continue re-lands P1. The same harvested bullet still says \"Do not commit the floor into active/ on that no-op,\" which forbids that reading.\n\nDisposition. Bind remains 5747039324. Do not recut the Bound-remedy list. Record the gloss: bullet 1 keeps the #3284 schema and the derived stamp (none_stated:true with clauses[]) legal on active; it does not permit the UAT floor-only object in active/. Bullet 2 remains the P1 fail-closed sentence. The operator-visible step is how the operator supplies a derivable surface or clauses so the no-op ends; an attestation-only skip is still refuse.\n\n## Finding 2 — footnote\n\nInjection / swarm (fires: activate is an authority change; the issue body is untrusted input). Bound-remedy bullet 4 already names operator-visible recovery and forbids silent agent authorship from the thread. Ingest-derived clauses still keep artifact_path null (#3835). No leftover control.\n\n## Finding 3 — footnote\n\napplyClauseDerivationToPlan quality-strip returns applied: false with non-empty result.clauses and restores previous plan.acceptance. Live UAT 0-extractable matches the harvested predicate. Implement bullet 2 against the post-call floor state so that return shape cannot land P1 by accident. Does not recut harvest.\n\n## Finding 4 — footnote\n\nThe #3334 activate test and the #3398 mocked-applied test currently lock P1. They are the regression surface. They are not a reason to recut evaluateAcceptanceActivateGate or #3826.\n\n## Residual\n\nNo blocks-the-design. relieves P1 stands on 5747039324. Sharpening does not change the harvested Bound-remedy list.\n\nRoad-not-taken: treat relieves as false because \"refuse or require\" plus bullet 1 can be coded as notice-and-continue. Rejected: the harvested list fail-closes the commit. Flip if a later lean drops \"Do not commit the floor into active/ on that no-op\" or treats the definition step as a skip that still commits the UAT object.",
+          "id": 5747091818,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5747091818",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:36:40Z",
+          "updated_at": "2026-09-20T02:36:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nPain-audit 5747091818 returned one sharpens-framing take that does not change harvested Bound-remedy. Bind remains successor lean 5747039324. No extra Lean heading.\n\nTakes: 5747091818 treat bullet 1 as schema-and-derived-stamp legal, not UAT floor-only on active — accept-into-contract as inventory. Harvest unchanged.",
+          "id": 5747095621,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5747095621",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:37:20Z",
+          "updated_at": "2026-09-20T02:37:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Intake floor empty+none_stated is legal before activate | verified | critic 5747032463 pin-read buildAcceptanceFromIntakeCapture; pain-audit 5747091818 inventory |\n| Activate still commits when derivation applied is false | verified | transition.ts no applied check; transition.test.ts #3334 / #3398 |\n| Recut is refuse or operator-visible step at that no-op | verified | Bound-remedy 5747039324 bullet 2; pain-audit relieves P1 |",
+          "id": 5747095742,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5747095742",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:37:21Z",
+          "updated_at": "2026-09-20T02:37:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUAT saw an active brief with the intake floor. That object is legal before activate. Activate must refuse or require an operator-visible acceptance-definition step when clause derivation applies false. Do not ban the floor object.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5747039324.",
+          "id": 5747095846,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5747095846",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:37:23Z",
+          "updated_at": "2026-09-20T02:37:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Requirements: what done means. The person says what the change must do, and Directive is supposed to check that the code actually does that, and does not wander past it.\n\nWhat a new person hits: A work record can be marked active when it has no commands that say how to tell the work is done.\n\nWhy that ruins the product for them: The paperwork looks official and checks nothing. They learn that the record is decoration.\n\nHow likely: Medium-high. It happens as soon as a work record is created without test commands, which setup currently allows.\n\n",
+          "id": 5780288034,
+          "html_url": "https://github.com/deftai/directive/issues/4768#issuecomment-5780288034",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:41Z",
+          "updated_at": "2026-09-22T16:38:41Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Original Tester 4 defect: #6\n\n## Summary\n\nActive xBRIEFs were created with no acceptance commands and `acceptance.none_stated=true`.\n\n## Expected behavior\n\nAn active work brief should contain actionable acceptance criteria or enforce an explicit acceptance-definition step.\n\n## Actual behavior\n\n```json\n\"acceptance\": {\n  \"commands\": [],\n  \"none_stated\": true,\n  \"derived_reason\": \"no shell acceptance commands stated in task text; floor until agent derives AC\"\n}\n```\n\nBoth active Story A and Story B xBRIEFs showed this condition.\n\n## Reproduction\n\n1. Create a GitHub issue without shell acceptance commands.\n2. Ingest it into an xBRIEF.\n3. Activate the xBRIEF.\n4. Inspect the `acceptance` object and run the acceptance gate.\n\n## Environment\n\nWindows; Directive 0.119.2/0.119.3; xBRIEF model version 0.8.\n\n## Impact\n\nAcceptance gates cannot provide a meaningful completion decision.\n\n## Testing continuation\n\nTesting continued, but the acceptance-gate failure was preserved.\n\n## Related GitHub issue or PR\n\nNone in `deftai/directive`.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5501877140,
+        "origin": "deftai/directive#4768",
+        "id": "github.issue.5501877140"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c28f74e53835f29c93bf29fddbc9956a08f54ddf3ab40087e415941f96624099"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep the #3284 intake floor legal before activate (`commands=[]` plus `none_stated:true`). Do not bind \"active briefs must not carry that object.\"",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step. Do not commit the floor into `active/` on that no-op.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep empty-resolution readers (`soft_empty` / complete refuse). Do not reverse #3826 0-verified pre-product pass as a side effect.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recovery is an operator-visible definition step, or a derivable declared surface (list items / `test:` / `acceptance:` lines per #4374). Not silent agent authorship from the issue thread.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No new `plan.acceptance` writer. Exclusive writer stays #4374 derivation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
+        "Keep the #3284 intake floor legal before activate (`commands=[]` plus `none_stated:true`).",
+        "Do not bind \"active briefs must not carry that object.\" - On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step.",
+        "Do not commit the floor into `active/` on that no-op.",
+        "Keep empty-resolution readers (`soft_empty` / complete refuse).",
+        "Do not reverse #3826 0-verified pre-product pass as a side effect.",
+        "Recovery is an operator-visible definition step, or a derivable declared surface (list items / `test:` / `acceptance:` lines per #4374).",
+        "Not silent agent authorship from the issue thread.",
+        "No new `plan.acceptance` writer.",
+        "Exclusive writer stays #4374 derivation.",
+        "Do not bind \"active briefs must not carry that object.\"",
+        "On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step."
+      ]
+    },
+    "id": "github.issue.5501877140",
+    "updated": "2026-09-23T17:00:11Z"
+  }
+}
