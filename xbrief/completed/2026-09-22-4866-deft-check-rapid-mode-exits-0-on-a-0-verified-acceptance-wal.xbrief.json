@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4866",
-    "updated": "2026-09-22T22:36:20Z"
+    "updated": "2026-09-23T00:22:48Z"
   },
   "plan": {
     "title": "deft check rapid mode exits 0 on a 0-verified acceptance walk",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "deft check rapid mode exits 0 on a 0-verified acceptance walk",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4866",
@@ -16,13 +16,25 @@
     "items": [
       {
         "title": "A rapid product-first check does not exit 0 when the acceptance walk reports zero verified clauses.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4929",
+          "recorded_at": "2026-09-23T00:22:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "That change is not a claim that unverifiable clauses already fail verify:ac, and not a claim that the other gates still run.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4929",
+          "recorded_at": "2026-09-23T00:22:23Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -290,9 +302,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "f31c84b0242bd362165181b8aea9c95ac4143d7c7ac1006b78c5235f6fcbec8b"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4929,
+        "prBase": null,
+        "mergeCommit": "3147b473839fc25182730d12118136985e9a29f5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3147b473839fc25182730d12118136985e9a29f5",
+        "verifiedAt": "2026-09-23T00:22:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T00:22:48Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T00:22:48Z"
       }
     },
     "id": "github.issue.5540554831",
-    "updated": "2026-09-22T22:36:20Z"
+    "updated": "2026-09-23T00:22:48Z"
   }
 }
