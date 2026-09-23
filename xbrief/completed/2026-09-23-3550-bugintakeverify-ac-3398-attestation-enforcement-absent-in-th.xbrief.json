@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3550",
-    "updated": "2026-09-23T17:00:04Z"
+    "updated": "2026-09-23T19:53:54Z"
   },
   "plan": {
     "title": "bug(intake,verify-ac): #3398 attestation enforcement absent in the field and noun-traceability admits behavior-free clauses - two existence greps + zero commands = verified-pass",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(intake,verify-ac): #3398 attestation enforcement absent in the field and noun-traceability admits behavior-free clauses - two existence greps + zero commands = verified-pass",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3550",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "The verify walk fails closed when a statement sentence is neither a clause nor an explicit confession on the brief.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
+          "recorded_at": "2026-09-23T19:53:53.649Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "That refusal covers every reader profile that reaches the oracle walk.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
+          "recorded_at": "2026-09-23T19:53:53.649Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "An existence clause or a quoted-token clause verifying does not cover an unmapped sentence.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
+          "recorded_at": "2026-09-23T19:53:53.649Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "The sentence list is on the brief and does not select a file.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
+          "recorded_at": "2026-09-23T19:53:53.649Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "Count fields follow the refusal.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
+          "recorded_at": "2026-09-23T19:53:53.649Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "tags": [
@@ -412,9 +442,33 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "e8a0ec444c46145a189f92c5071ec4b34cab883ccaf9217d8ae1fca011979bba"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4972,
+        "prBase": null,
+        "mergeCommit": "10b73110d565ed0aac7c0ec16745bd2f751ed3cc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a",
+        "verifiedAt": "2026-09-23T19:53:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T19:53:54Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T19:53:54Z"
       }
     },
     "id": "github.issue.5206987554",
-    "updated": "2026-09-23T17:00:04Z"
+    "updated": "2026-09-23T19:53:54Z",
+    "capacityBucket": "technical-debt"
   }
 }
