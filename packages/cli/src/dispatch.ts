@@ -158,6 +158,7 @@ export const CLI_MODULE_VERBS = [
   "vbrief-validation",
   "xbrief-create",
   "xbrief-verify",
+  "xbrief-adopt-stored-plan-id",
   "verify-branch",
   "verify-encoding",
   "verify-forward-coverage",
@@ -416,6 +417,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "xbrief:preflight": "vbrief-preflight",
   "xbrief:create": "xbrief-create",
   "xbrief:verify": "xbrief-verify",
+  "xbrief:adopt-stored-plan-id": "xbrief-adopt-stored-plan-id",
   "vbrief:activate": "vbrief-activate",
   "verify:story-ready": "verify-story-ready",
   "verify:review-monitor": "verify-review-monitor",
@@ -559,6 +561,7 @@ const WRAPPER_CLI_STEMS = new Set<string>([
   "vbrief-validation",
   "xbrief-create",
   "xbrief-verify",
+  "xbrief-adopt-stored-plan-id",
 ]);
 
 function emitCliResult(result: CliResult, io: DispatchIo): number {
@@ -634,6 +637,10 @@ async function loadWrapperCliHandler(stem: string, io: DispatchIo): Promise<Comm
     case "xbrief-verify": {
       const { runXbriefVerifyCli } = await import("@deftai/directive-core/xbrief");
       return (argv) => emitCliResult(runXbriefVerifyCli(argv), io);
+    }
+    case "xbrief-adopt-stored-plan-id": {
+      const { runAdoptStoredPlanIdCli } = await import("@deftai/directive-core/xbrief");
+      return (argv) => emitCliResult(runAdoptStoredPlanIdCli(argv), io);
     }
     default:
       throw new Error(`no wrapper handler for ${stem}`);
@@ -3187,6 +3194,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "xbrief:verify",
         summary: "Verify a dense xBRIEF artifact at --out (requires --format); not scope:*",
+      },
+      {
+        name: "xbrief:adopt-stored-plan-id",
+        summary: "Set plan.id from the stored plan-id binding; refuse if another artifact has it",
       },
     ],
   },

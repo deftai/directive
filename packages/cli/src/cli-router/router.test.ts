@@ -115,6 +115,11 @@ describe("routeArgv", () => {
       "--out",
       "b",
     ]);
+    expect(routeArgv(["xbrief", "adopt-stored-plan-id", "--out", "a"]).argv).toEqual([
+      "xbrief:adopt-stored-plan-id",
+      "--out",
+      "a",
+    ]);
   });
 
   it("maps pr merge-ready to pr-merge-readiness", () => {

@@ -108,16 +108,20 @@ On-demand **write + check** dense xBRIEF SoT artifacts at an explicit path. Thes
 | Verb | Meaning |
 |------|---------|
 | `deft xbrief:create` | Write json, md, or both at `--out` |
-| `deft xbrief:verify` | Fail-closed check at `--out` |
+| `deft xbrief:verify` | Fail-closed check at `--out`, including a stored plan-id conflict |
+| `deft xbrief:adopt-stored-plan-id` | Set `plan.id` to the stored `x-directive/plan-id` id; refuse if another artifact has it |
 | `scope:*` / intake | Lifecycle birth and folder/status transitions |
 | `xbrief:preflight` | Implementation-intent gate (unchanged) |
 
 ```bash
 deft xbrief:create -- --format <json|md|both> --out <path> [--style scope|playbook|mission|project] [--title T] [--id ID] [--force]
 deft xbrief:verify -- --format <json|md|both> --out <path> [--style scope|playbook|mission|project]
+deft xbrief:adopt-stored-plan-id -- --out <path> [--project-root <dir>]
 ```
 
-- ! `--format` and `--out` are **required**
+- ! `--format` and `--out` are **required** for create and verify. Adopt requires `--out` only.
+- ! `xbrief:verify` fails when `plan.id` disagrees with a parsed `x-directive/plan-id` binding, and reports the other stored-mint clauses. It does not mint and it does not scan sibling briefs. The disagree line names `xbrief:adopt-stored-plan-id`.
+- ! `xbrief:adopt-stored-plan-id` copies that stored binding id onto `plan.id` and refuses when the id already occupies another lifecycle artifact. It does not mint an id from issue text.
 - ! `both` uses one stem → `*.xbrief.json` + `*.xbrief.md`
 - ! P0 styles: `scope` | `playbook` | `mission` | `project`
 - ! Paths expand portably (`~`, `%USERPROFILE%`); project-root containment fails closed

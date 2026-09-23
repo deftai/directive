@@ -5,9 +5,17 @@
  * Scope lifecycle remains scope:promote / activate / complete / etc.
  */
 
+import { runAdoptStoredPlanIdCli } from "./adopt-stored-plan-id.js";
 import { runXbriefCreateCli } from "./create.js";
 import { runXbriefVerifyCli } from "./verify.js";
 
+export {
+  ADOPT_USAGE,
+  type AdoptStoredPlanIdOptions,
+  adoptStoredPlanId,
+  parseAdoptArgv,
+  runAdoptStoredPlanIdCli,
+} from "./adopt-stored-plan-id.js";
 export {
   CREATE_USAGE,
   type CreateOptions,
@@ -21,6 +29,12 @@ export {
   stripXbriefSuffix,
   XbriefPathError,
 } from "./paths.js";
+export {
+  ADOPT_STORED_PLAN_ID_VERB,
+  adoptStoredPlanIdInvocation,
+  readStoredPlanIdBinding,
+  storedMintIdentityConflict,
+} from "./stored-mint-conflict.js";
 export {
   type BuildDocumentInput,
   buildStyleDocument,
@@ -63,11 +77,18 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     if (result.stderr) process.stderr.write(result.stderr);
     return result.exitCode;
   }
+  if (verb === "adopt-stored-plan-id") {
+    const result = runAdoptStoredPlanIdCli(rest);
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    return result.exitCode;
+  }
   if (verb === "-h" || verb === "--help" || verb === undefined) {
     process.stdout.write(
-      "Usage: deft xbrief:create|xbrief:verify -- --format <json|md|both> --out <path> [options]\n" +
+      "Usage: deft xbrief:create|xbrief:verify|xbrief:adopt-stored-plan-id -- --out <path> [options]\n" +
         "  create/verify dense xBRIEF artifacts (not scope lifecycle).\n" +
-        "  See: deft xbrief:create --help | deft xbrief:verify --help\n",
+        "  adopt-stored-plan-id copies the stored plan-id binding onto plan.id.\n" +
+        "  See: deft xbrief:create --help | deft xbrief:verify --help | deft xbrief:adopt-stored-plan-id --help\n",
     );
     return verb === undefined ? 2 : 0;
   }

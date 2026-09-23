@@ -3,7 +3,8 @@
  *
  * Required: --format (json|md|both), --out
  * Checks: schema/parse, required fields, size cap, md sections per style,
- * and stem/title/id consistency when format=both.
+ * stem/title/id consistency when format=both, and the read-only stored-mint
+ * conflict when a parsed x-directive/plan-id binding is present.
  *
  * Does NOT move lifecycle folders.
  */
@@ -11,6 +12,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { type JsonObject, validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { resolveXbriefOutPaths, XbriefPathError } from "./paths.js";
+import { adoptStoredPlanIdInvocation, storedMintIdentityConflict } from "./stored-mint-conflict.js";
 import { MD_REQUIRED_SECTIONS, parseMarkdownMeta } from "./styles.js";
 import {
   DEFAULT_XBRIEF_SIZE_CAP_BYTES,
@@ -259,6 +261,17 @@ export function verifyXbrief(options: VerifyOptions): XbriefCliResult {
     const jsonId = typeof doc.plan.id === "string" ? doc.plan.id : null;
     if (jsonId !== null && mdMeta.id !== null && jsonId !== mdMeta.id) {
       errors.push(`id mismatch: json=${JSON.stringify(jsonId)} md=${JSON.stringify(mdMeta.id)}`);
+    }
+  }
+
+  // Read-only stored-mint conflict. Not lifecycle admission and not a sibling scan.
+  if (doc !== null) {
+    const conflict = storedMintIdentityConflict(doc as unknown as Record<string, unknown>);
+    if (conflict !== null) {
+      const hint = conflict.disagree
+        ? ` ${adoptStoredPlanIdInvocation(options.out, options.projectRoot)}`
+        : "";
+      errors.push(`${conflict.detail}${hint}`);
     }
   }
 

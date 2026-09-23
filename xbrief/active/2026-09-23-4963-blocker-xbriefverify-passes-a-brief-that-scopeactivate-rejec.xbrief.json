@@ -1,0 +1,302 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4963",
+    "updated": "2026-09-23T18:50:05Z"
+  },
+  "plan": {
+    "title": "BLOCKER: xbrief:verify passes a brief that scope:activate rejects on plan.id, and remediation names an internal function",
+    "status": "running",
+    "narratives": {
+      "Description": "BLOCKER: xbrief:verify passes a brief that scope:activate rejects on plan.id, and remediation names an internal function",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4963",
+      "Overview": "\n\n1. xbrief:verify checks the read-only stored-mint conflict: plan.id against the parsed x-directive/plan-id binding, including the other bindingIdentityConflict clauses. It does not call evaluateIssuePlanIdAdmission, it does not mint, and it does not scan sibling briefs.\n2. The disagree refusal names a deft command. That command sets plan.id to the stored binding id, refuses when that id already occupies another artifact, does not call repairNonterminalIssuePlanIds, and does not mint the id from issue-body text.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:9a8e66a3b01f06417847474c03cd760072cc8dc52fd0174c3e8450a7ee83e0ca\n\n\n",
+      "Labels": "bug, determinism, adoption-blocker, agent-experience, area:cli, area:vbrief, design-critique:ingest-ready, core-capabilities, promise:planning"
+    },
+    "items": [
+      {
+        "title": "xbrief:verify checks the read-only stored-mint conflict: plan.id against the parsed x-directive/plan-id binding, including the other bindingIdentityConflict clauses. It does not call evaluateIssuePlanIdAdmission, it does not mint, and it does not scan sibling briefs.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "The disagree refusal names a deft command. That command sets plan.id to the stored binding id, refuses when that id already occupies another artifact, does not call repairNonterminalIssuePlanIds, and does not mint the id from issue-body text.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "adoption-blocker",
+      "agent-experience",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4963",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4963: BLOCKER: xbrief:verify passes a brief that scope:activate rejects on plan.id, and remediation names an internal function"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4119",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4119"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "xbrief:verify checks the read-only stored-mint conflict: plan.id against the parsed x-directive/plan-id binding, including the other bindingIdentityConflict clauses. It does not call evaluateIssuePlanIdAdmission, it does not mint, and it does not scan sibling briefs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The disagree refusal names a deft command. That command sets plan.id to the stored binding id, refuses when that id already occupies another artifact, does not call repairNonterminalIssuePlanIds, and does not mint the id from issue-body text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Filed from Doug first-run feedback (superchecker / 0.119.6). Leftover of closed #4119 (ingest mint). Companion silent-accept draft: #4962.",
+          "id": 5798104708,
+          "html_url": "https://github.com/deftai/directive/issues/4963#issuecomment-5798104708",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T15:55:34Z",
+          "updated_at": "2026-09-23T15:55:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because xbrief:verify accepts a hand-authored issue-backed brief that scope:activate rejects on plan.id, and the refusal names an internal function instead of a deft command.\n\ncharter: refutation\nrefutation-target: A hand-authored issue-backed brief that xbrief:verify accepts and scope:activate rejects because plan.id does not equal the stored mint github.issue.<id> is a product defect, so verify must run the same identity check activate uses, and the refusal must name a runnable deft command.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is the leftover consumer path after closed #4119 minted plan.id at ingest. The checks are local to verify, activate, and the repair hint. It is not a whole-motion session loop. N=1.\n\npain: P1, P2\n\nP1. xbrief:verify accepts a hand-authored issue-backed brief whose plan.id does not equal the stored mint github.issue.<id>, and scope:activate then rejects that same brief.\nP2. The activate refusal names repairNonterminalIssuePlanIds, which is not a runnable deft command, so the operator edits plan.id by hand.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4963-dc\norigin-ref: origin/master\ndispatch-sha: cae371d0161bb7c03df0ab9fc312c477f7c524cc\npin-kind: origin-default\n\nPin reads use git show cae371d0161bb7c03df0ab9fc312c477f7c524cc. The issue body is the proposal under test. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\n\n",
+          "id": 5800234045,
+          "html_url": "https://github.com/deftai/directive/issues/4963#issuecomment-5800234045",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:06:04Z",
+          "updated_at": "2026-09-23T18:06:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\n## Share the conflict predicate, not the activator\nsharpens-framing\nEvidence: `git rev-parse HEAD` is cae371d0161bb7c03df0ab9fc312c477f7c524cc. `git show` of `packages/core/src/xbrief/verify.ts`: `verifyXbrief` checks schema, size, markdown sections, and json/md id equality. It never reads `x-directive/plan-id`. `VERIFY_USAGE` states that verify is not a lifecycle move. `git show` of `packages/core/src/scope/transition.ts`: `scope:promote` and `scope:activate` call `evaluateIssuePlanIdAdmission` at the end of `runTransition`. A promote whose file is already in the target folder returns ok before that call. `git show` of `packages/core/src/vbrief-activate/activate.ts` calls the same function. In `packages/core/src/intake/issue-ingest.ts` the disagree string is private `bindingIdentityConflict` (`plan.id` versus `binding.id`). The public function also mints a missing id for an ingest owner via `attachPlanIdMint` (fallback form, no REST issue id) and scans siblings with `findParentsByPlanId`. Ingest-owner detection is `/ingested from/i` on Origin or description.\nFailure mode: Binding \"the same identity check\" as a call to `evaluateIssuePlanIdAdmission` makes `xbrief:verify` walk the lifecycle tree and mint in memory. A schema-valid brief whose `plan.id` is already taken by a sibling starts failing verify. An ingest owner with no `plan.id` is minted only in that discarded object, and verify still prints OK. The stored-mint disagree case is the part that matches the target, and it does not need the mint or the sibling scan.\nDisposition: Before bind, define the shared check as the read-only stored-mint conflict: `plan.id` against the parsed `x-directive/plan-id` binding, including the other `bindingIdentityConflict` clauses. Keep `evaluateIssuePlanIdAdmission` on promote and activate. Do not call it from verify, and do not persist a mint from verify.\n\n## The repair helper refuses the case the hint names\nsharpens-framing\nEvidence: `PLAN_ID_REPAIR_HINT` tells the operator to call `repairNonterminalIssuePlanIds({ vbriefDir, dryRun: true })` and then `dryRun: false`. `admissionFail` appends that hint to every identity refusal, including the disagree case. The repair skips a file `resolveIngestProvenanceOwner` classifies as not-ingest-owner. On a disagreeing binding it records action refuse and, when any row refuses, returns without writing. `git grep` at this SHA finds no use of `repairNonterminalIssuePlanIds` under `packages/cli`, `content/commands.md`, or `packages/core/src/scope/main.ts`. `attachPlanIdMint` is the only production assignment of `plan.id`, and it writes `plan.id` and the binding id as the same value. The REST form `github.issue.<numeric>` is written in `buildIssueVbrief` when `issue.id` is present. Repair's mint does not pass `issueId`.\nFailure mode: A deft command that wraps `repairNonterminalIssuePlanIds` meets \"names a runnable deft command\" and still leaves the disagreeing brief unchanged. A hand-authored file with no \"ingested from\" text is skipped, so the command can report a clean repair while `scope:activate` still refuses. A command that copies the stored binding onto `plan.id` changes the brief's identity. That binding is file content, not a new REST read. Copying it onto an id `findParentsByPlanId` already records collides with the other brief. Minting a replacement from issue text would take identity from untrusted issue content.\nDisposition: Before bind, name the command and the write. The disagree case must not delegate to `repairNonterminalIssuePlanIds`. State which field wins. Refuse when the resulting `plan.id` already occupies another artifact. Do not mint that id from issue-body text.\n\n## No writer emits the disagreeing pair\nfootnote\nEvidence: `git grep` for `plan.id =` under `packages/core/src` and `packages/cli/src` at this SHA finds a production write only in `attachPlanIdMint`. Ingest, admission's missing-id path, and repair's missing-id path all use that helper, which sets both fields to one mint id.\nFailure mode: None for the bind. A search for a product writer of `plan.id` not equal to the stored mint will not find one in this tree.\nDisposition: No new mint writer. The split is a later edit of one of the two fields. The verify gap and the hint still stand.\n\nRoad not taken: call `evaluateIssuePlanIdAdmission` from `verifyXbrief`, and replace the hint with a thin deft wrapper of `repairNonterminalIssuePlanIds`. That is the literal target. It fails for the two reasons above. It would flip if verify were redefined as lifecycle admission and the command specified which field it writes, under the existing duplicate check, with no mint from issue text.\n\nThe stored-mint defect survives. `xbrief:verify` accepts a brief whose `plan.id` disagrees with a stored `x-directive/plan-id` mint, and `scope:activate` rejects that brief with a hint that names `repairNonterminalIssuePlanIds`. The two remedy clauses survive only in the form stated in the dispositions above.\r\n\n",
+          "id": 5800361223,
+          "html_url": "https://github.com/deftai/directive/issues/4963#issuecomment-5800361223",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:14:47Z",
+          "updated_at": "2026-09-23T18:14:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA hand-written brief can pass verification and then die on activate, because its plan id does not match the mint stored in the same file. The message tells the person to call an internal function, so the only way through is a hand edit.\n\nVerification will reject that mismatch by reading the stored mint, and it will not take on activate's other work. The refusal will name a command that copies the stored mint onto the plan id when no other brief already has that id. The command will not call the internal repair helper, and it will not invent an id from the issue text.\n\nConfirming this map means the list below is the build contract. The issue body's three suggested fixes are not. The same parent wrote the Stop 1 warrant and this map. The critic comment is the check on the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives only in the form in comment 5800361223. Verify shares the read-only stored-mint conflict and does not call activate's admission function. The refusal names a command that writes the stored binding onto plan.id, refuses a collision, and does not call the repair helper. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5800234045\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: cae371d0161bb7c03df0ab9fc312c477f7c524cc\n\n## Takes\n\n- 5800361223 Share the conflict predicate, not the activator — accept-into-contract\n- 5800361223 The repair helper refuses the case the hint names — accept-into-contract\n\nFootnote, outside the take map: 5800361223 No writer emits the disagreeing pair.\n\nSpec-path:\n\n## Bound remedy\n\n1. xbrief:verify checks the read-only stored-mint conflict: plan.id against the parsed x-directive/plan-id binding, including the other bindingIdentityConflict clauses. It does not call evaluateIssuePlanIdAdmission, it does not mint, and it does not scan sibling briefs.\n2. The disagree refusal names a deft command. That command sets plan.id to the stored binding id, refuses when that id already occupies another artifact, does not call repairNonterminalIssuePlanIds, and does not mint the id from issue-body text.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:9a8e66a3b01f06417847474c03cd760072cc8dc52fd0174c3e8450a7ee83e0ca\n\n## Parent-side substantiation\n\nThe critic required the bind to state which field the command writes, and did not state it. The stored binding is the mint the activate check already compares against, so the command writes that id onto plan.id.\n\naudit:binding-wins sha=cae371d0161bb7c03df0ab9fc312c477f7c524cc pointer=comment:5800361223 reading=asserted\n\n",
+          "id": 5800405387,
+          "html_url": "https://github.com/deftai/directive/issues/4963#issuecomment-5800405387",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:17:32Z",
+          "updated_at": "2026-09-23T18:17:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, binding-wins\n\nPass-4 pain-audit of successor lean 5800405387 at cae371d0161bb7c03df0ab9fc312c477f7c524cc. Footnote-only. Both coverage cites hold. Writing the stored binding id onto plan.id is the field that clears them. The harvested list does not change.\n\n## The read-only conflict check covers the false accept\nfootnote\nEvidence: `git show cae371d0161bb7c03df0ab9fc312c477f7c524cc:packages/core/src/xbrief/verify.ts` returns exit 0 after schema, markdown sections, and json/md id equality. It never reads `x-directive/plan-id`. In `packages/core/src/intake/issue-ingest.ts`, `bindingIdentityConflict` returns `plan.id ${planId} disagrees with stored mint ${binding.id}` when plan.id is present and unequal to the stored binding id. `evaluateIssuePlanIdAdmission` turns that string into a refusal. `packages/core/src/vbrief-activate/activate.ts` and `packages/core/src/scope/transition.ts` both surface that refusal on activate. A hand-authored brief still hits that comparison: `resolveIngestProvenanceOwner` returns not-ingest-owner unless Origin or description matches `/ingested from/i`, and the id comparison runs before the owner-only origin clause.\nFailure mode: None on this cite. The first harvested clause makes verify run that same read-only predicate, including the later clauses, and it does not call `evaluateIssuePlanIdAdmission`, mint, or scan siblings. Verify then rejects the brief activate already rejects.\nDisposition: The harvested list stays. No added clause.\n\n## The named command covers the hand edit\nfootnote\nEvidence: `PLAN_ID_REPAIR_HINT` names `repairNonterminalIssuePlanIds({ vbriefDir, dryRun: true })` and then `dryRun: false`. `admissionFail` appends that hint to every identity refusal. `git grep` at this SHA finds the symbol only in `packages/core/src/intake/issue-ingest.ts` and `packages/core/src/intake/issue-ingest.test.ts`. On any `bindingIdentityConflict` the repair records action refuse and, when any row refuses, returns without writing. It also skips not-ingest-owner, so a hand-authored brief never reaches a write.\nFailure mode: None on this cite. A wrapper of that function would still leave the disagreeing brief unchanged. The second harvested clause names a deft command on the disagree refusal, sets plan.id to the stored binding id, refuses a collision, and does not call the helper. That is the hand edit of plan.id.\nDisposition: The harvested list stays. Other admission codes still append the same hint. Those codes are not the hand edit of plan.id. The pain's refusal is the disagree refusal. No added clause.\n\n## The stored binding id is the field that clears the disagree\nfootnote\nEvidence: The disagree return is the first clause of `bindingIdentityConflict`, and the message names `binding.id` as the stored mint. `mintIssuePlanId` sets a REST id to `github.issue.${restId}` with source `github-rest-id`. For that source the predicate then requires `binding.id === github.issue.${githubIssueId}` and returns. `attachPlanIdMint` assigns that same id to plan.id and to the binding. Setting plan.id to binding.id clears the first clause and leaves the REST self-check true when the binding was minted that way. Setting the binding id to a hand-authored plan.id makes the REST self-check fail, because the expected id stays `github.issue.${githubIssueId}`. A consistent fallback binding has the same direction: its id must stay equal to `mintIssuePlanId` for that origin (`github.issue.fallback...`). The fixture `refuses matching plan.id when stored binding origin/source/github_issue_id/version conflict` keeps admission conflicting when the two ids match but the REST id does not. `github.issue.<digits>` matches `PLAN_ID_FORMAT`. The collision refuse is the `findParentsByPlanId` census already in `evaluateIssuePlanIdAdmission`, excluding the file itself.\nFailure mode: None on this cite. Copying the other field, or minting from issue text, leaves activate refusing. An origin mismatch or an internally inconsistent binding still refuses after the ids match. That is outside the pain's inequality against a stored `github.issue.<id>` mint, and the first harvested clause already reports those clauses from verify. The command does not claim to repair them.\nDisposition: The substantiation holds. The harvested write stays plan.id set to the stored binding id. No added clause.\n\n## The write stays inside the admission trust boundary\nfootnote\nEvidence: The stored binding is file content. Activate already treats binding.id as the mint when the fields match, and it does not re-read GitHub. The harvested command copies that same id and refuses when `findParentsByPlanId` already records it. It does not mint from issue-body text.\nFailure mode: None on this cite. A hand-authored binding can name an unused `github.issue.<id>`. That is the trust activate already grants once the fields match. The collision census is the deterministic control. Overwriting plan.id is the same mutation as the hand edit that unblocked activate, including any depends_on string that named the old id.\nDisposition: No harvested control to add.\n\nRoad not taken: make plan.id win by copying it onto the binding, or mint a fresh id at promote. The first fails the REST self-check whenever the hand-authored id is not already `github.issue.<github_issue_id>`. The second takes identity from issue text, which the harvested list excludes.\nWhat would flip the field: a well-formed REST binding whose self-check accepted an arbitrary plan.id, or an activate comparison whose stored mint was not binding.id. Neither is in this tree.\r\n\n",
+          "id": 5800494994,
+          "html_url": "https://github.com/deftai/directive/issues/4963#issuecomment-5800494994",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:23:40Z",
+          "updated_at": "2026-09-23T18:23:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA hand-written brief can pass verification and then die on activate, because its plan id does not match the mint stored in the same file. The message names an internal function.\n\nVerification will reject that mismatch by reading the stored mint, and it will not take on activate's other work. The refusal will name a command that copies the stored mint onto the plan id when no other brief already has that id. The same parent wrote the Stop 1 warrant. The pain-audit re-derived these rows at the dispatch SHA.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| Verify shares the read-only stored-mint conflict and does not call activate's admission function. | git show of packages/core/src/xbrief/verify.ts and bindingIdentityConflict in packages/core/src/intake/issue-ingest.ts at cae371d0161bb7c03df0ab9fc312c477f7c524cc, re-derived in comment 5800494994. | verified |\n| The disagree refusal names a command that sets plan.id to the stored binding id, refuses a collision, and does not call repairNonterminalIssuePlanIds. | git grep of repairNonterminalIssuePlanIds at that SHA, re-derived in comment 5800494994. The helper refuses the disagree case and skips a hand-authored brief. | verified |\n| The stored binding id is the field that clears the disagree. Copying the other way fails the REST self-check. | Trace of mintIssuePlanId and the REST self-check at that SHA in comment 5800494994. | verified |\n\n",
+          "id": 5800520108,
+          "html_url": "https://github.com/deftai/directive/issues/4963#issuecomment-5800520108",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:25:21Z",
+          "updated_at": "2026-09-23T18:25:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA hand-written brief can pass verification and then die on activate, because its plan id does not match the mint stored in the same file. The message names an internal function.\n\nVerification will reject that mismatch by reading the stored mint, and it will not take on activate's other work. The refusal will name a command that copies the stored mint onto the plan id when no other brief already has that id. The same parent wrote the Stop 1 warrant. Comment 5800494994 re-derived the rows. The build contract is successor lean 5800405387.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5800405387.\nThe verified-claims rows are in comment 5800520108.\n\n",
+          "id": 5800522828,
+          "html_url": "https://github.com/deftai/directive/issues/4963#issuecomment-5800522828",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T18:25:32Z",
+          "updated_at": "2026-09-23T18:25:32Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nBLOCKER. On a greenfield first story, `xbrief:verify` passed a hand-authored brief that `scope:activate` later rejected because `plan.id` did not equal the stored mint `github.issue.<id>`. The activation remediation named an internal function — `repairNonterminalIssuePlanIds({ vbriefDir, dryRun: true })` — not a runnable `deft` command. The operator had to edit `plan.id` by hand before work could continue.\n\n## Source\n\nDoug first-run feedback on greenfield project **superchecker**, `@deftai/directive@0.119.6`, Claude Code host, 2026-09-22. Friction points 7 and 8.\n\n## Expected\n\n1. `xbrief:verify` and `scope:activate` agree on what a valid brief is (identity checks run inside verify).\n2. `scope:promote` mints `plan.id` for issue-backed briefs so hand-authored or accept-drafted scopes activate cleanly.\n3. Every refusal remediation is a runnable `deft …` command a consumer can copy-paste.\n\n## Actual\n\n- `xbrief:verify` passed the hand-written brief (false confidence).\n- `scope:activate` refused: `plan.id` ≠ stored mint `github.issue.<id>`.\n- Remediation text named `repairNonterminalIssuePlanIds({ vbriefDir, dryRun: true })` (engine-internal; see `PLAN_ID_REPAIR_HINT` in `packages/core/src/intake/issue-ingest.ts`).\n- Unblocked only by hand-editing `plan.id`.\n\n## Environment\n\n- Directive: `0.119.6`\n- Host: Claude Code\n- Flow: hand-written brief → promote → feature branch → `session:start` → `scope:activate`\n- Cost: **blocked** until `plan.id` edited by hand\n\n## Related\n\n- Closed #4119 — `issue:ingest` omits stable `plan.id` (fixed mint at ingest). This report is the leftover consumer path: hand-authored / promote path still diverges, verify does not catch it, and recovery still names the internal repair helper.\n\n## Adoption impact\n\n### Affected consumer flow and version\n\nGreenfield first-story activate on `@deftai/directive@0.119.6` after a hand-authored (or non-ingest-minted) issue-backed brief.\n\n### Documented alternatives attempted\n\nRemediation offered only the internal `repairNonterminalIssuePlanIds(...)` call. No `deft` verb was named. Hand-editing `plan.id` was the only path that unblocked activate.\n\n### Observed recovery cost\n\nActivate hard-stopped the session mid first-story; work resumed only after a manual JSON edit of `plan.id`.\n\n### Triage owner and date\n\npolfer / 2026-09-23 — applying `adoption-blocker` after body-evidence test from Doug first-run report.\n\n## Suggested fix\n\n1. Run the same identity checks inside `xbrief:verify` that activate uses.\n2. Have `scope:promote` mint `plan.id` for issue-backed briefs.\n3. Replace `PLAN_ID_REPAIR_HINT` with a runnable `deft …` recovery command (or make activate auto-repair with an explicit printed action).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5555958091,
+        "origin": "deftai/directive#4963",
+        "id": "github.issue.5555958091"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9a8e66a3b01f06417847474c03cd760072cc8dc52fd0174c3e8450a7ee83e0ca"
+      }
+    },
+    "id": "github.issue.5555958091",
+    "updated": "2026-09-23T18:50:05Z"
+  }
+}
