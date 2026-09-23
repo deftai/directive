@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4886",
-    "updated": "2026-09-23T00:57:42Z"
+    "updated": "2026-09-23T01:59:52Z"
   },
   "plan": {
     "title": "Default doctor stays UNRESOLVED after init while doctor --full says proceed",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Default doctor stays UNRESOLVED after init while doctor --full says proceed",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4886",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "Default skip may fire only when the remembered probe's deposit presence matches live `classify().hasDeftCore`. Persist that boolean next to `last_error_count`. Absent field on old files: fall through once, then persist.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4941",
+          "recorded_at": "2026-09-23T01:59:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "After deposit presence changes, the next default `directive doctor` completes a probe and persists live counts. `--full` stays the remaining-skip bypass.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4941",
+          "recorded_at": "2026-09-23T01:59:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Copy follow-through (stale versus UNRESOLVED) is allowed only after skip falls through.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4941",
+          "recorded_at": "2026-09-23T01:59:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Recut `honours throttle skip when dirty` so remembered-dirty plus live core is skip only when the stored deposit bit is also true.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4941",
+          "recorded_at": "2026-09-23T01:59:25Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Init or update unlinking `statePath()` may be extra. Do not drop `DIRTY_WINDOW_HOURS` for installed trees whose last completed probe already found live errors.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4941",
+          "recorded_at": "2026-09-23T01:59:25Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -321,9 +351,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "0b5fb739e5ecf02db654302589f4088fef41c5f5742f2847ca878f2788f44f71"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4941,
+        "prBase": null,
+        "mergeCommit": "83a379bf9c87524924c1907df583992c583e7e41",
+        "deliveryBranch": "master",
+        "deliveryCommit": "83a379bf9c87524924c1907df583992c583e7e41",
+        "verifiedAt": "2026-09-23T01:59:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T01:59:52Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T01:59:52Z"
       }
     },
     "id": "github.issue.5540578170",
-    "updated": "2026-09-23T00:57:42Z"
+    "updated": "2026-09-23T01:59:52Z"
   }
 }
