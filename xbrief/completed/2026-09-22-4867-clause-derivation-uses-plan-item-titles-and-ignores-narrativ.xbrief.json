@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4867",
-    "updated": "2026-09-22T22:36:33Z"
+    "updated": "2026-09-23T00:08:23Z"
   },
   "plan": {
     "title": "Clause derivation uses plan-item titles and ignores narratives.AcceptanceCriteria",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Clause derivation uses plan-item titles and ignores narratives.AcceptanceCriteria",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4867",
@@ -16,13 +16,25 @@
     "items": [
       {
         "title": "When plan.narratives.AcceptanceCriteria has parseable lines, those lines are the derived clause texts even if plan items have titles.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4930",
+          "recorded_at": "2026-09-23T00:07:57Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Item titles are not that clause set.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4930",
+          "recorded_at": "2026-09-23T00:07:57Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -291,9 +303,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "f02941460fe286da5ffcdbfacf283a98858acf05d70c042c2cb4774a62563d5c"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4930,
+        "prBase": null,
+        "mergeCommit": "3a18518a4face919d50d97c0a620297d7ff3f698",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3a18518a4face919d50d97c0a620297d7ff3f698",
+        "verifiedAt": "2026-09-23T00:08:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T00:08:23Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T00:08:23Z"
       }
     },
     "id": "github.issue.5540560742",
-    "updated": "2026-09-22T22:36:33Z"
+    "updated": "2026-09-23T00:08:23Z"
   }
 }
