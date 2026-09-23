@@ -2,6 +2,8 @@
  * xbrief:adopt-stored-plan-id — copy the stored plan-id binding onto plan.id (#4963).
  *
  * Refuses when that id already occupies another lifecycle artifact.
+ * On a both-format pair, sets the markdown frontmatter id to that same id
+ * and does not rewrite the rest of that file.
  * Does not mint an id from issue text and does not repair other binding fields.
  */
 
@@ -18,6 +20,7 @@ import { DEFAULT_XBRIEF_SIZE_CAP_BYTES, type XbriefCliResult } from "./types.js"
 export const ADOPT_USAGE =
   `Usage: deft ${ADOPT_STORED_PLAN_ID_VERB} -- --out <path> [--project-root <dir>]\n` +
   "  Set plan.id to the stored x-directive/plan-id binding id.\n" +
+  "  On a both-format pair, set the markdown frontmatter id to that same id.\n" +
   "  Refuses when that id already occupies another lifecycle artifact.\n" +
   "  Does not mint an id from issue text.\n";
 
@@ -112,10 +115,71 @@ function readJson(
   }
 }
 
+function readCappedText(
+  path: string,
+  sizeCap: number,
+): { ok: true; text: string } | { ok: false; error: string } {
+  if (!existsSync(path)) {
+    return { ok: false, error: `missing file: ${path}\n` };
+  }
+  try {
+    const st = statSync(path);
+    if (!st.isFile()) return { ok: false, error: `not a file: ${path}\n` };
+    if (st.size > sizeCap) {
+      return { ok: false, error: `file exceeds size cap (${sizeCap} bytes): ${path}\n` };
+    }
+    return { ok: true, text: readFileSync(path, "utf8") };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `failed to read ${path}: ${msg}\n` };
+  }
+}
+
+function frontmatterClose(lines: readonly string[]): number | null {
+  if (lines[0]?.trim() !== "---") return null;
+  for (let i = 1; i < lines.length; i += 1) {
+    if (lines[i]?.trim() === "---") return i;
+  }
+  return null;
+}
+
+/** Replace frontmatter id lines only. The markdown body stays byte-stable aside from those lines. */
+function rewriteFrontmatterPlanId(
+  markdown: string,
+  storedId: string,
+): { ok: true; text: string; changed: boolean } | { ok: false; error: string } {
+  const newline = markdown.includes("\r\n") ? "\r\n" : "\n";
+  const lines = markdown.split(/\r?\n/);
+  const close = frontmatterClose(lines);
+  if (close === null) {
+    return { ok: false, error: "paired markdown frontmatter is missing or unclosed.\n" };
+  }
+  const nextLine = `id: ${storedId}`;
+  let found = false;
+  let changed = false;
+  for (let i = 1; i < close; i += 1) {
+    const line = lines[i];
+    if (line !== undefined && line.startsWith("id:")) {
+      found = true;
+      if (line !== nextLine) {
+        lines[i] = nextLine;
+        changed = true;
+      }
+    }
+  }
+  if (!found) {
+    lines.splice(close, 0, nextLine);
+    changed = true;
+  }
+  if (!changed) return { ok: true, text: markdown, changed: false };
+  return { ok: true, text: lines.join(newline), changed: true };
+}
+
 function applyAdopt(
   options: AdoptStoredPlanIdOptions,
   lifecycleRoot: string,
   jsonAbs: string,
+  mdAbs: string,
 ): XbriefCliResult {
   const sizeCap = options.sizeCapBytes ?? DEFAULT_XBRIEF_SIZE_CAP_BYTES;
   const loaded = readJson(jsonAbs, sizeCap);
@@ -139,17 +203,52 @@ function applyAdopt(
     const occupying = occupants.map((row) => row.path).join(", ");
     return fail(`Refusing to set plan.id to ${storedId}: that id already occupies ${occupying}.\n`);
   }
-  if (extractPlanId(loaded.data) === storedId) {
+  let markdownWrite: { text: string; previous: string } | null = null;
+  if (existsSync(mdAbs)) {
+    const loadedMd = readCappedText(mdAbs, sizeCap);
+    if (!loadedMd.ok) return fail(`Refusing to set plan.id: ${loadedMd.error}`);
+    const rewritten = rewriteFrontmatterPlanId(loadedMd.text, storedId);
+    if (!rewritten.ok) {
+      return fail(`Refusing to set plan.id: ${mdAbs}: ${rewritten.error}`);
+    }
+    if (rewritten.changed) {
+      markdownWrite = { text: rewritten.text, previous: loadedMd.text };
+    }
+  }
+  const jsonAlready = extractPlanId(loaded.data) === storedId;
+  if (jsonAlready && markdownWrite === null) {
     return { exitCode: 0, stdout: `plan.id already ${storedId}\n`, stderr: "" };
   }
-  (plan as Record<string, unknown>).id = storedId;
-  try {
-    atomicWriteText(jsonAbs, `${JSON.stringify(loaded.data, null, 2)}\n`, {
-      projectRoot: options.projectRoot,
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return fail(`failed to write ${jsonAbs}: ${msg}\n`);
+  if (markdownWrite !== null) {
+    try {
+      atomicWriteText(mdAbs, markdownWrite.text, { projectRoot: options.projectRoot });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return fail(`failed to write ${mdAbs}: ${msg}\n`);
+    }
+  }
+  if (!jsonAlready) {
+    (plan as Record<string, unknown>).id = storedId;
+    try {
+      atomicWriteText(jsonAbs, `${JSON.stringify(loaded.data, null, 2)}\n`, {
+        projectRoot: options.projectRoot,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (markdownWrite !== null) {
+        try {
+          atomicWriteText(mdAbs, markdownWrite.previous, {
+            projectRoot: options.projectRoot,
+          });
+        } catch (restoreErr) {
+          const restoreMsg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+          return fail(
+            `failed to write ${jsonAbs}: ${msg}\nfailed to restore ${mdAbs}: ${restoreMsg}\n`,
+          );
+        }
+      }
+      return fail(`failed to write ${jsonAbs}: ${msg}\n`);
+    }
   }
   return { exitCode: 0, stdout: `Set plan.id to ${storedId}\n`, stderr: "" };
 }
@@ -157,23 +256,27 @@ function applyAdopt(
 /** Copy the stored binding id onto plan.id, or refuse a collision. */
 export function adoptStoredPlanId(options: AdoptStoredPlanIdOptions): XbriefCliResult {
   let jsonAbs: string | null;
+  let mdAbs: string | null;
   try {
-    jsonAbs = resolveXbriefOutPaths({
+    const paths = resolveXbriefOutPaths({
       projectRoot: options.projectRoot,
       out: options.out,
-      format: "json",
+      format: "both",
       cwd: options.cwd,
       home: options.home,
       env: options.env,
-    }).jsonAbs;
+    });
+    jsonAbs = paths.jsonAbs;
+    mdAbs = paths.mdAbs;
   } catch (err) {
     if (err instanceof XbriefPathError) return fail(`${err.message}\n`);
     throw err;
   }
-  if (jsonAbs === null) {
+  if (jsonAbs === null || mdAbs === null) {
     return fail("missing json artifact path\n");
   }
   const artifactPath = jsonAbs;
+  const markdownPath = mdAbs;
   let lifecycleRoot: string;
   try {
     lifecycleRoot = resolveLifecycleRoot(options.projectRoot);
@@ -183,7 +286,7 @@ export function adoptStoredPlanId(options: AdoptStoredPlanIdOptions): XbriefCliR
   }
   try {
     return withPlanIdIdentityLock(lifecycleRoot, () =>
-      applyAdopt(options, lifecycleRoot, artifactPath),
+      applyAdopt(options, lifecycleRoot, artifactPath, markdownPath),
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

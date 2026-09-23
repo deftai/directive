@@ -126,6 +126,110 @@ describe("xbrief:adopt-stored-plan-id (#4963)", () => {
     expect(planOf(path).id).toBe("hand-authored");
   });
 
+  it("sets the paired markdown frontmatter id and leaves the body", () => {
+    const root = freshRoot("xbrief-adopt-both-");
+    const stem = "xbrief/proposed/2026-09-23-adopt-both";
+    const created = createXbrief({
+      format: "both",
+      out: stem,
+      style: "scope",
+      title: "Stored mint",
+      id: "hand-authored",
+      projectRoot: root,
+      force: true,
+    });
+    expect(created.exitCode, created.stderr).toBe(0);
+    const jsonPath = join(root, `${stem}.xbrief.json`);
+    const mdPath = join(root, `${stem}.xbrief.md`);
+    patchPlan(jsonPath, (plan) => {
+      const meta = plan.metadata as Record<string, unknown>;
+      meta["x-directive/plan-id"] = restBinding("github.issue.5555958091", 5555958091);
+      const narratives = plan.narratives as Record<string, unknown>;
+      narratives.Origin = "Ingested from https://github.com/deftai/directive/issues/4963";
+    });
+    const marked = `${readFileSync(mdPath, "utf8").trimEnd()}\n\nBODY-MARKER keep this sentence\n`;
+    writeFileSync(mdPath, marked, "utf8");
+    const beforeVerify = verifyXbrief({ format: "both", out: stem, projectRoot: root });
+    expect(beforeVerify.exitCode).toBe(1);
+    expect(beforeVerify.stderr).toContain("disagrees with stored mint");
+    expect(beforeVerify.stderr).not.toContain("id mismatch");
+
+    const adopted = adoptStoredPlanId({ out: stem, projectRoot: root });
+    expect(adopted.exitCode, adopted.stderr).toBe(0);
+    expect(adopted.stdout).toContain("Set plan.id to github.issue.5555958091");
+    expect(planOf(jsonPath).id).toBe("github.issue.5555958091");
+    const expectedMd = marked.replace("id: hand-authored", "id: github.issue.5555958091");
+    const afterMd = readFileSync(mdPath, "utf8");
+    expect(afterMd).toBe(expectedMd);
+    expect(afterMd).toContain("BODY-MARKER keep this sentence");
+    const verified = verifyXbrief({ format: "both", out: stem, projectRoot: root });
+    expect(verified.exitCode, verified.stderr).toBe(0);
+
+    const afterJson = readFileSync(jsonPath, "utf8");
+    const again = adoptStoredPlanId({ out: stem, projectRoot: root });
+    expect(again.exitCode, again.stderr).toBe(0);
+    expect(again.stdout).toContain("plan.id already github.issue.5555958091");
+    expect(readFileSync(jsonPath, "utf8")).toBe(afterJson);
+    expect(readFileSync(mdPath, "utf8")).toBe(afterMd);
+  });
+
+  it("updates a stale paired markdown id when plan.id already matches", () => {
+    const root = freshRoot("xbrief-adopt-md-only-");
+    const stem = "xbrief/proposed/2026-09-23-adopt-md-only";
+    const created = createXbrief({
+      format: "both",
+      out: stem,
+      style: "scope",
+      title: "Stored mint",
+      id: "github.issue.5555958091",
+      projectRoot: root,
+      force: true,
+    });
+    expect(created.exitCode, created.stderr).toBe(0);
+    const jsonPath = join(root, `${stem}.xbrief.json`);
+    const mdPath = join(root, `${stem}.xbrief.md`);
+    patchPlan(jsonPath, (plan) => {
+      const meta = plan.metadata as Record<string, unknown>;
+      meta["x-directive/plan-id"] = restBinding("github.issue.5555958091", 5555958091);
+      const narratives = plan.narratives as Record<string, unknown>;
+      narratives.Origin = "Ingested from https://github.com/deftai/directive/issues/4963";
+    });
+    const stale = readFileSync(mdPath, "utf8").replace(
+      "id: github.issue.5555958091",
+      "id: hand-authored",
+    );
+    writeFileSync(mdPath, stale, "utf8");
+    const jsonBefore = readFileSync(jsonPath, "utf8");
+    const adopted = adoptStoredPlanId({ out: stem, projectRoot: root });
+    expect(adopted.exitCode, adopted.stderr).toBe(0);
+    expect(adopted.stdout).toContain("Set plan.id to github.issue.5555958091");
+    expect(readFileSync(jsonPath, "utf8")).toBe(jsonBefore);
+    expect(readFileSync(mdPath, "utf8")).toBe(
+      stale.replace("id: hand-authored", "id: github.issue.5555958091"),
+    );
+    const verified = verifyXbrief({ format: "both", out: stem, projectRoot: root });
+    expect(verified.exitCode, verified.stderr).toBe(0);
+  });
+
+  it("does not write plan.id when the paired markdown has no frontmatter", () => {
+    const root = freshRoot("xbrief-adopt-no-front-");
+    const stem = "xbrief/proposed/2026-09-23-adopt-no-front";
+    const path = writeCreated(root, stem, "hand-authored");
+    const mdPath = join(root, `${stem}.xbrief.md`);
+    patchPlan(path, (plan) => {
+      const meta = plan.metadata as Record<string, unknown>;
+      meta["x-directive/plan-id"] = restBinding("github.issue.5555958091", 5555958091);
+    });
+    writeFileSync(mdPath, "# Stored mint\n\nno frontmatter\n", "utf8");
+    const before = readFileSync(path, "utf8");
+    const adopted = adoptStoredPlanId({ out: stem, projectRoot: root });
+    expect(adopted.exitCode).toBe(1);
+    expect(adopted.stderr).toContain("frontmatter is missing or unclosed");
+    expect(adopted.stdout).not.toContain("Set plan.id");
+    expect(readFileSync(path, "utf8")).toBe(before);
+    expect(planOf(path).id).toBe("hand-authored");
+  });
+
   it("leaves an already-aligned plan.id unchanged", () => {
     const root = freshRoot("xbrief-adopt-same-");
     const stem = "xbrief/proposed/2026-09-23-adopt-same";

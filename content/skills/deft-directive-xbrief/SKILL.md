@@ -58,7 +58,7 @@ deft xbrief:adopt-stored-plan-id -- --out <path> [--project-root <dir>]
 | Verb | Meaning |
 |------|---------|
 | `xbrief:create` / `xbrief:verify` | Write or check an artifact at `--out` |
-| `xbrief:adopt-stored-plan-id` | Copy the stored `x-directive/plan-id` id onto `plan.id`. Refuses when that id already occupies another artifact. |
+| `xbrief:adopt-stored-plan-id` | Copy the stored `x-directive/plan-id` id onto `plan.id` and a paired markdown frontmatter id. Refuses when that id already occupies another artifact. |
 | `scope:*` / intake | Lifecycle birth and folder/status transitions |
 | `xbrief:preflight` | Implementation-intent gate (unchanged) |
 

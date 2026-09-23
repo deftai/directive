@@ -87,7 +87,7 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     process.stdout.write(
       "Usage: deft xbrief:create|xbrief:verify|xbrief:adopt-stored-plan-id -- --out <path> [options]\n" +
         "  create/verify dense xBRIEF artifacts (not scope lifecycle).\n" +
-        "  adopt-stored-plan-id copies the stored plan-id binding onto plan.id.\n" +
+        "  adopt-stored-plan-id copies the stored plan-id binding onto plan.id and a paired markdown frontmatter id.\n" +
         "  See: deft xbrief:create --help | deft xbrief:verify --help | deft xbrief:adopt-stored-plan-id --help\n",
     );
     return verb === undefined ? 2 : 0;

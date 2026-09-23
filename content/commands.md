@@ -121,7 +121,7 @@ deft xbrief:adopt-stored-plan-id -- --out <path> [--project-root <dir>]
 
 - ! `--format` and `--out` are **required** for create and verify. Adopt requires `--out` only.
 - ! `xbrief:verify` fails when `plan.id` disagrees with a parsed `x-directive/plan-id` binding, and reports the other stored-mint clauses. It does not mint and it does not scan sibling briefs. The disagree line names `xbrief:adopt-stored-plan-id`.
-- ! `xbrief:adopt-stored-plan-id` copies that stored binding id onto `plan.id` and refuses when the id already occupies another lifecycle artifact. It does not mint an id from issue text.
+- ! `xbrief:adopt-stored-plan-id` copies that stored binding id onto `plan.id` and, when the stem has a paired markdown file, onto that file's frontmatter `id`. It leaves the rest of the markdown unchanged. It refuses when the id already occupies another lifecycle artifact. It does not mint an id from issue text.
 - ! `both` uses one stem → `*.xbrief.json` + `*.xbrief.md`
 - ! P0 styles: `scope` | `playbook` | `mission` | `project`
 - ! Paths expand portably (`~`, `%USERPROFILE%`); project-root containment fails closed
