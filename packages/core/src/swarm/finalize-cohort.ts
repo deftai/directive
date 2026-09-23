@@ -1467,12 +1467,15 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   let prUrl: string | null = null;
   let createdSweepBranch: string | null = null;
   let lifecycle: LifecycleCheckout | null = null;
-  let outcome: {
-    exitCode: number;
-    stdout: string;
-    stderr: string;
-    result: FinalizeCohortResult;
-  } | null = null;
+  // Closure assignment is invisible to finally control flow, so a bare let stays null.
+  const held: {
+    outcome: {
+      exitCode: number;
+      stdout: string;
+      stderr: string;
+      result: FinalizeCohortResult;
+    } | null;
+  } = { outcome: null };
 
   const respond = (partial: {
     sweep: SweepResult | null;
@@ -1482,7 +1485,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     ok: boolean;
     exitCode: number;
   }) => {
-    outcome = buildResponse({
+    held.outcome = buildResponse({
       projectRoot,
       dryRun,
       noCommit,
@@ -1497,7 +1500,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       emitJson: args.emitJson ?? false,
       ...partial,
     });
-    return outcome;
+    return held.outcome;
   };
 
   try {
@@ -1703,12 +1706,15 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     if (dropBranch !== null) {
       runGit(["git", "branch", "-D", dropBranch], { cwd: projectRoot });
     }
-    if (!released.ok && outcome !== null) {
-      const failed = withReportedFailure(outcome, released.error, args.emitJson ?? false);
-      outcome.exitCode = failed.exitCode;
-      outcome.stdout = failed.stdout;
-      outcome.stderr = failed.stderr;
-      outcome.result = failed.result;
+    if (!released.ok) {
+      const reported = held.outcome;
+      if (reported !== null) {
+        const failed = withReportedFailure(reported, released.error, args.emitJson ?? false);
+        reported.exitCode = failed.exitCode;
+        reported.stdout = failed.stdout;
+        reported.stderr = failed.stderr;
+        reported.result = failed.result;
+      }
     }
   }
 }
