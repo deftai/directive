@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../scope/transition.js", () => ({
@@ -209,6 +209,8 @@ interface MockGitOpts {
   readonly landedCompleted?: readonly string[];
   readonly ffFail?: boolean;
   readonly checkoutOmitsActive?: boolean;
+  readonly worktreeRemoveFail?: boolean;
+  readonly landedByRef?: Readonly<Record<string, readonly string[]>>;
 }
 
 function mockRunGit(
@@ -238,11 +240,23 @@ function mockRunGit(
       }
       return { returncode: 0, stdout: "Already up to date\n", stderr: "" };
     }
+    if (command[1] === "worktree" && command[2] === "remove") {
+      if (opts.worktreeRemoveFail === true) {
+        return { returncode: 1, stdout: "", stderr: "worktree remove failed" };
+      }
+      return { returncode: 0, stdout: "", stderr: "" };
+    }
     if (joined.includes("ls-tree")) {
       if (opts.lsTreeFail) {
         return { returncode: 1, stdout: "", stderr: "ls-tree failed" };
       }
-      const names = opts.landedCompleted ?? [];
+      const ref = command.find((part) => part.startsWith("origin/"));
+      const names =
+        opts.landedByRef !== undefined
+          ? ref !== undefined
+            ? (opts.landedByRef[ref] ?? [])
+            : []
+          : (opts.landedCompleted ?? []);
       return {
         returncode: 0,
         stdout: names.join("\n") + (names.length > 0 ? "\n" : ""),
@@ -1436,6 +1450,225 @@ describe("finalizeCohort", () => {
         (cmd) => cmd.includes("PATCH") && cmd.some((part) => part.includes("/issues/4937")),
       ),
     ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("waits on the branch the lifecycle pull request merges into when --base-branch differs (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-alt-base-"));
+    const storyPath = writeActiveStory(project, "story-alt", 4937, { deliveryBranch: "main" });
+    const completed = "xbrief/completed/story-alt.xbrief.json";
+    const trees: string[] = [];
+    const inner = mockRunGit({
+      landedByRef: {
+        "origin/release": [completed],
+      },
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      label: "story-alt",
+      repo: "deftai/directive",
+      baseBranch: "develop",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: (command, options) => {
+        if (command.includes("ls-tree")) {
+          const ref = command.find((part) => part.startsWith("origin/"));
+          if (ref !== undefined) {
+            trees.push(ref);
+          }
+        }
+        return inner(command, options);
+      },
+      runGh: mockRunGh({
+        42: { merged: true, closingIssues: [], baseRef: "main" },
+        9999: { merged: true, closingIssues: [], baseRef: "release" },
+      }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.delivery_branch).toBe("main");
+    expect(result.result.sweep_base).toBe("develop");
+    expect(trees).toContain("origin/release");
+    expect(result.result.errors.some((e) => e.includes("origin/main"))).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("still requires the completed file on the delivery branch when no alternate base is passed (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-no-alt-"));
+    const storyPath = writeActiveStory(project, "story-keep", 4937, { deliveryBranch: "main" });
+    const trees: string[] = [];
+    const inner = mockRunGit({
+      landedByRef: {
+        "origin/develop": ["xbrief/completed/story-keep.xbrief.json"],
+      },
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      label: "story-keep",
+      repo: "deftai/directive",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: (command, options) => {
+        if (command.includes("ls-tree")) {
+          const ref = command.find((part) => part.startsWith("origin/"));
+          if (ref !== undefined) {
+            trees.push(ref);
+          }
+        }
+        return inner(command, options);
+      },
+      runGh: mockRunGh({
+        42: { merged: true, closingIssues: [], baseRef: "main" },
+        9999: { merged: true, closingIssues: [], baseRef: "develop" },
+      }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("origin/main"))).toBe(true);
+    expect(result.result.errors.some((e) => e.includes("does not merge"))).toBe(true);
+    expect(trees).toContain("origin/main");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("reports a successful lifecycle commit and leaves the issue open when --no-open-pr is set (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-no-pr-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      { 42: { merged: true, closingIssues: [], baseRef: "master" } },
+      { 4937: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      label: "story-4937",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      noOpenPr: true,
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: mockRunGit(),
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.commit_sha).toBe("abc123");
+    expect(result.result.pr_url).toBeNull();
+    expect(result.stdout).toContain("Lifecycle commit succeeded");
+    expect(result.stdout).toContain("Issue not closed");
+    expect(result.stdout).toContain("no pull request was opened");
+    expect(result.stdout).toContain("not yet on origin/master");
+    expect(result.stdout).not.toContain("FINALIZE INCOMPLETE");
+    expect(ghCalls.some((cmd) => cmd.includes("pr") && cmd.includes("create"))).toBe(false);
+    expect(ghCalls.some((cmd) => cmd.includes("PATCH"))).toBe(false);
+    expect(ghCalls.some((cmd) => cmd.includes("merge"))).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("leaves the checkout in place when worktree remove fails (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-wt-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    let checkout = "";
+    const inner = mockRunGit({
+      worktreeRemoveFail: true,
+      landedCompleted: ["xbrief/completed/story-4937.xbrief.json"],
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-4937",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: (command, options) => {
+        if (command[1] === "worktree" && command[2] === "add") {
+          const detachAt = command.indexOf("--detach");
+          checkout = command[detachAt + 1] ?? "";
+        }
+        return inner(command, options);
+      },
+      runGh: mockRunGh({
+        9999: { merged: true, closingIssues: [], baseRef: "master" },
+      }),
+    });
+    expect(checkout.length).toBeGreaterThan(0);
+    expect(existsSync(checkout)).toBe(true);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((error) => error.includes("worktree remove"))).toBe(true);
+    expect(result.result.errors.some((error) => error.includes("still registered"))).toBe(true);
+    rmSync(dirname(checkout), { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not delete the checkout when worktree remove fails after a fast-forward failure (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-wt-ff-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    let checkout = "";
+    const inner = mockRunGit({ ffFail: true, worktreeRemoveFail: true });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-4937",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: (command, options) => {
+        if (command[1] === "worktree" && command[2] === "add") {
+          const detachAt = command.indexOf("--detach");
+          checkout = command[detachAt + 1] ?? "";
+        }
+        return inner(command, options);
+      },
+      runGh: mockRunGh({}),
+    });
+    expect(checkout.length).toBeGreaterThan(0);
+    expect(existsSync(checkout)).toBe(true);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((error) => error.toLowerCase().includes("fast-forward"))).toBe(
+      true,
+    );
+    expect(result.result.errors.some((error) => error.includes("worktree remove"))).toBe(true);
+    expect(result.result.errors.some((error) => error.includes("still registered"))).toBe(true);
+    rmSync(dirname(checkout), { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not read fields when the lifecycle pull request payload is null (#4937)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-null-pr-"));
+    const storyPath = writeActiveStory(project, "story-4937", 4937);
+    const inner = mockRunGh({
+      42: { merged: true, closingIssues: [], baseRef: "master" },
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      label: "story-4937",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: mockRunGit(),
+      runGh: (cmd) => {
+        const path = cmd.find((part) => part.startsWith("repos/") && part.includes("/pulls/"));
+        if (path?.endsWith("/pulls/9999") === true) {
+          return { returncode: 0, stdout: "null", stderr: "" };
+        }
+        return inner(cmd);
+      },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((error) => error.includes("unreadable"))).toBe(true);
+    expect(result.result.errors.some((error) => error.includes("does not merge"))).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
 });

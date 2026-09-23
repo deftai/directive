@@ -793,12 +793,24 @@ function releaseLifecycleCheckout(
   projectRoot: string,
   lifecycle: LifecycleCheckout | null,
   runGit: typeof runText,
-): void {
+): { ok: true } | { ok: false; error: string } {
   if (lifecycle === null) {
-    return;
+    return { ok: true };
   }
-  runGit(["git", "worktree", "remove", "--force", lifecycle.checkout], { cwd: projectRoot });
+  const removed = runGit(["git", "worktree", "remove", "--force", lifecycle.checkout], {
+    cwd: projectRoot,
+  });
+  if (removed.returncode !== 0) {
+    const detail = removed.stderr.trim() || removed.stdout.trim() || "non-zero exit";
+    return {
+      ok: false,
+      error:
+        `git worktree remove --force failed for ${lifecycle.checkout}: ${detail}. ` +
+        "Left the checkout in place because the worktree is still registered.",
+    };
+  }
   rmSync(lifecycle.parent, { recursive: true, force: true });
+  return { ok: true };
 }
 
 /**
@@ -836,10 +848,11 @@ function prepareLifecycleCheckout(
   const synced = syncBaseBranch(checkout, deliveryBranch, runGit);
   if (!synced.ok) {
     const detail = synced.error ?? "lifecycle checkout update failed";
-    releaseLifecycleCheckout(projectRoot, { checkout, parent }, runGit);
+    const released = releaseLifecycleCheckout(projectRoot, { checkout, parent }, runGit);
+    const cleanup = released.ok ? "" : ` ${released.error}`;
     const error = detail.includes("--ff-only")
-      ? `failed fast-forward in the lifecycle checkout: ${detail} The implement worktree was not updated.`
-      : `${detail} The implement worktree was not updated.`;
+      ? `failed fast-forward in the lifecycle checkout: ${detail}${cleanup} The implement worktree was not updated.`
+      : `${detail}${cleanup} The implement worktree was not updated.`;
     return { ok: false, error };
   }
   return { ok: true, checkout, parent };
@@ -929,6 +942,33 @@ function resolveLandProbeLimit(override: number | undefined): number {
   return 120;
 }
 
+function pullRequestBaseRef(payload: Record<string, unknown>): string | null {
+  const base = payload.base;
+  if (typeof base !== "object" || base === null || Array.isArray(base)) {
+    return null;
+  }
+  const ref = (base as Record<string, unknown>).ref;
+  return typeof ref === "string" && ref.length > 0 ? ref : null;
+}
+
+/**
+ * No alternate base: done is the completed file on origin/deliveryBranch.
+ * A different --base-branch follows the branch that pull request merges into.
+ */
+function lifecycleLandBranch(
+  deliveryBranch: string,
+  alternateBase: string | null,
+  prBase: string | null,
+): string {
+  if (alternateBase === null) {
+    return deliveryBranch;
+  }
+  if (prBase !== null && prBase.length > 0) {
+    return prBase;
+  }
+  return alternateBase;
+}
+
 function pauseLandProbe(sleep: ((ms: number) => void) | undefined): void {
   const pauseMs = 15 * 1000;
   if (sleep !== undefined) {
@@ -942,6 +982,7 @@ function pauseLandProbe(sleep: ((ms: number) => void) | undefined): void {
 function waitForLifecycleLand(args: {
   readonly projectRoot: string;
   readonly deliveryBranch: string;
+  readonly alternateBase: string | null;
   readonly repo: string;
   readonly prNumber: number;
   readonly completedRels: readonly string[];
@@ -956,38 +997,45 @@ function waitForLifecycleLand(args: {
   }
   const path = `repos/${parsed.owner}/${parsed.name}/pulls/${String(args.prNumber)}`;
   let last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
+  let watched = args.alternateBase ?? args.deliveryBranch;
   for (let attempt = 0; attempt < args.probeLimit; attempt += 1) {
     const result = args.runGh(["gh", "api", path]);
     if (result.returncode !== 0) {
       last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
     } else {
       try {
-        const body = JSON.parse(result.stdout) as Record<string, unknown>;
-        const mergedAt = body.merged_at;
-        const state = typeof body.state === "string" ? body.state : "";
-        if (state === "closed" && (mergedAt === null || mergedAt === undefined)) {
-          return {
-            ok: false,
-            error: `lifecycle pull request #${String(args.prNumber)} closed without merging; issue left open`,
-          };
-        }
-        if (typeof mergedAt === "string" && mergedAt.length > 0) {
-          const landed = listLandedCompletedRelpaths(
-            args.projectRoot,
-            args.deliveryBranch,
-            args.runGit,
-          );
-          if (landed.error !== null) {
-            last = landed.error;
-          } else {
-            const missing = args.completedRels.filter((rel) => !landed.names.has(rel));
-            if (missing.length === 0) {
-              return { ok: true };
-            }
-            last = `completed brief not on origin/${args.deliveryBranch}: ${missing.join(", ")}`;
-          }
+        const parsedBody = JSON.parse(result.stdout) as unknown;
+        if (parsedBody === null || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
+          last = `lifecycle pull request #${String(args.prNumber)} status was unreadable`;
         } else {
-          last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
+          const body = parsedBody as Record<string, unknown>;
+          const mergedAt = body.merged_at;
+          const state = typeof body.state === "string" ? body.state : "";
+          if (state === "closed" && (mergedAt === null || mergedAt === undefined)) {
+            return {
+              ok: false,
+              error: `lifecycle pull request #${String(args.prNumber)} closed without merging; issue left open`,
+            };
+          }
+          if (typeof mergedAt === "string" && mergedAt.length > 0) {
+            watched = lifecycleLandBranch(
+              args.deliveryBranch,
+              args.alternateBase,
+              pullRequestBaseRef(body),
+            );
+            const landed = listLandedCompletedRelpaths(args.projectRoot, watched, args.runGit);
+            if (landed.error !== null) {
+              last = landed.error;
+            } else {
+              const missing = args.completedRels.filter((rel) => !landed.names.has(rel));
+              if (missing.length === 0) {
+                return { ok: true };
+              }
+              last = `completed brief not on origin/${watched}: ${missing.join(", ")}`;
+            }
+          } else {
+            last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
+          }
         }
       } catch {
         last = `lifecycle pull request #${String(args.prNumber)} status was unreadable`;
@@ -1001,7 +1049,7 @@ function waitForLifecycleLand(args: {
     ok: false,
     error:
       `${last}. The command does not merge the lifecycle pull request. ` +
-      `Issue left open until the completed brief is on origin/${args.deliveryBranch}.`,
+      `Issue left open until the completed brief is on origin/${watched}.`,
   };
 }
 
@@ -1052,6 +1100,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       ? args.baseBranch.trim()
       : null;
   const baseBranch = explicitSweepBase ?? deliveryBranch;
+  const alternateBase =
+    explicitSweepBase !== null && explicitSweepBase !== deliveryBranch ? explicitSweepBase : null;
 
   if (!existsSync(projectRoot)) {
     return buildResponse({
@@ -1417,6 +1467,12 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   let prUrl: string | null = null;
   let createdSweepBranch: string | null = null;
   let lifecycle: LifecycleCheckout | null = null;
+  let outcome: {
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+    result: FinalizeCohortResult;
+  } | null = null;
 
   const respond = (partial: {
     sweep: SweepResult | null;
@@ -1425,8 +1481,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     prUrl: string | null;
     ok: boolean;
     exitCode: number;
-  }) =>
-    buildResponse({
+  }) => {
+    outcome = buildResponse({
       projectRoot,
       dryRun,
       noCommit,
@@ -1441,6 +1497,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       emitJson: args.emitJson ?? false,
       ...partial,
     });
+    return outcome;
+  };
 
   try {
     let sweepRoot = projectRoot;
@@ -1574,6 +1632,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         const landed = waitForLifecycleLand({
           projectRoot,
           deliveryBranch,
+          alternateBase,
           repo,
           prNumber: lifecyclePr,
           completedRels,
@@ -1598,6 +1657,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           errors.push(...originClose.errors);
           warnings.push(...originClose.warnings);
         }
+      } else if (errors.length === 0 && noOpenPr) {
+        warnings.push(
+          "Lifecycle commit succeeded. Issue not closed: no pull request was opened, " +
+            `and the completed brief is not yet on origin/${baseBranch}.`,
+        );
       } else if (errors.length === 0) {
         errors.push(
           `lifecycle sweep is not done: the completed brief is not on origin/${deliveryBranch}. ` +
@@ -1635,11 +1699,56 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     });
   } finally {
     const dropBranch = commitSha === null && prUrl === null ? createdSweepBranch : null;
-    releaseLifecycleCheckout(projectRoot, lifecycle, runGit);
+    const released = releaseLifecycleCheckout(projectRoot, lifecycle, runGit);
     if (dropBranch !== null) {
       runGit(["git", "branch", "-D", dropBranch], { cwd: projectRoot });
     }
+    if (!released.ok && outcome !== null) {
+      const failed = withReportedFailure(outcome, released.error, args.emitJson ?? false);
+      outcome.exitCode = failed.exitCode;
+      outcome.stdout = failed.stdout;
+      outcome.stderr = failed.stderr;
+      outcome.result = failed.result;
+    }
   }
+}
+
+function withReportedFailure(
+  previous: {
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+    result: FinalizeCohortResult;
+  },
+  error: string,
+  emitJson: boolean,
+): {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  result: FinalizeCohortResult;
+} {
+  const result = previous.result;
+  return buildResponse({
+    projectRoot: result.project_root,
+    dryRun: result.dry_run,
+    noCommit: result.no_commit,
+    prNumbers: result.pr_numbers,
+    storyPaths: result.story_paths,
+    closingIssues: result.closing_issues,
+    sweep: result.sweep,
+    commitSha: result.commit_sha,
+    branch: result.branch,
+    prUrl: result.pr_url,
+    deliveryBranch: result.delivery_branch,
+    sweepBase: result.sweep_base,
+    deliveryErrors: result.delivery_errors,
+    errors: [...result.errors, error],
+    warnings: [...result.warnings],
+    ok: false,
+    emitJson,
+    exitCode: EXIT_GATE_FAILED,
+  });
 }
 
 function buildResponse(input: {
