@@ -30,9 +30,9 @@
         "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/cli/src/windows-bin-ps1.test.ts",
-          "recorded_at": "2026-09-23T20:54:21.792Z",
+          "kind": "merge",
+          "pointer": "ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a",
+          "recorded_at": "2026-09-23T21:06:27.907Z",
           "recorded_by": "scope:stamp-evidence"
         }
       },
