@@ -325,6 +325,23 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
   });
 
   it.each([
+    "deft session:start --read-only",
+    "deft session:start -- --read-only",
+    "directive session:start -- --read-only",
+    "task session:start -- --read-only",
+  ])("keeps %s a non-claiming command (#4660)", (command) => {
+    expect(
+      inspectExactLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command },
+      }),
+    ).toMatchObject({
+      verb: "session:start",
+      requiresOwner: false,
+    });
+  });
+
+  it.each([
     "Bash",
     "Shell",
     "run_terminal_command",

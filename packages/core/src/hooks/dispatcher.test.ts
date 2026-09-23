@@ -3613,6 +3613,50 @@ describe("provider codecs", () => {
     });
   });
 
+  it.each([
+    "deft session:start --read-only",
+    "deft session:start -- --read-only",
+    "directive session:start -- --read-only",
+    "task session:start -- --read-only",
+  ])("allows Codex empty-env %s without occupancy-identity-unavailable (#4660)", (command) => {
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Shell",
+          tool_input: { command },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).not.toBe("occupancy-identity-unavailable");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("keeps occupancy-identity-unavailable on owner-requiring Codex session:start (#4660)", () => {
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Shell",
+          tool_input: { command: "deft session:start --rearm" },
+        },
+        environ: {},
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({
+      verdict: "deny",
+      code: "occupancy-identity-unavailable",
+    });
+  });
+
   it("denies ambiguous lifecycle args and ambient conflict even when no rewrite is needed (#3611)", () => {
     const invalid = decideHook(
       {

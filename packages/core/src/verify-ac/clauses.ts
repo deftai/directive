@@ -5,7 +5,12 @@
 
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, isAbsolute, relative, resolve } from "node:path";
-import { findAcHeading, parseListItems, sliceAcSection } from "../intake/markdown-scanners.js";
+import {
+  findAcHeading,
+  parseListItems,
+  sliceAcSection,
+  stripFencedCodeBlocks,
+} from "../intake/markdown-scanners.js";
 import { hasGlobMagic, matchAny } from "../orchestration/pathspec.js";
 
 export type ClauseOutcome = "verified" | "unverifiable" | "failed";
@@ -1172,6 +1177,248 @@ export function countAdjudicableClauses(rows: readonly ClauseWalkResult[]): numb
  */
 export function countUnverifiedAdjudicableClauses(rows: readonly ClauseWalkResult[]): number {
   return rows.filter((row) => row.adjudicable && row.outcome !== "verified").length;
+}
+
+/** Verify-walk cause when a brief sentence is neither a clause nor a confession (#3550). */
+export const UNMAPPED_STATEMENT_SENTENCE_CAUSE = "unmapped_statement_sentence" as const;
+
+function isSentenceTerminator(ch: string): boolean {
+  return ch === "." || ch === "!" || ch === "?";
+}
+
+/** Drop heading and list markers. The sentence stays text; it does not select a file. */
+function stripSentenceChrome(raw: string): string {
+  let text = stripInlineMarkdownBold(raw).replace(/\s+/g, " ").trim();
+  for (let guard = 0; guard < 4 && text.length > 0; guard += 1) {
+    const heading = /^(#{1,6}) (.+)$/.exec(text);
+    if (heading !== null) {
+      text = (heading[2] ?? "").trim();
+      continue;
+    }
+    const bullet = /^(?:[-*+]|\d{1,3}[.)])\s+(.+)$/.exec(text);
+    if (bullet !== null) {
+      text = (bullet[1] ?? "").trim();
+      continue;
+    }
+    break;
+  }
+  return text;
+}
+
+function pushStatementSentence(out: string[], seen: Set<string>, raw: string): void {
+  const sentence = stripSentenceChrome(raw);
+  if (!/[A-Za-z]/.test(sentence)) {
+    return;
+  }
+  const key = sentence.toLowerCase();
+  if (seen.has(key)) {
+    return;
+  }
+  seen.add(key);
+  out.push(sentence);
+}
+
+/**
+ * A heading line among other lines is section chrome. A heading that is the
+ * whole part still counts: `stripSentenceChrome` keeps its text (#3550).
+ */
+function isMarkdownHeadingLine(line: string): boolean {
+  return /^#{1,6}(?:\s|$)/.test(line);
+}
+
+/** A list item is its own sentence. Wrapped prose around it stays separate (#3550). */
+function isListItemLine(line: string): boolean {
+  return /^(?:[-*+]|\d{1,3}[.)])\s+\S/.test(line);
+}
+
+/**
+ * Text after the last terminator, or the whole part when it has none.
+ * Wrapped prose with no terminator is one sentence: whitespace collapses the
+ * same way clause text does. A heading or a list item breaks that run, so a
+ * following list does not glue into one unmapped blob (#3550).
+ */
+function emitUnterminatedSpan(
+  source: string,
+  start: number,
+  out: string[],
+  seen: Set<string>,
+): void {
+  const tail = source.slice(start);
+  if (tail.trim().length === 0) {
+    return;
+  }
+  const content = tail
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (content.length <= 1) {
+    pushStatementSentence(out, seen, content[0] ?? "");
+    return;
+  }
+  const prose: string[] = [];
+  const flushProse = (): void => {
+    if (prose.length === 0) {
+      return;
+    }
+    pushStatementSentence(out, seen, prose.join(" "));
+    prose.length = 0;
+  };
+  for (const line of content) {
+    if (isMarkdownHeadingLine(line)) {
+      flushProse();
+      continue;
+    }
+    if (isListItemLine(line)) {
+      flushProse();
+      pushStatementSentence(out, seen, line);
+      continue;
+    }
+    prose.push(line);
+  }
+  flushProse();
+}
+
+/**
+ * Prose sentences in a task statement. Text only. A sentence does not select
+ * a file, and a terminator inside a token (`probe.txt`) is not a boundary.
+ * A span with no terminal `.`, `!`, or `?` is still a sentence (#3550).
+ */
+export function extractStatementSentences(text: string): string[] {
+  const source = stripFencedCodeBlocks(text);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  let start = 0;
+  let index = 0;
+  while (index < source.length) {
+    const ch = source[index] ?? "";
+    if (!isSentenceTerminator(ch)) {
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (end < source.length && isSentenceTerminator(source[end] ?? "")) {
+      end += 1;
+    }
+    const next = source[end] ?? "";
+    const boundary = end >= source.length || /\s/.test(next);
+    if (!boundary) {
+      index += 1;
+      continue;
+    }
+    pushStatementSentence(out, seen, source.slice(start, end));
+    index = end;
+    while (index < source.length && /\s/.test(source[index] ?? "")) {
+      index += 1;
+    }
+    start = index;
+  }
+  emitUnterminatedSpan(source, start, out, seen);
+  return out;
+}
+
+/**
+ * Coverage of `plan.acceptance.sentences` against clause text and confessions.
+ * Text only. A sentence does not select a file (#3550).
+ */
+export interface StatementSentenceCoverage {
+  readonly hasSentenceList: boolean;
+  readonly sentences: readonly string[];
+  readonly unmapped: readonly string[];
+  readonly behavioralClauseCount: number;
+  readonly unmappedSentenceCount: number;
+}
+
+function readNonEmptyStringList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const out: string[] = [];
+  for (const entry of value) {
+    if (!isNonEmptyString(entry)) {
+      return null;
+    }
+    out.push(normalizeClauseText(entry));
+  }
+  return out;
+}
+
+function isExistenceOrQuotedTokenClause(clause: AcceptanceClause): boolean {
+  if (extractExpectedTokens(clause).length > 0) {
+    return true;
+  }
+  return EXISTENCE_CLAIM.test(clause.text) && !NEGATED_EXISTENCE.test(clause.text);
+}
+
+function countBehavioralClauses(clauses: readonly AcceptanceClause[]): number {
+  return clauses.filter((clause) => !isExistenceOrQuotedTokenClause(clause)).length;
+}
+
+/**
+ * A statement sentence is covered only when its text is a clause or an explicit
+ * confession on the same acceptance block. Existence and quoted-token clauses
+ * do not cover a different sentence (#3550).
+ */
+export function evaluateStatementSentenceCoverage(
+  acceptance: unknown,
+  clauses: readonly AcceptanceClause[],
+): StatementSentenceCoverage {
+  const behavioralClauseCount = countBehavioralClauses(clauses);
+  const rec = asRecord(acceptance);
+  if (rec === null || !Object.hasOwn(rec, "sentences")) {
+    return {
+      hasSentenceList: false,
+      sentences: [],
+      unmapped: [],
+      behavioralClauseCount,
+      unmappedSentenceCount: 0,
+    };
+  }
+  const sentences = readNonEmptyStringList(rec.sentences);
+  if (sentences === null) {
+    return {
+      hasSentenceList: false,
+      sentences: [],
+      unmapped: [],
+      behavioralClauseCount,
+      unmappedSentenceCount: 0,
+    };
+  }
+  const confessions =
+    rec.confessions === undefined ? [] : (readNonEmptyStringList(rec.confessions) ?? []);
+  const clauseTexts = new Set(clauses.map((clause) => normalizeClauseText(clause.text)));
+  const confessionTexts = new Set(confessions);
+  const unmapped = sentences.filter((text) => !clauseTexts.has(text) && !confessionTexts.has(text));
+  return {
+    hasSentenceList: true,
+    sentences,
+    unmapped,
+    behavioralClauseCount,
+    unmappedSentenceCount: unmapped.length,
+  };
+}
+
+/** Schema errors for the sentence list and confessions. Absent fields are valid. */
+export function acceptanceSentenceListErrors(acceptance: unknown): string[] {
+  const rec = asRecord(acceptance);
+  if (rec === null) {
+    return [];
+  }
+  const errors: string[] = [];
+  if (
+    "sentences" in rec &&
+    rec.sentences !== undefined &&
+    readNonEmptyStringList(rec.sentences) === null
+  ) {
+    errors.push("plan.acceptance.sentences must be an array of non-empty strings");
+  }
+  if (
+    "confessions" in rec &&
+    rec.confessions !== undefined &&
+    readNonEmptyStringList(rec.confessions) === null
+  ) {
+    errors.push("plan.acceptance.confessions must be an array of non-empty strings");
+  }
+  return errors;
 }
 
 export function walkAcceptanceClauses(

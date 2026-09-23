@@ -42,6 +42,11 @@ export type AcceptancePredicate =
   | "empty-acceptance"
   /** Derived clause walk contradicted the shipped artifact (#3323). */
   | "clause-walk-failed"
+  /**
+   * A statement sentence on the brief is neither a clause nor an explicit
+   * confession. An existence or quoted-token clause does not cover it (#3550).
+   */
+  | "unmapped-sentence"
   /** Unresolved pass-after-fail-with-method-change (#3322). */
   | "integrity-discrepancy"
   /** Fell through every named predicate — carries the message lead verbatim. */
@@ -71,6 +76,7 @@ export interface AcceptanceReading {
   readonly rejected?: readonly { readonly command: string; readonly reason: string }[];
   readonly advisoryRejected?: readonly { readonly command: string }[];
   readonly clauseOutcomes?: readonly { readonly id: number; readonly outcome: string }[];
+  readonly unmappedSentenceCount?: number;
   readonly acceptance: { readonly commands: readonly unknown[] };
 }
 
@@ -87,6 +93,8 @@ const REMEDY: Record<AcceptancePredicate, string> = {
     "stamp executable commands on plan.acceptance.commands (or plan.metadata.swarm.verify_commands) with source_rung derived|project_floor (#3334)",
   "clause-walk-failed":
     "ship the artifact each failed clause names, or bind the clause to the path it actually landed at (#3323)",
+  "unmapped-sentence":
+    "map each plan.acceptance.sentences entry to a clause or name it in plan.acceptance.confessions; the sentence list does not select a file (#3550)",
   "integrity-discrepancy":
     "resolve by a product change under the same method, or independently re-derive both sides and record independent_rederivation=true (#3322)",
   unclassified: "read the verify:ac message below; the deciding check did not name itself",
@@ -242,6 +250,13 @@ export function resolveAcceptanceVerdict(reading: AcceptanceReading): Acceptance
       `${failedRuns.length}/${reading.runs.length} command(s) did not exit as expected: ${failedRuns
         .map((row) => row.command)
         .join(", ")}`,
+    );
+  }
+  if ((reading.unmappedSentenceCount ?? 0) > 0) {
+    return verdict(
+      false,
+      "unmapped-sentence",
+      `${reading.unmappedSentenceCount} statement sentence(s) are neither a clause nor an explicit confession`,
     );
   }
   if (reading.resolution === "soft_empty") {
