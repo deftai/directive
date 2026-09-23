@@ -1,7 +1,7 @@
 import { type PathLike, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
-import { loadOnePrUnitGrant } from "../one-pr-unit/store.js";
+import { loadOnePrUnitGrant, resolveProductionAppStore } from "../one-pr-unit/store.js";
 import {
   type OnePrUnitGrant,
   type OriginRef,
@@ -165,6 +165,26 @@ function readyMessage(treeNote: string, suffix: string): string {
   return `OK: ready to start -- ${treeNote}, vBRIEF active+running, ${suffix}`;
 }
 
+function resolveStoryReadyGrant(
+  grantId: string | null,
+  options: EvaluateOptions,
+): { ok: true; grant: OnePrUnitGrant | null } | { ok: false; message: string } {
+  if (options.onePrUnitGrant !== undefined) {
+    return { ok: true, grant: options.onePrUnitGrant };
+  }
+  if (grantId === null) {
+    return { ok: true, grant: null };
+  }
+  const resolved = resolveProductionAppStore(process.env);
+  if (!resolved.ok) {
+    return { ok: false, message: resolved.message };
+  }
+  return {
+    ok: true,
+    grant: loadOnePrUnitGrant(options.projectRoot ?? "", grantId, resolved.store),
+  };
+}
+
 function classifyAllocation(
   fields: AllocationFields,
   treeNote: string,
@@ -195,12 +215,15 @@ function classifyAllocation(
     const cohort = parseCohortVbriefs(fields.cohort_vbriefs);
     if (cohort.length > 1) {
       const grantId = fields.one_pr_unit_id ?? null;
-      const grant =
-        options.onePrUnitGrant !== undefined
-          ? options.onePrUnitGrant
-          : grantId !== null && options.projectRoot !== undefined
-            ? loadOnePrUnitGrant(options.projectRoot, grantId)
-            : null;
+      const loaded = resolveStoryReadyGrant(grantId, options);
+      if (!loaded.ok) {
+        return {
+          exitCode: 2,
+          dispatchKind,
+          message: loaded.message,
+        };
+      }
+      const grant = loaded.grant;
       if (grant === null) {
         return {
           exitCode: 2,
@@ -273,8 +296,8 @@ function classifyAllocation(
 }
 
 /**
- * Pure evaluator — returns exit code + human message. Faithful to
- * `scripts/preflight_story_start.evaluate`.
+ * Story-start Gate 0. Returns exit code + human message.
+ * Solo multi-scope lookup uses `resolveProductionAppStore`, not the in-memory default.
  *
  * #3241: after structural active+running checks, re-check parent requirement
  * lineage (coverage map + behavioral deltas) when the parent authors IDs.

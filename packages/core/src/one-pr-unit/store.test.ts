@@ -1,10 +1,15 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { IN_PROCESS_NOT_PRODUCTION, ONE_PR_UNIT_APP_NOT_CONFIGURED } from "./app-store.js";
+import {
+  IN_PROCESS_NOT_PRODUCTION,
+  ONE_PR_UNIT_APP_CREATE_FAILED,
+  ONE_PR_UNIT_APP_NOT_ABSOLUTE,
+  ONE_PR_UNIT_APP_NOT_CONFIGURED,
+} from "./app-store.js";
 import { evaluateOnePrUnit } from "./evaluate.js";
 import { mintOnePrUnitGrant } from "./mint.js";
 import { InProcessAppStore } from "./simulator.js";
@@ -84,6 +89,75 @@ describe("resolveProductionAppStore", () => {
     expect(resolved.store).toBeInstanceOf(DirectiveGitHubAppStore);
     expect(resolved.store).not.toBeInstanceOf(InProcessAppStore);
     rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("rejects a relative path before creating it", () => {
+    const name = "opu-rel-store-not-created";
+    const resolved = resolveProductionAppStore({ DEFT_ONE_PR_UNIT_APP: name });
+    expect(resolved.ok).toBe(false);
+    if (resolved.ok) return;
+    expect(resolved.code).toBe("not-absolute");
+    expect(resolved.message).toBe(ONE_PR_UNIT_APP_NOT_ABSOLUTE);
+    expect(resolved.message).not.toMatch(/mint an operator-origin/);
+    expect(existsSync(join(process.cwd(), name))).toBe(false);
+  });
+
+  it("creates a missing absolute directory and leaves claims.json absent", () => {
+    const parent = mkdtempSync(join(tmpdir(), "opu-new-"));
+    const dir = join(parent, "store");
+    const resolved = resolveProductionAppStore({ DEFT_ONE_PR_UNIT_APP: dir });
+    expect(resolved.ok).toBe(true);
+    expect(existsSync(dir)).toBe(true);
+    expect(existsSync(join(dir, "claims.json"))).toBe(false);
+    rmSync(parent, { recursive: true, force: true });
+  });
+
+  it("rejects an absolute path that is already a file", () => {
+    const parent = mkdtempSync(join(tmpdir(), "opu-file-"));
+    const file = join(parent, "backend-file");
+    writeFileSync(file, "not-a-dir");
+    const resolved = resolveProductionAppStore({ DEFT_ONE_PR_UNIT_APP: file });
+    expect(resolved.ok).toBe(false);
+    if (resolved.ok) return;
+    expect(resolved.code).toBe("create-failed");
+    expect(resolved.message.startsWith(ONE_PR_UNIT_APP_CREATE_FAILED)).toBe(true);
+    expect(resolved.message).not.toMatch(/mint an operator-origin/);
+    rmSync(parent, { recursive: true, force: true });
+  });
+
+  it("rejects a missing store whose parent is a file", () => {
+    const parent = mkdtempSync(join(tmpdir(), "opu-ancestor-"));
+    const file = join(parent, "ordinary-file");
+    writeFileSync(file, "not-a-dir");
+    const resolved = resolveProductionAppStore({ DEFT_ONE_PR_UNIT_APP: join(file, "store") });
+    expect(resolved.ok).toBe(false);
+    if (resolved.ok) return;
+    expect(resolved.code).toBe("create-failed");
+    expect(resolved.message).not.toMatch(/mint an operator-origin/);
+    rmSync(parent, { recursive: true, force: true });
+  });
+
+  it("rejects a path component the platform cannot create", () => {
+    const parent = mkdtempSync(join(tmpdir(), "opu-long-"));
+    const resolved = resolveProductionAppStore({
+      DEFT_ONE_PR_UNIT_APP: join(parent, "a".repeat(300)),
+    });
+    expect(resolved.ok).toBe(false);
+    if (resolved.ok) return;
+    expect(resolved.code).toBe("create-failed");
+    expect(resolved.message).not.toMatch(/mint an operator-origin/);
+    rmSync(parent, { recursive: true, force: true });
+  });
+
+  it("does not create the forbidden disk store", () => {
+    const parent = mkdtempSync(join(tmpdir(), "opu-forbid-"));
+    const dir = join(parent, ".deft", "one-pr-unit");
+    const resolved = resolveProductionAppStore({ DEFT_ONE_PR_UNIT_APP: dir });
+    expect(resolved.ok).toBe(false);
+    if (resolved.ok) return;
+    expect(resolved.code).toBe("disk-not-sot");
+    expect(existsSync(dir)).toBe(false);
+    rmSync(parent, { recursive: true, force: true });
   });
 });
 describe("DirectiveGitHubAppStore persist-and-bind", () => {

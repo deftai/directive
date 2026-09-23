@@ -1,9 +1,21 @@
-import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
-import { ONE_PR_UNIT_SCHEMA, type OnePrUnitGrant } from "../one-pr-unit/types.js";
+import {
+  ONE_PR_UNIT_APP_CREATE_FAILED,
+  ONE_PR_UNIT_APP_NOT_ABSOLUTE,
+  ONE_PR_UNIT_APP_NOT_CONFIGURED,
+} from "../one-pr-unit/app-store.js";
+import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
+import { DirectiveGitHubAppStore } from "../one-pr-unit/store.js";
+import {
+  ONE_PR_UNIT_SCHEMA,
+  type OnePrUnitGrant,
+  SOLO_MULTI_COHORT_CONFIG,
+} from "../one-pr-unit/types.js";
 import {
   evaluate,
   parseAllocationSection,
@@ -581,5 +593,224 @@ describe("one-PR-unit solo arity (#4494)", () => {
       onePrUnitBranch: "feat/batch",
     });
     expect(result.exitCode).toBe(0);
+  });
+
+  function withApp(value: string | undefined, run: () => void): void {
+    const prev = process.env.DEFT_ONE_PR_UNIT_APP;
+    if (value === undefined) delete process.env.DEFT_ONE_PR_UNIT_APP;
+    else process.env.DEFT_ONE_PR_UNIT_APP = value;
+    try {
+      run();
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_ONE_PR_UNIT_APP;
+      else process.env.DEFT_ONE_PR_UNIT_APP = prev;
+    }
+  }
+
+  function fiveEnvelope(): string {
+    return renderAllocation({
+      dispatch_kind: "solo",
+      allocation_plan_id: null,
+      batching_rationale: null,
+      cohort_vbriefs: fiveCohort,
+      operator_approval_evidence: "advisory only",
+      one_pr_unit_id: "unit-five",
+    });
+  }
+
+  it("surfaces an unset store as the resolver message, not a missing grant", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    withApp(undefined, () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: base,
+        declaredOrigins: fiveOrigins,
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.message).toBe(ONE_PR_UNIT_APP_NOT_CONFIGURED);
+      expect(result.message).not.toMatch(/mint an operator-origin/);
+    });
+  });
+
+  it("asks for a mint only after an empty absolute directory resolves", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    const store = mkdtempSync(join(tmpdir(), "opu-empty-"));
+    temps.push(store);
+    withApp(store, () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: base,
+        declaredOrigins: fiveOrigins,
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.message).toBe(SOLO_MULTI_COHORT_CONFIG);
+      expect(existsSync(join(store, "claims.json"))).toBe(false);
+    });
+  });
+
+  it("asks for a mint when this check creates the directory", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    const parent = mkdtempSync(join(tmpdir(), "opu-created-"));
+    const store = join(parent, "store");
+    temps.push(parent);
+    withApp(store, () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: join(parent, "not-the-store"),
+        declaredOrigins: fiveOrigins,
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.message).toBe(SOLO_MULTI_COHORT_CONFIG);
+      expect(existsSync(store)).toBe(true);
+      expect(existsSync(join(store, "claims.json"))).toBe(false);
+    });
+  });
+
+  it("surfaces a relative store path as configuration, not a missing grant", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    withApp("rel-store", () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: base,
+        declaredOrigins: fiveOrigins,
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.message).toBe(ONE_PR_UNIT_APP_NOT_ABSOLUTE);
+      expect(existsSync(join(process.cwd(), "rel-store"))).toBe(false);
+    });
+  });
+
+  it("surfaces a file store path as the resolver message", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    const parent = mkdtempSync(join(tmpdir(), "opu-file-ready-"));
+    const file = join(parent, "backend-file");
+    writeFileSync(file, "not-a-dir");
+    temps.push(parent);
+    withApp(file, () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: base,
+        declaredOrigins: fiveOrigins,
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.message.startsWith(ONE_PR_UNIT_APP_CREATE_FAILED)).toBe(true);
+      expect(result.message).not.toMatch(/mint an operator-origin/);
+    });
+  });
+
+  it("loads a durable reserved grant without an injected in-memory grant", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    const storeDir = mkdtempSync(join(tmpdir(), "opu-hit-"));
+    temps.push(storeDir);
+    mintOnePrUnitGrant({
+      store: new DirectiveGitHubAppStore(storeDir),
+      id: "unit-five",
+      actor: "dbcall2",
+      approvalRef: "operator-approved",
+      rationale: "five origins",
+      origins: fiveOrigins,
+      repo: "deftai/directive",
+    });
+    withApp(storeDir, () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: base,
+        declaredOrigins: fiveOrigins,
+        onePrUnitRepo: "deftai/directive",
+      });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  it("does not supply a pull-request node id for a bound grant", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    const storeDir = mkdtempSync(join(tmpdir(), "opu-bound-"));
+    temps.push(storeDir);
+    const store = new DirectiveGitHubAppStore(storeDir);
+    mintOnePrUnitGrant({
+      store,
+      id: "unit-five",
+      actor: "dbcall2",
+      approvalRef: "operator-approved",
+      rationale: "five origins",
+      origins: fiveOrigins,
+      repo: "deftai/directive",
+    });
+    store.bind("unit-five", "PR_NODE");
+    withApp(storeDir, () => {
+      const result = evaluate(path, {
+        gitStatus: CLEAN_TREE,
+        allocationContext: fiveEnvelope(),
+        projectRoot: base,
+        declaredOrigins: fiveOrigins,
+        onePrUnitRepo: "deftai/directive",
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.message).toMatch(/not a bearer/);
+      expect(result.message).not.toMatch(/mint an operator-origin/);
+    });
+  });
+
+  it("lets a second process resolve a durable grant through story-ready", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-x-"));
+    const vbrief = writeVbrief(base);
+    const storeDir = mkdtempSync(join(tmpdir(), "opu-x-ready-"));
+    temps.push(storeDir);
+    mintOnePrUnitGrant({
+      store: new DirectiveGitHubAppStore(storeDir),
+      id: "unit-five",
+      actor: "dbcall2",
+      approvalRef: "operator-approved",
+      rationale: "five origins",
+      origins: fiveOrigins,
+      repo: "deftai/directive",
+    });
+    const script = join(base, "ready.mts");
+    const evalUrl = pathToFileURL(
+      join(process.cwd(), "packages/core/src/story-ready/evaluate.ts"),
+    ).href;
+    writeFileSync(
+      script,
+      [
+        `import { evaluate } from ${JSON.stringify(evalUrl)};`,
+        "const result = evaluate(process.env.VBRIEF, {",
+        "  gitStatus: '',",
+        "  allocationContext: process.env.ALLOC,",
+        "  projectRoot: process.env.ROOT,",
+        "  declaredOrigins: [4204, 4218, 4161, 3918, 3849].map((issueId) => ({ repo: 'deftai/directive', issueId })),",
+        "  onePrUnitRepo: 'deftai/directive',",
+        "});",
+        "if (result.exitCode !== 0) {",
+        "  process.stderr.write(result.message);",
+        "  process.exit(result.exitCode || 1);",
+        "}",
+      ].join("\n"),
+      "utf8",
+    );
+    const tsx = join(process.cwd(), "node_modules/tsx/dist/cli.mjs");
+    const child = spawnSync(process.execPath, [tsx, script], {
+      env: {
+        ...process.env,
+        DEFT_ONE_PR_UNIT_APP: storeDir,
+        VBRIEF: vbrief,
+        ALLOC: fiveEnvelope(),
+        ROOT: base,
+      },
+      encoding: "utf8",
+    });
+    expect(child.status, child.stderr || child.stdout || "").toBe(0);
   });
 });

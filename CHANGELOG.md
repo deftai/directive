@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **verify:story-ready reads the durable one-PR-unit store (#4950).** The ordinary readiness path uses the same absolute store as human mint. A relative path, the forbidden `.deft/one-pr-unit` path, and a failed directory create are configuration failures, not a request to mint again. A directory with no claims file, including one this check just created, stays a missing grant. Tracking #4950.
 - **`directive --version` names the installed CLI package and the engine (#4766).** The first version number is still the engine, so identity probes keep seeing core. Tracking #4766.
 - **Dirty or unreadable `directive update --json` no longer lists planned dest files as writes (#4773).** A refuse before writes now reports empty mutation keys. The dest plan still runs before the Git gate so a dirty tree is still refused. Successful dry-run dest-plan JSON is unchanged. Tracking #4773.
 - **Setup stores the depth answer and does not ask it again (#4668).** Phase 1 persists the opening selection in Personal, so that first session does not ask twice. A return visit with no Personal Depth field is asked once. Only one Personal `1`, `2`, or `3` is the track. Duplicate lines, an invalid value, and any line outside Personal are not the track. Strategy and coverage are not the track. An existing PROJECT-DEFINITION, including empty narratives, is not a missing-answers detector. Identity strings stay `project:write-narratives`. Tracking #4668.

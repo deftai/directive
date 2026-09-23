@@ -52,11 +52,22 @@ export const ONE_PR_UNIT_APP_NOT_CONFIGURED =
 export const IN_PROCESS_NOT_PRODUCTION =
   "DEFT_ONE_PR_UNIT_APP must not select InProcessAppStore as production";
 
+export const ONE_PR_UNIT_APP_NOT_ABSOLUTE =
+  "DEFT_ONE_PR_UNIT_APP must be an absolute path. A relative path is a configuration failure, not mint remediation.";
+
+export const ONE_PR_UNIT_APP_CREATE_FAILED =
+  "DEFT_ONE_PR_UNIT_APP could not be created as a directory. This is a configuration failure, not mint remediation.";
+
 export type ResolveProductionAppStoreResult =
   | { readonly ok: true; readonly store: OnePrUnitAppStore }
   | {
       readonly ok: false;
-      readonly code: "not-configured" | "in-process-not-production" | "disk-not-sot";
+      readonly code:
+        | "not-configured"
+        | "in-process-not-production"
+        | "disk-not-sot"
+        | "not-absolute"
+        | "create-failed";
       readonly message: string;
     };
 

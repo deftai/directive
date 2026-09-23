@@ -4,12 +4,14 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import type { MintClaimInput, OnePrUnitAppStore } from "./app-store.js";
 import {
   IN_PROCESS_NOT_PRODUCTION,
+  ONE_PR_UNIT_APP_CREATE_FAILED,
+  ONE_PR_UNIT_APP_NOT_ABSOLUTE,
   ONE_PR_UNIT_APP_NOT_CONFIGURED,
   type ResolveProductionAppStoreResult,
   resolveClaimFromStore,
@@ -116,6 +118,27 @@ function isDiskStoreNotSotPath(raw: string): boolean {
   return n.endsWith(".deft/one-pr-unit") || n.includes("/.deft/one-pr-unit/");
 }
 
+/** Same create `DirectiveGitHubAppStore` uses before it writes claims.json. */
+function mkdirStoreRoot(root: string): void {
+  mkdirSync(root, { recursive: true });
+}
+
+function isStoreDirectory(root: string): boolean {
+  try {
+    return statSync(root).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function errnoCode(err: unknown): string {
+  if (typeof err === "object" && err !== null && "code" in err) {
+    const code = (err as { code?: unknown }).code;
+    if (typeof code === "string" && code.length > 0) return code;
+  }
+  return "unknown";
+}
+
 /** Remaining-deploy item 1: Directive GitHub App private transactional store. */
 export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
   readonly backend = "directive-github-app" as const;
@@ -179,7 +202,7 @@ export class DirectiveGitHubAppStore implements OnePrUnitAppStore {
   }
 
   private persist(): void {
-    mkdirSync(this.root, { recursive: true });
+    mkdirStoreRoot(this.root);
     const inner = mapsOf(this.inner);
     const payload = {
       schema: STORE_SCHEMA,
@@ -251,6 +274,21 @@ export function resolveProductionAppStore(
   }
   if (isDiskStoreNotSotPath(raw)) {
     return { ok: false, code: "disk-not-sot", message: DISK_STORE_NOT_SOT };
+  }
+  if (!isAbsolute(raw)) {
+    return { ok: false, code: "not-absolute", message: ONE_PR_UNIT_APP_NOT_ABSOLUTE };
+  }
+  const root = resolve(raw);
+  if (!isStoreDirectory(root)) {
+    try {
+      mkdirStoreRoot(root);
+    } catch (err: unknown) {
+      return {
+        ok: false,
+        code: "create-failed",
+        message: `${ONE_PR_UNIT_APP_CREATE_FAILED} (${errnoCode(err)})`,
+      };
+    }
   }
   return { ok: true, store: new DirectiveGitHubAppStore(raw) };
 }

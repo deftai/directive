@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -46,6 +46,48 @@ function buildRepo(status = "running"): { root: string; vbriefPath: string } {
   execFileSync("git", ["add", "-A"], { cwd: root });
   gitCommit(root, "init");
   return { root, vbriefPath };
+}
+
+function multiCohortAlloc(root: string): string {
+  const alloc = join(root, "alloc.md");
+  writeFileSync(
+    alloc,
+    [
+      "## Allocation context",
+      "- dispatch_kind: solo",
+      "- allocation_plan_id: null",
+      "- batching_rationale: null",
+      "- cohort_vbriefs: [xbrief/active/a.json, xbrief/active/b.json]",
+      "- operator_approval_evidence: advisory",
+      "- one_pr_unit_id: unit-five",
+      "",
+    ].join("\n"),
+  );
+  return alloc;
+}
+
+function captureRun(argv: string[]): { code: number; stderr: string } {
+  const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+  const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+  try {
+    const code = run([...argv, "--skip-routing", "--allow-dirty"]);
+    return { code, stderr: err.mock.calls.map((call) => String(call[0])).join("") };
+  } finally {
+    out.mockRestore();
+    err.mockRestore();
+  }
+}
+
+function withApp(value: string | undefined, runCase: () => void): void {
+  const prev = process.env.DEFT_ONE_PR_UNIT_APP;
+  if (value === undefined) delete process.env.DEFT_ONE_PR_UNIT_APP;
+  else process.env.DEFT_ONE_PR_UNIT_APP = value;
+  try {
+    runCase();
+  } finally {
+    if (prev === undefined) delete process.env.DEFT_ONE_PR_UNIT_APP;
+    else process.env.DEFT_ONE_PR_UNIT_APP = prev;
+  }
 }
 
 function silentRun(argv: string[]): number {
@@ -235,6 +277,68 @@ describe("run", () => {
         process.env.DEFT_ROUTING_PATH = savedRouting;
       }
     }
+  });
+
+  it("prints the resolver message when the one-PR-unit store is unset", () => {
+    const { root, vbriefPath } = buildRepo();
+    const alloc = multiCohortAlloc(root);
+    withApp(undefined, () => {
+      const result = captureRun([
+        "--vbrief-path",
+        vbriefPath,
+        "--project-root",
+        root,
+        "--allocation-context",
+        alloc,
+      ]);
+      expect(result.code).toBe(2);
+      expect(result.stderr).toContain("DEFT_ONE_PR_UNIT_APP");
+      expect(result.stderr).not.toContain("mint an operator-origin");
+    });
+  });
+
+  it("asks for a mint when the absolute store directory has no claims file", () => {
+    const { root, vbriefPath } = buildRepo();
+    const alloc = multiCohortAlloc(root);
+    const parent = mkdtempSync(join(tmpdir(), "opu-cli-created-"));
+    const store = join(parent, "store");
+    temps.push(parent);
+    withApp(store, () => {
+      const result = captureRun([
+        "--vbrief-path",
+        vbriefPath,
+        "--project-root",
+        root,
+        "--allocation-context",
+        alloc,
+      ]);
+      expect(result.code).toBe(2);
+      expect(result.stderr).toContain("mint an operator-origin");
+      expect(existsSync(store)).toBe(true);
+      expect(existsSync(join(store, "claims.json"))).toBe(false);
+    });
+  });
+
+  it("does not ask for a mint when the store path is a file", () => {
+    const { root, vbriefPath } = buildRepo();
+    const alloc = multiCohortAlloc(root);
+    const parent = mkdtempSync(join(tmpdir(), "opu-cli-file-"));
+    const file = join(parent, "backend-file");
+    writeFileSync(file, "not-a-dir");
+    temps.push(parent);
+    withApp(file, () => {
+      const result = captureRun([
+        "--vbrief-path",
+        vbriefPath,
+        "--project-root",
+        root,
+        "--allocation-context",
+        alloc,
+      ]);
+      expect(result.code).toBe(2);
+      expect(result.stderr).toContain("could not be created as a directory");
+      expect(result.stderr).not.toContain("mint an operator-origin");
+    });
   });
 });
 
