@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4950",
-    "updated": "2026-09-23T13:23:01Z"
+    "updated": "2026-09-23T14:03:51Z"
   },
   "plan": {
     "title": "BLOCKER: one-PR-unit story-readiness cannot resolve durable grants (0.119.7)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "BLOCKER: one-PR-unit story-readiness cannot resolve durable grants (0.119.7)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4950",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "The ordinary verify:story-ready path calls resolveProductionAppStore, the same resolver human mint uses. When that result is ok, the resolved store is passed into loadOnePrUnitGrant. This path does not call getDefaultAppStore and does not use the mint helper that returns the in-memory store when the resolver is not ok. The in-memory store remains an explicit test seam.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4954",
+          "recorded_at": "2026-09-23T14:03:27Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "resolveProductionAppStore is ok only when DEFT_ONE_PR_UNIT_APP is an absolute path that is already a directory, or the same mkdir the store uses to create that directory succeeds. A relative path, the forbidden .deft/one-pr-unit path, and a failed create are configuration failures. Directory ancestry is not the acceptance condition. Mint and story-ready both use that result. A projectRoot base is not the store identity.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4954",
+          "recorded_at": "2026-09-23T14:03:27Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A resolver failure is surfaced as the resolver message and does not fall through to the missing-grant sentence. Readiness does not ask for another mint on that failure. The missing-grant sentence remains only after the resolver has returned ok and the grant is absent. A directory with no claims.json, including a directory this check just created, stays the missing-grant result.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4954",
+          "recorded_at": "2026-09-23T14:03:27Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Offline closing-keyword lookup, closeout attestation, and the merge-group default stay on the in-memory default until a later fix or an explicit unsupported note. This contract is the verify:story-ready path.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4954",
+          "recorded_at": "2026-09-23T14:03:27Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Exact-set comparison, the human-origin check, and PR-node binding stay as they are. Declare does not receive a pull-request node id. The opaque id stays a lookup key.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4954",
+          "recorded_at": "2026-09-23T14:03:27Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -616,9 +646,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "b1fc6072cd6565f4013ae9789658f8483722e0df585f433a881ab8b874f9b873"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4954,
+        "prBase": null,
+        "mergeCommit": "6e4f886eaa41a63d46bf2e9bba58f062e2069631",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6e4f886eaa41a63d46bf2e9bba58f062e2069631",
+        "verifiedAt": "2026-09-23T14:03:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T14:03:51Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T14:03:51Z"
       }
     },
     "id": "github.issue.5548421818",
-    "updated": "2026-09-23T13:23:01Z"
+    "updated": "2026-09-23T14:03:51Z"
   }
 }
