@@ -635,7 +635,7 @@ omit = [
       "Overview": "{Brief project description}",
       "TechStack": "{project type} using {languages} — {tech stack details}",
       "Strategy": "Use {strategy name} for this project",
-      "Quality": "Run task check before every commit. Achieve >= {coverage}% coverage overall + per-module. Store secrets in secrets/ dir.",
+      "Quality": "Prefer `deft check`; else `task deft:check` on an include-only consumer. One gate, not two runs. Achieve >= {coverage}% coverage overall + per-module. Store secrets in secrets/ dir.",
       "ProjectRules": "{Any rules the user specified, or 'No project-specific rules defined.'}",
       "Branching": "{If confirmed trunk-based: 'Trunk-based workflow', otherwise 'Branch-based workflow (default)'}"
     },

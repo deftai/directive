@@ -100,6 +100,11 @@ import {
 } from "./paths.js";
 import { runPayloadStalenessCheck } from "./payload-staleness.js";
 import {
+  classifyRootCheckDirective,
+  ROOT_CHECK_DOES_NOT_INVOKE_MESSAGE,
+  ROOT_CHECK_DOES_NOT_INVOKE_SUGGESTION,
+} from "./root-check-invoke.js";
+import {
   loadSessionCodas,
   projectRootRealpath,
   resolveSessionCodaLine,
@@ -1319,6 +1324,30 @@ function runTaskfileIncludeCheck(
   }
   const includeStatus = classifyTaskfileInclude(projectRoot);
   if (includeStatus === "ok") {
+    const selected = resolveConsumerTaskfile(projectRoot);
+    if (selected !== null) {
+      let text: string | null = null;
+      try {
+        text = readFileSync(selected, "utf8").replace(/^\uFEFF/, "");
+      } catch {
+        text = null;
+      }
+      if (
+        text !== null &&
+        classifyRootCheckDirective(projectRoot, text).kind === "does-not-invoke"
+      ) {
+        // Warning only. Do not write the Taskfile, including when fixMode is set.
+        sink.warn(ROOT_CHECK_DOES_NOT_INVOKE_MESSAGE);
+        addFinding({
+          severity: "warning",
+          message: ROOT_CHECK_DOES_NOT_INVOKE_MESSAGE,
+          check: "root-check-invoke",
+          file: selected,
+          suggestion: ROOT_CHECK_DOES_NOT_INVOKE_SUGGESTION,
+        });
+        return;
+      }
+    }
     sink.success(
       "Gates-surface ready: root Taskfile.yml includes the deft framework (`task deft:<verb>`)",
     );
