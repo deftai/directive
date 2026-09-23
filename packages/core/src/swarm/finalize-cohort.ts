@@ -470,6 +470,8 @@ function closeOriginsAfterLeftoverComplete(args: {
   readonly dryRun: boolean;
   readonly runGh: RunGhFn;
   readonly runGit: typeof runText;
+  /** After a confirmed land, a missing brief is a refusal, not a success skip. */
+  readonly missingOnBranchIsError?: boolean;
 }): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -505,13 +507,23 @@ function closeOriginsAfterLeftoverComplete(args: {
   for (const issue of args.originIssues) {
     const completedRel = completedBriefRelpathForIssue(args.projectRoot, issue);
     if (completedRel === null || !landed.names.has(completedRel)) {
-      warnings.push(
+      const notOnBranch =
         "#" +
-          String(issue) +
-          ": origin-close skipped; leftover-complete not on origin/" +
-          args.deliveryBranch +
-          " (#4824).",
-      );
+        String(issue) +
+        ": origin-close skipped; leftover-complete not on origin/" +
+        args.deliveryBranch +
+        " (#4824).";
+      if (args.missingOnBranchIsError === true) {
+        errors.push(
+          "#" +
+            String(issue) +
+            ": origin-close refused DONE: completed brief is not on origin/" +
+            args.deliveryBranch +
+            ". Issue not closed.",
+        );
+      } else {
+        warnings.push(notOnBranch);
+      }
       continue;
     }
     const shown = args.runGit(["git", "show", `origin/${args.deliveryBranch}:${completedRel}`], {
@@ -990,7 +1002,7 @@ function waitForLifecycleLand(args: {
   readonly runGit: typeof runText;
   readonly probeLimit: number;
   readonly sleep: ((ms: number) => void) | undefined;
-}): { ok: true } | { ok: false; error: string } {
+}): { ok: true; branch: string } | { ok: false; error: string } {
   const parsed = parseRepo(args.repo);
   if (parsed === null) {
     return { ok: false, error: `invalid --repo value: ${JSON.stringify(args.repo)}` };
@@ -1006,36 +1018,41 @@ function waitForLifecycleLand(args: {
       try {
         const parsedBody = JSON.parse(result.stdout) as unknown;
         if (parsedBody === null || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
-          last = `lifecycle pull request #${String(args.prNumber)} status was unreadable`;
-        } else {
-          const body = parsedBody as Record<string, unknown>;
-          const mergedAt = body.merged_at;
-          const state = typeof body.state === "string" ? body.state : "";
-          if (state === "closed" && (mergedAt === null || mergedAt === undefined)) {
-            return {
-              ok: false,
-              error: `lifecycle pull request #${String(args.prNumber)} closed without merging; issue left open`,
-            };
-          }
-          if (typeof mergedAt === "string" && mergedAt.length > 0) {
-            watched = lifecycleLandBranch(
-              args.deliveryBranch,
-              args.alternateBase,
-              pullRequestBaseRef(body),
-            );
-            const landed = listLandedCompletedRelpaths(args.projectRoot, watched, args.runGit);
-            if (landed.error !== null) {
-              last = landed.error;
-            } else {
-              const missing = args.completedRels.filter((rel) => !landed.names.has(rel));
-              if (missing.length === 0) {
-                return { ok: true };
-              }
-              last = `completed brief not on origin/${watched}: ${missing.join(", ")}`;
-            }
+          return {
+            ok: false,
+            error:
+              `lifecycle pull request #${String(args.prNumber)} status was unreadable. ` +
+              "The command does not merge the lifecycle pull request. " +
+              `Issue left open until the completed brief is on origin/${watched}.`,
+          };
+        }
+        const body = parsedBody as Record<string, unknown>;
+        const mergedAt = body.merged_at;
+        const state = typeof body.state === "string" ? body.state : "";
+        if (state === "closed" && (mergedAt === null || mergedAt === undefined)) {
+          return {
+            ok: false,
+            error: `lifecycle pull request #${String(args.prNumber)} closed without merging; issue left open`,
+          };
+        }
+        if (typeof mergedAt === "string" && mergedAt.length > 0) {
+          watched = lifecycleLandBranch(
+            args.deliveryBranch,
+            args.alternateBase,
+            pullRequestBaseRef(body),
+          );
+          const landed = listLandedCompletedRelpaths(args.projectRoot, watched, args.runGit);
+          if (landed.error !== null) {
+            last = landed.error;
           } else {
-            last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
+            const missing = args.completedRels.filter((rel) => !landed.names.has(rel));
+            if (missing.length === 0) {
+              return { ok: true, branch: watched };
+            }
+            last = `completed brief not on origin/${watched}: ${missing.join(", ")}`;
           }
+        } else {
+          last = `lifecycle pull request #${String(args.prNumber)} is not merged`;
         }
       } catch {
         last = `lifecycle pull request #${String(args.prNumber)} status was unreadable`;
@@ -1649,13 +1666,14 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         } else {
           const originClose = closeOriginsAfterLeftoverComplete({
             projectRoot: closeRoot,
-            deliveryBranch,
+            deliveryBranch: landed.branch,
             originIssues,
             prNumbers,
             repo,
             dryRun,
             runGh,
             runGit,
+            missingOnBranchIsError: true,
           });
           errors.push(...originClose.errors);
           warnings.push(...originClose.warnings);

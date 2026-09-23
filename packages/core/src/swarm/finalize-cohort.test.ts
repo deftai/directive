@@ -1455,14 +1455,24 @@ describe("finalizeCohort", () => {
 
   it("waits on the branch the lifecycle pull request merges into when --base-branch differs (#4937)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-alt-base-"));
-    const storyPath = writeActiveStory(project, "story-alt", 4937, { deliveryBranch: "main" });
-    const completed = "xbrief/completed/story-alt.xbrief.json";
+    const storyPath = writeActiveStory(project, "story-4937", 4937, { deliveryBranch: "main" });
+    writeCompletedStory(project, "story-4937", 4937);
+    const completed = "xbrief/completed/story-4937.xbrief.json";
     const trees: string[] = [];
+    const shows: string[] = [];
+    const ghCalls: string[][] = [];
     const inner = mockRunGit({
       landedByRef: {
         "origin/release": [completed],
       },
     });
+    const innerGh = mockRunGh(
+      {
+        42: { merged: true, closingIssues: [], baseRef: "main" },
+        9999: { merged: true, closingIssues: [], baseRef: "release" },
+      },
+      { 4937: "open" },
+    );
     const result = finalizeCohort({
       projectRoot: project,
       storyTokens: [storyPath],
@@ -1479,19 +1489,30 @@ describe("finalizeCohort", () => {
             trees.push(ref);
           }
         }
+        if (command[1] === "show") {
+          shows.push(String(command[2] ?? ""));
+        }
         return inner(command, options);
       },
-      runGh: mockRunGh({
-        42: { merged: true, closingIssues: [], baseRef: "main" },
-        9999: { merged: true, closingIssues: [], baseRef: "release" },
-      }),
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return innerGh(cmd);
+      },
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.ok).toBe(true);
     expect(result.result.delivery_branch).toBe("main");
     expect(result.result.sweep_base).toBe("develop");
     expect(trees).toContain("origin/release");
+    expect(shows.some((spec) => spec.startsWith("origin/release:"))).toBe(true);
+    expect(shows.some((spec) => spec.startsWith("origin/main:"))).toBe(false);
+    expect(
+      ghCalls.some(
+        (cmd) => cmd.includes("PATCH") && cmd.some((part) => part.includes("/issues/4937")),
+      ),
+    ).toBe(true);
     expect(result.result.errors.some((e) => e.includes("origin/main"))).toBe(false);
+    expect(result.result.errors.some((e) => e.includes("Issue not closed"))).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1642,34 +1663,43 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
-  it("does not read fields when the lifecycle pull request payload is null (#4937)", () => {
-    const project = mkdtempSync(join(tmpdir(), "sw-finalize-null-pr-"));
-    const storyPath = writeActiveStory(project, "story-4937", 4937);
-    const inner = mockRunGh({
-      42: { merged: true, closingIssues: [], baseRef: "master" },
-    });
-    const result = finalizeCohort({
-      projectRoot: project,
-      storyTokens: [storyPath],
-      prNumbers: [42],
-      label: "story-4937",
-      repo: "deftai/directive",
-      deliveryBranch: "master",
-      landProbeLimit: 1,
-      sleep: () => {},
-      runGit: mockRunGit(),
-      runGh: (cmd) => {
-        const path = cmd.find((part) => part.startsWith("repos/") && part.includes("/pulls/"));
-        if (path?.endsWith("/pulls/9999") === true) {
-          return { returncode: 0, stdout: "null", stderr: "" };
-        }
-        return inner(cmd);
-      },
-    });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.result.errors.some((error) => error.includes("unreadable"))).toBe(true);
-    expect(result.result.errors.some((error) => error.includes("does not merge"))).toBe(true);
-    rmSync(project, { recursive: true, force: true });
+  it("fails immediately when the lifecycle pull request status is null or not an object (#4937)", () => {
+    for (const stdout of ["null", '"nope"', "[]", "1", "true"]) {
+      const project = mkdtempSync(join(tmpdir(), "sw-finalize-null-pr-"));
+      const storyPath = writeActiveStory(project, "story-4937", 4937);
+      const inner = mockRunGh({
+        42: { merged: true, closingIssues: [], baseRef: "master" },
+      });
+      const sleeps: number[] = [];
+      let statusReads = 0;
+      const result = finalizeCohort({
+        projectRoot: project,
+        storyTokens: [storyPath],
+        prNumbers: [42],
+        label: "story-4937",
+        repo: "deftai/directive",
+        deliveryBranch: "master",
+        landProbeLimit: 120,
+        sleep: (ms) => {
+          sleeps.push(ms);
+        },
+        runGit: mockRunGit(),
+        runGh: (cmd) => {
+          const path = cmd.find((part) => part.startsWith("repos/") && part.includes("/pulls/"));
+          if (path?.endsWith("/pulls/9999") === true) {
+            statusReads += 1;
+            return { returncode: 0, stdout, stderr: "" };
+          }
+          return inner(cmd);
+        },
+      });
+      expect(result.exitCode).not.toBe(0);
+      expect(result.result.errors.some((error) => error.includes("unreadable"))).toBe(true);
+      expect(result.result.errors.some((error) => error.includes("does not merge"))).toBe(true);
+      expect(statusReads).toBe(1);
+      expect(sleeps).toEqual([]);
+      rmSync(project, { recursive: true, force: true });
+    }
   });
 });
 
