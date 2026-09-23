@@ -1205,9 +1205,62 @@ function stripSentenceChrome(raw: string): string {
   return text;
 }
 
+function pushStatementSentence(out: string[], seen: Set<string>, raw: string): void {
+  const sentence = stripSentenceChrome(raw);
+  if (!/[A-Za-z]/.test(sentence)) {
+    return;
+  }
+  const key = sentence.toLowerCase();
+  if (seen.has(key)) {
+    return;
+  }
+  seen.add(key);
+  out.push(sentence);
+}
+
+/**
+ * A heading line among other lines is section chrome. A heading that is the
+ * whole part still counts: `stripSentenceChrome` keeps its text (#3550).
+ */
+function isMarkdownHeadingLine(line: string): boolean {
+  return /^#{1,6}(?:\s|$)/.test(line);
+}
+
+/**
+ * Text after the last terminator, or the whole part when it has none.
+ * One line stays one sentence. A multi-line tail is one sentence per line
+ * so a following list does not glue into a single unmapped blob (#3550).
+ */
+function emitUnterminatedSpan(
+  source: string,
+  start: number,
+  out: string[],
+  seen: Set<string>,
+): void {
+  const tail = source.slice(start);
+  if (tail.trim().length === 0) {
+    return;
+  }
+  const content = tail
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (content.length <= 1) {
+    pushStatementSentence(out, seen, content[0] ?? "");
+    return;
+  }
+  for (const line of content) {
+    if (isMarkdownHeadingLine(line)) {
+      continue;
+    }
+    pushStatementSentence(out, seen, line);
+  }
+}
+
 /**
  * Prose sentences in a task statement. Text only. A sentence does not select
- * a file, and a terminator inside a token (`probe.txt`) is not a boundary (#3550).
+ * a file, and a terminator inside a token (`probe.txt`) is not a boundary.
+ * A span with no terminal `.`, `!`, or `?` is still a sentence (#3550).
  */
 export function extractStatementSentences(text: string): string[] {
   const source = stripFencedCodeBlocks(text);
@@ -1231,20 +1284,14 @@ export function extractStatementSentences(text: string): string[] {
       index += 1;
       continue;
     }
-    const sentence = stripSentenceChrome(source.slice(start, end));
-    if (/[A-Za-z]/.test(sentence)) {
-      const key = sentence.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        out.push(sentence);
-      }
-    }
+    pushStatementSentence(out, seen, source.slice(start, end));
     index = end;
     while (index < source.length && /\s/.test(source[index] ?? "")) {
       index += 1;
     }
     start = index;
   }
+  emitUnterminatedSpan(source, start, out, seen);
   return out;
 }
 

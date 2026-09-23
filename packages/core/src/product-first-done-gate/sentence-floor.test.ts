@@ -40,6 +40,13 @@ const BEHAVIORAL = [
 ];
 
 const INTAKE_SENTENCE = "Initialize workers from the config.";
+const PUNCTUATION_FREE = "Initialize workers";
+const GENERATED_SENTENCES = [
+  "Workers",
+  INTAKE_SENTENCE,
+  "probe.txt exists",
+  'probe.txt contains "marker-token-3550"',
+];
 
 function intakeStatementBody(): string {
   return [
@@ -50,6 +57,29 @@ function intakeStatementBody(): string {
     '- probe.txt contains "marker-token-3550"',
     "",
   ].join("\n");
+}
+
+function punctuationFreeBody(): string {
+  return [
+    "## Acceptance Criteria",
+    "- probe.txt exists",
+    '- probe.txt contains "marker-token-3550"',
+    "",
+  ].join("\n");
+}
+
+function generatedPunctuationFreeBrief(): Record<string, unknown> {
+  const [vbrief] = buildIssueVbrief(
+    {
+      number: 3550,
+      title: PUNCTUATION_FREE,
+      body: punctuationFreeBody(),
+      labels: [],
+    },
+    "proposed",
+    "https://github.com/deftai/directive",
+  );
+  return vbrief.plan as Record<string, unknown>;
 }
 
 function generatedSentenceBrief(): Record<string, unknown> {
@@ -371,7 +401,7 @@ describe("statement sentence floor (#3550)", () => {
       sentences?: string[];
       clauses: { text: string; artifact_path: string | null }[];
     };
-    expect(acceptance.sentences).toEqual([INTAKE_SENTENCE]);
+    expect(acceptance.sentences).toEqual(GENERATED_SENTENCES);
     expect(acceptance.clauses.map((clause) => clause.text)).toEqual([
       "probe.txt exists",
       'probe.txt contains "marker-token-3550"',
@@ -385,7 +415,8 @@ describe("statement sentence floor (#3550)", () => {
     expect(result.code).toBe(1);
     expect(result.resolution).toBe("fail");
     expect(result.cause).toBe("unmapped_statement_sentence");
-    expect(result.unmappedSentenceCount).toBe(1);
+    expect(result.unmappedSentenceCount).toBe(2);
+    expect(result.message).toContain("Workers");
     expect(result.behavioralClauseCount).toBe(0);
     expect(result.message).toContain(INTAKE_SENTENCE);
     expect(result.message).not.toContain("artifact missing");
@@ -402,7 +433,7 @@ describe("statement sentence floor (#3550)", () => {
       },
     });
     const acceptance = restamped.acceptance as { sentences?: string[]; clauses?: unknown[] };
-    expect(acceptance.sentences).toEqual([INTAKE_SENTENCE]);
+    expect(acceptance.sentences).toEqual(GENERATED_SENTENCES);
 
     const derived = stampDerivedClausesOnAcceptance(restamped, intakeStatementBody());
     applyClauseQualityForIngest(derived.plan);
@@ -416,9 +447,60 @@ describe("statement sentence floor (#3550)", () => {
     expect(result.clauseOutcomes?.map((row) => row.outcome)).toEqual(["verified", "verified"]);
     expect(result.ok).toBe(false);
     expect(result.cause).toBe("unmapped_statement_sentence");
-    expect(result.unmappedSentenceCount).toBe(1);
+    expect(result.unmappedSentenceCount).toBe(2);
     expect(result.behavioralClauseCount).toBe(0);
     expect(result.message).toContain(INTAKE_SENTENCE);
+    expect(result.message).toContain("Workers");
+    expect(result.message).not.toContain("A replacement sentence");
+  });
+
+  it("fails a generated brief whose statement has no terminal punctuation", () => {
+    const plan = generatedPunctuationFreeBrief();
+    const acceptance = plan.acceptance as {
+      sentences?: string[];
+      clauses: { text: string; artifact_path: string | null }[];
+    };
+    expect(acceptance.sentences).toEqual([
+      PUNCTUATION_FREE,
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ]);
+    expect(acceptance.clauses.map((clause) => clause.text)).toEqual([
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ]);
+    expect(acceptance.clauses.every((clause) => clause.artifact_path === null)).toBe(true);
+
+    const restamped = stampAcceptanceFromLiteralCapture({
+      ...plan,
+      narratives: {
+        ...(plan.narratives as Record<string, unknown>),
+        Overview: "A replacement sentence that must not replace the stored list.",
+      },
+    });
+    expect((restamped.acceptance as { sentences?: string[] }).sentences).toEqual(
+      acceptance.sentences,
+    );
+
+    const derived = stampDerivedClausesOnAcceptance(restamped, punctuationFreeBody());
+    applyClauseQualityForIngest(derived.plan);
+    const clauses = (derived.plan.acceptance as { clauses: { text: string }[] }).clauses;
+    expect(clauses.map((clause) => clause.text)).toEqual([
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ]);
+    bindProbeClauses(derived.plan);
+    const result = evaluateVerifyAcFromPlan(derived.plan, baseOptions(writeProbeRoot()));
+    expect(result.clauseOutcomes?.map((row) => row.outcome)).toEqual(["verified", "verified"]);
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(1);
+    expect(result.resolution).toBe("fail");
+    expect(result.cause).toBe("unmapped_statement_sentence");
+    expect(result.unmappedSentenceCount).toBe(1);
+    expect(result.behavioralClauseCount).toBe(0);
+    expect(result.message).toContain(PUNCTUATION_FREE);
+    expect(result.message).not.toContain("artifact missing");
+    expect(result.message).not.toContain("was read");
     expect(result.message).not.toContain("A replacement sentence");
   });
 
@@ -441,6 +523,17 @@ describe("statement sentence floor (#3550)", () => {
       "Next stays.",
     ]);
     expect(extractStatementSentences("1.")).toEqual([]);
+    expect(extractStatementSentences("Initialize workers")).toEqual([PUNCTUATION_FREE]);
+    expect(extractStatementSentences("Ship it. Initialize workers")).toEqual([
+      "Ship it.",
+      PUNCTUATION_FREE,
+    ]);
+    expect(extractStatementSentences("Ship probe.txt now")).toEqual(["Ship probe.txt now"]);
+    expect(
+      extractStatementSentences(
+        '## Acceptance Criteria\n- probe.txt exists\n- probe.txt contains "marker-token-3550"',
+      ),
+    ).toEqual(["probe.txt exists", 'probe.txt contains "marker-token-3550"']);
   });
 
   it("preserves confessions on restamp and reads an item acceptance sentence", () => {
