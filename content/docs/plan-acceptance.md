@@ -16,6 +16,13 @@ when a pass line shows `0 verified`.
   `needsClauseDerivation` is false and missing `ambiguity_attestation` fires.
 - ⊗ Recut `#4374` clause derivation from this issue.
 
+## Activate and promote (#4768)
+
+- ! `scope:activate` and `scope:promote` refuse when clause derivation returns applied false and the brief still has no clauses. The intake floor (`commands: []`, `none_stated: true`) stays legal before that step. It is not committed into `active/` on that no-op.
+- ! Recovery is a derivable surface: list items, `test:` lines, or `acceptance:` lines (#4374). Derivation remains the only writer.
+- ⊗ Do not treat an empty `none_stated` block as an active stamp. A derived stamp that keeps `none_stated: true` and has `clauses[]` is legal.
+- ⊗ Do not recut empty-resolution readers or the #3826 0-verified pre-product pass from this refuse.
+
 ## Fields the gate requires
 
 | Field | When required | Who writes it |

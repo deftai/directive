@@ -27,16 +27,33 @@ function makeRepo(): string {
   return root;
 }
 
+/** Derived stamp: none_stated stays true and clauses are present (#4768). */
+function derivedStamp(text = "Folder move keeps the derived stamp"): Record<string, unknown> {
+  return {
+    commands: [],
+    none_stated: true,
+    source_rung: "derived",
+    ambiguity_attestation: "none_found",
+    clauses: [{ id: 1, text, artifact_path: null, ambiguous: false }],
+  };
+}
+
 function writeVbrief(
   root: string,
   folder: string,
   status: string,
   name = "2026-01-01-story.xbrief.json",
+  acceptance?: Record<string, unknown>,
 ): string {
   const path = join(root, "xbrief", folder, name);
   writeFile(path, {
     xBRIEFInfo: { version: "0.8" },
-    plan: { title: "T", status, items: [] },
+    plan: {
+      title: "T",
+      status,
+      items: [],
+      ...(acceptance !== undefined ? { acceptance } : {}),
+    },
   });
   return path;
 }
@@ -114,9 +131,29 @@ describe("runTransition", () => {
     expect(activated.message).toContain("(D7)");
   });
 
-  it("promotes proposed to pending", () => {
+  it("refuses promote when derivation leaves no clauses (#4768)", () => {
     root = makeRepo();
     const file = writeVbrief(root, "proposed", "proposed");
+    const before = readFileSync(file, "utf8");
+    const result = runTransition("promote", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#4768/);
+    expect(result.message).toMatch(/test: lines, or acceptance: lines/);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json"))).toBe(
+      false,
+    );
+    expect(readFileSync(file, "utf8")).toBe(before);
+  });
+
+  it("promotes proposed to pending", () => {
+    root = makeRepo();
+    const file = writeVbrief(
+      root,
+      "proposed",
+      "proposed",
+      "2026-01-01-story.xbrief.json",
+      derivedStamp(),
+    );
     const fixed = new Date("2026-06-01T12:00:00.000Z");
     const result = runTransition("promote", file, fixed);
     expect(result.ok).toBe(true);
@@ -132,7 +169,13 @@ describe("runTransition", () => {
 
   it("activates pending to active", () => {
     root = makeRepo();
-    const file = writeVbrief(root, "pending", "pending");
+    const file = writeVbrief(
+      root,
+      "pending",
+      "pending",
+      "2026-01-01-story.xbrief.json",
+      derivedStamp(),
+    );
     const result = runTransition("activate", file);
     expect(result.ok).toBe(true);
     expect(existsSync(join(root, "xbrief", "active", "2026-01-01-story.xbrief.json"))).toBe(true);
@@ -191,8 +234,8 @@ describe("runTransition", () => {
     });
     const result = runTransition("activate", path);
     expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/plan\.acceptance is absent \(#3334\)/);
-    expect(result.message).toMatch(/Stamp plan\.acceptance/);
+    expect(result.message).toMatch(/#4768/);
+    expect(result.message).toMatch(/left no clauses/);
     expect(result.message).toMatch(
       /0 clauses derived from acceptance-shaped narrative keys \(Test\)/,
     );
@@ -260,7 +303,7 @@ describe("runTransition", () => {
     ]);
   });
 
-  it("surfaces a named 0-clause notice on promote of bare-prose AcceptanceCriteria (#4374)", () => {
+  it("refuses promote of bare-prose AcceptanceCriteria and names the 0-clause shapes (#4374)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "proposed", "2026-01-01-bare-ac.xbrief.json");
     writeFile(path, {
@@ -273,13 +316,20 @@ describe("runTransition", () => {
       },
     });
     const result = runTransition("promote", path);
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#4768/);
     expect(result.message).toMatch(
       /0 clauses derived from acceptance-shaped narrative keys \(AcceptanceCriteria\)/,
     );
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-bare-ac.xbrief.json"))).toBe(
+      false,
+    );
+    const stayed = JSON.parse(readFileSync(path, "utf8")) as { plan: { acceptance?: unknown } };
+    expect(stayed.plan.acceptance).toBeUndefined();
   });
 
-  it("activates when acceptance-shaped narratives have plan.acceptance stamped (#3334)", () => {
+  it("refuses to commit the intake floor into active when derivation no-ops (#4768)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "pending", "2026-01-01-stamped.xbrief.json");
     writeFile(path, {
@@ -292,9 +342,43 @@ describe("runTransition", () => {
         items: [],
       },
     });
+    const before = readFileSync(path, "utf8");
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#4768/);
+    expect(result.message).toMatch(/not committed/);
+    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-stamped.xbrief.json"))).toBe(
+      false,
+    );
+    expect(readFileSync(path, "utf8")).toBe(before);
+  });
+
+  it("activates a floor brief when a declared list derives clauses (#4768)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "2026-01-01-floor-list.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "pending",
+        narratives: { AcceptanceCriteria: "- Login rejects empty passwords" },
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+      },
+    });
     const result = runTransition("activate", path);
     expect(result.ok).toBe(true);
-    expect(existsSync(join(root, "xbrief", "active", "2026-01-01-stamped.xbrief.json"))).toBe(true);
+    const dest = join(root, "xbrief", "active", "2026-01-01-floor-list.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: {
+        acceptance: { none_stated: boolean; source_rung: string; clauses: { text: string }[] };
+      };
+    };
+    expect(data.plan.acceptance.none_stated).toBe(true);
+    expect(data.plan.acceptance.source_rung).toBe("derived");
+    expect(data.plan.acceptance.clauses.map((clause) => clause.text)).toEqual([
+      "Login rejects empty passwords",
+    ]);
   });
 
   it("activates a hand-authored brief only after #3323 clause derivation (#3360)", () => {
@@ -495,7 +579,7 @@ describe("runTransition", () => {
     );
   });
 
-  it("surfaces refused-derivation remediation on activate even when applied is false (#3398)", () => {
+  it("refuses activate when derivation returns applied false and clauses is empty (#4768)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "pending", "2026-01-01-impl-only.xbrief.json");
     writeFile(path, {
@@ -514,10 +598,47 @@ describe("runTransition", () => {
     });
     try {
       const result = runTransition("activate", path);
-      expect(result.ok).toBe(true);
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/#4768/);
       expect(result.message).toContain(
         clauseDerivation.CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
       );
+      expect(existsSync(join(root, "xbrief", "active", "2026-01-01-impl-only.xbrief.json"))).toBe(
+        false,
+      );
+      expect(existsSync(path)).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("refuses activate when a quality-strip restores a clauseless floor (#4768)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "2026-01-01-stripped.xbrief.json");
+    const acceptance = { commands: [], none_stated: true, source_rung: "project_floor" };
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Stripped",
+        status: "pending",
+        acceptance,
+        items: [],
+      },
+    });
+    const spy = vi.spyOn(clauseDerivation, "applyClauseDerivationToPlan").mockReturnValue({
+      applied: false,
+      clauses: [{ id: 1, text: "implementation only", artifact_path: null, ambiguous: false }],
+      notice: clauseDerivation.CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
+    });
+    try {
+      const before = readFileSync(path, "utf8");
+      const result = runTransition("activate", path);
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/#4768/);
+      expect(existsSync(join(root, "xbrief", "active", "2026-01-01-stripped.xbrief.json"))).toBe(
+        false,
+      );
+      expect(readFileSync(path, "utf8")).toBe(before);
     } finally {
       spy.mockRestore();
     }
@@ -1219,7 +1340,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     const src = join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json");
     writeFile(src, {
       xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
-      plan: { title: "T", status: "pending", items: [] },
+      plan: { title: "T", status: "pending", items: [], acceptance: derivedStamp() },
     });
 
     const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
@@ -1237,7 +1358,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     const src = join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json");
     writeFile(src, {
       vBRIEFInfo: { version: "0.6", updated: "2026-04-30T00:00:00Z" },
-      plan: { title: "T", status: "pending", items: [] },
+      plan: { title: "T", status: "pending", items: [], acceptance: derivedStamp() },
     });
 
     const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
@@ -1252,7 +1373,9 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
   it("refuses a brief carrying neither envelope by name, before the move", () => {
     const root = repo();
     const src = join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json");
-    writeFile(src, { plan: { title: "T", status: "pending", items: [] } });
+    writeFile(src, {
+      plan: { title: "T", status: "pending", items: [], acceptance: derivedStamp() },
+    });
 
     const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
     expect(result.ok).toBe(false);
@@ -1270,6 +1393,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
         title: "T",
         status: "proposed",
         narratives: { Origin: "Ingested from https://github.com/o/r/issues/9" },
+        acceptance: derivedStamp(),
         items: [],
       },
     });
@@ -1290,6 +1414,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
         title: "T",
         status: "proposed",
         narratives: { Origin: "Ingested from https://github.com/o/r/issues/1" },
+        acceptance: derivedStamp(),
         items: [],
       },
     });
@@ -1303,6 +1428,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
         title: "T",
         status: "proposed",
         narratives: { Origin: "Ingested from https://github.com/o/r/issues/2" },
+        acceptance: derivedStamp(),
         items: [],
       },
     });
@@ -1321,6 +1447,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
         title: "T",
         status: "proposed",
         narratives: { Origin: "Ingested from https://github.com/o/r/issues/3" },
+        acceptance: derivedStamp(),
         items: [],
       },
     });
@@ -1334,6 +1461,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
         title: "T",
         status: "proposed",
         narratives: { Origin: "Ingested from https://github.com/o/r/issues/4" },
+        acceptance: derivedStamp(),
         items: [],
         metadata: { "x-directive/plan-id": { id: "github.issue.99" } },
       },
@@ -1351,6 +1479,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
         title: "T",
         status: "proposed",
         narratives: { Origin: "Ingested from https://github.com/o/r/issues/5" },
+        acceptance: derivedStamp(),
         items: [],
       },
     });
@@ -1364,6 +1493,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
         title: "Child",
         status: "proposed",
         references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/635" }],
+        acceptance: derivedStamp(),
         items: [],
       },
     });

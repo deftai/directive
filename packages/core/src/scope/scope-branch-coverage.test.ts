@@ -170,7 +170,22 @@ describe("scope branch coverage", () => {
     writeVbrief(proposed, "wrong-folder.xbrief.json", "proposed");
     expect(runTransition("activate", join(proposed, "wrong-folder.xbrief.json")).ok).toBe(false);
 
-    writeVbrief(proposed, "2026-01-01-already.xbrief.json", "pending");
+    writeVbrief(proposed, "2026-01-01-already.xbrief.json", "pending", {
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: "Already-pending promote keeps the derived stamp",
+            artifact_path: null,
+            ambiguous: false,
+          },
+        ],
+      },
+    });
     expect(runTransition("promote", join(proposed, "2026-01-01-already.xbrief.json")).ok).toBe(
       true,
     );
@@ -214,7 +229,22 @@ describe("scope branch coverage", () => {
         plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
       }),
     );
-    writeVbrief(join(root, "xbrief", "proposed"), "2026-01-01-new.xbrief.json", "proposed");
+    writeVbrief(join(root, "xbrief", "proposed"), "2026-01-01-new.xbrief.json", "proposed", {
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: "Force promote keeps the derived stamp",
+            artifact_path: null,
+            ambiguous: false,
+          },
+        ],
+      },
+    });
     const file = join(root, "xbrief", "proposed", "2026-01-01-new.xbrief.json");
     expect(lifecycleMain(["promote", file, "--project-root", root])).toBe(1);
     expect(lifecycleMain(["promote", file, "--project-root", root, "--force"])).toBe(0);

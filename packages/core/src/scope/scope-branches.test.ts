@@ -50,7 +50,27 @@ describe("scope branch coverage", () => {
     const file = join(root, "xbrief", "proposed", "2026-01-01-new.xbrief.json");
     writeFileSync(
       file,
-      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      formatBriefJson(
+        minimalScopeBrief({
+          title: "T",
+          status: "proposed",
+          items: [],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "Force promote keeps the derived stamp",
+                artifact_path: null,
+                ambiguous: false,
+              },
+            ],
+          },
+        }),
+      ),
     );
     expect(lifecycleMain(["promote", file, "--project-root", root, "--force"])).toBe(0);
   });
