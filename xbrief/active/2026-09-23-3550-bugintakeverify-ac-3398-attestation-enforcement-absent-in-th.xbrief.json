@@ -1,0 +1,420 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3550",
+    "updated": "2026-09-23T17:00:04Z"
+  },
+  "plan": {
+    "title": "bug(intake,verify-ac): #3398 attestation enforcement absent in the field and noun-traceability admits behavior-free clauses - two existence greps + zero commands = verified-pass",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(intake,verify-ac): #3398 attestation enforcement absent in the field and noun-traceability admits behavior-free clauses - two existence greps + zero commands = verified-pass",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3550",
+      "Overview": "\n\n- The verify walk fails closed when a statement sentence is neither a clause nor an explicit confession on the brief.\n- That refusal covers every reader profile that reaches the oracle walk.\n- An existence clause or a quoted-token clause verifying does not cover an unmapped sentence.\n- The sentence list is on the brief and does not select a file.\n- Count fields follow the refusal.\n\nSpec-path: the next build is the Bound remedy list on this lean.\n\nrelieves: P1\n\nTarget-digest: sha256:e8a0ec444c46145a189f92c5071ec4b34cab883ccaf9217d8ae1fca011979bba\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, area:cli, eval-signal, design-critique:ingest-ready, core-capabilities, promise:requirements"
+    },
+    "items": [
+      {
+        "title": "The verify walk fails closed when a statement sentence is neither a clause nor an explicit confession on the brief.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "That refusal covers every reader profile that reaches the oracle walk.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "An existence clause or a quoted-token clause verifying does not cover an unmapped sentence.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "The sentence list is on the brief and does not select a file.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Count fields follow the refusal.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:cli",
+      "eval-signal",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3550",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3550: bug(intake,verify-ac): #3398 attestation enforcement absent in the field and noun-traceability admits behavior-free clauses - two existence greps + zero commands = verified-pass"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The verify walk fails closed when a statement sentence is neither a clause nor an explicit confession on the brief.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "That refusal covers every reader profile that reaches the oracle walk.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "An existence clause or a quoted-token clause verifying does not cover an unmapped sentence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The sentence list is on the brief and does not select a file.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Count fields follow the refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "**Re-scoped per operator bookkeeping:** the attestation-enforcement half (this issue's Fix item 1) is split out to #3559 so it can be scheduled independently and land before the next external run (one-agent-line cost footprint). This issue now carries ONLY the behavior-coverage floor (Fix item 2) - and per the release-sequencing decision on the operator side, it is explicitly DEFERRED one release: it adds per-scope intake cost (8x on multi-scope hierarchies) and should ride on a serving bank (#3558) so its cost lands on the reuse path, and so the #3558 cost-recovery prediction stays single-lever attributable.",
+          "id": 5360966228,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5360966228",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-08-20T19:55:35Z",
+          "updated_at": "2026-08-20T19:55:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "**Same all-paths requirement applies to the behavior-coverage floor when this lands** (deferred one release per the re-scope above): the floor must be enforced on every verify path - standalone verify:ac, check-composed, completion walk, and post-restamp - not bound to the derivation verb alone. Single-path enforcement is how #3398's attestation check went inert (see #3559 and #3355). Additional sequencing note: when this does land, its fixture should assert the floor's cost rides the #3558 bank/cache reuse path on unchanged products - i.e., behavioral clauses and commands execute once and serve thereafter - so the per-scope multiplier (8x on multi-scope hierarchies) prices the first verification only, not every ceremonial re-walk.",
+          "id": 5360997578,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5360997578",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-08-20T19:58:46Z",
+          "updated_at": "2026-08-20T19:58:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "0.119.0 field reading (internal benchmark evidence, private; two trial run-summary streams): `ambiguity_attested: true` on every stamp in both trials (10 stamps total), with honest provenance throughout - rung `derived`, provenance_counts all `statement`, no forged commands, no no-op substitutions. The attestation FIELD is being populated now.\n\nStill open on this issue, unchanged: (1) the ENFORCEMENT question is untested by these trials - both attested, so whether a missing attestation trips a config error in the field remains unobserved; a spec fixture is still the right proof. (2) The clause-quality half stands in full: 3 and 11 clauses respectively, every one `unverifiable`, `command_count: 0`, and verify:ac returned green on `outcome: \"empty-pass\"` both times. Truthful theater, now with a cleanly attested stage.",
+          "id": 5699605635,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5699605635",
+          "user": {
+            "login": "ape-deft",
+            "id": 309468868,
+            "node_id": "U_kgDOEnIexA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/309468868?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/ape-deft",
+            "html_url": "https://github.com/ape-deft",
+            "followers_url": "https://api.github.com/users/ape-deft/followers",
+            "following_url": "https://api.github.com/users/ape-deft/following{/other_user}",
+            "gists_url": "https://api.github.com/users/ape-deft/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/ape-deft/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/ape-deft/subscriptions",
+            "organizations_url": "https://api.github.com/users/ape-deft/orgs",
+            "repos_url": "https://api.github.com/users/ape-deft/repos",
+            "events_url": "https://api.github.com/users/ape-deft/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/ape-deft/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-16T14:58:58Z",
+          "updated_at": "2026-09-16T14:58:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Adoption blocker.\n\nThis is about Requirements: what done means. The person says what the change must do, and Directive is supposed to check that the code actually does that, and does not wander past it.\n\nWhat a new person hits: The checker can report \"verified\" after two text searches and zero commands. Nothing about behavior was tried.\n\nWhy that ruins the product for them: The success word is hollow. Once they notice, every later green result is suspect, and many will not get a later chance.\n\nHow likely: High the first time a story is marked checked. The false pass is the result they are shown.\n\n",
+          "id": 5780273783,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5780273783",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:37:44Z",
+          "updated_at": "2026-09-22T16:37:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a stamp whose clauses are only existence or string-presence checks can still verify, while behavioral sentences in the statement map to no clause and no confession.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-3550-dc\norigin-ref: origin/HEAD\ndispatch-sha: 20eac1de2e510186bdf813efda44e2e641696a6d\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator said appropriate n, which is the asked N-pick; the remaining Desired shape is one behavior-coverage floor, so N=1.\n\nrefutation-target: existence and string-presence clauses cannot verify a stamp while behavioral sentences in the statement are unmapped, because a behavior-coverage floor fails that stamp closed.\n\ntarget: #3550\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the behavior-coverage floor on #3550. Comment 5360966228 moved attestation enforcement to #3559. The changelog at this pin closes #3559. This arc leaves that half there. Comment 5699605635 left the clause-quality half open.\n\nPin-read at dispatch-sha 20eac1de2e510186bdf813efda44e2e641696a6d: packages/core/src/verify-ac/clauses.ts verifies an existence claim when the file exists, and marks a behavioral claim with no extractable tokens unverifiable. That tree has no behavioral_clause_count or unmapped_sentence_count floor. packages/cli/src/verify-ac.ts clampVerifyAcExit returns 0 when result.ok.\n\nCensus: Stage A still-open at origin/master 011539679c6c, wip none, no open PR, not named in Unreleased. The pin moved to 20eac1de2e510186bdf813efda44e2e641696a6d for the #4668 xbrief complete only. Ingest is a later verb.\n\n",
+          "id": 5787635540,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5787635540",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T01:56:26Z",
+          "updated_at": "2026-09-23T01:56:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation-target does not survive. At 20eac1de2e510186bdf813efda44e2e641696a6d an existence clause and a quoted-token clause both come back verified, the walk stays ok, and clauseWalkBlocks stays false, while imperative sentences in the same statement are not clauses. No behavior-coverage floor fails that stamp.\n\n## 1. Existence and quoted-token clauses verify\n\nclass: blocks-the-design\n\nEvidence. Imported walkAcceptanceClauses, extractExpectedTokens, and clauseWalkBlocks from git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/verify-ac/clauses.ts and git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/product-first-done-gate/acceptance-resolver.ts. Temp dir, file probe.txt containing marker-token-3550, declared scope probe.txt.\n\n- Clause \"src/probe.txt exists\" (artifact_path probe.txt): outcome verified, adjudicable true, detail \"shipped artifact exists at probe.txt\". That is EXISTENCE_CLAIM then the exists branch in walkOne.\n- Clause probe.txt contains \"marker-token-3550\": extractExpectedTokens returned [\"marker-token-3550\"]; outcome verified, adjudicable true, detail \"tokens present in shipped artifact probe.txt\".\n- Report: ok true, verified 2, failed 0, unverifiable 0. clauseWalkBlocks({failed:0, walked:2, adjudicableUnverified:0, hasGreenExecutableRun:false}) returned false.\n\nwalkAcceptanceClauses sets ok when failed is empty and countUnverifiedAdjudicableClauses is 0 (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/verify-ac/clauses.ts). clauseWalkBlocks returns false on that same pair (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/product-first-done-gate/acceptance-resolver.ts). applyClauseWalk then keeps ok and, when the prior resolution is empty-pass and verified.length > 0, sets resolution verified-pass (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/product-first-done-gate/evaluate.ts). I executed that relabel expression against this report: verified-pass. clampVerifyAcExit returns 0 when ok is true (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/cli/src/verify-ac.ts); the function body returned 0 for ok true. evaluate.ts did not import in this dest.\n\nFailure mode. A stamp whose clauses are only those two oracles, and whose command list is empty, is a verified pass. The imperative sentences never enter the walk, so they cannot pull ok back to false.\n\nDisposition. Cannot bind \"existence and string-presence clauses cannot verify a stamp while behavioral sentences in the statement are unmapped.\" Those two oracles verify, and the walk does not block.\n\n## 2. The because-clause names a floor this tree does not have\n\nclass: blocks-the-design\n\nEvidence. git grep at 20eac1de2e510186bdf813efda44e2e641696a6d for behavioral_clause_count, unmapped_sentence_count, and unverifiable_by_clause returned no matches. AcceptanceStampRunSummaryPayload is rung, none_stated, command_count, clause_count (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/run-summary/types.ts). emitAcceptanceStampFromPlan adds provenance_counts and ambiguity_attested to that payload (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/intake/clause-derivation.ts). I did not import the emitter; the types package is missing in this dest, and that import chain is what pulls it.\n\nThe fail-closed stamp that does exist is prepareClauseStamp: ok false only when every clause is implementation provenance (same file). I executed that function body, and traceClauseProvenance, in-process. stripInlineMarkdownBold was the real export. Statement text was three lines: \"src/probe.txt exists\", \"Initialize workers from the config.\", \"Propagate derived quantities to the parent.\" prepareClauseStamp on the existence clause plus the quoted-token clause returned ok true, counts {statement:1, implementation:1}. A second statement, \"WorkerPool lives in src/probe.txt.\" plus the same two imperatives, with only the existence clause, returned ok true and provenance statement. extractClauseTokens on \"src/probe.txt exists\" returned [\"src/probe.txt\"]. The path token is in the statement, so the clause is statement-traceable without either imperative being a clause. The control \"src/missing.txt exists\" against the first statement returned ok false, counts {statement:0, implementation:1}. That is the all-implementation predicate, and it is a different predicate from unmapped sentences.\n\nderiveAcceptanceClauses, the real export, returned [] for the two prose imperatives alone. On an Acceptance list whose only bullet is \"src/probe.txt exists\", with those two imperatives as following prose, it returned [\"src/probe.txt exists\"]. The prose sentences are unmapped. collectTaskStatementFromPlan still concatenates title, every narrative, and each item Acceptance or title into the provenance string (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/intake/clause-derivation.ts). I did not execute that collector.\n\nFailure mode. One existence clause whose full text or path token sits in the statement keeps the stamp. The imperatives stay off the clause list. Calling that an already-closed behavior-coverage floor leaves the verified pass in finding 1 in place.\n\nDisposition. Cannot bind \"because a behavior-coverage floor fails that stamp closed.\" The floor to bind is a sentence denominator this tree does not compute. The all-implementation check stays a provenance check.\n\n## 3. The walk predicates are not that denominator\n\nclass: sharpens-framing\n\nEvidence. Same imports. Clause \"Initialize workers from the config\" bound to probe.txt, beside the existence clause: outcome unverifiable, adjudicable false, detail \"cannot evaluate behavioral claim against shipped artifact probe.txt\". Walk ok true. clauseWalkBlocks false. Clause \"Propagate derived quantities once the shipped file exists\" on the same file: outcome verified, adjudicable true, detail \"shipped artifact exists at probe.txt\". The word exists hit EXISTENCE_CLAIM before the behavioral return. There is no stored clause kind. Quoted tokens win when present; otherwise the existence regex; otherwise unverifiable and non-adjudicable (walkOne in git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/verify-ac/clauses.ts).\n\nFailure mode. A floor that classifies \"all clauses are existence or string-presence\" with those predicates treats a behavioral sentence that says exists as a verified oracle, and it gives a real behavioral clause no weight beside one verified existence clause. Reusing extractClauseTokens maps a path or a camelCase identifier, which is how the noun-token case stayed statement provenance. There is no sentence splitter on this path: the prose derive above returned no clauses.\n\nDisposition. The bindable denominator is a statement sentence that is neither a clause nor an explicit confession on the brief. Classifying the clauses that already verified does not make an unmapped sentence covered.\n\n## 4. Stamp-time provenance leaves the verify relabel\n\nclass: sharpens-framing\n\nEvidence. prepareClauseStamp does not set the process exit. applyOracle always runs applyClauseWalk, including on the reuse return (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/product-first-done-gate/evaluate.ts). resolveAcceptanceGateProfile has three readers, standalone, check, and complete, and all three call that evaluator (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/product-first-done-gate/acceptance-resolver.ts). Comment 5360997578 records the same all-paths requirement for this floor. evaluateAcceptanceEvidenceGate walks plan items for typed evidence or a human disposition (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/scope/acceptance-evidence.ts). The pinned test \"does not walk clauses inside evaluateAcceptanceEvidenceGate\" expects ok true on an empty item list with a clause present (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/scope/acceptance-evidence.test.ts). I did not execute that gate; its import chain requires @deftai/directive-types, which this dest does not have installed.\n\nFailure mode. A floor that only refuses inside prepareClauseStamp still lets applyClauseWalk relabel an empty command list to verified-pass when an existence or quoted-token clause verified. Writing the two count fields onto the stamp payload, without failing ok, records the hole and still exits 0.\n\nDisposition. The fail-closed check belongs on the verify walk for every reader profile that reaches applyOracle. scope:complete evidence stays the item-evidence gate. Telemetry counts follow the refusal; they are not the refusal.\n\n## 5. The sentence source and the file read are different authorities\n\nclass: sharpens-framing\n\nEvidence. buildClause sets artifact_path null. The comment above it says clause text is untrusted and that a path lifted from statement text chose both the file and the needle (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/verify-ac/clauses.ts). walkOne reads a file only after isDeclaredArtifactPath. The live provenance string is collectTaskStatementFromPlan, not a fresh comment scrape. deriveAcceptanceClauses prefers AcceptanceCriteria lines, then the item surface, then a declared narrative, and only then a heading scrape (same file). The executed list derive kept the existence bullet and dropped the prose under it.\n\nFailure mode. A sentence floor that splits issue comments gives a commenter an imperative that fails every stamp, or a confession that is satisfied by being present. A floor that turns an unmapped sentence into a path reopens the read #3835 closed. A floor that uses only today's list surface misses the Overview prose the provenance string already contains.\n\nDisposition. The sentence list and any unverifiable confession are fields on the brief. An unmapped sentence does not select a file. The walk keeps reading only declared file_scope.\n\n## Injection / swarm\n\nThis target changes what verify:ac treats as a pass. Clause text and narrative text are untrusted input. The read stays on declared file_scope, which is shared with every later consumer of that stamp. Finding 5 is the control: the new denominator is brief-owned, and it does not add a file read. A comment thread is not that denominator. No worktree or envelope change.\n\n## Road not taken\n\nChosen measured result: the target sentence is false at this SHA, and the gap is a sentence denominator on the verify walk.\n\nRejected: treat prepareClauseStamp as the behavior-coverage floor. Strongest form: it already fail-closes a stamp with zero statement-traceable clauses, and the remediation says to derive clauses from the statement's testable constraints. What would flip finding 2: prepareClauseStamp returning ok false for the noun-token statement above, or a behavioral_clause_count / unmapped_sentence_count symbol at this SHA. The call returned ok true. The symbol search matched nothing.\n\nRejected: treat the unverifiable behavioral outcome as the floor. Strongest form: walkOne already marks a bound behavioral claim with no tokens unverifiable. What would flip finding 3: clauseWalkBlocks returning true for the existence-plus-behavioral pair. It returned false, and the walk stayed ok.\n\n## Footnotes\n\nclass: footnote\n\n- Attestation is the other check. CHANGELOG at this SHA closes #3559: a stamp with clauses and neither an ambiguous reading nor ambiguity_attestation none_found exits 2. Comment 5360966228 moved that half off this issue. The walk fixture above is the clause oracle, not that config error.\n- Comment 5360966228 also deferred this floor by one release on 2026-08-20. Stop 1 comment 5787635540 is the write-back this round critiques. The deferral is not a code result.\n- I did not replay the private field artifact named in the issue body. The fixture is the local probe.txt above.\n- I did not execute evaluateVerifyAcFromPlan, emitAcceptanceStampFromPlan, or evaluateAcceptanceEvidenceGate.\r\n\n",
+          "id": 5787767149,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5787767149",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:12:50Z",
+          "updated_at": "2026-09-23T02:12:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n**Lean:**\n\n## In plain English\n\nA story can be marked verified when its checks only show that a file exists or contains a phrase, while sentences about behavior never become checks. Confirming this map refuses that stamp on the verify walk, for every reader that reaches the walk. The sentence list lives on the brief and does not pick a file. Counts come after the refusal. The same author wrote the opening stamp and these takes. Attestation stays on the closed issue that already owns it.\n\nSupersedes write-back 5787635540. Critic 5787767149.\n\n| Heading | Class | Take | Comment |\n|---|---|---|---|\n| 1. Existence and quoted-token clauses verify | blocks-the-design | accept-into-contract | 5787767149 |\n| 2. The because-clause names a floor this tree does not have | blocks-the-design | accept-into-contract | 5787767149 |\n| 3. The walk predicates are not that denominator | sharpens-framing | accept-into-contract | 5787767149 |\n| 4. Stamp-time provenance leaves the verify relabel | sharpens-framing | accept-into-contract | 5787767149 |\n| 5. The sentence source and the file read are different authorities | sharpens-framing | accept-into-contract | 5787767149 |\n\n## Bound remedy\n\n- The verify walk fails closed when a statement sentence is neither a clause nor an explicit confession on the brief.\n- That refusal covers every reader profile that reaches the oracle walk.\n- An existence clause or a quoted-token clause verifying does not cover an unmapped sentence.\n- The sentence list is on the brief and does not select a file.\n- Count fields follow the refusal.\n\nSpec-path: the next build is the Bound remedy list on this lean.\n\nrelieves: P1\n\nTarget-digest: sha256:e8a0ec444c46145a189f92c5071ec4b34cab883ccaf9217d8ae1fca011979bba\n\n",
+          "id": 5787798028,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5787798028",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:16:46Z",
+          "updated_at": "2026-09-23T02:16:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nSuccessor lean 5787798028 makes Stop 1 pain P1 false. The verify walk fails closed when a statement sentence is neither a clause nor an explicit confession on the brief, on every reader that reaches that walk. An existence clause or a quoted-token clause verifying does not keep the stamp verified.\n\nStop 1 is comment 5787635540. P1 is a stamp whose clauses are only existence or string-presence checks and that still verifies, while behavioral sentences in the statement map to no clause and no confession.\n\n## What verifies today\n\nAt 20eac1de2e510186bdf813efda44e2e641696a6d I imported walkAcceptanceClauses, extractExpectedTokens, deriveAcceptanceClauses, and countUnverifiedAdjudicableClauses from packages/core/src/verify-ac/clauses.ts, and clauseWalkBlocks from packages/core/src/product-first-done-gate/acceptance-resolver.ts. Temp file probe.txt contained marker-token-3550. Declared scope was probe.txt.\n\n- Clause \"src/probe.txt exists\" (artifact_path probe.txt): outcome verified, adjudicable true, detail \"shipped artifact exists at probe.txt\".\n- Clause probe.txt contains \"marker-token-3550\": extractExpectedTokens returned [\"marker-token-3550\"]; outcome verified, adjudicable true, detail \"tokens present in shipped artifact probe.txt\".\n- Report ok true, verified 2, failed 0, unverifiable 0. clauseWalkBlocks({failed:0, walked:2, adjudicableUnverified:0, hasGreenExecutableRun:false}) returned false.\n\nwalkAcceptanceClauses sets ok when failed is empty and countUnverifiedAdjudicableClauses is 0 (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/verify-ac/clauses.ts). applyClauseWalk keeps ok when clauseWalkBlocks is false, and when the prior resolution is empty-pass and verified.length > 0 it sets resolution verified-pass (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/product-first-done-gate/evaluate.ts). That expression on this report is verified-pass. clampVerifyAcExit returns 0 when ok is true (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/cli/src/verify-ac.ts).\n\nderiveAcceptanceClauses on a statement whose Acceptance list bullet is \"src/probe.txt exists\", with \"Initialize workers from the config.\" and \"Propagate derived quantities to the parent.\" in the overview and again under that heading, returned [\"src/probe.txt exists\"]. The same call with itemSurface [\"src/probe.txt exists\"] returned that one line. The two imperative sentences are not clauses.\n\nprepareClauseStamp did not import. clause-derivation.ts pulls @deftai/directive-types, which this dest does not have installed. I executed traceClauseProvenance and prepareClauseStamp from that file with the real stripInlineMarkdownBold export. The statement was the title, those two imperatives, and \"src/probe.txt exists\". The existence clause plus the quoted-token clause returned ok true, counts {statement:1, implementation:1}. git grep at this SHA for behavioral_clause_count, unmapped_sentence_count, and unverifiable_by_clause under packages matched nothing.\n\n## Why the five bullets close P1\n\nThe first bullet fails the walk on the condition P1 names: a statement sentence that is neither a clause nor a confession. The measured imperatives are that condition. Failing the walk clears ok, and the exit helper then returns 1.\n\nThe second bullet places that refusal on every reader that reaches the oracle walk. Standalone and check both call evaluateVerifyAcFromPath from packages/cli/src/verify-ac.ts, using resolveAcceptanceGateProfile \"standalone\" or \"check\". scope:complete calls evaluateVerifyAcFromPlan from evaluateScopeCompleteAcceptanceWalk (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/scope/acceptance-evidence.ts). evaluateVerifyAcFromPlan sends a cache or bank hit through applyOracle, and applyOracle always calls applyClauseWalk (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/product-first-done-gate/evaluate.ts). The zero-command bank branch returns null when commandCount is 0, so this stamp executes the walk. applyClauseWalk returns before the walk only when clauses.length is 0 or the resolution is config or skipped. This stamp has clauses and is neither of those resolutions.\n\nThe third bullet says the measured verified existence clause and the measured verified quoted-token clause do not cover an unmapped sentence. Today's ok stays true because those oracles verified and a non-adjudicable unverifiable sibling adds no weight. The bullet removes that coverage.\n\nThe fourth bullet puts the sentence list and the confession on the brief and keeps them from selecting a file. The denominator is the statement sentence in the first bullet. deriveAcceptanceClauses is the clause list. Its notice says bare prose is not derivable (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/verify-ac/clauses.ts).\n\nThe fifth bullet puts count fields after the refusal. Those symbols are absent at this SHA. A count that leaves ok true does not meet the first bullet.\n\n## Injection / swarm\n\nThis changes which stamp verify treats as a pass. Clause text and statement text are untrusted. The sentence list is a brief field and does not select a file. walkOne reads a file only after isDeclaredArtifactPath (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/verify-ac/clauses.ts). An issue comment is not the sentence list. No worktree, envelope, or identity change.\n\n## Road not taken\n\nChosen: the five bullets make P1 false, because the walk that returns verified-pass today is the walk they fail.\n\nRejected: treat prepareClauseStamp as already the floor. Strongest form: it fail-closes a stamp whose clauses are all implementation provenance. What would flip that: the call returning ok false for the statement above. It returned ok true.\n\nRejected: treat deriveAcceptanceClauses as the sentence list. Strongest form: the acceptance bullet is already the whole denominator, so the new predicate never fires. What would flip that: the call returning the two imperatives. It returned only \"src/probe.txt exists\".\n\n## Footnotes\n\nclass: footnote\n\n- A clause whose text contains \"exists\" verified as an existence claim. \"Propagate derived quantities once the shipped file exists\" came back verified against probe.txt. That sentence is a clause. P1 is a sentence that maps to no clause.\n- ambiguity_attestation is the closed #3559 check. The confession in the first bullet is per statement sentence on the brief.\n- evaluateAcceptanceEvidenceGate walks plan items for typed evidence or a human disposition and does not call the oracle walk (git show 20eac1de2e510186bdf813efda44e2e641696a6d:packages/core/src/scope/acceptance-evidence.ts). The verify verdict is the oracle walk.\n- I did not replay the private field artifact named in the issue body. The fixture is the local probe.txt above.",
+          "id": 5787907543,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5787907543",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:29:04Z",
+          "updated_at": "2026-09-23T02:29:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Method | Result |\n|---|---|---|\n| An existence clause and a quoted-token clause both verify, the walk stays ok, and an unmapped behavioral sentence stays off the clause list | Pain-audit 5787907543 re-executed walkAcceptanceClauses and clauseWalkBlocks at 20eac1de2e510186bdf813efda44e2e641696a6d, same method as critic 5787767149 | Holds on the tree today |\n| The five bullets on successor lean 5787798028 make that stamp fail closed | Pain-audit 5787907543 compared those bullets to the executed walk | Covers the stamped pain. This row is not a measurement of code already shipped |\n\nNon-self-arbitration: the synthesis author also wrote the opening stamp. These rows use the pain-audit's re-execution, not agreement alone.\n\n",
+          "id": 5787931738,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5787931738",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:31:41Z",
+          "updated_at": "2026-09-23T02:31:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nToday a story can pass when its checks only show that a file exists or contains a phrase, while sentences about behavior never become checks. The accepted map refuses that pass on the verify walk whenever such a sentence is neither a check nor an explicit confession on the brief. The pain-audit re-ran the walk and found that map covers the stamped pain. The same author wrote the opening stamp. Attestation stays on the closed issue that already owns it.\n\nSuccessor lean 5787798028. Verified-claims table 5787931738.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n",
+          "id": 5787931916,
+          "html_url": "https://github.com/deftai/directive/issues/3550#issuecomment-5787931916",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:31:42Z",
+          "updated_at": "2026-09-23T02:31:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "**TL;DR: #3398 shipped hollow on the field path. A completed brief from the current release carries exactly two existence-grep clauses (\"file exists with class X\"), zero commands, `ambiguous: false` on both, and NO ambiguity attestation — and verify:ac emitted verified-pass. #3398's spec made attestation-or-flag absence a config error; that enforcement is not firing. Separately, statement-traceability passes trivially on class NAMES while every behavioral sentence in the statement (output composition, initialization semantics, derived-quantity propagation, multi-configuration testing) maps to no clause at all. The gate is now honest about provenance and empty of content.**\n\n**Evidence (internal benchmark artifacts, private):** completed xBRIEF, current release: `{none_stated: true, source_rung: \"derived\", commands: [], clauses: [2 existence greps, both ambiguous:false]}` — no `ambiguity_attestation` key anywhere; run summary shows `verified-pass` outcomes on this acceptance. Provenance fixes verified working in the same artifact (#3396: rung honestly `derived`, no forged `stated`, no no-op commands). Clause count regressed 4 -> 2 versus the prior release's same task. The hidden verifier failed the product on a behavioral clause — the same one, sixth consecutive release.\n\n## Fix (two checks, both fail-closed)\n1. **Ship the attestation enforcement as specced in #3398:** a stamp with neither an `ambiguous: true` clause (with readings) nor an explicit `ambiguity_attestation: none_found` is a verify:ac config error. This was the issue's acceptance sketch; verify it against this artifact as the fixture.\n2. **Behavior-coverage floor:** at stamp time, statement sentences containing testable constraints (imperative verbs + measurable outcomes; the intake capture already tokenizes the statement) must each map to a clause or to an explicit `unverifiable_by_clause` entry that names why (forces either a behavioral clause, an executable command, or a visible confession). A stamp whose clauses are all existence/string-presence checks while unmapped behavioral sentences exist fails closed with one remediation. This closes the noun-traceability loophole: clauses that reference statement nouns but no statement behaviors currently satisfy traceability.\n\n## Acceptance sketch\n- The bundled field artifact, replayed as a fixture, fails closed at stamp: missing attestation AND unmapped behavioral sentences.\n- A stamp with behavioral clauses + attestation passes.\n- Telemetry: acceptance_stamp gains `behavioral_clause_count` and `unmapped_sentence_count`.\n\nRelates #3398 (spec shipped, enforcement absent — this completes it), #3360, #3396/#3397 (working, verified same artifact), #3351 (the two-reading clause this must eventually surface), #3362 (note: the dead-surface gate covers event kinds, not gate-semantics enforcement — a spec-to-enforcement fixture class may deserve its own follow-up).",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5206987554,
+        "origin": "deftai/directive#3550",
+        "id": "github.issue.5206987554"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e8a0ec444c46145a189f92c5071ec4b34cab883ccaf9217d8ae1fca011979bba"
+      }
+    },
+    "id": "github.issue.5206987554",
+    "updated": "2026-09-23T17:00:04Z"
+  }
+}

@@ -55,8 +55,10 @@ import {
 import {
   type ClauseWalkResult,
   countUnverifiedAdjudicableClauses,
+  evaluateStatementSentenceCoverage,
   formatClauseWalkMessage,
   readDeclaredArtifactScope,
+  UNMAPPED_STATEMENT_SENTENCE_CAUSE,
   walkAcceptanceClauses,
 } from "../verify-ac/clauses.js";
 import {
@@ -64,7 +66,12 @@ import {
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
 } from "../verify-ac/evaluate.js";
-import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
+import {
+  readPlanAcceptance,
+  STATEMENT_SENTENCE_NARRATIVE_KEYS,
+  stampAcceptanceFromLiteralCapture,
+  validatePlanAcceptance,
+} from "./acceptance.js";
 import {
   type AcceptanceLedgerEntry,
   acceptanceLedgersEqual,
@@ -95,6 +102,13 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly servedFrom?: AcServedFrom;
   /** Config-error cause when resolution is config (#3559). */
   readonly cause?: string;
+  /**
+   * Clauses that are neither existence nor quoted-token claims.
+   * Present when the brief carries a sentence list (#3550).
+   */
+  readonly behavioralClauseCount?: number;
+  /** Sentences that are neither a clause nor an explicit confession (#3550). */
+  readonly unmappedSentenceCount?: number;
   /** Reuse-gate miss cause when servedFrom is executed (#3558). */
   readonly missReason?: string;
 }
@@ -887,6 +901,12 @@ function emitAcceptanceOutcome(
       })),
       served_from: result.servedFrom ?? "executed",
       ...(result.cause !== undefined ? { cause: result.cause } : {}),
+      ...(result.behavioralClauseCount !== undefined
+        ? { behavioral_clause_count: result.behavioralClauseCount }
+        : {}),
+      ...(result.unmappedSentenceCount !== undefined
+        ? { unmapped_sentence_count: result.unmappedSentenceCount }
+        : {}),
       miss_reason: (result.servedFrom ?? "executed") === "executed" ? result.missReason : undefined,
     });
   } catch {
@@ -1086,6 +1106,7 @@ function applyOracle(
       next = { ...next, resolution: "fail" };
     }
   }
+  next = applyStatementSentenceFloor(next, plan, options.quiet === true);
   const servedFrom = next.servedFrom ?? "executed";
   let missReason = next.missReason;
   if (servedFrom === "executed" && (missReason === undefined || missReason.length === 0)) {
@@ -1114,6 +1135,122 @@ function applyOracle(
     emitAcceptanceTelemetry(stamped, options, projectRoot);
   }
   return stamped;
+}
+
+function formatUnmappedSentenceFloor(unmapped: readonly string[]): string {
+  return [
+    `verify:ac sentence floor (#3550): ${unmapped.length} statement sentence(s) are neither a clause nor an explicit confession`,
+    ...unmapped.map((text) => `  - ${text}`),
+  ].join("\n");
+}
+
+function joinFloorMessage(floor: string, prior: string): string {
+  if (prior.trim().length === 0) {
+    return floor;
+  }
+  return `${floor}\n${prior}`;
+}
+
+function asPlanRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+/**
+ * Narrative text the production stamp reads. A generated brief carries this
+ * body. A bare title or an evidence item is not that body (#3550).
+ */
+function planCarriesNarrativeStatement(plan: Record<string, unknown>): boolean {
+  const narratives = asPlanRecord(plan.narratives);
+  if (narratives === null) {
+    return false;
+  }
+  for (const key of STATEMENT_SENTENCE_NARRATIVE_KEYS) {
+    const value = narratives[key];
+    if (typeof value === "string" && /[A-Za-z]/.test(value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function walkedClauseCount(walked: unknown): number {
+  const clauses = asPlanRecord(walked)?.clauses;
+  return Array.isArray(clauses) ? clauses.length : 0;
+}
+
+/**
+ * The sentence list the floor checks. A stored list wins. A generated brief
+ * that has clauses and narrative statement text, but has not stored a list,
+ * still goes through the production stamp (#3550).
+ */
+function acceptanceForSentenceFloor(plan: Record<string, unknown>, walked: unknown): unknown {
+  const current = plan.acceptance ?? walked;
+  const stored = asPlanRecord(plan.acceptance);
+  if (stored !== null && Object.hasOwn(stored, "sentences") && stored.sentences !== undefined) {
+    return stored;
+  }
+  if (walkedClauseCount(walked) === 0 || !planCarriesNarrativeStatement(plan)) {
+    return current;
+  }
+  try {
+    const stamped = stampAcceptanceFromLiteralCapture(plan);
+    if (stamped.acceptance !== undefined) {
+      return stamped.acceptance;
+    }
+  } catch {
+    // A safety refusal is already the walk verdict. Do not replace it with a throw.
+  }
+  return current;
+}
+
+/**
+ * Fail closed when a sentence on the brief is neither a clause nor a confession.
+ * Runs for every reader that reaches the oracle walk. Does not read a file (#3550).
+ */
+function applyStatementSentenceFloor(
+  result: VerifyAcResult,
+  plan: Record<string, unknown>,
+  quiet: boolean,
+): VerifyAcResult {
+  const coverage = evaluateStatementSentenceCoverage(
+    acceptanceForSentenceFloor(plan, result.acceptance),
+    result.acceptance.clauses ?? [],
+  );
+  // No list means the brief has no statement sentences. Clauseless plans and
+  // plans with no narrative body do not enter the production stamp.
+  if (!coverage.hasSentenceList) {
+    return result;
+  }
+  const counted: VerifyAcResult = {
+    ...result,
+    behavioralClauseCount: coverage.behavioralClauseCount,
+    unmappedSentenceCount: coverage.unmappedSentenceCount,
+  };
+  if (
+    coverage.unmappedSentenceCount === 0 ||
+    result.resolution === "config" ||
+    result.resolution === "skipped"
+  ) {
+    return counted;
+  }
+  const floor = formatUnmappedSentenceFloor(coverage.unmapped);
+  if (!result.ok) {
+    return {
+      ...counted,
+      message: quiet ? result.message : joinFloorMessage(floor, result.message),
+    };
+  }
+  return {
+    ...counted,
+    ok: false,
+    code: result.code === 2 ? 2 : 1,
+    resolution: "fail",
+    cause: UNMAPPED_STATEMENT_SENTENCE_CAUSE,
+    message: quiet ? "" : joinFloorMessage(floor, result.message),
+  };
 }
 
 function annotate(

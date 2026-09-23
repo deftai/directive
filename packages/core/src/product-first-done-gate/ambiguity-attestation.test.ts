@@ -216,6 +216,11 @@ describe("ambiguity attestation on every verify path (#3559)", () => {
     expect((plan.acceptance as { ambiguity_attestation?: string }).ambiguity_attestation).toBe(
       "none_found",
     );
+    // The overview list is the clause set. Store it so the plan title is not
+    // an unmapped statement on this attestation fixture (#3550).
+    (plan.acceptance as { sentences?: string[] }).sentences = FIELD_CLAUSES.map(
+      (clause) => clause.text,
+    );
     const result = evaluateVerifyAcFromPlan(plan, {
       projectRoot: root,
       captureFromNarratives: false,
