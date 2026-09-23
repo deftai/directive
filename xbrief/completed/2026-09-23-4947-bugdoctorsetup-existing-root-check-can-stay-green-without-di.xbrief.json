@@ -1,0 +1,411 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4947",
+    "updated": "2026-09-23T18:08:57Z"
+  },
+  "plan": {
+    "title": "bug(doctor,setup): existing root check can stay green without Directive, and setup still says task check",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(doctor,setup): existing root check can stay green without Directive, and setup still says task check",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4947",
+      "Overview": "\n\n1. On the include-ok path, when a root task named check exists and does not invoke Directive's check, record a warning finding and do not emit Gates-surface ready. Leave the process exit at 0. Do not write the file, including through the fixMode yes branch. Emit Gates-surface ready only when that root check task is absent, or when it invokes Directive's check.\n2. Count invocation only as command-position deft check or directive check that is not failure-masked; command-position task deft:check, task deft:check:consumer, or task deft:check:framework-source as the whole task token; a go-task cmds or deps entry whose task name is one of those three; or engine:invoke paired with ENGINE_CMD check when that task is the dispatcher the deft include deposits. A consumer-owned task of the same name does not count. Do not count bare task check, task check followed by some other suffix, comments, echo, or a masked status. Keep stripTaskBodyComments. Read the file resolveConsumerTaskfile already selected. Do not call evaluateConsumerCheckContract for this warning.\n3. Write the Quality clause as the prefer/else sentence already in agents-entry: prefer deft check, else task deft:check on an include-only consumer, one gate, not two runs. Keep the coverage clause and the secrets clause. Use that same pair on the setup-copied pull-request checklist item. Do not add a root check task to MINIMAL_TASKFILE. Rebuild the skills pack from the skill when the sentence changes. Leave the framework-repo skip in place.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:20ff52d92bcdd6dae2c6bf0becd70d930c2c68356e47c8e23a2c054887c1a3e7\r\n\n",
+      "Labels": "bug, documentation, adoption-blocker, agent-experience, area:installer, area:cli, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "On the include-ok path, when a root task named check exists and does not invoke Directive's check, record a warning finding and do not emit Gates-surface ready. Leave the process exit at 0. Do not write the file, including through the fixMode yes branch. Emit Gates-surface ready only when that root check task is absent, or when it invokes Directive's check.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/root-check-doctor.test.ts",
+          "recorded_at": "2026-09-23T18:08:50.314Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Count invocation only as command-position deft check or directive check that is not failure-masked; command-position task deft:check, task deft:check:consumer, or task deft:check:framework-source as the whole task token; a go-task cmds or deps entry whose task name is one of those three; or engine:invoke paired with ENGINE_CMD check when that task is the dispatcher the deft include deposits. A consumer-owned task of the same name does not count. Do not count bare task check, task check followed by some other suffix, comments, echo, or a masked status. Keep stripTaskBodyComments. Read the file resolveConsumerTaskfile already selected. Do not call evaluateConsumerCheckContract for this warning.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/root-check-invoke.test.ts",
+          "recorded_at": "2026-09-23T18:08:50.314Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Write the Quality clause as the prefer/else sentence already in agents-entry: prefer deft check, else task deft:check on an include-only consumer, one gate, not two runs. Keep the coverage clause and the secrets clause. Use that same pair on the setup-copied pull-request checklist item. Do not add a root check task to MINIMAL_TASKFILE. Rebuild the skills pack from the skill when the sentence changes. Leave the framework-repo skip in place.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/root-check-invoke.test.ts",
+          "recorded_at": "2026-09-23T18:08:50.314Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "adoption-blocker",
+      "agent-experience",
+      "area:installer",
+      "area:cli",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4947",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4947: bug(doctor,setup): existing root check can stay green without Directive, and setup still says task check"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4379",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4379"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On the include-ok path, when a root task named check exists and does not invoke Directive's check, record a warning finding and do not emit Gates-surface ready. Leave the process exit at 0. Do not write the file, including through the fixMode yes branch. Emit Gates-surface ready only when that root check task is absent, or when it invokes Directive's check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Count invocation only as command-position deft check or directive check that is not failure-masked; command-position task deft:check, task deft:check:consumer, or task deft:check:framework-source as the whole task token; a go-task cmds or deps entry whose task name is one of those three; or engine:invoke paired with ENGINE_CMD check when that task is the dispatcher the deft include deposits. A consumer-owned task of the same name does not count. Do not count bare task check, task check followed by some other suffix, comments, echo, or a masked status. Keep stripTaskBodyComments. Read the file resolveConsumerTaskfile already selected. Do not call evaluateConsumerCheckContract for this warning.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Write the Quality clause as the prefer/else sentence already in agents-entry: prefer deft check, else task deft:check on an include-only consumer, one gate, not two runs. Keep the coverage clause and the secrets clause. Use that same pair on the setup-copied pull-request checklist item. Do not add a root check task to MINIMAL_TASKFILE. Rebuild the skills pack from the skill when the sentence changes. Leave the framework-repo skip in place.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because doctor still reports gates-surface ready from the deft include alone, and the setup Quality sentence still says to run task check. Both are on origin/master. The filed remedy is a warning that does not rewrite the file, and a sentence that names deft check then task deft:check.\n\ncharter: refutation\nrefutation-target: Doctor warns, and does not rewrite the file, when a root check task exists and does not invoke Directive's check, and the setup Quality sentence names deft check, then task deft:check on an include-only consumer.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the same appropriate count. This is a leftover of the already-critiqued #967 remainder: one doctor warning and one setup sentence, against behavior that is already landed. N=1.\n\npain: P1, P2\n\nP1. Doctor reports gates-surface ready when the root Taskfile includes deft, even if the root check task does not run Directive's check.\nP2. Setup tells a new consumer to run task check, and that command exits 200 on a fresh include-only Taskfile.\n\nA root check alias, a starter Taskfile template, and a setup step that edits the consumer Taskfile stay out of this target. Closed #4379 stays closed.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4947-dc\norigin-ref: origin/master\ndispatch-sha: c7cae4d44e40abf4fb00ee25aceacf32d06168d9\npin-kind: origin-default\n\nPin reads use git show c7cae4d44e40abf4fb00ee25aceacf32d06168d9. The issue body is the proposal under test. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5794399360,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5794399360",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T11:59:38Z",
+          "updated_at": "2026-09-23T11:59:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nThe refutation target survives. Doctor should warn, and should not rewrite the file, when a root check task exists and does not invoke Directive's check. The setup Quality sentence should name deft check and task deft:check for an include-only consumer. Both halves match c7cae4d44e40abf4fb00ee25aceacf32d06168d9. The statement has to get tighter before bind, in the three places below.\n\n## Withholding the ready line\nsharpens-framing\nEvidence: git show c7cae4d44e40abf4fb00ee25aceacf32d06168d9:packages/core/src/doctor/main.ts. runTaskfileIncludeCheck, on include status ok, calls sink.success with \"Gates-surface ready: root Taskfile.yml includes the deft framework (`task deft:<verb>`)\" and returns. It does not read a task body. classifyTaskfileInclude in packages/core/src/doctor/taskfile.ts returns ok when the includes block points at a .deft/core or legacy deft Taskfile. Findings with severity warning do not increment errorCount. exitCode is 1 only when errorCount is greater than 0. Plain output prints \"System check passed!\" only when errorCount and warningCount are both 0. A warning finding instead ends on \"System check completed with N warning(s).\" and still returns 0. JSON ok follows that exit code.\nFailure mode: A warning printed beside the ready success still tells the operator the include is the gate. That ready line is the recorded pain. Skipping addFinding leaves warningCount at 0, so the footer still says the system check passed. Reusing the missing-file branch, which writes a Taskfile when fixMode, a tty, and a yes answer are all set, would rewrite an existing consumer Taskfile.\nDisposition: On the include-ok path, when a root task named check exists and does not invoke Directive's check, record a warning finding and do not emit Gates-surface ready. Leave the process exit at 0. Do not write the file, including through that fixMode yes branch. Emit Gates-surface ready only when that root check task is absent, or when it invokes Directive's check.\n\n## Which command counts as invoke\nsharpens-framing\nEvidence: Imported taskBodyInvokesCheckOrchestrator and runCommandIsFullCheck from packages/core/src/consumer-check-contract/evaluate.ts at this SHA (Node strip-types, .js specifiers resolved to the sibling .ts files) and ran them on task bodies. Shell \"deft check\", \"directive check\", and \"task deft:check\" return true. Shell \"task check\" and \"task check:lint\" return true. Go-task \"task: deft:check\", a deps list of deft:check, a deps entry \"task: deft:check\", and \"task: deft:check:consumer\" return false. A comment line, \"echo run deft check\", and \"deft check || true\" return false. The framework Taskfile.yml check body, engine:invoke paired with ENGINE_CMD check, returns true. Separately, task.exe in a temp directory: an include-only Taskfile and `task check --dry` exited 200 with Task \"check\" does not exist. The same file plus a root check whose command is echo consumer-only exited 0.\nFailure mode: Using taskBodyInvokesCheckOrchestrator unchanged stays silent when the root check runs `task check:lint` or bare `task check`, so task check stays green and the ready line still describes the include. The same function warns when the root check delegates with go-task task: deft:check or a deps entry deft:check, which does run Directive. A raw text search would let a comment that contains deft check suppress the warning. The Taskfile is untrusted local input, and comment text must not decide the ready result. evaluateConsumerCheckContract is the wrong caller for this warning. It trusts an orchestrator body only when project-root tasks/verify.yml defines every required gate, so a consumer check command of deft check still fails that contract, and it reads only Taskfile.yml while resolveConsumerTaskfile also accepts Taskfile.yaml.\nDisposition: Count invocation only as command-position deft check or directive check that is not failure-masked; command-position task deft:check, task deft:check:consumer, or task deft:check:framework-source as the whole task token; a go-task cmds or deps entry whose task name is one of those three; or engine:invoke paired with ENGINE_CMD check. Do not count bare task check, task check followed by some other suffix, comments, echo, or a masked status. Keep stripTaskBodyComments. Read the file resolveConsumerTaskfile already selected. Do not call evaluateConsumerCheckContract for this warning. Calling that contract from doctor was the rejected alternative: it already fails a partial root check, and the include must not hide those gaps, but it does not run when the operator types only their own task check, and it false-fails a real deft check delegation unless root tasks/verify.yml is present. What would flip that rejection is an acceptance that doctor errors, and that trust includes the deposited .deft/core tasks/verify.yml. This target is a warning that does not rewrite the file.\n\n## Quality sentence and the copied checklist\nsharpens-framing\nEvidence: git show c7cae4d44e40abf4fb00ee25aceacf32d06168d9:content/skills/deft-directive-setup/SKILL.md. The Phase 2 template Quality string is \"Run task check before every commit. Achieve >= {coverage}% coverage overall + per-module. Store secrets in secrets/ dir.\" The same skill's process-only pointer already names deft check. The same skill copies templates/PULL_REQUEST_TEMPLATE.md into the consumer when the operator accepts, and does not overwrite an existing file. That template checklist item says task check passes locally (content/templates/PULL_REQUEST_TEMPLATE.md). content/templates/agents-entry.md says prefer deft check, else task deft:check on include-only consumers, one gate, not two runs. packages/core/src/init-deposit/scaffold.ts MINIMAL_TASKFILE already says prefer deft check first, then task deft:check on this include-only consumer, and do not add a root check alias. That file has no tasks section.\nFailure mode: Replacing the words task check inside the existing \"Run ... before every commit\" sentence produces a Quality narrative that tells every new project to run deft check and task deft:check. That fights the one-gate line already shipped in agents-entry. The copied checklist still tells a consumer who accepts the scaffold to run task check, which is the command that exited 200 on the include-only Taskfile above.\nDisposition: Write the Quality clause as the prefer/else sentence already in agents-entry: prefer deft check, else task deft:check on an include-only consumer, one gate, not two runs. Keep the coverage clause and the secrets clause. Use that same pair on the setup-copied pull-request checklist item. Do not add a root check task to MINIMAL_TASKFILE.\n\n## Adjacent mentions\nfootnote\nEvidence: The same setup skill mentions task check when it describes a coverage omit for a display-bound GUI, and again in a historical note about project:export-spec. content/docs/getting-started.md already names deft check as the journey verb and task deft:check as the include-only form of the same gate. content/packs/skills/skills-pack-0.1.json embeds the skill body and is rebuilt from SKILL.md. runTaskfileIncludeCheck returns before the include read when runningInsideDeftRepo is true. The framework check task already invokes Directive, as the probe above showed.\nFailure mode: None of these decide the warning or the Quality sentence. A pack drift failure is the existing rebuild. The framework-repo skip stays correct because that repo's own check task is the Directive gate.\nDisposition: No change to the target. Rebuild the skills pack from the skill when the sentence changes. Leave the framework-repo skip in place.\r\n\n",
+          "id": 5794536561,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5794536561",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:09:46Z",
+          "updated_at": "2026-09-23T12:09:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDoctor reports gates-surface ready from the deft include alone, so a root check that never runs Directive still looks fine. Setup tells a new consumer to run task check, and that command exits 200 on a fresh include-only Taskfile.\n\nThe warning replaces that ready line when a root check task exists and does not invoke Directive. The process still exits 0, and doctor does not write the file. The ready line remains when that task is absent, or when it really invokes Directive. Invocation is a command or a go-task entry that runs deft check, directive check, or task deft:check, including the consumer and framework-source forms, or the engine invoke paired with ENGINE_CMD check. A comment, an echo, a masked status, and bare task check do not count. The Quality sentence and the copied pull-request checklist use the existing prefer/else line: prefer deft check, else task deft:check on an include-only consumer, one gate. A fresh include-only Taskfile still has no root check task.\n\nConfirming this map means this list is the build contract. The same parent wrote the Stop 1 warrant and this map. The critic comment is the check on the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives once the ready line, the invoke rule, and the Quality sentence are the ones below. Comment 5794536561. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: c7cae4d44e40abf4fb00ee25aceacf32d06168d9\n\n## Takes\n\n- 5794536561 Withholding the ready line — accept-into-contract\n- 5794536561 Which command counts as invoke — accept-into-contract\n- 5794536561 Quality sentence and the copied checklist — accept-into-contract\n- 5794536561 Adjacent mentions — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. On the include-ok path, when a root task named check exists and does not invoke Directive's check, record a warning finding and do not emit Gates-surface ready. Leave the process exit at 0. Do not write the file, including through the fixMode yes branch. Emit Gates-surface ready only when that root check task is absent, or when it invokes Directive's check.\n2. Count invocation only as command-position deft check or directive check that is not failure-masked; command-position task deft:check, task deft:check:consumer, or task deft:check:framework-source as the whole task token; a go-task cmds or deps entry whose task name is one of those three; or engine:invoke paired with ENGINE_CMD check. Do not count bare task check, task check followed by some other suffix, comments, echo, or a masked status. Keep stripTaskBodyComments. Read the file resolveConsumerTaskfile already selected. Do not call evaluateConsumerCheckContract for this warning.\n3. Write the Quality clause as the prefer/else sentence already in agents-entry: prefer deft check, else task deft:check on an include-only consumer, one gate, not two runs. Keep the coverage clause and the secrets clause. Use that same pair on the setup-copied pull-request checklist item. Do not add a root check task to MINIMAL_TASKFILE. Rebuild the skills pack from the skill when the sentence changes. Leave the framework-repo skip in place.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:20ff52d92bcdd6dae2c6bf0becd70d930c2c68356e47c8e23a2c054887c1a3e7\r\n\n",
+          "id": 5794549358,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5794549358",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:10:44Z",
+          "updated_at": "2026-09-23T12:10:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\n\nP1 is not fully covered by the Bound remedy in [5794549358](https://github.com/deftai/directive/issues/4947#issuecomment-5794549358). P2 is covered. One blocking finding follows; this is a pain audit, not a replacement design.\n\nHEAD equals c7cae4d44e40abf4fb00ee25aceacf32d06168d9. Repository reads used git show at that SHA; no fetch or checkout. Thread input stopped at 5794549358. Pain definitions come from [5794399360](https://github.com/deftai/directive/issues/4947#issuecomment-5794399360).\n\n## P1: a consumer-owned engine task satisfies the allowed pattern without running Directive\nblocks-the-design\n\nEvidence: Bound-remedy item 2 expressly counts `engine:invoke` paired with `ENGINE_CMD check`. At the pinned SHA, `packages/core/src/consumer-check-contract/evaluate.ts` likewise recognizes those two syntactic markers without resolving the invoked task. The framework's own `Taskfile.yml` uses this pair, but doctor skips that framework repository. In a consumer root, an unqualified `engine:invoke` can name a consumer-owned task; its name is not evidence that it invokes Directive.\n\nI ran `task --dir <temporary-directory> check` against this Taskfile:\n\n```yaml\nversion: '3'\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\ntasks:\n  check:\n    cmds:\n      - task: engine:invoke\n        vars:\n          ENGINE_CMD: check\n  engine:invoke:\n    cmds:\n      - echo consumer-only\n```\n\nObserved output: `task: [engine:invoke] echo consumer-only`, then `consumer-only`; exit 0. Directive's check never runs. This is an execution measurement, not a measurement of an unimplemented doctor change. The proposed rule's result follows from its explicit accepted pair.\n\nThe pinned `packages/core/src/doctor/taskfile.ts` classifies this include as `ok` from the include text, without requiring the optional target file to exist. That is not essential to the counterexample: installing the namespaced deft include does not change what this root-owned, unqualified task executes. The pinned `runTaskfileIncludeCheck` currently emits the ready line immediately for include-ok; item 1 of the remedy preserves that line for invocations accepted by item 2.\n\nFailure mode: an ordinary consumer task name and variable become authority for the ready result even though the actual command only echoes text. No malicious comment or shell failure masking is needed. Thus the exact P1 outcome remains permitted by the remedy.\n\nDisposition consequence: the P1 relief assertion does not hold as written, so this harvest cannot bind unchanged. The engine-pair exception needs evidence that its target actually delegates to Directive, or must not grant readiness for a consumer-owned target. This does not require changing the warning-only posture or adding a root alias. The strongest case for retaining the exception is compatibility with the real framework dispatcher; that case does not establish the identity of a consumer-local task. A contract restriction that excludes this executable counterexample would change this verdict.\n\n## P2: the new-consumer instructions point to an available gate\nfootnote\n\nI independently reproduced exit 200 for `task check` using the same temporary include-only Taskfile before adding its tasks section. Pinned `scaffold.ts` supplies that include-only shape without a root check. The pinned setup skill writes the bare `task check` Quality sentence and copies `content/templates/PULL_REQUEST_TEMPLATE.md`, whose checklist also names bare `task check`.\n\nBound-remedy item 3 changes both instruction sources to the existing prefer/else command pair, explicitly requires one gate rather than two runs, preserves coverage and secrets clauses, and rebuilds the skills pack. It leaves the include-only Taskfile intact. This covers the named new-consumer pain; no P2 harvest change is needed. This assessment concerns the proposed contract, not a claim that the implementation has shipped.",
+          "id": 5794579904,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5794579904",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:12:56Z",
+          "updated_at": "2026-09-23T12:12:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe pain-audit held the setup-sentence pain and blocked the doctor pain. A consumer can own a task named engine:invoke whose command only echoes text, pair it with ENGINE_CMD check, and the bound rule still treats that as Directive. Doctor would keep the ready line, and task check would still exit 0 without Directive. The cite is withdrawn. This map is not a build contract.\n\nThe same parent wrote the bound list and this retraction. No further critic on this result.\n\n**Lean:** retraction after pain-audit 5794579904. Supersedes 5794549358. Not a bind.\n\n## Takes\n\n- 5794579904 a consumer-owned engine task satisfies the allowed pattern without running Directive — accept-into-contract\n\nThe footnote that `P2` holds on the withdrawn harvest stays outside this map.\n\ndoes-not-relieve: P1\n\nTarget-digest: sha256:20ff52d92bcdd6dae2c6bf0becd70d930c2c68356e47c8e23a2c054887c1a3e7\n\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: c7cae4d44e40abf4fb00ee25aceacf32d06168d9\r\n\n",
+          "id": 5794590925,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5794590925",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:13:40Z",
+          "updated_at": "2026-09-23T12:13:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe audit withdrew the build contract. The setup sentence still holds on the withdrawn list: prefer deft check, else task deft:check on an include-only consumer, one gate. The doctor pain does not. A consumer-owned engine:invoke that only echoes text, paired with ENGINE_CMD check, still counts as Directive, so the ready line stays and task check can exit 0.\n\nThis arc halts. A later raise would add one sentence: that engine pair counts only when the task is the deposited Directive dispatcher, and a consumer-owned task of the same name does not. Nothing was ingested.\n\nopen-question: Whether engine:invoke paired with ENGINE_CMD check counts as Directive only when that task is the deposited framework dispatcher, and a consumer-owned task of the same name does not.\r\n\n",
+          "id": 5794592985,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5794592985",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:13:47Z",
+          "updated_at": "2026-09-23T12:13:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDoctor still reports gates-surface ready when a root check task does not run Directive, if that task is a consumer-owned engine:invoke that only echoes text. The setup sentence already names the real gate.\n\nThe engine pair counts only when that task is the dispatcher the deft include deposits. A consumer-owned task of the same name does not count. deft check, directive check, and task deft:check stay as they are. The warning still replaces the ready line, the process still exits 0, and doctor still does not write the file. The Quality sentence stays prefer deft check, else task deft:check on an include-only consumer, one gate.\n\nConfirming this map means this list is the build contract. The operator raised the cap by one post so a critic can check the two pain cites on this comment. The same parent wrote the withdrawn list and this one.\n\n**Lean:** recut after the raise. The engine pair counts only for the deposited Directive dispatcher. Supersedes 5794590925. This map is the bind.\n\nPrior takes on comment 5794549358 stay accept-into-contract.\nraise: operator, one additional critic post for the pain-audit of this lean\nDual-stop cap: 7 posts\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: c7cae4d44e40abf4fb00ee25aceacf32d06168d9\n\n## Takes\n\n- 5794579904 a consumer-owned engine task satisfies the allowed pattern without running Directive — accept-into-contract\n- 5794536561 Withholding the ready line — accept-into-contract\n- 5794536561 Which command counts as invoke — accept-into-contract\n- 5794536561 Quality sentence and the copied checklist — accept-into-contract\n- 5794536561 Adjacent mentions — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. On the include-ok path, when a root task named check exists and does not invoke Directive's check, record a warning finding and do not emit Gates-surface ready. Leave the process exit at 0. Do not write the file, including through the fixMode yes branch. Emit Gates-surface ready only when that root check task is absent, or when it invokes Directive's check.\n2. Count invocation only as command-position deft check or directive check that is not failure-masked; command-position task deft:check, task deft:check:consumer, or task deft:check:framework-source as the whole task token; a go-task cmds or deps entry whose task name is one of those three; or engine:invoke paired with ENGINE_CMD check when that task is the dispatcher the deft include deposits. A consumer-owned task of the same name does not count. Do not count bare task check, task check followed by some other suffix, comments, echo, or a masked status. Keep stripTaskBodyComments. Read the file resolveConsumerTaskfile already selected. Do not call evaluateConsumerCheckContract for this warning.\n3. Write the Quality clause as the prefer/else sentence already in agents-entry: prefer deft check, else task deft:check on an include-only consumer, one gate, not two runs. Keep the coverage clause and the secrets clause. Use that same pair on the setup-copied pull-request checklist item. Do not add a root check task to MINIMAL_TASKFILE. Rebuild the skills pack from the skill when the sentence changes. Leave the framework-repo skip in place.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:20ff52d92bcdd6dae2c6bf0becd70d930c2c68356e47c8e23a2c054887c1a3e7\r\n\n",
+          "id": 5795154473,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5795154473",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:50:25Z",
+          "updated_at": "2026-09-23T12:50:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\n\nBoth pain cites hold for the Bound remedy in [5795154473](https://github.com/deftai/directive/issues/4947#issuecomment-5795154473). This is a footnote-only pain audit: no change to the harvested remedy. It assesses the proposed contract, not a shipped implementation.\n\nHEAD was confirmed as c7cae4d44e40abf4fb00ee25aceacf32d06168d9 before and after verification. Repository source reads used git show at that SHA; no fetch or checkout. Thread input was limited to comments at or below 5795154473. The pain denominator is [Stop 1, 5794399360](https://github.com/deftai/directive/issues/4947#issuecomment-5794399360).\n\n## P1: the revised dispatcher restriction removes the prior counterexample\nfootnote\n\nPinned packages/core/src/doctor/main.ts currently returns success immediately for include-ok. packages/core/src/doctor/taskfile.ts establishes that status from include text, not the root check body. The existing consumer-check-contract/evaluate.ts helper accepts engine:invoke plus ENGINE_CMD check without resolving task identity; it cannot, unchanged, establish the revised restriction.\n\nI independently ran a temporary Taskfile with a deft include, root check delegating to a consumer-owned engine:invoke, ENGINE_CMD: check, and that local task executing echo consumer-only. It printed consumer-only and exited 0. The new item 2 explicitly excludes that task: only the deposited Directive dispatcher qualifies for the engine-pair exception. Item 1 therefore requires a warning finding and suppresses Gates-surface ready for this case, while preserving exit 0 and prohibiting a file rewrite. The old failure no longer satisfies the proposed rule.\n\nThe authority distinction is substantive: a consumer-controlled task name and variable alone no longer certify Directive execution. Keeping comment stripping, rejecting echo and masked status, and selecting the file through resolveConsumerTaskfile support the same boundary. The framework-repository skip does not grant a consumer-owned dispatcher that identity.\n\nAs a separate namespace probe, a real temporary included Taskfile with an echo-only check stand-in was reached by task: deft:check. Attempting to shadow that name with a root-owned deft:check instead failed with duplicate-task exit 203; it did not silently run the shadow. This tests go-task resolution only, not the Directive gate itself. The pinned framework Taskfile's actual check delegates through engine:invoke with ENGINE_CMD check. No additional design mechanism is proposed, and no P1 harvest change is needed.\n\n## P2: both setup instruction sources name the available gate\nfootnote\n\nI independently reproduced exit 200 for task check on a temporary include-only root Taskfile. Pinned packages/core/src/init-deposit/scaffold.ts supplies that shape without a root tasks section. The pinned setup skill's Quality narrative says Run task check before every commit, and its accepted scaffolding path copies content/templates/PULL_REQUEST_TEMPLATE.md, whose checklist also names task check.\n\nBound-remedy item 3 changes both sources to prefer deft check, else task deft:check on an include-only consumer, explicitly one gate rather than two runs. That matches the pinned agents-entry merge-chokepoint guidance. It preserves the coverage and secrets clauses, rebuilds the skill pack, and leaves MINIMAL_TASKFILE without a root check alias. These changes address the named instruction-induced failure without editing a consumer Taskfile. No P2 harvest change is needed.",
+          "id": 5795194881,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5795194881",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:53:08Z",
+          "updated_at": "2026-09-23T12:53:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDoctor was reporting gates-surface ready from the deft include alone, so a root check that never runs Directive still looked fine. Setup was telling a new consumer to run task check, and that command exits 200 on a fresh include-only Taskfile.\n\nThe build contract is the bound list on the successor lean. Doctor withholds the ready line and records a warning when a root check task does not invoke Directive. The process still exits 0, and doctor does not write the file. The engine pair counts only when that task is the dispatcher the deft include deposits. A consumer-owned task of the same name does not count. The Quality sentence and the copied pull-request checklist say prefer deft check, else task deft:check on an include-only consumer, one gate.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5795154473.\n\n## Verified-claims table\n\n| Verified claim | Result |\n| --- | --- |\n| A consumer-owned engine:invoke that only echoes text, paired with ENGINE_CMD check, exits 0 | The bound rule does not count that task. Doctor records a warning and withholds the ready line |\n| task check on an include-only Taskfile exits 200 | The Quality sentence and the copied checklist name deft check, else task deft:check, one gate |\n| Human merge is not this issue | Doctor does not write the file, and a fresh include-only Taskfile still has no root check task |\r\n\n",
+          "id": 5795207237,
+          "html_url": "https://github.com/deftai/directive/issues/4947#issuecomment-5795207237",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T12:54:02Z",
+          "updated_at": "2026-09-23T12:54:02Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "### Problem\n\nTwo leftovers from #967. The three stories on that issue do not bind: a root check alias, a starter template, and a setup step that edits the consumer Taskfile. Closed #4379 already keeps root aliases out. deft check, then task deft:check, already runs Directive's check.\n\n1. Brownfield silence. ensureTaskfile (packages/core/src/init-deposit/scaffold.ts) inserts the deft include and leaves an existing root check task unchanged. runTaskfileIncludeCheck (packages/core/src/doctor/main.ts) reports \"Gates-surface ready\" when that include is present and does not read the root check body. task check can exit 0 without Directive.\n\n2. Setup prose. content/skills/deft-directive-setup/SKILL.md writes the Phase 2 Quality narrative as \"Run task check before every commit.\". On a fresh include-only Taskfile, task check is exit 200. The sentence should name deft check, then task deft:check on an include-only consumer.\n\n### Out of scope\n\n- Do not deposit a root check alias.\n- Do not add a starter Taskfile template.\n- Do not add a setup step that edits a consumer Taskfile.\n- Do not unnamespace the include or reopen #4379 / #3218.\n\n### Acceptance\n\n- Doctor warns when a root check exists and does not invoke Directive's check. The warning does not rewrite the file.\n- The setup Quality sentence names deft check, then task deft:check on an include-only consumer, instead of bare task check.\n- A fresh include-only Taskfile still has no root check task.\n\nLeftover of #967. Design-critique lean https://github.com/deftai/directive/issues/967#issuecomment-5787797921. The three stories stay closed.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5547975384,
+        "origin": "deftai/directive#4947",
+        "id": "github.issue.5547975384"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "20ff52d92bcdd6dae2c6bf0becd70d930c2c68356e47c8e23a2c054887c1a3e7"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4971,
+        "prBase": null,
+        "mergeCommit": "cae371d0161bb7c03df0ab9fc312c477f7c524cc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cae371d0161bb7c03df0ab9fc312c477f7c524cc",
+        "verifiedAt": "2026-09-23T18:08:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T18:08:57Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T18:08:57Z"
+      }
+    },
+    "id": "github.issue.5547975384",
+    "updated": "2026-09-23T18:08:57Z"
+  }
+}

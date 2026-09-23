@@ -2,47 +2,83 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4384",
-    "updated": "2026-09-23T12:44:00Z"
+    "updated": "2026-09-23T15:59:01Z"
   },
   "plan": {
-    "title": "design(scm,setup): the first push to a new repository must create the default branch, the gate has no bootstrap exemption, and the only documented path is the \"emergency\" bypass \u2014 so day one teaches the bypass",
-    "status": "running",
+    "title": "design(scm,setup): the first push to a new repository must create the default branch, the gate has no bootstrap exemption, and the only documented path is the \"emergency\" bypass — so day one teaches the bypass",
+    "status": "completed",
     "narratives": {
-      "Description": "design(scm,setup): the first push to a new repository must create the default branch, the gate has no bootstrap exemption, and the only documented path is the \"emergency\" bypass \u2014 so day one teaches the bypass",
+      "Description": "design(scm,setup): the first push to a new repository must create the default branch, the gate has no bootstrap exemption, and the only documented path is the \"emergency\" bypass — so day one teaches the bypass",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4384",
-      "Overview": "**TL;DR:** `deft preflight-gh` refuses any push that touches the default branch, including the *creation* of that branch. On a brand-new empty repository the first push must create the default branch and there is no PR to open against zero commits, so the only documented path is the `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` \"per-shell emergency env-var bypass\". Every greenfield project therefore meets the emergency bypass on day one, which is the fastest way to teach an operator that the bypass is normal.\n\n## Evidence\n\nGreenfield project, `git init`, framework bootstrapped, work committed on `feat/core-engine`, then:\n\n```\n$ gh repo create deftai/bs-deepwordle --internal\n$ git remote add origin https://github.com/deftai/bs-deepwordle.git\n$ git push -u origin master\n\n\u274c deft destructive-gh-verb gate (pre-push): refusing to push directly to the default branch.\n  Detail: create master (local=refs/heads/master)\n\n  How to proceed:\n    \u2022 push to a feature branch and open a PR\n    \u2022 or set the env-var bypass for this shell:  DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1\n  See scm/github.md (## Destructive gh verbs (#1019)).\n```\n\nTwo things are wrong with the advice. The gate classified this as a **`create`**, not an update or a force-push \u2014 and refused it anyway. And \"push to a feature branch and open a PR\" is not available: the remote has no commits, so there is no base branch to open a PR against.\n\n`scm/github.md` confirms there is no exemption, and that the refusal is not limited to force-pushes:\n\n> `.githooks/pre-push` invokes `deft preflight-gh --pre-push-stdin` after the #747 branch gate (on pre-commit), refusing **any push that touches the default branch** (force-push or otherwise).\n\n> `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` \u2014 per-shell emergency env-var bypass. Mirrors `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` (#747). The gate prints an explicit `policy bypassed for this session` line so the bypass is auditable after the fact.\n\nThe bypass did work, and it did print the audit line:\n\n```\n\u26a0 deft destructive-gh-verb gate (pre-push): default-branch push detected (create master (local=refs/heads/master))\n  but DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 is set -- policy bypassed for this invocation.\n```\n\nSo the mechanism is sound. The problem is that its only documented use is described as an *emergency*, and it is unavoidably required for the single most common first action in a new project.\n\n## Why this matters beyond one push\n\n1. **It trains the bypass as routine.** An operator or agent who needs the emergency bypass before their first commit is much more likely to reach for it again. The bypass is per-shell, so it is not remembered \u2014 it gets rediscovered, and each rediscovery normalises it.\n2. **It is a dead end for an agent.** An agent doing greenfield setup has no legitimate path here at all. It cannot push, cannot open a PR, and its instructions say the bypass is for emergencies. So it either stops and asks the operator (another interruption, see #4383) or silently uses an emergency bypass without authorisation. Neither is good, and the second is worse.\n3. **The gate has no way to tell \"publishing a new repo\" from \"overwriting a protected branch\".** The classifier already distinguishes `create` from `force_push_default` \u2014 it printed `create master`. It just has no policy branch for a create against an empty remote.\n\n## Proposal\n\nDistinguish the initial import from a protected-branch update, since the classifier already computes the distinction:\n\n1. **Allow the push when the remote has no commits.** If the target repository is empty, creating the default branch is the only possible action and cannot overwrite anything. This is the honest condition: the risk the gate guards against (irreversible loss on the default branch) does not exist yet.\n2. **Or add an explicit, non-emergency flag** for the initial import, e.g. `deft preflight-gh --initial-import`, so the sanctioned path is distinguishable from the emergency bypass in the audit trail.\n3. **Or have the refusal message detect the empty-remote case and say so**, rather than advising a PR that cannot be opened.\n4. **Whatever the mechanism, the bypass message should not be the only path.** If the intended answer really is \"use the bypass once for bootstrap\", the docs should say that plainly in the greenfield/setup flow, so it is a documented step rather than an emergency.\n\n## Acceptance sketch\n\n- Given a remote with no commits, when the default branch is pushed, then the push is allowed and no emergency bypass is required.\n- Given a remote that already has the default branch, when a push touches it, then the existing refusal applies unchanged.\n- Given an empty remote and a refusal would have occurred, when the gate runs, then the message names the initial-import path instead of suggesting a PR that cannot be opened.\n- Given the setup skill, when an agent reaches the first push, then the documented path does not require an env-var described as an emergency bypass.\n\nRelates #1019, #2049, #1814, #747, #4383, #4379\n\n",
+      "Overview": "**TL;DR:** `deft preflight-gh` refuses any push that touches the default branch, including the *creation* of that branch. On a brand-new empty repository the first push must create the default branch and there is no PR to open against zero commits, so the only documented path is the `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` \"per-shell emergency env-var bypass\". Every greenfield project therefore meets the emergency bypass on day one, which is the fastest way to teach an operator that the bypass is normal.\n\n## Evidence\n\nGreenfield project, `git init`, framework bootstrapped, work committed on `feat/core-engine`, then:\n\n```\n$ gh repo create deftai/bs-deepwordle --internal\n$ git remote add origin https://github.com/deftai/bs-deepwordle.git\n$ git push -u origin master\n\n❌ deft destructive-gh-verb gate (pre-push): refusing to push directly to the default branch.\n  Detail: create master (local=refs/heads/master)\n\n  How to proceed:\n    • push to a feature branch and open a PR\n    • or set the env-var bypass for this shell:  DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1\n  See scm/github.md (## Destructive gh verbs (#1019)).\n```\n\nTwo things are wrong with the advice. The gate classified this as a **`create`**, not an update or a force-push — and refused it anyway. And \"push to a feature branch and open a PR\" is not available: the remote has no commits, so there is no base branch to open a PR against.\n\n`scm/github.md` confirms there is no exemption, and that the refusal is not limited to force-pushes:\n\n> `.githooks/pre-push` invokes `deft preflight-gh --pre-push-stdin` after the #747 branch gate (on pre-commit), refusing **any push that touches the default branch** (force-push or otherwise).\n\n> `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` — per-shell emergency env-var bypass. Mirrors `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` (#747). The gate prints an explicit `policy bypassed for this session` line so the bypass is auditable after the fact.\n\nThe bypass did work, and it did print the audit line:\n\n```\n⚠ deft destructive-gh-verb gate (pre-push): default-branch push detected (create master (local=refs/heads/master))\n  but DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 is set -- policy bypassed for this invocation.\n```\n\nSo the mechanism is sound. The problem is that its only documented use is described as an *emergency*, and it is unavoidably required for the single most common first action in a new project.\n\n## Why this matters beyond one push\n\n1. **It trains the bypass as routine.** An operator or agent who needs the emergency bypass before their first commit is much more likely to reach for it again. The bypass is per-shell, so it is not remembered — it gets rediscovered, and each rediscovery normalises it.\n2. **It is a dead end for an agent.** An agent doing greenfield setup has no legitimate path here at all. It cannot push, cannot open a PR, and its instructions say the bypass is for emergencies. So it either stops and asks the operator (another interruption, see #4383) or silently uses an emergency bypass without authorisation. Neither is good, and the second is worse.\n3. **The gate has no way to tell \"publishing a new repo\" from \"overwriting a protected branch\".** The classifier already distinguishes `create` from `force_push_default` — it printed `create master`. It just has no policy branch for a create against an empty remote.\n\n## Proposal\n\nDistinguish the initial import from a protected-branch update, since the classifier already computes the distinction:\n\n1. **Allow the push when the remote has no commits.** If the target repository is empty, creating the default branch is the only possible action and cannot overwrite anything. This is the honest condition: the risk the gate guards against (irreversible loss on the default branch) does not exist yet.\n2. **Or add an explicit, non-emergency flag** for the initial import, e.g. `deft preflight-gh --initial-import`, so the sanctioned path is distinguishable from the emergency bypass in the audit trail.\n3. **Or have the refusal message detect the empty-remote case and say so**, rather than advising a PR that cannot be opened.\n4. **Whatever the mechanism, the bypass message should not be the only path.** If the intended answer really is \"use the bypass once for bootstrap\", the docs should say that plainly in the greenfield/setup flow, so it is a documented step rather than an emergency.\n\n## Acceptance sketch\n\n- Given a remote with no commits, when the default branch is pushed, then the push is allowed and no emergency bypass is required.\n- Given a remote that already has the default branch, when a push touches it, then the existing refusal applies unchanged.\n- Given an empty remote and a refusal would have occurred, when the gate runs, then the message names the initial-import path instead of suggesting a PR that cannot be opened.\n- Given the setup skill, when an agent reaches the first push, then the documented path does not require an env-var described as an emergency bypass.\n\nRelates #1019, #2049, #1814, #747, #4383, #4379\n\n",
       "Labels": "design, adoption-blocker, Workflow, agent-experience, process, area:cli, design-critique:ingest-ready, core-capabilities, promise:gates"
     },
     "items": [
       {
         "title": "Re-anchor on evaluatePrePush versus classifyCommand. Settle the two-surface divergence first.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight-gh/classifier.test.ts",
+          "recorded_at": "2026-09-23T15:56:53Z",
+          "recorded_by": "vitest"
+        }
       },
       {
         "title": "Add a #1019 policy field with a writer like policy:allow-direct-commits. evaluatePrePush consults that field through the --project-root the hook already passes, the same way branch evaluate(projectRoot) consults resolvePolicy.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/destructive-gh-verbs.test.ts",
+          "recorded_at": "2026-09-23T15:56:53Z",
+          "recorded_by": "vitest"
+        }
       },
       {
         "title": "How to proceed names that policy verb the way branch evaluate already lists policy:allow-direct-commits. The env-var bypass stays an override, not the documented bootstrap step.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/scm/github.md",
+          "recorded_at": "2026-09-23T15:56:53Z",
+          "recorded_by": "vitest"
+        }
       },
       {
         "title": "Strike session-long emergency-bypass as the documented bootstrap step.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/templates/agents-entry.md",
+          "recorded_at": "2026-09-23T15:56:53Z",
+          "recorded_by": "vitest"
+        }
       },
       {
         "title": "Restore pre-push stdin policy fixtures next to the classifier suite. Do not gate that work on exporting the private evaluatePrePush symbol. Add a SELF_TEST_CASES row for git push origin master only if two-surface settlement makes --command refuse that argv.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight-gh/pre-push.test.ts",
+          "recorded_at": "2026-09-23T15:56:53Z",
+          "recorded_by": "vitest"
+        }
       },
       {
         "title": "If empty-remote is allowed, name an honest local condition or new plumbing; fail-closed on probe error. Do not harvest zero-OID create of master/main as this P1's relief.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight-gh/classifier.test.ts",
+          "recorded_at": "2026-09-23T15:56:53Z",
+          "recorded_by": "vitest"
+        }
       }
     ],
     "tags": [
@@ -60,7 +96,7 @@
       {
         "uri": "https://github.com/deftai/directive/issues/4384",
         "type": "x-xbrief/github-issue",
-        "title": "Issue #4384: design(scm,setup): the first push to a new repository must create the default branch, the gate has no bootstrap exemption, and the only documented path is the \"emergency\" bypass \u2014 so day one teaches the bypass"
+        "title": "Issue #4384: design(scm,setup): the first push to a new repository must create the default branch, the gate has no bootstrap exemption, and the only documented path is the \"emergency\" bypass — so day one teaches the bypass"
       }
     ],
     "acceptance": {
@@ -180,7 +216,7 @@
           "author_association": "COLLABORATOR"
         },
         {
-          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe first push to an empty remote is refused. That tax is real. The filed diagnosis cannot bind: --command already allows git push origin master; only evaluatePrePush refuses; empty-remote is not computable from hook stdin; --initial-import cannot reach the hook.\n\nLeftover next-build is a recut: re-anchor on evaluatePrePush and the two-surface divergence; #1019 has no policy path, only an env var; restore pre-push fixtures before any exemption.\n\nConfirming this map does not close day-one bootstrap. It recuts the remedy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4384 after round 1 critic 5650392912 (claude-opus-5). Supersedes write-back 5650305493.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4384-dc\norigin-ref: origin/master\ndispatch-sha: d0fab8779b8b3428acfc301aa630876bdd3bcbbb\n\nTakes:\n\n- 5650392912 the remedy is aimed at a component that already allows this push \u2014 accept-into-contract\n- 5650392912 the remote has no commits is not computable from the gate's inputs \u2014 accept-into-contract\n- 5650392912 proposal 2's flag is not reachable on the path that produced the evidence \u2014 accept-into-contract\n- 5650392912 only documented use is emergency is false \u2014 accept-into-contract\n- 5650392912 proposal 4 is affirmatively unsafe \u2014 accept-into-contract\n- 5650392912 the pre-push policy has no test coverage \u2014 accept-into-contract\n- 5650392912 an empty-remote probe moves the trust boundary \u2014 accept-into-contract\n\n## Bound remedy\n\n- Re-anchor on evaluatePrePush vs classifyCommand. Settle the two-surface divergence first.\n- #1019 has no policy path; #747 does. Bind the asymmetry, not greenfield-as-the-whole-scope.\n- Strike session-long emergency-bypass as the documented bootstrap step.\n- Restore evaluatePrePush fixtures before any exemption.\n- If empty-remote is allowed, name an honest local condition or new plumbing; fail-closed on probe error.\r\n\n",
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe first push to an empty remote is refused. That tax is real. The filed diagnosis cannot bind: --command already allows git push origin master; only evaluatePrePush refuses; empty-remote is not computable from hook stdin; --initial-import cannot reach the hook.\n\nLeftover next-build is a recut: re-anchor on evaluatePrePush and the two-surface divergence; #1019 has no policy path, only an env var; restore pre-push fixtures before any exemption.\n\nConfirming this map does not close day-one bootstrap. It recuts the remedy.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut. Disposition: all classified headings accept-into-contract. Residual: none.\n\nSpec-path: next-build contract is not this body.\n\n**Lean:** recut of #4384 after round 1 critic 5650392912 (claude-opus-5). Supersedes write-back 5650305493.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4384-dc\norigin-ref: origin/master\ndispatch-sha: d0fab8779b8b3428acfc301aa630876bdd3bcbbb\n\nTakes:\n\n- 5650392912 the remedy is aimed at a component that already allows this push — accept-into-contract\n- 5650392912 the remote has no commits is not computable from the gate's inputs — accept-into-contract\n- 5650392912 proposal 2's flag is not reachable on the path that produced the evidence — accept-into-contract\n- 5650392912 only documented use is emergency is false — accept-into-contract\n- 5650392912 proposal 4 is affirmatively unsafe — accept-into-contract\n- 5650392912 the pre-push policy has no test coverage — accept-into-contract\n- 5650392912 an empty-remote probe moves the trust boundary — accept-into-contract\n\n## Bound remedy\n\n- Re-anchor on evaluatePrePush vs classifyCommand. Settle the two-surface divergence first.\n- #1019 has no policy path; #747 does. Bind the asymmetry, not greenfield-as-the-whole-scope.\n- Strike session-long emergency-bypass as the documented bootstrap step.\n- Restore evaluatePrePush fixtures before any exemption.\n- If empty-remote is allowed, name an honest local condition or new plumbing; fail-closed on probe error.\r\n\n",
           "id": 5650414928,
           "html_url": "https://github.com/deftai/directive/issues/4384#issuecomment-5650414928",
           "user": {
@@ -354,7 +390,7 @@
           "author_association": "COLLABORATOR"
         },
         {
-          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe first create of master or main still has no sanctioned path except the emergency env var. --command still greens git push origin master while evaluatePrePush refuses the hook stdin. Confirming this map keeps the prior Bound-remedy: settle the two-surface divergence, give #1019 a policy path like #747, restore pre-push stdin fixtures, and do not harvest a zero-OID empty-remote exemption as this P1's relief.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut remainder still binds. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** later-arc round-1 successor after one isolated critic. Cites critic 5783245418 (grok-4.6). Supersedes Stop 1 write-back 5782939669. Round 1 sibling count 1. Prior bound lean 5650414928 remains the harvest list, sharpened.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4384-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\n\n## Takes\n\n- 5783245418 Stop 1 P1 glues a tax statement to a blocked exemption shape \u2014 accept-into-contract\n- 5783245418 the no-path clause is create of DEFAULT_BRANCHES \u2014 accept-into-contract\n- 5783245418 restore fixtures through the existing core module \u2014 accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Re-anchor on evaluatePrePush versus classifyCommand. Settle the two-surface divergence first.\n- #1019 has no policy path; #747 does. Bind the asymmetry, not greenfield-as-the-whole-scope.\n- Strike session-long emergency-bypass as the documented bootstrap step.\n- Restore pre-push stdin policy fixtures next to the classifier suite. Do not gate that work on exporting the private evaluatePrePush symbol. Add a SELF_TEST_CASES row for git push origin master only if two-surface settlement makes --command refuse that argv.\n- If empty-remote is allowed, name an honest local condition or new plumbing; fail-closed on probe error. Do not harvest zero-OID create of master/main as this P1's relief.\n\n",
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe first create of master or main still has no sanctioned path except the emergency env var. --command still greens git push origin master while evaluatePrePush refuses the hook stdin. Confirming this map keeps the prior Bound-remedy: settle the two-surface divergence, give #1019 a policy path like #747, restore pre-push stdin fixtures, and do not harvest a zero-OID empty-remote exemption as this P1's relief.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: recut remainder still binds. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** later-arc round-1 successor after one isolated critic. Cites critic 5783245418 (grok-4.6). Supersedes Stop 1 write-back 5782939669. Round 1 sibling count 1. Prior bound lean 5650414928 remains the harvest list, sharpened.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4384-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\n\n## Takes\n\n- 5783245418 Stop 1 P1 glues a tax statement to a blocked exemption shape — accept-into-contract\n- 5783245418 the no-path clause is create of DEFAULT_BRANCHES — accept-into-contract\n- 5783245418 restore fixtures through the existing core module — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Re-anchor on evaluatePrePush versus classifyCommand. Settle the two-surface divergence first.\n- #1019 has no policy path; #747 does. Bind the asymmetry, not greenfield-as-the-whole-scope.\n- Strike session-long emergency-bypass as the documented bootstrap step.\n- Restore pre-push stdin policy fixtures next to the classifier suite. Do not gate that work on exporting the private evaluatePrePush symbol. Add a SELF_TEST_CASES row for git push origin master only if two-surface settlement makes --command refuse that argv.\n- If empty-remote is allowed, name an honest local condition or new plumbing; fail-closed on probe error. Do not harvest zero-OID create of master/main as this P1's relief.\n\n",
           "id": 5783275207,
           "html_url": "https://github.com/deftai/directive/issues/4384#issuecomment-5783275207",
           "user": {
@@ -412,7 +448,7 @@
           "author_association": "COLLABORATOR"
         },
         {
-          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBound remedy on successor lean 5783275207 names a #1019 policy path but does not say evaluatePrePush consults that path through the --project-root the hook already passes. Completing the list still trains the emergency bypass on create of master or main. This map retracts relieves of P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: Stop 1 P1 unmet.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of successor lean 5783275207. Cites critic 5783433807. This map is not the bind harvest.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4384-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\n\n## Takes\n\n- 5783433807 Bound-remedy list leaves P1 unrelieved \u2014 accept-into-contract\n\ndoes-not-relieve: P1\n\n",
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBound remedy on successor lean 5783275207 names a #1019 policy path but does not say evaluatePrePush consults that path through the --project-root the hook already passes. Completing the list still trains the emergency bypass on create of master or main. This map retracts relieves of P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: Stop 1 P1 unmet.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of successor lean 5783275207. Cites critic 5783433807. This map is not the bind harvest.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4384-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\n\n## Takes\n\n- 5783433807 Bound-remedy list leaves P1 unrelieved — accept-into-contract\n\ndoes-not-relieve: P1\n\n",
           "id": 5783456606,
           "html_url": "https://github.com/deftai/directive/issues/4384#issuecomment-5783456606",
           "user": {
@@ -499,7 +535,7 @@
           "author_association": "COLLABORATOR"
         },
         {
-          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOperator leftover-deliver is recorded. Next-build on this number is the prior Bound-remedy plus the missing consult: evaluatePrePush reads the new policy field through the --project-root the hook already passes, and How to proceed names that policy verb. Confirming this map recuts first-ship to that harvest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: leftover-deliver remainder. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** leftover-deliver remainder after operator leftover-deliver. Recut: supersedes retraction 5783456606. Cites critic 5783433807.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4384-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\nDual-stop cap: 6 posts\ndest-wo: leftover-complete\n\n## Takes\n\n- 5783433807 Bound-remedy list leaves P1 unrelieved \u2014 accept-into-contract\n- 5783245418 Stop 1 P1 glues a tax statement to a blocked exemption shape \u2014 accept-into-contract\n- 5783245418 the no-path clause is create of DEFAULT_BRANCHES \u2014 accept-into-contract\n- 5783245418 restore fixtures through the existing core module \u2014 accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Re-anchor on evaluatePrePush versus classifyCommand. Settle the two-surface divergence first.\n- Add a #1019 policy field with a writer like policy:allow-direct-commits. evaluatePrePush consults that field through the --project-root the hook already passes, the same way branch evaluate(projectRoot) consults resolvePolicy.\n- How to proceed names that policy verb the way branch evaluate already lists policy:allow-direct-commits. The env-var bypass stays an override, not the documented bootstrap step.\n- Strike session-long emergency-bypass as the documented bootstrap step.\n- Restore pre-push stdin policy fixtures next to the classifier suite. Do not gate that work on exporting the private evaluatePrePush symbol. Add a SELF_TEST_CASES row for git push origin master only if two-surface settlement makes --command refuse that argv.\n- If empty-remote is allowed, name an honest local condition or new plumbing; fail-closed on probe error. Do not harvest zero-OID create of master/main as this P1's relief.\n\n",
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOperator leftover-deliver is recorded. Next-build on this number is the prior Bound-remedy plus the missing consult: evaluatePrePush reads the new policy field through the --project-root the hook already passes, and How to proceed names that policy verb. Confirming this map recuts first-ship to that harvest.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. No new load-bearing parent premise.\n\nForward verdict: leftover-deliver remainder. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** leftover-deliver remainder after operator leftover-deliver. Recut: supersedes retraction 5783456606. Cites critic 5783433807.\n\nTarget-digest: sha256:121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4384-dc\norigin-ref: origin/HEAD\ndispatch-sha: b6425115eab5a25877735acd70ca7d693594dda8\nDual-stop cap: 6 posts\ndest-wo: leftover-complete\n\n## Takes\n\n- 5783433807 Bound-remedy list leaves P1 unrelieved — accept-into-contract\n- 5783245418 Stop 1 P1 glues a tax statement to a blocked exemption shape — accept-into-contract\n- 5783245418 the no-path clause is create of DEFAULT_BRANCHES — accept-into-contract\n- 5783245418 restore fixtures through the existing core module — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- Re-anchor on evaluatePrePush versus classifyCommand. Settle the two-surface divergence first.\n- Add a #1019 policy field with a writer like policy:allow-direct-commits. evaluatePrePush consults that field through the --project-root the hook already passes, the same way branch evaluate(projectRoot) consults resolvePolicy.\n- How to proceed names that policy verb the way branch evaluate already lists policy:allow-direct-commits. The env-var bypass stays an override, not the documented bootstrap step.\n- Strike session-long emergency-bypass as the documented bootstrap step.\n- Restore pre-push stdin policy fixtures next to the classifier suite. Do not gate that work on exporting the private evaluatePrePush symbol. Add a SELF_TEST_CASES row for git push origin master only if two-surface settlement makes --command refuse that argv.\n- If empty-remote is allowed, name an honest local condition or new plumbing; fail-closed on probe error. Do not harvest zero-OID create of master/main as this P1's relief.\n\n",
           "id": 5784279246,
           "html_url": "https://github.com/deftai/directive/issues/4384#issuecomment-5784279246",
           "user": {
@@ -557,7 +593,7 @@
           "author_association": "COLLABORATOR"
         },
         {
-          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified claims\n\n- 5783433807 Bound-remedy list leaves P1 unrelieved \u2014 accept-into-contract; leftover-deliver Bound-remedy now names evaluatePrePush consult via --project-root\n- 5783245418 Stop 1 P1 glues a tax statement to a blocked exemption shape \u2014 accept-into-contract\n- 5783245418 the no-path clause is create of DEFAULT_BRANCHES \u2014 accept-into-contract\n- 5783245418 restore fixtures through the existing core module \u2014 accept-into-contract\n- 5784444263 pain-audit footnote-only; Bound remedy relieves P1\n\n",
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified claims\n\n- 5783433807 Bound-remedy list leaves P1 unrelieved — accept-into-contract; leftover-deliver Bound-remedy now names evaluatePrePush consult via --project-root\n- 5783245418 Stop 1 P1 glues a tax statement to a blocked exemption shape — accept-into-contract\n- 5783245418 the no-path clause is create of DEFAULT_BRANCHES — accept-into-contract\n- 5783245418 restore fixtures through the existing core module — accept-into-contract\n- 5784444263 pain-audit footnote-only; Bound remedy relieves P1\n\n",
           "id": 5784460387,
           "html_url": "https://github.com/deftai/directive/issues/4384#issuecomment-5784460387",
           "user": {
@@ -626,9 +662,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "121786688d94615cd9896a73526cc2ee2f0704a3d4fe5486f123560cc1c9f8ea"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4952,
+        "prBase": null,
+        "mergeCommit": "9b3fb7124358b482064d047c21ec4300ebe0908d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9b3fb7124358b482064d047c21ec4300ebe0908d",
+        "verifiedAt": "2026-09-23T15:59:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNlNDQtZDE5ZS03ZmYwLWIwNWItZWQzZjBjY2ZkYmIz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T15:59:01Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNlNDQtZDE5ZS03ZmYwLWIwNWItZWQzZjBjY2ZkYmIz",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T15:59:01Z"
       }
     },
     "id": "github.issue.5421021566",
-    "updated": "2026-09-23T12:44:00Z"
+    "updated": "2026-09-23T15:59:01Z"
   }
 }
