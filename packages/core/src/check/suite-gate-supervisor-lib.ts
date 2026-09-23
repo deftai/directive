@@ -93,6 +93,7 @@ export interface SupervisedGatePlan {
   readonly sessionId?: string;
   readonly runId?: string;
   readonly platform?: NodeJS.Platform;
+  readonly windowsVerbatimArguments?: boolean;
   readonly killTree?: (pid: number) => void;
 }
 
@@ -287,6 +288,7 @@ export async function superviseChild(plan: SupervisedGatePlan): Promise<Supervis
     stdio: ["ignore", "pipe", "pipe"],
     detached: platform !== "win32" && plan.timeoutMs !== undefined,
     windowsHide: true,
+    ...(plan.windowsVerbatimArguments === true ? { windowsVerbatimArguments: true as const } : {}),
   });
   const writeBoth = (chunk: Buffer, stream: NodeJS.WriteStream, acc: BoundedCapture): void => {
     appendBoundedCapture(acc, chunk);

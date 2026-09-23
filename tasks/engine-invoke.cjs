@@ -264,12 +264,15 @@ function main() {
   // shell:false is a literal at the call site (not plan.shell) so static
   // analyzers see a non-shell spawn; win32 global still uses a quoted cmd.exe
   // wrapper inside buildSpawnPlan, never shell:true (#2911 / #3175).
+  // windowsVerbatimArguments is only the win32 global plan: libuv must not
+  // re-escape the outer /s quotes (#4772). Vendored argv stays a direct Node spawn.
   const result = spawnSync(plan.command, plan.args, {
     stdio: "inherit",
     env: childEnv,
     shell: false,
     // CREATE_NO_WINDOW: hide console windows from Cursor Task / nested shells (#2563).
     windowsHide: true,
+    ...(plan.windowsVerbatimArguments === true ? { windowsVerbatimArguments: true } : {}),
   });
   const code = result.status;
   process.exit(code === null ? 1 : code);
@@ -293,7 +296,7 @@ function main() {
  * @param {string} target
  * @param {string[]} argv
  * @param {{ platform?: string, nodePath?: string }} [opts]
- * @returns {{ command: string, args: string[], shell: false } | null}
+ * @returns {{ command: string, args: string[], shell: false, windowsVerbatimArguments?: boolean } | null}
  */
 function buildSpawnPlan(mode, target, argv, opts = {}) {
   const platform = opts.platform || process.platform;
@@ -309,8 +312,15 @@ function buildSpawnPlan(mode, target, argv, opts = {}) {
   if (mode === "global") {
     if (platform === "win32") {
       // Only the global shim name/path and operator argv — no process.execPath.
+      // Outer quotes are the first and last characters cmd.exe /s strips.
+      // windowsVerbatimArguments stops libuv from escaping that line again (#4772).
       const commandLine = [target, ...argv].map(quoteWin32Arg).join(" ");
-      return { command: "cmd.exe", args: ["/d", "/s", "/c", commandLine], shell: false };
+      return {
+        command: "cmd.exe",
+        args: ["/d", "/s", "/c", `"${commandLine}"`],
+        shell: false,
+        windowsVerbatimArguments: true,
+      };
     }
     return { command: target, args: argv, shell: false };
   }

@@ -106,11 +106,14 @@ function captureSpawn(
   opts: { cwd: string; env?: NodeJS.ProcessEnv; cli?: boolean },
 ): { exitCode: number; stdout: string; stderr: string; spawnError?: string } {
   const plan = opts.cli === true ? cliSpawnPlan(taskBin, args) : { command: taskBin, args };
+  const windowsVerbatimArguments =
+    "windowsVerbatimArguments" in plan && plan.windowsVerbatimArguments === true;
   const result = spawnSync(plan.command, plan.args, {
     cwd: opts.cwd,
     encoding: "utf8",
     env: opts.env ?? process.env,
     maxBuffer: SUBPROCESS_MAX_BUFFER,
+    ...(windowsVerbatimArguments ? { windowsVerbatimArguments: true as const } : {}),
   });
   if (result.error !== undefined) {
     return {
@@ -416,6 +419,8 @@ export function dispatchCachedTaskCheck(
           const supervised = (options.superviseSuite ?? runSupervisedGate)({
             command: plan.command,
             args: plan.args,
+            windowsVerbatimArguments:
+              "windowsVerbatimArguments" in plan && plan.windowsVerbatimArguments === true,
             cwd,
             projectRoot: resolvedProject,
             env: options.env,
@@ -449,6 +454,8 @@ export function dispatchCachedTaskCheck(
           const supervised = (options.superviseTimed ?? runTimedChild)({
             command: plan.command,
             args: plan.args,
+            windowsVerbatimArguments:
+              "windowsVerbatimArguments" in plan && plan.windowsVerbatimArguments === true,
             cwd,
             env: options.env,
             timeoutMs: remaining,

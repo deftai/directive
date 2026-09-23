@@ -10,7 +10,7 @@ export interface TextCaptureResult {
 /** UTF-8-safe subprocess capture — mirrors scripts/_safe_subprocess.run_text (#1366). */
 export function runText(
   command: readonly string[],
-  options: { cwd?: string } = {},
+  options: { cwd?: string; windowsVerbatimArguments?: boolean } = {},
 ): TextCaptureResult {
   if (command.length === 0) {
     return { returncode: -1, stdout: "", stderr: "empty command" };
@@ -23,6 +23,9 @@ export function runText(
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: SUBPROCESS_MAX_BUFFER,
       shell: false,
+      ...(options.windowsVerbatimArguments === true
+        ? { windowsVerbatimArguments: true as const }
+        : {}),
     });
     return {
       returncode: 0,

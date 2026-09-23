@@ -28,6 +28,7 @@ export interface TimedChildPlan {
   readonly env?: NodeJS.ProcessEnv;
   readonly timeoutMs?: number;
   readonly platform?: NodeJS.Platform;
+  readonly windowsVerbatimArguments?: boolean;
   readonly killTree?: (pid: number, handle: TimedChildHandle) => void;
   readonly listDescendants?: (pid: number) => number[];
   readonly isPidAlive?: (pid: number) => boolean;
@@ -136,6 +137,7 @@ export async function superviseTimedChild(plan: TimedChildPlan): Promise<Supervi
     stdio: ["ignore", "pipe", "pipe"],
     detached: platform !== "win32" && plan.timeoutMs !== undefined,
     windowsHide: true,
+    ...(plan.windowsVerbatimArguments === true ? { windowsVerbatimArguments: true as const } : {}),
   });
   child.stdout?.on("data", (chunk: Buffer) => {
     appendBoundedCapture(stdoutCap, chunk);

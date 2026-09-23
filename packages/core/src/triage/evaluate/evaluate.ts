@@ -53,6 +53,7 @@ const ENGINE_BINS = ["deft", "directive"] as const;
 export function sessionStartSpawnPlan(input: SessionStartSpawnPlanInput = {}): {
   readonly command: string;
   readonly args: string[];
+  readonly windowsVerbatimArguments?: boolean;
 } {
   const platform = input.platform ?? process.platform;
   const whichOpts = {
@@ -74,7 +75,10 @@ export function sessionStartSpawnPlan(input: SessionStartSpawnPlanInput = {}): {
 
 function defaultSessionStart(worktreePath: string): void {
   const plan = sessionStartSpawnPlan();
-  const proc = runText([plan.command, ...plan.args], { cwd: worktreePath });
+  const proc = runText([plan.command, ...plan.args], {
+    cwd: worktreePath,
+    windowsVerbatimArguments: plan.windowsVerbatimArguments,
+  });
   if (proc.returncode !== 0) {
     throw new EvaluateError(
       `session:start --read-only failed in ${worktreePath}: ${proc.stderr.trim() || "<no stderr>"}`,

@@ -119,8 +119,12 @@ function executeAllowlisted(execFn, cmd, args, opts) {
     shell: false,
   };
   if (process.platform === "win32") {
+    // Same /s outer quotes + verbatim argv as engine-invoke (#4772). shell stays false.
     const commandLine = [quoteWin32Arg(cmd), ...args.map(quoteWin32Arg)].join(" ");
-    execFn("cmd.exe", ["/d", "/s", "/c", commandLine], base);
+    execFn("cmd.exe", ["/d", "/s", "/c", `"${commandLine}"`], {
+      ...base,
+      windowsVerbatimArguments: true,
+    });
     return;
   }
   execFn(cmd, args, base);

@@ -67,7 +67,10 @@ describe("cli-native gates (#3335)", () => {
     expect(quoteWin32Arg("a b")).toBe('"a b"');
     const plan = cliSpawnPlan("deft", ["verify:ac", "--soft-missing-xbrief"], "win32");
     expect(plan.command).toBe("cmd.exe");
+    expect(plan.windowsVerbatimArguments).toBe(true);
     expect(plan.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
+    expect(plan.args[3]?.startsWith('"')).toBe(true);
+    expect(plan.args[3]?.endsWith('"')).toBe(true);
     expect(plan.args[3]).toContain("deft");
     expect(plan.args[3]).toContain("verify:ac");
   });

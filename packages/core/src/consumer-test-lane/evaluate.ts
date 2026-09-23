@@ -135,6 +135,7 @@ function defaultSpawn(
     stdio: ["ignore", "pipe", "pipe"],
     detached: platform !== "win32",
     windowsHide: true,
+    ...(plan.windowsVerbatimArguments === true ? { windowsVerbatimArguments: true as const } : {}),
   });
   const stdoutCap = createBoundedCapture();
   const stderrCap = createBoundedCapture();

@@ -3,7 +3,7 @@
 
 const assert = require("node:assert/strict");
 const { spawnSync } = require("node:child_process");
-const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
+const { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { describe, it, after } = require("node:test");
@@ -73,6 +73,14 @@ function splitCmdTokens(line) {
   return tokens;
 }
 
+/** cmd.exe /s strips the first and last quote before it parses the line (#4772). */
+function cmdSlashSPayload(line) {
+  if (line.length >= 2 && line.startsWith('"') && line.endsWith('"')) {
+    return line.slice(1, -1);
+  }
+  return line;
+}
+
 describe("shellSplit", () => {
   it("keeps quoted free-text (apostrophes, spaces, metachars) as one token", () => {
     assert.deepEqual(shellSplit(`release --summary "It's a & test"`), [
@@ -117,8 +125,9 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
     const plan = buildSpawnPlan("global", "deft", ["release"], WIN32);
     assert.equal(plan.shell, false);
     assert.equal(plan.command, "cmd.exe");
+    assert.equal(plan.windowsVerbatimArguments, true);
     assert.deepEqual(plan.args.slice(0, 3), ["/d", "/s", "/c"]);
-    assert.equal(plan.args[3], "deft release");
+    assert.equal(plan.args[3], '"deft release"');
   });
 
   it("keeps injection-shaped free-text args as a single quoted token", () => {
@@ -140,7 +149,8 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
     for (const evil of injections) {
       const plan = buildSpawnPlan("global", "deft", ["release", "--summary", evil], WIN32);
       assert.equal(plan.shell, false, evil);
-      const commandLine = plan.args[3];
+      assert.equal(plan.windowsVerbatimArguments, true, evil);
+      const commandLine = cmdSlashSPayload(plan.args[3]);
       const tokens = splitCmdTokens(commandLine);
       // deft + release + --summary + evil == 4 top-level tokens, evil intact.
       assert.deepEqual(tokens, ["deft", "release", "--summary", evil], `injection ${evil}`);
@@ -157,7 +167,8 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
     const argv = shellSplit('release --summary "pwn & calc | whoami"');
     const plan = buildSpawnPlan("global", "directive", argv, WIN32);
     assert.equal(plan.shell, false);
-    assert.deepEqual(splitCmdTokens(plan.args[3]), [
+    assert.equal(plan.windowsVerbatimArguments, true);
+    assert.deepEqual(splitCmdTokens(cmdSlashSPayload(plan.args[3])), [
       "directive",
       "release",
       "--summary",
@@ -165,9 +176,72 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
     ]);
   });
 
-  it("leaves safe args unquoted for readability", () => {
+  it("leaves safe args unquoted inside the outer /s quotes", () => {
     const plan = buildSpawnPlan("global", "deft", ["session:start", "--json"], WIN32);
-    assert.equal(plan.args[3], "deft session:start --json");
+    assert.equal(plan.args[3], '"deft session:start --json"');
+    assert.equal(plan.windowsVerbatimArguments, true);
+  });
+
+  const live = process.platform === "win32" ? it : it.skip;
+  live("round-trips a spaced project dir, a spaced deft.cmd, and token a&b", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4772-"));
+    const projectDir = join(root, "directive uat");
+    const shimDir = join(root, "shim dir");
+    mkdirSync(projectDir, { recursive: true });
+    mkdirSync(shimDir, { recursive: true });
+    const shim = join(shimDir, "deft.cmd");
+    const capture = join(shimDir, "capture.ps1");
+    const outPath = join(projectDir, "argv.txt");
+    const projectSlash = projectDir.replace(/\\/g, "/");
+    writeFileSync(
+      capture,
+      [
+        '$me = Get-CimInstance Win32_Process -Filter "ProcessId=$PID"',
+        '$parent = Get-CimInstance Win32_Process -Filter "ProcessId=$($me.ParentProcessId)"',
+        "Set-Content -LiteralPath $env:DEFT_ARGV_OUT -Value $parent.CommandLine -Encoding utf8",
+        "",
+      ].join("\r\n"),
+      "utf8",
+    );
+    writeFileSync(shim, `@echo off\r\npowershell.exe -NoProfile -File "${capture}"\r\n`, "utf8");
+    const cmd = `verify:branch --project-root "${projectSlash}" a&b`;
+    const argv = shellSplit(cmd);
+    const plan = buildSpawnPlan("global", shim, argv, WIN32);
+    assert.equal(plan.shell, false);
+    assert.equal(plan.windowsVerbatimArguments, true);
+    assert.equal(plan.args[3].startsWith('"') && plan.args[3].endsWith('"'), true);
+    assert.deepEqual(splitCmdTokens(cmdSlashSPayload(plan.args[3])), [
+      shim,
+      "verify:branch",
+      "--project-root",
+      projectSlash,
+      "a&b",
+    ]);
+    const script = join(__dirname, "engine-invoke.cjs");
+    const result = spawnSync(process.execPath, [script, "global", shim], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        DEFT_ENGINE_CMD_JSON: JSON.stringify(cmd),
+        DEFT_ARGV_OUT: outPath,
+      },
+    });
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    const captured = readFileSync(outPath, "utf8");
+    const shimAt = captured.toLowerCase().indexOf(shim.toLowerCase());
+    assert.ok(shimAt >= 0, captured);
+    let rest = captured.slice(shimAt + shim.length).trim();
+    if (rest.startsWith('"')) rest = rest.slice(1).trim();
+    if (rest.endsWith('"') && (rest.match(/"/g) || []).length % 2 === 1) {
+      rest = rest.slice(0, -1);
+    }
+    assert.deepEqual(splitCmdTokens(rest), [
+      "verify:branch",
+      "--project-root",
+      projectSlash,
+      "a&b",
+    ], captured);
+    rmSync(root, { recursive: true, force: true });
   });
 });
 
@@ -175,6 +249,7 @@ describe("buildSpawnPlan — other paths keep shell:false", () => {
   it("win32 vendored spawns node directly (no cmd.exe, no shell)", () => {
     const plan = buildSpawnPlan("vendored", "/bin.js", ["release", "a&b"], WIN32);
     assert.equal(plan.shell, false);
+    assert.equal(plan.windowsVerbatimArguments, undefined);
     assert.equal(plan.command, "/node");
     assert.deepEqual(plan.args, ["/bin.js", "release", "a&b"]);
   });
@@ -207,12 +282,18 @@ describe("buildSpawnPlan — CodeQL absolute-path isolation (#3175 / alert #74)"
     });
     assert.equal(plan.shell, false);
     assert.equal(plan.command, "cmd.exe");
+    assert.equal(plan.windowsVerbatimArguments, true);
     assert.deepEqual(plan.args.slice(0, 3), ["/d", "/s", "/c"]);
     // Global win32 must only join target + operator argv — not the Node binary.
     assert.equal(plan.args[3].includes(evilNode), false);
     assert.equal(plan.args[3].includes("Program Files"), false);
     assert.equal(plan.args[3].includes("node.exe"), false);
-    assert.deepEqual(splitCmdTokens(plan.args[3]), ["deft", "release", "--summary", "ok"]);
+    assert.deepEqual(splitCmdTokens(cmdSlashSPayload(plan.args[3])), [
+      "deft",
+      "release",
+      "--summary",
+      "ok",
+    ]);
   });
 });
 
@@ -334,7 +415,7 @@ describe("consumer-deposit marker (#3324)", () => {
   });
 
   it("CLI probe exits 0 for a marked deposit and 1 for is-buildable-source", () => {
-    const root = tempRoot();
+    const root = join(tempRoot(), "deposit dir");
     writeBuildableTree(root, { deftConsumerDeposit: true });
     const script = join(__dirname, "engine-invoke.cjs");
     const marker = spawnSync(process.execPath, [script, "deposit-marker", root], {
@@ -356,6 +437,7 @@ describe("buildSpawnPlan — CodeQL absolute-path isolation (#3175 / alert #74)"
       nodePath,
     });
     assert.equal(plan.shell, false);
+    assert.equal(plan.windowsVerbatimArguments, undefined);
     assert.equal(plan.command, nodePath);
     assert.notEqual(plan.command, "cmd.exe");
     assert.deepEqual(plan.args, [String.raw`C:\repo\packages\cli\dist\bin.js`, "session:start"]);

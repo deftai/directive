@@ -65,16 +65,22 @@ export function quoteWin32Arg(arg: string): string {
 
 /**
  * Spawn plan for the global CLI. Win32 uses cmd.exe so `.cmd` shims run
- * without `shell: true` (#3324 / #2547).
+ * without `shell: true` (#3324 / #2547). Outer quotes plus
+ * `windowsVerbatimArguments` match toolchain-check so spaced shim paths are
+ * not re-split (#4772).
  */
 export function cliSpawnPlan(
   cliBin: string,
   argv: readonly string[],
   platform: NodeJS.Platform = process.platform,
-): { command: string; args: string[] } {
+): { command: string; args: string[]; windowsVerbatimArguments?: boolean } {
   if (platform === "win32") {
     const commandLine = [cliBin, ...argv].map(quoteWin32Arg).join(" ");
-    return { command: "cmd.exe", args: ["/d", "/s", "/c", commandLine] };
+    return {
+      command: "cmd.exe",
+      args: ["/d", "/s", "/c", `"${commandLine}"`],
+      windowsVerbatimArguments: true,
+    };
   }
   return { command: cliBin, args: [...argv] };
 }

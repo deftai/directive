@@ -102,11 +102,17 @@ describe("runPackageScript security", () => {
       packageManager: "pnpm@11.8.0",
       scripts: { build: "tsc" },
     });
-    /** @type {Array<{ cmd: string, args: string[], shell?: boolean, stdio?: string }>} */
+    /** @type {Array<{ cmd: string, args: string[], shell?: boolean, stdio?: string, windowsVerbatimArguments?: boolean }>} */
     const calls = [];
     const code = runPackageScript(dir, "build", {
       execFileSync(cmd, args, opts) {
-        calls.push({ cmd, args: [...args], shell: opts?.shell, stdio: opts?.stdio });
+        calls.push({
+          cmd,
+          args: [...args],
+          shell: opts?.shell,
+          stdio: opts?.stdio,
+          windowsVerbatimArguments: opts?.windowsVerbatimArguments,
+        });
         if (opts?.stdio === "inherit") {
           return;
         }
@@ -120,7 +126,8 @@ describe("runPackageScript security", () => {
     if (process.platform === "win32") {
       assert.equal(execCalls[0].cmd, "cmd.exe");
       assert.deepEqual(execCalls[0].args.slice(0, 3), ["/d", "/s", "/c"]);
-      assert.match(execCalls[0].args[3], /pnpm.*run.*build/);
+      assert.equal(execCalls[0].args[3], '"pnpm run build"');
+      assert.equal(execCalls[0].windowsVerbatimArguments, true);
     } else {
       assert.deepEqual(execCalls[0], {
         cmd: "pnpm",
@@ -182,11 +189,16 @@ describe("runPackageScript security", () => {
     if (process.platform !== "win32") {
       return;
     }
-    /** @type {{ cmd?: string, args?: string[], shell?: boolean } | null} */
+    /** @type {{ cmd?: string, args?: string[], shell?: boolean, windowsVerbatimArguments?: boolean } | null} */
     let recorded = null;
     executeAllowlisted(
       (cmd, args, opts) => {
-        recorded = { cmd, args: [...args], shell: opts?.shell };
+        recorded = {
+          cmd,
+          args: [...args],
+          shell: opts?.shell,
+          windowsVerbatimArguments: opts?.windowsVerbatimArguments,
+        };
       },
       "pnpm",
       ["run", "build"],
@@ -196,6 +208,7 @@ describe("runPackageScript security", () => {
     assert.equal(recorded.cmd, "cmd.exe");
     assert.equal(recorded.args[0], "/d");
     assert.equal(recorded.shell, false);
-    assert.match(recorded.args[3], /^pnpm run build$|^"pnpm" "run" "build"$/);
+    assert.equal(recorded.windowsVerbatimArguments, true);
+    assert.equal(recorded.args[3], '"pnpm run build"');
   });
 });

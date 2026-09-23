@@ -24,6 +24,7 @@ describe("sessionStartSpawnPlan (#4083)", () => {
       isExecutable: () => true,
     });
     expect(plan.command).toBe("cmd.exe");
+    expect(plan.windowsVerbatimArguments).toBe(true);
     expect(plan.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
     const line = plan.args[3] ?? "";
     expect(line.toLowerCase()).toContain("deft.cmd");
@@ -57,6 +58,7 @@ describe("sessionStartSpawnPlan (#4083)", () => {
       isExecutable: () => true,
     });
     expect(plan.command).toBe("cmd.exe");
+    expect(plan.windowsVerbatimArguments).toBe(true);
     expect(plan.args[3]?.toLowerCase()).toContain("directive.cmd");
     expect(plan.args[3]?.toLowerCase()).not.toContain("deft.cmd");
   });
@@ -69,8 +71,9 @@ describe("sessionStartSpawnPlan (#4083)", () => {
       isExecutable: () => true,
     });
     expect(plan.command).toBe("cmd.exe");
+    expect(plan.windowsVerbatimArguments).toBe(true);
     expect(plan.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
-    expect(plan.args[3]).toBe("deft session:start --read-only");
+    expect(plan.args[3]).toBe('"deft session:start --read-only"');
   });
 });
 
