@@ -1174,6 +1174,114 @@ export function countUnverifiedAdjudicableClauses(rows: readonly ClauseWalkResul
   return rows.filter((row) => row.adjudicable && row.outcome !== "verified").length;
 }
 
+/** Verify-walk cause when a brief sentence is neither a clause nor a confession (#3550). */
+export const UNMAPPED_STATEMENT_SENTENCE_CAUSE = "unmapped_statement_sentence" as const;
+
+/**
+ * Coverage of `plan.acceptance.sentences` against clause text and confessions.
+ * Text only. A sentence does not select a file (#3550).
+ */
+export interface StatementSentenceCoverage {
+  readonly hasSentenceList: boolean;
+  readonly sentences: readonly string[];
+  readonly unmapped: readonly string[];
+  readonly behavioralClauseCount: number;
+  readonly unmappedSentenceCount: number;
+}
+
+function readNonEmptyStringList(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const out: string[] = [];
+  for (const entry of value) {
+    if (!isNonEmptyString(entry)) {
+      return null;
+    }
+    out.push(normalizeClauseText(entry));
+  }
+  return out;
+}
+
+function isExistenceOrQuotedTokenClause(clause: AcceptanceClause): boolean {
+  if (extractExpectedTokens(clause).length > 0) {
+    return true;
+  }
+  return EXISTENCE_CLAIM.test(clause.text) && !NEGATED_EXISTENCE.test(clause.text);
+}
+
+function countBehavioralClauses(clauses: readonly AcceptanceClause[]): number {
+  return clauses.filter((clause) => !isExistenceOrQuotedTokenClause(clause)).length;
+}
+
+/**
+ * A statement sentence is covered only when its text is a clause or an explicit
+ * confession on the same acceptance block. Existence and quoted-token clauses
+ * do not cover a different sentence (#3550).
+ */
+export function evaluateStatementSentenceCoverage(
+  acceptance: unknown,
+  clauses: readonly AcceptanceClause[],
+): StatementSentenceCoverage {
+  const behavioralClauseCount = countBehavioralClauses(clauses);
+  const rec = asRecord(acceptance);
+  if (rec === null || !Object.hasOwn(rec, "sentences")) {
+    return {
+      hasSentenceList: false,
+      sentences: [],
+      unmapped: [],
+      behavioralClauseCount,
+      unmappedSentenceCount: 0,
+    };
+  }
+  const sentences = readNonEmptyStringList(rec.sentences);
+  if (sentences === null) {
+    return {
+      hasSentenceList: false,
+      sentences: [],
+      unmapped: [],
+      behavioralClauseCount,
+      unmappedSentenceCount: 0,
+    };
+  }
+  const confessions =
+    rec.confessions === undefined ? [] : (readNonEmptyStringList(rec.confessions) ?? []);
+  const clauseTexts = new Set(clauses.map((clause) => normalizeClauseText(clause.text)));
+  const confessionTexts = new Set(confessions);
+  const unmapped = sentences.filter((text) => !clauseTexts.has(text) && !confessionTexts.has(text));
+  return {
+    hasSentenceList: true,
+    sentences,
+    unmapped,
+    behavioralClauseCount,
+    unmappedSentenceCount: unmapped.length,
+  };
+}
+
+/** Schema errors for the sentence list and confessions. Absent fields are valid. */
+export function acceptanceSentenceListErrors(acceptance: unknown): string[] {
+  const rec = asRecord(acceptance);
+  if (rec === null) {
+    return [];
+  }
+  const errors: string[] = [];
+  if (
+    "sentences" in rec &&
+    rec.sentences !== undefined &&
+    readNonEmptyStringList(rec.sentences) === null
+  ) {
+    errors.push("plan.acceptance.sentences must be an array of non-empty strings");
+  }
+  if (
+    "confessions" in rec &&
+    rec.confessions !== undefined &&
+    readNonEmptyStringList(rec.confessions) === null
+  ) {
+    errors.push("plan.acceptance.confessions must be an array of non-empty strings");
+  }
+  return errors;
+}
+
 export function walkAcceptanceClauses(
   clauses: readonly AcceptanceClause[],
   projectRoot: string,

@@ -55,8 +55,10 @@ import {
 import {
   type ClauseWalkResult,
   countUnverifiedAdjudicableClauses,
+  evaluateStatementSentenceCoverage,
   formatClauseWalkMessage,
   readDeclaredArtifactScope,
+  UNMAPPED_STATEMENT_SENTENCE_CAUSE,
   walkAcceptanceClauses,
 } from "../verify-ac/clauses.js";
 import {
@@ -95,6 +97,13 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly servedFrom?: AcServedFrom;
   /** Config-error cause when resolution is config (#3559). */
   readonly cause?: string;
+  /**
+   * Clauses that are neither existence nor quoted-token claims.
+   * Present when the brief carries a sentence list (#3550).
+   */
+  readonly behavioralClauseCount?: number;
+  /** Sentences that are neither a clause nor an explicit confession (#3550). */
+  readonly unmappedSentenceCount?: number;
   /** Reuse-gate miss cause when servedFrom is executed (#3558). */
   readonly missReason?: string;
 }
@@ -887,6 +896,12 @@ function emitAcceptanceOutcome(
       })),
       served_from: result.servedFrom ?? "executed",
       ...(result.cause !== undefined ? { cause: result.cause } : {}),
+      ...(result.behavioralClauseCount !== undefined
+        ? { behavioral_clause_count: result.behavioralClauseCount }
+        : {}),
+      ...(result.unmappedSentenceCount !== undefined
+        ? { unmapped_sentence_count: result.unmappedSentenceCount }
+        : {}),
       miss_reason: (result.servedFrom ?? "executed") === "executed" ? result.missReason : undefined,
     });
   } catch {
@@ -1086,6 +1101,7 @@ function applyOracle(
       next = { ...next, resolution: "fail" };
     }
   }
+  next = applyStatementSentenceFloor(next, plan, options.quiet === true);
   const servedFrom = next.servedFrom ?? "executed";
   let missReason = next.missReason;
   if (servedFrom === "executed" && (missReason === undefined || missReason.length === 0)) {
@@ -1114,6 +1130,65 @@ function applyOracle(
     emitAcceptanceTelemetry(stamped, options, projectRoot);
   }
   return stamped;
+}
+
+function formatUnmappedSentenceFloor(unmapped: readonly string[]): string {
+  return [
+    `verify:ac sentence floor (#3550): ${unmapped.length} statement sentence(s) are neither a clause nor an explicit confession`,
+    ...unmapped.map((text) => `  - ${text}`),
+  ].join("\n");
+}
+
+function joinFloorMessage(floor: string, prior: string): string {
+  if (prior.trim().length === 0) {
+    return floor;
+  }
+  return `${floor}\n${prior}`;
+}
+
+/**
+ * Fail closed when a sentence on the brief is neither a clause nor a confession.
+ * Runs for every reader that reaches the oracle walk. Does not read a file (#3550).
+ */
+function applyStatementSentenceFloor(
+  result: VerifyAcResult,
+  plan: Record<string, unknown>,
+  quiet: boolean,
+): VerifyAcResult {
+  const coverage = evaluateStatementSentenceCoverage(
+    plan.acceptance ?? result.acceptance,
+    result.acceptance.clauses ?? [],
+  );
+  if (!coverage.hasSentenceList) {
+    return result;
+  }
+  const counted: VerifyAcResult = {
+    ...result,
+    behavioralClauseCount: coverage.behavioralClauseCount,
+    unmappedSentenceCount: coverage.unmappedSentenceCount,
+  };
+  if (
+    coverage.unmappedSentenceCount === 0 ||
+    result.resolution === "config" ||
+    result.resolution === "skipped"
+  ) {
+    return counted;
+  }
+  const floor = formatUnmappedSentenceFloor(coverage.unmapped);
+  if (!result.ok) {
+    return {
+      ...counted,
+      message: quiet ? result.message : joinFloorMessage(floor, result.message),
+    };
+  }
+  return {
+    ...counted,
+    ok: false,
+    code: result.code === 2 ? 2 : 1,
+    resolution: "fail",
+    cause: UNMAPPED_STATEMENT_SENTENCE_CAUSE,
+    message: quiet ? "" : joinFloorMessage(floor, result.message),
+  };
 }
 
 function annotate(

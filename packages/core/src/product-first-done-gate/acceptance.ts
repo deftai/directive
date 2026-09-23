@@ -13,7 +13,11 @@ import {
   NOOP_ACCEPTANCE_REMEDIATION,
   readStoredLiteralAcceptanceCommands,
 } from "../literal-acceptance/index.js";
-import { readAcceptanceClauses, serializeAcceptanceClauses } from "../verify-ac/clauses.js";
+import {
+  acceptanceSentenceListErrors,
+  readAcceptanceClauses,
+  serializeAcceptanceClauses,
+} from "../verify-ac/clauses.js";
 import {
   type AcceptanceCommand,
   type AcSourceRung,
@@ -94,6 +98,7 @@ export function validatePlanAcceptance(value: unknown): string[] {
   if ("clauses" in rec && rec.clauses !== undefined && !Array.isArray(rec.clauses)) {
     errors.push("plan.acceptance.clauses must be an array");
   }
+  errors.push(...acceptanceSentenceListErrors(rec));
   if (Array.isArray(rec.clauses)) {
     rec.clauses.forEach((entry, index) => {
       const row = asRecord(entry);

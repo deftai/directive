@@ -8,6 +8,7 @@
 export {
   type AcceptanceClause,
   type AcceptanceClauseReading,
+  acceptanceSentenceListErrors,
   bindClausesToDeclaredScope,
   type ClauseBindFailure,
   type ClauseDerivationSources,
@@ -23,6 +24,7 @@ export {
   DECLARED_ACCEPTANCE_NARRATIVE_KEYS,
   type DeclaredAcceptanceNarrativeSurface,
   deriveAcceptanceClauses,
+  evaluateStatementSentenceCoverage,
   formatClauseWalkMessage,
   formatZeroClauseAcceptanceShapedNotice,
   isBindableMatchAnyFilePointer,
@@ -32,8 +34,10 @@ export {
   isScratchArtifactPath,
   readAcceptanceClauses,
   readDeclaredArtifactScope,
+  type StatementSentenceCoverage,
   serializeAcceptanceClauses,
   stampDerivedClausesOnAcceptance,
+  UNMAPPED_STATEMENT_SENTENCE_CAUSE,
   walkAcceptanceClauses,
 } from "./clauses.js";
 export {

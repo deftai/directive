@@ -172,6 +172,13 @@ export interface AcceptanceRunSummaryPayload {
   readonly cause?: string;
   /** Reuse-gate miss cause when served_from is executed (#3558). */
   readonly miss_reason?: string;
+  /**
+   * Clauses that are neither an existence claim nor a quoted-token claim.
+   * Recorded with the verify outcome; not a pass by themselves (#3550).
+   */
+  readonly behavioral_clause_count?: number;
+  /** Statement sentences that are neither a clause nor an explicit confession (#3550). */
+  readonly unmapped_sentence_count?: number;
 }
 
 /** Intake-time stamp: which rung locked, whether commands were stated, counts (#3323). */

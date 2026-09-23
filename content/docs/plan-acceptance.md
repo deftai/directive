@@ -23,6 +23,8 @@ when a pass line shows `0 verified`.
 | `commands` + `none_stated` | Empty commands are allowed only with `none_stated: true` | Intake / derivation |
 | `source_rung` | `stated` / `derived` / `project_floor` | Intake / derivation |
 | `ambiguity_attestation` | Required when `clauses[]` is non-empty and no clause has ambiguous readings. Value `none_found` | Derivation (`prepareClauseStamp`). ⊗ A second `none_found` default on the derivation path |
+| `sentences` | Optional. When present, each entry must match a clause or a `confessions` entry or the oracle walk fails closed (#3550) | On the brief. ⊗ A file selector. ⊗ A comment scrape |
+| `confessions` | Optional. Explicit confession that a sentence is not a clause. Text must match the sentence | On the brief |
 | `clauses[].artifact_path` | Bound from declared `plan.metadata.swarm.file_scope` when `source_rung === "derived"` (`#4008`) | Promote bind, not setup |
 | `plan.metadata.swarm.file_scope` | Operator-collected declared members for derived-stamp bind | Operator. ⊗ Agent-invented paths. ⊗ Approved-scope digest mint (`#3145` / `#3110` / `#4383`) |
 | `plan.references` / `plan.metadata["x-tracking"].parent_issue` | Forge origin for origin-keyed sweeps | Operator-collected or minted by `task issue:emit`. ⊗ Agent-asserted. Same polarity as `file_scope` (`#4426`) |
@@ -45,6 +47,16 @@ verify:ac passed (#3284) (0 verified, N unverifiable) [rung=derived]
 
 A later lean that wants zero-verified to fail closed MUST reverse `#3826` and
 name the reader (`standalone` / `check` / `complete`).
+
+## Sentence floor (#3550)
+
+When `sentences` is present, the oracle walk fails closed unless each
+sentence's text is a clause or listed in `confessions`. An existence clause
+or a quoted-token clause that verifies does not cover a different sentence.
+The list does not select a file. `behavioral_clause_count` and
+`unmapped_sentence_count` are recorded on the verify outcome after that
+decision. Absent `sentences` leaves the walk unchanged. Standalone, check,
+and scope:complete share the walk.
 
 ## See also
 
