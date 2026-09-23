@@ -132,6 +132,21 @@ describe("setup namespaced branch-policy contract (#3609)", () => {
       expect(text).toContain("The next setup entry finds the field and does not ask again");
       expect(text).not.toContain("always ask");
       expect(text).not.toContain("the user's track is unknown");
+      expect(text).not.toContain("does not store Depth");
+    });
+
+    it(`${surface} setup persists the Phase 1 depth selection for that session (#4668)`, () => {
+      expect(text).toContain("When Phase 1 runs, persist it on the USER.md write");
+      expect(text).toContain("does not ask the depth question again in that first session");
+      expect(text).toContain("**Depth**: {n}");
+    });
+
+    it(`${surface} setup reads Depth only from the Personal section (#4668)`, () => {
+      expect(text).toContain("read Depth only inside the USER.md Personal section");
+      expect(text).toContain("A `**Depth**:` line outside Personal is not the track");
+      expect(text).toContain("Duplicate lines are two or more");
+      expect(text).toContain("An invalid value is one Personal Depth line");
+      expect(text).toContain("Treat a `**Depth**:` line outside Personal as the track");
     });
 
     it(`${surface} setup does not infer the track from strategy or coverage (#4668)`, () => {
