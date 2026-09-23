@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4937",
-    "updated": "2026-09-23T01:06:10Z"
+    "updated": "2026-09-23T03:00:04Z"
   },
   "plan": {
     "title": "bug(swarm): through-merge should complete the xbrief for the issue it was given",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(swarm): through-merge should complete the xbrief for the issue it was given",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4937",
@@ -16,18 +16,36 @@
     "items": [
       {
         "title": "The closer that was given issue N and merged product pull request M runs swarm:finalize-cohort with both. When closingIssuesReferences is empty and exactly one pull request has passed fetchPrDeliverySnapshot and verifyDeliveryAncestry, that snapshot is delivery evidence for N. N alone is not the invocation. M alone is not the invocation.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4940",
+          "recorded_at": "2026-09-23T02:59:36Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The lifecycle commit is cut from a checkout of origin/deliveryBranch. The implement feature branch is not that checkout. A failed fast-forward does not leave the brief moved and uncommitted in the implement worktree.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4940",
+          "recorded_at": "2026-09-23T02:59:36Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Exit 0 of the sweep is not done. Done for the brief is the completed file on origin/deliveryBranch. The command waits for the lifecycle pull request to merge and does not merge it past the operator. After that land, the same command runs the origin-close pass with N and M. The issue closes only then. requireHumanMerge is unchanged.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4940",
+          "recorded_at": "2026-09-23T02:59:36Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -241,9 +259,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "982451ee99c7817258175a00ecc412c1c05d53e4550a81d2b6fe4837a8405939"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4940,
+        "prBase": null,
+        "mergeCommit": "1288d5ae76fc6d30e2b4a5fe4edd32f5fde5df23",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1288d5ae76fc6d30e2b4a5fe4edd32f5fde5df23",
+        "verifiedAt": "2026-09-23T03:00:04Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T03:00:04Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T03:00:04Z"
       }
     },
     "id": "github.issue.5547156474",
-    "updated": "2026-09-23T01:06:10Z"
+    "updated": "2026-09-23T03:00:04Z"
   }
 }
