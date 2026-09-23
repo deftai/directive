@@ -363,7 +363,21 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[UAT Tester 4] Active xBRIEFs can be created without acceptance commands",
+        "Keep the #3284 intake floor legal before activate (`commands=[]` plus `none_stated:true`).",
+        "Do not bind \"active briefs must not carry that object.\" - On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step.",
+        "Do not commit the floor into `active/` on that no-op.",
+        "Keep empty-resolution readers (`soft_empty` / complete refuse).",
+        "Do not reverse #3826 0-verified pre-product pass as a side effect.",
+        "Recovery is an operator-visible definition step, or a derivable declared surface (list items / `test:` / `acceptance:` lines per #4374).",
+        "Not silent agent authorship from the issue thread.",
+        "No new `plan.acceptance` writer.",
+        "Exclusive writer stays #4374 derivation.",
+        "Do not bind \"active briefs must not carry that object.\"",
+        "On `scope:activate` / `scope:promote`, when `applyClauseDerivationToPlan` returns `applied: false` with empty `clauses[]`, refuse or require an operator-visible acceptance-definition step."
+      ]
     },
     "id": "github.issue.5501877140",
     "updated": "2026-09-23T17:00:11Z"

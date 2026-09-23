@@ -139,9 +139,7 @@ describe("runTransition", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/#4768/);
     expect(result.message).toMatch(/test: lines, or acceptance: lines/);
-    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json"))).toBe(
-      false,
-    );
+    expect(existsSync(join(root, "xbrief", "pending", "2026-01-01-story.xbrief.json"))).toBe(false);
     expect(readFileSync(file, "utf8")).toBe(before);
   });
 
