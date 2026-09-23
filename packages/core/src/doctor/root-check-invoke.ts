@@ -372,14 +372,16 @@ function parseEntries(body: string): CmdEntry[] {
     block = null;
   };
 
-  const beginShell = (indicator: string, indicatorIndent: number): void => {
+  // Caller assigns block = "shell". A write only in this closure is invisible to
+  // loop narrowing, so a later `block === "shell"` check becomes unreachable (TS2367).
+  const beginShell = (indicator: string, indicatorIndent: number): boolean => {
     const style = blockScalarStyle(indicator);
-    if (style === null) return;
-    block = "shell";
+    if (style === null) return false;
     blockStyle = style;
     blockIndent = indicatorIndent;
     contentIndent = -1;
     shellPieces = [];
+    return true;
   };
 
   for (const raw of lines) {
@@ -413,11 +415,11 @@ function parseEntries(body: string): CmdEntry[] {
       block = null;
       const rest = stripped.replace(/^-\s*/, "");
       applyEntryHead(entry, rest, section);
-      if (blockScalarStyle(rest) !== null) {
-        beginShell(rest, indent);
+      if (beginShell(rest, indent)) {
+        block = "shell";
       } else if (rest.startsWith("cmd:")) {
         const cmd = scalarAfterColon(rest);
-        if (blockScalarStyle(cmd) !== null) beginShell(cmd, indent);
+        if (beginShell(cmd, indent)) block = "shell";
       }
       continue;
     }
@@ -455,8 +457,8 @@ function parseEntries(body: string): CmdEntry[] {
     }
     if (/^cmd\s*:/.test(stripped)) {
       const cmd = scalarAfterColon(stripped);
-      if (blockScalarStyle(cmd) !== null) {
-        beginShell(cmd, indent);
+      if (beginShell(cmd, indent)) {
+        block = "shell";
       } else {
         current.shell.push(cmd);
       }
