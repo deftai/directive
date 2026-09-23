@@ -17,7 +17,7 @@
       {
         "title": "Publish rewrites `workspace:*` to `^VERSION`. Do not bind a workspace-protocol edit as the remedy.",
         "status": "completed",
-        "id": "clause:1",
+        "id": "clause.1",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/release-e2e/npm-ops.test.ts",
@@ -28,7 +28,7 @@
       {
         "title": "Every legal horn names the selected CLI package version. Read the installed CLI `package.json` the way `readCorePackageVersion` reads core. Do not treat dest-tree `0.0.0` as production identity.",
         "status": "completed",
-        "id": "clause:2",
+        "id": "clause.2",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/cli-package-version.test.ts",
@@ -39,7 +39,7 @@
       {
         "title": "Exact pin at publish still prints the CLI package version even when it matches the engine.",
         "status": "completed",
-        "id": "clause:3",
+        "id": "clause.3",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/identity-banner.test.ts",
@@ -50,7 +50,7 @@
       {
         "title": "Display-both names CLI package and engine. Keep the first `\\bX.Y.Z\\b` as the engine, or recut `parseVersionFromOutput` in `active-cli.ts` and `classify.ts` in the same bind.",
         "status": "completed",
-        "id": "clause:4",
+        "id": "clause.4",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/identity-banner.test.ts",
@@ -61,7 +61,7 @@
       {
         "title": "Identity surface is both `banner()` and `versionBanner()`, or one shared helper. `helpVersionLabel()` also keys off `engineInfo().version`.",
         "status": "completed",
-        "id": "clause:5",
+        "id": "clause.5",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/dispatch.test.ts",
@@ -72,7 +72,7 @@
       {
         "title": "Identity gates stay core-keyed unless substitution is the chosen fork.",
         "status": "completed",
-        "id": "clause:6",
+        "id": "clause.6",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/identity-banner.test.ts",

@@ -17,7 +17,7 @@
       {
         "title": "emitGitRefusal only: refuse JSON must not emit dest-plan under mutations.wrote / mutations.exec. Empty mutations or a distinct dest-plan key.",
         "status": "completed",
-        "id": "clause:1",
+        "id": "clause.1",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/init-deposit/refresh.test.ts",
@@ -28,7 +28,7 @@
       {
         "title": "Do not change mutationSummaryJson globally. Do not recut successful dry-run dest-plan (emitDryRunPlan; ADR-004).",
         "status": "completed",
-        "id": "clause:2",
+        "id": "clause.2",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/init-deposit/refresh.test.ts",
@@ -39,7 +39,7 @@
       {
         "title": "Keep dest-plan computation before decideUpdateGitGate so gitPreflightRequired still sees dest emptiness. Do not move record-mode after the gate.",
         "status": "completed",
-        "id": "clause:3",
+        "id": "clause.3",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/init-deposit/refresh.test.ts",
@@ -50,7 +50,7 @@
       {
         "title": "Pin with a #4158-class test that dirty/unreadable refuse JSON has empty applied-write keys while the tree stays unchanged.",
         "status": "completed",
-        "id": "clause:4",
+        "id": "clause.4",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/init-deposit/refresh.test.ts",
