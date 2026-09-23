@@ -15,6 +15,7 @@ import {
 } from "../literal-acceptance/index.js";
 import {
   acceptanceSentenceListErrors,
+  extractStatementSentences,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
 } from "../verify-ac/clauses.js";
@@ -310,6 +311,76 @@ export function buildAcceptanceFromIntakeCapture(
   };
 }
 
+const STATEMENT_SENTENCE_NARRATIVE_KEYS = [
+  "Overview",
+  "Description",
+  "Acceptance",
+  "AcceptanceCriteria",
+  "Acceptance sketch",
+  "AcceptanceSketch",
+  "Test",
+  "Verification",
+] as const;
+
+/**
+ * Statement sentences already on the plan. Each part is split on its own so a
+ * title with no terminator cannot glue onto the next sentence. No file read (#3550).
+ * Origin, labels, and current-shape comments are not the statement.
+ */
+function statementSentencesOnPlan(plan: Record<string, unknown>): string[] {
+  const parts: string[] = [];
+  if (isNonEmptyString(plan.title)) {
+    parts.push(plan.title.trim());
+  }
+  const narratives = asRecord(plan.narratives);
+  if (narratives !== null) {
+    for (const key of STATEMENT_SENTENCE_NARRATIVE_KEYS) {
+      const value = narratives[key];
+      if (isNonEmptyString(value)) {
+        parts.push(value.trim());
+      }
+    }
+  }
+  if (Array.isArray(plan.items)) {
+    for (const item of plan.items) {
+      const rec = asRecord(item);
+      if (rec === null) {
+        continue;
+      }
+      const narrative = asRecord(rec.narrative);
+      const declared = narrative?.Acceptance;
+      const text = isNonEmptyString(declared) ? declared : rec.title;
+      if (isNonEmptyString(text)) {
+        parts.push(text.trim());
+      }
+    }
+  }
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const part of parts) {
+    for (const sentence of extractStatementSentences(part)) {
+      const key = sentence.toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      out.push(sentence);
+    }
+  }
+  return out;
+}
+
+function preservedAcceptanceList(
+  previous: Record<string, unknown> | null,
+  key: "sentences" | "confessions",
+): unknown {
+  if (previous === null || !Object.hasOwn(previous, key)) {
+    return undefined;
+  }
+  const value = previous[key];
+  return value === undefined ? undefined : value;
+}
+
 function rawStampCommandStrings(plan: Record<string, unknown>): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -387,6 +458,21 @@ export function stampAcceptanceFromLiteralCapture(
   };
   if (acceptance.derived_reason) {
     serializable.derived_reason = acceptance.derived_reason;
+  }
+  // #3550: the sentence list is text on the brief. A restamp keeps one that
+  // is already there. Intake populates it from the statement when it is absent.
+  const keptSentences = preservedAcceptanceList(previous, "sentences");
+  if (keptSentences !== undefined) {
+    serializable.sentences = keptSentences;
+  } else {
+    const sentences = statementSentencesOnPlan(plan);
+    if (sentences.length > 0) {
+      serializable.sentences = sentences;
+    }
+  }
+  const keptConfessions = preservedAcceptanceList(previous, "confessions");
+  if (keptConfessions !== undefined) {
+    serializable.confessions = keptConfessions;
   }
   return {
     ...plan,

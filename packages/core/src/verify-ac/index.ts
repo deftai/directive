@@ -25,6 +25,7 @@ export {
   type DeclaredAcceptanceNarrativeSurface,
   deriveAcceptanceClauses,
   evaluateStatementSentenceCoverage,
+  extractStatementSentences,
   formatClauseWalkMessage,
   formatZeroClauseAcceptanceShapedNotice,
   isBindableMatchAnyFilePointer,

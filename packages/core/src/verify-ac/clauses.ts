@@ -5,7 +5,12 @@
 
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, isAbsolute, relative, resolve } from "node:path";
-import { findAcHeading, parseListItems, sliceAcSection } from "../intake/markdown-scanners.js";
+import {
+  findAcHeading,
+  parseListItems,
+  sliceAcSection,
+  stripFencedCodeBlocks,
+} from "../intake/markdown-scanners.js";
 import { hasGlobMagic, matchAny } from "../orchestration/pathspec.js";
 
 export type ClauseOutcome = "verified" | "unverifiable" | "failed";
@@ -1176,6 +1181,72 @@ export function countUnverifiedAdjudicableClauses(rows: readonly ClauseWalkResul
 
 /** Verify-walk cause when a brief sentence is neither a clause nor a confession (#3550). */
 export const UNMAPPED_STATEMENT_SENTENCE_CAUSE = "unmapped_statement_sentence" as const;
+
+function isSentenceTerminator(ch: string): boolean {
+  return ch === "." || ch === "!" || ch === "?";
+}
+
+/** Drop heading and list markers. The sentence stays text; it does not select a file. */
+function stripSentenceChrome(raw: string): string {
+  let text = stripInlineMarkdownBold(raw).replace(/\s+/g, " ").trim();
+  for (let guard = 0; guard < 4 && text.length > 0; guard += 1) {
+    const heading = /^(#{1,6}) (.+)$/.exec(text);
+    if (heading !== null) {
+      text = (heading[2] ?? "").trim();
+      continue;
+    }
+    const bullet = /^(?:[-*+]|\d{1,3}[.)])\s+(.+)$/.exec(text);
+    if (bullet !== null) {
+      text = (bullet[1] ?? "").trim();
+      continue;
+    }
+    break;
+  }
+  return text;
+}
+
+/**
+ * Prose sentences in a task statement. Text only. A sentence does not select
+ * a file, and a terminator inside a token (`probe.txt`) is not a boundary (#3550).
+ */
+export function extractStatementSentences(text: string): string[] {
+  const source = stripFencedCodeBlocks(text);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  let start = 0;
+  let index = 0;
+  while (index < source.length) {
+    const ch = source[index] ?? "";
+    if (!isSentenceTerminator(ch)) {
+      index += 1;
+      continue;
+    }
+    let end = index + 1;
+    while (end < source.length && isSentenceTerminator(source[end] ?? "")) {
+      end += 1;
+    }
+    const next = source[end] ?? "";
+    const boundary = end >= source.length || /\s/.test(next);
+    if (!boundary) {
+      index += 1;
+      continue;
+    }
+    const sentence = stripSentenceChrome(source.slice(start, end));
+    if (/[A-Za-z]/.test(sentence)) {
+      const key = sentence.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(sentence);
+      }
+    }
+    index = end;
+    while (index < source.length && /\s/.test(source[index] ?? "")) {
+      index += 1;
+    }
+    start = index;
+  }
+  return out;
+}
 
 /**
  * Coverage of `plan.acceptance.sentences` against clause text and confessions.

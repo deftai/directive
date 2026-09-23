@@ -7,9 +7,16 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { applyClauseQualityForIngest } from "../intake/clause-derivation.js";
+import { buildIssueVbrief } from "../intake/issue-ingest.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { evaluateScopeCompleteAcceptanceWalk } from "../scope/acceptance-evidence.js";
-import { evaluateStatementSentenceCoverage } from "../verify-ac/clauses.js";
+import {
+  evaluateStatementSentenceCoverage,
+  extractStatementSentences,
+  stampDerivedClausesOnAcceptance,
+} from "../verify-ac/clauses.js";
+import { stampAcceptanceFromLiteralCapture } from "./acceptance.js";
 import { resolveAcceptanceGateProfile } from "./acceptance-resolver.js";
 import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
 
@@ -31,6 +38,43 @@ const BEHAVIORAL = [
   "Initialize workers from the config.",
   "Propagate derived quantities to the parent.",
 ];
+
+const INTAKE_SENTENCE = "Initialize workers from the config.";
+
+function intakeStatementBody(): string {
+  return [
+    INTAKE_SENTENCE,
+    "",
+    "## Acceptance Criteria",
+    "- probe.txt exists",
+    '- probe.txt contains "marker-token-3550"',
+    "",
+  ].join("\n");
+}
+
+function generatedSentenceBrief(): Record<string, unknown> {
+  const [vbrief] = buildIssueVbrief(
+    {
+      number: 3550,
+      title: "Workers",
+      body: intakeStatementBody(),
+      labels: [],
+    },
+    "proposed",
+    "https://github.com/deftai/directive",
+  );
+  return vbrief.plan as Record<string, unknown>;
+}
+
+function bindProbeClauses(plan: Record<string, unknown>): void {
+  const acceptance = plan.acceptance as { clauses?: { artifact_path: string | null }[] };
+  for (const clause of acceptance.clauses ?? []) {
+    clause.artifact_path = "probe.txt";
+  }
+  const metadata = (plan.metadata as Record<string, unknown> | undefined) ?? {};
+  const swarm = (metadata.swarm as Record<string, unknown> | undefined) ?? {};
+  plan.metadata = { ...metadata, swarm: { ...swarm, file_scope: ["probe.txt"] } };
+}
 
 function floorAcceptance(extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -319,6 +363,106 @@ describe("statement sentence floor (#3550)", () => {
     expect(result.resolution).toBe("fail");
     expect(result.message).toContain(BEHAVIORAL[0]);
     expect(result.message).toContain("artifact missing");
+  });
+
+  it("fails a generated brief when a statement sentence is unmapped", () => {
+    const plan = generatedSentenceBrief();
+    const acceptance = plan.acceptance as {
+      sentences?: string[];
+      clauses: { text: string; artifact_path: string | null }[];
+    };
+    expect(acceptance.sentences).toEqual([INTAKE_SENTENCE]);
+    expect(acceptance.clauses.map((clause) => clause.text)).toEqual([
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ]);
+    expect(acceptance.clauses.every((clause) => clause.artifact_path === null)).toBe(true);
+
+    bindProbeClauses(plan);
+    const result = evaluateVerifyAcFromPlan(plan, baseOptions(writeProbeRoot()));
+    expect(result.clauseOutcomes?.map((row) => row.outcome)).toEqual(["verified", "verified"]);
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(1);
+    expect(result.resolution).toBe("fail");
+    expect(result.cause).toBe("unmapped_statement_sentence");
+    expect(result.unmappedSentenceCount).toBe(1);
+    expect(result.behavioralClauseCount).toBe(0);
+    expect(result.message).toContain(INTAKE_SENTENCE);
+    expect(result.message).not.toContain("artifact missing");
+    expect(result.message).not.toContain("was read");
+  });
+
+  it("keeps a restamped sentence list and still fails the walk", () => {
+    const generated = generatedSentenceBrief();
+    const restamped = stampAcceptanceFromLiteralCapture({
+      ...generated,
+      narratives: {
+        ...(generated.narratives as Record<string, unknown>),
+        Overview: "A replacement sentence that must not replace the stored list.",
+      },
+    });
+    const acceptance = restamped.acceptance as { sentences?: string[]; clauses?: unknown[] };
+    expect(acceptance.sentences).toEqual([INTAKE_SENTENCE]);
+
+    const derived = stampDerivedClausesOnAcceptance(restamped, intakeStatementBody());
+    applyClauseQualityForIngest(derived.plan);
+    const clauses = (derived.plan.acceptance as { clauses: { text: string }[] }).clauses;
+    expect(clauses.map((clause) => clause.text)).toEqual([
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ]);
+    bindProbeClauses(derived.plan);
+    const result = evaluateVerifyAcFromPlan(derived.plan, baseOptions(writeProbeRoot()));
+    expect(result.clauseOutcomes?.map((row) => row.outcome)).toEqual(["verified", "verified"]);
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe("unmapped_statement_sentence");
+    expect(result.unmappedSentenceCount).toBe(1);
+    expect(result.behavioralClauseCount).toBe(0);
+    expect(result.message).toContain(INTAKE_SENTENCE);
+    expect(result.message).not.toContain("A replacement sentence");
+  });
+
+  it("splits statement text without gluing tokens or reading a fence", () => {
+    expect(extractStatementSentences("Ship probe.txt now. Fence stays out.")).toEqual([
+      "Ship probe.txt now.",
+      "Fence stays out.",
+    ]);
+    expect(
+      extractStatementSentences(
+        "```\nthis.should.not.split as a sentence.\n```\nKeep this sentence.",
+      ),
+    ).toEqual(["Keep this sentence."]);
+    expect(extractStatementSentences("- Initialize workers from the config.")).toEqual([
+      INTAKE_SENTENCE,
+    ]);
+    expect(extractStatementSentences("## Ship the workers.")).toEqual(["Ship the workers."]);
+    expect(extractStatementSentences("Done!!! Next stays. Next stays.")).toEqual([
+      "Done!!!",
+      "Next stays.",
+    ]);
+    expect(extractStatementSentences("1.")).toEqual([]);
+  });
+
+  it("preserves confessions on restamp and reads an item acceptance sentence", () => {
+    const stamped = stampAcceptanceFromLiteralCapture({
+      items: [{ narrative: { Acceptance: "Propagate derived quantities to the parent." } }],
+    });
+    expect((stamped.acceptance as { sentences?: string[] }).sentences).toEqual([
+      "Propagate derived quantities to the parent.",
+    ]);
+    const restamped = stampAcceptanceFromLiteralCapture({
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "project_floor",
+        sentences: undefined,
+        confessions: ["Propagate derived quantities to the parent."],
+      },
+      narratives: { Overview: INTAKE_SENTENCE },
+    });
+    const acceptance = restamped.acceptance as { sentences?: string[]; confessions?: string[] };
+    expect(acceptance.sentences).toEqual([INTAKE_SENTENCE]);
+    expect(acceptance.confessions).toEqual(["Propagate derived quantities to the parent."]);
   });
 
   it("rejects a sentence list that is not an array of non-empty strings", () => {
