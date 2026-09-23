@@ -21,6 +21,7 @@ import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";
+import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
@@ -138,6 +139,25 @@ function advanceNonTerminalOwnItems(items: unknown, targetStatus: string): void 
     advanceNonTerminalOwnItems(obj.subItems, targetStatus);
     advanceNonTerminalOwnItems(obj.items, targetStatus);
   }
+}
+
+/**
+ * Activate/promote must not commit when derivation leaves no clauses (#4768).
+ * `applied: false` with a clauseless post-call acceptance is the no-op,
+ * including a quality-strip that reports clauses but restores the floor.
+ */
+function zeroClauseDerivationRefusal(
+  derivation: { readonly applied: boolean; readonly notice: string },
+  acceptance: unknown,
+): string | null {
+  if (derivation.applied || readAcceptanceClauses(acceptance).length > 0) {
+    return null;
+  }
+  const recovery =
+    "Refusing scope transition (#4768): clause derivation did not apply and left no clauses. " +
+    "Supply list items, test: lines, or acceptance: lines (#4374), then retry. " +
+    "The intake floor (empty commands, none_stated: true) stays legal before this step and is not committed.";
+  return derivation.notice.length > 0 ? `${derivation.notice}\n${recovery}` : recovery;
 }
 
 export function runTransition(
@@ -279,6 +299,13 @@ export function runTransition(
       projectRoot,
       emitStamp: false,
     });
+    // #4768: a 0-clause no-op must not commit the intake floor. Post-call
+    // clause count covers a quality-strip that returns clauses but restores
+    // a clauseless acceptance.
+    const zeroClauseRefusal = zeroClauseDerivationRefusal(derivation, planObj.acceptance);
+    if (zeroClauseRefusal !== null) {
+      return { ok: false, message: zeroClauseRefusal };
+    }
     if (derivation.notice.length > 0) {
       derivationNotice = derivation.notice;
     }

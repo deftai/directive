@@ -38,6 +38,20 @@ function writeProposed(root: string, issueNumber: number): void {
           Origin: `Ingested from https://github.com/o/r/issues/${issueNumber}`,
         },
         items: [],
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: [
+            {
+              id: 1,
+              text: "From-issue promote keeps the derived stamp",
+              artifact_path: null,
+              ambiguous: false,
+            },
+          ],
+        },
         references: [
           {
             type: "x-xbrief/github-issue",

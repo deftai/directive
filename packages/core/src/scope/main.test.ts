@@ -121,7 +121,27 @@ describe("lifecycleMain", () => {
     const file = join(root, "xbrief", "proposed", "2026-01-01-sep.xbrief.json");
     writeFileSync(
       file,
-      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      formatBriefJson(
+        minimalScopeBrief({
+          title: "T",
+          status: "proposed",
+          items: [],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "CLI promote keeps the derived stamp",
+                artifact_path: null,
+                ambiguous: false,
+              },
+            ],
+          },
+        }),
+      ),
       "utf8",
     );
     expect(lifecycleMain(["promote", "--", file, `--project-root=${root}`])).toBe(0);
@@ -133,7 +153,27 @@ describe("lifecycleMain", () => {
     const file = join(root, "xbrief", "proposed", "2026-01-01-eq.xbrief.json");
     writeFileSync(
       file,
-      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      formatBriefJson(
+        minimalScopeBrief({
+          title: "T",
+          status: "proposed",
+          items: [],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "CLI promote keeps the derived stamp",
+                artifact_path: null,
+                ambiguous: false,
+              },
+            ],
+          },
+        }),
+      ),
       "utf8",
     );
     expect(lifecycleMain([`promote`, file, `--project-root=${root}`])).toBe(0);

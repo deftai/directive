@@ -181,7 +181,7 @@ describe("trial-shaped hand-authored acceptance stream (#3355)", () => {
 
     const refused = runTransition("activate", path);
     expect(refused.ok).toBe(false);
-    expect(refused.message).toMatch(/#3334/);
+    expect(refused.message).toMatch(/#4768/);
     expect(evaluateAcceptanceActivateGate({ narratives: { Test: "manual" } }).ok).toBe(false);
 
     writeBrief(path, {

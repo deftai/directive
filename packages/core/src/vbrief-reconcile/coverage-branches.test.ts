@@ -318,6 +318,9 @@ describe("coverage branches round 2", () => {
           id: "child",
           title: "child",
           status: "proposed",
+          narratives: {
+            AcceptanceCriteria: "- The child story promotes after its dependency completes",
+          },
           items: [],
           metadata: { kind: "story", swarm: { depends_on: ["dep"] } },
         },

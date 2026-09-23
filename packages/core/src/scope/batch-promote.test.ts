@@ -31,7 +31,25 @@ function writeProposed(root: string, name: string, title = name): string {
     path,
     JSON.stringify({
       xBRIEFInfo: { version: "0.8", description: title, created: "2026-07-31T00:00:00Z" },
-      plan: { title, status: "proposed", items: [] },
+      plan: {
+        title,
+        status: "proposed",
+        items: [],
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: [
+            {
+              id: 1,
+              text: "Batch promote keeps the derived stamp",
+              artifact_path: null,
+              ambiguous: false,
+            },
+          ],
+        },
+      },
     }),
     "utf8",
   );

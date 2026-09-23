@@ -163,7 +163,27 @@ describe("promote then demote undo path", () => {
     const proposed = join(root, "xbrief", "proposed", "2026-01-01-y.xbrief.json");
     writeFileSync(
       proposed,
-      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      formatBriefJson(
+        minimalScopeBrief({
+          title: "T",
+          status: "proposed",
+          items: [],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "Folder move keeps the derived stamp",
+                artifact_path: null,
+                ambiguous: false,
+              },
+            ],
+          },
+        }),
+      ),
       "utf8",
     );
     expect(runTransition("promote", proposed).ok).toBe(true);

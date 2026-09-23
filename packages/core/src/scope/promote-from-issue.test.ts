@@ -44,6 +44,20 @@ function writeProposed(root: string, name: string, issueNumber: number, repo = "
         Description: "test",
       },
       items: [],
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: "From-issue promote keeps the derived stamp",
+            artifact_path: null,
+            ambiguous: false,
+          },
+        ],
+      },
       references: [
         {
           type: "x-xbrief/github-issue",
@@ -438,6 +452,20 @@ describe("promoteFromIssue edge branches (coverage #1136)", () => {
           status: "proposed",
           narratives: { Description: "no origin" },
           items: [],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "From-issue promote keeps the derived stamp",
+                artifact_path: null,
+                ambiguous: false,
+              },
+            ],
+          },
           references: [
             {
               type: "x-xbrief/github-issue",

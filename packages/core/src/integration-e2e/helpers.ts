@@ -140,6 +140,9 @@ export function writeScopeVbrief(
         plan: {
           title: "Consumer fixture scope",
           status,
+          narratives: {
+            AcceptanceCriteria: "- The consumer brief promotes into pending",
+          },
           items: [],
           references: [{ type: "github-issue", id: "#42" }],
         },

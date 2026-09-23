@@ -2644,7 +2644,7 @@ describe("#4119 plan.id mint, admission, and repair", () => {
             number: 77,
             title: "Lifecycle",
             url: "https://github.com/o/r/issues/77",
-            body: "plain body",
+            body: "## Acceptance criteria\n- Preserve the minted plan id through complete\n",
             labels: [],
           },
           {
