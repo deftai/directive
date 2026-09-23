@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4665",
-    "updated": "2026-09-23T01:25:52Z"
+    "updated": "2026-09-23T02:29:05Z"
   },
   "plan": {
     "title": "[UAT Tester 1] session:start fatal on repo with no commits; first commit blocked on main",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[UAT Tester 1] session:start fatal on repo with no commits; first commit blocked on main",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4665",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "Next steps step 1 names the single commit command git commit -m \"chore(deft): update framework payload\".",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4942",
+          "recorded_at": "2026-09-23T02:28:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The stdout summary object names that same command.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4942",
+          "recorded_at": "2026-09-23T02:28:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Push, pull request, and merge stay off those two surfaces.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4942",
+          "recorded_at": "2026-09-23T02:28:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "success stays the deposit result.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4942",
+          "recorded_at": "2026-09-23T02:28:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Exit 2 while HEAD does not resolve, and the refusal of the first commit on the unborn default branch, stay outside this pain.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4942",
+          "recorded_at": "2026-09-23T02:28:38Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -790,9 +820,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "3e259a1659f0fe359997ab69e647c91ab43248be14c83114a989deafcc301866"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4942,
+        "prBase": null,
+        "mergeCommit": "2a193829197300b18b2051f01ef52eb4ea1d3cfe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2a193829197300b18b2051f01ef52eb4ea1d3cfe",
+        "verifiedAt": "2026-09-23T02:29:05Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-23T02:29:05Z",
+      "completedSessionId": "host:grok:v1:MDFhMGNhZGUtYzA4ZC03MWIzLTkyNTgtZjE3NWY3M2ZkYTA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-23T02:29:05Z"
       }
     },
     "id": "github.issue.5480359028",
-    "updated": "2026-09-23T01:25:52Z"
+    "updated": "2026-09-23T02:29:05Z"
   }
 }
