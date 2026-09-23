@@ -4,8 +4,8 @@
  * Existence fails when every assertion only says an export is a function, or
  * when the file reads the paired source as text and expects strings. The read
  * is any non-assertion use of the paired filename, not a list of APIs. An
- * empty file still counts. A normal module import is not a text read, and a
- * missing import is not a failure.
+ * empty file still counts. A normal or dynamic module import is not a text
+ * read. A raw or text import is. A missing import is not a failure.
  */
 
 export type PlaceholderReason = "function-only" | "source-text";
@@ -55,6 +55,9 @@ const CONTAINMENT_LAST = new Set([
   "HasSuffix",
   "Index",
 ]);
+
+/** Exact equality. A string argument is an expectation, same as containment. */
+const EXACT_STRING_LAST = new Set(["toBe", "toEqual", "toStrictEqual", "strictEqual"]);
 
 const PY_FUNCTION_TYPES =
   "FunctionType|LambdaType|BuiltinFunctionType|BuiltinMethodType|MethodType";
@@ -137,7 +140,9 @@ function mentionsPairedFile(value: string, basename: string): boolean {
 function isRawImport(site: StringSite): boolean {
   if (!isImportShaped(site.codeBefore)) return false;
   if (/\?(?:raw|text|source)\b/.test(site.value)) return true;
-  return /\b(?:assert|with)\s*\{[^}]*type\s*:\s*["'](?:text|string)["']/.test(site.codeAfter);
+  return /\b(?:assert|with)\s*:?\s*\{[^}]*type\s*:\s*["'](?:text|string)["']/.test(
+    site.codeAfter,
+  );
 }
 
 function isNormalImport(site: StringSite): boolean {
@@ -150,6 +155,7 @@ function isImportShaped(codeBefore: string): boolean {
     endsWithKeyword(t, "from") ||
     endsWithKeyword(t, "import") ||
     endsWithKeyword(t, "require") ||
+    t.endsWith("import(") ||
     t.endsWith("require(") ||
     t.endsWith("require.resolve(")
   );
@@ -197,11 +203,17 @@ function isContainmentCallee(name: string): boolean {
   return CONTAINMENT_LAST.has(lastSegment(name));
 }
 
+function isExactStringCallee(name: string): boolean {
+  return EXACT_STRING_LAST.has(lastSegment(name));
+}
+
 function expectsStrings(stripped: string, lang: Lang): boolean {
   for (const site of stringSites(stripped, lang)) {
     if (site.value.length === 0) continue;
     const callee = calleeName(site.codeBefore);
-    if (callee !== null && isContainmentCallee(callee)) return true;
+    if (callee !== null && (isContainmentCallee(callee) || isExactStringCallee(callee))) {
+      return true;
+    }
     if (lang === "py" && /^\s*in\b/.test(site.codeAfter)) return true;
   }
   return false;
@@ -618,6 +630,8 @@ function stringSites(source: string, lang: Lang): StringSite[] {
   const sites: StringSite[] = [];
   let i = 0;
   let codeStart = 0;
+  // Gaps only. A later argument must still see the callee before an earlier string.
+  let codeBefore = "";
   while (i < source.length) {
     if (lang === "go" && source.charAt(i) === "'") {
       const end = consumeGoRune(source, i);
@@ -631,9 +645,10 @@ function stringSites(source: string, lang: Lang): StringSite[] {
       i += 1;
       continue;
     }
+    codeBefore += source.slice(codeStart, i);
     sites.push({
       value: started.value,
-      codeBefore: source.slice(codeStart, i),
+      codeBefore,
       codeAfter: source.slice(started.end, started.end + 160),
     });
     i = started.end;

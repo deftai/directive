@@ -313,7 +313,7 @@ function listedTestFiles(
   return tests;
 }
 
-/** Index bytes in staged mode; worktree bytes otherwise. Unreadable does not count. */
+/** Index bytes in staged mode; worktree bytes otherwise. A failed index read does not use the worktree. */
 function readPairedTest(
   projectRoot: string,
   rel: string,
@@ -321,7 +321,7 @@ function readPairedTest(
 ): string | null {
   if (mode === "staged") {
     const shown = git(["show", `:${rel}`], projectRoot);
-    if (shown.status === 0) return shown.stdout;
+    return shown.status === 0 ? shown.stdout : null;
   }
   try {
     return readFileSync(join(projectRoot, rel), "utf8");

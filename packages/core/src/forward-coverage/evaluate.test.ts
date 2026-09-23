@@ -542,6 +542,29 @@ describe("evaluateForwardCoverage", () => {
     expect(result.missing.map((m) => m.path)).toEqual(["src/page.tsx"]);
   });
 
+  it("does not let a worktree test satisfy staged coverage when the index blob is unreadable", () => {
+    const root = buildRepo({
+      "src/foo.ts": "export function foo() { return 1; }\n",
+      "src/foo.test.ts": 'import { foo } from "./foo";\nexpect(foo()).toBe(1);\n',
+    });
+    execFileSync("git", ["add", "src/foo.ts"], { cwd: root });
+    execFileSync("git", ["add", "src/foo.test.ts"], { cwd: root });
+    // Stage a missing blob so `git show :path` fails. The worktree test must not count.
+    execFileSync(
+      "git",
+      [
+        "update-index",
+        "--cacheinfo",
+        "100644,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,src/foo.test.ts",
+      ],
+      { cwd: root },
+    );
+    const staged = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(staged.exitCode).toBe(1);
+    expect(staged.missing.map((m) => m.path)).toEqual(["src/foo.ts"]);
+    expect(staged.message).not.toContain("all have forward coverage");
+  });
+
   it("counts a real spec beside a function-only test file", () => {
     const root = buildRepo({
       "src/shell.ts": "export function Shell() { return 1; }\n",

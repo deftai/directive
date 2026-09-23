@@ -29,6 +29,20 @@ describe("placeholderReason function-only", () => {
         "shell.ts",
       ),
     ).toBe("function-only");
+    expect(
+      reason(
+        'import assert from "node:assert/strict";\nassert.strictEqual(typeof Shell, "function");\n',
+        "src/shell.test.ts",
+        "shell.ts",
+      ),
+    ).toBe("function-only");
+    expect(
+      reason(
+        'const { Shell } = await import("./shell.ts");\nexpect(typeof Shell).toBe("function");\n',
+        "src/shell.test.ts",
+        "shell.ts",
+      ),
+    ).toBe("function-only");
   });
 
   it("fails callable and inspect.isfunction", () => {
@@ -136,6 +150,48 @@ assert "def build" in source
     expect(reason(open, "cmd/widget_test.go", "widget.go")).toBe("source-text");
     expect(reason(pyOpen, "scripts/test_store.py", "store.py")).toBe("source-text");
     expect(reason(pyPath, "scripts/test_store.py", "store.py")).toBe("source-text");
+  });
+
+  it("fails an exact string comparison of the paired source", () => {
+    const toEqual = `const source = readFileSync("page.tsx", "utf8");
+expect(source).toEqual("export const deleteVehicleAction = 1;");
+`;
+    const toBe = `const source = readFileSync("page.tsx", "utf8");
+expect(source).toBe("export const deleteVehicleAction = 1;");
+`;
+    const toStrictEqual = `const source = readFileSync("page.tsx", "utf8");
+expect(source).toStrictEqual("export const deleteVehicleAction = 1;");
+`;
+    const strictEqual = `import { strictEqual } from "node:assert/strict";
+strictEqual(readFileSync("page.tsx", "utf8"), "export const deleteVehicleAction = 1;");
+`;
+    expect(reason(toEqual, "src/page.test.ts", "page.tsx")).toBe("source-text");
+    expect(reason(toBe, "src/page.test.ts", "page.tsx")).toBe("source-text");
+    expect(reason(toStrictEqual, "src/page.test.ts", "page.tsx")).toBe("source-text");
+    expect(reason(strictEqual, "src/page.test.ts", "page.tsx")).toBe("source-text");
+  });
+
+  it("passes a dynamic module import and still fails a raw or text import", () => {
+    const dynamic = `const { title } = await import("./page.tsx");
+expect(title()).toContain("Hello");
+`;
+    const required = `const { title } = require("./page.tsx");
+expect(title()).toContain("Hello");
+`;
+    const raw = `const src = await import("./page.tsx?raw");
+expect(src.default).toContain("deleteVehicleAction");
+`;
+    const text = `const src = await import("./page.tsx", { with: { type: "text" } });
+expect(src.default).toContain("deleteVehicleAction");
+`;
+    const asserted = `import src from "./page.tsx" assert { type: "text" };
+expect(src).toContain("deleteVehicleAction");
+`;
+    expect(reason(dynamic, "src/page.test.ts", "page.tsx")).toBeNull();
+    expect(reason(required, "src/page.test.ts", "page.tsx")).toBeNull();
+    expect(reason(raw, "src/page.test.ts", "page.tsx")).toBe("source-text");
+    expect(reason(text, "src/page.test.ts", "page.tsx")).toBe("source-text");
+    expect(reason(asserted, "src/page.test.ts", "page.tsx")).toBe("source-text");
   });
 
   it("passes a normal import that expects a string and a read that does not", () => {
