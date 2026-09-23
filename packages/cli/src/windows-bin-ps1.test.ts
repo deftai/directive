@@ -1,5 +1,14 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -24,6 +33,20 @@ function tempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "deft-ps1-shim-"));
   temps.push(dir);
   return dir;
+}
+
+function removeTempLink(linkPath: string): void {
+  try {
+    if (lstatSync(linkPath).isSymbolicLink()) {
+      unlinkSync(linkPath);
+      return;
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw error;
+  }
+  // Temp only. Linux rmSync without recursive throws when this path is a directory.
+  rmSync(linkPath, { recursive: true, force: true });
 }
 
 function writePair(dir: string, name: string): void {
@@ -304,7 +327,7 @@ describe("windows bin .ps1 removal (#4654)", () => {
       expect(removed.failed).toEqual([]);
       expect(removed.removed).toEqual([join(pnpmHome, "directive.ps1")]);
     } finally {
-      rmSync(linkPkg, { force: true });
+      removeTempLink(linkPkg);
     }
   });
 });
