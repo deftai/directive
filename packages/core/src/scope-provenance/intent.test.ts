@@ -15,7 +15,7 @@ import {
   GITHUB_ISSUE_REF_TYPES as reusedRefTypes,
 } from "./extract-intent.js";
 import { computeIntentDigest } from "./intent-digest.js";
-import { bodyDigestIsAuthority } from "./intent-evaluate.js";
+import { bodyDigestIsAuthority, evaluateIntentForXbrief } from "./intent-evaluate.js";
 import {
   allKnownMachineLeaves,
   ITEM_MACHINE_KEYS,
@@ -416,6 +416,72 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
 
   it("fileScopeDigest still matches independently of intentDigest", () => {
     expect(computeFileScopeDigest(["a.ts"])).toHaveLength(64);
+  });
+
+  it("fails closed when merge-base intent preimage read throws (not missing)", () => {
+    const mintedRoot = tempRoot();
+    const payload = brief();
+    const minted = mintApprovedScopeArtifacts({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload,
+      rawText: `${JSON.stringify(payload)}\n`,
+      projectRoot: mintedRoot,
+      humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-16T00:00:00Z" },
+      extract: { projectRoot: mintedRoot, approvedReposSeed: ["deftai/directive"] },
+    });
+    const result = evaluateScopeProvenance(tempRoot(), {
+      changedFiles: ["xbrief/active/story.xbrief.json"],
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(payload)]]),
+      approvedRecords: [minted.record],
+      baseRef: "origin/master",
+      readAtBase: (rel) => {
+        if (rel.endsWith(".intent.json")) throw new Error("git show preimage interrupted");
+        if (rel === "xbrief/active/story.xbrief.json") return JSON.stringify(payload);
+        return null;
+      },
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some((f) => f.kind === "intent-parse-error" && /fail closed/i.test(f.detail)),
+    ).toBe(true);
+    expect(result.findings.some((f) => f.kind === "first-activation-missing-intent-pin")).toBe(
+      false,
+    );
+  });
+
+  it("legacy intent fails closed on base-brief read throw; missing stays silent", () => {
+    const payload = brief();
+    const liveRaw = JSON.stringify(payload);
+    const base = {
+      projectRoot: tempRoot(),
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      liveRaw,
+      livePayload: payload,
+      planId: "story-1",
+      approved: null,
+      xbriefModified: true,
+      approvalRewritten: false,
+      preimageRewritten: false,
+      currentScopeNonEmpty: true,
+      baseRef: "origin/master",
+      changedFiles: ["xbrief/active/story.xbrief.json"],
+      approvedReposSeed: ["deftai/directive"],
+    };
+    const threw = evaluateIntentForXbrief({
+      ...base,
+      readAtBase: () => {
+        throw new Error("git show interrupted");
+      },
+    });
+    expect(
+      threw.some((f) => f.kind === "intent-parse-error" && /fail closed/i.test(f.detail)),
+    ).toBe(true);
+    const missing = evaluateIntentForXbrief({
+      ...base,
+      readAtBase: () => null,
+    });
+    expect(missing).toEqual([]);
   });
 
   it("first activation with intentDigest and no base preimage fails", () => {
