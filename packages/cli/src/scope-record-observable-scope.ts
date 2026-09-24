@@ -27,18 +27,25 @@ export interface ParsedArgs {
   xbriefPath: string;
   actor: string;
   kind: string;
+  mintedVia: string;
   quiet: boolean;
   confirm: boolean;
   help?: boolean;
   error?: string;
 }
 
+const DEFAULT_MINTED_VIA = "scope:record-observable-scope";
+const ALLOWED_MINTED_VIA = new Set([DEFAULT_MINTED_VIA, "in-harness-ask"]);
+
 function usage(): string {
   return (
     "usage: scope:record-observable-scope -- <xbrief-path> --actor <name> --confirm " +
-    "[--kind operator] [--project-root <dir>] [--quiet]\n" +
+    "[--kind operator] [--minted-via in-harness-ask|scope:record-observable-scope] " +
+    "[--project-root <dir>] [--quiet]\n" +
     '  Writes .deft/observable-scope/<plan-id>.json from plan["x-directive/observableChange"].\n' +
-    "  --actor is display only and never authorizes mint. Mint requires a real TTY, " +
+    "  Normal mid-build collection is attended in-harness ask (#5010); this verb is legacy repair " +
+    "or the human landing step after chat yes. --minted-via=in-harness-ask records that attestation. " +
+    "--actor is display only and never authorizes mint. Mint still requires a real TTY, " +
     "controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
   );
 }
@@ -57,6 +64,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     xbriefPath: "",
     actor: "",
     kind: "operator",
+    mintedVia: DEFAULT_MINTED_VIA,
     quiet: false,
     confirm: false,
   };
@@ -91,6 +99,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--kind=")) {
       parsed.kind = arg.slice("--kind=".length);
+    } else if (arg === "--minted-via") {
+      const value = argv[i + 1];
+      if (value === undefined)
+        return { ...parsed, error: "argument --minted-via: expected one argument" };
+      parsed.mintedVia = value;
+      i += 1;
+    } else if (arg?.startsWith("--minted-via=")) {
+      parsed.mintedVia = arg.slice("--minted-via=".length);
     } else if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     } else if (arg !== undefined) {
@@ -109,6 +125,13 @@ export function parseArgs(argv: string[]): ParsedArgs {
       error: `argument --actor is required (human operator identity)\n${usage()}`,
     };
   }
+  if (!ALLOWED_MINTED_VIA.has(parsed.mintedVia.trim())) {
+    return {
+      ...parsed,
+      error: `argument --minted-via must be one of: ${[...ALLOWED_MINTED_VIA].join(", ")}\n${usage()}`,
+    };
+  }
+  parsed.mintedVia = parsed.mintedVia.trim();
   return parsed;
 }
 
@@ -171,7 +194,7 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
       kind: args.kind,
       actor: args.actor,
       mintedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
-      mintedVia: "scope:record-observable-scope",
+      mintedVia: args.mintedVia,
     },
   });
   if ("error" in rec) {

@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Mid-build intent-constraint / observable-scope fail path prefers in-harness ask over leave-harness TTY mint (#5010).** Merge-base JSON + `humanApproval` stay the durable store. Attended: detect + ask in the parent chat, then land the record (`mintedVia: in-harness-ask`). Unattended/C1: rewrite or park. Returned-failure-only paths stay free in extract. `scope:record-*` remains for legacy repair. Remediation constants, `named-cause`, docs, build/setup/preamble/Phase 0, and CLI `--minted-via` updated. Supersedes leftovers #4597 / #4598 (already closed `not_planned`). Tracking #5010.
+
 - **Setup writes non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named paths only (#4988).** Every scope-emitting setup branch — full interview, Add-scope, and Rapid — asks an explicit per-scope path question before the Post-Interview Confirmation Gate; auto-fill/derivation is out of scope. The gate lists each scope's paths as display and keeps the write-files lexicon — no approved-scope mint, digest, or `scope:record-approved-scope` as a setup action (forbid polarity may remain). Setup-created scopes must pass the same `file_scope` presence check decompose already imposes. Supersedes #4383. Refs #4956. Tracking #4988.
 
 ### Fixed

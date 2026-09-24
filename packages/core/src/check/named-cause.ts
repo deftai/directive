@@ -4,6 +4,8 @@
  * Gate failures must never be bare exit 1: report gate name, cause, and remedy
  * without embedding env values.
  */
+import { INTENT_CONSTRAINT_REMEDIATION } from "../intent-constraint/types.js";
+import { OBSERVABLE_SCOPE_REMEDIATION } from "../observable-scope/types.js";
 
 export interface NamedCauseMessage {
   readonly gateId: string;
@@ -40,10 +42,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
   "verify:evaluator-surface":
     "Add xbrief/evaluator-surface-disposition.json covering the changed evaluator paths (disclosure only; not #3164 authorization)",
-  "verify:observable-scope":
-    "Restore the baseline markup structure or amend the observable scope through explicit human-presence mint (scope:record-observable-scope)",
-  "verify:intent-constraint":
-    "Link the hard constraint and rejection scope to a base-approved requirement or decision via scope:record-intent-constraint, or remove the behavior. Tests and in-scope file paths are not authority. Headless/C1 that adds a throw fails closed with no operator on the TTY.",
+  "verify:observable-scope": OBSERVABLE_SCOPE_REMEDIATION,
+  "verify:intent-constraint": INTENT_CONSTRAINT_REMEDIATION,
   "verify:consumer-test-lane":
     "Fix the project's declared test command, or set plan.policy.testCommand; do not invent a suite",
   "verify:forward-coverage":

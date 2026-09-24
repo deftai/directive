@@ -64,6 +64,53 @@ describe("scope-record-intent-constraint CLI (#4541)", () => {
     ]);
   });
 
+  it("records mintedVia in-harness-ask attestation (#5010)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ic-mint-via-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const xbrief = join(root, "xbrief", "pending", "story.xbrief.json");
+    writeFileSync(
+      xbrief,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "story-1",
+          title: "T",
+          status: "pending",
+          items: [],
+          "x-directive/intentConstraint": {
+            constraints: [{ value: "1024", unit: "bytes", rejectionScope: "invocation" }],
+          },
+        },
+      }),
+      "utf8",
+    );
+    expect(
+      run(
+        [
+          xbrief,
+          "--actor",
+          "scott",
+          "--confirm",
+          "--minted-via=in-harness-ask",
+          "--project-root",
+          root,
+        ],
+        humanSeams,
+      ),
+    ).toBe(0);
+    const rec = JSON.parse(
+      readFileSync(join(root, ".deft", "intent-constraint", "story-1.json"), "utf8"),
+    ) as { humanApproval: { mintedVia?: string } };
+    expect(rec.humanApproval.mintedVia).toBe("in-harness-ask");
+  });
+
+  it("refuses unknown mintedVia", () => {
+    expect(
+      parseArgs(["story.xbrief.json", "--actor", "scott", "--minted-via", "agent"]).error,
+    ).toMatch(/minted-via/);
+  });
+
   it("refuses worker-declared baselineRef", () => {
     const root = mkdtempSync(join(tmpdir(), "ic-mint-base-"));
     temps.push(root);

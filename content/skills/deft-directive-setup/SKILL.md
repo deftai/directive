@@ -879,13 +879,13 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 ⊗ Emit `plan.acceptance`, `ambiguity_attestation`, or a schema-complete acceptance stamp from this skill.
 ! For every setup-created scope, write a non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named path members only (`#4988`, supersedes `#4383`). Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) on every scope-emitting setup branch (full interview, Add-scope, and Rapid), not after. ⊗ Auto-fill or derive `file_scope` from those answers. ⊗ Invent paths. ⊗ Describe a mint step, a digest, or `scope:record-approved-scope` as a setup action (`#3145` / `#3110` / `#4956`). Forbid polarity may remain. ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. ! A setup-created scope must pass the same `file_scope` presence check decompose already imposes (operative surface is presence, not the full missingRequiredSwarmFields suite).
 
-### Intent-constraint plan key (#4587 / #4541)
+### Intent-constraint plan key (#4587 / #4541 / #5010)
 
 ! When the operator already names `value` / `unit` / `rejectionScope`, write them on `plan["x-directive/intentConstraint"]` at authorship, before the implementation PR that introduces a throw/reject/abort or numeric-const. File-scope can be named at allocation. Throw values usually cannot.
-! After that key exists, the operator-present mint is `scope:record-intent-constraint` on a TTY, committed on the merge base. The verb copies the plan key; it cannot invent values.
+! After that key exists, land the merge-base humanApproval stamp via attended in-harness ask (`mintedVia` in-harness-ask) before the implementation PR. Leave-harness TTY `scope:record-intent-constraint` is legacy repair only. The verb copies the plan key; it cannot invent values.
 ⊗ Fill speculative `value`/`unit`/`rejectionScope` so a mint succeeds at park.
-⊗ Print `scope:record-intent-constraint` next to `scope:record-approved-scope` at park or Phase 0f. The approved-scope digest does not authorize throw sites.
-⊗ Invent a second snapshot. Keep merge-base authority and same-PR rewrite (#4541).
+⊗ Print leave-harness TTY `scope:record-intent-constraint` next to `scope:record-approved-scope` at park or Phase 0f as the normal path. The approved-scope digest does not authorize throw sites.
+⊗ Invent a second snapshot. Keep merge-base authority and same-PR rewrite (#4541 / #5010).
 
 ! Fields the gate requires: [`../../docs/plan-acceptance.md`](../../docs/plan-acceptance.md).
 

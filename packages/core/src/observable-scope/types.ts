@@ -15,8 +15,9 @@ export const OBSERVABLE_SCOPE_RECORD_SCHEMA = "deft.observable-scope.v1";
 export const OBSERVABLE_UI_ARTIFACT_SCHEMA = "deft.observable-ui.v1";
 export const OBSERVABLE_UI_PROVIDER = "parse5+typescript";
 export const OBSERVABLE_UI_PROVIDER_VERSION = 1;
+/** Primary fail path (#5010): restore baseline or in-harness ask; TTY mint is legacy repair only. */
 export const OBSERVABLE_SCOPE_REMEDIATION =
-  "Restore the baseline markup structure or amend the observable scope through explicit human-presence mint (scope:record-observable-scope).";
+  "Restore the baseline markup structure, or ask the human in the parent chat to land the merge-base observable-scope record (mintedVia in-harness-ask). Unattended/C1: rewrite or park — leave-harness TTY scope:record-observable-scope is not the primary path (legacy repair only).";
 export const CHANGE_KINDS = ["fields-only", "layout-authorized"] as const;
 export type ChangeKind = (typeof CHANGE_KINDS)[number];
 

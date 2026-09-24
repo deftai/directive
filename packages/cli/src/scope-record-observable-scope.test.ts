@@ -63,6 +63,49 @@ describe("scope-record-observable-scope CLI (#4495)", () => {
     expect(rec.allowedChanges).toEqual([{ kind: "control", op: "add", name: "email" }]);
   });
 
+  it("records mintedVia in-harness-ask attestation (#5010)", () => {
+    const root = mkdtempSync(join(tmpdir(), "os-mint-via-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const xbrief = join(root, "xbrief", "pending", "story.xbrief.json");
+    writeFileSync(
+      xbrief,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "story-ui",
+          title: "T",
+          status: "pending",
+          items: [],
+          "x-directive/observableChange": {
+            changeKind: "fields-only",
+            allowedChanges: [{ kind: "heading", op: "add", name: "Title" }],
+          },
+        },
+      }),
+      "utf8",
+    );
+    expect(
+      run(
+        [
+          xbrief,
+          "--actor",
+          "david",
+          "--confirm",
+          "--minted-via",
+          "in-harness-ask",
+          "--project-root",
+          root,
+        ],
+        humanSeams,
+      ),
+    ).toBe(0);
+    const rec = JSON.parse(
+      readFileSync(join(root, ".deft", "observable-scope", "story-ui.json"), "utf8"),
+    ) as { humanApproval: { mintedVia?: string } };
+    expect(rec.humanApproval.mintedVia).toBe("in-harness-ask");
+  });
+
   it("refuses worker-declared baselineRef", () => {
     const root = mkdtempSync(join(tmpdir(), "obs-mint-base-"));
     temps.push(root);

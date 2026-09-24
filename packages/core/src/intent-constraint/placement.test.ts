@@ -1,10 +1,10 @@
 /**
- * Authorship-time placement for intent-constraint mint (#4587).
+ * Authorship-time placement for intent-constraint (#4587 / #5010).
  *
  * Does not recut evaluateIntentConstraint. Proves the worker-facing fail
- * string names scope:record-intent-constraint, skills/templates place the
- * operator ask at plan-key authorship, and C1/headless fail-closed is stated
- * without a paste-ready mint argv.
+ * string prefers detect + in-harness ask / rewrite-park over leave-harness
+ * TTY mint, skills/templates place the operator ask at plan-key authorship,
+ * and C1/unattended fail closed without a paste-ready mint argv.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,27 +18,31 @@ function readRepo(rel: string): string {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
-describe("intent-constraint authorship placement (#4587)", () => {
-  it("names scope:record-intent-constraint on the task-check fail string", () => {
-    expect(INTENT_CONSTRAINT_REMEDIATION).toContain("scope:record-intent-constraint");
+describe("intent-constraint authorship placement (#4587 / #5010)", () => {
+  it("names in-harness ask / rewrite-park as the primary task-check fail path", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toContain("INTENT_CONSTRAINT_MISSING");
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/parent chat|in-harness-ask/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/legacy repair only/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /Tests and in-scope file paths are not authority/,
     );
-    expect(remedyForGate("verify:intent-constraint", "no merge-base mint")).toContain(
-      "scope:record-intent-constraint",
-    );
+    expect(INTENT_CONSTRAINT_REMEDIATION).toContain("scope:record-intent-constraint");
+    const named = remedyForGate("verify:intent-constraint", "no merge-base mint");
+    expect(named).toMatch(/parent chat|in-harness-ask/);
+    expect(named).toMatch(/rewrite or park/);
+    expect(named).toContain("scope:record-intent-constraint");
   });
 
-  it("states C1/headless fail-closed without a paste-ready mint argv", () => {
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/Headless\/C1/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/fails closed/);
-    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/no operator on the TTY/);
+  it("states unattended fail-closed without a paste-ready mint argv", () => {
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/Unattended\/C1/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/do not ask an empty room/);
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/--actor/);
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/--confirm/);
     expect(INTENT_CONSTRAINT_REMEDIATION).not.toMatch(/<xbrief/);
     const named = remedyForGate("verify:intent-constraint", "no merge-base mint");
-    expect(named).toMatch(/fails closed/);
+    expect(named).toMatch(/rewrite or park/);
     expect(named).not.toMatch(/--actor/);
     expect(named).not.toMatch(/--confirm/);
   });
@@ -52,7 +56,7 @@ describe("intent-constraint authorship placement (#4587)", () => {
     expect(evaluate).toContain("evaluateIntentConstraint");
   });
 
-  it("places the operator ask at plan-key authorship, not at record-approved-scope", () => {
+  it("places the operator ask at plan-key authorship, not leave-harness TTY mint", () => {
     const setup = readRepo("content/skills/deft-directive-setup/SKILL.md");
     const build = readRepo("content/skills/deft-directive-build/SKILL.md");
     const phase0 = readRepo("content/skills/deft-directive-swarm/references/core-phase-0.md");
@@ -61,6 +65,7 @@ describe("intent-constraint authorship placement (#4587)", () => {
 
     for (const text of [setup, build, phase0, preamble, docs]) {
       expect(text).toContain("scope:record-intent-constraint");
+      expect(text).toMatch(/in-harness|parent chat/);
     }
 
     expect(setup).toContain('plan["x-directive/intentConstraint"]');
@@ -68,10 +73,12 @@ describe("intent-constraint authorship placement (#4587)", () => {
     expect(setup).toMatch(/Fill speculative/);
     expect(preamble).toContain('plan["x-directive/intentConstraint"]');
     expect(docs).toContain("INTENT_CONSTRAINT_MISSING");
-    expect(docs).toMatch(/Headless\/C1|headless\/C1|C1\/headless/);
+    expect(docs).toMatch(/Unattended|unattended|C1/);
 
-    expect(phase0).toMatch(/Ask for .scope:record-intent-constraint/);
-    expect(build).toMatch(/fails closed with no operator on the TTY/);
+    expect(phase0).toMatch(
+      /Ask for leave-harness TTY .scope:record-intent-constraint|leave-harness TTY .scope:record-intent-constraint/,
+    );
+    expect(build).toMatch(/rewrite or park|legacy repair only/);
     expect(build).toMatch(/Paste a mint argv/);
   });
 });

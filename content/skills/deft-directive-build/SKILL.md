@@ -515,12 +515,13 @@ feat(phase-2): add REST API endpoints with integration tests
 
 Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 
-### Intent-constraint fail path (#4587)
+### Intent-constraint fail path (#4587 / #5010)
 
-! When `task check` / `verify:intent-constraint` fails on a new throw/reject/abort or numeric-const without a merge-base mint, the named verb is `scope:record-intent-constraint`. That mint is human-presence.
-! C1/headless that adds a throw fails closed with no operator on the TTY.
+! When `task check` / `verify:intent-constraint` fails on a new throw/reject/abort or numeric-const without a merge-base record, prefer rewrite to a free pattern (returned-failure) or park. Attended: ask the human in the parent chat; on yes land merge-base `.deft/intent-constraint/` with humanApproval (`mintedVia` in-harness-ask). Leave-harness TTY `scope:record-intent-constraint` is legacy repair only, not the primary path.
+! Unattended/C1/operator-gone: rewrite or park — do not ask an empty room; do not invent substitute approval.
 ⊗ Paste a mint argv into the agent shell.
 ⊗ Recut `evaluateIntentConstraint` or let an approved-scope digest authorize throw sites.
+⊗ Parent-agent auto-approve of hard facts.
 
 ## Anti-Patterns
 

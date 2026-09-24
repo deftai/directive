@@ -146,7 +146,7 @@ Loop body, per candidate (top-of-queue first):
 
 ⊗ Treat #1187 machine-tool success as proof that a greenfield project is swarm-ready -- repo, remote, Taskfile wiring, install layout, gitignore, and scratch/worktree readiness are separate checks (#1053).
 
-⊗ Ask for `scope:record-intent-constraint` at this park or beside `scope:record-approved-scope`. Intent-constraint mint is at plan-key authorship (`plan["x-directive/intentConstraint"]`) before the implementation PR. Throw values usually cannot be named at allocation. C1/headless that adds a throw fails closed with no operator on the TTY. Do not invent a second snapshot or fill speculative value/unit/rejectionScope so the verb succeeds at park (#4587 / #4541).
+⊗ Ask for leave-harness TTY `scope:record-intent-constraint` at this park or beside `scope:record-approved-scope` as the normal path. Intent-constraint plan-key authorship (`plan["x-directive/intentConstraint"]`) stays before the implementation PR. Throw values usually cannot be named at allocation. Mid-build hard facts: attended → detect + ask in the parent chat then land merge-base humanApproval (`mintedVia` in-harness-ask); unattended/C1 → rewrite or park. Leave-harness TTY mint is legacy repair only (#5010). Do not invent a second snapshot or fill speculative value/unit/rejectionScope so a mint succeeds at park (#4587 / #4541 / #5010).
 
 #### Manual / GitHub-issue escape hatch
 

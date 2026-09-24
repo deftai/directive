@@ -18,7 +18,10 @@ describe("observable-scope constants (#4495)", () => {
     expect(OBSERVABLE_SCOPE_RECORD_SCHEMA).toBe("deft.observable-scope.v1");
     expect(OBSERVABLE_UI_POLICY_SCHEMA).toBe("deft.observable-ui.policy.v1");
     expect(OBSERVABLE_UI_POLICY_REL).toBe(".deft/observable-ui.policy.json");
-    expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/human-presence mint/);
+    expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/parent chat|in-harness-ask/);
+    expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/rewrite or park/);
+    expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/legacy repair only/);
+    expect(OBSERVABLE_SCOPE_REMEDIATION).toContain("scope:record-observable-scope");
     expect(STRUCTURE_KINDS).toEqual([
       "tab",
       "tab-selected",
