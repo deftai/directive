@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4963",
-    "updated": "2026-09-23T18:50:05Z"
+    "updated": "2026-09-24T00:13:09Z"
   },
   "plan": {
     "title": "BLOCKER: xbrief:verify passes a brief that scope:activate rejects on plan.id, and remediation names an internal function",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "BLOCKER: xbrief:verify passes a brief that scope:activate rejects on plan.id, and remediation names an internal function",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4963",
@@ -16,13 +16,25 @@
     "items": [
       {
         "title": "xbrief:verify checks the read-only stored-mint conflict: plan.id against the parsed x-directive/plan-id binding, including the other bindingIdentityConflict clauses. It does not call evaluateIssuePlanIdAdmission, it does not mint, and it does not scan sibling briefs.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/xbrief/stored-mint-conflict.test.ts",
+          "recorded_at": "2026-09-24T00:13:03.239Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "The disagree refusal names a deft command. That command sets plan.id to the stored binding id, refuses when that id already occupies another artifact, does not call repairNonterminalIssuePlanIds, and does not mint the id from issue-body text.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/xbrief/adopt-stored-plan-id.test.ts",
+          "recorded_at": "2026-09-24T00:13:03.239Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "tags": [
@@ -294,9 +306,32 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "9a8e66a3b01f06417847474c03cd760072cc8dc52fd0174c3e8450a7ee83e0ca"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4982,
+        "prBase": null,
+        "mergeCommit": "0a2af4bf2bf33857e99e92fed3a983c2ab0030fb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0a2af4bf2bf33857e99e92fed3a983c2ab0030fb",
+        "verifiedAt": "2026-09-24T00:13:09Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-24T00:13:09Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-24T00:13:09Z"
       }
     },
     "id": "github.issue.5555958091",
-    "updated": "2026-09-23T18:50:05Z"
+    "updated": "2026-09-24T00:13:09Z"
   }
 }
