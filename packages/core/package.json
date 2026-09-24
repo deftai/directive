@@ -67,6 +67,10 @@
       "types": "./dist/intent-constraint/index.d.ts",
       "default": "./dist/intent-constraint/index.js"
     },
+    "./class-checks": {
+      "types": "./dist/class-checks/index.d.ts",
+      "default": "./dist/class-checks/index.js"
+    },
     "./consumer-test-lane": {
       "types": "./dist/consumer-test-lane/index.d.ts",
       "default": "./dist/consumer-test-lane/index.js"

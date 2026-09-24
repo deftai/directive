@@ -23,6 +23,9 @@ tasks:
   test-boundary:
     cmds:
       - echo ok
+  class-checks:
+    cmds:
+      - echo ok
   scope-provenance:
     cmds:
       - echo ok
@@ -82,6 +85,7 @@ tasks:
   check:consumer:
     deps:
       - verify:test-boundary
+      - verify:class-checks
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
@@ -116,6 +120,7 @@ describe("extractCheckDepEntries (#3893)", () => {
   it("keeps extractCheckDeps returning bare names", () => {
     expect(extractCheckDeps(rootTaskfile(SCOPED_ENTRY), "check:consumer")).toEqual([
       "verify:test-boundary",
+      "verify:class-checks",
       "verify:scope-provenance",
       "verify:consumer-check-contract",
       "verify:evaluator-surface",

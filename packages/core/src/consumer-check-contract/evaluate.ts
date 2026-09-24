@@ -16,6 +16,7 @@ import { type CheckGateSpec, CONSUMER_CHECK_GATES, checkGateId } from "../check/
 /** Gates that #3145 requires on consumer check composition (beyond baseline). */
 export const REQUIRED_CONSUMER_ENFORCEMENT_GATES: readonly string[] = [
   "verify:test-boundary",
+  "verify:class-checks",
   "verify:scope-provenance",
   "verify:consumer-check-contract",
   "verify:evaluator-surface",

@@ -409,6 +409,8 @@ tasks:
     cmds: [echo ok]
   test-boundary:
     cmds: [echo ok]
+  class-checks:
+    cmds: [echo ok]
   scope-provenance:
     cmds: [echo ok]
   consumer-check-contract:
@@ -517,6 +519,8 @@ tasks:
   completed-write-guard:
     cmds: [echo ok]
   test-boundary:
+    cmds: [echo ok]
+  class-checks:
     cmds: [echo ok]
   scope-provenance:
     cmds: [echo ok]

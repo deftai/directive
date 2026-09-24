@@ -94,6 +94,7 @@ export * as slice from "./slice/index.js";
 export * as storyReady from "./story-ready/index.js";
 export * as swarm from "./swarm/index.js";
 export * as testBoundary from "./test-boundary/index.js";
+export * as classChecks from "./class-checks/index.js";
 export * as toolEvents from "./tool-events/index.js";
 export * as triage from "./triage/index.js";
 export * as userConfig from "./user-config/index.js";

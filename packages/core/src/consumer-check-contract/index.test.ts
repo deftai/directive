@@ -5,6 +5,7 @@ describe("consumer-check-contract index surface (#3145)", () => {
   it("re-exports evaluate API and required gates", () => {
     expect(typeof ccc.evaluateConsumerCheckContract).toBe("function");
     expect(ccc.REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:test-boundary");
+    expect(ccc.REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:class-checks");
     expect(typeof ccc.textReferencesGate).toBe("function");
   });
 });

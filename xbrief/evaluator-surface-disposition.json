@@ -1,10 +1,15 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4772,
+  "issue": 4980,
   "surfaces": [
-    "packages/core/src/consumer-test-lane/evaluate.ts",
+    "tasks/verify.yml",
+    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/consumer-check-contract/evaluate.ts",
+    "packages/core/src/evaluator-surface/evaluate.ts",
+    "packages/core/src/class-checks/**",
+    "packages/cli/src/verify-class-checks.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure that consumer-test-lane defaultSpawn forwards windowsVerbatimArguments on the win32 cmd.exe plan (#4772). Not reviewed authorization under #3164."
+  "note": "Disclosure for verify:class-checks landing (#4980): new fail-closed class gate plus check composition wiring. Not reviewed authorization under #3164."
 }

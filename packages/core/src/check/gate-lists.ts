@@ -126,6 +126,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:forward-coverage",
   // #3145: test/source boundary + approved-scope provenance + consumer gate composition
   "verify:test-boundary",
+  "verify:class-checks",
   "verify:scope-provenance",
   // #3893: fail-closed on merge-chokepoint gate scoping for the composition
   // this repo owns; consumer deposits stay warn-only until `deft update`.
@@ -173,6 +174,7 @@ export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
   "toolchain:check-consumer",
   // #3145 enforcement trio (test placement, scope provenance, gate composition)
   "verify:test-boundary",
+  "verify:class-checks",
   "verify:scope-provenance",
   "verify:consumer-check-contract",
   "verify:evaluator-surface",

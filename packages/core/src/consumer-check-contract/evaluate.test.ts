@@ -32,6 +32,7 @@ tasks:
   check:consumer:
     deps:
       - verify:test-boundary
+      - verify:class-checks
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
@@ -43,6 +44,9 @@ const VERIFY_YML_COMPLETE = `
 version: '3'
 tasks:
   test-boundary:
+    cmds:
+      - echo ok
+  class-checks:
     cmds:
       - echo ok
   scope-provenance:
@@ -82,6 +86,7 @@ tasks:
   check:
     deps:
       - verify:test-boundary
+      - verify:class-checks
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
@@ -113,6 +118,7 @@ describe("consumer-check-contract helpers (#3145)", () => {
 
   it("lists required enforcement gates", () => {
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:test-boundary");
+    expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:class-checks");
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:scope-provenance");
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:consumer-check-contract");
     expect(REQUIRED_CONSUMER_ENFORCEMENT_GATES).toContain("verify:evaluator-surface");

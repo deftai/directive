@@ -35,6 +35,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Re-run strategy output or fix non-conformant scope filenames / PROJECT-DEFINITION",
   "verify:test-boundary":
     "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
+  "verify:class-checks":
+    "Move or remove the path; class checks have no approve, skip, or phrase",
   "verify:scope-provenance": "Record approved scope provenance for the failing paths",
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
   "verify:evaluator-surface":

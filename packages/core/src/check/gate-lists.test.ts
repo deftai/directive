@@ -191,6 +191,7 @@ describe("gate-lists (#2791)", () => {
     const consumer = CONSUMER_CHECK_GATES.map(checkGateId);
     for (const gate of [
       "verify:test-boundary",
+      "verify:class-checks",
       "verify:scope-provenance",
       "verify:consumer-check-contract",
       "verify:evaluator-surface",
