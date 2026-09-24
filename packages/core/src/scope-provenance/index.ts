@@ -2,6 +2,20 @@
  * scope-provenance package surface (#3145).
  */
 
+export {
+  CHANGELOG_REL,
+  concreteProductionScopeEntries,
+  evaluateProductionScopeFence,
+  isConcreteFileScopeEntry,
+  isProductionRootPath,
+  isTestOrFixturePath,
+  PRODUCTION_ALLOWANCE_CAP,
+  PRODUCTION_ALLOWANCE_FLOOR,
+  type ProductionScopeFenceFinding,
+  type ProductionScopeFenceInput,
+  pathMatchesFileScope,
+  productionAllowance,
+} from "./base-fence.js";
 export { compareExtractedIntent } from "./compare-intent.js";
 export {
   APPROVED_SCOPE_DIR,
@@ -22,20 +36,6 @@ export {
   scopeExpansion,
   writeApprovedScopeRecord,
 } from "./digest.js";
-export {
-  CHANGELOG_REL,
-  concreteProductionScopeEntries,
-  evaluateProductionScopeFence,
-  isConcreteFileScopeEntry,
-  isProductionRootPath,
-  isTestOrFixturePath,
-  pathMatchesFileScope,
-  productionAllowance,
-  PRODUCTION_ALLOWANCE_CAP,
-  PRODUCTION_ALLOWANCE_FLOOR,
-  type ProductionScopeFenceFinding,
-  type ProductionScopeFenceInput,
-} from "./base-fence.js";
 export {
   baseApprovalAuthorizesCurrent,
   evaluateOneScopeProvenance,

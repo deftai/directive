@@ -3,9 +3,9 @@ import {
   evaluateProductionScopeFence,
   isConcreteFileScopeEntry,
   isTestOrFixturePath,
-  productionAllowance,
   PRODUCTION_ALLOWANCE_CAP,
   PRODUCTION_ALLOWANCE_FLOOR,
+  productionAllowance,
 } from "./base-fence.js";
 
 describe("production allowance (#4956)", () => {
@@ -46,11 +46,7 @@ describe("evaluateProductionScopeFence (#4956)", () => {
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
       baseFileScope: ["packages/core/src/a.ts"],
-      changedFiles: [
-        "packages/core/src/a.ts",
-        "packages/core/src/b.ts",
-        "packages/core/src/c.ts",
-      ],
+      changedFiles: ["packages/core/src/a.ts", "packages/core/src/b.ts", "packages/core/src/c.ts"],
     });
     expect(hit).toBeNull();
   });
@@ -60,11 +56,7 @@ describe("evaluateProductionScopeFence (#4956)", () => {
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
       baseFileScope: ["packages/core/src/a.ts"],
-      changedFiles: [
-        "packages/core/src/b.ts",
-        "packages/core/src/c.ts",
-        "packages/core/src/d.ts",
-      ],
+      changedFiles: ["packages/core/src/b.ts", "packages/core/src/c.ts", "packages/core/src/d.ts"],
     });
     expect(hit).not.toBeNull();
     expect(hit?.kind).toBe("production-scope-over-budget");

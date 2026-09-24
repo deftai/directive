@@ -9,9 +9,9 @@
 
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
 import {
+  DEFAULT_FIXTURE_ROOTS,
   DEFAULT_SOURCE_ROOTS,
   DEFAULT_TEST_ROOTS,
-  DEFAULT_FIXTURE_ROOTS,
 } from "../test-boundary/policy.js";
 import { normalizeFileScope } from "./digest.js";
 
@@ -33,10 +33,7 @@ export function productionAllowance(concreteProductionCount: number): number {
   return Math.min(PRODUCTION_ALLOWANCE_CAP, Math.max(PRODUCTION_ALLOWANCE_FLOOR, n));
 }
 
-export function isUnderConfiguredRoot(
-  relPath: string,
-  roots: readonly string[],
-): boolean {
+export function isUnderConfiguredRoot(relPath: string, roots: readonly string[]): boolean {
   const n = relPath.replace(/\\/g, "/");
   if (n.length === 0) return false;
   for (const root of roots) {
@@ -54,9 +51,7 @@ export function isTestOrFixturePath(
   testRoots: readonly string[] = DEFAULT_TEST_ROOTS,
   fixtureRoots: readonly string[] = DEFAULT_FIXTURE_ROOTS,
 ): boolean {
-  return (
-    isUnderConfiguredRoot(relPath, testRoots) || isUnderConfiguredRoot(relPath, fixtureRoots)
-  );
+  return isUnderConfiguredRoot(relPath, testRoots) || isUnderConfiguredRoot(relPath, fixtureRoots);
 }
 
 export function isProductionRootPath(
@@ -66,10 +61,7 @@ export function isProductionRootPath(
   return isUnderConfiguredRoot(relPath, sourceRoots);
 }
 
-export function pathMatchesFileScope(
-  relPath: string,
-  fileScope: readonly string[],
-): boolean {
+export function pathMatchesFileScope(relPath: string, fileScope: readonly string[]): boolean {
   const n = relPath.replace(/\\/g, "/");
   const scope = normalizeFileScope(fileScope);
   if (scope.includes(n)) return true;

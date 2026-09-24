@@ -88,10 +88,7 @@ describe("evaluateOneScopeProvenance (#4956 retires mint-on-proceed)", () => {
     });
     const finding = evaluateOneScopeProvenance({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
-      currentPayload: xbrief("story-1", [
-        "packages/core/src/a.ts",
-        "packages/core/src/b.ts",
-      ]),
+      currentPayload: xbrief("story-1", ["packages/core/src/a.ts", "packages/core/src/b.ts"]),
       approved,
       xbriefModifiedInChangeSet: true,
       enforce: true,
@@ -134,12 +131,8 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
         "packages/core/src/c.ts",
         "packages/core/src/d.ts",
       ],
-      activeXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(head)],
-      ]),
-      baseXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(base)],
-      ]),
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(head)]]),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
       approvedRecords: [],
     });
     expect(result.exitCode).toBe(1);
@@ -166,12 +159,8 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
         "packages/core/src/d.ts",
         "packages/core/src/e.ts",
       ],
-      activeXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(head)],
-      ]),
-      baseXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(base)],
-      ]),
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(head)]]),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
       approvedRecords: [],
     });
     expect(result.exitCode).toBe(1);
@@ -187,12 +176,8 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
         "tests/fixtures/sample.json",
         "CHANGELOG.md",
       ],
-      activeXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(base)],
-      ]),
-      baseXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(base)],
-      ]),
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
       approvedRecords: [],
     });
     expect(result.exitCode).toBe(0);
@@ -242,12 +227,8 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
     const current = xbrief("story-1", ["packages/core/src/a.ts"]);
     const result = evaluateScopeProvenance("/tmp/proj", {
       changedFiles: ["README.md"],
-      activeXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(current)],
-      ]),
-      baseXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(current)],
-      ]),
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(current)]]),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(current)]]),
       approvedRecords: [],
     });
     expect(result.exitCode).toBe(0);

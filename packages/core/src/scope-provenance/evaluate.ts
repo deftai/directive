@@ -695,7 +695,6 @@ export function evaluateScopeProvenance(
         findings.push(mapped);
       }
     }
-
   }
 
   if (findings.length === 0 && softFindings.length === 0) {
