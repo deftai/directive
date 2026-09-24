@@ -18,22 +18,28 @@
         "id": "clause.1",
         "title": "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback.",
         "status": "completed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
-          "recorded_at": "2026-09-24T20:24:30.562Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up under #4832 — not claimed complete by this leftover twin.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams"
+          },
+          "recorded_at": "2026-09-24T20:53:44.293Z"
         }
       },
       {
         "id": "clause.2",
         "title": "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned.",
         "status": "completed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
-          "recorded_at": "2026-09-24T20:24:30.562Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up under #4832 — not claimed complete by this leftover twin.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams"
+          },
+          "recorded_at": "2026-09-24T20:53:44.293Z"
         }
       },
       {
@@ -51,11 +57,14 @@
         "id": "clause.4",
         "title": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json.",
         "status": "completed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
-          "recorded_at": "2026-09-24T20:24:30.562Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up under #4832 — not claimed complete by this leftover twin.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams"
+          },
+          "recorded_at": "2026-09-24T20:53:44.293Z"
         }
       },
       {
@@ -100,20 +109,20 @@
       "source_rung": "project_floor",
       "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)",
       "sentences": [
-        "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback.",
-        "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned.",
+        "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)",
+        "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)",
         "If a consumer wraps pr:watch --json, it MUST parse the full stdout JSON value (pretty-printed multi-line is valid). Line-splitting that drops CLEAN is a defect; prefer Approach 1 / native pr:watch over homemade DONE scripts.",
-        "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json.",
+        "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)",
         "CHANGELOG Unreleased notes the closer/babysit wake fix; review-cycle and swarm/preamble prose name the durable-wait obligation."
       ],
       "clauses": [
         {
           "id": "clause.1",
-          "text": "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback."
+          "text": "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)"
         },
         {
           "id": "clause.2",
-          "text": "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned."
+          "text": "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)"
         },
         {
           "id": "clause.3",
@@ -121,7 +130,7 @@
         },
         {
           "id": "clause.4",
-          "text": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json."
+          "text": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)"
         },
         {
           "id": "clause.5",
