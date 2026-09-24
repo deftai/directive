@@ -87,6 +87,20 @@ describe("xbrief:adopt-stored-plan-id (#4963)", () => {
     expect(verified.exitCode, verified.stderr).toBe(0);
   });
 
+  it("names xbrief:adopt-stored-plan-id when plan.id disagrees with the stored binding", () => {
+    const root = freshRoot("xbrief-adopt-disagree-");
+    const stem = "xbrief/proposed/2026-09-23-adopt-disagree";
+    const path = writeCreated(root, stem, "hand-authored");
+    patchPlan(path, (plan) => {
+      const meta = plan.metadata as Record<string, unknown>;
+      meta["x-directive/plan-id"] = restBinding("github.issue.42", 42);
+    });
+    const result = verifyXbrief({ format: "json", out: stem, projectRoot: root });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("xbrief:adopt-stored-plan-id");
+    expect(result.stderr).not.toContain("repairNonterminalIssuePlanIds");
+  });
+
   it("refuses when the stored id already occupies another artifact", () => {
     const root = freshRoot("xbrief-adopt-collide-");
     const stem = "xbrief/proposed/2026-09-23-adopt-live";
