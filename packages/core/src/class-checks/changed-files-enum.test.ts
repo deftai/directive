@@ -39,7 +39,9 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
     spawnSyncMock.mockReset();
   });
 
-  function mockHealthyUntil(failAt: "diff-range" | "diff-head" | "ls-files" | "spawn-diff") {
+  function mockHealthyUntil(
+    failAt: "diff-range" | "diff-head" | "ls-files" | "spawn-diff" | "signal-diff",
+  ) {
     spawnSyncMock.mockImplementation((_cmd: string, args: string[]) => {
       const a = args ?? [];
       if (a[0] === "rev-parse" && a.includes("--is-inside-work-tree")) {
@@ -55,6 +57,14 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
             status: null,
             stdout: "",
             error: Object.assign(new Error("spawn git EIO"), { code: "EIO" }),
+          };
+        }
+        if (failAt === "signal-diff") {
+          return {
+            status: null,
+            signal: "SIGTERM",
+            stdout: "",
+            error: undefined,
           };
         }
         return gitOk("src/ok.ts\n");
@@ -101,6 +111,16 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
     const result = evaluateClassChecks("/tmp/proj", baseOpts());
     expect(result.exitCode).toBe(2);
     expect(result.message).toMatch(/git failed/i);
+  });
+
+  it("returns exit 2 when git is signal-killed during enumeration", () => {
+    mockHealthyUntil("signal-diff");
+    const result = evaluateClassChecks("/tmp/proj", baseOpts());
+    expect(result.exitCode).toBe(2);
+    expect(result.findings).toHaveLength(0);
+    expect(result.message).toMatch(/git failed/i);
+    expect(result.message).toMatch(/killed by signal SIGTERM/i);
+    expect(result.message).not.toMatch(/clean \(0 changed/);
   });
 
   it("does not treat a failed enumeration as a clean empty change set", () => {

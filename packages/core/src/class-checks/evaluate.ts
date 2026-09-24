@@ -91,6 +91,13 @@ function git(args: readonly string[], cwd: string): GitRun {
       message: `git ${args[0]} failed: ${String(e.message)}`,
     };
   }
+  if (result.signal !== null && result.signal !== undefined) {
+    return {
+      ok: false,
+      kind: "spawn-error",
+      message: `git ${args[0]} killed by signal ${String(result.signal)}`,
+    };
+  }
   return { ok: true, status: result.status ?? 1, stdout: String(result.stdout ?? "") };
 }
 

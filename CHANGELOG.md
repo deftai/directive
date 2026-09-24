@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`verify:class-checks` treats signal-killed git as enumeration failure (#4980).** A non-null `spawnSync` signal returns exit 2 instead of a coerced status path. Tracking #4980.
 - **`verify:class-checks` class-4 companions are exact registration paths only (#4980).** `check/`, `consumer-check-contract/`, and `evaluator-surface/` directory blankets no longer treat substantive runtime edits as non-story; gate-lists, named-cause, dispatch, and the two evaluate registration files stay composition companions. Tracking #4980.
 - **`verify:class-checks` fail-closed paths return results instead of throw sites (#4980).** Git/policy load failures map to exit 2 (or skip when not a git tree) so `verify:intent-constraint` needs no mint. Tracking #4980.
 - **`verify:class-checks` propagates git enumeration failures (#4980).** Failed `git diff` / `git ls-files` no longer report a clean empty change set; they return exit 2. Tracking #4980.
