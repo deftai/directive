@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
 import { missingRequiredSwarmFields } from "../../vbrief-validation/story-quality.js";
+import { readRepoFile } from "./helpers.js";
 
 const SETUP_SKILL = "skills/deft-directive-setup/SKILL.md";
 const PACK = "packs/skills/skills-pack-0.1.json";
@@ -39,13 +39,17 @@ function affirmativeApprovedScopeSetupActions(text: string): string[] {
   const hits: string[] = [];
   for (const raw of text.split("\n")) {
     const line = raw.trim();
-    if (!/(scope:record-approved-scope|approved-scope digest|\.deft\/approved-scope\/)/i.test(line)) {
+    if (
+      !/(scope:record-approved-scope|approved-scope digest|\.deft\/approved-scope\/)/i.test(line)
+    ) {
       continue;
     }
     if (/[⊗]|MUST NOT|Forbid polarity|forbid polarity|no longer describe/i.test(line)) {
       continue;
     }
-    if (/intent-constraint|scope:record-intent-constraint|scope:record-observable-scope/i.test(line)) {
+    if (
+      /intent-constraint|scope:record-intent-constraint|scope:record-observable-scope/i.test(line)
+    ) {
       continue;
     }
     hits.push(line);
@@ -81,7 +85,9 @@ describe("setup file_scope authoring (#4988)", () => {
   it("does not describe approved-scope mint as a setup action; forbid polarity may remain", () => {
     for (const surface of setupSurfaces()) {
       expect(affirmativeApprovedScopeSetupActions(surface)).toEqual([]);
-      expect(surface).toMatch(/Describe a mint step, a digest, or `scope:record-approved-scope` as a setup action/);
+      expect(surface).toMatch(
+        /Describe a mint step, a digest, or `scope:record-approved-scope` as a setup action/,
+      );
     }
   });
 
