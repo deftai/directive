@@ -180,7 +180,8 @@ function bindingConflictDetail(
     if (err instanceof PlanIdIdentityError) {
       return `stored plan-id ${binding.id} disagrees with fallback mint for ${binding.origin}.`;
     }
-    throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    return `stored plan-id check failed: ${msg}.`;
   }
   if (binding.id !== expectedId) {
     return `stored plan-id ${binding.id} disagrees with fallback mint for ${binding.origin}.`;

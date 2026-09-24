@@ -270,7 +270,8 @@ export function adoptStoredPlanId(options: AdoptStoredPlanIdOptions): XbriefCliR
     mdAbs = paths.mdAbs;
   } catch (err) {
     if (err instanceof XbriefPathError) return fail(`${err.message}\n`);
-    throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    return fail(`Refusing to set plan.id: ${msg}\n`);
   }
   if (jsonAbs === null || mdAbs === null) {
     return fail("missing json artifact path\n");
