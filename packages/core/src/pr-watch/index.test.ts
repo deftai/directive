@@ -13,9 +13,7 @@ describe("pr-watch barrel exports", () => {
     expect(typeof prWatch.parsePrWatchJsonStdout).toBe("function");
     expect(typeof prWatch.evaluateMergePathArm).toBe("function");
     // Defective line-split parser stays test-local in main.js (#5015) — not barrel-exported.
-    expect(
-      Object.prototype.hasOwnProperty.call(prWatch, "parsePrWatchJsonStdoutLineSplit"),
-    ).toBe(false);
+    expect(Object.hasOwn(prWatch, "parsePrWatchJsonStdoutLineSplit")).toBe(false);
   });
 
   it("re-exports the exit-contract constants", () => {

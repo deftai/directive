@@ -198,9 +198,9 @@ describe("verify-review-monitor CLI", () => {
     });
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    expect(
-      run(["--pr", "88", "--merge-path-arm", "--live-wait", "--project-root", root]),
-    ).toBe(EXIT_NOT_READY);
+    expect(run(["--pr", "88", "--merge-path-arm", "--live-wait", "--project-root", root])).toBe(
+      EXIT_NOT_READY,
+    );
     expect(err.mock.calls.join("")).toMatch(/unbound to lease evidence/);
   });
 });
