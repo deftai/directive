@@ -191,10 +191,24 @@ function isAllowListed(
 /** Recognise conventional test basenames without full glob (fast path). */
 export function isRecognizedTestBasename(relPath: string): boolean {
   const b = basename(relPath);
-  if (/^test_.+\.py$/i.test(b) || /.+_test\.py$/i.test(b)) return true;
-  if (/.+Tests?\.cs$/i.test(b)) return true;
-  if (/\.(test|spec)\.(ts|tsx|js|jsx)$/i.test(b)) return true;
-  if (/.+_test\.go$/i.test(b)) return true;
+  const lower = b.toLowerCase();
+  // String checks avoid CodeQL js/polynomial-redos on .+ quantifiers.
+  if (lower.startsWith("test_") && lower.endsWith(".py")) return true;
+  if (lower.endsWith("_test.py")) return true;
+  if (lower.endsWith("test.cs") || lower.endsWith("tests.cs")) return true;
+  if (
+    lower.endsWith(".test.ts") ||
+    lower.endsWith(".test.tsx") ||
+    lower.endsWith(".test.js") ||
+    lower.endsWith(".test.jsx") ||
+    lower.endsWith(".spec.ts") ||
+    lower.endsWith(".spec.tsx") ||
+    lower.endsWith(".spec.js") ||
+    lower.endsWith(".spec.jsx")
+  ) {
+    return true;
+  }
+  if (lower.endsWith("_test.go")) return true;
   return false;
 }
 
