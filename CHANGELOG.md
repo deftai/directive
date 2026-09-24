@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Setup writes non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named paths only (#4988).** Language/layout answers are prompt material for an explicit per-scope path question; auto-fill/derivation is out of scope. The Post-Interview Confirmation Gate lists each scope's paths as display and keeps the write-files lexicon — no approved-scope mint, digest, or `scope:record-approved-scope` as a setup action (forbid polarity may remain). Setup-created scopes must pass the same `file_scope` presence check decompose already imposes. Supersedes #4383. Refs #4956. Tracking #4988.
+
 ### Fixed
 
 - **`scm issue *`, `issue:ingest`, and `reconcile:issues` refuse App installation credentials (#3858).** `requireScmReady` runs the installation-class `/user` check on those three verbs, honors requested depth (a cached shallow-ready report does not satisfy a later deep request), and keeps the hermetic skip on `VITEST` only. `--repo` / `-R` is parsed before the gate. Doctor and default `session:start` stay shallow. Two extra REST calls and up to 60 s added worst-case latency per gated process; transient API failure refuses. Consumer agents-entry pin; `agentsMdBudget` managedMaxLines 179→180, absoluteMaxBytes 20031→20336. Tracking #3858.

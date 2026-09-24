@@ -802,6 +802,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
    - Each scope xBRIEF follows the `YYYY-MM-DD-descriptive-slug.xbrief.json` filename convention (slug rules in [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
    - Each MUST use `"xBRIEFInfo": { "version": "0.8" }`
    - Each MUST include embedded Requirements (FR-N, NFR-N) in its `narrative`
+   - Each MUST include non-empty `plan.metadata.swarm.file_scope` from operator-named paths collected during the interview (`#4988`)
    - Each task SHOULD reference which FR/NFR it implements via `narrative.Traces`
    - When the scope originates from a GitHub issue, include a `references` entry in the canonical form (see [`../../conventions/references.md`](../../conventions/references.md)):
      ```json
@@ -844,6 +845,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 **Spec Structure (both paths):**
 - ! Overview, Architecture
 - ! Implementation Plan: scope xBRIEFs in `xbrief/proposed/` with phases and dependencies
+- ! Every setup-created scope xBRIEF MUST include a non-empty `plan.metadata.swarm.file_scope` of operator-named path members collected during the interview (`#4988`). Ask one explicit per-scope path question (or equivalent operator-named collect). ⊗ Auto-fill / invent paths from language, layout, or deliverable answers.
 - ! Explicit dependency mapping MUST use the field consumers actually read for the scope shape:
   - **Story-shaped scopes** (`plan.metadata.kind = "story"` or scopes intended for swarm allocation / decompose): sequential/blocked work MUST set `plan.metadata.swarm.depends_on` to an array of **resolvable story identifiers**. Swarm readiness, decompose, and queue traversal read **only** this field for story ordering — not `plan.metadata.dependencies` alone. ! Each `depends_on` entry MUST equal the blocking scope's `plan.id` when that field is set; otherwise the blocking artifact's **filename stem** (basename with `.xbrief.json` / `.vbrief.json` stripped — the same stem readiness uses as `story_id`). ⊗ Use rendered titles, free-form prose, date-only prefixes, or unstripped full filenames — those do not resolve and leave the generated scope blocked.
   - **Phase/epic or cross-scope roadmap batches**: MAY also set plan-level `plan.metadata.dependencies` for roadmap/export readers.
@@ -869,7 +871,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ! Derivation (`#3323` / `#3360`) owns `plan.acceptance`. Setup stays silent on that block.
 ⊗ Emit `plan.acceptance`, `ambiguity_attestation`, or a schema-complete acceptance stamp from this skill.
-? Collect `plan.metadata.swarm.file_scope` only as operator-named declared members for later derived-stamp bind (`#4008`). ⊗ Invent paths. ⊗ Mint an approved-scope digest (`#3145` / `#3110`). ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. Predecessor #4383.
+! For every setup-created scope, write a non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named path members only (`#4988`, supersedes `#4383`). Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. ⊗ Auto-fill or derive `file_scope` from those answers. ⊗ Invent paths. ⊗ Describe a mint step, a digest, or `scope:record-approved-scope` as a setup action (`#3145` / `#3110` / `#4956`). Forbid polarity may remain. ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. ! A setup-created scope must pass the same `file_scope` presence check decompose already imposes (operative surface is presence, not the full missingRequiredSwarmFields suite).
 
 ### Intent-constraint plan key (#4587 / #4541)
 
@@ -942,7 +944,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ! After completing ALL interview questions for any phase (Phase 1, Phase 2, or Phase 3), but BEFORE writing any files other than the Phase 2 `**Depth**:` line (#4668):
 
-1. ! Display a **summary of all captured values** in a clearly formatted list -- include every field that will be written to the output file (e.g. name, strategy, coverage, languages, project type, custom rules, etc.)
+1. ! Display a **summary of all captured values** in a clearly formatted list -- include every field that will be written to the output file (e.g. name, strategy, coverage, languages, project type, custom rules, etc.). When Phase 3 (or Add-scope) will write scope xBRIEFs, list each scope's `plan.metadata.swarm.file_scope` paths **under that scope** as display (`#4988`). Paths are declaration display only — not an approved-scope countersignature.
 2. ! Ask the user for explicit confirmation: "These are the values I captured. Write files? (yes/no)"
 3. ! Accept only explicit affirmative responses (`yes`, `confirmed`, `approve`) -- reject vague responses (`proceed`, `do it`, `go ahead`) the same way `/deft:change` does
 4. ! If the user says `no`: re-display the values and ask which ones to correct, then re-confirm before writing
@@ -951,6 +953,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 ⊗ Write USER.md, PROJECT-DEFINITION.xbrief.json, lifecycle scope xBRIEFs, or any other deft-directive-setup artifact without first displaying captured values and receiving explicit user confirmation. The Phase 2 `**Depth**:` line (#4668) is the only exception, and it changes only that line.
 ⊗ Create `specification.xbrief.json` on a greenfield Light or Full path solely to satisfy export, cost, or build handoff.
 ⊗ Treat a broad "proceed" or "continue" as confirmation to write files -- the user must explicitly confirm the displayed values.
+⊗ Run an approved-scope approval verb, write `.deft/approved-scope/`, or request a typed digest phrase on the setup path — keep the write-files confirmation lexicon (`yes` / `confirmed` / `approve`) for file writes only (`#4988`).
 
 ? **Yolo strategy carve-out**: When the user's chosen strategy is `yolo` (auto-pilot), the confirmation gate still applies but the agent (Johnbot) may self-confirm on the user's behalf by displaying the summary and immediately proceeding -- the user has already opted into auto-pilot by selecting yolo. The summary must still be displayed so the user can interrupt if values look wrong.
 
