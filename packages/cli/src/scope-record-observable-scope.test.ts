@@ -33,13 +33,10 @@ describe("scope-record-observable-scope CLI (#4495)", () => {
 
   it("refuses agent shells even with mintedVia in-harness-ask (#5010)", () => {
     expect(
-      run(
-        ["story.xbrief.json", "--actor", "scott", "--confirm", "--minted-via=in-harness-ask"],
-        {
-          ...humanSeams,
-          environ: { CURSOR_AGENT: "1" },
-        },
-      ),
+      run(["story.xbrief.json", "--actor", "scott", "--confirm", "--minted-via=in-harness-ask"], {
+        ...humanSeams,
+        environ: { CURSOR_AGENT: "1" },
+      }),
     ).toBe(2);
   });
 
