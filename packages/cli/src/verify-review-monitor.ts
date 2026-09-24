@@ -2,6 +2,10 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  evaluateMergePathArm,
+  type MergePathArmResult,
+} from "@deftai/directive-core/dist/pr-watch/main.js";
+import {
   evaluateReviewMonitorGate,
   REVIEW_MONITOR_HELP,
   type ReviewMonitorCallSite,
@@ -17,6 +21,11 @@ interface ParsedArgs {
   approach3: boolean;
   approach3Warned: boolean;
   emitJson: boolean;
+  /** When true, also run the #4882 merge-path arm observer (attested flags). */
+  mergePathArm: boolean;
+  liveWait: boolean;
+  explicitFinish: boolean;
+  stickyLease: boolean;
   help: boolean;
   error?: string;
 }
@@ -38,6 +47,10 @@ export function parseVerifyReviewMonitorArgs(argv: readonly string[]): ParsedArg
     approach3: false,
     approach3Warned: false,
     emitJson: false,
+    mergePathArm: false,
+    liveWait: false,
+    explicitFinish: false,
+    stickyLease: false,
     help: false,
   };
 
@@ -48,6 +61,14 @@ export function parseVerifyReviewMonitorArgs(argv: readonly string[]): ParsedArg
     }
     if (arg === "--json") {
       acc.emitJson = true;
+    } else if (arg === "--merge-path-arm") {
+      acc.mergePathArm = true;
+    } else if (arg === "--live-wait") {
+      acc.liveWait = true;
+    } else if (arg === "--explicit-finish") {
+      acc.explicitFinish = true;
+    } else if (arg === "--sticky-lease") {
+      acc.stickyLease = true;
     } else if (arg === "--approach3") {
       acc.approach3 = true;
     } else if (arg === "--approach3-warned") {
@@ -126,6 +147,14 @@ export function run(argv: readonly string[]): number {
   const args = parseVerifyReviewMonitorArgs(argv);
   if (args.help) {
     process.stdout.write(REVIEW_MONITOR_HELP);
+    process.stdout.write(
+      "\n#4882 merge-path arm observer (optional):\n" +
+        "  --merge-path-arm       Fail closed when neither live wait nor explicit finish\n" +
+        "  --live-wait            Attest a still-running phase-correct wait for this PR\n" +
+        "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
+        "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
+        "  Prefer Approach 1 / native pr:watch; homemade line-parsed --json is not an arm.\n",
+    );
     return 0;
   }
   if (args.error !== undefined) {
@@ -137,6 +166,39 @@ export function run(argv: readonly string[]): number {
     process.stderr.write("verify_review_monitor: --pr is required\n");
     process.stderr.write("Try: task verify:review-monitor -- --help\n");
     return 2;
+  }
+
+  let arm: MergePathArmResult | null = null;
+  if (args.mergePathArm) {
+    arm = evaluateMergePathArm({
+      livePhaseCorrectWait: args.liveWait,
+      explicitFinish: args.explicitFinish,
+      stickyLeaseActive: args.stickyLease,
+    });
+    if (!arm.armed) {
+      if (args.emitJson) {
+        process.stdout.write(
+          `${JSON.stringify(
+            {
+              ready: false,
+              merge_path_arm: {
+                armed: false,
+                reason: arm.reason,
+                message: arm.message,
+                live_wait: args.liveWait,
+                explicit_finish: args.explicitFinish,
+                sticky_lease: args.stickyLease,
+              },
+            },
+            null,
+            2,
+          )}\n`,
+        );
+      } else {
+        process.stderr.write(`${arm.message}\n`);
+      }
+      return 1;
+    }
   }
 
   const result = evaluateReviewMonitorGate({
@@ -151,9 +213,23 @@ export function run(argv: readonly string[]): number {
   });
 
   if (args.emitJson) {
-    process.stdout.write(`${JSON.stringify(verifyResultToJson(result), null, 2)}\n`);
+    const payload = verifyResultToJson(result) as Record<string, unknown>;
+    if (arm !== null) {
+      payload.merge_path_arm = {
+        armed: arm.armed,
+        reason: arm.reason,
+        message: arm.message,
+        live_wait: args.liveWait,
+        explicit_finish: args.explicitFinish,
+        sticky_lease: args.stickyLease,
+      };
+    }
+    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else if (result.exitCode === 0) {
     process.stdout.write(`${result.message}\n`);
+    if (arm !== null) {
+      process.stdout.write(`${arm.message}\n`);
+    }
   } else {
     process.stderr.write(`${result.message}\n`);
   }

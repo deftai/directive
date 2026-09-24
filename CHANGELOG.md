@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Parent-retained / Approach 1 merge babysit must keep a durable live wait (#4882).** Unarmed stand-down (fresh sticky lease or Path B promise with no still-running phase-correct wait and no explicit finish) is refused by `evaluateMergePathArm` and `verify:review-monitor --merge-path-arm`. Wrappers of `pr:watch --json` must parse the full stdout JSON (pretty multi-line is valid); line-split parsers miss CLEAN (#5015). Prefer Approach 1 / native `pr:watch`. Review-cycle / swarm / preamble / `github.md` name the obligation. Tracking #4882.
 - **Cursor planning-choice dest-directory fsync is best-effort and does not throw (#4973).** After the contained replace, POSIX still `fsyncSync`s the dest dir on success. Open/stat/fsync failure returns false; the store logs (non-Windows) and keeps the renamed record. Tracking #4973.
 - **Cursor planning-choice locks recover from an empty or unreadable owner (#4973).** Lock and record writes go through `containedWrite`. A stale ownerless lock is reclaimed with exclusive-create plus a reclaim ticket. A live owner is still not reclaimed by age. Tracking #4973.
 - **`verify:class-checks` treats signal-killed git as enumeration failure (#4980).** A non-null `spawnSync` signal returns exit 2 instead of a coerced status path. Tracking #4980.

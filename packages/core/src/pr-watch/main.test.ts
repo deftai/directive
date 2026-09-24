@@ -9,7 +9,10 @@ import {
 } from "./constants.js";
 import {
   emitWatchJson,
+  evaluateMergePathArm,
   formatWatchHelp,
+  parsePrWatchJsonStdout,
+  parsePrWatchJsonStdoutLineSplit,
   parseWatchArgs,
   printWatchHuman,
   runWatch,
@@ -190,6 +193,73 @@ describe("watchResultToJson (AC-4 shape)", () => {
     const out = emitWatchJson(result);
     expect(out.endsWith("\n")).toBe(true);
     expect(JSON.parse(out).verdict).toBe("CLEAN");
+  });
+
+  it("parsePrWatchJsonStdout reads CLEAN from pretty multi-line --json (#4882 / #5015)", () => {
+    const out = emitWatchJson(result);
+    expect(out.includes("\n")).toBe(true);
+    const parsed = parsePrWatchJsonStdout(out);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.value.verdict).toBe("CLEAN");
+      expect(parsed.value.pr_number).toBe(1056);
+    }
+  });
+
+  it("line-split parse misses pretty multi-line CLEAN (#5015 dogfood)", () => {
+    const out = emitWatchJson(result);
+    const lineSplit = parsePrWatchJsonStdoutLineSplit(out);
+    expect(lineSplit.ok).toBe(false);
+    const full = parsePrWatchJsonStdout(out);
+    expect(full.ok).toBe(true);
+  });
+
+  it("parsePrWatchJsonStdout returns a failure on empty or non-object stdout", () => {
+    expect(parsePrWatchJsonStdout("").ok).toBe(false);
+    expect(parsePrWatchJsonStdout("[]").ok).toBe(false);
+    expect(parsePrWatchJsonStdout("not-json").ok).toBe(false);
+  });
+});
+
+describe("evaluateMergePathArm (#4882)", () => {
+  it("arms on live phase-correct wait", () => {
+    const result = evaluateMergePathArm({
+      livePhaseCorrectWait: true,
+      explicitFinish: false,
+      stickyLeaseActive: true,
+    });
+    expect(result.armed).toBe(true);
+    expect(result.reason).toBe("live_wait");
+  });
+
+  it("arms on explicit finish even without a live wait", () => {
+    const result = evaluateMergePathArm({
+      livePhaseCorrectWait: false,
+      explicitFinish: true,
+      stickyLeaseActive: false,
+    });
+    expect(result.armed).toBe(true);
+    expect(result.reason).toBe("explicit_finish");
+  });
+
+  it("refuses unarmed stand-down when only a sticky lease remains", () => {
+    const result = evaluateMergePathArm({
+      livePhaseCorrectWait: false,
+      explicitFinish: false,
+      stickyLeaseActive: true,
+    });
+    expect(result.armed).toBe(false);
+    expect(result.reason).toBe("unarmed_stand_down");
+    expect(result.message).toMatch(/sticky lease alone/);
+  });
+
+  it("refuses unarmed stand-down with neither lease nor wait", () => {
+    const result = evaluateMergePathArm({
+      livePhaseCorrectWait: false,
+      explicitFinish: false,
+    });
+    expect(result.armed).toBe(false);
+    expect(result.reason).toBe("unarmed_stand_down");
   });
 });
 

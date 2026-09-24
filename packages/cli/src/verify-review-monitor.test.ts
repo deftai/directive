@@ -27,6 +27,9 @@ describe("verify-review-monitor CLI", () => {
       "--approach3",
       "--approach3-warned",
       "--json",
+      "--merge-path-arm",
+      "--live-wait",
+      "--sticky-lease",
     ]);
     expect(parsed.pr).toBe(12);
     expect(parsed.repo).toBe("deftai/directive");
@@ -35,6 +38,10 @@ describe("verify-review-monitor CLI", () => {
     expect(parsed.approach3).toBe(true);
     expect(parsed.approach3Warned).toBe(true);
     expect(parsed.emitJson).toBe(true);
+    expect(parsed.mergePathArm).toBe(true);
+    expect(parsed.liveWait).toBe(true);
+    expect(parsed.stickyLease).toBe(true);
+    expect(parsed.explicitFinish).toBe(false);
   });
 
   it("rejects invalid call-site and pr", () => {
@@ -125,5 +132,29 @@ describe("verify-review-monitor CLI", () => {
   it("run exits 2 for parse error", () => {
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
     expect(run(["--pr"])).toBe(2);
+  });
+
+  it("merge-path-arm refuses lease-only unarmed stand-down (#4882)", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", "."])).toBe(
+      1,
+    );
+    expect(err.mock.calls.join("")).toMatch(/unarmed stand-down/);
+  });
+
+  it("merge-path-arm passes when live-wait is attested then defers to gate", () => {
+    vi.stubEnv("DEFT_MONITOR_TIER", "3");
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--pr", "88", "--merge-path-arm", "--live-wait", "--project-root", "."])).toBe(0);
+  });
+
+  it("merge-path-arm passes on explicit-finish without live-wait", () => {
+    vi.stubEnv("DEFT_MONITOR_TIER", "3");
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(
+      run(["--pr", "88", "--merge-path-arm", "--explicit-finish", "--project-root", "."]),
+    ).toBe(0);
   });
 });

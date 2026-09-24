@@ -186,6 +186,115 @@ export function emitWatchJson(result: WatchResult): string {
   return `${pythonJsonDumps(watchResultToJson(result))}\n`;
 }
 
+/**
+ * Parse `pr:watch --json` stdout as one JSON value (#4882 / #5015).
+ * Pretty-printed multi-line output is valid — consumers MUST parse the full
+ * stdout blob, not the first line that starts with `{`.
+ * Returns a result object (no throw) for intent-constraint extract freedom.
+ */
+export function parsePrWatchJsonStdout(
+  stdout: string,
+):
+  | { readonly ok: true; readonly value: Record<string, unknown> }
+  | { readonly ok: false; readonly reason: string } {
+  const trimmed = stdout.trim();
+  if (trimmed.length === 0) {
+    return { ok: false, reason: "pr-watch --json stdout is empty" };
+  }
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, reason: "pr-watch --json stdout is not a JSON object" };
+    }
+    return { ok: true, value: parsed as Record<string, unknown> };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: `pr-watch --json stdout JSON.parse failed: ${detail}` };
+  }
+}
+
+/**
+ * Defective line-split consumer (#5015 dogfood): take the first line starting
+ * with `{` and JSON.parse it. Pretty multi-line emitWatchJson fails this path
+ * because the opening `{` line alone is not a complete object.
+ */
+export function parsePrWatchJsonStdoutLineSplit(
+  stdout: string,
+):
+  | { readonly ok: true; readonly value: Record<string, unknown> }
+  | { readonly ok: false; readonly reason: string } {
+  const line = stdout.split(/\r?\n/).find((entry) => entry.trimStart().startsWith("{"));
+  if (line === undefined) {
+    return { ok: false, reason: "no line starting with '{'" };
+  }
+  try {
+    const parsed: unknown = JSON.parse(line.trim());
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, reason: "line-split parse is not a JSON object" };
+    }
+    return { ok: true, value: parsed as Record<string, unknown> };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: `line-split JSON.parse failed: ${detail}` };
+  }
+}
+
+/** Inputs for the per-PR merge-path arm observer (#4882 Bound remedy). */
+export interface MergePathArmInput {
+  /**
+   * Still-running phase-correct wait for THIS PR: blocking `pr:watch` /
+   * Approach 1 child (pre-CLEAN) or `pr:wait-mergeable-and-merge` (post-CLEAN).
+   * Homemade / line-parsed wrappers and background-shell claims are NOT this.
+   */
+  readonly livePhaseCorrectWait: boolean;
+  /** Explicit option-C finish (BLOCKED / FAILED with operator-visible handback). */
+  readonly explicitFinish: boolean;
+  /**
+   * Fresh sticky review-owner lease present. Informational only — lease-only
+   * is unarmed for merge-path arm purposes (verify:l4-owner path=lease is not
+   * this observer).
+   */
+  readonly stickyLeaseActive?: boolean;
+}
+
+export type MergePathArmReason = "live_wait" | "explicit_finish" | "unarmed_stand_down";
+
+export interface MergePathArmResult {
+  readonly armed: boolean;
+  readonly reason: MergePathArmReason;
+  readonly message: string;
+}
+
+/**
+ * Per open merge-path PR observer (#4882): armed iff a still-running
+ * phase-correct wait OR an explicit finish. A fresh sticky lease alone, or a
+ * Path B prose promise with no live wait, is unarmed stand-down.
+ */
+export function evaluateMergePathArm(input: MergePathArmInput): MergePathArmResult {
+  if (input.explicitFinish) {
+    return {
+      armed: true,
+      reason: "explicit_finish",
+      message: "merge-path armed: explicit finish (option C) for this PR (#4882)",
+    };
+  }
+  if (input.livePhaseCorrectWait) {
+    return {
+      armed: true,
+      reason: "live_wait",
+      message:
+        "merge-path armed: live phase-correct wait (pr:watch / Approach 1 or wait-merge) (#4882)",
+    };
+  }
+  const leaseNote =
+    input.stickyLeaseActive === true ? "sticky lease alone is not a live arm; " : "";
+  return {
+    armed: false,
+    reason: "unarmed_stand_down",
+    message: `unarmed stand-down: ${leaseNote}no live phase-correct wait and no explicit finish for this PR (#4882)`,
+  };
+}
+
 export function printWatchHuman(result: WatchResult): string {
   const p = result.probe;
   const lines: string[] = [];

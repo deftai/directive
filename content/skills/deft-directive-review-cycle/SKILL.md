@@ -586,6 +586,9 @@ Workflow failover arming (Blacksmith cancelled → GH-hosted lane) is sibling is
 ⊗ Emit freeform `review_cycle: started` / `pending` / `initiated` or L4 `status: pass` without **A** (or parent-retained **B** with explicit next action) or full Step 6 `done`.
 ⊗ Solve Owner Continuity via host cron-as-Approach-1 or always-block-parent-until-merge — use A/B/C above (#2876 / #3090).
 
+! **Durable live wait / unarmed stand-down (#4882):** After `stop-at: pr-open`, Path B parent-retained or Approach 1 merge-path ownership is **armed** only while a still-running phase-correct wait exists for that PR (pre-CLEAN: blocking `pr:watch` / Approach 1 child; post-CLEAN: `pr:wait-mergeable-and-merge`) **or** an explicit option-C finish was emitted. A fresh sticky lease alone, or a Path B prose promise to merge on CLEAN with no live wait, is **unarmed stand-down** — fail the turn per open merge-path PR. Machine probe: `deft verify:review-monitor -- --pr <N> --merge-path-arm` with `--live-wait` and/or `--explicit-finish` (optional `--sticky-lease`; lease-only exits 1). Homemade / line-parsed `pr-watch --json` wrappers and background-shell claims are **not** monitors or arms (#5015); prefer Approach 1 / native `pr:watch`. Do not invent a third poller. Core: `evaluateMergePathArm` / `parsePrWatchJsonStdout` in `@deftai/directive-core/pr-watch`.
+⊗ Stand down unarmed on an open merge-path PR, or treat lease-only / homemade line-parsed `pr-watch --json` as a live arm (#4882).
+
 ~ **Eval / regression (#3090):** Given PR open + check SUCCESS + open inline P1s + agent text claims driving merge + turn ends with 0 subagents and no lease → **FAIL** (Owner Continuity Gate), not PASS.
 
 ### Review Monitoring

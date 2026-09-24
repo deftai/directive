@@ -311,6 +311,14 @@ Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agen
 - ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
 - ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
 
+## Merge-path durable wait and pr:watch --json (#4882 / #5015)
+
+- ! After stop-at: pr-open, the merge-path owner (Approach 1 review-monitor or parent-retained closer) MUST keep a durable live wait for each open merge-path PR until CLEAN or an explicit option-C finish (BLOCKED / FAILED with operator-visible handback). Pre-CLEAN arm: blocking pr:watch or Approach 1 child. Post-CLEAN arm: pr:wait-mergeable-and-merge. Do not invent a third poller.
+- ! Armed means a still-running phase-correct process for that PR, or an explicit finish. A fresh sticky review-owner lease whose monitor has exited is unarmed. A Path B / parent-retained prose promise to merge on CLEAN with no live wait is unarmed stand-down.
+- ! Machine observer: 	ask verify:review-monitor -- --pr <N> --merge-path-arm with --live-wait and/or --explicit-finish attestations (optional --sticky-lease). Lease-only fails closed. Core helper: valuateMergePathArm in @deftai/directive-core/pr-watch.
+- ! If a consumer wraps pr:watch --json, it MUST parse the **full** stdout JSON value (pretty-printed multi-line is valid). Use parsePrWatchJsonStdout or JSON.parse on the whole stdout string. Line-splitting on the first { line drops CLEAN (#5015 dogfood). Prefer Approach 1 / native blocking pr:watch over homemade DONE scripts.
+- ⊗ Treat a sticky lease alone, a Path B promise without a live wait, a background-shell pr:watch, or a line-parsed pr-watch --json wrapper as a live merge-path arm (#4882).
+
 ## SCM tooling (#884 / #1145)
 
 Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § SCM tooling — prefer ghx (#884).

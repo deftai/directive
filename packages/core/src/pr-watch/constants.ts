@@ -74,6 +74,13 @@ export const WATCH_HELP =
   "  --repo OWNER/REPO     Override repository (default: GH_REPO / origin)\n" +
   "  --project-root PATH   Chdir before probing (optional)\n" +
   "\n" +
+  "--json notes (#4882 / #5015):\n" +
+  "  Output may be pretty-printed multi-line JSON. Wrappers MUST parse the\n" +
+  "  full stdout blob (JSON.parse of the whole string). Line-splitting on the\n" +
+  "  first '{' line drops CLEAN. Prefer native/blocking pr:watch or Approach 1\n" +
+  "  over homemade DONE scripts. Use parsePrWatchJsonStdout from the pr-watch\n" +
+  "  package when wrapping --json in-process.\n" +
+  "\n" +
   "exit codes:\n" +
   "  0  CLEAN       SHA-matched review, confidence >= policy min (default 4; dogfood 5), no P0/P1, CI green\n" +
   "  1  NEW_P0_P1   Blocking findings on the current (SHA-matched) review\n" +

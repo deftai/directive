@@ -14,6 +14,7 @@ import {
   VERDICT_PENDING,
   VERDICT_STALL,
   VERDICT_TIMEOUT,
+  WATCH_HELP,
 } from "./constants.js";
 
 describe("pr-watch constants", () => {
@@ -45,5 +46,11 @@ describe("pr-watch constants", () => {
     expect(DEFAULT_MAX_WAIT_MINUTES).toBe(30);
     expect(DEFAULT_POLL_SECONDS).toBe(90);
     expect(DEFAULT_STALL_THRESHOLD).toBe(3);
+  });
+
+  it("documents full-stdout --json parse for wrappers (#4882 / #5015)", () => {
+    expect(WATCH_HELP).toContain("pretty-printed multi-line JSON");
+    expect(WATCH_HELP).toContain("parsePrWatchJsonStdout");
+    expect(WATCH_HELP).toContain("#4882");
   });
 });
