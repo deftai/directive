@@ -1,0 +1,535 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5010",
+    "updated": "2026-09-24T16:50:21Z"
+  },
+  "plan": {
+    "title": "design(verify): retire TTY intent-constraint and observable-scope mint mid-build — detect + in-harness ask, returned failures free",
+    "status": "completed",
+    "narratives": {
+      "Description": "design(verify): retire TTY intent-constraint and observable-scope mint mid-build — detect + in-harness ask, returned failures free",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5010",
+      "Overview": "## Summary\n\nRecut the mid-build human-mint paths for `verify:intent-constraint` (#4541) and `verify:observable-scope` (#4495) so operators are not forced out of harness for TTY `scope:record-intent-constraint` / `scope:record-observable-scope` ceremonies after the worker has already started.\n\nFirst-ship for both gates was correct on the pain (silent semantic / UI-contract narrowing inside otherwise-green path checks). The authority *surface* is what hurts: merge-base mint JSON + typed phrase `mint` while the operator has left. That is the unmet leftover on #4597 and #4598.\n\nApproved-scope leave-harness mint is already retired by closed #4956 / #4988 / #4980. This issue is the sibling recut for the two remaining mint-mid-build leftovers.\n\n## Pain\n\n1. An implement worker adds a new hard abort / numeric limit (intent-constraint) or a matched UI structural delta (observable-scope).\n2. `task check` fails closed naming a human-presence mint verb.\n3. The operator is in a harness (Grok / Cursor / Claude). The remedy still demands a real TTY, `--confirm`, typed `mint`, and a merge-base JSON land before the implement PR.\n4. Headless / C1 / operator-gone sessions have no reachable mint path (#4597 / #4598 P1).\n\n## Desired posture\n\n1. **Default implement habit.** Prefer returned failures and reuse of existing merge-base numbers / restore baseline markup over inventing new hard facts.\n2. **Returned failures are free (intent-constraint).** Result-style / `{ ok: false, … }` exits are not intent-constraint facts. No detect, no ask, no mint.\n3. **Fewer facts need approval.** Narrow the fail-closed set (intent: hard abort / limit-like consts rather than every throw and every numeric literal; observable: keep structural / selection contract deltas that #4495 cared about, drop ceremony on free patterns the extract already treats as N/A or warn).\n4. **Detect and ask in-harness.** When a remaining hard fact appears, detect it and ask the human in the parent chat. Do not require leave-harness TTY mint as the normal path.\n5. **Drop human mint as the normal authority path.** Retire routine use of `scope:record-intent-constraint` and `scope:record-observable-scope` + `.deft/intent-constraint/` / `.deft/observable-scope/` merge-base mint ceremony for the cases this issue covers. Replace with attended in-harness grant (durable binding shape TBD in design) or rewrite to a free pattern.\n\nAuthority answer for \"ask\": human in the parent chat (same decision as today's mint, better UX). Parent-agent auto-approve is out of scope — that deletes the control.\n\n## Not this\n\n- Not reopening closed #4541 / #4495 / #4587 / #4588 first-ship contracts as \"bugs in the detector.\"\n- Not parent-agent auto-approve of hard facts.\n- Not emptying `file_scope` or weakening #4956 / #4980 path / class fences.\n- Not #4599 (approved-scope renewal mint) — that rides with closed #4956.\n- Not inventing speculative plan-key values at park so a mint verb can succeed.\n\n## Acceptance\n\n- [ ] New issue design (or Bound remedy after critique) names free patterns, remaining fact kinds, in-harness ask authority, and explicit retirement of the TTY mint path for both gates.\n- [ ] `verify:intent-constraint` does not demand `scope:record-intent-constraint` for returned-failure-only changes.\n- [ ] A remaining hard fact fails closed with an in-harness ask / rewrite remediation, not a leave-harness mint recipe as the primary path.\n- [ ] `verify:observable-scope` same posture for its mint-mid-build path.\n- [ ] Docs/skills/preamble that still name TTY mint as the fail path are recut (`intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, agent preamble).\n- [ ] Close #4597 and #4598 as superseded by this issue.\n\n## Supersedes\n\n- #4597 leftover(#4587): intent-constraint mint-mid-build\n- #4598 leftover(#4588): observable-scope mint-mid-build\n\n## Prior art\n\n- #4541 (closed) — intent-constraint first ship\n- #4495 (closed) — observable-scope first ship\n- #4587 / #4588 (closed) — setup park mint-mid-build parents\n- #4956 / #4988 / #4980 (closed) — approved-scope ceremony retirement + class checks",
+      "Labels": "bug, design, agent-experience, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "New issue design (or Bound remedy after critique) names free patterns, remaining fact kinds, in-harness ask authority, and explicit retirement of the TTY mint path for both gates.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5014#84e63813c1ad696248a42636335a10515d6793cb",
+          "recorded_at": "2026-09-24T16:50:20.311Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "`verify:intent-constraint` does not demand `scope:record-intent-constraint` for returned-failure-only changes.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5014#84e63813c1ad696248a42636335a10515d6793cb",
+          "recorded_at": "2026-09-24T16:50:20.311Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "A remaining hard fact fails closed with an in-harness ask / rewrite remediation, not a leave-harness mint recipe as the primary path.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5014#84e63813c1ad696248a42636335a10515d6793cb",
+          "recorded_at": "2026-09-24T16:50:20.311Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "`verify:observable-scope` same posture for its mint-mid-build path.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5014#84e63813c1ad696248a42636335a10515d6793cb",
+          "recorded_at": "2026-09-24T16:50:20.311Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Docs/skills/preamble that still name TTY mint as the fail path are recut (`intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, agent preamble).",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5014#84e63813c1ad696248a42636335a10515d6793cb",
+          "recorded_at": "2026-09-24T16:50:20.311Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Close #4597 and #4598 as superseded by this issue.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5014#84e63813c1ad696248a42636335a10515d6793cb",
+          "recorded_at": "2026-09-24T16:50:20.311Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5010",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5010: design(verify): retire TTY intent-constraint and observable-scope mint mid-build — detect + in-harness ask, returned failures free"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4956",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4956"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4541",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4541"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4597",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4597"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "New issue design (or Bound remedy after critique) names free patterns, remaining fact kinds, in-harness ask authority, and explicit retirement of the TTY mint path for both gates.",
+        "`verify:intent-constraint` does not demand `scope:record-intent-constraint` for returned-failure-only changes.",
+        "A remaining hard fact fails closed with an in-harness ask / rewrite remediation, not a leave-harness mint recipe as the primary path.",
+        "`verify:observable-scope` same posture for its mint-mid-build path.",
+        "Docs/skills/preamble that still name TTY mint as the fail path are recut (`intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, agent preamble).",
+        "Close #4597 and #4598 as superseded by this issue."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "New issue design (or Bound remedy after critique) names free patterns, remaining fact kinds, in-harness ask authority, and explicit retirement of the TTY mint path for both gates.",
+          "artifact_path": "content/docs/intent-constraint.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`verify:intent-constraint` does not demand `scope:record-intent-constraint` for returned-failure-only changes.",
+          "artifact_path": "packages/core/src/intent-constraint/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A remaining hard fact fails closed with an in-harness ask / rewrite remediation, not a leave-harness mint recipe as the primary path.",
+          "artifact_path": "packages/core/src/intent-constraint/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`verify:observable-scope` same posture for its mint-mid-build path.",
+          "artifact_path": "packages/core/src/observable-scope/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Docs/skills/preamble that still name TTY mint as the fail path are recut (`intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, agent preamble).",
+          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Close #4597 and #4598 as superseded by this issue.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Issue-body narrative sentences above the six AC clauses are context only; not independently testable acceptance (#3550).",
+        "#4597 and #4598 were already closed not_planned before this PR; successor pointer is recorded in CHANGELOG / PR body rather than an open-issue close."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because mid-build hard facts for verify:intent-constraint and verify:observable-scope still fail closed into leave-harness TTY scope:record-* mint after approved-scope ceremony retirement (#4956/#4988/#4980), so harness and headless sessions have no reachable authority path (#4597/#4598).\n\ncharter: refutation\nrefutation-target: Mid-build hard facts for verify:intent-constraint and verify:observable-scope correctly demand leave-harness TTY scope:record-intent-constraint / scope:record-observable-scope with merge-base mint JSON and typed phrase mint as the normal authority path, even when the operator is in a harness or gone.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token ask. This is the sibling leftover recut for the two remaining mint-mid-build gates after approved-scope leave-harness mint retired. First-ship detectors (#4541/#4495) stay; the authority surface is the target. N=1.\n\npain: P1, P2, P3, P4, P5\n\nP1. An implement worker adds a hard abort / numeric limit or a matched UI structural delta; task check fails closed naming a human-presence mint verb.\nP2. The operator is already in a harness; the printed remedy still demands a real TTY, --confirm, typed mint, and merge-base JSON land before the implement PR.\nP3. Headless / C1 / operator-gone sessions have no reachable mint path (#4597 / #4598 P1).\nP4. Returned-failure-only changes and other free patterns still get pulled into mint ceremony when they are not intent-constraint / observable-scope facts.\nP5. Docs and skills still name TTY mint as the primary fail path for these gates after the approved-scope ceremony recut.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5010-dc\norigin-ref: origin/master\ndispatch-sha: 454d7ae5eea33117528cb0afd269d01334582fad\npin-kind: origin-default\ntarget-digest: sha256:bdc090e5b0afb585c0cf898e6010836b1081cac08c4741e064785c73ab3c27db\n\nPin reads use git show 454d7ae5eea33117528cb0afd269d01334582fad. The issue body is the proposal under test. Close #4597 and #4598 only after this bound remedy lands. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5815853717,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5815853717",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:16:40Z",
+          "updated_at": "2026-09-24T14:16:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5010\nCharter: refutation. Spend on the Stop 1 write-back is N=1. Only seat.\nRound: 1 critic. Fresh critic.\nId ceiling (inclusive): 5815853717\nSHA at dispatch: 454d7ae5eea33117528cb0afd269d01334582fad\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/5010\naudit-targets: none\nSeat: grok. Launcher: grok.\n\n## Inventory (existing mechanisms before new ones)\n\nPin reads at `454d7ae5eea33117528cb0afd269d01334582fad`. Dest HEAD equals that SHA. Stop 1 write-back is comment `5815853717` (only comment at or under the ceiling).\n\n1. **`verify:intent-constraint` / extract / evaluate / mint (#4541).** Closed fact kinds are `throw-site`, `reject-site`, `abort-site`, `numeric-const` (`packages/core/src/intent-constraint/types.ts`, `extract.ts` visit). Authority is `git show <merge-base>` of `.deft/intent-constraint/<plan-id>.json` with `isHumanApprovalStamp`; same-PR rewrite fails (`evaluate.ts`, `mint.ts`). Remediation constant names `scope:record-intent-constraint` and headless/C1 TTY absence (`INTENT_CONSTRAINT_REMEDIATION`).\n2. **Returned-failure leftover already holds.** Docs §5 and `extract.test.ts` (`skip/filter/return-error + inline literal is leftover`) show return-error / `{ error }` / filter without throw/reject/abort/numeric-const extract to empty facts. Skip plus a new numeric-const is not leftover.\n3. **`verify:observable-scope` / demand / mint (#4495 / #4588).** Fail-closed when is verify merge-base after policy + matched markup (`demand.ts`). Free / soft paths already include N/A and unset-policy warn; remediation already offers restore baseline markup *or* `scope:record-observable-scope` (`OBSERVABLE_SCOPE_REMEDIATION`, `observable-scope.md`).\n4. **Human-presence mint gate (#3110 / `human-presence-mint.ts`).** Shared by both `scope:record-*` verbs: agent/CI env markers refuse; real TTY + controlling terminal + `--confirm` + typed phrase `mint`. `--actor` is display-only.\n5. **Approved-scope ceremony retirement (#4956 / scope-provenance.md).** After proceed there is no leave-harness `scope:record-approved-scope` ceremony; fence is merge-base `file_scope`. Verb remains for legacy/authz-adjacent use. Sibling pattern for retiring *ceremony* while keeping a durable authority read.\n6. **Nearby ask / grant surfaces (wrong store for these facts).** Typed escalation (`content/contracts/escalation.md`) is attention queue; resolution does not mint grants or merge-base constraint records. `authz:grant` / human-origin authz gates edit/push/merge/UAT, not intent/observable merge-base JSON. `humanApproval.kind` already admits `operator` / `interactive` / `human*` via `isHumanApprovalStamp` if a different mint path writes a valid stamp.\n7. **Leftover issues.** REST: `#4597` and `#4598` are already `state=closed` / `state_reason=not_planned`. Proposal AC still says close them as superseded by this issue.\n\nLive `packages/*/dist` and local typescript resolve were unavailable on this no-ingest dest; re-verification used pin source + pin tests + docs, not a green `task check` binary run.\n\n## Classified findings\n\n### 1. blocks-the-design — durable binding shape is still TBD on an authority / shared-state recut\n\n- **Evidence:** Desired posture §5 says replace routine TTY mint with “attended in-harness grant (durable binding shape TBD in design)”. Pin evaluate paths only accept merge-base records under `.deft/intent-constraint/` and `.deft/observable-scope/` with human-presence stamps; chat text is not an input. Injection/swarm lens fires: this target changes authority and shared merge-base state.\n- **Failure mode:** A parent-chat “yes” evaporates across workers, CI, and later check runs. Without a named durable carrier, retiring the TTY verb as the normal path leaves no enforceable human approval artifact, which is the silent-narrowing hole #4541/#4495 first-ship closed.\n- **Disposition consequence:** Lean cannot bind while the authority carrier stays TBD. Bindable lean must name the durable record (most likely keep merge-base JSON + humanApproval stamp, change only how the stamp is collected) and the evaluate/remediation read path.\n\n### 2. sharpens-framing — “returned failures free” is mostly already-holding extract behavior\n\n- **Evidence:** Pin `intent-constraint.md` leftover clause; `extract.ts` only posts throw/reject/abort/numeric-const; `extract.test.ts` leftover case expects `kinds == []` for return-error / filter without those facts. Proposal Desired posture §2 and Acceptance bullet read as if this is a new detector exemption.\n- **Failure mode:** A lean that “implements returned-failure freedom” as extract work will either no-op or accidentally widen fact kinds. Real remaining pain is remediation/docs/skills/preamble that still print leave-harness mint as the primary fail path, plus habit pressure to convert free returns into throws.\n- **Disposition consequence:** Lean must split (a) already-holding free patterns, (b) any true detector narrowing of hard-fact kinds, (c) remediation + docs recut. Do not sell (a) as the product change.\n\n### 3. sharpens-framing — attended in-harness ask does not cover operator-gone / C1\n\n- **Evidence:** Stop 1 pains P3 and leftovers #4597/#4598 (bodies: operator has left; mint-mid-build with no TTY). Proposal Desired posture §4 sets authority answer to “human in the parent chat.” `INTENT_CONSTRAINT_REMEDIATION` already states headless/C1 that adds a throw fails closed with no operator on the TTY.\n- **Failure mode:** If mint is retired as the normal path and “ask” is the only named remediation, unattended sessions get a nonsensical ask with nobody present, or agents invent a substitute approval.\n- **Disposition consequence:** Lean must keep two dispositions: attended harness → detect + human grant into the durable carrier; unattended / operator-gone → fail closed with rewrite/park (no mint recipe as primary, and no parent-agent auto-approve).\n\n### 4. footnote — observable free path and leftover issue state\n\n- Observable remediation already names restore-baseline as an alternative to mint; “drop ceremony on free patterns” is partly docs/steering, not a missing second free path.\n- `#4597` / `#4598` are already closed `not_planned`; acceptance should record supersede commentary / successor pointer rather than assume an open-issue close.\n\n## Injection / swarm lens\n\nTriggered. The proposal changes who may authorize hard semantic / UI-contract facts and how that approval is stored for merge-base reads used by `task check` under swarm/C1. Parent-agent auto-approve is correctly out of scope. Any in-harness path still needs agent/CI refuse, durable merge-base (or equally checkable) binding, and same-PR rewrite refuse — or it reopens the first-ship hole.\n\n## Road-not-taken / steelman\n\nChose among: (1) keep TTY mint as normal path and only edit docs; (2) in-harness human decision that still writes the existing merge-base JSON with a humanApproval stamp / new `mintedVia`; (3) escalation:file then operator still runs TTY mint; (4) treat chat transcript or authz edit-grant as fact authority.\n\nPrefer (2) as the least new mechanism that preserves evaluate’s merge-base read. Rejected (1) because harness leave is the named pain after #4956’s sibling ceremony retirement. Rejected (3) because it keeps leave-harness as the authority surface. Rejected (4) because chat is non-durable and authz grants are a different store/operation class.\n\n**Steelman of the rejected TTY-normal position:** #3110 multi-factor mint is the only proven forge-resistant human-presence control; merge-base JSON is the only artifact evaluate already trusts; weakening ceremony without an equally hard stamp invites silent narrowing under swarm load. **Flip condition:** an attended in-harness collection path that still refuses agent/CI markers, still produces a merge-base humanApproval record before the implement PR, and still fails same-PR rewrite — i.e. UX recut of mint, not deletion of durable human authority.\n\n## Verdict on the recorded refutation-target\n\nStop 1 `refutation-target:`: Mid-build hard facts for verify:intent-constraint and verify:observable-scope correctly demand leave-harness TTY scope:record-intent-constraint / scope:record-observable-scope with merge-base mint JSON and typed phrase mint as the normal authority path, even when the operator is in a harness or gone.\n\n**does-not-survive**\n\nHuman approval of remaining hard facts survives. Merge-base durable records likely survive as the authority store. The claim that leave-harness TTY + typed `mint` is the *correct normal authority path* even when the operator is in a harness or gone does not: operator-gone makes TTY mint unreachable (permanent refuse, not a path), and harness-present leave-harness ceremony is the same class of surface pain #4956 already retired for approved-scope while keeping durable authority elsewhere. First-ship detectors stay; the authority *surface* is what falls.",
+          "id": 5815953995,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5815953995",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:21:45Z",
+          "updated_at": "2026-09-24T14:21:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMid-build hard facts for intent-constraint and observable-scope still need a human decision, but leave-harness TTY mint is the wrong normal surface after the approved-scope ceremony retirement. Keep the merge-base JSON + humanApproval stamp as the durable authority store. Collect that stamp from an attended in-harness ask in the parent chat. When nobody is present, fail closed with rewrite or park — do not ask the empty room, do not mint as the primary recipe, and do not let the parent agent auto-approve. Returned-failure-only paths are already free in extract; do not sell that as new detector work. Recut remediation and docs that still print TTY mint as the primary fail path.\n\n**Lean:**\n\nCeiling: Stop 1 write-back 5815853717. Round-1 critic: 5815953995 (only seat). Charter refutation. Spend N=1.\n\n### Takes (critic 5815953995)\n\n1. blocks-the-design — durable binding shape is still TBD on an authority / shared-state recut — **accept-into-contract**\n2. sharpens-framing — \"returned failures free\" is mostly already-holding extract behavior — **accept-into-contract**\n3. sharpens-framing — attended in-harness ask does not cover operator-gone / C1 — **accept-into-contract**\n4. footnote — observable free path and leftover issue state — **accept-into-contract** (census)\n\nRefutation-target does not survive. Human approval of remaining hard facts survives. Merge-base durable records survive as the authority store. Leave-harness TTY + typed `mint` as the normal path does not.\n\n## Bound remedy\n\n1. **Durable carrier stays merge-base JSON.** Keep `.deft/intent-constraint/<plan-id>.json` and `.deft/observable-scope/` records with `isHumanApprovalStamp` / same-PR rewrite refuse. Chat text is never the evaluate input. Retire leave-harness TTY `scope:record-intent-constraint` / `scope:record-observable-scope` + typed phrase `mint` as the *normal* collection path for the cases this issue covers; optional legacy verb may remain for repair.\n2. **Attended path.** When a remaining hard fact appears under an attended harness parent, detect it and ask the human in the parent chat; on yes, write the same merge-base humanApproval stamp (collection UX recut, including a `mintedVia` or equivalent attestation of in-harness grant). Agent/CI markers still refuse. Parent-agent auto-approve stays out of scope.\n3. **Unattended / operator-gone / C1 path.** Fail closed with rewrite-to-free-pattern or park. Do not print leave-harness mint as the primary remediation. Do not ask when no human is present. Do not invent substitute approval.\n4. **Returned failures / free patterns.** Treat return-error / `{ ok:false }` / filter-without-hard-fact as already-holding leftover (no detect, no ask, no mint). Any true detector narrowing of hard-fact kinds is a separate explicit clause; do not conflate it with the leftover. Observable: keep restore-baseline as the free alternative already named in remediation; drop ceremony language on patterns the extract already treats as N/A or warn.\n5. **Docs / skills / preamble.** Recut `intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, and agent preamble so the primary fail path is detect+in-harness grant or rewrite/park, not TTY mint.\n6. **#4597 / #4598.** Already closed `not_planned`. Record successor pointer / supersede commentary on those threads (or accept as already disposed); do not assume an open-issue close in AC.\n\npain: P1, P2, P3, P4, P5\nrelieves: P1, P2, P3, P4, P5\n\nP1 → detect remaining hard fact + attended grant into durable carrier, or rewrite/park.\nP2 → in-harness collection replaces leave-harness TTY as the normal path.\nP3 → unattended disposition is rewrite/park fail-closed, not mint-or-ask-to-nobody.\nP4 → already-holding free patterns named; detector narrowing separated; docs stop pulling free changes into mint ceremony.\nP5 → docs/skills/preamble recut.\n\nFirst-ship detectors (#4541 / #4495) stay. Not emptying file_scope. Not weakening #4956 / #4980 fences. Not #4599. Not parent-agent auto-approve.\n\nSupersedes write-back: 5815853717\r\n\n",
+          "id": 5815969118,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5815969118",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:22:28Z",
+          "updated_at": "2026-09-24T14:22:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5010\nCharter: refutation. Pain-audit of asserted coverage on the bind lean. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nCritic role: fresh\nId ceiling (inclusive): 5815969118\nSHA at dispatch: 454d7ae5eea33117528cb0afd269d01334582fad\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/5010\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5\nSeat: grok. Launcher: grok.\n\n## Scope\n\nPain-audit only. Stop 1 write-back `5815853717` owns the pain denominator (`pain: P1, P2, P3, P4, P5`). Successor lean `5815969118` asserts `relieves: P1, P2, P3, P4, P5` and carries `## Bound remedy` items 1–6. Round-1 critic `5815953995` is prior art for inventory; this pass re-derives coverage from pin reads + Stop 1 pain text + Bound remedy harvest. Comments after the id ceiling are out of envelope. Dest HEAD equals dispatch SHA `454d7ae5eea33117528cb0afd269d01334582fad`.\n\n## Pin re-checks used for coverage\n\n1. `INTENT_CONSTRAINT_REMEDIATION` / `OBSERVABLE_SCOPE_REMEDIATION` still name `scope:record-*` mint as the worker-facing fail string (`packages/core/src/intent-constraint/types.ts`, `observable-scope` remediation, `named-cause.ts`).\n2. Intent extract leftover already holds for return-error / filter without throw/reject/abort/numeric-const (`intent-constraint.md` leftover clause; round-1 cite of `extract.test.ts`).\n3. Observable soft paths already include N/A and unset-policy warn; remediation already offers restore-baseline *or* mint.\n4. Placement tests still require Phase 0 / preamble / build / docs to name `scope:record-intent-constraint` as the ask / fail path.\n\n## Per-target coverage\n\n### pain-P1 — covered by Bound remedy 1–3 (+5)\n\nStop 1: hard fact added → `task check` fails closed naming a human-presence mint verb.\n\nBound remedy retires leave-harness TTY mint as the *normal* collection path, splits attended detect+parent-chat grant into the same merge-base carrier, and unattended rewrite/park with “Do not print leave-harness mint as the primary remediation.” That is the fail-closed-naming-mint surface. Docs/skills recut (item 5) matches the same primary path. **`relieves: P1` holds.**\n\n### pain-P2 — covered by Bound remedy 1–2 (+5)\n\nStop 1: operator already in harness; printed remedy still demands real TTY, `--confirm`, typed `mint`, and merge-base JSON land.\n\nItem 2 replaces leave-harness TTY / `--confirm` / typed `mint` with attended in-harness ask that still writes the merge-base humanApproval stamp. Item 1 keeps the durable carrier (authority *store*), which is the Stop 1 target’s surviving half, not the harness leave pain. **`relieves: P2` holds.**\n\n### pain-P3 — covered by Bound remedy 3 (reframe already on lean map)\n\nStop 1 text: headless / C1 / operator-gone have “no reachable mint path” (#4597 / #4598).\n\nBound remedy does not invent a headless mint or parent-agent auto-approve. Item 3 sets unattended disposition to rewrite-to-free-pattern or park, and forbids mint-as-primary / ask-to-nobody / substitute approval. Lean map already states `P3 → unattended disposition is rewrite/park fail-closed, not mint-or-ask-to-nobody.` That covers the stuckness those leftovers named (unreachable mint *recipe*), under the Desired-posture ban on auto-approve. **`relieves: P3` holds** as that reframe; see footnote 1.\n\n### pain-P4 — covered by Bound remedy 4 (+5)\n\nStop 1: returned-failure-only and other free patterns still get pulled into mint ceremony when they are not facts.\n\nPin leftover already leaves pure return-error / filter-without-hard-fact as non-facts (no mint fail from extract). Item 4 names that already-holding leftover, separates any true detector narrowing as a different clause, keeps observable restore-baseline, and drops ceremony language on extract N/A/warn patterns. Item 5 stops docs/skills from steering free changes into mint. **`relieves: P4` holds** for that residual; see footnote 2.\n\n### pain-P5 — covered by Bound remedy 5 (+3)\n\nStop 1: docs/skills still name TTY mint as the primary fail path after the approved-scope ceremony recut.\n\nItem 5 names the recut surfaces (`intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, agent preamble) and sets primary fail path to detect+in-harness grant or rewrite/park. Item 3’s “do not print mint as primary remediation” is the matching check-string half. **`relieves: P5` holds.**\n\n## Classified findings\n\n### 1. footnote — P3 Stop 1 label vs rewrite/park reframe\n\n- Stop 1 P3 still says “no reachable mint path.” Bound remedy item 3 + lean `P3 →` line relieve by removing mint-as-primary and substituting rewrite/park, not by adding a reachable unattended mint.\n- No disposition change: bind map stays bindable; coverage wording on the lean already records the reframe.\n\n### 2. footnote — P4 Stop 1 overstates extract pull-in\n\n- At pin, free returned-failure patterns do not become intent-constraint facts; the live residual is docs/ceremony/habit, which items 4–5 address.\n- No disposition change: `relieves: P4` stays honest for that residual; do not read it as new detector work.\n\n### 3. footnote — P2 still lands merge-base JSON by design\n\n- P2’s current-demand list includes merge-base JSON land. Bound remedy item 1 keeps that carrier; only the leave-harness collection UX is what P2 relieves.\n- No disposition change: not a false relieve; durable store survival was round-1 accept-into-contract.\n\n## Injection / swarm lens\n\nTriggered on the underlying authority target; unchanged by this coverage pass. Bound remedy still keeps merge-base evaluate input, agent/CI refuse, same-PR rewrite refuse, and bans parent-agent auto-approve. No new shared-state hole from affirming these relieves.\n\n## Road-not-taken / steelman\n\nFork: treat P3 as blocking because Bound remedy never gives operator-gone a way to approve a hard fact.\n\nRejected. Desired posture and accepted round-1 finding #3 already forbid substitute approval; #4597/#4598 pain is the false TTY-mint recipe under no TTY. Rewrite/park is the Bound-remedy coverage of that stuckness. Flip condition for blocking: evidence that Stop 1 P3 required a headless approval path as acceptance, which the warrant and lean both refuse.\n\n## Census\n\n- `blocks-the-design`: none\n- `sharpens-framing`: none\n- `footnote`: 3 (above)\n\nFootnote-only. Bind map on successor lean `5815969118` stays bindable without an extra lean. This pain-audit is not itself relief clearance beyond targeting the asserted cites.",
+          "id": 5816074337,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5816074337",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:27:22Z",
+          "updated_at": "2026-09-24T14:27:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Leave-harness TTY mint is the correct normal authority path for mid-build intent-constraint / observable-scope hard facts even when the operator is in a harness or gone | does-not-survive | Round-1 critic 5815953995 re-derived pin remediation constants, human-presence mint gate, and #4956 ceremony-retirement sibling; pain-audit 5816074337 footnote-only on relieves |\n| Human approval of remaining hard facts must survive | uphold | Round-1 injection/swarm lens + steelman; Bound remedy keeps humanApproval stamp |\n| Merge-base JSON under `.deft/intent-constraint/` and `.deft/observable-scope/` remains the evaluate authority store | uphold | Pin evaluate/mint paths; round-1 finding 1 accept-into-contract |\n| Returned-failure-only changes are already free in extract (no new detector exemption required as the product change) | uphold | Pin leftover clause + extract.test.ts cite in round-1 finding 2 |\n| Unattended / operator-gone path is rewrite/park fail-closed, not mint-or-ask-to-nobody | uphold | Round-1 finding 3 + pain-audit P3 reframe footnote |\n| #4597 / #4598 are already closed not_planned | uphold | Round-1 REST inventory; Bound remedy item 6 |\n\nBound contract: successor lean 5815969118. Pain-audit 5816074337 footnote-only on P1–P5.\r\n\n",
+          "id": 5816086928,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5816086928",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:28:02Z",
+          "updated_at": "2026-09-24T14:28:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMid-build hard facts for intent-constraint and observable-scope still need a human decision, but leave-harness TTY mint is the wrong normal surface. Keep merge-base JSON + humanApproval as the durable store. Collect that stamp from an attended in-harness ask. When nobody is present, rewrite or park. Returned failures are already free in extract. Recut docs that still print TTY mint as the primary fail path.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5815969118.\r\n\n",
+          "id": 5816089756,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5816089756",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:28:11Z",
+          "updated_at": "2026-09-24T14:28:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMid-build hard facts for intent-constraint and observable-scope still need a human decision, but leave-harness TTY mint is the wrong normal surface after the approved-scope ceremony retirement. Keep the merge-base JSON + humanApproval stamp as the durable authority store. Collect that stamp from an attended in-harness ask in the parent chat. When nobody is present, fail closed with rewrite or park — do not ask the empty room, do not mint as the primary recipe, and do not let the parent agent auto-approve. Returned-failure-only paths are already free in extract; do not sell that as new detector work. Recut remediation and docs that still print TTY mint as the primary fail path.\n\n**Lean:**\n\nRecut-supersedes 5815969118 (pain cite grammar only: one id per relieves line). Ceiling: Stop 1 write-back 5815853717. Round-1 critic: 5815953995. Pain-audit 5816074337 was footnote-only on the prior map. Charter refutation. Spend N=1.\n\n### Takes (critic 5815953995)\n\n1. blocks-the-design — durable binding shape is still TBD on an authority / shared-state recut — **accept-into-contract**\n2. sharpens-framing — \"returned failures free\" is mostly already-holding extract behavior — **accept-into-contract**\n3. sharpens-framing — attended in-harness ask does not cover operator-gone / C1 — **accept-into-contract**\n4. footnote — observable free path and leftover issue state — **accept-into-contract** (census)\n\nRefutation-target does not survive. Human approval of remaining hard facts survives. Merge-base durable records survive as the authority store. Leave-harness TTY + typed `mint` as the normal path does not.\n\n## Bound remedy\n\n1. **Durable carrier stays merge-base JSON.** Keep `.deft/intent-constraint/<plan-id>.json` and `.deft/observable-scope/` records with `isHumanApprovalStamp` / same-PR rewrite refuse. Chat text is never the evaluate input. Retire leave-harness TTY `scope:record-intent-constraint` / `scope:record-observable-scope` + typed phrase `mint` as the *normal* collection path for the cases this issue covers; optional legacy verb may remain for repair.\n2. **Attended path.** When a remaining hard fact appears under an attended harness parent, detect it and ask the human in the parent chat; on yes, write the same merge-base humanApproval stamp (collection UX recut, including a `mintedVia` or equivalent attestation of in-harness grant). Agent/CI markers still refuse. Parent-agent auto-approve stays out of scope.\n3. **Unattended / operator-gone / C1 path.** Fail closed with rewrite-to-free-pattern or park. Do not print leave-harness mint as the primary remediation. Do not ask when no human is present. Do not invent substitute approval.\n4. **Returned failures / free patterns.** Treat return-error / `{ ok:false }` / filter-without-hard-fact as already-holding leftover (no detect, no ask, no mint). Any true detector narrowing of hard-fact kinds is a separate explicit clause; do not conflate it with the leftover. Observable: keep restore-baseline as the free alternative already named in remediation; drop ceremony language on patterns the extract already treats as N/A or warn.\n5. **Docs / skills / preamble.** Recut `intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, and agent preamble so the primary fail path is detect+in-harness grant or rewrite/park, not TTY mint.\n6. **#4597 / #4598.** Already closed `not_planned`. Record successor pointer / supersede commentary on those threads (or accept as already disposed); do not assume an open-issue close in AC.\n\npain: P1, P2, P3, P4, P5\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\nP1 → detect remaining hard fact + attended grant into durable carrier, or rewrite/park.\nP2 → in-harness collection replaces leave-harness TTY as the normal path.\nP3 → unattended disposition is rewrite/park fail-closed, not mint-or-ask-to-nobody.\nP4 → already-holding free patterns named; detector narrowing separated; docs stop pulling free changes into mint ceremony.\nP5 → docs/skills/preamble recut.\n\nFirst-ship detectors (#4541 / #4495) stay. Not emptying file_scope. Not weakening #4956 / #4980 fences. Not #4599. Not parent-agent auto-approve.\n\nSupersedes write-back: 5815853717\nRecut-supersedes: 5815969118\r\n\n",
+          "id": 5816099452,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5816099452",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:28:45Z",
+          "updated_at": "2026-09-24T14:28:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5010\nCharter: refutation. Pain-audit of asserted coverage on the new bind lean after Recut-supersedes. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nCritic role: fresh\nId ceiling (inclusive): 5816099452\nSHA at dispatch: 454d7ae5eea33117528cb0afd269d01334582fad\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/5010\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5\nSeat: grok. Launcher: grok.\n\n## Scope\n\nPain-audit only of successor lean `5816099452` (Recut-supersedes `5815969118` for per-id `relieves` grammar). Stop 1 write-back `5815853717` owns the pain denominator (`pain: P1, P2, P3, P4, P5`). This lean asserts one-id-per-line `relieves: P1` … `relieves: P5` and carries `## Bound remedy` items 1–6. Prior pain-audit `5816074337` was footnote-only on the superseded map; it is not clearance of this lean. Re-derived from pin reads + Stop 1 pain text + Bound remedy harvest on `5816099452`. Comments after the id ceiling are out of envelope. Dest HEAD equals dispatch SHA `454d7ae5eea33117528cb0afd269d01334582fad`.\n\n## Pin re-checks used for coverage\n\n1. `INTENT_CONSTRAINT_REMEDIATION` / `OBSERVABLE_SCOPE_REMEDIATION` still name `scope:record-*` mint as the worker-facing fail string (`packages/core/src/intent-constraint/types.ts`, `observable-scope/types.ts`, `check/named-cause.ts`).\n2. Intent extract leftover already holds for return-error / filter without throw/reject/abort/numeric-const (`intent-constraint.md` leftover clause; round-1 cite of `extract.test.ts`).\n3. Observable soft paths already include N/A and unset-policy warn; remediation already offers restore-baseline *or* mint.\n4. Docs / placement still steer Phase 0 / preamble / build toward `scope:record-intent-constraint` / `scope:record-observable-scope` as the ask / fail path.\n5. Recut delta vs `5815969118` is cite grammar only (one id per `relieves` line). Bound remedy prose and P* → coverage lines on `5816099452` match the superseded map's substance.\n\n## Per-target coverage\n\n### pain-P1 — covered by Bound remedy 1–3 (+5)\n\nStop 1: hard fact added → `task check` fails closed naming a human-presence mint verb.\n\nBound remedy retires leave-harness TTY mint as the *normal* collection path, splits attended detect+parent-chat grant into the same merge-base carrier, and unattended rewrite/park with “Do not print leave-harness mint as the primary remediation.” That is the fail-closed-naming-mint surface. Docs/skills recut (item 5) matches the same primary path. Lean map `P1 → detect remaining hard fact + attended grant into durable carrier, or rewrite/park.` **`relieves: P1` holds.**\n\n### pain-P2 — covered by Bound remedy 1–2 (+5)\n\nStop 1: operator already in harness; printed remedy still demands real TTY, `--confirm`, typed `mint`, and merge-base JSON land.\n\nItem 2 replaces leave-harness TTY / `--confirm` / typed `mint` with attended in-harness ask that still writes the merge-base humanApproval stamp. Item 1 keeps the durable carrier (authority *store*), which is the Stop 1 target’s surviving half, not the harness-leave pain. Lean map `P2 → in-harness collection replaces leave-harness TTY as the normal path.` **`relieves: P2` holds.**\n\n### pain-P3 — covered by Bound remedy 3 (reframe already on lean map)\n\nStop 1 text: headless / C1 / operator-gone have “no reachable mint path” (#4597 / #4598).\n\nBound remedy does not invent a headless mint or parent-agent auto-approve. Item 3 sets unattended disposition to rewrite-to-free-pattern or park, and forbids mint-as-primary / ask-to-nobody / substitute approval. Lean map already states `P3 → unattended disposition is rewrite/park fail-closed, not mint-or-ask-to-nobody.` That covers the stuckness those leftovers named (unreachable mint *recipe*), under the Desired-posture ban on auto-approve. **`relieves: P3` holds** as that reframe; see footnote 1.\n\n### pain-P4 — covered by Bound remedy 4 (+5)\n\nStop 1: returned-failure-only and other free patterns still get pulled into mint ceremony when they are not facts.\n\nPin leftover already leaves pure return-error / filter-without-hard-fact as non-facts (no mint fail from extract). Item 4 names that already-holding leftover, separates any true detector narrowing as a different clause, keeps observable restore-baseline, and drops ceremony language on extract N/A/warn patterns. Item 5 stops docs/skills from steering free changes into mint. Lean map `P4 → already-holding free patterns named; detector narrowing separated; docs stop pulling free changes into mint ceremony.` **`relieves: P4` holds** for that residual; see footnote 2.\n\n### pain-P5 — covered by Bound remedy 5 (+3)\n\nStop 1: docs/skills still name TTY mint as the primary fail path after the approved-scope ceremony recut.\n\nItem 5 names the recut surfaces (`intent-constraint.md`, `observable-scope.md`, build/setup/swarm Phase 0, and agent preamble) and sets primary fail path to detect+in-harness grant or rewrite/park. Item 3’s “do not print mint as primary remediation” is the matching check-string half. Lean map `P5 → docs/skills/preamble recut.` **`relieves: P5` holds.**\n\n## Classified findings\n\n### 1. footnote — P3 Stop 1 label vs rewrite/park reframe\n\n- Stop 1 P3 still says “no reachable mint path.” Bound remedy item 3 + lean `P3 →` line relieve by removing mint-as-primary and substituting rewrite/park, not by adding a reachable unattended mint.\n- No disposition change: bind map on `5816099452` stays bindable; coverage wording on the lean already records the reframe.\n\n### 2. footnote — P4 Stop 1 overstates extract pull-in\n\n- At pin, free returned-failure patterns do not become intent-constraint facts; the live residual is docs/ceremony/habit, which items 4–5 address.\n- No disposition change: `relieves: P4` stays honest for that residual; do not read it as new detector work.\n\n### 3. footnote — P2 still lands merge-base JSON by design\n\n- P2’s current-demand list includes merge-base JSON land. Bound remedy item 1 keeps that carrier; only the leave-harness collection UX is what P2 relieves.\n- No disposition change: not a false relieve; durable store survival was round-1 accept-into-contract.\n\n### 4. footnote — Recut is grammar-only; Bound remedy substance unchanged\n\n- `5816099452` Recut-supersedes `5815969118` for one-id-per-line `relieves` cites. Bound remedy items 1–6 and P* → lines are the same coverage map under a parseable cite form.\n- No disposition change: grammar fix does not add or drop Bound-remedy coverage; it does not reopen a block.\n\n## Injection / swarm lens\n\nTriggered on the underlying authority target; unchanged by this coverage pass. Bound remedy still keeps merge-base evaluate input, agent/CI refuse, same-PR rewrite refuse, and bans parent-agent auto-approve. No new shared-state hole from affirming these relieves on the grammar Recut lean.\n\n## Road-not-taken / steelman\n\nFork: treat P3 as blocking because Bound remedy never gives operator-gone a way to approve a hard fact.\n\nRejected. Desired posture and accepted round-1 finding #3 already forbid substitute approval; #4597/#4598 pain is the false TTY-mint recipe under no TTY. Rewrite/park is the Bound-remedy coverage of that stuckness. Flip condition for blocking: evidence that Stop 1 P3 required a headless approval path as acceptance, which the warrant and lean both refuse.\n\nSecond fork: treat prior footnote-only audit `5816074337` as already clearing this lean.\n\nRejected. Contract requires a critic after the later bind lean when asserted coverage moves by Recut-supersedes; this post is that targeting.\n\n## Census\n\n- `blocks-the-design`: none\n- `sharpens-framing`: none\n- `footnote`: 4 (above)\n\nFootnote-only. Bind map on successor lean `5816099452` stays bindable without an extra lean. This pain-audit is not itself relief clearance beyond targeting the asserted cites on this lean.",
+          "id": 5816137920,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5816137920",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:31:00Z",
+          "updated_at": "2026-09-24T14:31:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Leave-harness TTY mint is the correct normal authority path for mid-build intent-constraint / observable-scope hard facts even when the operator is in a harness or gone | does-not-survive | Round-1 critic 5815953995; pain-audits 5816074337 and 5816137920 footnote-only on relieves |\n| Human approval of remaining hard facts must survive | uphold | Round-1 injection/swarm lens + Bound remedy keeps humanApproval stamp |\n| Merge-base JSON under `.deft/intent-constraint/` and `.deft/observable-scope/` remains the evaluate authority store | uphold | Pin evaluate/mint paths; round-1 finding 1 accept-into-contract |\n| Returned-failure-only changes are already free in extract | uphold | Pin leftover clause; round-1 finding 2 |\n| Unattended / operator-gone path is rewrite/park fail-closed | uphold | Round-1 finding 3; pain-audit P3 reframe footnotes |\n| Per-id relieves cites on Recut lean 5816099452 cover P1–P5 | uphold | Pain-audit 5816137920 footnote-only |\n\nBound contract: successor lean 5816099452.\r\n\n",
+          "id": 5816147711,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5816147711",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:31:36Z",
+          "updated_at": "2026-09-24T14:31:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nMid-build hard facts for intent-constraint and observable-scope still need a human decision, but leave-harness TTY mint is the wrong normal surface. Keep merge-base JSON + humanApproval as the durable store. Collect that stamp from an attended in-harness ask. When nobody is present, rewrite or park. Returned failures are already free in extract. Recut docs that still print TTY mint as the primary fail path.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5816099452.\r\n\n",
+          "id": 5816148182,
+          "html_url": "https://github.com/deftai/directive/issues/5010#issuecomment-5816148182",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T14:31:38Z",
+          "updated_at": "2026-09-24T14:31:38Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5569504155,
+        "origin": "deftai/directive#5010",
+        "id": "github.issue.5569504155"
+      },
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/docs/intent-constraint.md",
+          "content/docs/observable-scope.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "packages/cli/src/scope-record-intent-constraint.test.ts",
+          "packages/cli/src/scope-record-intent-constraint.ts",
+          "packages/cli/src/scope-record-observable-scope.test.ts",
+          "packages/cli/src/scope-record-observable-scope.ts",
+          "packages/cli/src/verify-intent-constraint.test.ts",
+          "packages/cli/src/verify-intent-constraint.ts",
+          "packages/cli/src/verify-observable-scope.test.ts",
+          "packages/cli/src/verify-observable-scope.ts",
+          "packages/core/src/intent-constraint",
+          "packages/core/src/observable-scope",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5014,
+        "prBase": null,
+        "mergeCommit": "84e63813c1ad696248a42636335a10515d6793cb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "84e63813c1ad696248a42636335a10515d6793cb",
+        "verifiedAt": "2026-09-24T16:50:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-24T16:50:21Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-24T16:50:21Z"
+      }
+    },
+    "id": "github.issue.5569504155",
+    "updated": "2026-09-24T16:50:21Z"
+  }
+}
