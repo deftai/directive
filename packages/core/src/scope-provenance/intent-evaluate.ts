@@ -52,10 +52,12 @@ export interface IntentEvaluateInput {
   readonly baseRef: string | null;
   readonly changedFiles: readonly string[];
   /**
-   * Merge-base file read. Return text, `null` for a true missing path, or throw
-   * on Git/read failure — errors must not be collapsed to `null` (#4956).
+   * Merge-base file read. Return text, `null` for a true missing path, or
+   * `{ error }` on Git/read failure — errors must not be collapsed to `null`
+   * (#4956). Throwing is still accepted for older test seams and is mapped to
+   * the same fail-closed finding (no new production throw-site).
    */
-  readonly readAtBase?: (relPath: string) => string | null;
+  readonly readAtBase?: (relPath: string) => string | null | { readonly error: string };
   readonly approvedReposSeed?: readonly string[];
 }
 
@@ -113,6 +115,9 @@ function readBase(input: IntentEvaluateInput, rel: string): IntentBaseContent {
   try {
     const raw = input.readAtBase(rel);
     if (raw === null) return { status: "missing" };
+    if (typeof raw === "object" && "error" in raw) {
+      return { status: "error", message: raw.error };
+    }
     return { status: "ok", text: raw };
   } catch (err) {
     return {

@@ -840,10 +840,10 @@ export function evaluateScopeProvenance(
       readAtBase: (baseRel) => {
         const r = readAtBase(baseRel);
         if (r.kind === "text") return r.text;
-        // Missing stays null; Git/read errors must throw so intent eval fails
-        // closed instead of treating the path as absent (#4956 / Greptile).
+        // Missing stays null; Git/read errors return { error } so intent eval
+        // fails closed without a mintable throw-site (#4956 / Greptile).
         if (r.kind === "error") {
-          throw new Error(r.message);
+          return { error: r.message };
         }
         return null;
       },

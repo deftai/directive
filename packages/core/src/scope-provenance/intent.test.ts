@@ -477,6 +477,13 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
     expect(
       threw.some((f) => f.kind === "intent-parse-error" && /fail closed/i.test(f.detail)),
     ).toBe(true);
+    const returned = evaluateIntentForXbrief({
+      ...base,
+      readAtBase: () => ({ error: "git show interrupted" }),
+    });
+    expect(
+      returned.some((f) => f.kind === "intent-parse-error" && /fail closed/i.test(f.detail)),
+    ).toBe(true);
     const missing = evaluateIntentForXbrief({
       ...base,
       readAtBase: () => null,
