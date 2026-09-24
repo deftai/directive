@@ -57,14 +57,11 @@
         "id": "clause.4",
         "title": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json.",
         "status": "completed",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up under #4832 — not claimed complete by this leftover twin.",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams"
-          },
-          "recorded_at": "2026-09-24T20:53:44.293Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
+          "recorded_at": "2026-09-24T20:54:25.993Z",
+          "recorded_by": "MScottAdams"
         }
       },
       {
