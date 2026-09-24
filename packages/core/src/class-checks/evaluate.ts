@@ -482,21 +482,24 @@ export function scanTestIdentityInInfra(
   if (!looksLikeInfraPath(relPath)) return null;
   if (markers.length === 0) return null;
   const markerAlt = markers.map(escapeRegExp).join("|");
-  // Require an identity/role/principal/credential keyword near a marker token.
+  // Marker must sit in a name/id/value binding near an identity keyword — not
+  // anywhere in a wide window (tags, comments, adjacent decls, resource labels).
   const declRe = new RegExp(
     `(?:identity|role(?:Definition|Assignment)?|principal|credential|client[_-]?Id|` +
       `user[_-]?assigned|service[_-]?principal|managed[_-]?identity|` +
       `roleName|principalId|identityName)` +
-      `[\\s\\S]{0,160}?(?:${markerAlt})`,
+      `[\\s\\S]{0,80}?` +
+      `(?:name|id|value|key|clientId|principalId|identityName|roleName)\\s*[:=]\\s*` +
+      `["'\`][^"'\`]{0,120}?\\b(?:${markerAlt})\\b[^"'\`]{0,120}?["'\`]`,
     "i",
   );
-  // name/id/value alone is not enough — require an identity keyword in the
-  // quoted value (resourceRe) or near a declaration keyword (declRe).
+  // Quoted value must combine a marker token with an identity keyword.
   const resourceRe = new RegExp(
-    `["'\`][^"'\`]*(?:${markerAlt})[^"'\`]*(?:identity|role|principal|credential)[^"'\`]*["'\`]` +
-      `|["'\`][^"'\`]*(?:identity|role|principal|credential)[^"'\`]*(?:${markerAlt})[^"'\`]*["'\`]`,
+    `["'\`][^"'\`]*\\b(?:${markerAlt})\\b[^"'\`]*(?:identity|role|principal|credential)[^"'\`]*["'\`]` +
+      `|["'\`][^"'\`]*(?:identity|role|principal|credential)[^"'\`]*\\b(?:${markerAlt})\\b[^"'\`]*["'\`]`,
     "i",
   );
+
   if (declRe.test(content) || resourceRe.test(content)) {
     return {
       path: relPath,

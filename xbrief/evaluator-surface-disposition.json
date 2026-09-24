@@ -3,6 +3,7 @@
   "kind": "disclosure",
   "issue": 4980,
   "surfaces": [
+    "Taskfile.yml",
     "tasks/verify.yml",
     "packages/core/src/check/gate-lists.ts",
     "packages/core/src/consumer-check-contract/evaluate.ts",

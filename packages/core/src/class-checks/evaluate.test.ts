@@ -57,6 +57,33 @@ resource appId 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
 `;
     expect(scanTestIdentityInInfra("infra/main.bicep", content, ["smoke", "test"])).toBeNull();
   });
+
+  it("does not reject production identity when an unrelated marker is nearby", () => {
+    const content = `
+resource appId 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'app-prod-identity'
+  tags: {
+    stage: 'canary'
+    purpose: 'smoke rollout'
+  }
+}
+// adjacent comment mentions test fixtures for docs only
+`;
+    expect(
+      scanTestIdentityInInfra("infra/main.bicep", content, ["smoke", "test", "canary"]),
+    ).toBeNull();
+  });
+
+  it("does not treat a resource label marker as a bound test identity", () => {
+    const content = `
+resource "azurerm_user_assigned_identity" "test" {
+  name = "app-prod-identity"
+}
+`;
+    expect(
+      scanTestIdentityInInfra("infra/main.tf", content, ["smoke", "test", "canary"]),
+    ).toBeNull();
+  });
 });
 
 describe("evaluateClassChecks (#4980)", () => {
