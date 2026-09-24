@@ -7,7 +7,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import {
   isRecognizedTestBasename,
@@ -22,9 +22,9 @@ import {
   type TestBoundaryPolicy,
 } from "../test-boundary/policy.js";
 import {
+  type ClassChecksPolicy,
   defaultClassChecksPolicy,
   loadClassChecksPolicy,
-  type ClassChecksPolicy,
 } from "./policy.js";
 
 export type ClassCheckKind =
@@ -183,7 +183,9 @@ function parseTestBoundaryPolicyText(
   }
   const asStringArray = (v: unknown): string[] =>
     Array.isArray(v)
-      ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((s) => s.trim())
+      ? v
+          .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+          .map((s) => s.trim())
       : [];
   const asAllow = (v: unknown): TestBoundaryAllowEntry[] => {
     if (!Array.isArray(v)) return [];
@@ -446,7 +448,8 @@ export function scanTestIdentityInInfra(
     return {
       path: relPath,
       kind: "test-identity-in-infra",
-      detail: "infrastructure declaration binds a test-marker identity/role/principal/credential (class 3)",
+      detail:
+        "infrastructure declaration binds a test-marker identity/role/principal/credential (class 3)",
       remediation: MOVE_OR_REMOVE,
     };
   }
@@ -567,9 +570,7 @@ export function evaluateClassChecks(
   const findings: ClassCheckFinding[] = [];
   const policyEditPath =
     options.policyEditPath ??
-    changed.find((p) =>
-      TEST_BOUNDARY_POLICY_PATHS.some((k) => normalizeRepoRelPath(p) === k),
-    ) ??
+    changed.find((p) => TEST_BOUNDARY_POLICY_PATHS.some((k) => normalizeRepoRelPath(p) === k)) ??
     null;
 
   // Class 1 + 2 + 3 over changed files only (diff-scoped).
@@ -633,14 +634,12 @@ export function evaluateClassChecks(
   // Same-PR allow / warn flip that would clear a class-1/2 hit.
   if (policyEditPath !== null && headTb !== null && findings.length > 0) {
     const class12 = findings.filter(
-      (f) =>
-        f.kind === "test-under-source-root" || f.kind === "production-references-test-root",
+      (f) => f.kind === "test-under-source-root" || f.kind === "production-references-test-root",
     );
     for (const f of class12) {
       const clearedByHeadAllow = isAllowListed(f.path, headTb.allow) !== null;
       const clearedByBaseAllow = isAllowListed(f.path, baseTb.allow) !== null;
-      const warnFlip =
-        baseTb.enforcementMode === "enforce" && headTb.enforcementMode === "warn";
+      const warnFlip = baseTb.enforcementMode === "enforce" && headTb.enforcementMode === "warn";
       if ((clearedByHeadAllow && !clearedByBaseAllow) || warnFlip) {
         findings.push({
           path: normalizeRepoRelPath(policyEditPath),
@@ -661,8 +660,7 @@ export function evaluateClassChecks(
     return {
       exitCode: 0,
       findings,
-      message:
-        `verify_class_checks: clean (${changed.length} changed file(s) vs ${baseRef}) (#4980).`,
+      message: `verify_class_checks: clean (${changed.length} changed file(s) vs ${baseRef}) (#4980).`,
     };
   }
 
@@ -674,8 +672,7 @@ export function evaluateClassChecks(
         `  ${f.path}\n    kind: ${f.kind}\n    detail: ${f.detail}\n    remediation: ${f.remediation}`,
     )
     .join("\n");
-  const truncated =
-    findings.length > 50 ? `\n  … and ${findings.length - 50} more.` : "";
+  const truncated = findings.length > 50 ? `\n  … and ${findings.length - 50} more.` : "";
   const message = `${header}\n${body}${truncated}`;
   if (/scope:record-approved-scope/i.test(message)) {
     return configError(

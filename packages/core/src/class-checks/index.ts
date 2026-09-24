@@ -3,18 +3,18 @@
  */
 
 export {
-  evaluateClassChecks,
-  resolveClassCheckBaseRef,
-  scanTestIdentityInInfra,
   type ClassCheckFinding,
   type ClassCheckKind,
   type ClassCheckOptions,
   type ClassCheckResult,
+  evaluateClassChecks,
+  resolveClassCheckBaseRef,
+  scanTestIdentityInInfra,
 } from "./evaluate.js";
 export {
+  type ClassChecksPolicy,
   DEFAULT_PROTECTED_GLOBS,
   DEFAULT_TEST_MARKERS,
   defaultClassChecksPolicy,
   loadClassChecksPolicy,
-  type ClassChecksPolicy,
 } from "./policy.js";
