@@ -10,12 +10,12 @@ import {
 import {
   clearWriteFenceMemosForTests,
   extractStoryFileScope,
+  isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromBaseRaw,
   loadStoryWriteFenceFromMergeBase,
   loadStoryWriteFenceFromPath,
   normalizeStoryWriteScope,
   resolveWriteFence,
-  StoryWriteFenceUnreadableError,
 } from "./write-fence.js";
 
 describe("resolveWriteFence (#516 / #2443 / #2948 Wave 3)", () => {
@@ -213,17 +213,19 @@ describe("story write fence fail-closed (#4956)", () => {
     });
   });
 
-  it("throws when the live brief path exists but is unreadable JSON", () => {
+  it("returns unreadableDetail when the live brief path exists but is unreadable JSON", () => {
     const dir = mkdtempSync(join(tmpdir(), "fence-corrupt-4956-"));
     const path = join(dir, "story.xbrief.json");
     writeFileSync(path, "{not-json");
-    expect(() => loadStoryWriteFenceFromPath(path)).toThrow(StoryWriteFenceUnreadableError);
+    const loaded = loadStoryWriteFenceFromPath(path);
+    expect(isStoryWriteFenceUnreadable(loaded)).toBe(true);
+    expect(loaded.unreadableDetail).toMatch(/unreadable/);
   });
 
-  it("throws when base raw is malformed JSON", () => {
-    expect(() => loadStoryWriteFenceFromBaseRaw("{not-json", "base:story")).toThrow(
-      StoryWriteFenceUnreadableError,
-    );
+  it("returns unreadableDetail when base raw is malformed JSON", () => {
+    const loaded = loadStoryWriteFenceFromBaseRaw("{not-json", "base:story");
+    expect(isStoryWriteFenceUnreadable(loaded)).toBe(true);
+    expect(loaded.unreadableDetail).toMatch(/base:story/);
   });
 
   it("treats a non-git project root as an inactive fence (hook fixtures)", () => {

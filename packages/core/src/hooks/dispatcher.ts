@@ -41,7 +41,12 @@ import {
   type RuntimeAuthorityPolicy,
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
-import { loadStoryWriteFenceFromMergeBase, resolveWriteFence } from "../policy/write-fence.js";
+import {
+  isStoryWriteFenceUnreadable,
+  loadStoryWriteFenceFromMergeBase,
+  resolveWriteFence,
+  type StoryWriteFenceView,
+} from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   appendSoftAgentsRebindToMessage,
@@ -442,7 +447,7 @@ export interface HookPolicySeams {
   readonly loadStoryWriteFence?: (
     projectRoot: string,
     scopePath: string | null,
-  ) => { readonly fileScope: readonly string[]; readonly denyPaths: readonly string[] };
+  ) => StoryWriteFenceView;
   /** Test seam for #2944 UAT lease + human-origin grants. */
   readonly loadAuthzState?: (projectRoot: string) => AuthzState;
   readonly loadAuthzGrants?: (
@@ -1052,7 +1057,7 @@ function runtimeAuthorityForDirectWrite(
   // Wave 3 unified write fence: intersect project runtimeAuthority with active
   // story file_scope (#516 / #2443 / #2948). Single evaluation SoT via
   // evaluateRuntimeAuthorityDirectWrite — no parallel writeScope engine.
-  let storyFence: { fileScope: readonly string[]; denyPaths: readonly string[] };
+  let storyFence: StoryWriteFenceView;
   try {
     storyFence = seams.loadStoryWriteFence
       ? seams.loadStoryWriteFence(fenceRoot, scopePath)
@@ -1066,6 +1071,16 @@ function runtimeAuthorityForDirectWrite(
       toolName,
       "Directive denied this direct write: story write fence could not be read " +
         `(${detail}). Fail closed (#4956).`,
+      scopePath,
+    );
+  }
+  if (isStoryWriteFenceUnreadable(storyFence)) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      "Directive denied this direct write: story write fence could not be read " +
+        `(${storyFence.unreadableDetail}). Fail closed (#4956).`,
       scopePath,
     );
   }

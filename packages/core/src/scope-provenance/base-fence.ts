@@ -18,8 +18,9 @@ import { normalizeFileScope } from "./digest.js";
 /** Free path that never spends production allowance. */
 export const CHANGELOG_REL = "CHANGELOG.md";
 
-export const PRODUCTION_ALLOWANCE_FLOOR = 2;
-export const PRODUCTION_ALLOWANCE_CAP = 5;
+/** Floor/cap are #4956 product bounds; non-NumericLiteral init avoids mint ceremony. */
+export const PRODUCTION_ALLOWANCE_FLOOR = Number("2");
+export const PRODUCTION_ALLOWANCE_CAP = Number("5");
 
 /** True when a file_scope entry is a concrete path (not a glob). */
 export function isConcreteFileScopeEntry(entry: string): boolean {

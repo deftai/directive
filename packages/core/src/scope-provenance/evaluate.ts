@@ -191,16 +191,26 @@ function isGitMissingPathDetail(detail: string): boolean {
   );
 }
 
-/** Read a repo-relative path as of `ref` (null if missing; throws on other git failures). */
-function readRepoFileAtRef(projectRoot: string, ref: string, relPath: string): string | null {
+type ReadRepoFileAtRefResult =
+  | { readonly status: "ok"; readonly text: string }
+  | { readonly status: "missing" }
+  | { readonly status: "error"; readonly message: string };
+
+/** Read a repo-relative path as of `ref` (missing vs other git failures distinguished). */
+function readRepoFileAtRef(
+  projectRoot: string,
+  ref: string,
+  relPath: string,
+): ReadRepoFileAtRefResult {
   const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
   const result = git(["show", `${ref}:${path}`], projectRoot);
-  if (result.status === 0) return result.stdout;
+  if (result.status === 0) return { status: "ok", text: result.stdout };
   const detail = result.stdout.trim();
-  if (isGitMissingPathDetail(detail)) return null;
-  throw new GitCommandError(
-    `git show ${ref}:${path} failed: ${detail.length > 0 ? detail : `exit ${String(result.status)}`}`,
-  );
+  if (isGitMissingPathDetail(detail)) return { status: "missing" };
+  return {
+    status: "error",
+    message: `git show ${ref}:${path} failed: ${detail.length > 0 ? detail : `exit ${String(result.status)}`}`,
+  };
 }
 
 function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
@@ -349,14 +359,14 @@ export function baseApprovalAuthorizesCurrent(input: {
   readonly currentApproved: ApprovedScopeRecord;
 }): boolean {
   if (input.baseRef === null || input.baseRef === "") return false;
-  let baseRaw: string | null;
-  try {
-    baseRaw = readRepoFileAtRef(input.projectRoot, input.baseRef, input.approvalRecordRel);
-  } catch {
-    // Fail closed: a base-read error cannot authorize expansion.
-    return false;
-  }
-  if (baseRaw === null) return false;
+  const baseRead = readRepoFileAtRef(
+    input.projectRoot,
+    input.baseRef,
+    input.approvalRecordRel,
+  );
+  // Fail closed: a base-read error cannot authorize expansion.
+  if (baseRead.status !== "ok") return false;
+  const baseRaw = baseRead.text;
   const baseRec = parseApprovedScopeRecordRaw(baseRaw);
   if (baseRec === null) return false;
   if (!isHumanApprovalStamp(baseRec.humanApproval)) return false;
@@ -636,16 +646,36 @@ export function evaluateScopeProvenance(
     }
     const approvalRecordRewritten = approvalInGitChange || approvalDiskOnly || preimageInGitChange;
 
-    const readAtBase = (baseRel: string): string | null => {
+    type BaseBriefRead =
+      | { readonly kind: "text"; readonly text: string }
+      | { readonly kind: "missing" }
+      | { readonly kind: "error"; readonly message: string };
+
+    const readAtBase = (baseRel: string): BaseBriefRead => {
       if (options.baseXbriefs !== undefined) {
         // Injected base map is authoritative: absent key means missing on base.
         const injected = options.baseXbriefs.get(normalizeRepoRelPath(baseRel));
-        return injected === undefined ? null : injected;
+        return injected === undefined
+          ? { kind: "missing" }
+          : { kind: "text", text: injected };
       }
-      if (options.readAtBase !== undefined) return options.readAtBase(baseRel);
-      if (discoveryBaseRef === null || discoveryBaseRef === "") return null;
-      // Throw on non-missing git failures so the fence fails closed (#4956).
-      return readRepoFileAtRef(root, discoveryBaseRef, baseRel);
+      if (options.readAtBase !== undefined) {
+        try {
+          const injected = options.readAtBase(baseRel);
+          return injected === null ? { kind: "missing" } : { kind: "text", text: injected };
+        } catch (err) {
+          return {
+            kind: "error",
+            message: err instanceof Error ? err.message : String(err),
+          };
+        }
+      }
+      if (discoveryBaseRef === null || discoveryBaseRef === "") return { kind: "missing" };
+      // Non-missing git failures fail closed via kind:error (#4956).
+      const read = readRepoFileAtRef(root, discoveryBaseRef, baseRel);
+      if (read.status === "ok") return { kind: "text", text: read.text };
+      if (read.status === "missing") return { kind: "missing" };
+      return { kind: "error", message: read.message };
     };
 
     // Same-PR approved-scope rewrite still fails closed when a digest file is
@@ -670,23 +700,21 @@ export function evaluateScopeProvenance(
 
     // Path fence (#4956): compare changed production files to the merge-base
     // brief file_scope. Never read the head brief for the fence list.
-    let baseBriefRaw: string | null;
-    try {
-      baseBriefRaw = readAtBase(rel);
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
+    const baseBriefRead = readAtBase(rel);
+    if (baseBriefRead.kind === "error") {
       findings.push({
         xbriefRelPath: rel,
         planId: planId ?? rel,
         kind: "production-scope-over-budget",
         expandedPaths: [],
-        detail: `merge-base brief read failed for ${rel}: ${detail}; fail closed (#4956)`,
+        detail: `merge-base brief read failed for ${rel}: ${baseBriefRead.message}; fail closed (#4956)`,
         remediation:
           "Fix the merge-base git read (fetch the base ref / repair the object) before changing " +
           "production paths. There is no scope ceremony for proceed (#4956).",
       });
       continue;
     }
+    const baseBriefRaw = baseBriefRead.kind === "text" ? baseBriefRead.text : null;
     if (baseBriefRaw !== null) {
       let basePayload: unknown = null;
       try {
@@ -716,21 +744,19 @@ export function evaluateScopeProvenance(
         let peerBaseFailure: { readonly peerRel: string; readonly detail: string } | null = null;
         for (const other of activeEntries) {
           if (other.rel === rel) continue;
-          let otherBaseRaw: string | null;
-          try {
-            otherBaseRaw = readAtBase(other.rel);
-          } catch (err) {
-            const detail = err instanceof Error ? err.message : String(err);
+          const otherBaseRead = readAtBase(other.rel);
+          if (otherBaseRead.kind === "error") {
             peerBaseFailure = {
               peerRel: other.rel,
-              detail: `merge-base peer brief read failed: ${detail}`,
+              detail: `merge-base peer brief read failed: ${otherBaseRead.message}`,
             };
             break;
           }
-          if (otherBaseRaw === null) {
+          if (otherBaseRead.kind === "missing") {
             // Peer exists only on HEAD: no merge-base claim to attribute.
             continue;
           }
+          const otherBaseRaw = otherBaseRead.text;
           try {
             otherClaims.push(
               normalizeFileScope(extractFileScope(JSON.parse(otherBaseRaw) as unknown)),
@@ -817,7 +843,11 @@ export function evaluateScopeProvenance(
       currentScopeNonEmpty: normalizeFileScope(extractFileScope(payload)).length > 0,
       baseRef: discoveryBaseRef,
       changedFiles: changed,
-      readAtBase,
+      readAtBase: (baseRel) => {
+        const r = readAtBase(baseRel);
+        if (r.kind === "text") return r.text;
+        return null;
+      },
       approvedReposSeed: options.approvedReposSeed,
     });
     for (const hit of intentHits) {
