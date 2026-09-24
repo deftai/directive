@@ -1,16 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5010,
+  "issue": 5022,
   "surfaces": [
-    "packages/cli/src/scope-record-intent-constraint.ts",
-    "packages/cli/src/scope-record-intent-constraint.test.ts",
-    "packages/cli/src/scope-record-observable-scope.ts",
-    "packages/cli/src/scope-record-observable-scope.test.ts",
-    "packages/core/src/check/named-cause.ts",
-    "packages/core/src/intent-constraint/**",
-    "packages/core/src/observable-scope/**",
+    "vitest.config.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #5010 remediation/docs recut of intent-constraint and observable-scope mid-build fail path (in-harness ask / rewrite-park; TTY mint legacy repair). Not reviewed authorization under #3164."
+  "note": "Disclosure for #5022 Windows Step 5 spawn-heavy cheapen of vitest.config.ts spawnHeavyGlobs (disclosure only; not #3164 authorization)."
 }
