@@ -1,0 +1,409 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4882",
+    "updated": "2026-09-24T20:24:31Z"
+  },
+  "plan": {
+    "title": "Parent-retained merge babysit stands down with no live wait",
+    "status": "completed",
+    "narratives": {
+      "Description": "Parent-retained merge babysit stands down with no live wait",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4882",
+      "Overview": "Parent: #4832\n\n## Finding\n\nA pull request was reported merge-ready with zero agents or monitors running, and the parent had only promised to merge as pull requests went clean. The unarmed stand-down is a fresh lease whose process has already exited, so nothing wakes when the pull request becomes mergeable.\n\nSplit out of #4832 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: SWARM\n- Priority: High (audit scale S2)\n- Source: #4832\n\n",
+      "Labels": "bug, swarm, agent-experience, process, grok-build, source-of-truth, area:cli, area:skills, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:swarm"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
+          "recorded_at": "2026-09-24T20:24:30.562Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
+          "recorded_at": "2026-09-24T20:24:30.562Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "If a consumer wraps pr:watch --json, it MUST parse the full stdout JSON value (pretty-printed multi-line is valid). Line-splitting that drops CLEAN is a defect; prefer Approach 1 / native pr:watch over homemade DONE scripts.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
+          "recorded_at": "2026-09-24T20:24:30.562Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
+          "recorded_at": "2026-09-24T20:24:30.562Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "CHANGELOG Unreleased notes the closer/babysit wake fix; review-cycle and swarm/preamble prose name the durable-wait obligation.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5018#7234a9dd9231cc64a094a16f44c03080a713427e",
+          "recorded_at": "2026-09-24T20:24:30.562Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "source-of-truth",
+      "area:cli",
+      "area:skills",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4882: Parent-retained merge babysit stands down with no live wait"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/pr-watch/main.test.ts packages/cli/src/verify-review-monitor.test.ts --reporter=dot"
+      ],
+      "none_stated": false,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)",
+      "sentences": [
+        "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback.",
+        "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned.",
+        "If a consumer wraps pr:watch --json, it MUST parse the full stdout JSON value (pretty-printed multi-line is valid). Line-splitting that drops CLEAN is a defect; prefer Approach 1 / native pr:watch over homemade DONE scripts.",
+        "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json.",
+        "CHANGELOG Unreleased notes the closer/babysit wake fix; review-cycle and swarm/preamble prose name the durable-wait obligation."
+      ],
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback."
+        },
+        {
+          "id": "clause.2",
+          "text": "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned."
+        },
+        {
+          "id": "clause.3",
+          "text": "If a consumer wraps pr:watch --json, it MUST parse the full stdout JSON value (pretty-printed multi-line is valid). Line-splitting that drops CLEAN is a defect; prefer Approach 1 / native pr:watch over homemade DONE scripts."
+        },
+        {
+          "id": "clause.4",
+          "text": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json."
+        },
+        {
+          "id": "clause.5",
+          "text": "CHANGELOG Unreleased notes the closer/babysit wake fix; review-cycle and swarm/preamble prose name the durable-wait obligation."
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Dogfood pointer from parent #4832: leftover PR #5015 was MERGE-READY / Greptile CLEAN while a live homemade `pr-watch --json` poller never woke, because it line-parsed pretty-printed multi-line JSON and never saw CLEAN. Full write-up on #4832 (comment just filed). Same unarmed/wrong-wait class as this child; mechanism is “alive but blind” rather than “process exited.”\r\n\n",
+          "id": 5818705166,
+          "html_url": "https://github.com/deftai/directive/issues/4882#issuecomment-5818705166",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T17:12:39Z",
+          "updated_at": "2026-09-24T17:12:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a parent-retained merge path can stand down with zero live waits while an open merge-path PR becomes MERGE-READY: a fresh review-monitor lease whose process has already exited still looks armed to `verify:l4-owner`, and Path B yield-with-wake counts as in-progress with no child that can wake.\n\ncharter: refutation\nrefutation-target: A fresh sticky lease (`ended_at` null, before `expires_at`) or a Path B prose promise to merge on CLEAN is a sufficient arm for an open merge-path PR, even when no `pr:watch` / Approach 1 child / post-CLEAN `pr:wait-mergeable-and-merge` process is still running.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nOperator go-ahead on the #4832 recommendation: label + yolo no-ingest arc this child at N=1. Parent tracker #4832 lean 5769955875 already split the one-failure sentence; this number owns the unarmed-stand-down / live-process observer remainder (P1/P2-class). #4883 closed. P4 on the tracker stays legal quiet end (comment 5818860957). N=1.\n\npain: P1, P2, P3\n\nP1. Parent-retained / Path B stand-down leaves an open merge-path PR with no live phase-correct wait (pre-CLEAN `pr:watch` / Approach 1, or post-CLEAN `pr:wait-mergeable-and-merge`) and no explicit option-C finish, so nothing wakes on MERGE-READY / CLEAN.\nP2. `isLeaseActive` / `verify:l4-owner` treat an unexpired lease as ready after the monitor process has exited (including exit 127 / dead child), so lease presence is not a live arm.\nP3. Ad-hoc homemade pollers (dogfood on #4832/#5015: pretty-printed `pr-watch --json` line-parsed) can stay alive yet never wake — wrong durable wait, same abandonment class.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4882-dc\norigin-ref: origin/master\ndispatch-sha: 92b74e960919ac41b922abc9e0498b66e4066383\npin-kind: origin-default\ntarget-digest: sha256:e0cf4518ddcc2426525217a27b92ba5fc3b21082555aa0a0f9177ba6756c914b\n\nPin reads use git show 92b74e960919ac41b922abc9e0498b66e4066383. Prior art: parent #4832 critic 5769940891 + lean 5769955875 Bound remedy (observer per open merge-path PR; armed = live process or explicit finish; keep CLEAN-split arms; no third poller). Mergeable conjunct lives on closed #4883. This host spawn schema has no process_only field; single Grok seat is the grok CLI.\r\n\n",
+          "id": 5818875973,
+          "html_url": "https://github.com/deftai/directive/issues/4882#issuecomment-5818875973",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T17:24:26Z",
+          "updated_at": "2026-09-24T17:24:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4882\nCharter: refutation. Spend on the Stop 1 write-back is N=1. Only seat.\nRound: 1 critic. Fresh critic.\nId ceiling (inclusive): 5818875973\nSHA at dispatch: 92b74e960919ac41b922abc9e0498b66e4066383\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4882\naudit-targets: none\nSeat: grok. Launcher: grok.\n\n## Verdict\n\ndoes-not-survive\n\nThe Stop 1 refutation-target does not survive. A fresh sticky lease (`ended_at` null, before `expires_at`) is not a sufficient arm for an open merge-path PR: `isLeaseActive` and `verify:l4-owner` treat that lease as ready with no process check, while Owner Continuity path A already requires a live monitor plus the lease. A Path B prose promise to merge on CLEAN is also not a sufficient arm when no phase-correct wait is still running and no explicit option-C finish was emitted: yield-with-wake can keep `review_cycle: in_progress:…#parent-retained` while nothing wakes on MERGE-READY / CLEAN. The unarmed stand-down (open merge-path PR, turn ended with no live wait and no explicit finish) is already the named failure this child owns. Prior art on #4832 (critic 5769940891, lean 5769955875) already split CONFLICTING-while-READY onto closed #4883 and kept explicit BLOCKED as a legal end (P4, comment 5818860957).\n\n## Inventory\n\nPin reads at `92b74e960919ac41b922abc9e0498b66e4066383`. Ceiling includes Stop 1 `5818875973` and dogfood pointer `5818705166`. Prior art fetched as data: #4832 critic `5769940891`, lean `5769955875`, P4 note `5818860957`.\n\n- Owner Continuity (#3090): same turn ends in A (live Approach 1 monitor + sticky lease), B (parent-retained with next concrete action), or C (explicit BLOCKED / FAILED). Silent hold is zero children, no sticky lease, and no finish signal. `content/skills/deft-directive-review-cycle/SKILL.md:562-584`.\n- Path B yield-with-wake re-enters on the next operator message or scheduled re-invocation. `SKILL.md:618`. Stand-down at CLEAN with no reachable durable owner remains forbidden. `SKILL.md:622` and partner anti-patterns around `:990`.\n- Pre-CLEAN durable wait is blocking `pr:watch` or an Approach 1 child. Post-CLEAN closer is `pr:wait-mergeable-and-merge`. Starting wait-merge earlier is forbidden; a third poller is forbidden. `SKILL.md:406-427`; swarm `content/skills/deft-directive-swarm/SKILL.md:166`.\n- `pr:watch` CLEAN is SHA-matched review, confidence at floor, no P0/P1, CI green. `packages/core/src/pr-watch/constants.ts:11-16`. A background shell `pr:watch` is not a monitor. `SKILL.md:658`.\n- At this SHA, empty-failure MERGE-READY already requires GitHub mergeable clean (`finalizeVerdictGate` / `isGithubMergeableClean`) — closed #4883 land. That conjunct is prior split, not this child's remainder.\n- `isLeaseActive` is true when `ended_at` is null and now is before `expires_at` (optional headSha match). No process liveness check. `packages/core/src/review-monitor/lease-comment.ts:144-166`.\n- `verify:l4-owner` exits 0 on that fresh sticky lease (path=lease) and not-ready on parent-retained. `packages/core/src/review-monitor/l4-owner.ts:216-262`, `:292-293`.\n- Lease reads admit maintainer authorship only. `packages/core/src/review-monitor/github-lease.ts` (isMaintainerAuthored filter).\n- Hand-rolled `while pr:merge-ready` / ad-hoc cascade monitors are forbidden when wait-merge exists. `content/scm/github.md:311`.\n\n## F1 — Fresh sticky lease is not a sufficient arm\n\nblocks-the-design\n\nEvidence. The refutation-target asserts a fresh sticky lease is a sufficient arm even when no `pr:watch` / Approach 1 child / post-CLEAN wait-merge process is still running. Owner Continuity A requires an **active** child / monitor plus the sticky lease (`SKILL.md:566`). `isLeaseActive` only checks `ended_at` and `expires_at` (`lease-comment.ts:144-166`). `verify:l4-owner` then exits ready on that lease (`l4-owner.ts` path=lease). A monitor that has already exited, including exit 127 / missing-command hosts, leaves the lease ready until expiry. Silent hold forbids only the conjunction of zero children **and** no lease **and** no finish (`SKILL.md:584`), so a dead child plus an unexpired lease escapes the silent-hold forbid while still looking armed to the machine gate.\n\nFailure mode. A parent that trusts `verify:l4-owner` exit 0 stands down on a dead monitor. An open merge-path PR becomes MERGE-READY / CLEAN with nobody waking. The lease clause of the target premise therefore cannot bind as written.\n\nDisposition. Armed means a still-running phase-correct process (`pr:watch` not exited, Approach 1 child not exited, or post-CLEAN `pr:wait-mergeable-and-merge` still running) or an explicit option-C finish. An unexpired lease whose monitor has exited is unarmed. Drop \"fresh sticky lease … is a sufficient arm\" from the premise.\n\n## F2 — Path B prose promise without a live wait is unarmed stand-down\n\nblocks-the-design\n\nEvidence. The second disjunct of the target says a Path B prose promise to merge on CLEAN is a sufficient arm with no live wait. Path B emits `review_cycle: in_progress:<pr>#parent-retained` and must keep a next concrete action (`SKILL.md:567-568`, `:607`). Yield-with-wake re-enters only on the next operator message or scheduled re-invocation (`SKILL.md:618`). Approach 2 is not self-sustaining for swarm / hybrid setups: yielding ends the turn with no self-wake (`SKILL.md:780`, `:1030`). Dogfood on this thread (comment 5818705166) and parent #4832 records MERGE-READY while the owning session had already gone quiet. `verify:l4-owner` already refuses parent-retained as machine-ready (`l4-owner.ts:262`), so Path B is process evidence only — and that process evidence does not create a wake when no phase-correct wait is running.\n\nFailure mode. Parent-retained babysit ends the turn with a prose promise, zero live waits, and an open merge-path PR. MERGE-READY / CLEAN arrives; nothing wakes. That is exactly the title failure of #4882 (P1). Treating the prose promise as a sufficient arm blocks binding the observer remainder.\n\nDisposition. Path B remains a legal ownership path only while a live phase-correct wait exists for that PR, or an explicit option-C finish was emitted. A bare promise / yield-with-wake with no live wait and no finish is unarmed stand-down. Grain is per open merge-path PR: a live waiter on one PR does not arm another. Keep the CLEAN-split arms; do not invent a third poller (`SKILL.md:427`, swarm `:166`). The missing piece is an observer that fails the turn when, for that PR, neither arm is live and option C was not emitted — same Bound remedy shape as lean 5769955875, now owned here as P1/P2 remainder.\n\n## F3 — Homemade / blind wait is the same abandonment class\n\nsharpens-framing\n\nEvidence. Stop 1 P3 and comment 5818705166: a homemade `pr-watch --json` line-parser stayed alive yet never saw CLEAN because pretty-printed multi-line JSON never produced a single-line object. `github.md:311` already forbids hand-rolled cascade loops when wait-merge exists. `SKILL.md:658` already says a background shell `pr:watch` is not a monitor.\n\nFailure mode. Counting any still-running process as armed would treat a blind homemade poller as a live arm. The PR goes MERGE-READY; the process never wakes; stand-down looks armed.\n\nDisposition. Phase-correct wait means the canonical surfaces (`pr:watch` / Approach 1 child pre-CLEAN; `pr:wait-mergeable-and-merge` post-CLEAN), invoked so their terminal verdict can wake the owner. Homemade parsers and background-shell claims stay forbidden / non-monitors. No new monitor class from the dogfood. Recovery is the existing arm or option C.\n\n## F4 — Mergeable conjunct and explicit BLOCKED stay outside this remainder\n\nfootnote\n\nEvidence. At this SHA, `finalizeVerdictGate` already refuses empty-failure MERGE-READY unless `isGithubMergeableClean` (`compute.ts` #4883 land). Operator P4 note 5818860957 keeps explicit BLOCKED / option-C as a legal quiet end; lean 5769955875 recorded `does-not-relieve: P4`.\n\nFailure mode. None for this child's observer remainder. Re-opening the mergeable conjunct or re-arming explicit BLOCKED would widen past the split.\n\nDisposition. Census only. #4883 stays closed prior art. P4 stays unmet / legal end.\n\n## Road not taken\n\nTreat lease freshness alone as the arm and teach Path B as always durable. That matches how `verify:l4-owner` reads today, and it is the cheapest prose change. It leaves the dead-monitor and yield-with-wake holes open, which is the dogfood.\n\n## Steelman\n\nThe sticky lease is the only durable cross-session record the machine gate can see. Path B is already named ownership. Requiring a live OS process is hard to observe from GitHub and fails when the parent legitimately yields under Gap D.\n\nWhat flips this verdict: `isLeaseActive` / `verify:l4-owner` gaining a live-process conjunct that actually wakes on MERGE-READY without a separate observer, **and** Path B yield-with-wake gaining a self-wake on gate CLEAN for each open merge-path PR. Neither holds at this SHA. Owner Continuity A already says \"active\" child (`SKILL.md:566`); the lease-only reading contradicts that sentence.\n\n## Swarm / injection lens\n\nThis target changes who may stand down, monitor concurrency, sticky-lease authority, and dest-worktree ownership on the merge path.\n\n- Armed bit is per open merge-path PR. A session-idle / cohort-idle flag that ignores per-PR waiters mis-marks a live `pr:watch` or live dest-cwd residual, and mis-marks a multi-PR cohort armed when only one PR has a waiter.\n- Lease comments stay maintainer-authored (`github-lease.ts`). Wake input is the gate verdict (and post-CLEAN mergeability), not stdout from a host script or a homemade JSON line-parser.\n- Dest worktrees: Grok through-merge keeps implement `stop-at: pr-open`, Approach 1 as wait owner, parent-retained / Phase 6 as closer after CLEAN via `pr:wait-mergeable-and-merge` (`SKILL.md:608`; swarm `:166`). Parent-inline residual when dest spawn is available stays forbidden. This critic is process-only on the shared no-ingest dest; it does not occupy or mutate.\n- Do not add a third poller. Do not start wait-merge before CLEAN. Do not treat a fresh lease or a Path B promise as authority to declare the PR attended.\n\n## Survive / does-not-survive\n\n- Refutation-target (fresh sticky lease **or** Path B prose promise is a sufficient arm with no live phase-correct wait): **does-not-survive**.\n- Unarmed stand-down as the named failure (open merge-path PR; turn ended with no live phase-correct wait and no explicit finish): **survives** as the next-build remainder this child owns.\n- CLEAN-split arms (`pr:watch` / Approach 1 pre-CLEAN; wait-merge post-CLEAN) and forbid on a third poller: **survive**.\n- Armed = still-running phase-correct process **or** explicit option-C finish; unexpired lease after process exit is unarmed: **survives** (required sharpening).\n- Explicit BLOCKED finish as legal end (P4): **survives** unmet.\n- Mergeable conjunct on empty-failure MERGE-READY: **survives** already landed on closed #4883; out of scope here.",
+          "id": 5818914109,
+          "html_url": "https://github.com/deftai/directive/issues/4882#issuecomment-5818914109",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T17:27:06Z",
+          "updated_at": "2026-09-24T17:27:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA parent-retained merge babysit can go quiet while a pull request is still on the merge path. A fresh sticky lease is not a live wait. A Path B promise to merge on CLEAN is not a live wait either when nothing is still running. Armed means a phase-correct process that is still running, or an explicit finish. This child binds an observer that fails the turn for each open merge-path PR when neither CLEAN-split arm is live and no explicit finish was emitted. It does not add a third poller. Mergeable-clean on MERGE-READY already landed on closed #4883. Explicit BLOCKED stays a legal quiet end.\n\n**Lean:**\n\nCeiling: Stop 1 write-back 5818875973. Round-1 critic: 5818914109 (only seat). Charter refutation. Spend N=1. Prior art: #4832 lean 5769955875.\n\n### Takes (critic 5818914109)\n\n1. blocks-the-design — Fresh sticky lease is not a sufficient arm — **accept-into-contract**\n2. blocks-the-design — Path B prose promise without a live wait is unarmed stand-down — **accept-into-contract**\n3. sharpens-framing — Homemade / blind wait is the same abandonment class — **accept-into-contract**\n4. footnote — Mergeable conjunct and explicit BLOCKED stay outside this remainder — **accept-into-contract** (census)\n\nRefutation-target does not survive. Unarmed stand-down as the named failure survives as this child's remainder.\n\n## Bound remedy\n\n1. **Unarmed stand-down.** Bind when an open merge-path PR's turn ended with no live phase-correct wait and no explicit option-C finish.\n2. **CLEAN-split arms.** Pre-CLEAN: blocking `pr:watch` or Approach 1 child. Post-CLEAN: `pr:wait-mergeable-and-merge`. Do not start wait-merge before CLEAN. Do not add a third poller.\n3. **Observer.** Fail the turn, for each open merge-path PR, when neither arm is live and an explicit finish was not emitted. A live waiter on one PR does not arm another.\n4. **Armed.** A still-running phase-correct process, or an explicit finish. An unexpired lease whose monitor has exited is unarmed. `verify:l4-owner` / `isLeaseActive` must not treat lease-only as ready for this purpose (live-process conjunct or equivalent observer).\n5. **Homemade waits.** Canonical surfaces only. Background-shell / line-parsed `pr-watch --json` wrappers are not monitors (`github.md` forbid; dogfood 5818705166). No new monitor class.\n6. **Out of scope here.** Mergeable conjunct on empty-failure MERGE-READY = closed #4883. Explicit BLOCKED finish = legal quiet end (tracker P4).\n\npain: P1, P2, P3\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nP1 → observer + Path B requires live wait or option C.\nP2 → armed = live process or finish; lease-after-exit is unarmed.\nP3 → homemade/blind waits stay non-monitors; use canonical arms.\n\nSupersedes write-back: 5818875973\r\n\n",
+          "id": 5818921837,
+          "html_url": "https://github.com/deftai/directive/issues/4882#issuecomment-5818921837",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T17:27:38Z",
+          "updated_at": "2026-09-24T17:27:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: self-attest\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4882\nCharter: refutation. Pain-audit of asserted coverage on the bind lean. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5818921837\nSHA at dispatch: 92b74e960919ac41b922abc9e0498b66e4066383\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4882\naudit-targets: pain-P1, pain-P2, pain-P3\nSeat: grok. Launcher: grok.\n\nHEAD equals `92b74e960919ac41b922abc9e0498b66e4066383` (`git rev-parse HEAD`). Pin reads used `git show 92b74e960919ac41b922abc9e0498b66e4066383:<path>`. Envelope ignores comments with id greater than 5818921837. Bind lean under audit is 5818921837. Stop 1 pains are 5818875973. Round-1 critic in envelope is 5818914109. Dogfood pointer in envelope is 5818705166.\n\nInventory before findings: Owner Continuity A/B/C (`content/skills/deft-directive-review-cycle/SKILL.md` Owner Continuity Gate); Path B yield-with-wake / Approach 2 swarm limitation (same skill); CLEAN-split wait order (`pr:watch` / Approach 1 pre-CLEAN, `pr:wait-mergeable-and-merge` post-CLEAN; forbid third poller; swarm Envelope selection SLA); `isLeaseActive` (`packages/core/src/review-monitor/lease-comment.ts`) ends_at/expires_at/optional headSha only; `fetchActiveMonitorFromGithub` → comment lease freshness (`record.ts`); `verify:l4-owner` path=lease exit 0 / parent-retained not-ready (`l4-owner.ts`); background-shell `pr:watch` is not a monitor (review-cycle leaf-boundary); hand-rolled cascade forbid (`content/scm/github.md` Cascade automation surface). Injection / swarm lens applies: stand-down authority, sticky-lease reading, per-PR wait concurrency, dest-owned merge path.\n\n## P3 relief is non-arm classification, not homemade-parser repair\nfootnote\n\nEvidence. Stop 1 P3 and dogfood 5818705166 name an alive-but-blind homemade `pr-watch --json` line-parser. Bound remedy item 5 (and the lean's `relieves: P3` gloss) keeps canonical surfaces only and forbids treating background-shell / line-parsed wrappers as monitors. At the pin, `github.md` already forbids hand-rolled cascade loops when wait-merge exists, and review-cycle already says a background shell `pr:watch` is not a monitor.\n\nFailure mode. None for asserted coverage: a running homemade poller does not count as a live arm, so Bound remedy item 3 still fails the turn unless a CLEAN-split arm or option C is present.\n\nDisposition. Census. P3 is relieved as the same abandonment class under the observer; this story does not owe a fix to homemade JSON line-parsers.\n\n## Item 4 parenthetical keeps both P2 relief paths\nfootnote\n\nEvidence. Bound remedy item 4 requires that `verify:l4-owner` / `isLeaseActive` must not treat lease-only as ready for the arm purpose, with parenthetical `live-process conjunct or equivalent observer`. At the pin, `isLeaseActive` has no process liveness check, and `verify:l4-owner` exits ready on a fresh sticky lease (`path=lease`) with no child/process probe. GitHub lease comments cannot observe an OS process.\n\nFailure mode. None for coverage while either named path lands: changing the lease helpers, or treating item 3's per-PR observer as the arm gate so lease-only is never \"armed,\" both discharge P2's consequence that lease presence is not a live arm.\n\nDisposition. Census. Do not read the parenthetical as waiving item 4; it names two honest implementations of the same arm rule.\n\n## Mergeable conjunct and tracker P4 stay outside these relieves\nfootnote\n\nEvidence. Bound remedy item 6 and Round-1 F4 keep empty-failure MERGE-READY mergeable-clean on closed #4883, and explicit BLOCKED as a legal quiet end (tracker P4). Lean cites `relieves` only for P1–P3.\n\nFailure mode. None for this audit's targets. Re-opening those would widen past the child split.\n\nDisposition. Census only.\n\nCoverage reading (not a cite line): Bound remedy items 1–3 cover P1 (unarmed stand-down bind; CLEAN-split arms; per open merge-path PR observer that fails the turn when neither arm is live and option C was not emitted; Path B requires live wait or finish). Item 4 covers P2 (armed = still-running phase-correct process or explicit finish; lease-after-exit is unarmed; lease-only must not read as ready for this purpose). Item 5 covers P3 (homemade/blind waits are not monitors; no new monitor class). No blocking or sharpening findings on this lean. Footnote-only => bindable.",
+          "id": 5818957699,
+          "html_url": "https://github.com/deftai/directive/issues/4882#issuecomment-5818957699",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T17:30:08Z",
+          "updated_at": "2026-09-24T17:30:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Fresh sticky lease or Path B prose promise is a sufficient arm with no live phase-correct wait | does-not-survive | Round-1 critic 5818914109; pin isLeaseActive / verify:l4-owner / Owner Continuity |\n| Unarmed stand-down (no live wait, no option C) is the named failure this child owns | uphold | Critic + Bound remedy items 1–3; pain-audit 5818957699 covers P1 |\n| Armed = still-running phase-correct process or explicit finish; lease-after-exit is unarmed | uphold | Critic F1; Bound remedy item 4; pain-audit P2 |\n| Homemade/blind waits are not monitors; no third poller | uphold | Critic F3; Bound remedy items 2 and 5; pain-audit P3 footnote |\n| Mergeable conjunct and explicit BLOCKED finish are out of this remainder | uphold | Closed #4883; tracker P4 note 5818860957 |\n\nBound contract: successor lean 5818921837.\r\n\n",
+          "id": 5818966994,
+          "html_url": "https://github.com/deftai/directive/issues/4882#issuecomment-5818966994",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T17:30:47Z",
+          "updated_at": "2026-09-24T17:30:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA parent-retained merge babysit can go quiet while a PR is still on the merge path. A fresh lease is not a live wait. A Path B promise without a running phase-correct arm is unarmed stand-down. Bind an observer that fails the turn per open merge-path PR when neither CLEAN-split arm is live and no explicit finish was emitted. Do not add a third poller. #4883 and tracker P4 stay outside this remainder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5818921837.\r\n\n",
+          "id": 5818967394,
+          "html_url": "https://github.com/deftai/directive/issues/4882#issuecomment-5818967394",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T17:30:48Z",
+          "updated_at": "2026-09-24T17:30:48Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540574368,
+        "origin": "deftai/directive#4882",
+        "id": "github.issue.5540574368"
+      },
+      "swarm": {
+        "file_scope": [
+          "CHANGELOG.md",
+          "content/scm/github.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "packages/cli/src/pr-watch.ts",
+          "packages/cli/src/pr-watch.test.ts",
+          "packages/cli/src/review-monitor-register.ts",
+          "packages/cli/src/review-monitor-register.test.ts",
+          "packages/cli/src/review-monitor-release.ts",
+          "packages/cli/src/review-monitor-release.test.ts",
+          "packages/cli/src/verify-review-monitor.ts",
+          "packages/cli/src/verify-review-monitor.test.ts",
+          "packages/core/src/pr-watch/constants.ts",
+          "packages/core/src/pr-watch/constants.test.ts",
+          "packages/core/src/pr-watch/index.ts",
+          "packages/core/src/pr-watch/index.test.ts",
+          "packages/core/src/pr-watch/main.ts",
+          "packages/core/src/pr-watch/main.test.ts",
+          "packages/core/src/pr-watch/probe.ts",
+          "packages/core/src/pr-watch/probe.test.ts",
+          "packages/core/src/pr-watch/types.ts",
+          "packages/core/src/pr-watch/types.test.ts",
+          "packages/core/src/pr-watch/watch.ts",
+          "packages/core/src/pr-watch/watch.test.ts",
+          "content/templates/agents-entry.md",
+          "AGENTS.md"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5018,
+        "prBase": null,
+        "mergeCommit": "7234a9dd9231cc64a094a16f44c03080a713427e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7234a9dd9231cc64a094a16f44c03080a713427e",
+        "verifiedAt": "2026-09-24T20:24:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-24T20:24:31Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-24T20:24:31Z"
+      }
+    },
+    "id": "github.issue.5540574368",
+    "updated": "2026-09-24T20:24:31Z"
+  }
+}
