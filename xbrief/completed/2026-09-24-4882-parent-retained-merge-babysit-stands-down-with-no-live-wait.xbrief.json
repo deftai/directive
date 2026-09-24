@@ -16,11 +16,11 @@
     "items": [
       {
         "id": "clause.1",
-        "title": "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback.",
+        "title": "[not_applicable here] Durable live-wait obligation after stop-at:pr-open — #5018 attestation only; still-running wait proof is #5020 (not claimed delivered by this leftover).",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up under #4832 — not claimed complete by this leftover twin.",
+          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up #5020 under tracker #4832 — not claimed complete by this leftover twin.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams"
@@ -30,11 +30,11 @@
       },
       {
         "id": "clause.2",
-        "title": "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned.",
+        "title": "[not_applicable here] Unarmed stand-down (promise/lease with no live wait) — #5018 attestation only; still-running wait proof is #5020 (not claimed delivered by this leftover).",
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "not_applicable",
-          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up under #4832 — not claimed complete by this leftover twin.",
+          "reason": "#5018 shipped merge-path arm observer with lease-bound --live-wait attestation and fail-closed unarmed stand-down. Process-still-running proof (wait PID/session alive, or lease auto-clear on wait exit) is follow-up #5020 under tracker #4832 — not claimed complete by this leftover twin.",
           "provenance": {
             "kind": "operator-session",
             "actor": "MScottAdams"
@@ -106,20 +106,20 @@
       "source_rung": "project_floor",
       "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)",
       "sentences": [
-        "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)",
-        "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)",
+        "[not_applicable here] Durable live-wait after stop-at:pr-open — #5018 attestation only; still-running wait proof is #5020 (not claimed delivered by this leftover).",
+        "[not_applicable here] Unarmed stand-down (promise/lease with no live wait) — #5018 attestation only; still-running wait proof is #5020 (not claimed delivered by this leftover).",
         "If a consumer wraps pr:watch --json, it MUST parse the full stdout JSON value (pretty-printed multi-line is valid). Line-splitting that drops CLEAN is a defect; prefer Approach 1 / native pr:watch over homemade DONE scripts.",
-        "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)",
+        "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json. (#5018 attestation; process-liveness proof is #5020.)",
         "CHANGELOG Unreleased notes the closer/babysit wake fix; review-cycle and swarm/preamble prose name the durable-wait obligation."
       ],
       "clauses": [
         {
           "id": "clause.1",
-          "text": "After stop-at:pr-open, a parent-retained or Approach-1 merge-path owner MUST keep a durable live wait (review-monitor lease + blocking pr:watch, or equivalent) until CLEAN or BLOCKED with an operator-visible handback. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)"
+          "text": "[not_applicable here] Durable live-wait after stop-at:pr-open — #5018 attestation only; still-running wait proof is #5020 (not claimed delivered by this leftover)."
         },
         {
           "id": "clause.2",
-          "text": "Promising to merge when PRs go CLEAN without an active wait/lease is forbidden unarmed stand-down: the closer MUST NOT exit leaving zero agents/monitors while the PR is still open and merge-path-owned. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)"
+          "text": "[not_applicable here] Unarmed stand-down (promise/lease with no live wait) — #5018 attestation only; still-running wait proof is #5020 (not claimed delivered by this leftover)."
         },
         {
           "id": "clause.3",
@@ -127,7 +127,7 @@
         },
         {
           "id": "clause.4",
-          "text": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json. (#5018: lease-bound --live-wait attestation; process-liveness proof is follow-up.)"
+          "text": "Tests or a deterministic probe lock at least: (a) unarmed stand-down is detectable/refused in the review-monitor or closer path, and/or (b) a documented machine consumer successfully reads CLEAN from pretty-printed pr-watch --json. (#5018 attestation; process-liveness proof is #5020.)"
         },
         {
           "id": "clause.5",
