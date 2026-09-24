@@ -3,6 +3,7 @@ import {
   DEFAULT_PROTECTED_GLOBS,
   DEFAULT_TEST_MARKERS,
   defaultClassChecksPolicy,
+  isClassChecksPolicyLoadError,
   loadClassChecksPolicy,
 } from "./policy.js";
 
@@ -24,8 +25,17 @@ describe("class-checks policy (#4980)", () => {
         testMarkers: ["smoke"],
       }),
     });
+    expect(isClassChecksPolicyLoadError(p)).toBe(false);
+    if (isClassChecksPolicyLoadError(p)) return;
     expect(p.protectedGlobs).toEqual(["hooks/**"]);
     expect(p.testMarkers).toEqual(["smoke"]);
     expect(p.source).toBe("file");
+  });
+
+  it("returns error on non-object injected file text", () => {
+    const p = loadClassChecksPolicy("/tmp", { fileText: "[]" });
+    expect(isClassChecksPolicyLoadError(p)).toBe(true);
+    if (!isClassChecksPolicyLoadError(p)) return;
+    expect(p.error).toMatch(/must be a JSON object/);
   });
 });

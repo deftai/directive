@@ -276,15 +276,16 @@ describe("evaluateClassChecks (#4980)", () => {
   });
 
   it("fails closed on malformed merge-base PROJECT-DEFINITION classChecks", () => {
-    expect(() => parseClassChecksFromProjectDefinition("{ not json")).toThrow(/not valid JSON/);
-    expect(() =>
-      parseClassChecksFromProjectDefinition(
-        JSON.stringify({ plan: { policy: { classChecks: ["nope"] } } }),
-      ),
-    ).toThrow(/must be a JSON object/);
-    expect(
-      parseClassChecksFromProjectDefinition(JSON.stringify({ plan: { policy: {} } })),
-    ).toBeNull();
+    const badJson = parseClassChecksFromProjectDefinition("{ not json");
+    expect(badJson.ok).toBe(false);
+    if (!badJson.ok) expect(badJson.message).toMatch(/not valid JSON/);
+    const badShape = parseClassChecksFromProjectDefinition(
+      JSON.stringify({ plan: { policy: { classChecks: ["nope"] } } }),
+    );
+    expect(badShape.ok).toBe(false);
+    if (!badShape.ok) expect(badShape.message).toMatch(/must be a JSON object/);
+    const missing = parseClassChecksFromProjectDefinition(JSON.stringify({ plan: { policy: {} } }));
+    expect(missing).toEqual({ ok: true, policy: null });
     expect(contentMarksTestOnly("export const x = 1;\n")).toBe(false);
     expect(
       contentMarksTestOnly("describe('x', () => { it('y', () => { expect(1).toBe(1); }); });\n"),

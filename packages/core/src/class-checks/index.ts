@@ -9,14 +9,17 @@ export {
   type ClassCheckResult,
   contentMarksTestOnly,
   evaluateClassChecks,
+  type ParseClassChecksFromProjectDefinitionResult,
   parseClassChecksFromProjectDefinition,
   resolveClassCheckBaseRef,
   scanTestIdentityInInfra,
 } from "./evaluate.js";
 export {
   type ClassChecksPolicy,
+  type ClassChecksPolicyLoad,
   DEFAULT_PROTECTED_GLOBS,
   DEFAULT_TEST_MARKERS,
   defaultClassChecksPolicy,
+  isClassChecksPolicyLoadError,
   loadClassChecksPolicy,
 } from "./policy.js";

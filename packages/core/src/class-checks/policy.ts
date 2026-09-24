@@ -16,6 +16,15 @@ export interface ClassChecksPolicy {
   readonly source: "file" | "project-definition" | "defaults";
 }
 
+/** Load result — returned failure avoids mintable throw-sites (#4980). */
+export type ClassChecksPolicyLoad = ClassChecksPolicy | { readonly error: string };
+
+export function isClassChecksPolicyLoadError(
+  v: ClassChecksPolicyLoad,
+): v is { readonly error: string } {
+  return typeof (v as { error?: unknown }).error === "string";
+}
+
 /** Default protected destinations for class 4 (#4980). */
 export const DEFAULT_PROTECTED_GLOBS: readonly string[] = [
   ".githooks/**",
@@ -74,15 +83,23 @@ export function defaultClassChecksPolicy(): ClassChecksPolicy {
 /**
  * Load class-checks policy from explicit path, `.deft/class-checks.policy.json`,
  * then `plan.policy.classChecks` in PROJECT-DEFINITION, else defaults.
+ * Malformed input returns `{ error }` (fail closed; no throw).
  */
 export function loadClassChecksPolicy(
   projectRoot: string,
   options: { readonly policyPath?: string | null; readonly fileText?: string | null } = {},
-): ClassChecksPolicy {
+): ClassChecksPolicyLoad {
   if (options.fileText !== undefined && options.fileText !== null) {
-    const raw = JSON.parse(options.fileText) as unknown;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(options.fileText) as unknown;
+    } catch (err: unknown) {
+      return {
+        error: `class-checks policy is not valid JSON: ${String((err as Error).message ?? err)}`,
+      };
+    }
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-      throw new Error("class-checks policy must be a JSON object");
+      return { error: "class-checks policy must be a JSON object" };
     }
     return parsePolicyObject(raw as Record<string, unknown>, "file");
   }
@@ -92,20 +109,34 @@ export function loadClassChecksPolicy(
   if (options.policyPath !== null && options.policyPath !== undefined) {
     const p = resolve(options.policyPath);
     if (!existsSync(p)) {
-      throw new Error(`class-checks policy file not found: ${p}`);
+      return { error: `class-checks policy file not found: ${p}` };
     }
-    const raw = JSON.parse(readFileSync(p, "utf8")) as unknown;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(readFileSync(p, "utf8")) as unknown;
+    } catch (err: unknown) {
+      return {
+        error: `class-checks policy is not valid JSON: ${p}: ${String((err as Error).message ?? err)}`,
+      };
+    }
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-      throw new Error(`class-checks policy must be a JSON object: ${p}`);
+      return { error: `class-checks policy must be a JSON object: ${p}` };
     }
     return parsePolicyObject(raw as Record<string, unknown>, "file");
   }
 
   const deftPolicy = join(root, ".deft", "class-checks.policy.json");
   if (existsSync(deftPolicy)) {
-    const raw = JSON.parse(readFileSync(deftPolicy, "utf8")) as unknown;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(readFileSync(deftPolicy, "utf8")) as unknown;
+    } catch (err: unknown) {
+      return {
+        error: `class-checks policy is not valid JSON: ${deftPolicy}: ${String((err as Error).message ?? err)}`,
+      };
+    }
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-      throw new Error(`class-checks policy must be a JSON object: ${deftPolicy}`);
+      return { error: `class-checks policy must be a JSON object: ${deftPolicy}` };
     }
     return parsePolicyObject(raw as Record<string, unknown>, "file");
   }

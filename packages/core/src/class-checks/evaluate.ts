@@ -8,7 +8,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import { unquoteGitPath } from "../scope-provenance/evaluate.js";
 import {
   isRecognizedTestBasename,
@@ -25,6 +24,7 @@ import {
 import {
   type ClassChecksPolicy,
   defaultClassChecksPolicy,
+  isClassChecksPolicyLoadError,
   loadClassChecksPolicy,
 } from "./policy.js";
 
@@ -69,7 +69,11 @@ const TEST_BOUNDARY_POLICY_PATHS = [
   "xbrief/PROJECT-DEFINITION.xbrief.json",
 ] as const;
 
-function git(args: readonly string[], cwd: string): { status: number; stdout: string } {
+type GitRun =
+  | { readonly ok: true; readonly status: number; readonly stdout: string }
+  | { readonly ok: false; readonly kind: "not-found" | "spawn-error"; readonly message: string };
+
+function git(args: readonly string[], cwd: string): GitRun {
   const result = spawnSync("git", args, {
     cwd,
     encoding: "utf8",
@@ -79,11 +83,15 @@ function git(args: readonly string[], cwd: string): { status: number; stdout: st
   if (result.error !== undefined) {
     const e = result.error as NodeJS.ErrnoException;
     if (e.code === "ENOENT") {
-      throw new GitNotFoundError("'git' executable not found on PATH");
+      return { ok: false, kind: "not-found", message: "'git' executable not found on PATH" };
     }
-    throw new GitCommandError(`git ${args[0]} failed: ${String(e.message)}`);
+    return {
+      ok: false,
+      kind: "spawn-error",
+      message: `git ${args[0]} failed: ${String(e.message)}`,
+    };
   }
-  return { status: result.status ?? 1, stdout: String(result.stdout ?? "") };
+  return { ok: true, status: result.status ?? 1, stdout: String(result.stdout ?? "") };
 }
 
 function normalizeRepoRelPath(p: string): string {
@@ -101,30 +109,60 @@ export function resolveClassCheckBaseRef(projectRoot: string): string | null {
     process.env.GITHUB_BASE_REF,
   ].filter((x): x is string => typeof x === "string" && x.trim().length > 0);
   for (const cand of [...envCandidates, "origin/master", "origin/main", "master", "main"]) {
-    if (git(["rev-parse", "--verify", "-q", cand], projectRoot).status === 0) {
-      return cand;
+    const ran = git(["rev-parse", "--verify", "-q", cand], projectRoot);
+    if (!ran.ok) {
+      if (ran.kind === "not-found") return null;
+      continue;
     }
+    if (ran.status === 0) return cand;
   }
   return null;
 }
 
-function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
+type ChangedFilesResult =
+  | { readonly ok: true; readonly files: string[] }
+  | {
+      readonly ok: false;
+      readonly kind: "not-found" | "not-git" | "git-error";
+      readonly message: string;
+    };
+
+function changedFilesVsBase(projectRoot: string, baseRef: string): ChangedFilesResult {
   const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot);
+  if (!inside.ok) {
+    if (inside.kind === "not-found") {
+      return { ok: false, kind: "not-found", message: inside.message };
+    }
+    return { ok: false, kind: "git-error", message: inside.message };
+  }
   if (inside.status !== 0) {
-    throw new GitCommandError("not a git working tree");
+    return { ok: false, kind: "not-git", message: "not a git working tree" };
   }
   let resolved = baseRef;
   if (baseRef === "HEAD" || baseRef === "") {
     const upgraded = resolveClassCheckBaseRef(projectRoot);
     if (upgraded === null) {
-      throw new GitCommandError(
-        "no merge-base ref (origin/master|main or DEFT_BASE_REF/GITHUB_BASE_REF)",
-      );
+      return {
+        ok: false,
+        kind: "git-error",
+        message: "no merge-base ref (origin/master|main or DEFT_BASE_REF/GITHUB_BASE_REF)",
+      };
     }
     resolved = upgraded;
   }
-  if (git(["rev-parse", "--verify", "-q", resolved], projectRoot).status !== 0) {
-    throw new GitCommandError(`base ref '${resolved}' not found; pass --base-ref`);
+  const verify = git(["rev-parse", "--verify", "-q", resolved], projectRoot);
+  if (!verify.ok) {
+    if (verify.kind === "not-found") {
+      return { ok: false, kind: "not-found", message: verify.message };
+    }
+    return { ok: false, kind: "git-error", message: verify.message };
+  }
+  if (verify.status !== 0) {
+    return {
+      ok: false,
+      kind: "git-error",
+      message: `base ref '${resolved}' not found; pass --base-ref`,
+    };
   }
   const out = new Set<string>();
   const addPath = (raw: string): void => {
@@ -133,34 +171,46 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   };
   const range = `${resolved}...HEAD`;
   const diff = git(["diff", "--name-only", range], projectRoot);
-  if (diff.status === 0) {
+  if (diff.ok && diff.status === 0) {
     for (const line of diff.stdout.split("\n")) addPath(line);
   }
   const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot);
-  if (vsHead.status === 0) {
+  if (vsHead.ok && vsHead.status === 0) {
     for (const line of vsHead.stdout.split("\n")) addPath(line);
   }
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
-  if (untracked.status === 0) {
+  if (untracked.ok && untracked.status === 0) {
     for (const line of untracked.stdout.split("\n")) addPath(line);
   }
-  return [...out];
+  return { ok: true, files: [...out] };
 }
 
 function readAtRef(projectRoot: string, ref: string, relPath: string): string | null {
   const path = normalizeRepoRelPath(relPath);
   const result = git(["show", `${ref}:${path}`], projectRoot);
-  if (result.status !== 0) return null;
+  if (!result.ok || result.status !== 0) return null;
   return result.stdout;
 }
+
+type ParseTbResult =
+  | { readonly ok: true; readonly policy: TestBoundaryPolicy }
+  | { readonly ok: false; readonly message: string };
 
 function parseTestBoundaryPolicyText(
   text: string,
   source: TestBoundaryPolicy["source"],
-): TestBoundaryPolicy {
-  const raw = JSON.parse(text) as unknown;
+): ParseTbResult {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text) as unknown;
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      message: `test-boundary policy is not valid JSON: ${String((err as Error).message ?? err)}`,
+    };
+  }
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new Error("test-boundary policy must be a JSON object");
+    return { ok: false, message: "test-boundary policy must be a JSON object" };
   }
   const rec = raw as Record<string, unknown>;
   // PROJECT-DEFINITION: drill into plan.policy.testBoundary when present.
@@ -170,7 +220,7 @@ function parseTestBoundaryPolicyText(
     const policy = plan?.policy as Record<string, unknown> | undefined;
     const tb = policy?.testBoundary as Record<string, unknown> | undefined;
     if (tb === undefined || tb === null || typeof tb !== "object" || Array.isArray(tb)) {
-      return defaultTestBoundaryPolicy("warn");
+      return { ok: true, policy: defaultTestBoundaryPolicy("warn") };
     }
     body = tb;
   }
@@ -210,21 +260,28 @@ function parseTestBoundaryPolicyText(
     enforcementMode = body.enforcementMode;
   }
   return {
-    sourceRoots: sourceRoots.length > 0 ? sourceRoots : defaults.sourceRoots,
-    testRoots: testRoots.length > 0 ? testRoots : defaults.testRoots,
-    fixtureRoots: fixtureRoots.length > 0 ? fixtureRoots : defaults.fixtureRoots,
-    testFilePatterns: testFilePatterns.length > 0 ? testFilePatterns : defaults.testFilePatterns,
-    productionMayReferenceTestRoots:
-      typeof body.productionMayReferenceTestRoots === "boolean"
-        ? body.productionMayReferenceTestRoots
-        : false,
-    allow: asAllow(body.allow),
-    enforcementMode,
-    source: source === "project-definition" ? "project-definition" : "file",
+    ok: true,
+    policy: {
+      sourceRoots: sourceRoots.length > 0 ? sourceRoots : defaults.sourceRoots,
+      testRoots: testRoots.length > 0 ? testRoots : defaults.testRoots,
+      fixtureRoots: fixtureRoots.length > 0 ? fixtureRoots : defaults.fixtureRoots,
+      testFilePatterns: testFilePatterns.length > 0 ? testFilePatterns : defaults.testFilePatterns,
+      productionMayReferenceTestRoots:
+        typeof body.productionMayReferenceTestRoots === "boolean"
+          ? body.productionMayReferenceTestRoots
+          : false,
+      allow: asAllow(body.allow),
+      enforcementMode,
+      source: source === "project-definition" ? "project-definition" : "file",
+    },
   };
 }
 
-function loadBaseTestBoundaryPolicy(projectRoot: string, baseRef: string): TestBoundaryPolicy {
+type LoadTbResult =
+  | { readonly ok: true; readonly policy: TestBoundaryPolicy }
+  | { readonly ok: false; readonly message: string };
+
+function loadBaseTestBoundaryPolicy(projectRoot: string, baseRef: string): LoadTbResult {
   const fileText = readAtRef(projectRoot, baseRef, ".deft/test-boundary.policy.json");
   if (fileText !== null) {
     return parseTestBoundaryPolicyText(fileText, "file");
@@ -235,12 +292,19 @@ function loadBaseTestBoundaryPolicy(projectRoot: string, baseRef: string): TestB
   }
   // Defaults + framework self-allow (same as verify:test-boundary migration defaults).
   return {
-    ...defaultTestBoundaryPolicy("warn"),
-    allow: [...FRAMEWORK_SELF_ALLOW],
+    ok: true,
+    policy: {
+      ...defaultTestBoundaryPolicy("warn"),
+      allow: [...FRAMEWORK_SELF_ALLOW],
+    },
   };
 }
 
-function loadHeadTestBoundaryPolicy(projectRoot: string): TestBoundaryPolicy | null {
+type LoadHeadTbResult =
+  | { readonly ok: true; readonly policy: TestBoundaryPolicy | null }
+  | { readonly ok: false; readonly message: string };
+
+function loadHeadTestBoundaryPolicy(projectRoot: string): LoadHeadTbResult {
   const filePath = resolve(projectRoot, ".deft", "test-boundary.policy.json");
   if (existsSync(filePath)) {
     return parseTestBoundaryPolicyText(readFileSync(filePath, "utf8"), "file");
@@ -249,53 +313,75 @@ function loadHeadTestBoundaryPolicy(projectRoot: string): TestBoundaryPolicy | n
   if (existsSync(pdPath)) {
     return parseTestBoundaryPolicyText(readFileSync(pdPath, "utf8"), "project-definition");
   }
-  return null;
+  return { ok: true, policy: null };
 }
+
+export type ParseClassChecksFromProjectDefinitionResult =
+  | { readonly ok: true; readonly policy: ClassChecksPolicy | null }
+  | { readonly ok: false; readonly message: string };
 
 /**
  * Parse plan.policy.classChecks from PROJECT-DEFINITION text.
- * Throws on malformed JSON / non-object classChecks (fail closed).
- * Returns null when the document has no classChecks block (caller uses defaults).
+ * Malformed JSON / non-object classChecks returns `{ ok: false }` (fail closed).
+ * `policy: null` when the document has no classChecks block (caller uses defaults).
  */
 export function parseClassChecksFromProjectDefinition(
   pdText: string,
   projectRoot = ".",
-): ClassChecksPolicy | null {
+): ParseClassChecksFromProjectDefinitionResult {
   let pd: Record<string, unknown>;
   try {
     pd = JSON.parse(pdText) as Record<string, unknown>;
   } catch (err: unknown) {
-    throw new Error(
-      "merge-base xbrief/PROJECT-DEFINITION.xbrief.json is not valid JSON: " +
+    return {
+      ok: false,
+      message:
+        "merge-base xbrief/PROJECT-DEFINITION.xbrief.json is not valid JSON: " +
         String((err as Error).message),
-    );
+    };
   }
   if (pd === null || typeof pd !== "object" || Array.isArray(pd)) {
-    throw new Error("merge-base xbrief/PROJECT-DEFINITION.xbrief.json must be a JSON object");
+    return {
+      ok: false,
+      message: "merge-base xbrief/PROJECT-DEFINITION.xbrief.json must be a JSON object",
+    };
   }
   const plan = pd.plan as Record<string, unknown> | undefined;
   const policy = plan?.policy as Record<string, unknown> | undefined;
   const cc = policy?.classChecks;
-  if (cc === undefined || cc === null) return null;
+  if (cc === undefined || cc === null) return { ok: true, policy: null };
   if (typeof cc !== "object" || Array.isArray(cc)) {
-    throw new Error("merge-base plan.policy.classChecks must be a JSON object");
+    return { ok: false, message: "merge-base plan.policy.classChecks must be a JSON object" };
   }
-  return loadClassChecksPolicy(projectRoot, {
+  const loaded = loadClassChecksPolicy(projectRoot, {
     fileText: JSON.stringify(cc as Record<string, unknown>),
   });
+  if (isClassChecksPolicyLoadError(loaded)) {
+    return { ok: false, message: loaded.error };
+  }
+  return { ok: true, policy: loaded };
 }
 
-function loadBaseClassChecksPolicy(projectRoot: string, baseRef: string): ClassChecksPolicy {
+type LoadClassPolicyResult =
+  | { readonly ok: true; readonly policy: ClassChecksPolicy }
+  | { readonly ok: false; readonly message: string };
+
+function loadBaseClassChecksPolicy(projectRoot: string, baseRef: string): LoadClassPolicyResult {
   const fileText = readAtRef(projectRoot, baseRef, ".deft/class-checks.policy.json");
   if (fileText !== null) {
-    return loadClassChecksPolicy(projectRoot, { fileText });
+    const loaded = loadClassChecksPolicy(projectRoot, { fileText });
+    if (isClassChecksPolicyLoadError(loaded)) {
+      return { ok: false, message: loaded.error };
+    }
+    return { ok: true, policy: loaded };
   }
   const pdText = readAtRef(projectRoot, baseRef, "xbrief/PROJECT-DEFINITION.xbrief.json");
   if (pdText !== null) {
     const parsed = parseClassChecksFromProjectDefinition(pdText, projectRoot);
-    if (parsed !== null) return parsed;
+    if (!parsed.ok) return { ok: false, message: parsed.message };
+    if (parsed.policy !== null) return { ok: true, policy: parsed.policy };
   }
-  return defaultClassChecksPolicy();
+  return { ok: true, policy: defaultClassChecksPolicy() };
 }
 
 function isAllowListed(
@@ -557,19 +643,27 @@ export function evaluateClassChecks(
   }
 
   let changed: string[];
-  try {
-    changed = options.changedFiles
-      ? [...options.changedFiles].map((f) => normalizeRepoRelPath(f))
-      : changedFilesVsBase(root, baseRef);
-  } catch (err: unknown) {
-    if (err instanceof GitNotFoundError) {
-      return configError(
-        "verify_class_checks: 'git' executable not found on PATH.\n" +
-          "  Recovery: install git or run inside a git working tree.",
-      );
-    }
-    if (err instanceof GitCommandError) {
-      const msg = err.message.toLowerCase();
+  if (options.changedFiles) {
+    changed = [...options.changedFiles].map((f) => normalizeRepoRelPath(f));
+  } else {
+    const changedResult = changedFilesVsBase(root, baseRef);
+    if (!changedResult.ok) {
+      if (changedResult.kind === "not-found") {
+        return configError(
+          "verify_class_checks: 'git' executable not found on PATH.\n" +
+            "  Recovery: install git or run inside a git working tree.",
+        );
+      }
+      if (changedResult.kind === "not-git") {
+        return {
+          exitCode: 0,
+          findings: [],
+          message:
+            `verify_class_checks: skipped -- not a git working tree (${changedResult.message}). ` +
+            "Initialize git, or inject changedFiles (#4980).",
+        };
+      }
+      const msg = changedResult.message.toLowerCase();
       if (
         msg.includes("not a git repository") ||
         msg.includes("outside repository") ||
@@ -579,16 +673,16 @@ export function evaluateClassChecks(
           exitCode: 0,
           findings: [],
           message:
-            `verify_class_checks: skipped -- not a git working tree (${err.message}). ` +
+            `verify_class_checks: skipped -- not a git working tree (${changedResult.message}). ` +
             "Initialize git, or inject changedFiles (#4980).",
         };
       }
       return configError(
-        `verify_class_checks: git failed -- ${err.message}\n` +
+        `verify_class_checks: git failed -- ${changedResult.message}\n` +
           "  Recovery: ensure --project-root points at a healthy git working tree.",
       );
     }
-    throw err;
+    changed = changedResult.files;
   }
 
   // Empty change set: clean.
@@ -601,27 +695,43 @@ export function evaluateClassChecks(
   }
 
   let baseTb: TestBoundaryPolicy;
-  try {
-    baseTb = options.baseTestBoundaryPolicy ?? loadBaseTestBoundaryPolicy(root, baseRef);
-  } catch (err: unknown) {
-    return configError(
-      `verify_class_checks: merge-base test-boundary policy load failed -- ${String((err as Error).message)}`,
-    );
+  if (options.baseTestBoundaryPolicy !== undefined) {
+    baseTb = options.baseTestBoundaryPolicy;
+  } else {
+    const loadedTb = loadBaseTestBoundaryPolicy(root, baseRef);
+    if (!loadedTb.ok) {
+      return configError(
+        `verify_class_checks: merge-base test-boundary policy load failed -- ${loadedTb.message}`,
+      );
+    }
+    baseTb = loadedTb.policy;
   }
 
   let classPolicy: ClassChecksPolicy;
-  try {
-    classPolicy = options.classChecksPolicy ?? loadBaseClassChecksPolicy(root, baseRef);
-  } catch (err: unknown) {
-    return configError(
-      `verify_class_checks: merge-base class-checks policy load failed -- ${String((err as Error).message)}`,
-    );
+  if (options.classChecksPolicy !== undefined) {
+    classPolicy = options.classChecksPolicy;
+  } else {
+    const loadedCc = loadBaseClassChecksPolicy(root, baseRef);
+    if (!loadedCc.ok) {
+      return configError(
+        `verify_class_checks: merge-base class-checks policy load failed -- ${loadedCc.message}`,
+      );
+    }
+    classPolicy = loadedCc.policy;
   }
 
-  const headTb =
-    options.headTestBoundaryPolicy !== undefined
-      ? options.headTestBoundaryPolicy
-      : loadHeadTestBoundaryPolicy(root);
+  let headTb: TestBoundaryPolicy | null;
+  if (options.headTestBoundaryPolicy !== undefined) {
+    headTb = options.headTestBoundaryPolicy;
+  } else {
+    const loadedHead = loadHeadTestBoundaryPolicy(root);
+    if (!loadedHead.ok) {
+      return configError(
+        `verify_class_checks: head test-boundary policy load failed -- ${loadedHead.message}`,
+      );
+    }
+    headTb = loadedHead.policy;
+  }
 
   const findings: ClassCheckFinding[] = [];
   const policyEditPath =
