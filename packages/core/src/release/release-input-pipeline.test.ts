@@ -2,23 +2,35 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EXIT_VIOLATION } from "./constants.js";
 import { runPipeline } from "./pipeline.js";
 import { passReleaseInputs, type ReleaseInputPhase } from "./release-input.js";
 import type { ReleaseConfig } from "./types.js";
 
-const roots: string[] = [];
-afterEach(() => {
-  while (roots.length > 0) {
-    const root = roots.pop();
-    if (root) rmSync(root, { recursive: true, force: true });
-  }
-});
+const sharedTemps: string[] = [];
+let sharedRepo: { root: string; head: string } | null = null;
 
 function git(cwd: string, args: string[]): void {
   execFileSync("git", args, { cwd, stdio: "ignore" });
 }
+
+function resetSharedRepo(): void {
+  if (sharedRepo === null) return;
+  const { root, head } = sharedRepo;
+  git(root, ["checkout", "-q", "-f", "master"]);
+  git(root, ["reset", "--hard", "-q", head]);
+  git(root, ["clean", "-fdq"]);
+}
+
+afterEach(() => {
+  resetSharedRepo();
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedRepo = null;
+});
 
 const MINIMAL = `{
   "xBRIEFInfo": { "version": "0.8" },
@@ -26,9 +38,9 @@ const MINIMAL = `{
 }
 `;
 
-function seededRepo(): string {
+function buildSeededRepo(): { root: string; head: string } {
   const root = mkdtempSync(join(tmpdir(), "release-input-pipe-"));
-  roots.push(root);
+  sharedTemps.push(root);
   git(root, ["init", "-q", "-b", "master"]);
   git(root, ["config", "user.email", "t@t.local"]);
   git(root, ["config", "user.name", "T"]);
@@ -38,8 +50,18 @@ function seededRepo(): string {
   writeFileSync(join(root, "ROADMAP.md"), "# Roadmap\n");
   git(root, ["add", "-A"]);
   git(root, ["commit", "-q", "-m", "init"]);
-  return root;
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+  return { root, head };
 }
+
+function seededRepo(): string {
+  if (sharedRepo === null) sharedRepo = buildSeededRepo();
+  return sharedRepo.root;
+}
+
+beforeAll(() => {
+  seededRepo();
+});
 
 function config(root: string, overrides: Partial<ReleaseConfig> = {}): ReleaseConfig {
   return {

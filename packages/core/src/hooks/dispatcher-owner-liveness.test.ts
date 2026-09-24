@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import {
@@ -13,9 +13,34 @@ import {
 import { decideHook, type HookPolicySeams } from "./dispatcher.js";
 import type { OwnerLivenessInput, OwnerLivenessOutcome } from "./owner-liveness.js";
 
-const temps: string[] = [];
+const ephemeralTemps: string[] = [];
+const sharedTemps: string[] = [];
+
+type LinkedFixture = { primary: string; wtA: string; wtB: string; nested: string };
+let sharedLinked: LinkedFixture | null = null;
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft", "occupancy.json"), { force: true });
+  rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
+  rmSync(join(root, ".deft-directive-disable"), { force: true });
+}
+
+function resetSharedFixtures(): void {
+  if (sharedLinked === null) return;
+  resetLeaseFiles(sharedLinked.primary);
+  resetLeaseFiles(sharedLinked.wtA);
+  resetLeaseFiles(sharedLinked.wtB);
+  resetLeaseFiles(sharedLinked.nested);
+}
+
 afterEach(() => {
-  for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+  resetSharedFixtures();
+  for (const t of ephemeralTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedLinked = null;
 });
 
 const RAW_GROK_ID = "01a05852-6241-7892-9981-07ba00db0450";
@@ -49,7 +74,7 @@ function readySeams(): HookPolicySeams {
  */
 function leasedRoot(sessionId: string): { root: string; claimedAt: Date; heartbeatAt: Date } {
   const root = mkdtempSync(join(tmpdir(), "hook-liveness-"));
-  temps.push(root);
+  ephemeralTemps.push(root);
   mkdirSync(join(root, "src"), { recursive: true });
   applyWorktreeOccupancy(root, {
     sessionId,
@@ -66,9 +91,9 @@ function posixPath(path: string): string {
   return path.split("\\").join("/");
 }
 
-function gitRepo(): string {
+function buildLinkedFixture(): LinkedFixture {
   const base = mkdtempSync(join(tmpdir(), "hook-liveness-repo-"));
-  temps.push(base);
+  sharedTemps.push(base);
   const primary = join(base, "primary");
   mkdirSync(primary, { recursive: true });
   for (const args of [
@@ -79,19 +104,36 @@ function gitRepo(): string {
   ]) {
     execFileSync("git", args, { cwd: primary, encoding: "utf8" });
   }
-  return primary;
-}
-
-/** Linked worktree in the swarm layout: inside the primary, own git tree. */
-function addWorktree(primary: string, name: string): string {
-  const path = join(primary, ".deft-scratch", "worktrees", name);
+  const wtA = join(base, "wt-a");
+  const wtB = join(base, "wt-b");
+  const nested = join(primary, ".deft-scratch", "worktrees", "story");
   mkdirSync(join(primary, ".deft-scratch", "worktrees"), { recursive: true });
-  execFileSync("git", ["worktree", "add", "--detach", "-q", path], {
+  execFileSync("git", ["worktree", "add", "--detach", "-q", wtA], {
     cwd: primary,
     encoding: "utf8",
   });
-  return path;
+  execFileSync("git", ["worktree", "add", "--detach", "-q", wtB], {
+    cwd: primary,
+    encoding: "utf8",
+  });
+  execFileSync("git", ["worktree", "add", "--detach", "-q", nested], {
+    cwd: primary,
+    encoding: "utf8",
+  });
+  mkdirSync(join(wtA, "src"), { recursive: true });
+  mkdirSync(join(wtB, "src"), { recursive: true });
+  mkdirSync(join(nested, "src"), { recursive: true });
+  return { primary, wtA, wtB, nested };
 }
+
+function linkedFixture(): LinkedFixture {
+  if (sharedLinked === null) sharedLinked = buildLinkedFixture();
+  return sharedLinked;
+}
+
+beforeAll(() => {
+  linkedFixture();
+});
 
 function recordingSeams(): {
   seams: HookPolicySeams;
@@ -254,25 +296,7 @@ describe("hook-event owner liveness (#3987)", () => {
     // The mutation gates authorize occupancy against the tree the write lands
     // in. Renewing the payload root instead would keep the primary checkout's
     // lease alive while the worktree actually in use expires under a peer.
-    const base = mkdtempSync(join(tmpdir(), "hook-liveness-wt-"));
-    temps.push(base);
-    const primary = join(base, "primary");
-    mkdirSync(primary, { recursive: true });
-    for (const args of [
-      ["init", "-q"],
-      ["config", "user.email", "t@t.dev"],
-      ["config", "user.name", "t"],
-      ["commit", "--allow-empty", "-q", "-m", "base"],
-    ]) {
-      execFileSync("git", args, { cwd: primary, encoding: "utf8" });
-    }
-    const nested = join(primary, ".deft-scratch", "worktrees", "story");
-    mkdirSync(join(primary, ".deft-scratch", "worktrees"), { recursive: true });
-    execFileSync("git", ["worktree", "add", "--detach", "-q", nested], {
-      cwd: primary,
-      encoding: "utf8",
-    });
-    mkdirSync(join(nested, "src"), { recursive: true });
+    const { primary, nested } = linkedFixture();
 
     const { seams, calls } = recordingSeams();
     decideHook(
@@ -320,11 +344,7 @@ describe("hook-event owner liveness (#3987)", () => {
     // A multi-destination command is admitted once per destination, so an owner
     // working in two worktrees produces two authorized trees. Renewing only the
     // last would let the other expire under a session demonstrably using it.
-    const primary = gitRepo();
-    const wtA = addWorktree(primary, "wt-a");
-    const wtB = addWorktree(primary, "wt-b");
-    mkdirSync(join(wtA, "src"), { recursive: true });
-    mkdirSync(join(wtB, "src"), { recursive: true });
+    const { primary, wtA, wtB } = linkedFixture();
 
     const { seams, calls } = recordingSeams();
     decideHook(

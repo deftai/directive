@@ -1,0 +1,125 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5022",
+    "updated": "2026-09-24T22:42:33Z"
+  },
+  "plan": {
+    "title": "bug(release): Windows Step 5 hang detector kills ts:check-lane at 52/1284 files during v0.119.9 cut",
+    "status": "pending",
+    "narratives": {
+      "Description": "bug(release): Windows Step 5 hang detector kills ts:check-lane at 52/1284 files during v0.119.9 cut",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5022",
+      "Overview": "## Summary\n\nWindows production `task release -- 0.119.9` Step 5 failed the 20-minute hang detector (exit 124) on `ts:check-lane` during the v0.119.9 cut attempt on 2026-09-24. No tag was pushed.\n\n## Recurrence signature\n\n- Pipeline: `[5/13] Pre-flight CI ... FAIL (task check timed out after 20m at gate ts:check-lane)`\n- Hang cause line: `hang detector timeout (exit 124); last completed test file: packages/core/src/vbrief-validate/extra-coverage.test.ts`\n- Progress at kill: `ts:check-lane last-file .../extra-coverage.test.ts (52/1284 files)` — only ~4% of the suite finished inside the 20m wall\n- Heavy in-flight / completed files near the kill (wall-clock from check-tee):\n  - `session-start-scm-readiness.test.ts` ~54s\n  - `dispatcher-owner-liveness.test.ts` ~49s\n  - `hook-dispatch-worktree.test.ts` ~42s\n  - `vbrief-validate/extra-coverage.test.ts` ~39s\n  - `release-input-pipeline.test.ts` ~35s\n  - `install-upgrade.test.ts` ~32s\n  - also in-flight: `session-start-rearm.test.ts`, `swarm-deep-coverage.test.ts`\n- Check-tee: `.deft/check-tees/no-session/43176-7ff8b217.log`\n- Host probe at diagnosis (5-sample median): `node -e 0` ~102ms; `git --version` ~252ms (above RELEASING.md stale-binary git ~150ms guidance)\n\nPrior closed hang trackers (#4798, #4801, #4907, #4591 cheapen) do not cover this tip. Do **not** raise `RELEASE_CHECK_TIMEOUT_MS`. Do **not** lead with `--skip-ci` for the v0.119.9 cut.\n\n## Acceptance criteria\n\n1. On this Windows host, `task release` Step 5 `ts:check-lane` (vitest with coverage) completes inside the existing 20-minute hang detector without `--skip-ci` and without raising `RELEASE_CHECK_TIMEOUT_MS`.\n2. Cheapening targets measured cost (named heavy files and/or host stale-binary / spawn cost). Success is Step 5 green under the existing timeout, not a higher timeout.\n3. CHANGELOG `[Unreleased]` records the cheapen with Tracking/Refs to this issue.\n4. After merge, the paused v0.119.9 cut can resume Phase 1 and pass Step 5 without `--skip-ci`.\n\n## Out of scope\n\n- Raising `RELEASE_CHECK_TIMEOUT_MS`\n- Equating Ubuntu CI `timeout-minutes: 20` with the Windows release Step 5 kill\n- Using `--skip-ci` as the primary remedy for this cut\n\n## Related\n\n- #2859 file-and-merge before resume\n- #2652 / #4230 hang recovery docs\n- #4591 prior Windows coverage cheapen (439s measured then)\n- #4798 / #4801 / #4907 prior hang-bound work (closed)",
+      "Labels": "bug, area:release"
+    },
+    "items": [
+      {
+        "title": "On this Windows host, `task release` Step 5 `ts:check-lane` (vitest with coverage) completes inside the existing 20-minute hang detector without `--skip-ci` and without raising `RELEASE_CHECK_TIMEOUT_MS`.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Cheapening targets measured cost (named heavy files and/or host stale-binary / spawn cost). Success is Step 5 green under the existing timeout, not a higher timeout.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` records the cheapen with Tracking/Refs to this issue.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "After merge, the paused v0.119.9 cut can resume Phase 1 and pass Step 5 without `--skip-ci`.",
+        "status": "proposed",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5022",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5022: bug(release): Windows Step 5 hang detector kills ts:check-lane at 52/1284 files during v0.119.9 cut"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(release): Windows Step 5 hang detector kills ts:check-lane at 52/1284 files during v0.119.9 cut",
+        "Summary Windows production `task release -- 0.119.9` Step 5 failed the 20-minute hang detector (exit 124) on `ts:check-lane` during the v0.119.9 cut attempt on 2026-09-24.",
+        "No tag was pushed.",
+        "Recurrence signature - Pipeline: `[5/13] Pre-flight CI ...",
+        "FAIL (task check timed out after 20m at gate ts:check-lane)` - Hang cause line: `hang detector timeout (exit 124); last completed test file: packages/core/src/vbrief-validate/extra-coverage.test.ts` - Progress at kill: `ts:check-lane last-file .../extra-coverage.test.ts (52/1284 files)` — only ~4% of the suite finished inside the 20m wall - Heavy in-flight / completed files near the kill (wall-clock from check-tee): - `session-start-scm-readiness.test.ts` ~54s - `dispatcher-owner-liveness.test.ts` ~49s - `hook-dispatch-worktree.test.ts` ~42s - `vbrief-validate/extra-coverage.test.ts` ~39s - `release-input-pipeline.test.ts` ~35s - `install-upgrade.test.ts` ~32s - also in-flight: `session-start-rearm.test.ts`, `swarm-deep-coverage.test.ts` - Check-tee: `.deft/check-tees/no-session/43176-7ff8b217.log` - Host probe at diagnosis (5-sample median): `node -e 0` ~102ms; `git --version` ~252ms (above RELEASING.md stale-binary git ~150ms guidance) Prior closed hang trackers (#4798, #4801, #4907, #4591 cheapen) do not cover this tip.",
+        "Do not raise `RELEASE_CHECK_TIMEOUT_MS`.",
+        "Do not lead with `--skip-ci` for the v0.119.9 cut.",
+        "Acceptance criteria 1.",
+        "On this Windows host, `task release` Step 5 `ts:check-lane` (vitest with coverage) completes inside the existing 20-minute hang detector without `--skip-ci` and without raising `RELEASE_CHECK_TIMEOUT_MS`.",
+        "Cheapening targets measured cost (named heavy files and/or host stale-binary / spawn cost).",
+        "Success is Step 5 green under the existing timeout, not a higher timeout.",
+        "CHANGELOG `[Unreleased]` records the cheapen with Tracking/Refs to this issue.",
+        "After merge, the paused v0.119.9 cut can resume Phase 1 and pass Step 5 without `--skip-ci`.",
+        "Raising `RELEASE_CHECK_TIMEOUT_MS`",
+        "Equating Ubuntu CI `timeout-minutes: 20` with the Windows release Step 5 kill",
+        "Using `--skip-ci` as the primary remedy for this cut",
+        "#2859 file-and-merge before resume",
+        "#2652 / #4230 hang recovery docs",
+        "#4591 prior Windows coverage cheapen (439s measured then)",
+        "#4798 / #4801 / #4907 prior hang-bound work (closed)"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On this Windows host, `task release` Step 5 `ts:check-lane` (vitest with coverage) completes inside the existing 20-minute hang detector without `--skip-ci` and without raising `RELEASE_CHECK_TIMEOUT_MS`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Cheapening targets measured cost (named heavy files and/or host stale-binary / spawn cost). Success is Step 5 green under the existing timeout, not a higher timeout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG `[Unreleased]` records the cheapen with Tracking/Refs to this issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "After merge, the paused v0.119.9 cut can resume Phase 1 and pass Step 5 without `--skip-ci`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5575483807,
+        "origin": "deftai/directive#5022",
+        "id": "github.issue.5575483807"
+      }
+    },
+    "id": "github.issue.5575483807",
+    "updated": "2026-09-24T22:42:33Z"
+  }
+}
