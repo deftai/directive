@@ -38,9 +38,14 @@ export function isUnderConfiguredRoot(relPath: string, roots: readonly string[])
   if (n.length === 0) return false;
   for (const root of roots) {
     if (typeof root !== "string" || root.trim().length === 0) continue;
-    if (matchPath(root, n)) return true;
+    const normalizedRoot = root.replace(/\\/g, "/").replace(/\/+$/, "");
+    if (normalizedRoot.length === 0) continue;
+    if (matchPath(normalizedRoot, n) || matchPath(root, n)) return true;
     // Prefix form: "tests/**" already covered; also allow "tests" → tests/...
-    const bare = root.replace(/\/\*\*$/, "").replace(/\/\*$/, "");
+    const bare = normalizedRoot
+      .replace(/\/\*\*$/, "")
+      .replace(/\/\*$/, "")
+      .replace(/\/+$/, "");
     if (bare.length > 0 && (n === bare || n.startsWith(`${bare}/`))) return true;
   }
   return false;

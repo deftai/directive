@@ -42,7 +42,7 @@ Allowance = clamp(count of **concrete** production files on the merge-base `file
 
 ## Operator command: `scope:record-approved-scope` (legacy / authz-adjacent)
 
-The verb remains for historical intent-pin minting and for `authz`-shared human-presence machinery. **It is not part of the proceed path** and is not the remediation for production-scope-over-budget (#4956).
+The verb remains for historical intent-pin minting and for `authz`-shared human-presence machinery. **It is not part of the proceed path** and is not the remediation for production-scope-over-budget (#4956). Prefer `deft scope:record-approved-scope` (consumer include-only: `task deft:scope:record-approved-scope`).
 
 `--actor` is display only. Mint uses the shared #3110 human-presence gate (TTY, `--confirm`, typed phrase `mint` for that verb). Agent/CI env markers refuse.
 

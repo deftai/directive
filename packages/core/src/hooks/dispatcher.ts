@@ -41,7 +41,7 @@ import {
   type RuntimeAuthorityPolicy,
   type RuntimeAuthorityShellOp,
 } from "../policy/runtime-authority.js";
-import { loadStoryWriteFenceFromPath, resolveWriteFence } from "../policy/write-fence.js";
+import { loadStoryWriteFenceFromMergeBase, resolveWriteFence } from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   appendSoftAgentsRebindToMessage,
@@ -436,9 +436,8 @@ export interface HookPolicySeams {
   };
   readonly loadRuntimeAuthority?: (projectRoot: string) => RuntimeAuthorityPolicy;
   /**
-   * Test seam for #516 / #2443 story write fence.
-   * Defaults to reading `plan.metadata.swarm.file_scope` (+ writeScope alias)
-   * from the active scope path when present.
+   * Test seam for #516 / #2443 / #4956 story write fence.
+   * Defaults to merge-base brief file_scope (not working-tree head).
    */
   readonly loadStoryWriteFence?: (
     projectRoot: string,
@@ -1057,7 +1056,7 @@ function runtimeAuthorityForDirectWrite(
   try {
     storyFence = seams.loadStoryWriteFence
       ? seams.loadStoryWriteFence(fenceRoot, scopePath)
-      : loadStoryWriteFenceFromPath(scopePath);
+      : loadStoryWriteFenceFromMergeBase(fenceRoot, scopePath);
   } catch (err) {
     // #4956: unreadable story brief fails closed (do not empty-allow).
     const detail = err instanceof Error ? err.message : String(err);

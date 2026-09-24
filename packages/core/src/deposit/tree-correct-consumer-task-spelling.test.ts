@@ -93,12 +93,13 @@ describe("tree-correct consumer task spelling (#4447)", () => {
     );
   });
 
-  it("shipped remediations use deft scope:record-approved-scope", () => {
+  it("intent remediations use deft scope:record-approved-scope; path fence does not (#4956)", () => {
     const evaluate = read("packages/core/src/scope-provenance/evaluate.ts");
     const intent = read("packages/core/src/scope-provenance/intent-evaluate.ts");
     expect(evaluate).not.toMatch(BARE_TASK_SCOPE_RECORD);
     expect(intent).not.toMatch(BARE_TASK_SCOPE_RECORD);
-    expect(evaluate).toContain("deft scope:record-approved-scope");
+    // Path-fence remediations must not schedule remint; intent-pin still names deft.
+    expect(evaluate).not.toMatch(/Remint via `deft scope:record-approved-scope/);
     expect(intent).toContain("deft scope:record-approved-scope");
   });
 });

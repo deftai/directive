@@ -204,10 +204,18 @@ describe("writeScope alias normalization (no dual engine)", () => {
 });
 
 describe("story write fence fail-closed (#4956)", () => {
-  it("throws when the live brief path is unreadable", () => {
-    expect(() =>
-      loadStoryWriteFenceFromPath(join(tmpdir(), "missing-story-4956.xbrief.json")),
-    ).toThrow(StoryWriteFenceUnreadableError);
+  it("treats a missing live brief path as an inactive fence", () => {
+    expect(loadStoryWriteFenceFromPath(join(tmpdir(), "missing-story-4956.xbrief.json"))).toEqual({
+      fileScope: [],
+      denyPaths: [],
+    });
+  });
+
+  it("throws when the live brief path exists but is unreadable JSON", () => {
+    const dir = mkdtempSync(join(tmpdir(), "fence-corrupt-4956-"));
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(path, "{not-json");
+    expect(() => loadStoryWriteFenceFromPath(path)).toThrow(StoryWriteFenceUnreadableError);
   });
 
   it("throws when base raw is malformed JSON", () => {

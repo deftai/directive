@@ -16,7 +16,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
-import { evaluateProductionScopeFence } from "./base-fence.js";
+import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
+import { evaluateProductionScopeFence, pathMatchesFileScope } from "./base-fence.js";
 import {
   type ApprovedScopeRecord,
   approvedScopeIntentRel,
@@ -86,6 +87,10 @@ export interface ScopeProvenanceOptions {
   readonly baseXbriefs?: ReadonlyMap<string, string>;
   /** Optional repo slug seed for live extract (mint uses resolveProjectRepo). */
   readonly approvedReposSeed?: readonly string[];
+  /** Override test-boundary roots for the production fence (tests). */
+  readonly testRoots?: readonly string[];
+  readonly fixtureRoots?: readonly string[];
+  readonly sourceRoots?: readonly string[];
 }
 
 function git(args: string[], projectRoot: string): { status: number; stdout: string } {
@@ -177,12 +182,25 @@ export function unquoteGitPath(raw: string): string {
   return t.replace(/\\/g, "/");
 }
 
-/** Read a repo-relative path as of `ref` (null if missing). */
+function isGitMissingPathDetail(detail: string): boolean {
+  const s = detail.toLowerCase();
+  return (
+    s.includes("does not exist") ||
+    s.includes("exists on disk, but not in") ||
+    s.includes("pathspec")
+  );
+}
+
+/** Read a repo-relative path as of `ref` (null if missing; throws on other git failures). */
 function readRepoFileAtRef(projectRoot: string, ref: string, relPath: string): string | null {
   const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
   const result = git(["show", `${ref}:${path}`], projectRoot);
-  if (result.status !== 0) return null;
-  return result.stdout;
+  if (result.status === 0) return result.stdout;
+  const detail = result.stdout.trim();
+  if (isGitMissingPathDetail(detail)) return null;
+  throw new GitCommandError(
+    `git show ${ref}:${path} failed: ${detail.length > 0 ? detail : `exit ${String(result.status)}`}`,
+  );
 }
 
 function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
@@ -331,7 +349,13 @@ export function baseApprovalAuthorizesCurrent(input: {
   readonly currentApproved: ApprovedScopeRecord;
 }): boolean {
   if (input.baseRef === null || input.baseRef === "") return false;
-  const baseRaw = readRepoFileAtRef(input.projectRoot, input.baseRef, input.approvalRecordRel);
+  let baseRaw: string | null;
+  try {
+    baseRaw = readRepoFileAtRef(input.projectRoot, input.baseRef, input.approvalRecordRel);
+  } catch {
+    // Fail closed: a base-read error cannot authorize expansion.
+    return false;
+  }
   if (baseRaw === null) return false;
   const baseRec = parseApprovedScopeRecordRaw(baseRaw);
   if (baseRec === null) return false;
@@ -500,6 +524,28 @@ export function evaluateScopeProvenance(
     }
   }
 
+  const boundary =
+    options.testRoots !== undefined ||
+    options.fixtureRoots !== undefined ||
+    options.sourceRoots !== undefined
+      ? {
+          testRoots: options.testRoots,
+          fixtureRoots: options.fixtureRoots,
+          sourceRoots: options.sourceRoots,
+        }
+      : (() => {
+          try {
+            const policy = loadTestBoundaryPolicy(root);
+            return {
+              testRoots: policy.testRoots,
+              fixtureRoots: policy.fixtureRoots,
+              sourceRoots: policy.sourceRoots,
+            };
+          } catch {
+            return {};
+          }
+        })();
+
   for (const { rel, raw } of activeEntries) {
     let payload: unknown;
     try {
@@ -591,16 +637,14 @@ export function evaluateScopeProvenance(
 
     const readAtBase = (baseRel: string): string | null => {
       if (options.baseXbriefs !== undefined) {
+        // Injected base map is authoritative: absent key means missing on base.
         const injected = options.baseXbriefs.get(normalizeRepoRelPath(baseRel));
-        if (injected !== undefined) return injected;
+        return injected === undefined ? null : injected;
       }
       if (options.readAtBase !== undefined) return options.readAtBase(baseRel);
       if (discoveryBaseRef === null || discoveryBaseRef === "") return null;
-      try {
-        return readRepoFileAtRef(root, discoveryBaseRef, baseRel);
-      } catch {
-        return null;
-      }
+      // Throw on non-missing git failures so the fence fails closed (#4956).
+      return readRepoFileAtRef(root, discoveryBaseRef, baseRel);
     };
 
     // Same-PR approved-scope rewrite still fails closed when a digest file is
@@ -625,7 +669,23 @@ export function evaluateScopeProvenance(
 
     // Path fence (#4956): compare changed production files to the merge-base
     // brief file_scope. Never read the head brief for the fence list.
-    const baseBriefRaw = readAtBase(rel);
+    let baseBriefRaw: string | null;
+    try {
+      baseBriefRaw = readAtBase(rel);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      findings.push({
+        xbriefRelPath: rel,
+        planId: planId ?? rel,
+        kind: "production-scope-over-budget",
+        expandedPaths: [],
+        detail: `merge-base brief read failed for ${rel}: ${detail}; fail closed (#4956)`,
+        remediation:
+          "Fix the merge-base git read (fetch the base ref / repair the object) before changing " +
+          "production paths. There is no scope ceremony for proceed (#4956).",
+      });
+      continue;
+    }
     if (baseBriefRaw !== null) {
       let basePayload: unknown = null;
       try {
@@ -644,11 +704,54 @@ export function evaluateScopeProvenance(
         continue;
       }
       const baseScope = normalizeFileScope(extractFileScope(basePayload));
+      const headScope = normalizeFileScope(extractFileScope(payload));
+      // Multi-story: do not charge paths claimed by another active brief's
+      // head∪base scope. Orphan production extras still charge every fenced story.
+      let storyChanged = changed;
+      if (activeEntries.length > 1) {
+        const ownClaim = normalizeFileScope([...headScope, ...baseScope]);
+        const otherClaims: string[][] = [];
+        for (const other of activeEntries) {
+          if (other.rel === rel) continue;
+          try {
+            const otherPayload = JSON.parse(other.raw) as unknown;
+            const otherHead = normalizeFileScope(extractFileScope(otherPayload));
+            let otherBase = otherHead;
+            try {
+              const otherBaseRaw = readAtBase(other.rel);
+              if (otherBaseRaw !== null) {
+                otherBase = normalizeFileScope(
+                  extractFileScope(JSON.parse(otherBaseRaw) as unknown),
+                );
+              }
+            } catch {
+              // Keep head-only claim for the peer when its base read fails.
+            }
+            otherClaims.push(normalizeFileScope([...otherHead, ...otherBase]));
+          } catch {
+            // skip unreadable peer
+          }
+        }
+        storyChanged = changed.filter((f) => {
+          const n = normalizeRepoRelPath(f);
+          if (n === rel || n.endsWith(`/${rel}`)) return true;
+          const matchesOwn = ownClaim.length > 0 && pathMatchesFileScope(n, ownClaim);
+          if (matchesOwn) return true;
+          const matchesOther = otherClaims.some(
+            (claim) => claim.length > 0 && pathMatchesFileScope(n, claim),
+          );
+          if (matchesOther) return false;
+          return true;
+        });
+      }
       const fenceHit = evaluateProductionScopeFence({
         xbriefRelPath: rel,
         planId: planId ?? rel,
         baseFileScope: baseScope,
-        changedFiles: changed,
+        changedFiles: storyChanged,
+        testRoots: boundary.testRoots,
+        fixtureRoots: boundary.fixtureRoots,
+        sourceRoots: boundary.sourceRoots,
       });
       if (fenceHit !== null) {
         findings.push({

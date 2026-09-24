@@ -223,6 +223,61 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
     expect(result.findings[0]?.remediation).toMatch(/#4956/);
   });
 
+  it("does not charge story A with story B production extras when both are active", () => {
+    const baseA = xbrief("story-a", ["packages/core/src/a.ts"]);
+    // B claims the whole cli src tree so x/y/z attribute to B, not A.
+    const baseB = xbrief("story-b", ["packages/cli/src/**"]);
+    const result = evaluateScopeProvenance("/tmp/proj-multi", {
+      changedFiles: [
+        "packages/core/src/a.ts",
+        "packages/cli/src/x.ts",
+        "packages/cli/src/y.ts",
+        "packages/cli/src/z.ts",
+      ],
+      activeXbriefs: new Map([
+        ["xbrief/active/a.xbrief.json", JSON.stringify(baseA)],
+        ["xbrief/active/b.xbrief.json", JSON.stringify(baseB)],
+      ]),
+      baseXbriefs: new Map([
+        ["xbrief/active/a.xbrief.json", JSON.stringify(baseA)],
+        ["xbrief/active/b.xbrief.json", JSON.stringify(baseB)],
+      ]),
+      approvedRecords: [],
+    });
+    // Without per-story attribution, A's allowance (2) would be blown by B's three extras.
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("honors configured source/test roots for the production fence", () => {
+    const base = xbrief("story-1", ["app/a.ts"]);
+    const result = evaluateScopeProvenance("/tmp/proj-roots", {
+      changedFiles: ["app/b.ts", "app/c.ts", "app/d.ts"],
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
+      baseXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(base)]]),
+      approvedRecords: [],
+      sourceRoots: ["app/**"],
+      testRoots: ["spec/**"],
+      fixtureRoots: ["spec/fixtures/**"],
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
+  });
+
+  it("fails closed when merge-base brief read throws (not treated as missing)", () => {
+    const head = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const result = evaluateScopeProvenance("/tmp/proj-readfail", {
+      changedFiles: ["packages/core/src/b.ts"],
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(head)]]),
+      approvedRecords: [],
+      readAtBase: () => {
+        throw new Error("git show interrupted");
+      },
+      baseRef: "origin/master",
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.detail).toMatch(/merge-base brief read failed/i);
+  });
+
   it("passes clean when no active xbriefs change and no base fence extras", () => {
     const current = xbrief("story-1", ["packages/core/src/a.ts"]);
     const result = evaluateScopeProvenance("/tmp/proj", {
