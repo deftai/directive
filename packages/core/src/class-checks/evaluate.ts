@@ -377,7 +377,7 @@ function scanProductionReferences(
     /(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(relPath) ||
     /(^|\/)\.github\/workflows\//i.test(relPath) ||
     /(^|\/)Dockerfile(\.|$)/i.test(relPath) ||
-    /(^|\/)[^/\n]*pipeline[^/\n]*\.(ya?ml|json|sh|ps1)$/i.test(relPath);
+    basenameLooksLikePipeline(relPath, [".yml", ".yaml", ".json", ".sh", ".ps1"]);
   if (!underSource && !looksLikeDeploy) {
     return null;
   }
@@ -408,11 +408,19 @@ function scanProductionReferences(
   return null;
 }
 
+/** Basename contains 'pipeline' and ends with one of the extensions. Avoids ReDoS. */
+function basenameLooksLikePipeline(relPath: string, extensions: readonly string[]): boolean {
+  const slash = relPath.lastIndexOf("/");
+  const base = (slash >= 0 ? relPath.slice(slash + 1) : relPath).toLowerCase();
+  if (!base.includes("pipeline")) return false;
+  return extensions.some((ext) => base.endsWith(ext));
+}
+
 function looksLikeInfraPath(relPath: string): boolean {
   return (
     /(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(relPath) ||
     /\.(bicep|tf|tfvars|arm\.json)$/i.test(relPath) ||
-    /(^|\/)[^/\n]*pipeline[^/\n]*\.(ya?ml|json)$/i.test(relPath)
+    basenameLooksLikePipeline(relPath, [".yml", ".yaml", ".json"])
   );
 }
 
