@@ -181,9 +181,33 @@ describe("verify-review-monitor CLI", () => {
     expect(payload.tier).toBe(3);
     expect(payload.merge_path_arm).toMatchObject({ armed: false });
     expect(String(payload.message)).toMatch(/unarmed stand-down/);
-    expect(payload.message).toBe(
-      (payload.merge_path_arm as { message: string }).message,
-    );
+    expect(payload.message).toBe((payload.merge_path_arm as { message: string }).message);
+  });
+
+  it("merge-path-arm unarmed JSON preserves gate diagnosis when both fail", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-"));
+    vi.spyOn(reviewMonitor, "evaluateReviewMonitorGate").mockReturnValue({
+      exitCode: EXIT_NOT_READY,
+      message: "verify_review_monitor: no active GitHub review-owner lease on PR #88.",
+      tier: {
+        tier: MONITORING_TIER_1,
+        descriptor: "grok-build",
+        primitive: "spawn_subagent",
+      },
+      monitorRecord: null,
+      heartbeatActive: false,
+      callSite: "solo",
+    });
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(
+      run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", root, "--json"]),
+    ).toBe(EXIT_NOT_READY);
+    const payload = JSON.parse(out.mock.calls.join("")) as Record<string, unknown>;
+    expect(payload.ready).toBe(false);
+    expect(payload.exit_code).toBe(EXIT_NOT_READY);
+    expect(String(payload.message)).toMatch(/no active GitHub review-owner lease/);
+    expect(String(payload.message)).toMatch(/unarmed stand-down/);
   });
 
   it("Tier 1 live-wait without lease evidence stays unarmed", () => {

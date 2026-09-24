@@ -223,7 +223,8 @@ export function run(argv: readonly string[]): number {
       if (!arm.armed && result.exitCode !== EXIT_CONFIG_ERROR) {
         payload.ready = false;
         payload.exit_code = EXIT_NOT_READY;
-        payload.message = arm.message;
+        // Gate-ready → arm diagnosis; both failing → keep both messages.
+        payload.message = result.exitCode === 0 ? arm.message : `${result.message}\n${arm.message}`;
       }
     }
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
