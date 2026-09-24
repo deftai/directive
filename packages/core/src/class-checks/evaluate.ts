@@ -171,17 +171,50 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): ChangedFilesR
   };
   const range = `${resolved}...HEAD`;
   const diff = git(["diff", "--name-only", range], projectRoot);
-  if (diff.ok && diff.status === 0) {
-    for (const line of diff.stdout.split("\n")) addPath(line);
+  if (!diff.ok) {
+    if (diff.kind === "not-found") {
+      return { ok: false, kind: "not-found", message: diff.message };
+    }
+    return { ok: false, kind: "git-error", message: diff.message };
   }
+  if (diff.status !== 0) {
+    return {
+      ok: false,
+      kind: "git-error",
+      message: `git diff --name-only ${range} failed (exit ${diff.status})`,
+    };
+  }
+  for (const line of diff.stdout.split("\n")) addPath(line);
   const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot);
-  if (vsHead.ok && vsHead.status === 0) {
-    for (const line of vsHead.stdout.split("\n")) addPath(line);
+  if (!vsHead.ok) {
+    if (vsHead.kind === "not-found") {
+      return { ok: false, kind: "not-found", message: vsHead.message };
+    }
+    return { ok: false, kind: "git-error", message: vsHead.message };
   }
+  if (vsHead.status !== 0) {
+    return {
+      ok: false,
+      kind: "git-error",
+      message: `git diff --name-only HEAD failed (exit ${vsHead.status})`,
+    };
+  }
+  for (const line of vsHead.stdout.split("\n")) addPath(line);
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
-  if (untracked.ok && untracked.status === 0) {
-    for (const line of untracked.stdout.split("\n")) addPath(line);
+  if (!untracked.ok) {
+    if (untracked.kind === "not-found") {
+      return { ok: false, kind: "not-found", message: untracked.message };
+    }
+    return { ok: false, kind: "git-error", message: untracked.message };
   }
+  if (untracked.status !== 0) {
+    return {
+      ok: false,
+      kind: "git-error",
+      message: `git ls-files --others --exclude-standard failed (exit ${untracked.status})`,
+    };
+  }
+  for (const line of untracked.stdout.split("\n")) addPath(line);
   return { ok: true, files: [...out] };
 }
 
