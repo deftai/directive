@@ -14,7 +14,10 @@ function gitOk(stdout = ""): { status: number; stdout: string; error?: undefined
   return { status: 0, stdout, error: undefined };
 }
 
-function gitStatus(status: number, stdout = ""): { status: number; stdout: string; error?: undefined } {
+function gitStatus(
+  status: number,
+  stdout = "",
+): { status: number; stdout: string; error?: undefined } {
   return { status, stdout, error: undefined };
 }
 
