@@ -245,6 +245,76 @@ describe("lifecycleMain", () => {
     ).toBe(2);
   });
 
+  it("bind-clause then stamp-evidence covers a pathless derived clause (#4986)", () => {
+    root = mkdtempSync(join(tmpdir(), "cli-bind-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "packages", "a"), { recursive: true });
+    const pointer = "packages/a/index.test.ts";
+    writeFileSync(join(root, pointer), "export {}\n", "utf8");
+    const file = join(root, "xbrief", "active", "story.xbrief.json");
+    writeFileSync(
+      file,
+      formatBriefJson(
+        minimalScopeBrief({
+          title: "T",
+          status: "running",
+          items: [],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            clauses: [
+              {
+                id: 1,
+                text: "behavioral with no file token",
+                artifact_path: null,
+                ambiguous: false,
+              },
+            ],
+          },
+          metadata: { swarm: { file_scope: ["packages/a/**"] } },
+        }),
+      ),
+      "utf8",
+    );
+    const out: string[] = [];
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    try {
+      expect(
+        lifecycleMain([
+          "bind-clause",
+          file,
+          "--project-root",
+          root,
+          "--clause",
+          "1",
+          "--path",
+          pointer,
+        ]),
+      ).toBe(0);
+      expect(lifecycleMain(["stamp-evidence", file, "--project-root", root])).toBe(0);
+    } finally {
+      stdoutSpy.mockRestore();
+    }
+    expect(out.join("")).toContain("scope:bind-clause");
+    expect(out.join("")).toContain("scope:stamp-evidence");
+    const parsed = JSON.parse(readFileSync(file, "utf8")) as {
+      plan: {
+        acceptance: { clauses: Array<{ artifact_path: string | null }> };
+        items: Array<Record<string, unknown>>;
+      };
+    };
+    expect(parsed.plan.acceptance.clauses[0]?.artifact_path).toBe(pointer);
+    expect(parsed.plan.items[0]?.["x-directive/evidence"]).toMatchObject({
+      kind: "test",
+      pointer,
+    });
+    expect(lifecycleMain(["bind-clause", file, "--project-root", root, "--path", pointer])).toBe(2);
+  });
+
   it("returns 1 for invalid transition", () => {
     root = mkdtempSync(join(tmpdir(), "cli-bad-"));
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });

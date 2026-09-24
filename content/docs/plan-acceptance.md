@@ -32,7 +32,7 @@ when a pass line shows `0 verified`.
 | `ambiguity_attestation` | Required when `clauses[]` is non-empty and no clause has ambiguous readings. Value `none_found` | Derivation (`prepareClauseStamp`). ⊗ A second `none_found` default on the derivation path |
 | `sentences` | Optional. When present, each entry must match a clause or a `confessions` entry or the oracle walk fails closed (#3550) | On the brief. ⊗ A file selector. ⊗ A comment scrape |
 | `confessions` | Optional. Explicit confession that a sentence is not a clause. Text must match the sentence | On the brief |
-| `clauses[].artifact_path` | Bound from declared `plan.metadata.swarm.file_scope` when `source_rung === "derived"` (`#4008`) | Promote bind, not setup |
+| `clauses[].artifact_path` | Bound from declared `plan.metadata.swarm.file_scope` when `source_rung === "derived"` (`#4008` / `#4986`) | Promote bind when the clause names a unique matchAny member; otherwise explicit `scope:bind-clause --clause N --path <file_scope member>` before stamp. Empty `file_scope` is a silent no-op. ⊗ Lift a path from issue/comment text (`#3835`) |
 | `plan.metadata.swarm.file_scope` | Operator-collected declared members for derived-stamp bind | Operator. ⊗ Agent-invented paths. ⊗ Approved-scope digest mint (`#3145` / `#3110` / `#4383`) |
 | `plan.references` / `plan.metadata["x-tracking"].parent_issue` | Forge origin for origin-keyed sweeps | Operator-collected or minted by `task issue:emit`. ⊗ Agent-asserted. Same polarity as `file_scope` (`#4426`) |
 
@@ -68,5 +68,5 @@ and scope:complete share the walk.
 ## See also
 
 - `task verify:ac` in [`../commands.md`](../commands.md)
-- Clause bind: `packages/core/src/verify-ac/clauses.ts` (`bindClausesToDeclaredScope`)
+- Clause bind: `packages/core/src/verify-ac/clauses.ts` (`bindClausesToDeclaredScope`); pathless explicit bind: `packages/core/src/scope/bind-clause.ts` (`scope:bind-clause`, `#4986`)
 - Attestation: `packages/core/src/intake/clause-derivation.ts` (`evaluateAmbiguityAttestation`)

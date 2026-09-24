@@ -11,6 +11,7 @@ import { interceptHelp } from "../triage/help/index.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
+import { BIND_CLAUSE_ACTION, bindClauseOnBrief } from "./bind-clause.js";
 import { TRANSITIONS } from "./constants.js";
 import {
   type DeliveryEvidenceInput,
@@ -64,6 +65,8 @@ export interface LifecycleArgs {
   nonDeliveryDisposition?: NonDeliveryDisposition;
   /** Optional delivery evidence flags for complete (#3041). */
   deliveryEvidence?: DeliveryEvidenceInput;
+  /** Clause ids for scope:bind-clause (#4986). */
+  clauseIds?: number[];
 }
 
 export interface DemoteArgs {
@@ -91,7 +94,8 @@ const LIFECYCLE_USAGE_STDERR =
   "                          [--path PATH]\n" +
   "  complete also accepts: --merge-commit SHA --pr N [--pr-base BRANCH] [--delivery-branch BRANCH]\n" +
   "  stamp-evidence is evidence-only: no --pr / --merge-commit / disposition argv (#4840)\n" +
-  "  actions: activate, block, cancel, complete, fail, promote, restore, stamp-evidence, unblock\n" +
+  "  bind-clause binds selected --clause ids onto --path under file_scope (#4986)\n" +
+  "  actions: activate, bind-clause, block, cancel, complete, fail, promote, restore, stamp-evidence, unblock\n" +
   "The verb already encodes the action (e.g. deft scope:promote <file>). Do not pass the action again.\n" +
   "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n" +
   "(promote --from-issue=N may omit file; #1136)\n" +
@@ -102,7 +106,11 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
     return { args: null, error: "usage" };
   }
   const action = argv[0] ?? "";
-  if (!(action in TRANSITIONS) && action !== STAMP_EVIDENCE_ACTION) {
+  if (
+    !(action in TRANSITIONS) &&
+    action !== STAMP_EVIDENCE_ACTION &&
+    action !== BIND_CLAUSE_ACTION
+  ) {
     return { args: null, error: "usage" };
   }
   let file = "";
@@ -114,6 +122,7 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   let strict = false;
   let forceNoCache = false;
   let pathFlag: string | undefined;
+  const clauseIds: number[] = [];
   let nonDeliveryDisposition: NonDeliveryDisposition | undefined;
   let prNumber: number | undefined;
   let mergeCommit: string | undefined;
@@ -135,6 +144,23 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       strict = true;
     } else if (arg === "--force-no-cache") {
       forceNoCache = true;
+    } else if (arg === "--clause") {
+      const raw = argv[i + 1];
+      i += 1;
+      if (raw === undefined || !/^[1-9]\d*(?:,[1-9]\d*)*$/.test(raw)) {
+        return { args: null, error: "usage" };
+      }
+      for (const part of raw.split(",")) {
+        clauseIds.push(Number.parseInt(part, 10));
+      }
+    } else if (arg?.startsWith("--clause=")) {
+      const raw = arg.slice("--clause=".length);
+      if (!/^[1-9]\d*(?:,[1-9]\d*)*$/.test(raw)) {
+        return { args: null, error: "usage" };
+      }
+      for (const part of raw.split(",")) {
+        clauseIds.push(Number.parseInt(part, 10));
+      }
     } else if (arg === "--from-issue") {
       const raw = argv[i + 1];
       i += 1;
@@ -275,7 +301,12 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
     return { args: null, error: "usage" };
   }
   if (action === STAMP_EVIDENCE_ACTION) {
-    if (deliveryEvidence !== undefined || nonDeliveryDisposition !== undefined) {
+    if (
+      deliveryEvidence !== undefined ||
+      nonDeliveryDisposition !== undefined ||
+      clauseIds.length > 0 ||
+      pathFlag !== undefined
+    ) {
       return { args: null, error: "usage" };
     }
     return {
@@ -286,6 +317,29 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
         force,
       },
     };
+  }
+  if (action === BIND_CLAUSE_ACTION) {
+    if (
+      deliveryEvidence !== undefined ||
+      nonDeliveryDisposition !== undefined ||
+      pathFlag === undefined ||
+      clauseIds.length === 0
+    ) {
+      return { args: null, error: "usage" };
+    }
+    return {
+      args: {
+        action,
+        file,
+        projectRoot,
+        force,
+        pathFlag,
+        clauseIds,
+      },
+    };
+  }
+  if (clauseIds.length > 0) {
+    return { args: null, error: "usage" };
   }
   return {
     args: {
@@ -328,6 +382,7 @@ export function lifecycleMain(argv: string[]): number {
     strict,
     forceNoCache,
     pathFlag,
+    clauseIds,
     nonDeliveryDisposition,
     deliveryEvidence,
   } = parsed.args;
@@ -394,6 +449,20 @@ export function lifecycleMain(argv: string[]): number {
       return 0;
     }
     process.stderr.write(`Error: ${stamped.message}\n`);
+    return 1;
+  }
+
+  if (action === BIND_CLAUSE_ACTION) {
+    const bound = bindClauseOnBrief(filePath, {
+      projectRoot,
+      path: pathFlag ?? "",
+      clauseIds: clauseIds ?? [],
+    });
+    if (bound.ok) {
+      process.stdout.write(`${bound.message}\n`);
+      return 0;
+    }
+    process.stderr.write(`Error: ${bound.message}\n`);
     return 1;
   }
 
