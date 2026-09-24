@@ -180,6 +180,10 @@ describe("verify-review-monitor CLI", () => {
     expect(payload.exit_code).toBe(1);
     expect(payload.tier).toBe(3);
     expect(payload.merge_path_arm).toMatchObject({ armed: false });
+    expect(String(payload.message)).toMatch(/unarmed stand-down/);
+    expect(payload.message).toBe(
+      (payload.merge_path_arm as { message: string }).message,
+    );
   });
 
   it("Tier 1 live-wait without lease evidence stays unarmed", () => {
