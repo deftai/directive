@@ -546,6 +546,7 @@ export function evaluateScopeProvenance(
           }
         })();
 
+  let reportedPeerFailure = false;
   for (const { rel, raw } of activeEntries) {
     let payload: unknown;
     try {
@@ -746,29 +747,39 @@ export function evaluateScopeProvenance(
         if (peerBaseFailure !== null) {
           // Base-visible peer that cannot be read/parsed must fail closed —
           // silent discard would charge the peer's files as production extras.
-          findings.push({
-            xbriefRelPath: rel,
-            planId: planId ?? rel,
-            kind: "production-scope-over-budget",
-            expandedPaths: [],
-            detail: `peer ${peerBaseFailure.peerRel}: ${peerBaseFailure.detail}; fail closed (#4956)`,
-            remediation:
-              "Fix the merge-base peer brief read/parse before attributing multi-story " +
-              "production extras. There is no scope ceremony for proceed (#4956).",
+          // Report once; still run this story's own fence/intent (#4956 P2).
+          if (!reportedPeerFailure) {
+            reportedPeerFailure = true;
+            findings.push({
+              xbriefRelPath: peerBaseFailure.peerRel,
+              planId: peerBaseFailure.peerRel,
+              kind: "production-scope-over-budget",
+              expandedPaths: [],
+              detail: `peer ${peerBaseFailure.peerRel}: ${peerBaseFailure.detail}; fail closed (#4956)`,
+              remediation:
+                "Fix the merge-base peer brief read/parse before attributing multi-story " +
+                "production extras. There is no scope ceremony for proceed (#4956).",
+            });
+          }
+          // Untrusted peer claims: do not invent extras; keep own-scope files only.
+          storyChanged = changed.filter((f) => {
+            const n = normalizeRepoRelPath(f);
+            if (n === rel || n.endsWith(`/${rel}`)) return true;
+            return ownClaim.length > 0 && pathMatchesFileScope(n, ownClaim);
           });
-          continue;
+        } else {
+          storyChanged = changed.filter((f) => {
+            const n = normalizeRepoRelPath(f);
+            if (n === rel || n.endsWith(`/${rel}`)) return true;
+            const matchesOwn = ownClaim.length > 0 && pathMatchesFileScope(n, ownClaim);
+            if (matchesOwn) return true;
+            const matchesOther = otherClaims.some(
+              (claim) => claim.length > 0 && pathMatchesFileScope(n, claim),
+            );
+            if (matchesOther) return false;
+            return true;
+          });
         }
-        storyChanged = changed.filter((f) => {
-          const n = normalizeRepoRelPath(f);
-          if (n === rel || n.endsWith(`/${rel}`)) return true;
-          const matchesOwn = ownClaim.length > 0 && pathMatchesFileScope(n, ownClaim);
-          if (matchesOwn) return true;
-          const matchesOther = otherClaims.some(
-            (claim) => claim.length > 0 && pathMatchesFileScope(n, claim),
-          );
-          if (matchesOther) return false;
-          return true;
-        });
       }
       const fenceHit = evaluateProductionScopeFence({
         xbriefRelPath: rel,

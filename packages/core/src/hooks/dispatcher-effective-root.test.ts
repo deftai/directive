@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { defaultGitRunner } from "../session/git.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
@@ -139,6 +140,7 @@ function scopeSeams(readyRoot: string | null): {
         if (readyRoot !== null && resolve(root) === resolve(readyRoot)) return READY_SCOPE;
         return { ready: false, path: null, message: "no active scope xBRIEF" };
       },
+      loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
     },
   };
 }
@@ -164,6 +166,7 @@ function recordingSeams(sessionId?: string): {
         scopeRoots.push(resolve(root));
         return READY_SCOPE;
       },
+      loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
     },
   };
 }

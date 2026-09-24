@@ -8,6 +8,7 @@ import {
   resolveRuntimeAuthorityPolicy,
 } from "./runtime-authority.js";
 import {
+  clearWriteFenceMemosForTests,
   extractStoryFileScope,
   loadStoryWriteFenceFromBaseRaw,
   loadStoryWriteFenceFromMergeBase,
@@ -225,7 +226,8 @@ describe("story write fence fail-closed (#4956)", () => {
     );
   });
 
-  it("fails closed when project root is not a git worktree", () => {
+  it("treats a non-git project root as an inactive fence (hook fixtures)", () => {
+    clearWriteFenceMemosForTests();
     const dir = mkdtempSync(join(tmpdir(), "fence-nogit-4956-"));
     const brief = join(dir, "story.xbrief.json");
     writeFileSync(
@@ -234,9 +236,18 @@ describe("story write fence fail-closed (#4956)", () => {
         plan: { metadata: { swarm: { file_scope: ["packages/core/**"] } } },
       }),
     );
-    expect(() => loadStoryWriteFenceFromMergeBase(dir, brief)).toThrow(
-      StoryWriteFenceUnreadableError,
-    );
+    expect(loadStoryWriteFenceFromMergeBase(dir, brief)).toEqual({
+      fileScope: [],
+      denyPaths: [],
+    });
+  });
+
+  it("treats an outside-root stub scope path as an inactive fence", () => {
+    clearWriteFenceMemosForTests();
+    const dir = mkdtempSync(join(tmpdir(), "fence-escape-4956-"));
+    expect(
+      loadStoryWriteFenceFromMergeBase(dir, "/project/xbrief/active/story.xbrief.json"),
+    ).toEqual({ fileScope: [], denyPaths: [] });
   });
 
   it("treats null base raw as inactive fence", () => {

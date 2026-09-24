@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
+import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import {
   decisionCarriesSoftAgentsRebind,
   formatOpenClawSoftRebindSkillMarkdown,
@@ -114,6 +115,9 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => resolve(path),
+    // Fixtures are not authoritative git merge-base trees; path seam keeps allow
+    // paths while write-fence / scope-provenance tests cover merge-base authority.
+    loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
     ...overrides,
   };
 }

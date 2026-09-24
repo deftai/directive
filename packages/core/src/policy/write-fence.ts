@@ -206,87 +206,113 @@ function gitFenceSpawn(
   };
 }
 
-/**
- * Resolve an immutable merge-base commit SHA for the write fence (#4956).
- * Moving refs (origin/master) must not be passed to `git show` — a later base
- * advance would otherwise widen the fence. Fail closed when the base cannot be
- * established (no inactive empty fence).
- */
-function resolveMergeBaseCommitForFence(projectRoot: string): string {
-  const inside = gitFenceSpawn(projectRoot, ["rev-parse", "--is-inside-work-tree"]);
-  if (inside.error) {
-    const e = inside.error as NodeJS.ErrnoException;
+/** Short process-local TTL so per-write hooks reuse merge-base / brief reads (#4956). */
+const WRITE_FENCE_MEMO_TTL_MS = 5_000;
+
+type MergeBaseMemoHit =
+  | { readonly kind: "sha"; readonly baseRef: string; readonly sha: string }
+  | { readonly kind: "inactive" };
+
+type FenceLoadMemoHit = {
+  readonly fileScope: string[];
+  readonly denyPaths: string[];
+};
+
+type MemoEntry<T> = { readonly expiresAt: number; readonly value: T };
+
+const mergeBaseMemo = new Map<string, MemoEntry<MergeBaseMemoHit>>();
+const fenceLoadMemo = new Map<string, MemoEntry<FenceLoadMemoHit>>();
+
+function memoGet<T>(map: Map<string, MemoEntry<T>>, key: string): T | undefined {
+  const hit = map.get(key);
+  if (hit === undefined) return undefined;
+  if (Date.now() > hit.expiresAt) {
+    map.delete(key);
+    return undefined;
+  }
+  return hit.value;
+}
+
+function memoSet<T>(map: Map<string, MemoEntry<T>>, key: string, value: T): T {
+  map.set(key, { expiresAt: Date.now() + WRITE_FENCE_MEMO_TTL_MS, value });
+  return value;
+}
+
+/** Test seam: drop process-local write-fence git memos. */
+export function clearWriteFenceMemosForTests(): void {
+  mergeBaseMemo.clear();
+  fenceLoadMemo.clear();
+}
+
+function throwGitSpawnError(scopePath: string, err: Error | undefined): never {
+  if (err !== undefined) {
+    const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") {
       throw new StoryWriteFenceUnreadableError(
-        "merge-base",
+        scopePath,
         new Error("'git' executable not found on PATH"),
       );
     }
-    throw new StoryWriteFenceUnreadableError("merge-base", inside.error);
+    throw new StoryWriteFenceUnreadableError(scopePath, err);
   }
-  if (inside.signal) {
-    throw new StoryWriteFenceUnreadableError(
-      "merge-base",
-      new Error(`git rev-parse killed by signal ${String(inside.signal)}`),
-    );
-  }
-  if (inside.status !== 0) {
-    throw new StoryWriteFenceUnreadableError(
-      "merge-base",
-      new Error("not a git worktree; cannot resolve merge-base write fence"),
-    );
-  }
+  throw new StoryWriteFenceUnreadableError(scopePath, new Error("git spawn failed"));
+}
 
+function selectBaseRefForFence(projectRoot: string): string {
   const envCandidates = [
     process.env.DEFT_BASE_REF,
     process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
     process.env.GITHUB_BASE_REF,
   ].filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-  let baseRef: string | null = null;
   for (const cand of [...envCandidates, "origin/master", "origin/main", "master", "main"]) {
     const probe = gitFenceSpawn(projectRoot, ["rev-parse", "--verify", "-q", cand]);
-    if (probe.error) {
-      const e = probe.error as NodeJS.ErrnoException;
-      if (e.code === "ENOENT") {
-        throw new StoryWriteFenceUnreadableError(
-          "merge-base",
-          new Error("'git' executable not found on PATH"),
-        );
-      }
-      throw new StoryWriteFenceUnreadableError("merge-base", probe.error);
-    }
+    if (probe.error) throwGitSpawnError("merge-base", probe.error);
     if (probe.signal) {
       throw new StoryWriteFenceUnreadableError(
         "merge-base",
         new Error(`git rev-parse killed by signal ${String(probe.signal)}`),
       );
     }
-    if (probe.status === 0) {
-      baseRef = cand;
-      break;
-    }
+    if (probe.status === 0) return cand;
   }
-  if (baseRef === null) {
+  throw new StoryWriteFenceUnreadableError(
+    "merge-base",
+    new Error(
+      "no merge-base ref (origin/master|main or DEFT_BASE_REF/GITHUB_BASE_REF); " +
+        "cannot establish story write fence",
+    ),
+  );
+}
+
+/**
+ * Resolve an immutable merge-base commit SHA for the write fence (#4956).
+ * Moving refs (origin/master) must not be passed to `git show` — a later base
+ * advance would otherwise widen the fence.
+ *
+ * Non-git cwd → inactive so hook fixtures / non-repo trees keep the prior allow
+ * path. Inside a git worktree, missing base ref / merge-base failure → throw
+ * (fail closed).
+ */
+function resolveMergeBaseCommitForFence(projectRoot: string): MergeBaseMemoHit {
+  const envKey = [process.env.DEFT_BASE_REF ?? "", process.env.GITHUB_BASE_REF ?? ""].join("|");
+  const memoKey = `${projectRoot}\0${envKey}`;
+  const cached = memoGet(mergeBaseMemo, memoKey);
+  if (cached !== undefined) return cached;
+
+  const inside = gitFenceSpawn(projectRoot, ["rev-parse", "--is-inside-work-tree"]);
+  if (inside.error) throwGitSpawnError("merge-base", inside.error);
+  if (inside.signal) {
     throw new StoryWriteFenceUnreadableError(
       "merge-base",
-      new Error(
-        "no merge-base ref (origin/master|main or DEFT_BASE_REF/GITHUB_BASE_REF); " +
-          "cannot establish story write fence",
-      ),
+      new Error(`git rev-parse killed by signal ${String(inside.signal)}`),
     );
   }
+  // Non-repo / missing cwd (common in hook unit tests) → inactive story fence.
+  if (inside.status !== 0) return memoSet(mergeBaseMemo, memoKey, { kind: "inactive" });
 
+  const baseRef = selectBaseRefForFence(projectRoot);
   const mb = gitFenceSpawn(projectRoot, ["merge-base", "HEAD", baseRef]);
-  if (mb.error) {
-    const e = mb.error as NodeJS.ErrnoException;
-    if (e.code === "ENOENT") {
-      throw new StoryWriteFenceUnreadableError(
-        "merge-base",
-        new Error("'git' executable not found on PATH"),
-      );
-    }
-    throw new StoryWriteFenceUnreadableError("merge-base", mb.error);
-  }
+  if (mb.error) throwGitSpawnError("merge-base", mb.error);
   if (mb.signal) {
     throw new StoryWriteFenceUnreadableError(
       "merge-base",
@@ -301,7 +327,7 @@ function resolveMergeBaseCommitForFence(projectRoot: string): string {
       new Error(detail.length > 0 ? detail : `could not compute merge-base of HEAD and ${baseRef}`),
     );
   }
-  return sha;
+  return memoSet(mergeBaseMemo, memoKey, { kind: "sha", baseRef, sha });
 }
 
 function readMergeBaseBriefRaw(
@@ -311,16 +337,7 @@ function readMergeBaseBriefRaw(
 ): string | null {
   const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
   const result = gitFenceSpawn(projectRoot, ["show", `${mergeBaseSha}:${path}`]);
-  if (result.error) {
-    const e = result.error as NodeJS.ErrnoException;
-    if (e.code === "ENOENT") {
-      throw new StoryWriteFenceUnreadableError(
-        `merge-base:${path}`,
-        new Error("'git' executable not found on PATH"),
-      );
-    }
-    throw new StoryWriteFenceUnreadableError(`merge-base:${path}`, e);
-  }
+  if (result.error) throwGitSpawnError(`merge-base:${path}`, result.error);
   if (result.signal) {
     throw new StoryWriteFenceUnreadableError(
       `merge-base:${path}`,
@@ -339,7 +356,8 @@ function readMergeBaseBriefRaw(
 /**
  * Runtime write fence: read file_scope from the merge-base brief (#4956).
  * Never uses the working-tree head brief as authority. Missing brief on the
- * resolved merge-base commit → inactive story fence. Unresolvable base /
+ * resolved merge-base commit, non-git cwd, or scope path outside the project
+ * → inactive story fence. Unresolvable base inside a git worktree /
  * present-but-unreadable / git failures → throw (fail closed).
  */
 export function loadStoryWriteFenceFromMergeBase(
@@ -358,16 +376,26 @@ export function loadStoryWriteFenceFromMergeBase(
   if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) {
     rel = scopePath.replace(/\\/g, "/").replace(/^\.\//, "");
   }
+  // Outside-root / stub scope paths (hook fixtures) → inactive story fence.
   if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) {
-    throw new StoryWriteFenceUnreadableError(
-      "merge-base",
-      new Error(`scope path escapes project root: ${scopePath}`),
-    );
+    return { fileScope: [], denyPaths: [] };
   }
 
-  const mergeBaseSha = resolveMergeBaseCommitForFence(root);
-  const raw = readMergeBaseBriefRaw(root, mergeBaseSha, rel);
-  return loadStoryWriteFenceFromBaseRaw(raw, `merge-base:${rel}`);
+  const resolved = resolveMergeBaseCommitForFence(root);
+  if (resolved.kind === "inactive") {
+    return { fileScope: [], denyPaths: [] };
+  }
+
+  const loadKey = `${root}\0${resolved.baseRef}\0${resolved.sha}\0${rel}`;
+  const cached = memoGet(fenceLoadMemo, loadKey);
+  if (cached !== undefined) return cached;
+
+  const raw = readMergeBaseBriefRaw(root, resolved.sha, rel);
+  const loaded = loadStoryWriteFenceFromBaseRaw(raw, `merge-base:${rel}`);
+  return memoSet(fenceLoadMemo, loadKey, {
+    fileScope: [...loaded.fileScope],
+    denyPaths: [...loaded.denyPaths],
+  });
 }
 
 export interface ResolveWriteFenceOptions {
