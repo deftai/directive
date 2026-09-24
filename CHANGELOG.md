@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Setup writes non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named paths only (#4988).** Language/layout answers are prompt material for an explicit per-scope path question; auto-fill/derivation is out of scope. The Post-Interview Confirmation Gate lists each scope's paths as display and keeps the write-files lexicon — no approved-scope mint, digest, or `scope:record-approved-scope` as a setup action (forbid polarity may remain). Setup-created scopes must pass the same `file_scope` presence check decompose already imposes. Supersedes #4383. Refs #4956. Tracking #4988.
+- **Setup writes non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named paths only (#4988).** Every scope-emitting setup branch — full interview, Add-scope, and Rapid — asks an explicit per-scope path question before write; auto-fill/derivation is out of scope. The Post-Interview Confirmation Gate lists each scope's paths as display and keeps the write-files lexicon — no approved-scope mint, digest, or `scope:record-approved-scope` as a setup action (forbid polarity may remain). Setup-created scopes must pass the same `file_scope` presence check decompose already imposes. Supersedes #4383. Refs #4956. Tracking #4988.
 
 ### Fixed
 

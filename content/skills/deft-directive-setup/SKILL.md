@@ -702,7 +702,7 @@ omit = [
 
 - ! Default based on repo state via the brownfield detector above (scoped/brownfield → Add scope; identity-only or greenfield → Starting new)
 - ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
-- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface Issue-emit hints (#4426) plus the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
+- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Before writing, ask one explicit per-scope path question (or equivalent operator-named collect) and include non-empty `plan.metadata.swarm.file_scope` from those operator-named paths (`#4988`). Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface Issue-emit hints (#4426) plus the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
 - ! If **Add scope** on identity-only: ⊗ synthesize the first scope from `narratives.Overview`, directory name, or init-seed identity. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm Phase 0 Step 0.5 `xbrief/proposed/` scan is in scope for that skip.
 - ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
@@ -735,7 +735,7 @@ omit = [
   5. ! **STOP reading this section** — do NOT use the interview process below
 
 - ! When this join is Rapid (ceremony dial or Rapid strategy): Rapid Strategy Gate STOP must not skip the confirmed Overview write. Write site is Light narrative merge (`Overview` + `Architecture`) or an explicit `plan.narratives.Overview` patch before render. Confirmation stays this skill's Post-Interview Confirmation Gate.
-- ! After that confirmation: persist the live request's requirement list through Rapid Step 3 and #3267 capture onto one `xbrief/proposed/` draft. ⊗ Auto-write `xbrief/active/` — promote and activate stay the existing verbs.
+- ! After that confirmation: persist the live request's requirement list through Rapid Step 3 and #3267 capture onto one `xbrief/proposed/` draft. Before writing that draft, ask one explicit per-scope path question (or equivalent operator-named collect) and include non-empty `plan.metadata.swarm.file_scope` from those operator-named paths (`#4988`). ⊗ Auto-write `xbrief/active/` — promote and activate stay the existing verbs.
 - ! Unmanaged header one-liner: placeholder-only compare-and-set from user-confirmed Overview (`compareAndSetConsumerHeaderOneLiner`). Not a prompt interpolator. Not identity source of truth.
 - ! Handback reports the actual lifecycle outcome: `proposed <path>`, Process-only, or product-write-with-no-brief as a gate anomaly.
 - ⊗ Default to interview without reading PROJECT-DEFINITION.xbrief.json
@@ -744,6 +744,12 @@ omit = [
 - ⊗ Fabricate justification for using interview when the user chose a different strategy
 - ⊗ Announce the strategy choice and then stop — you must immediately read the file and start
 - ⊗ Skip the confirmed Overview write because Rapid Strategy Gate says STOP (#4544)
+
+---
+
+### Scope path collect (every scope-emitting branch) (#4988)
+
+! Before any setup write of a proposed scope xBRIEF — including Add-scope, Rapid, Light, and Full — ask one explicit per-scope path question (or equivalent operator-named collect) and write non-empty `plan.metadata.swarm.file_scope` from those operator-named paths only. ⊗ Skip path collect because Add-scope or Rapid skipped the full interview. ⊗ Auto-fill or invent paths.
 
 ---
 
@@ -845,7 +851,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 **Spec Structure (both paths):**
 - ! Overview, Architecture
 - ! Implementation Plan: scope xBRIEFs in `xbrief/proposed/` with phases and dependencies
-- ! Every setup-created scope xBRIEF MUST include a non-empty `plan.metadata.swarm.file_scope` of operator-named path members collected during the interview (`#4988`). Ask one explicit per-scope path question (or equivalent operator-named collect). ⊗ Auto-fill / invent paths from language, layout, or deliverable answers.
+- ! Every setup-created scope xBRIEF MUST include a non-empty `plan.metadata.swarm.file_scope` of operator-named path members collected on every scope-emitting setup branch — full interview, Add-scope, and Rapid (`#4988`). Ask one explicit per-scope path question (or equivalent operator-named collect). ⊗ Auto-fill / invent paths from language, layout, or deliverable answers.
 - ! Explicit dependency mapping MUST use the field consumers actually read for the scope shape:
   - **Story-shaped scopes** (`plan.metadata.kind = "story"` or scopes intended for swarm allocation / decompose): sequential/blocked work MUST set `plan.metadata.swarm.depends_on` to an array of **resolvable story identifiers**. Swarm readiness, decompose, and queue traversal read **only** this field for story ordering — not `plan.metadata.dependencies` alone. ! Each `depends_on` entry MUST equal the blocking scope's `plan.id` when that field is set; otherwise the blocking artifact's **filename stem** (basename with `.xbrief.json` / `.vbrief.json` stripped — the same stem readiness uses as `story_id`). ⊗ Use rendered titles, free-form prose, date-only prefixes, or unstripped full filenames — those do not resolve and leave the generated scope blocked.
   - **Phase/epic or cross-scope roadmap batches**: MAY also set plan-level `plan.metadata.dependencies` for roadmap/export readers.
@@ -871,7 +877,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ! Derivation (`#3323` / `#3360`) owns `plan.acceptance`. Setup stays silent on that block.
 ⊗ Emit `plan.acceptance`, `ambiguity_attestation`, or a schema-complete acceptance stamp from this skill.
-! For every setup-created scope, write a non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named path members only (`#4988`, supersedes `#4383`). Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. ⊗ Auto-fill or derive `file_scope` from those answers. ⊗ Invent paths. ⊗ Describe a mint step, a digest, or `scope:record-approved-scope` as a setup action (`#3145` / `#3110` / `#4956`). Forbid polarity may remain. ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. ! A setup-created scope must pass the same `file_scope` presence check decompose already imposes (operative surface is presence, not the full missingRequiredSwarmFields suite).
+! For every setup-created scope, write a non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named path members only (`#4988`, supersedes `#4383`). Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) on every scope-emitting setup branch (full interview, Add-scope, and Rapid), not after. ⊗ Auto-fill or derive `file_scope` from those answers. ⊗ Invent paths. ⊗ Describe a mint step, a digest, or `scope:record-approved-scope` as a setup action (`#3145` / `#3110` / `#4956`). Forbid polarity may remain. ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. ! A setup-created scope must pass the same `file_scope` presence check decompose already imposes (operative surface is presence, not the full missingRequiredSwarmFields suite).
 
 ### Intent-constraint plan key (#4587 / #4541)
 

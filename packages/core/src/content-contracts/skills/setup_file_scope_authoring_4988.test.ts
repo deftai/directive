@@ -18,6 +18,22 @@ function setupSurfaces(): string[] {
   return [packedSetupBody(), readRepoFile(SETUP_SKILL)];
 }
 
+function onboardingQuestion(text: string): string {
+  const start = text.indexOf("### Onboarding Question");
+  expect(start).not.toBe(-1);
+  const end = text.indexOf("### ⚠️ MANDATORY: Strategy Gate", start);
+  expect(end).not.toBe(-1);
+  return text.slice(start, end);
+}
+
+function strategyGateThroughDivider(text: string): string {
+  const start = text.indexOf("### ⚠️ MANDATORY: Strategy Gate");
+  expect(start).not.toBe(-1);
+  const end = text.indexOf("Everything below applies ONLY to the interview strategy", start);
+  expect(end).not.toBe(-1);
+  return text.slice(start, end);
+}
+
 function confirmationGate(text: string): string {
   const start = text.indexOf("## Post-Interview Confirmation Gate");
   expect(start).not.toBe(-1);
@@ -58,6 +74,24 @@ function affirmativeApprovedScopeSetupActions(text: string): string[] {
 }
 
 describe("setup file_scope authoring (#4988)", () => {
+  it("Add-scope and Rapid collect operator-named file_scope before writing", () => {
+    for (const surface of setupSurfaces()) {
+      const add = onboardingQuestion(surface);
+      expect(add).toMatch(/If \*\*Add scope\*\*[\s\S]*per-scope path question/);
+      expect(add).toMatch(/If \*\*Add scope\*\*[\s\S]*plan\.metadata\.swarm\.file_scope/);
+      expect(add).toMatch(/#4988/);
+
+      const rapid = strategyGateThroughDivider(surface);
+      expect(rapid).toMatch(/Before writing that draft[\s\S]*per-scope path question/);
+      expect(rapid).toMatch(/Before writing that draft[\s\S]*plan\.metadata\.swarm\.file_scope/);
+      expect(rapid).toContain("Scope path collect (every scope-emitting branch)");
+      expect(rapid).toMatch(/Add-scope, Rapid, Light, and Full/);
+      expect(rapid).toMatch(
+        /Skip path collect because Add-scope or Rapid skipped the full interview/,
+      );
+    }
+  });
+
   it("requires non-empty operator-named file_scope at authoring and forbids invent/auto-fill", () => {
     for (const surface of setupSurfaces()) {
       const block = fileScopeAuthoringBlock(surface);
@@ -67,6 +101,8 @@ describe("setup file_scope authoring (#4988)", () => {
       expect(block).toMatch(/Auto-fill or derive/);
       expect(block).toMatch(/Invent paths/);
       expect(block).toMatch(/explicit per-scope path question/);
+      expect(block).toMatch(/every scope-emitting setup branch/);
+      expect(block).toMatch(/Add-scope, and Rapid/);
     }
   });
 
