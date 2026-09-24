@@ -277,7 +277,9 @@ function gitSpawnUnreadable(scopePath: string, err: Error | undefined): StoryWri
 
 function selectBaseRefForFence(
   projectRoot: string,
-): { readonly ok: true; readonly baseRef: string } | { readonly ok: false; readonly fence: StoryWriteFenceView } {
+):
+  | { readonly ok: true; readonly baseRef: string }
+  | { readonly ok: false; readonly fence: StoryWriteFenceView } {
   const envCandidates = [
     process.env.DEFT_BASE_REF,
     process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
@@ -348,10 +350,7 @@ function resolveMergeBaseCommitForFence(projectRoot: string): MergeBaseResolveRe
   if (mb.signal) {
     return {
       kind: "unreadable",
-      fence: unreadableFence(
-        "merge-base",
-        `git merge-base killed by signal ${String(mb.signal)}`,
-      ),
+      fence: unreadableFence("merge-base", `git merge-base killed by signal ${String(mb.signal)}`),
     };
   }
   const sha = mb.stdout.trim();

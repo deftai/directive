@@ -359,11 +359,7 @@ export function baseApprovalAuthorizesCurrent(input: {
   readonly currentApproved: ApprovedScopeRecord;
 }): boolean {
   if (input.baseRef === null || input.baseRef === "") return false;
-  const baseRead = readRepoFileAtRef(
-    input.projectRoot,
-    input.baseRef,
-    input.approvalRecordRel,
-  );
+  const baseRead = readRepoFileAtRef(input.projectRoot, input.baseRef, input.approvalRecordRel);
   // Fail closed: a base-read error cannot authorize expansion.
   if (baseRead.status !== "ok") return false;
   const baseRaw = baseRead.text;
@@ -655,9 +651,7 @@ export function evaluateScopeProvenance(
       if (options.baseXbriefs !== undefined) {
         // Injected base map is authoritative: absent key means missing on base.
         const injected = options.baseXbriefs.get(normalizeRepoRelPath(baseRel));
-        return injected === undefined
-          ? { kind: "missing" }
-          : { kind: "text", text: injected };
+        return injected === undefined ? { kind: "missing" } : { kind: "text", text: injected };
       }
       if (options.readAtBase !== undefined) {
         try {
