@@ -702,7 +702,7 @@ omit = [
 
 - ! Default based on repo state via the brownfield detector above (scoped/brownfield → Add scope; identity-only or greenfield → Starting new)
 - ! Final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)
-- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Before writing, ask one explicit per-scope path question (or equivalent operator-named collect) and include non-empty `plan.metadata.swarm.file_scope` from those operator-named paths (`#4988`). Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface Issue-emit hints (#4426) plus the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
+- ! If **Add scope**: skip the full interview only after capturing an explicit product or slice description from the operator. Before the Post-Interview Confirmation Gate (and before writing), ask one explicit per-scope path question (or equivalent operator-named collect) and include non-empty `plan.metadata.swarm.file_scope` from those operator-named paths (`#4988`). Create a new scope xBRIEF in `./xbrief/proposed/` with that description, apply Preparatory Guard on write, then surface Issue-emit hints (#4426) plus the Lifecycle Bridge + End-of-Phase-3 Export Prompt + handoff sections below (do not dead-end after the write)
 - ! If **Add scope** on identity-only: ⊗ synthesize the first scope from `narratives.Overview`, directory name, or init-seed identity. Capture a product or slice description, or do not emit a proposed xBRIEF. Swarm Phase 0 Step 0.5 `xbrief/proposed/` scan is in scope for that skip.
 - ! If **Update project definition**: run a delta interview; apply Spec-Generating Guard against `./xbrief/PROJECT-DEFINITION.xbrief.json` (or legacy `./vbrief/PROJECT-DEFINITION.vbrief.json` if that is the existing identity); merge narratives (do not wholesale replace unless the user confirmed scrap)
 - ! If **Replace specification (scrap)**: require explicit `yes`/`confirmed`, then proceed to the Strategy Gate as a greenfield-style full path
@@ -734,8 +734,8 @@ omit = [
   4. ! For `research`, after the research artifact is written, surface the strategy's Then: Chaining Gate and wait for a user selection; do NOT create scope xBRIEFs from research output unless the user later chooses a spec-generating path; do NOT fall through to the interview output path after research.
   5. ! **STOP reading this section** — do NOT use the interview process below
 
-- ! When this join is Rapid (ceremony dial or Rapid strategy): Rapid Strategy Gate STOP must not skip the confirmed Overview write. Write site is Light narrative merge (`Overview` + `Architecture`) or an explicit `plan.narratives.Overview` patch before render. Confirmation stays this skill's Post-Interview Confirmation Gate.
-- ! After that confirmation: persist the live request's requirement list through Rapid Step 3 and #3267 capture onto one `xbrief/proposed/` draft. Before writing that draft, ask one explicit per-scope path question (or equivalent operator-named collect) and include non-empty `plan.metadata.swarm.file_scope` from those operator-named paths (`#4988`). ⊗ Auto-write `xbrief/active/` — promote and activate stay the existing verbs.
+- ! When this join is Rapid (ceremony dial or Rapid strategy): Rapid Strategy Gate STOP must not skip the confirmed Overview write. Write site is Light narrative merge (`Overview` + `Architecture`) or an explicit `plan.narratives.Overview` patch before render. Before the Post-Interview Confirmation Gate, ask one explicit per-scope path question (or equivalent operator-named collect) and include non-empty `plan.metadata.swarm.file_scope` from those operator-named paths (`#4988`) so that gate can list the paths under the scope as display. Confirmation stays this skill's Post-Interview Confirmation Gate.
+- ! After that confirmation: persist the live request's requirement list through Rapid Step 3 and #3267 capture onto one `xbrief/proposed/` draft. ⊗ Auto-write `xbrief/active/` — promote and activate stay the existing verbs.
 - ! Unmanaged header one-liner: placeholder-only compare-and-set from user-confirmed Overview (`compareAndSetConsumerHeaderOneLiner`). Not a prompt interpolator. Not identity source of truth.
 - ! Handback reports the actual lifecycle outcome: `proposed <path>`, Process-only, or product-write-with-no-brief as a gate anomaly.
 - ⊗ Default to interview without reading PROJECT-DEFINITION.xbrief.json
@@ -749,7 +749,7 @@ omit = [
 
 ### Scope path collect (every scope-emitting branch) (#4988)
 
-! Before any setup write of a proposed scope xBRIEF — including Add-scope, Rapid, Light, and Full — ask one explicit per-scope path question (or equivalent operator-named collect) and write non-empty `plan.metadata.swarm.file_scope` from those operator-named paths only. ⊗ Skip path collect because Add-scope or Rapid skipped the full interview. ⊗ Auto-fill or invent paths.
+! Before the Post-Interview Confirmation Gate and before any setup write of a proposed scope xBRIEF — including Add-scope, Rapid, Light, and Full — ask one explicit per-scope path question (or equivalent operator-named collect) and write non-empty `plan.metadata.swarm.file_scope` from those operator-named paths only. ⊗ Collect paths only after that gate without repeating display-and-confirmation. ⊗ Skip path collect because Add-scope or Rapid skipped the full interview. ⊗ Auto-fill or invent paths.
 
 ---
 

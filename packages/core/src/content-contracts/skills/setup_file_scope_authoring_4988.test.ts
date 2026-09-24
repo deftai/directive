@@ -74,18 +74,33 @@ function affirmativeApprovedScopeSetupActions(text: string): string[] {
 }
 
 describe("setup file_scope authoring (#4988)", () => {
-  it("Add-scope and Rapid collect operator-named file_scope before writing", () => {
+  it("Add-scope and Rapid collect operator-named file_scope before confirmation", () => {
     for (const surface of setupSurfaces()) {
       const add = onboardingQuestion(surface);
-      expect(add).toMatch(/If \*\*Add scope\*\*[\s\S]*per-scope path question/);
+      expect(add).toMatch(
+        /If \*\*Add scope\*\*[\s\S]*Before the Post-Interview Confirmation Gate[\s\S]*per-scope path question/,
+      );
       expect(add).toMatch(/If \*\*Add scope\*\*[\s\S]*plan\.metadata\.swarm\.file_scope/);
       expect(add).toMatch(/#4988/);
 
       const rapid = strategyGateThroughDivider(surface);
-      expect(rapid).toMatch(/Before writing that draft[\s\S]*per-scope path question/);
-      expect(rapid).toMatch(/Before writing that draft[\s\S]*plan\.metadata\.swarm\.file_scope/);
+      expect(rapid).toMatch(
+        /Before the Post-Interview Confirmation Gate[\s\S]*per-scope path question/,
+      );
+      expect(rapid).toMatch(
+        /Before the Post-Interview Confirmation Gate[\s\S]*plan\.metadata\.swarm\.file_scope/,
+      );
+      expect(rapid).toMatch(
+        /After that confirmation:[\s\S]*persist the live request's requirement list/,
+      );
+      expect(rapid).not.toMatch(
+        /After that confirmation:[\s\S]*Before writing that draft[\s\S]*per-scope path question/,
+      );
       expect(rapid).toContain("Scope path collect (every scope-emitting branch)");
       expect(rapid).toMatch(/Add-scope, Rapid, Light, and Full/);
+      expect(rapid).toMatch(
+        /Collect paths only after that gate without repeating display-and-confirmation/,
+      );
       expect(rapid).toMatch(
         /Skip path collect because Add-scope or Rapid skipped the full interview/,
       );
