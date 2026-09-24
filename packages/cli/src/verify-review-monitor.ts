@@ -219,6 +219,11 @@ export function run(argv: readonly string[]): number {
         sticky_lease: args.stickyLease,
         lease_evidence: result.monitorRecord !== null,
       };
+      // Combined gate+arm: unarmed fails closed even when the monitor gate is ready.
+      if (!arm.armed && result.exitCode !== EXIT_CONFIG_ERROR) {
+        payload.ready = false;
+        payload.exit_code = EXIT_NOT_READY;
+      }
     }
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else if (result.exitCode === EXIT_CONFIG_ERROR) {

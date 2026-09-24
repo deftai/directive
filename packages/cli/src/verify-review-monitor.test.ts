@@ -168,7 +168,7 @@ describe("verify-review-monitor CLI", () => {
     expect(err.mock.calls.join("")).toMatch(/not a directory/);
   });
 
-  it("merge-path-arm unarmed JSON uses verifyResultToJson shape", () => {
+  it("merge-path-arm unarmed JSON aligns ready/exit_code with process exit", () => {
     vi.stubEnv("DEFT_MONITOR_TIER", "3");
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     vi.spyOn(process.stderr, "write").mockReturnValue(true);
@@ -176,8 +176,8 @@ describe("verify-review-monitor CLI", () => {
       run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", ".", "--json"]),
     ).toBe(1);
     const payload = JSON.parse(out.mock.calls.join("")) as Record<string, unknown>;
-    expect(payload.ready).toBe(true);
-    expect(payload.exit_code).toBe(0);
+    expect(payload.ready).toBe(false);
+    expect(payload.exit_code).toBe(1);
     expect(payload.tier).toBe(3);
     expect(payload.merge_path_arm).toMatchObject({ armed: false });
   });
