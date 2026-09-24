@@ -17,7 +17,7 @@ export const OBSERVABLE_UI_PROVIDER = "parse5+typescript";
 export const OBSERVABLE_UI_PROVIDER_VERSION = 1;
 /** Primary fail path (#5010): restore baseline or in-harness ask; TTY mint is legacy repair only. */
 export const OBSERVABLE_SCOPE_REMEDIATION =
-  "Restore the baseline markup structure, or ask the human in the parent chat to land the merge-base observable-scope record (mintedVia in-harness-ask). Unattended/C1: rewrite or park — leave-harness TTY scope:record-observable-scope is not the primary path (legacy repair only).";
+  "Restore the baseline markup structure, or ask the human in the parent chat; on yes the human lands the merge-base observable-scope record (mintedVia in-harness-ask) on a real TTY — agent/CI shells still refuse (attestation is not an agent-shell bypass). Commit that record on the delivery-branch merge base first, then rebase the implementation branch onto it; same-PR working-tree-only records are not authoritative. Unattended/C1: rewrite or park — leave-harness TTY scope:record-observable-scope is not the primary path (legacy repair only).";
 export const CHANGE_KINDS = ["fields-only", "layout-authorized"] as const;
 export type ChangeKind = (typeof CHANGE_KINDS)[number];
 

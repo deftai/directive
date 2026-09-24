@@ -21,6 +21,8 @@ describe("observable-scope constants (#4495)", () => {
     expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/parent chat|in-harness-ask/);
     expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/rewrite or park/);
     expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/legacy repair only/);
+    expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/agent\/CI shells still refuse/);
+    expect(OBSERVABLE_SCOPE_REMEDIATION).toMatch(/delivery-branch merge base|rebase the implementation branch/);
     expect(OBSERVABLE_SCOPE_REMEDIATION).toContain("scope:record-observable-scope");
     expect(STRUCTURE_KINDS).toEqual([
       "tab",

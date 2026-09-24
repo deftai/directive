@@ -24,6 +24,8 @@ describe("intent-constraint authorship placement (#4587 / #5010)", () => {
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/parent chat|in-harness-ask/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/rewrite or park/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/legacy repair only/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/agent\/CI shells still refuse/);
+    expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(/delivery-branch merge base|rebase the implementation branch/);
     expect(INTENT_CONSTRAINT_REMEDIATION).toMatch(
       /Tests and in-scope file paths are not authority/,
     );

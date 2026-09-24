@@ -31,6 +31,18 @@ describe("scope-record-observable-scope CLI (#4495)", () => {
     ).toBe(2);
   });
 
+  it("refuses agent shells even with mintedVia in-harness-ask (#5010)", () => {
+    expect(
+      run(
+        ["story.xbrief.json", "--actor", "scott", "--confirm", "--minted-via=in-harness-ask"],
+        {
+          ...humanSeams,
+          environ: { CURSOR_AGENT: "1" },
+        },
+      ),
+    ).toBe(2);
+  });
+
   it("mints a human record from the namespaced contract", () => {
     const root = mkdtempSync(join(tmpdir(), "obs-mint-"));
     temps.push(root);

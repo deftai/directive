@@ -43,10 +43,11 @@ function usage(): string {
     "[--kind operator] [--minted-via in-harness-ask|scope:record-intent-constraint] " +
     "[--project-root <dir>] [--quiet]\n" +
     '  Writes .deft/intent-constraint/<plan-id>.json from plan["x-directive/intentConstraint"].\n' +
-    "  Normal mid-build collection is attended in-harness ask (#5010); this verb is legacy repair " +
-    "or the human landing step after chat yes. --minted-via=in-harness-ask records that attestation. " +
-    "--actor is display only and never authorizes mint. Mint still requires a real TTY, " +
-    "controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
+    "  Attended mid-build (#5010): ask in parent chat; on yes the human runs this verb on a real TTY " +
+    "with --minted-via=in-harness-ask (attestation is not an agent-shell bypass). Commit the record on " +
+    "the delivery-branch merge base, then rebase the implementation branch — same-PR working-tree-only " +
+    "records are not authoritative. Unattended/C1: rewrite or park. --actor is display only. Mint still " +
+    "requires a real TTY, controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
   );
 }
 
