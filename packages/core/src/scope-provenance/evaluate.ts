@@ -706,7 +706,8 @@ export function evaluateScopeProvenance(
       const baseScope = normalizeFileScope(extractFileScope(basePayload));
       const headScope = normalizeFileScope(extractFileScope(payload));
       // Multi-story: do not charge paths claimed by another active brief's
-      // head∪base scope. Orphan production extras still charge every fenced story.
+      // merge-base scope. Head-only peer scopes must not siphon extras (#4956).
+      // Orphan production extras still charge every fenced story.
       let storyChanged = changed;
       if (activeEntries.length > 1) {
         const ownClaim = normalizeFileScope([...headScope, ...baseScope]);
@@ -714,22 +715,16 @@ export function evaluateScopeProvenance(
         for (const other of activeEntries) {
           if (other.rel === rel) continue;
           try {
-            const otherPayload = JSON.parse(other.raw) as unknown;
-            const otherHead = normalizeFileScope(extractFileScope(otherPayload));
-            let otherBase = otherHead;
-            try {
-              const otherBaseRaw = readAtBase(other.rel);
-              if (otherBaseRaw !== null) {
-                otherBase = normalizeFileScope(
-                  extractFileScope(JSON.parse(otherBaseRaw) as unknown),
-                );
-              }
-            } catch {
-              // Keep head-only claim for the peer when its base read fails.
+            const otherBaseRaw = readAtBase(other.rel);
+            if (otherBaseRaw === null) {
+              // Peer exists only on HEAD: no merge-base claim to attribute.
+              continue;
             }
-            otherClaims.push(normalizeFileScope([...otherHead, ...otherBase]));
+            otherClaims.push(
+              normalizeFileScope(extractFileScope(JSON.parse(otherBaseRaw) as unknown)),
+            );
           } catch {
-            // skip unreadable peer
+            // Unreadable peer base: do not trust head-only peer claims.
           }
         }
         storyChanged = changed.filter((f) => {

@@ -263,6 +263,34 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
     expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
   });
 
+  it("does not let a head-only peer claim siphon another story's extras", () => {
+    const baseA = xbrief("story-a", ["packages/core/src/a.ts"]);
+    const headA = xbrief("story-a", ["packages/core/src/a.ts"]);
+    // Peer B exists only on HEAD and claims A's extras — must not remove them.
+    const headB = xbrief("story-b", [
+      "packages/core/src/extra1.ts",
+      "packages/core/src/extra2.ts",
+      "packages/core/src/extra3.ts",
+    ]);
+    const result = evaluateScopeProvenance("/tmp/proj-peer-head-only", {
+      changedFiles: [
+        "packages/core/src/extra1.ts",
+        "packages/core/src/extra2.ts",
+        "packages/core/src/extra3.ts",
+      ],
+      activeXbriefs: new Map([
+        ["xbrief/active/a.xbrief.json", JSON.stringify(headA)],
+        ["xbrief/active/b.xbrief.json", JSON.stringify(headB)],
+      ]),
+      baseXbriefs: new Map([["xbrief/active/a.xbrief.json", JSON.stringify(baseA)]]),
+      approvedRecords: [],
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "production-scope-over-budget")).toBe(
+      true,
+    );
+  });
+
   it("fails closed when merge-base brief read throws (not treated as missing)", () => {
     const head = xbrief("story-1", ["packages/core/src/a.ts"]);
     const result = evaluateScopeProvenance("/tmp/proj-readfail", {

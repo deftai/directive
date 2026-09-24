@@ -10,6 +10,7 @@ import {
 import {
   extractStoryFileScope,
   loadStoryWriteFenceFromBaseRaw,
+  loadStoryWriteFenceFromMergeBase,
   loadStoryWriteFenceFromPath,
   normalizeStoryWriteScope,
   resolveWriteFence,
@@ -220,6 +221,20 @@ describe("story write fence fail-closed (#4956)", () => {
 
   it("throws when base raw is malformed JSON", () => {
     expect(() => loadStoryWriteFenceFromBaseRaw("{not-json", "base:story")).toThrow(
+      StoryWriteFenceUnreadableError,
+    );
+  });
+
+  it("fails closed when project root is not a git worktree", () => {
+    const dir = mkdtempSync(join(tmpdir(), "fence-nogit-4956-"));
+    const brief = join(dir, "story.xbrief.json");
+    writeFileSync(
+      brief,
+      JSON.stringify({
+        plan: { metadata: { swarm: { file_scope: ["packages/core/**"] } } },
+      }),
+    );
+    expect(() => loadStoryWriteFenceFromMergeBase(dir, brief)).toThrow(
       StoryWriteFenceUnreadableError,
     );
   });

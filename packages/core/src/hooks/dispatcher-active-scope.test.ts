@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { ACTIVE_SCOPE_PIN_ENV, decideHook, type HookPolicySeams } from "./index.js";
 
@@ -48,6 +49,10 @@ function liveScopeSeams(): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     runningInsideDeftRepo: () => true,
     realpathLifecycleExecutionRoot: (path) => resolve(path),
+    // #4007 pin selection uses a path-backed fence seam. These fixtures are not
+    // git repos; merge-base authority is covered by write-fence / scope-provenance
+    // tests. Production dispatcher defaults to loadStoryWriteFenceFromMergeBase.
+    loadStoryWriteFence: (_root, scopePath) => loadStoryWriteFenceFromPath(scopePath),
   };
 }
 
