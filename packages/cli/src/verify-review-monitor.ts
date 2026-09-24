@@ -6,7 +6,10 @@ import {
   type MergePathArmResult,
 } from "@deftai/directive-core/dist/pr-watch/main.js";
 import {
+  EXIT_CONFIG_ERROR,
+  EXIT_NOT_READY,
   evaluateReviewMonitorGate,
+  isTier1,
   REVIEW_MONITOR_HELP,
   type ReviewMonitorCallSite,
   verifyResultToJson,
@@ -151,6 +154,7 @@ export function run(argv: readonly string[]): number {
       "\n#4882 merge-path arm observer (optional):\n" +
         "  --merge-path-arm       Fail closed when neither live wait nor explicit finish\n" +
         "  --live-wait            Attest a still-running phase-correct wait for this PR\n" +
+        "                         (Tier 1: bound to gate lease evidence for --pr)\n" +
         "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
         "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
         "  Prefer Approach 1 / native pr:watch; homemade line-parsed --json is not an arm.\n",
@@ -168,39 +172,8 @@ export function run(argv: readonly string[]): number {
     return 2;
   }
 
-  let arm: MergePathArmResult | null = null;
-  if (args.mergePathArm) {
-    arm = evaluateMergePathArm({
-      livePhaseCorrectWait: args.liveWait,
-      explicitFinish: args.explicitFinish,
-      stickyLeaseActive: args.stickyLease,
-    });
-    if (!arm.armed) {
-      if (args.emitJson) {
-        process.stdout.write(
-          `${JSON.stringify(
-            {
-              ready: false,
-              merge_path_arm: {
-                armed: false,
-                reason: arm.reason,
-                message: arm.message,
-                live_wait: args.liveWait,
-                explicit_finish: args.explicitFinish,
-                sticky_lease: args.stickyLease,
-              },
-            },
-            null,
-            2,
-          )}\n`,
-        );
-      } else {
-        process.stderr.write(`${arm.message}\n`);
-      }
-      return 1;
-    }
-  }
-
+  // Always evaluate the gate first so --project-root / repo config errors stay
+  // exit 2 even when --merge-path-arm would otherwise fail closed as unarmed.
   const result = evaluateReviewMonitorGate({
     pr: args.pr,
     projectRoot: resolve(args.projectRoot),
@@ -212,6 +185,28 @@ export function run(argv: readonly string[]): number {
     environ: process.env,
   });
 
+  let arm: MergePathArmResult | null = null;
+  if (args.mergePathArm) {
+    // Bind --live-wait to gate-observed lease evidence on Tier 1 for this PR.
+    // Bare flags must not arm when Tier 1 requires a lease and none is present.
+    const leaseEvidence = result.monitorRecord !== null;
+    const liveBound = args.liveWait && (!isTier1(result.tier) || leaseEvidence);
+    arm = evaluateMergePathArm({
+      livePhaseCorrectWait: liveBound,
+      explicitFinish: args.explicitFinish,
+      stickyLeaseActive: args.stickyLease || leaseEvidence,
+    });
+    if (args.liveWait && !liveBound && !args.explicitFinish && !arm.armed) {
+      arm = {
+        armed: false,
+        reason: "unarmed_stand_down",
+        message:
+          `unarmed stand-down: --live-wait attestation unbound to lease evidence ` +
+          `for PR #${args.pr} (Tier 1); sticky lease alone is not a live arm (#4882)`,
+      };
+    }
+  }
+
   if (args.emitJson) {
     const payload = verifyResultToJson(result) as Record<string, unknown>;
     if (arm !== null) {
@@ -222,9 +217,14 @@ export function run(argv: readonly string[]): number {
         live_wait: args.liveWait,
         explicit_finish: args.explicitFinish,
         sticky_lease: args.stickyLease,
+        lease_evidence: result.monitorRecord !== null,
       };
     }
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+  } else if (result.exitCode === EXIT_CONFIG_ERROR) {
+    process.stderr.write(`${result.message}\n`);
+  } else if (arm !== null && !arm.armed) {
+    process.stderr.write(`${arm.message}\n`);
   } else if (result.exitCode === 0) {
     process.stdout.write(`${result.message}\n`);
     if (arm !== null) {
@@ -234,6 +234,12 @@ export function run(argv: readonly string[]): number {
     process.stderr.write(`${result.message}\n`);
   }
 
+  if (result.exitCode === EXIT_CONFIG_ERROR) {
+    return EXIT_CONFIG_ERROR;
+  }
+  if (arm !== null && !arm.armed) {
+    return EXIT_NOT_READY;
+  }
   return result.exitCode;
 }
 

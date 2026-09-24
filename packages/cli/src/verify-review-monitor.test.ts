@@ -157,4 +157,50 @@ describe("verify-review-monitor CLI", () => {
       run(["--pr", "88", "--merge-path-arm", "--explicit-finish", "--project-root", "."]),
     ).toBe(0);
   });
+
+  it("merge-path-arm unarmed still surfaces config errors as exit 2", () => {
+    const root = join(tmpdir(), "rm-cli-missing-root-does-not-exist");
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", root])).toBe(
+      2,
+    );
+    expect(err.mock.calls.join("")).toMatch(/not a directory/);
+  });
+
+  it("merge-path-arm unarmed JSON uses verifyResultToJson shape", () => {
+    vi.stubEnv("DEFT_MONITOR_TIER", "3");
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(
+      run(["--pr", "88", "--merge-path-arm", "--sticky-lease", "--project-root", ".", "--json"]),
+    ).toBe(1);
+    const payload = JSON.parse(out.mock.calls.join("")) as Record<string, unknown>;
+    expect(payload.ready).toBe(true);
+    expect(payload.exit_code).toBe(0);
+    expect(payload.tier).toBe(3);
+    expect(payload.merge_path_arm).toMatchObject({ armed: false });
+  });
+
+  it("Tier 1 live-wait without lease evidence stays unarmed", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-cli-"));
+    vi.spyOn(reviewMonitor, "evaluateReviewMonitorGate").mockReturnValue({
+      exitCode: EXIT_NOT_READY,
+      message: "verify_review_monitor: no active GitHub review-owner lease on PR #88.",
+      tier: {
+        tier: MONITORING_TIER_1,
+        descriptor: "grok-build",
+        primitive: "spawn_subagent",
+      },
+      monitorRecord: null,
+      heartbeatActive: false,
+      callSite: "solo",
+    });
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    expect(
+      run(["--pr", "88", "--merge-path-arm", "--live-wait", "--project-root", root]),
+    ).toBe(EXIT_NOT_READY);
+    expect(err.mock.calls.join("")).toMatch(/unbound to lease evidence/);
+  });
 });

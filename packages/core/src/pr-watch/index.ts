@@ -9,13 +9,13 @@ export {
   type MergePathArmResult,
   type ParsedWatchArgs,
   parsePrWatchJsonStdout,
-  parsePrWatchJsonStdoutLineSplit,
   parseWatchArgs,
   printWatchHuman,
   type RunWatchOptions,
   runWatch,
   watchResultToJson,
 } from "./main.js";
+// parsePrWatchJsonStdoutLineSplit stays test-local in ./main.js (#5015) — not a public API.
 export { probeOnce } from "./probe.js";
 export * from "./types.js";
 export { formatWatchStatus, watch } from "./watch.js";
