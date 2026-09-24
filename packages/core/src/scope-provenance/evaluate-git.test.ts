@@ -1,19 +1,15 @@
 /**
- * Real-Git regressions for base-approval authority (#3205).
+ * Real-Git regressions for merge-base brief fence (#4956 / #3205 rewrite).
  *
- * Hermetic git fixtures: pending→active with base-visible human approval must
- * pass; missing/mismatched/agent/same-PR rewrite must fail closed.
+ * Hermetic git fixtures: base brief file_scope is the fence; production extras
+ * past allowance fail; same-PR approved-scope rewrite still fails closed.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  buildApprovedScopeRecord,
-  computeFileScopeDigest,
-  writeApprovedScopeRecord,
-} from "./digest.js";
+import { buildApprovedScopeRecord } from "./digest.js";
 import { evaluateScopeProvenance } from "./evaluate.js";
 
 function git(root: string, args: string[]): void {
@@ -65,34 +61,27 @@ function xbrief(planId: string, fileScope: string[], status = "running"): Record
   };
 }
 
-function humanApproval(actor = "scott") {
-  return {
-    kind: "operator" as const,
-    actor,
-    mintedAt: "2026-08-01T00:00:00Z",
-    mintedVia: "scope:record-approved-scope",
-  };
-}
-
 function approvalJson(
   planId: string,
   fileScope: string[],
   xbriefRelPath = "xbrief/active/story.xbrief.json",
-  stamp:
-    | ReturnType<typeof humanApproval>
-    | { kind: string; actor: string; mintedAt: string } = humanApproval(),
 ): string {
   const payload = xbrief(planId, fileScope);
   const rec = buildApprovedScopeRecord({
     xbriefRelPath,
     payload,
     approvedAt: "2026-08-01T00:00:00Z",
-    humanApproval: stamp,
+    humanApproval: {
+      kind: "operator",
+      actor: "scott",
+      mintedAt: "2026-08-01T00:00:00Z",
+      mintedVia: "scope:record-approved-scope",
+    },
   });
   return `${JSON.stringify(rec, null, 2)}\n`;
 }
 
-describe("evaluateScopeProvenance real-Git base approval (#3205)", () => {
+describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
   let root: string | undefined;
 
   afterEach(() => {
@@ -102,121 +91,88 @@ describe("evaluateScopeProvenance real-Git base approval (#3205)", () => {
     }
   });
 
-  it("AC1: base pending + human approval + activation-only → enforce exit 0", () => {
+  it("passes when changed production files stay inside the base brief fence", () => {
     root = initRepo();
     const planId = "story-1";
-    const scope = ["src/foo.ts"];
-    writeTracked(
-      root,
-      "xbrief/pending/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "pending"), null, 2)}\n`,
-    );
-    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, scope));
-    // seed empty so main exists as base
-    commit(root, "base: pending + approval");
-    git(root, ["branch", "base"]);
-
-    git(root, ["checkout", "-q", "-b", "activate"]);
-    git(root, ["rm", "-q", "xbrief/pending/story.xbrief.json"]);
+    const scope = ["packages/core/src/foo.ts"];
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "running"), null, 2)}\n`,
+      `${JSON.stringify(xbrief(planId, scope), null, 2)}\n`,
     );
-    commit(root, "activate only");
+    writeTracked(root, "packages/core/src/foo.ts", "export const a = 1;\n");
+    commit(root, "base: brief + source");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "impl"]);
+    writeTracked(root, "packages/core/src/foo.ts", "export const a = 2;\n");
+    writeTracked(root, "packages/core/src/foo.test.ts", "import { a } from './foo.js';\n");
+    writeTracked(root, "CHANGELOG.md", "## Unreleased\n");
+    commit(root, "in-fence + free paths");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
     expect(result.exitCode).toBe(0);
     expect(result.message).toMatch(/clean/i);
   });
 
-  it("fails when base approval is absent", () => {
+  it("passes when the brief is new on the branch (no base fence / no mint)", () => {
     root = initRepo();
-    const planId = "story-1";
-    const scope = ["src/foo.ts"];
-    writeTracked(
-      root,
-      "xbrief/pending/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "pending"), null, 2)}\n`,
-    );
-    commit(root, "base: pending only");
+    writeTracked(root, "README.md", "seed\n");
+    commit(root, "base seed");
     git(root, ["branch", "base"]);
 
-    git(root, ["checkout", "-q", "-b", "activate"]);
-    git(root, ["rm", "-q", "xbrief/pending/story.xbrief.json"]);
+    git(root, ["checkout", "-q", "-b", "first"]);
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "running"), null, 2)}\n`,
+      `${JSON.stringify(xbrief("story-1", ["packages/core/src/foo.ts"]), null, 2)}\n`,
     );
-    // matching approval only on branch (same-PR)
-    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, scope));
-    commit(root, "activate + new approval");
+    writeTracked(root, "packages/core/src/foo.ts", "export const a = 1;\n");
+    commit(root, "first PR with brief");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
-    expect(result.exitCode).toBe(1);
-    expect(result.findings[0]?.kind).toBe("self-authorizing-scope-expansion");
+    expect(result.exitCode).toBe(0);
+    expect(result.message).not.toMatch(/record-approved-scope/);
   });
 
-  it("fails when base approval is agent-stamped", () => {
+  it("fails when production extras exceed the base allowance", () => {
     root = initRepo();
     const planId = "story-1";
-    const scope = ["src/foo.ts"];
-    writeTracked(
-      root,
-      "xbrief/pending/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "pending"), null, 2)}\n`,
-    );
-    writeTracked(
-      root,
-      `.deft/approved-scope/${planId}.json`,
-      approvalJson(planId, scope, "xbrief/active/story.xbrief.json", {
-        kind: "agent",
-        actor: "agent:worker",
-        mintedAt: "2026-08-01T00:00:00Z",
-      }),
-    );
-    commit(root, "base: agent approval");
-    git(root, ["branch", "base"]);
-
-    git(root, ["checkout", "-q", "-b", "activate"]);
-    git(root, ["rm", "-q", "xbrief/pending/story.xbrief.json"]);
+    const baseScope = ["packages/core/src/a.ts"];
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "running"), null, 2)}\n`,
+      `${JSON.stringify(xbrief(planId, baseScope), null, 2)}\n`,
     );
-    commit(root, "activate");
-
-    const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
-    expect(result.exitCode).toBe(1);
-  });
-
-  it("fails when base approval scope mismatches current", () => {
-    root = initRepo();
-    const planId = "story-1";
-    writeTracked(
-      root,
-      "xbrief/pending/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts"], "pending"), null, 2)}\n`,
-    );
-    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, ["src/foo.ts"]));
+    writeTracked(root, "packages/core/src/a.ts", "export const a = 1;\n");
     commit(root, "base");
     git(root, ["branch", "base"]);
 
     git(root, ["checkout", "-q", "-b", "expand"]);
-    git(root, ["rm", "-q", "xbrief/pending/story.xbrief.json"]);
-    // Expand beyond base-approved scope without renewing approval
+    // Head brief widens — must not authorize extras past allowance (floor 2).
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts", "src/bar.ts"], "running"), null, 2)}\n`,
+      `${JSON.stringify(
+        xbrief(planId, [
+          "packages/core/src/a.ts",
+          "packages/core/src/b.ts",
+          "packages/core/src/c.ts",
+          "packages/core/src/d.ts",
+        ]),
+        null,
+        2,
+      )}\n`,
     );
-    commit(root, "activate with expansion");
+    writeTracked(root, "packages/core/src/b.ts", "export const b = 1;\n");
+    writeTracked(root, "packages/core/src/c.ts", "export const c = 1;\n");
+    writeTracked(root, "packages/core/src/d.ts", "export const d = 1;\n");
+    commit(root, "over budget");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
     expect(result.exitCode).toBe(1);
-    expect(result.findings[0]?.kind).toMatch(/self-authorizing|without-digest/);
+    expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
+    expect(result.findings[0]?.remediation).not.toMatch(/--kind renewed-approval/);
   });
 
   it("fails when approval is rewritten in the same change set", () => {
@@ -224,143 +180,37 @@ describe("evaluateScopeProvenance real-Git base approval (#3205)", () => {
     const planId = "story-1";
     writeTracked(
       root,
-      "xbrief/pending/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts"], "pending"), null, 2)}\n`,
+      "xbrief/active/story.xbrief.json",
+      `${JSON.stringify(xbrief(planId, ["packages/core/src/foo.ts"]), null, 2)}\n`,
     );
-    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, ["src/foo.ts"]));
+    writeTracked(
+      root,
+      `.deft/approved-scope/${planId}.json`,
+      approvalJson(planId, ["packages/core/src/foo.ts"]),
+    );
     commit(root, "base");
     git(root, ["branch", "base"]);
 
     git(root, ["checkout", "-q", "-b", "rewrite"]);
-    git(root, ["rm", "-q", "xbrief/pending/story.xbrief.json"]);
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts", "src/bar.ts"], "running"), null, 2)}\n`,
+      `${JSON.stringify(
+        xbrief(planId, ["packages/core/src/foo.ts", "packages/core/src/bar.ts"]),
+        null,
+        2,
+      )}\n`,
     );
-    // Same-PR rewrite of approval to match expanded scope
     writeTracked(
       root,
       `.deft/approved-scope/${planId}.json`,
-      approvalJson(planId, ["src/foo.ts", "src/bar.ts"]),
+      approvalJson(planId, ["packages/core/src/foo.ts", "packages/core/src/bar.ts"]),
     );
-    commit(root, "activate + rewrite approval");
+    commit(root, "rewrite approval with brief");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
     expect(result.exitCode).toBe(1);
     expect(result.findings[0]?.kind).toBe("self-authorizing-scope-expansion");
     expect(result.findings[0]?.detail).toMatch(/rewritten|same change/i);
-  });
-
-  it("passes when base has separately committed expanded approval then xBRIEF updates", () => {
-    root = initRepo();
-    const planId = "story-1";
-    // Base already active with narrow scope + narrow approval
-    writeTracked(
-      root,
-      "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts"], "running"), null, 2)}\n`,
-    );
-    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, ["src/foo.ts"]));
-    commit(root, "narrow");
-    // Operator commits expanded approval first (still on base line)
-    writeTracked(
-      root,
-      `.deft/approved-scope/${planId}.json`,
-      approvalJson(planId, ["src/foo.ts", "src/bar.ts"]),
-    );
-    commit(root, "expanded human approval");
-    git(root, ["branch", "base"]);
-
-    // Later PR only updates active xBRIEF to the already-approved expanded scope
-    git(root, ["checkout", "-q", "-b", "apply-scope"]);
-    writeTracked(
-      root,
-      "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts", "src/bar.ts"], "running"), null, 2)}\n`,
-    );
-    commit(root, "apply approved expansion");
-
-    const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
-    expect(result.exitCode).toBe(0);
-  });
-
-  it("still accepts independent renewedApprovals injection", () => {
-    root = initRepo();
-    const planId = "story-1";
-    writeTracked(
-      root,
-      "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts"], "running"), null, 2)}\n`,
-    );
-    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, ["src/foo.ts"]));
-    commit(root, "base");
-    git(root, ["branch", "base"]);
-
-    git(root, ["checkout", "-q", "-b", "expand"]);
-    writeTracked(
-      root,
-      "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, ["src/foo.ts", "src/new.ts"], "running"), null, 2)}\n`,
-    );
-    commit(root, "expand without approval rewrite");
-
-    const renewed = new Map([
-      [
-        planId,
-        {
-          kind: "renewed-approval",
-          actor: "scott",
-          mintedAt: "2026-08-08T00:00:00Z",
-        },
-      ],
-    ]);
-    const result = evaluateScopeProvenance(root, {
-      baseRef: "base",
-      enforce: true,
-      renewedApprovals: renewed,
-    });
-    expect(result.exitCode).toBe(0);
-  });
-
-  it("fails on malformed base approval JSON", () => {
-    root = initRepo();
-    const planId = "story-1";
-    const scope = ["src/foo.ts"];
-    writeTracked(
-      root,
-      "xbrief/pending/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "pending"), null, 2)}\n`,
-    );
-    writeTracked(root, `.deft/approved-scope/${planId}.json`, "{not-json\n");
-    commit(root, "malformed approval");
-    git(root, ["branch", "base"]);
-
-    git(root, ["checkout", "-q", "-b", "activate"]);
-    git(root, ["rm", "-q", "xbrief/pending/story.xbrief.json"]);
-    writeTracked(
-      root,
-      "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief(planId, scope, "running"), null, 2)}\n`,
-    );
-    // Fix disk approval so existsSync path is valid matching current (but base is bad)
-    writeApprovedScopeRecord(
-      root,
-      buildApprovedScopeRecord({
-        xbriefRelPath: "xbrief/active/story.xbrief.json",
-        payload: xbrief(planId, scope),
-        humanApproval: humanApproval(),
-      }),
-    );
-    git(root, ["add", "--", `.deft/approved-scope/${planId}.json`]);
-    commit(root, "activate + fixed disk approval");
-
-    const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
-    // Fixed approval is in the change set → same-PR rewrite fail, OR base malformed → disk-only
-    expect(result.exitCode).toBe(1);
-  });
-
-  it("documents digest helper still computes stable digests for fixture scopes", () => {
-    expect(computeFileScopeDigest(["src/foo.ts"])).toHaveLength(64);
   });
 });

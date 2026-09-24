@@ -23,6 +23,20 @@ export {
   writeApprovedScopeRecord,
 } from "./digest.js";
 export {
+  CHANGELOG_REL,
+  concreteProductionScopeEntries,
+  evaluateProductionScopeFence,
+  isConcreteFileScopeEntry,
+  isProductionRootPath,
+  isTestOrFixturePath,
+  pathMatchesFileScope,
+  productionAllowance,
+  PRODUCTION_ALLOWANCE_CAP,
+  PRODUCTION_ALLOWANCE_FLOOR,
+  type ProductionScopeFenceFinding,
+  type ProductionScopeFenceInput,
+} from "./base-fence.js";
+export {
   baseApprovalAuthorizesCurrent,
   evaluateOneScopeProvenance,
   evaluateScopeProvenance,

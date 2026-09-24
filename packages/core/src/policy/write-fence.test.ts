@@ -4,10 +4,16 @@ import {
   evaluateRuntimeAuthorityPath,
   resolveRuntimeAuthorityPolicy,
 } from "./runtime-authority.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   extractStoryFileScope,
+  loadStoryWriteFenceFromBaseRaw,
+  loadStoryWriteFenceFromPath,
   normalizeStoryWriteScope,
   resolveWriteFence,
+  StoryWriteFenceUnreadableError,
 } from "./write-fence.js";
 
 describe("resolveWriteFence (#516 / #2443 / #2948 Wave 3)", () => {
@@ -194,5 +200,35 @@ describe("writeScope alias normalization (no dual engine)", () => {
     expect(evaluateRuntimeAuthorityPath(fenceA.policy, "src/a.ts")).toBe("allow");
     expect(evaluateRuntimeAuthorityPath(fenceA.policy, ".env")).toBe("deny-denylist");
     expect(evaluateRuntimeAuthorityPath(fenceA.policy, "docs/x.md")).toBe("deny-story-scope");
+  });
+});
+
+describe("story write fence fail-closed (#4956)", () => {
+  it("throws when the live brief path is unreadable", () => {
+    expect(() =>
+      loadStoryWriteFenceFromPath(join(tmpdir(), "missing-story-4956.xbrief.json")),
+    ).toThrow(StoryWriteFenceUnreadableError);
+  });
+
+  it("throws when base raw is malformed JSON", () => {
+    expect(() => loadStoryWriteFenceFromBaseRaw("{not-json", "base:story")).toThrow(
+      StoryWriteFenceUnreadableError,
+    );
+  });
+
+  it("treats null base raw as inactive fence", () => {
+    expect(loadStoryWriteFenceFromBaseRaw(null)).toEqual({ fileScope: [], denyPaths: [] });
+  });
+
+  it("parses a readable base brief", () => {
+    const dir = mkdtempSync(join(tmpdir(), "fence-4956-"));
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: { metadata: { swarm: { file_scope: ["packages/core/src/a.ts"] } } },
+      }),
+    );
+    expect(loadStoryWriteFenceFromPath(path).fileScope).toEqual(["packages/core/src/a.ts"]);
   });
 });

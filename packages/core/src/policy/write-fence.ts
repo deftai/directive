@@ -101,7 +101,23 @@ export function extractStoryFileScope(storyData: unknown): {
   return fromWriteScope;
 }
 
-/** Load story fence from an active xBRIEF path (fail-open on IO/parse errors). */
+export class StoryWriteFenceUnreadableError extends Error {
+  readonly scopePath: string;
+  constructor(scopePath: string, cause?: unknown) {
+    super(`story write fence unreadable at ${scopePath}`);
+    this.name = "StoryWriteFenceUnreadableError";
+    this.scopePath = scopePath;
+    if (cause !== undefined) {
+      (this as Error & { cause?: unknown }).cause = cause;
+    }
+  }
+}
+
+/**
+ * Load story fence from an active xBRIEF path.
+ * #4956: IO/parse errors fail closed (throw) when a path was provided.
+ * Absent/empty path → inactive story fence.
+ */
 export function loadStoryWriteFenceFromPath(scopePath: string | null | undefined): {
   readonly fileScope: string[];
   readonly denyPaths: string[];
@@ -113,10 +129,31 @@ export function loadStoryWriteFenceFromPath(scopePath: string | null | undefined
     const text = readFileSync(scopePath, "utf8");
     const data: unknown = JSON.parse(text);
     return extractStoryFileScope(data);
-  } catch {
-    // Residual: host/session may not surface a readable active story.
-    // Fail open at story layer (project policy still applies if enabled).
+  } catch (err) {
+    throw new StoryWriteFenceUnreadableError(scopePath, err);
+  }
+}
+
+/**
+ * Load story fence from merge-base brief bytes (#4956).
+ * Null raw → inactive story fence (brief not on base / first PR).
+ * Malformed raw → fail closed.
+ */
+export function loadStoryWriteFenceFromBaseRaw(
+  raw: string | null | undefined,
+  label = "merge-base brief",
+): {
+  readonly fileScope: string[];
+  readonly denyPaths: string[];
+} {
+  if (raw === null || raw === undefined) {
     return { fileScope: [], denyPaths: [] };
+  }
+  try {
+    const data: unknown = JSON.parse(raw);
+    return extractStoryFileScope(data);
+  } catch (err) {
+    throw new StoryWriteFenceUnreadableError(label, err);
   }
 }
 

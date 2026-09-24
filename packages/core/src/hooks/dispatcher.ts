@@ -1058,9 +1058,17 @@ function runtimeAuthorityForDirectWrite(
     storyFence = seams.loadStoryWriteFence
       ? seams.loadStoryWriteFence(fenceRoot, scopePath)
       : loadStoryWriteFenceFromPath(scopePath);
-  } catch {
-    // Residual: host cannot load active story — project fence still applies.
-    storyFence = { fileScope: [], denyPaths: [] };
+  } catch (err) {
+    // #4956: unreadable story brief fails closed (do not empty-allow).
+    const detail = err instanceof Error ? err.message : String(err);
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      "Directive denied this direct write: story write fence could not be read " +
+        `(${detail}). Fail closed (#4956).`,
+      scopePath,
+    );
   }
   const fence = resolveWriteFence(basePolicy, storyFence.fileScope, {
     storyDenyPaths: storyFence.denyPaths,

@@ -1,18 +1,22 @@
 /**
- * verify:scope-provenance evaluation (#3145).
+ * verify:scope-provenance evaluation (#3145 / #4956).
  *
- * Detects same-PR active xBRIEF expansion that would self-authorize new
- * implementation paths. Requires renewed human approval (updated digest record
- * with human stamp); the modified xBRIEF alone is never sufficient.
+ * Path fence (#4956): the active brief's `file_scope` on the merge base is the
+ * precommitment. Changed production files are checked against that base list
+ * plus a concrete-file allowance (floor 2, cap 5). Test-root paths spend
+ * nothing. Head brief edits do not widen the fence. Proceed writes no
+ * `.deft/approved-scope` digest and must not demand `scope:record-approved-scope`.
  *
- * Three-state exit: 0 clean / 1 self-authorization / 2 config.
- * Migration: missing approved-scope records → warn (exit 0) unless --enforce.
+ * Intent-pin checks (#3385) remain for existing base-committed records.
+ *
+ * Three-state exit: 0 clean / 1 fence violation / 2 config.
  */
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
+import { evaluateProductionScopeFence } from "./base-fence.js";
 import {
   type ApprovedScopeRecord,
   approvedScopeIntentRel,
@@ -23,13 +27,13 @@ import {
   listApprovedScopeRecords,
   normalizeFileScope,
   readApprovedScopeRecord,
-  scopeExpansion,
 } from "./digest.js";
 import { bodyDigestIsAuthority, evaluateIntentForXbrief } from "./intent-evaluate.js";
 import { recoverApprovedScopePairs } from "./mint-artifacts.js";
 
 export type ScopeProvenanceViolationKind =
   | "self-authorizing-scope-expansion"
+  | "production-scope-over-budget"
   | "active-xbrief-modified-without-digest"
   | "digest-mismatch-without-renewal"
   | "intent-drift"
@@ -75,6 +79,11 @@ export interface ScopeProvenanceOptions {
   readonly renewedApprovals?: ReadonlyMap<string, ApprovedScopeRecord["humanApproval"]>;
   /** Inject `git show <base>:<rel>` (test seam; never working-tree). */
   readonly readAtBase?: (relPath: string) => string | null;
+  /**
+   * Inject merge-base active xBRIEF payloads (relPath -> raw JSON).
+   * When set, path fencing reads these instead of `readAtBase` / git show.
+   */
+  readonly baseXbriefs?: ReadonlyMap<string, string>;
   /** Optional repo slug seed for live extract (mint uses resolveProjectRepo). */
   readonly approvedReposSeed?: readonly string[];
 }
@@ -275,42 +284,6 @@ function listActiveXbriefPaths(projectRoot: string): string[] {
     .map((n) => `xbrief/active/${n}`);
 }
 
-function remediationForExpansion(): string {
-  return (
-    "Renew human approval: re-record the approved-scope digest after operator review " +
-    "(`deft scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm` writes " +
-    "`.deft/approved-scope/<plan-id>.json` with a humanApproval stamp). Commit that " +
-    "approval on the merge base (or a prior PR) before expanding or activating the " +
-    "scoped xBRIEF in the implementation change set. Editing the active xBRIEF alone " +
-    "does not authorize new paths (#3145 / #3205). See content/docs/scope-provenance.md. " +
-    "Do not undeclare or empty a declared file_scope to pass this gate. " +
-    "Cohort-created scopes that should stay declared are minted at allocation time " +
-    "under operator presence (real TTY, --confirm, typed phrase mint; #3110) and " +
-    "landed on the merge base before the implementation PR. #1378 allocation-context " +
-    "tokens are not provenance; swarm briefs are not exempt. Undeclared cohort briefs " +
-    "(no file_scope at authoring time) are a deliberate outcome when the operator " +
-    "does not mint -- not a post-failure workaround. This gate evaluates xbrief/active/ " +
-    "files present in the working tree (git diff vs base, git diff vs HEAD, and " +
-    "untracked via git ls-files --others --exclude-standard); committing or not " +
-    "committing the brief does not hide it. After merge, land the completed artifact " +
-    "via `deft scope:complete` and a leftover land PR if needed (#3476). Do not " +
-    "git-add a completed/ husk to skip that PR (#3679)."
-  );
-}
-
-/** Expansion remint names the existing verb plus --kind renewed-approval (#4589). */
-function remediationForRenewedApproval(): string {
-  return (
-    remediationForExpansion() +
-    " For a later declared file_scope expansion after a first human mint, the remint is " +
-    "`deft scope:record-approved-scope -- <xbrief-path> --actor <you> --kind renewed-approval --confirm` " +
-    "on operator return (multi-PR; #4589). Do not invent a second remint verb. This refuse is " +
-    "merge-time verify:scope-provenance, not scope:activate (first-mint activate digest is " +
-    "open predecessor #4383). Unattended remint after the operator left, same-PR rewrite of " +
-    "`.deft/approved-scope/<plan-id>.json`, and editing this verifier to go green stay declined."
-  );
-}
-
 /**
  * Parse + lightly validate an approved-scope JSON blob (base-ref `git show` or disk).
  * Returns null when schema fields required for authorization are missing/malformed.
@@ -387,10 +360,14 @@ function configError(message: string): ScopeProvenanceResult {
 }
 
 /**
- * Pure evaluation of one active xBRIEF against its approved baseline.
- * Exported for unit tests without git.
+ * Legacy head-brief-vs-digest evaluator.
+ *
+ * #4956 retires mint-on-proceed and head-brief self-auth for the path fence.
+ * Callers must use {@link evaluateProductionScopeFence} against the merge-base
+ * brief. This function always returns null so older unit seams stay importable
+ * without reintroducing `scope:record-approved-scope` remediations.
  */
-export function evaluateOneScopeProvenance(input: {
+export function evaluateOneScopeProvenance(_input: {
   readonly xbriefRelPath: string;
   readonly currentPayload: unknown;
   readonly approved: ApprovedScopeRecord | null;
@@ -398,105 +375,8 @@ export function evaluateOneScopeProvenance(input: {
   readonly enforce: boolean;
   readonly renewedHumanApproval?: ApprovedScopeRecord["humanApproval"] | null;
 }): ScopeProvenanceFinding | null {
-  const planId =
-    extractPlanId(input.currentPayload) ?? input.approved?.planId ?? input.xbriefRelPath;
-  const currentScope = normalizeFileScope(extractFileScope(input.currentPayload));
-  const currentDigest = computeFileScopeDigest(currentScope);
-
-  // Not modified in this change set → nothing to police for self-auth
-  if (!input.xbriefModifiedInChangeSet) {
-    return null;
-  }
-
-  // Renewed human approval present → accept expansion as re-baselined intent
-  if (isHumanApprovalStamp(input.renewedHumanApproval ?? null)) {
-    return null;
-  }
-
-  if (input.approved === null) {
-    // Non-empty file_scope without a path-bound approval is expansion risk
-    // (includes plan.id renames that drop the prior approval). Hard-fail so the
-    // default check path cannot soft-warn past AC "fails until renewed approval".
-    // Empty-scope body-only edits may still soft-warn under migration (no enforce).
-    const hard = input.enforce || currentScope.length > 0;
-    return {
-      xbriefRelPath: input.xbriefRelPath,
-      planId,
-      kind: "active-xbrief-modified-without-digest",
-      expandedPaths: currentScope,
-      detail: hard
-        ? "active xBRIEF modified in change set without a path-bound approved-scope digest " +
-          "(expansion or plan-id reset not permitted without renewed human approval)"
-        : "active xBRIEF modified in change set but no approved-scope digest is recorded",
-      remediation:
-        "Record an approved-scope digest at activation for this xBRIEF path. " +
-        remediationForExpansion(),
-    };
-  }
-
-  // Approved record exists with human stamp and matching digest → ok
-  if (
-    input.approved.fileScopeDigest === currentDigest &&
-    isHumanApprovalStamp(input.approved.humanApproval)
-  ) {
-    return null;
-  }
-
-  // Matching digest without human origin: empty-scope body edits may soft-warn
-  // via the missing-digest path only when no usable approval; agent/malformed
-  // stamps must not authorize non-empty scopes (#3205).
-  if (input.approved.fileScopeDigest === currentDigest) {
-    if (currentScope.length === 0) {
-      return null;
-    }
-    if (!isHumanApprovalStamp(input.approved.humanApproval)) {
-      return {
-        xbriefRelPath: input.xbriefRelPath,
-        planId,
-        kind: "active-xbrief-modified-without-digest",
-        expandedPaths: currentScope,
-        detail:
-          "active xBRIEF modified with a non-human (agent/missing) approved-scope stamp; " +
-          "only humanApproval stamps authorize non-empty file_scope",
-        remediation:
-          "Record a human-origin approval via `deft scope:record-approved-scope -- " +
-          "<xbrief-path> --actor <you> --confirm` (#3145 / #3205).",
-      };
-    }
-  }
-
-  const expanded = scopeExpansion(input.approved.fileScope, currentScope);
-  if (expanded.length === 0) {
-    // Scope shrink or digest noise without path expansion — OK for v1 when human-stamped.
-    // Non-empty current scope still requires human origin (agent shrink must not bypass #3205).
-    if (currentScope.length > 0 && !isHumanApprovalStamp(input.approved.humanApproval)) {
-      return {
-        xbriefRelPath: input.xbriefRelPath,
-        planId,
-        kind: "active-xbrief-modified-without-digest",
-        expandedPaths: currentScope,
-        detail:
-          "active xBRIEF modified with a non-human approved-scope stamp (scope shrink/noise path); " +
-          "only humanApproval stamps authorize non-empty file_scope",
-        remediation:
-          "Record a human-origin approval via `deft scope:record-approved-scope -- " +
-          "<xbrief-path> --actor <you> --confirm` (#3145 / #3205).",
-      };
-    }
-    return null;
-  }
-
-  // Expansion without renewed human approval = self-authorization
-  return {
-    xbriefRelPath: input.xbriefRelPath,
-    planId,
-    kind: "self-authorizing-scope-expansion",
-    expandedPaths: expanded,
-    detail:
-      `active xBRIEF expanded file_scope by ${expanded.length} path(s) in the same change set; ` +
-      "modified xBRIEF cannot authorize the new paths",
-    remediation: remediationForRenewedApproval(),
-  };
+  void _input;
+  return null;
 }
 
 /**
@@ -507,7 +387,8 @@ export function evaluateScopeProvenance(
   options: ScopeProvenanceOptions = {},
 ): ScopeProvenanceResult {
   const root = resolve(projectRoot);
-  const enforce = options.enforce ?? false;
+  // `enforce` retained for CLI/API compat; path fence is always hard (#4956).
+  void (options.enforce ?? false);
   recoverApprovedScopePairs(root);
 
   let changed: string[];
@@ -708,15 +589,23 @@ export function evaluateScopeProvenance(
     }
     const approvalRecordRewritten = approvalInGitChange || approvalDiskOnly || preimageInGitChange;
 
-    const recordMatchesCurrent =
-      approved !== null &&
-      !approvalRecordRewritten &&
-      approved.fileScopeDigest ===
-        computeFileScopeDigest(normalizeFileScope(extractFileScope(payload))) &&
-      isHumanApprovalStamp(approved.humanApproval);
+    const readAtBase = (baseRel: string): string | null => {
+      if (options.baseXbriefs !== undefined) {
+        const injected = options.baseXbriefs.get(normalizeRepoRelPath(baseRel));
+        if (injected !== undefined) return injected;
+      }
+      if (options.readAtBase !== undefined) return options.readAtBase(baseRel);
+      if (discoveryBaseRef === null || discoveryBaseRef === "") return null;
+      try {
+        return readRepoFileAtRef(root, discoveryBaseRef, baseRel);
+      } catch {
+        return null;
+      }
+    };
 
-    // Same-PR approval rewrite without independent renewal is hard-fail expansion,
-    // not a soft missing-digest migration warning (Greptile P1).
+    // Same-PR approved-scope rewrite still fails closed when a digest file is
+    // co-changed (legacy anti-forgery). Remediation does not schedule a proceed
+    // mint ceremony (#4956).
     if (approvalRecordRewritten && modified && renewed === null) {
       const currentScope = normalizeFileScope(extractFileScope(payload));
       findings.push({
@@ -728,33 +617,53 @@ export function evaluateScopeProvenance(
           "approved-scope record or preimage rewritten in the same change set as the active xBRIEF; " +
           "cannot self-authorize via concurrent approval rewrite",
         remediation:
-          "Same-PR approval rewrites do not authorize expansion. For a later declared file_scope " +
-          "expansion after a first human mint, commit human approval via `deft scope:record-approved-scope -- <xbrief-path> --actor <you> " +
-          "--kind renewed-approval --confirm` on the merge base (or a prior PR), then expand without rewriting the approval in this change set (#3145 / #3205 / #3385 / #4589). First adoption with no prior approval uses " +
-          "the default kind (omit --kind); reserve `--kind renewed-approval` for actual expansion " +
-          "remints. First-mint activate digest is open predecessor #4383.",
+          "Do not rewrite `.deft/approved-scope/<plan-id>.json` in the same change set as the " +
+          "active xBRIEF (#3145 / #3205). Proceed writes no approved-scope digest for scope (#4956).",
       });
       continue;
     }
 
-    const finding = evaluateOneScopeProvenance({
-      xbriefRelPath: rel,
-      currentPayload: payload,
-      approved,
-      xbriefModifiedInChangeSet: modified,
-      enforce,
-      renewedHumanApproval: renewed ?? (recordMatchesCurrent ? approved?.humanApproval : null),
-    });
-
-    const readAtBase = (baseRel: string): string | null => {
-      if (options.readAtBase !== undefined) return options.readAtBase(baseRel);
-      if (discoveryBaseRef === null || discoveryBaseRef === "") return null;
+    // Path fence (#4956): compare changed production files to the merge-base
+    // brief file_scope. Never read the head brief for the fence list.
+    const baseBriefRaw = readAtBase(rel);
+    if (baseBriefRaw !== null) {
+      let basePayload: unknown = null;
       try {
-        return readRepoFileAtRef(root, discoveryBaseRef, baseRel);
+        basePayload = JSON.parse(baseBriefRaw) as unknown;
       } catch {
-        return null;
+        findings.push({
+          xbriefRelPath: rel,
+          planId: planId ?? rel,
+          kind: "production-scope-over-budget",
+          expandedPaths: [],
+          detail: `merge-base brief at ${rel} is unreadable JSON; write fence / check fail closed (#4956)`,
+          remediation:
+            "Restore a readable active brief on the merge base before changing production paths. " +
+            "There is no scope ceremony for proceed (#4956).",
+        });
+        continue;
       }
-    };
+      const baseScope = normalizeFileScope(extractFileScope(basePayload));
+      const fenceHit = evaluateProductionScopeFence({
+        xbriefRelPath: rel,
+        planId: planId ?? rel,
+        baseFileScope: baseScope,
+        changedFiles: changed,
+      });
+      if (fenceHit !== null) {
+        findings.push({
+          xbriefRelPath: fenceHit.xbriefRelPath,
+          planId: fenceHit.planId,
+          kind: fenceHit.kind,
+          expandedPaths: fenceHit.expandedPaths,
+          detail: fenceHit.detail,
+          remediation: fenceHit.remediation,
+        });
+      }
+    }
+
+    // Intent pin (#3385) only when a digest already exists / is rewritten —
+    // never demands a first mint for proceed (#4956).
     const intentHits = evaluateIntentForXbrief({
       projectRoot: root,
       xbriefRelPath: rel,
@@ -787,21 +696,6 @@ export function evaluateScopeProvenance(
       }
     }
 
-    if (finding === null) continue;
-
-    // Soft migration: body-only edits (empty file_scope) without digest when !enforce.
-    // Non-empty scope without path-bound approval hard-fails (plan-id reset / expansion).
-    if (
-      finding.kind === "active-xbrief-modified-without-digest" &&
-      !enforce &&
-      finding.expandedPaths.length === 0
-    ) {
-      softFindings.push(finding);
-      continue;
-    }
-
-    // Self-auth expansion and non-empty scope without digest always hard-fail
-    findings.push(finding);
   }
 
   if (findings.length === 0 && softFindings.length === 0) {

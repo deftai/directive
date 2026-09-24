@@ -55,6 +55,11 @@ Cross-links: Phase 3 Worker-owns-lifecycle (`references/core-phase-3.md`), revie
 ? The interactive queue-driven path (Step 0 below) remains the DEFAULT when no pre-approved cohort is supplied; the headless fast-path is the opt-in low-ceremony route for a cohort the operator has already curated and approved upstream.
 
 
+### Proceed and scope ceremony (#4956)
+
+! After in-harness **proceed** on a cohort, there is **no scope ceremony to schedule**. Do not stop for `scope:record-approved-scope` / typed mint per story. Proceed writes no `.deft/approved-scope` digest. The path fence is each active brief's `file_scope` on the merge base (drift check); test roots are free; production extras use allowance floor 2 / cap 5; over budget splits with no remint prompt. Class checks: #4980. Depth: `docs/scope-provenance.md`.
+⊗ Ask the operator to leave the harness mid-cohort to mint or remint approved-scope for proceed or for declared-list growth (#4956).
+
 ### Ordered-plan / cohort exhaustion (#2402)
 
 ! When the approved cohort (or an active `plan-sequence` of kind `swarm`/`cohort`/`delivery`) is exhausted, stop. Do not promote, queue, open, or dispatch adjacent work after the final approved entry unless the operator explicitly authorizes a new cohort or queue-driven selection.
