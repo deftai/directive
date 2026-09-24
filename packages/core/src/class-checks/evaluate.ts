@@ -377,7 +377,7 @@ function scanProductionReferences(
     /(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(relPath) ||
     /(^|\/)\.github\/workflows\//i.test(relPath) ||
     /(^|\/)Dockerfile(\.|$)/i.test(relPath) ||
-    /(^|\/).*pipeline.*\.(ya?ml|json|sh|ps1)$/i.test(relPath);
+    /(^|\/)[^/\n]*pipeline[^/\n]*\.(ya?ml|json|sh|ps1)$/i.test(relPath);
   if (!underSource && !looksLikeDeploy) {
     return null;
   }
@@ -412,7 +412,7 @@ function looksLikeInfraPath(relPath: string): boolean {
   return (
     /(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(relPath) ||
     /\.(bicep|tf|tfvars|arm\.json)$/i.test(relPath) ||
-    /(^|\/).*pipeline.*\.(ya?ml|json)$/i.test(relPath)
+    /(^|\/)[^/\n]*pipeline[^/\n]*\.(ya?ml|json)$/i.test(relPath)
   );
 }
 
