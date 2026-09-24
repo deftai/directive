@@ -1,0 +1,412 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4986",
+    "updated": "2026-09-24T13:35:05Z"
+  },
+  "plan": {
+    "title": "bug(scope): derived clauses never get test evidence, so through-merge cannot complete the brief",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(scope): derived clauses never get test evidence, so through-merge cannot complete the brief",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4986",
+      "Overview": "\n\n1. Derived acceptance clauses may leave buildClause with artifact_path null. Promote ok/unchanged does not discharge bind for pathless clauses. Before stamp, every clause that must be proven by a test must go through an explicit bind step that writes a non-blank artifact_path taken only from approved declared file_scope (or an explicit human bind onto that surface). Do not lift a filesystem path from issue body or comment text (#3835). Empty file_scope remains a silent no-op for bind; it does not invent a path. \"Must be proven by a test\" is the human/bind selector, not a promote auto-classifier.\n2. scope:stamp-evidence must be able to record kind:test evidence onto a clause that already has a non-blank artifact_path inside approved file_scope. The production writer is stampMatchAnyFileEvidence / resolveMatchAnyFilePointer (shared null-on-empty-or-blank gate with the exact helper). A patch that only changes resolveAllowedTestPointer / stampDeclaredTestEvidence does not close this issue.\n3. Unbound clauses stay fail-closed (#4385). A merge SHA still does not satisfy smoke, UAT, deploy, or observed behavior (#3240). #4732 stays the already-bound-only neighbor; it is not the fix surface for null-path derivation.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:57b0d04add2375b1e6e1a17c5c50cf3300d6b6327a58ecd4ab7410425ae056a3\n\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Derived acceptance clauses may leave buildClause with artifact_path null. Promote ok/unchanged does not discharge bind for pathless clauses. Before stamp, every clause that must be proven by a test must go through an explicit bind step that writes a non-blank artifact_path taken only from approved declared file_scope (or an explicit human bind onto that surface). Do not lift a filesystem path from issue body or comment text (#3835). Empty file_scope remains a silent no-op for bind; it does not invent a path. \"Must be proven by a test\" is the human/bind selector, not a promote auto-classifier.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5007#e6a03bcbc44cc83bb2477c1433394d14d895ab59",
+          "recorded_at": "2026-09-24T13:35:04.183Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "scope:stamp-evidence must be able to record kind:test evidence onto a clause that already has a non-blank artifact_path inside approved file_scope. The production writer is stampMatchAnyFileEvidence / resolveMatchAnyFilePointer (shared null-on-empty-or-blank gate with the exact helper). A patch that only changes resolveAllowedTestPointer / stampDeclaredTestEvidence does not close this issue.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5007#e6a03bcbc44cc83bb2477c1433394d14d895ab59",
+          "recorded_at": "2026-09-24T13:35:04.183Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Unbound clauses stay fail-closed (#4385). A merge SHA still does not satisfy smoke, UAT, deploy, or observed behavior (#3240). #4732 stays the already-bound-only neighbor; it is not the fix surface for null-path derivation.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Meta-gate prose that merge SHA cannot satisfy smoke/UAT/deploy/observed_behavior; product AC covered by items 0-1 and PR #5007. Not a deploy/UAT criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams"
+          },
+          "recorded_at": "2026-09-24T13:35:04.183Z"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4986",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4986: bug(scope): derived clauses never get test evidence, so through-merge cannot complete the brief"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3550",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3550"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3835",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3835"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3240",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3240"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4732",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4732"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4385",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4385"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Derived acceptance clauses may leave buildClause with artifact_path null. Promote ok/unchanged does not discharge bind for pathless clauses. Before stamp, every clause that must be proven by a test must go through an explicit bind step that writes a non-blank artifact_path taken only from approved declared file_scope (or an explicit human bind onto that surface). Do not lift a filesystem path from issue body or comment text (#3835). Empty file_scope remains a silent no-op for bind; it does not invent a path. \"Must be proven by a test\" is the human/bind selector, not a promote auto-classifier.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "scope:stamp-evidence must be able to record kind:test evidence onto a clause that already has a non-blank artifact_path inside approved file_scope. The production writer is stampMatchAnyFileEvidence / resolveMatchAnyFilePointer (shared null-on-empty-or-blank gate with the exact helper). A patch that only changes resolveAllowedTestPointer / stampDeclaredTestEvidence does not close this issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Unbound clauses stay fail-closed (#4385). A merge SHA still does not satisfy smoke, UAT, deploy, or observed behavior (#3240). #4732 stays the already-bound-only neighbor; it is not the fix surface for null-path derivation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Derived acceptance clauses may leave buildClause with artifact_path null. Promote ok/unchanged does not discharge bind for pathless clauses. Before stamp, every clause that must be proven by a test must go through an explicit bind step that writes a non-blank artifact_path taken only from approved declared file_scope (or an explicit human bind onto that surface). Do not lift a filesystem path from issue body or comment text (#3835). Empty file_scope remains a silent no-op for bind; it does not invent a path. \"Must be proven by a test\" is the human/bind selector, not a promote auto-classifier.",
+        "scope:stamp-evidence must be able to record kind:test evidence onto a clause that already has a non-blank artifact_path inside approved file_scope. The production writer is stampMatchAnyFileEvidence / resolveMatchAnyFilePointer (shared null-on-empty-or-blank gate with the exact helper). A patch that only changes resolveAllowedTestPointer / stampDeclaredTestEvidence does not close this issue.",
+        "Unbound clauses stay fail-closed (#4385). A merge SHA still does not satisfy smoke, UAT, deploy, or observed behavior (#3240). #4732 stays the already-bound-only neighbor; it is not the fix surface for null-path derivation."
+      ],
+      "confessions": []
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because derived clauses always leave artifact_path null in buildClause (#3835), scope:stamp-evidence will not bind landed tests when file_scope is empty or artifact_path is blank, and through-merge then cannot complete the brief even after a hand kind:test stamp.\n\ncharter: refutation\nrefutation-target: Derived acceptance clauses always get artifact_path null in buildClause (#3835), and scope:stamp-evidence will not record a landed test onto those clauses when file_scope is empty or artifact_path is blank, so through-merge cannot complete the brief without a second manual path bind that still fails verify:ac with no artifact path bound.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is instance-set conformance against the landed #3835 null-path rule and the #4732 already-bound-only stamp path. The hole is local to clause derivation, stamp-evidence, and verify:ac binding. It is not a whole-motion babysit or action-loop hang. N=1.\n\npain: P1, P2, P3\n\nP1. buildClause always returns artifact_path null for derived clauses, so the tests that prove those clauses never appear on the brief at derivation time.\nP2. scope:stamp-evidence returns null from resolveAllowedTestPointer when file_scope is empty or artifact_path is blank, so landed PR tests are never copied onto those clauses.\nP3. Hand-stamping kind:test still leaves verify:ac reporting no artifact path bound, so scope:complete refuses under #3240 / #4385.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4986-dc\norigin-ref: origin/master\ndispatch-sha: ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a\npin-kind: origin-default\ntarget-digest: sha256:57b0d04add2375b1e6e1a17c5c50cf3300d6b6327a58ecd4ab7410425ae056a3\n\nPin reads use git show ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a. The issue body is the proposal under test. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5802078135,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802078135",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:05:51Z",
+          "updated_at": "2026-09-24T01:14:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4986\ncharter: refutation\nround: 1 critic\nid-ceiling: 5802078135\nsha-at-dispatch: ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a\narc-mode: no-ingest\naudit-targets: none\nseat: grok\nlauncher: grok\n\nThe recorded refutation target survives.\n\nChecked `git rev-parse HEAD` equals `ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a`. Pin reads used `git show` at that SHA. Re-ran focused vitest over `acceptance-evidence`, `clauses`, `stamp-evidence`, and `clause-file-scope-bind` filters for the #3835 / #4732 / null-path / stampMatchAny anchors: 20 passed.\n\n## Production stamp verb uses matchAny, not resolveAllowedTestPointer\nsharpens-framing\nEvidence: At the dispatch SHA, `packages/core/src/scope/stamp-evidence.ts` `stampEvidenceOnBrief` calls `stampMatchAnyFileEvidence`, which resolves through `resolveMatchAnyFilePointer`. `resolveAllowedTestPointer` is the exact-member helper used only by `stampDeclaredTestEvidence`. Both helpers return null when `file_scope` is empty or `artifact_path` is blank (`acceptance-evidence.ts`).\nFailure mode: A later lean that patches only `resolveAllowedTestPointer` / `stampDeclaredTestEvidence` leaves the live `scope:stamp-evidence` path untouched, so through-merge still writes zero evidence on null-path derived clauses.\nDisposition: Keep the null-on-empty-or-blank failure in the target; name the production writer as `stampMatchAnyFileEvidence` / `resolveMatchAnyFilePointer` (or say both stamp writers share the gate) before bind.\n\n## Pathless derived clauses stay unbound after promote even with file_scope\nsharpens-framing\nEvidence: `buildClause` always returns `artifact_path: null` (`clauses.ts`). `bindClausesToDeclaredScope` returns ok/unchanged when declared scope is empty. With a non-empty `file_scope`, `bindStoredOrTokens` still returns `{ ok: true, path: null }` when clause text names no matchAny file token. The #3550 active brief at this SHA has `acceptance.source_rung: derived`, five clauses all `artifact_path: null`, no `plan.metadata.swarm` / `file_scope`, and clause-keyed items with no `x-directive/evidence`, while `packages/core/src/product-first-done-gate/sentence-floor.test.ts` exists on the same tree. `scope:complete` runs `evaluateAcceptanceEvidenceGate` then `evaluateScopeCompleteAcceptanceWalk` (`transition.ts`); `walkOne` returns `unverifiable` / `no artifact path bound` before any file read.\nFailure mode: A remedy that only teaches stamp to invent a pointer from a landed PR test, without a declared bind onto `artifact_path` under approved `file_scope`, can pass a hand `kind:test` item stamp and still fail verify:ac / complete on unbound clauses. Filling `file_scope` alone does not bind behavioral clauses that name no path.\nDisposition: Scope the hole as derivation-null plus promote-bind leave-null for pathless clauses plus stamp refusal on blank path; keep #3835 (no path lift from issue/comment text), #4385 (unbound fail closed), and #3240 (merge SHA is not smoke/UAT/deploy/observed evidence) as hard constraints on any bind lean.\n\n## #4732 already-bound-only stamp is in force\nfootnote\nEvidence: `stampDeclaredTestEvidence` / `stampMatchAnyFileEvidence` skip `no-allowed-pointer` when path is blank; comments and tests cite #4732 as not inventing rows and not stamping inside the evidence gate. The #3550 instance never reaches an already-bound clause.\nFailure mode: Treating #4732 as the missing through-merge closer overstates that slice.\nDisposition: No change to the target causal chain; keep #4732 as the already-bound-only neighbor, not the fix surface for null-path derivation.\n\n## Injection / swarm lens on evidence binding\nfootnote\nEvidence: `buildClause` docs and walk gate (#3835) refuse lifting a filesystem path from untrusted issue/comment prose; stamp writers also refuse PR paths, verify_commands, and comment prose. `file_scope` is the approved read surface (#3145 / #4008).\nFailure mode: A closer that binds `artifact_path` from comment text, or stamps a PR-added test outside approved `file_scope`, reopens comment-directed reads or unapproved scope expansion.\nDisposition: Any bind lean must take the pointer from an approved declared surface (or an explicit human bind onto that surface), then stamp `kind:test` against that bound path.\r\n\n",
+          "id": 5802169107,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802169107",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:12:08Z",
+          "updated_at": "2026-09-23T20:12:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThrough-merge can land the tests that prove a derived clause and still leave that clause with no path on the brief. Complete then stops, because verify:ac will not treat an unbound clause as done. The hole starts when derivation always writes a null path, continues when promote leaves pathless clauses unbound even if file_scope is present, and finishes when stamp refuses a blank path.\n\nThe build contract is: keep the ban on lifting a path from issue or comment text, keep unbound clauses fail-closed, and keep merge SHA from counting as smoke/UAT/deploy/observed evidence. Fix the hole by binding an approved file_scope pointer onto the clause before stamp, and make the live stamp writer name the matchAny path so a patch to the unused exact helper cannot pretend to close it.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. The critic comment is the check on the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives in the form sharpened by comment 5802169107. Derivation-null, promote leave-null for pathless clauses, and stamp refusal on blank path are one hole. The live stamp writer is stampMatchAnyFileEvidence / resolveMatchAnyFilePointer. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5802078135\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a\n\n## Takes\n\n- 5802169107 Production stamp verb uses matchAny, not resolveAllowedTestPointer — accept-into-contract\n- 5802169107 Pathless derived clauses stay unbound after promote even with file_scope — accept-into-contract\n\nFootnote, outside the take map: 5802169107 #4732 already-bound-only stamp is in force; 5802169107 Injection / swarm lens on evidence binding.\n\nSpec-path:\n\n## Bound remedy\n\n1. Derived acceptance clauses may leave buildClause with artifact_path null. After promote (or an explicit bind step before stamp), every clause that must be proven by a test must carry a non-blank artifact_path taken only from approved declared file_scope (or an explicit human bind onto that surface). Do not lift a filesystem path from issue body or comment text (#3835). Empty file_scope remains a silent no-op for bind; it does not invent a path.\n2. scope:stamp-evidence must be able to record kind:test evidence onto a clause that already has a non-blank artifact_path inside approved file_scope. The production writer is stampMatchAnyFileEvidence / resolveMatchAnyFilePointer (shared null-on-empty-or-blank gate with the exact helper). A patch that only changes resolveAllowedTestPointer / stampDeclaredTestEvidence does not close this issue.\n3. Unbound clauses stay fail-closed (#4385). A merge SHA still does not satisfy smoke, UAT, deploy, or observed behavior (#3240). #4732 stays the already-bound-only neighbor; it is not the fix surface for null-path derivation.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:57b0d04add2375b1e6e1a17c5c50cf3300d6b6327a58ecd4ab7410425ae056a3\n\n## Parent-side substantiation\n\nThe critic required the live stamp writer to be named before bind, and required the hole to include promote leave-null for pathless clauses even when file_scope is present. Both are in Bound remedy items 1 and 2. The #3550 brief at the dispatch SHA is the instance: five derived clauses with null paths, no file_scope, and sentence-floor.test.ts already on the tree.\n\naudit:stamp-writer-named sha=ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a pointer=comment:5802169107 reading=asserted\naudit:promote-leave-null sha=ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a pointer=comment:5802169107 reading=asserted",
+          "id": 5802187215,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802187215",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:13:26Z",
+          "updated_at": "2026-09-24T01:14:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4986\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nid-ceiling: 5802187215\nsha-at-dispatch: ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nseat: grok\nlauncher: grok\n\nChecked `git rev-parse HEAD` equals `ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a`. Pin reads used `git show` at that SHA. Re-ran focused vitest over clauses / acceptance-evidence / stamp-evidence / clause-file-scope-bind anchors for derivation-null, empty-scope no-op, pathless leave-null, and matchAny stamp: 13 passed on the named filters; the four files as a set were 169 passed / 1 skipped.\n\n## Pathless leave-null still needs the explicit bind branch\nsharpens-framing\nEvidence: Bound remedy item 1 says after promote (or an explicit bind before stamp) every clause that must be proven by a test must carry a non-blank `artifact_path` from approved `file_scope`. At this SHA `bindClausesToDeclaredScope` is a no-op on empty scope and returns `{ ok: true, path: null }` for pathless behavioral text even when `file_scope` is present (`clauses.test.ts` \"leaves behavioral clauses unbound when file_scope is present\"; \"is a no-op when file_scope is empty\"). The #3550 active brief has `acceptance.source_rung: derived`, five clauses all `artifact_path: null`, and no `plan.metadata.swarm.file_scope`. Round-1 take 5802169107 already put promote leave-null into the contract.\nFailure mode: An implementer reads \"after promote\" as discharged when promote returns ok with paths still null, ships no explicit bind step, and #3550-class pathless clauses still hit `walkOne` `no artifact path bound` before stamp can run.\nDisposition: Keep items 1–3. Say plainly that pathless clauses left null after promote require the explicit bind step before stamp; promote ok/unchanged does not discharge item 1 for those clauses. \"Must be proven by a test\" stays the human/bind selector, not a promote auto-classifier.\n\n## P2 live writer and blank-path gate match item 2\nfootnote\nEvidence: `stampEvidenceOnBrief` calls `stampMatchAnyFileEvidence` (`stamp-evidence.ts`). `resolveMatchAnyFilePointer` and `resolveAllowedTestPointer` both return null when `file_scope` is empty or `artifact_path` is blank (`acceptance-evidence.ts`). Focused tests stamp matchAny files and skip null rows; exact-member `stampDeclaredTestEvidence` stays the neighbor helper.\nFailure mode: None for the cite as written on 5802187215; item 2 already names the production writer and the shared null gate.\nDisposition: No harvest change. Stop 1's `resolveAllowedTestPointer` label stays historical; the Bound remedy surface is the matchAny writer.\n\n## P3 unbound walk refusal stays until bind\nfootnote\nEvidence: `walkOne` returns `unverifiable` / `no artifact path bound` when `artifact_path` is null or blank (`clauses.ts`). `scope:complete` still runs `evaluateAcceptanceEvidenceGate` then `evaluateScopeCompleteAcceptanceWalk` (`transition.ts`). Item 3 keeps unbound fail-closed (#4385) and the merge-SHA ban for smoke/UAT/deploy/observed (#3240).\nFailure mode: Treating hand `kind:test` alone as P3 relief would recreate the #3550 workaround failure; the Bound remedy routes through bind then stamp instead.\nDisposition: No harvest change. P3 is covered by items 1–2 creating a bound path stamp can record, with item 3 holding the fail-closed floor.\r\n\n",
+          "id": 5802258149,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802258149",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:18:31Z",
+          "updated_at": "2026-09-23T20:18:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThrough-merge can land the tests that prove a derived clause and still leave that clause with no path on the brief. Complete then stops. The hole is derivation-null, promote leave-null for pathless clauses, and stamp refusal on a blank path.\n\nPromote returning ok with paths still null does not finish the bind. Pathless clauses need an explicit bind onto approved file_scope before stamp. The live stamp writer is the matchAny path. Unbound clauses stay fail-closed, and a merge SHA still does not count as smoke/UAT/deploy/observed evidence.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5802169107 and pain-audit 5802258149 check the findings. Whether the list covers the three pains stays open until a later critic targets those cites on this lean.\n\n**Lean:** Recut-supersedes 5802187215. The refutation target survives with the pain-audit sharpening: pathless leave-null after promote requires the explicit bind step before stamp. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5802187215\nRecut-supersedes: 5802187215\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a\n\n## Takes\n\n- 5802169107 Production stamp verb uses matchAny, not resolveAllowedTestPointer — accept-into-contract\n- 5802169107 Pathless derived clauses stay unbound after promote even with file_scope — accept-into-contract\n- 5802258149 Pathless leave-null still needs the explicit bind branch — accept-into-contract\n\nFootnote, outside the take map: 5802169107 #4732 already-bound-only; 5802169107 Injection / swarm lens; 5802258149 P2 live writer and blank-path gate match item 2; 5802258149 P3 unbound walk refusal stays until bind.\n\nSpec-path:\n\n## Bound remedy\n\n1. Derived acceptance clauses may leave buildClause with artifact_path null. Promote ok/unchanged does not discharge bind for pathless clauses. Before stamp, every clause that must be proven by a test must go through an explicit bind step that writes a non-blank artifact_path taken only from approved declared file_scope (or an explicit human bind onto that surface). Do not lift a filesystem path from issue body or comment text (#3835). Empty file_scope remains a silent no-op for bind; it does not invent a path. \"Must be proven by a test\" is the human/bind selector, not a promote auto-classifier.\n2. scope:stamp-evidence must be able to record kind:test evidence onto a clause that already has a non-blank artifact_path inside approved file_scope. The production writer is stampMatchAnyFileEvidence / resolveMatchAnyFilePointer (shared null-on-empty-or-blank gate with the exact helper). A patch that only changes resolveAllowedTestPointer / stampDeclaredTestEvidence does not close this issue.\n3. Unbound clauses stay fail-closed (#4385). A merge SHA still does not satisfy smoke, UAT, deploy, or observed behavior (#3240). #4732 stays the already-bound-only neighbor; it is not the fix surface for null-path derivation.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:57b0d04add2375b1e6e1a17c5c50cf3300d6b6327a58ecd4ab7410425ae056a3\n\n## Parent-side substantiation\n\nPain-audit 5802258149 required the Bound remedy to say plainly that pathless clauses left null after promote need the explicit bind step, and that promote ok does not discharge item 1. Item 1 now states that. Items 2 and 3 were unchanged in harvest.\n\naudit:explicit-bind-required sha=ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a pointer=comment:5802258149 reading=asserted",
+          "id": 5802269389,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802269389",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:19:12Z",
+          "updated_at": "2026-09-24T01:14:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4986\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nid-ceiling: 5802269389\nsha-at-dispatch: ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nseat: grok\nlauncher: grok\n\nChecked `git rev-parse HEAD` equals `ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a`. Pin reads used `git show` at that SHA. Re-ran focused vitest over clauses / acceptance-evidence / stamp-evidence / clause-file-scope-bind filters for derivation-null, empty-scope no-op, pathless leave-null, and matchAny stamp: 34 passed / 136 skipped on the named filter set; the four files as a whole were green.\n\n## P1 derivation-null kept; explicit bind now states the leave-null branch\nfootnote\nEvidence: Bound remedy item 1 on 5802269389 keeps `buildClause` null (`clauses.ts` returns `{ artifact_path: null }`) and now says promote ok/unchanged does not discharge bind for pathless clauses. At this SHA `bindClausesToDeclaredScope` is a no-op on empty declared scope and returns `{ ok: true, path: null }` for pathless behavioral text even when `file_scope` is present (`clauses.test.ts`). The #3550 active brief has `acceptance.source_rung: derived`, five clauses all `artifact_path: null`, and no `plan.metadata.swarm` / `file_scope`. Pain-audit 5802258149's sharpening is in the Bound remedy text.\nFailure mode: None for the cite as written on 5802269389; appearance of the proving test moves to the explicit bind-before-stamp step under approved `file_scope`, which is the #3835-preserving path the lean names.\nDisposition: No harvest change. P1 is covered by item 1's bind branch plus items 2–3; derivation stays null by design.\n\n## P2 live matchAny writer and shared blank/empty gate\nfootnote\nEvidence: `stampEvidenceOnBrief` calls `stampMatchAnyFileEvidence` (`stamp-evidence.ts`). `resolveMatchAnyFilePointer` and `resolveAllowedTestPointer` both return null when declared scope is empty or `artifact_path` is blank (`acceptance-evidence.ts`). Item 2 names that production writer and the shared null gate. Blank-path relief rides item 1's bind; empty/`absent` swarm stays a silent no-op and does not invent a PR path.\nFailure mode: None for the cite as written; a patch that only edits `resolveAllowedTestPointer` / `stampDeclaredTestEvidence` still misses the live verb, which item 2 already forbids.\nDisposition: No harvest change. Stop 1's `resolveAllowedTestPointer` label stays historical; Bound remedy surface is the matchAny writer after a non-blank in-scope path exists.\n\n## P3 unbound walk refusal until bind then stamp\nfootnote\nEvidence: `walkOne` returns `unverifiable` / `no artifact path bound` when `artifact_path` is null or blank (`clauses.ts`). `scope:complete` still runs `evaluateAcceptanceEvidenceGate` then `evaluateScopeCompleteAcceptanceWalk` (`transition.ts`). Item 3 keeps unbound fail-closed (#4385) and the merge-SHA ban for smoke/UAT/deploy/observed (#3240).\nFailure mode: Treating hand `kind:test` alone as P3 relief would recreate the #3550 workaround failure; the Bound remedy routes through explicit bind then stamp instead.\nDisposition: No harvest change. P3 is covered by items 1–2 creating a bound path stamp can record, with item 3 holding the fail-closed floor.",
+          "id": 5802325937,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802325937",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:23:11Z",
+          "updated_at": "2026-09-23T20:23:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDerived clauses leave artifact_path null at build time. Promote can return ok while those clauses stay unbound. Stamp then refuses a blank path, so through-merge cannot complete even after a hand kind:test stamp. The accepted change is an explicit bind onto approved file_scope before stamp, with the live stamp writer named as matchAny, while unbound clauses and the merge-SHA ban stay fail-closed.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| buildClause always returns artifact_path null for derived clauses. | git show packages/core/src/verify-ac/clauses.ts at ef922d2a636a86e81dfee7e5d34d19ab9d8fec2a; re-derived in critic 5802169107 and pain-audit 5802325937. | verified |\n| Promote leave-null: bindClausesToDeclaredScope is a no-op on empty scope and returns path null for pathless behavioral text even when file_scope is present. | clauses.test.ts anchors and git show at that SHA; re-derived in 5802169107 and 5802258149. | verified |\n| Live scope:stamp-evidence uses stampMatchAnyFileEvidence / resolveMatchAnyFilePointer; both stamp helpers null on empty file_scope or blank artifact_path. | git show stamp-evidence.ts and acceptance-evidence.ts at that SHA; re-derived in 5802169107 and 5802325937. | verified |\n| walkOne / scope:complete refuse unbound clauses (no artifact path bound); merge SHA is not smoke/UAT/deploy/observed evidence. | git show clauses.ts and transition.ts at that SHA; re-derived in 5802169107 and 5802325937. | verified |\n| Pathless clauses left null after promote require an explicit bind step before stamp; promote ok does not discharge that bind. | Bound remedy item 1 on lean 5802269389; pain-audit 5802258149 sharpening accepted; footnote-only re-check 5802325937. | verified |",
+          "id": 5802342757,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802342757",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:24:27Z",
+          "updated_at": "2026-09-23T20:24:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nDerived clauses leave artifact_path null. Promote can return ok while they stay unbound. Stamp refuses a blank path. The accepted change is an explicit bind onto approved file_scope before stamp, with the live stamp writer named as matchAny. Unbound clauses stay fail-closed, and a merge SHA still does not count as smoke/UAT/deploy/observed evidence. The same parent wrote the Stop 1 warrant. Pain-audit 5802325937 re-derived the rows footnote-only.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5802269389.",
+          "id": 5802343144,
+          "html_url": "https://github.com/deftai/directive/issues/4986#issuecomment-5802343144",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:24:29Z",
+          "updated_at": "2026-09-23T20:24:29Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happened\n\nThrough-merge of #3550 landed the product change in #4972 (`10b73110`) and left `xbrief/active/2026-09-23-3550-bugintakeverify-ac-3398-attestation-enforcement-absent-in-th.xbrief.json` on master. `scope:complete` refused. All five clauses had `artifact_path: null` and no `x-directive/evidence`. The tests that prove those clauses were already in the merge, at `packages/core/src/product-first-done-gate/sentence-floor.test.ts`. Nothing copied that path onto the brief.\n\nCompletion then required a hand stamp of `kind: test` onto each plan item. Even after that stamp, `verify:ac` still reported each clause unverifiable: `no artifact path bound`.\n\n## Root cause\n\nDerived clauses are created with no path. `buildClause` in `packages/core/src/verify-ac/clauses.ts` always returns `artifact_path: null`. That was deliberate (#3835): the statement is the issue body plus the comment thread, and lifting a path out of it let a comment choose which file the gate read.\n\n`scope:stamp-evidence` will not fill the hole. `resolveAllowedTestPointer` in `packages/core/src/scope/acceptance-evidence.ts` returns null when `file_scope` is empty or `artifact_path` is blank. #3550's ingested brief had an empty file list and null paths, so the stamp verb wrote nothing. It does not look at tests the pull request added.\n\n`scope:complete` then stops (#3240). It will not treat the merge SHA as evidence for these clauses. #4732 asked to derive `kind: test` from landed tests onto bound clauses. These clauses are never bound, so that slice does not run.\n\nThe evidence is missing at derivation. It is not deleted later.\n\n## What completion needs\n\nA through-merge whose tests land for a derived clause must be able to record those tests on that clause without a second manual stamp, and without reading a path out of an issue comment. Unbound clauses must still fail closed (#4385). A merge SHA must still not satisfy smoke, UAT, deploy, or observed behavior (#3240).\n\nRefs #3550\nRefs #3835\nRefs #3240\nRefs #4732\nRefs #4385\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5558800703,
+        "origin": "deftai/directive#4986",
+        "id": "github.issue.5558800703"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "57b0d04add2375b1e6e1a17c5c50cf3300d6b6327a58ecd4ab7410425ae056a3"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5007,
+        "prBase": null,
+        "mergeCommit": "e6a03bcbc44cc83bb2477c1433394d14d895ab59",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fa17a55a881cabbba6ccb71fad374b75cd11f462",
+        "verifiedAt": "2026-09-24T13:35:05Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-24T13:35:05Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-24T13:35:05Z"
+      }
+    },
+    "id": "github.issue.5558800703",
+    "updated": "2026-09-24T13:35:05Z"
+  }
+}
