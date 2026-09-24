@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { defaultTestBoundaryPolicy, type TestBoundaryPolicy } from "../test-boundary/policy.js";
-import { evaluateClassChecks, scanTestIdentityInInfra } from "./evaluate.js";
+import {
+  contentMarksTestOnly,
+  evaluateClassChecks,
+  parseClassChecksFromProjectDefinition,
+  scanTestIdentityInInfra,
+} from "./evaluate.js";
 import { defaultClassChecksPolicy } from "./policy.js";
 
 function baseTb(overrides: Partial<TestBoundaryPolicy> = {}): TestBoundaryPolicy {
@@ -26,6 +31,22 @@ resource smokeId 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' =
     ]);
     expect(finding).not.toBeNull();
     expect(finding?.kind).toBe("test-identity-in-infra");
+  });
+
+  it("does not flag production canary name without identity keyword (class 3)", () => {
+    const content = `
+resource canaryApi 'Microsoft.Web/sites@2022-09-01' = {
+  name: 'canary-api'
+}
+`;
+    expect(
+      scanTestIdentityInInfra("infra/main.bicep", content, ["smoke", "test", "canary"]),
+    ).toBeNull();
+  });
+
+  it("still flags smoke-test-identity via resource/decl match", () => {
+    const content = "name: 'smoke-test-identity'\n";
+    expect(scanTestIdentityInInfra("infra/main.bicep", content, ["smoke", "test"])).not.toBeNull();
   });
 
   it("ignores production identity names without markers", () => {
@@ -190,6 +211,78 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "same-pr-policy-edit")).toBe(true);
     expect(result.findings.some((f) => f.path === ".deft/test-boundary.policy.json")).toBe(true);
+  });
+
+  it("fails class 1 when content marks a neutral-named file as test-only", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: ["src/helpers/seed_data.ts"],
+      baseTestBoundaryPolicy: baseTb({ sourceRoots: ["src/**"], testRoots: ["tests/**"] }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [
+          "src/helpers/seed_data.ts",
+          "describe('seed', () => {\n  it('loads', () => {\n    expect(1).toBe(1);\n  });\n});\n",
+        ],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "test-under-source-root")).toBe(true);
+  });
+
+  it("treats pipeline ancestor dirs as deploy infra for class 2/3", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: ["ci/pipelines/prod.json"],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["src/**"],
+        testRoots: ["tests/**"],
+        fixtureRoots: ["tests/fixtures/**"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        ["ci/pipelines/prod.json", '{ "seed": "tests/fixtures/seed.json" }\n'],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
+  });
+
+  it("fails closed on malformed merge-base PROJECT-DEFINITION classChecks", () => {
+    expect(() => parseClassChecksFromProjectDefinition("{ not json")).toThrow(/not valid JSON/);
+    expect(() =>
+      parseClassChecksFromProjectDefinition(
+        JSON.stringify({ plan: { policy: { classChecks: ["nope"] } } }),
+      ),
+    ).toThrow(/must be a JSON object/);
+    expect(
+      parseClassChecksFromProjectDefinition(JSON.stringify({ plan: { policy: {} } })),
+    ).toBeNull();
+    expect(contentMarksTestOnly("export const x = 1;\n")).toBe(false);
+    expect(
+      contentMarksTestOnly("describe('x', () => { it('y', () => { expect(1).toBe(1); }); });\n"),
+    ).toBe(true);
+  });
+
+  it("skips class 2 content scan on protected verifier paths", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: ["packages/core/src/test-boundary/evaluate.ts"],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**", "src/**"],
+        testRoots: ["tests/**"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [
+          "packages/core/src/test-boundary/evaluate.ts",
+          'const example = "tests/fixtures/seed.json";\n',
+        ],
+      ]),
+    });
+    expect(
+      result.findings.filter((f) => f.kind === "production-references-test-root"),
+    ).toHaveLength(0);
   });
 
   it("does not honor working-tree warn mode; still fails closed", () => {

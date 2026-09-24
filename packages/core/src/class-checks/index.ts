@@ -7,7 +7,9 @@ export {
   type ClassCheckKind,
   type ClassCheckOptions,
   type ClassCheckResult,
+  contentMarksTestOnly,
   evaluateClassChecks,
+  parseClassChecksFromProjectDefinition,
   resolveClassCheckBaseRef,
   scanTestIdentityInInfra,
 } from "./evaluate.js";

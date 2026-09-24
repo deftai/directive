@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
+import { unquoteGitPath } from "../scope-provenance/evaluate.js";
 import {
   isRecognizedTestBasename,
   matchesRootGlob,
@@ -83,14 +84,6 @@ function git(args: readonly string[], cwd: string): { status: number; stdout: st
     throw new GitCommandError(`git ${args[0]} failed: ${String(e.message)}`);
   }
   return { status: result.status ?? 1, stdout: String(result.stdout ?? "") };
-}
-
-function unquoteGitPath(raw: string): string {
-  const t = raw.replace(/\r$/, "").trim();
-  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    return t.slice(1, -1).replace(/\\/g, "/");
-  }
-  return t.replace(/\\/g, "/");
 }
 
 function normalizeRepoRelPath(p: string): string {
@@ -259,6 +252,39 @@ function loadHeadTestBoundaryPolicy(projectRoot: string): TestBoundaryPolicy | n
   return null;
 }
 
+/**
+ * Parse plan.policy.classChecks from PROJECT-DEFINITION text.
+ * Throws on malformed JSON / non-object classChecks (fail closed).
+ * Returns null when the document has no classChecks block (caller uses defaults).
+ */
+export function parseClassChecksFromProjectDefinition(
+  pdText: string,
+  projectRoot = ".",
+): ClassChecksPolicy | null {
+  let pd: Record<string, unknown>;
+  try {
+    pd = JSON.parse(pdText) as Record<string, unknown>;
+  } catch (err: unknown) {
+    throw new Error(
+      "merge-base xbrief/PROJECT-DEFINITION.xbrief.json is not valid JSON: " +
+        String((err as Error).message),
+    );
+  }
+  if (pd === null || typeof pd !== "object" || Array.isArray(pd)) {
+    throw new Error("merge-base xbrief/PROJECT-DEFINITION.xbrief.json must be a JSON object");
+  }
+  const plan = pd.plan as Record<string, unknown> | undefined;
+  const policy = plan?.policy as Record<string, unknown> | undefined;
+  const cc = policy?.classChecks;
+  if (cc === undefined || cc === null) return null;
+  if (typeof cc !== "object" || Array.isArray(cc)) {
+    throw new Error("merge-base plan.policy.classChecks must be a JSON object");
+  }
+  return loadClassChecksPolicy(projectRoot, {
+    fileText: JSON.stringify(cc as Record<string, unknown>),
+  });
+}
+
 function loadBaseClassChecksPolicy(projectRoot: string, baseRef: string): ClassChecksPolicy {
   const fileText = readAtRef(projectRoot, baseRef, ".deft/class-checks.policy.json");
   if (fileText !== null) {
@@ -266,17 +292,8 @@ function loadBaseClassChecksPolicy(projectRoot: string, baseRef: string): ClassC
   }
   const pdText = readAtRef(projectRoot, baseRef, "xbrief/PROJECT-DEFINITION.xbrief.json");
   if (pdText !== null) {
-    try {
-      const pd = JSON.parse(pdText) as Record<string, unknown>;
-      const plan = pd.plan as Record<string, unknown> | undefined;
-      const policy = plan?.policy as Record<string, unknown> | undefined;
-      const cc = policy?.classChecks as Record<string, unknown> | undefined;
-      if (cc !== undefined && cc !== null && typeof cc === "object" && !Array.isArray(cc)) {
-        return loadClassChecksPolicy(projectRoot, { fileText: JSON.stringify(cc) });
-      }
-    } catch {
-      // defaults
-    }
+    const parsed = parseClassChecksFromProjectDefinition(pdText, projectRoot);
+    if (parsed !== null) return parsed;
   }
   return defaultClassChecksPolicy();
 }
@@ -377,7 +394,7 @@ function scanProductionReferences(
     /(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(relPath) ||
     /(^|\/)\.github\/workflows\//i.test(relPath) ||
     /(^|\/)Dockerfile(\.|$)/i.test(relPath) ||
-    basenameLooksLikePipeline(relPath, [".yml", ".yaml", ".json", ".sh", ".ps1"]);
+    pathLooksLikePipeline(relPath, [".yml", ".yaml", ".json", ".sh", ".ps1"]);
   if (!underSource && !looksLikeDeploy) {
     return null;
   }
@@ -408,19 +425,23 @@ function scanProductionReferences(
   return null;
 }
 
-/** Basename contains 'pipeline' and ends with one of the extensions. Avoids ReDoS. */
-function basenameLooksLikePipeline(relPath: string, extensions: readonly string[]): boolean {
-  const slash = relPath.lastIndexOf("/");
-  const base = (slash >= 0 ? relPath.slice(slash + 1) : relPath).toLowerCase();
-  if (!base.includes("pipeline")) return false;
-  return extensions.some((ext) => base.endsWith(ext));
+/**
+ * True when a deploy-ish extension is present and 'pipeline' appears in the
+ * basename or any path segment (ancestor dirs included). String checks only.
+ */
+function pathLooksLikePipeline(relPath: string, extensions: readonly string[]): boolean {
+  const posix = relPath.replace(/\\/g, "/").toLowerCase();
+  const slash = posix.lastIndexOf("/");
+  const base = slash >= 0 ? posix.slice(slash + 1) : posix;
+  if (!extensions.some((ext) => base.endsWith(ext))) return false;
+  return posix.split("/").some((seg) => seg.includes("pipeline"));
 }
 
 function looksLikeInfraPath(relPath: string): boolean {
   return (
     /(^|\/)(infra|deploy|deployment|terraform|bicep|cloudformation)(\/|$)/i.test(relPath) ||
     /\.(bicep|tf|tfvars|arm\.json)$/i.test(relPath) ||
-    basenameLooksLikePipeline(relPath, [".yml", ".yaml", ".json"])
+    pathLooksLikePipeline(relPath, [".yml", ".yaml", ".json"])
   );
 }
 
@@ -428,6 +449,31 @@ function looksLikeInfraPath(relPath: string): boolean {
  * Class 3: identity/role/principal/credential declaration whose name or bound
  * resource matches a configured test-marker token.
  */
+
+/**
+ * Strong content markers that identify a test-only artifact (contract class 1).
+ * Requires harness/fixture signals — not bare prose containing "test".
+ */
+export function contentMarksTestOnly(content: string): boolean {
+  const head = content.length > 64_000 ? content.slice(0, 64_000) : content;
+  // Vitest/Jest-style suites with assertions.
+  if (
+    /\b(?:describe|suite)\s*\(/m.test(head) &&
+    /\b(?:it|test)\s*\(\s*['"`]/m.test(head) &&
+    /\b(?:expect|assert)\s*\(/m.test(head)
+  ) {
+    return true;
+  }
+  // Python pytest / unittest.
+  if (/\b(?:import\s+pytest|from\s+pytest\b|@pytest\.|from\s+unittest\b)/m.test(head)) {
+    return true;
+  }
+  // Explicit fixture/mock/smoke harness markers.
+  if (/\b(?:vi|jest)\.mock\b|\bfixture\s*\(/m.test(head)) return true;
+  if (/^\s*(?:\/\/|#)\s*(?:smoke|fixture|mock)[- ]?test\b/im.test(head)) return true;
+  return false;
+}
+
 export function scanTestIdentityInInfra(
   relPath: string,
   content: string,
@@ -444,15 +490,14 @@ export function scanTestIdentityInInfra(
       `[\\s\\S]{0,160}?(?:${markerAlt})`,
     "i",
   );
-  const nameRe = new RegExp(
-    `(?:name|id|value)\\s*[=:]\\s*["'\`][^"'\`]*(?:${markerAlt})[^"'\`]*["'\`]`,
-    "i",
-  );
+  // name/id/value alone is not enough — require an identity keyword in the
+  // quoted value (resourceRe) or near a declaration keyword (declRe).
   const resourceRe = new RegExp(
-    `["'\`][^"'\`]*(?:${markerAlt})[^"'\`]*(?:identity|role|principal|credential)[^"'\`]*["'\`]`,
+    `["'\`][^"'\`]*(?:${markerAlt})[^"'\`]*(?:identity|role|principal|credential)[^"'\`]*["'\`]` +
+      `|["'\`][^"'\`]*(?:identity|role|principal|credential)[^"'\`]*(?:${markerAlt})[^"'\`]*["'\`]`,
     "i",
   );
-  if (declRe.test(content) || nameRe.test(content) || resourceRe.test(content)) {
+  if (declRe.test(content) || resourceRe.test(content)) {
     return {
       path: relPath,
       kind: "test-identity-in-infra",
@@ -586,11 +631,15 @@ export function evaluateClassChecks(
     const posix = normalizeRepoRelPath(rel);
     if (isExempt(posix, baseTb.testRoots)) continue;
 
-    // Class 1: test artifact under non-test root.
-    const isTest =
+    // Class 1: test artifact under non-test root (name or contents).
+    let isTest =
       matchesTestFilePattern(posix, baseTb.testFilePatterns) || isRecognizedTestBasename(posix);
-    if (isTest && isUnderAnyRoot(posix, baseTb.sourceRoots)) {
-      if (isAllowListed(posix, baseTb.allow) === null) {
+    const underSource = isUnderAnyRoot(posix, baseTb.sourceRoots);
+    const protectedPath = isProtected(posix, classPolicy.protectedGlobs);
+
+    // Skip binary-ish for content scans
+    if (/\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|woff2?|ttf|eot|bin|exe|dll)$/i.test(posix)) {
+      if (isTest && underSource && isAllowListed(posix, baseTb.allow) === null) {
         findings.push({
           path: posix,
           kind: "test-under-source-root",
@@ -598,18 +647,26 @@ export function evaluateClassChecks(
           remediation: MOVE_OR_REMOVE,
         });
       }
-    }
-
-    // Skip binary-ish for content scans
-    if (/\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|woff2?|ttf|eot|bin|exe|dll)$/i.test(posix)) {
       continue;
     }
 
     const content = readContent(root, posix, options.fileContents);
+    if (!isTest && underSource && content !== undefined && contentMarksTestOnly(content)) {
+      isTest = true;
+    }
+    if (isTest && underSource && isAllowListed(posix, baseTb.allow) === null) {
+      findings.push({
+        path: posix,
+        kind: "test-under-source-root",
+        detail: "test-only artifact under a non-test root (class 1)",
+        remediation: MOVE_OR_REMOVE,
+      });
+    }
     if (content === undefined) continue;
 
-    // Class 2: production reference to test root (always; ignore productionMayReference).
-    if (isAllowListed(posix, baseTb.allow) === null) {
+    // Class 2: production reference to test root. Skip protected verifier/authz
+    // paths — their source legitimately mentions configured test roots.
+    if (!protectedPath && isAllowListed(posix, baseTb.allow) === null) {
       const refFinding = scanProductionReferences(posix, content, baseTb);
       if (refFinding !== null) findings.push(refFinding);
     }

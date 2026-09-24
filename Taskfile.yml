@@ -439,6 +439,7 @@ tasks:
       - verify:closing-keywords
       - verify:forward-coverage
       - verify:test-boundary
+      - verify:class-checks
       - verify:scope-provenance
       # #3893: this repo owns its own check composition, so the contract runs
       # fail-closed here on the merge-chokepoint scoping rule.
@@ -509,6 +510,7 @@ tasks:
           CLI_ARGS: "--changed-only"
       - verify:completed-write-guard
       - verify:test-boundary
+      - verify:class-checks
       - verify:scope-provenance
       - verify:consumer-check-contract
       - verify:evaluator-surface
