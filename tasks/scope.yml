@@ -129,6 +129,16 @@ tasks:
         vars:
           ENGINE_CMD: 'scope-lifecycle stamp-evidence {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
+  bind-clause:
+    desc: "Bind pathless derived clauses onto an approved file_scope matchAny path (#4986). Empty file_scope is a silent no-op."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle bind-clause {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
+
   decompose:
     desc: "Apply/check an approved epic/phase -> story decomposition draft"
     dir: '{{.USER_WORKING_DIR}}'

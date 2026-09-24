@@ -45,31 +45,71 @@ function normalizePointer(value: string): string {
   return value.trim().replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
+function isBlankPath(value: string | null | undefined): boolean {
+  return value === null || value === undefined || value.trim().length === 0;
+}
+
+/**
+ * Pathless bind only. Already-bound / stated paths refuse. When readings
+ * exist, chosen_reading must be explicit — never default to index 0.
+ */
 function applyPathToClause(
   clause: AcceptanceClause,
   pointer: string,
-): { readonly clause: AcceptanceClause; readonly changed: boolean } {
-  let changed = clause.artifact_path !== pointer;
+):
+  | { readonly ok: true; readonly clause: AcceptanceClause; readonly changed: boolean }
+  | { readonly ok: false; readonly message: string } {
+  if (!isBlankPath(clause.artifact_path)) {
+    return {
+      ok: false,
+      message:
+        `${BIND_CLAUSE_VERB} refused: clause ${clause.id} already has artifact_path ` +
+        `${clause.artifact_path} (pathless derived only; no overwrite) (#4986)`,
+    };
+  }
   const readings = clause.readings;
   if (readings === undefined || readings.length === 0) {
     return {
-      changed,
-      clause: changed ? { ...clause, artifact_path: pointer } : clause,
+      ok: true,
+      changed: true,
+      clause: { ...clause, artifact_path: pointer },
     };
   }
-  const chosen = clause.chosen_reading ?? 0;
+  if (typeof clause.chosen_reading !== "number") {
+    return {
+      ok: false,
+      message:
+        `${BIND_CLAUSE_VERB} refused: clause ${clause.id} has readings but no explicit ` +
+        `chosen_reading (fail closed; do not default to reading[0]) (#4986)`,
+    };
+  }
+  const chosen = clause.chosen_reading;
+  if (!Number.isInteger(chosen) || chosen < 0 || chosen >= readings.length) {
+    return {
+      ok: false,
+      message:
+        `${BIND_CLAUSE_VERB} refused: clause ${clause.id} chosen_reading ${chosen} ` +
+        `is out of range for ${readings.length} reading(s) (#4986)`,
+    };
+  }
+  const selected = readings[chosen];
+  if (selected !== undefined && !isBlankPath(selected.artifact_path)) {
+    return {
+      ok: false,
+      message:
+        `${BIND_CLAUSE_VERB} refused: clause ${clause.id} reading[${chosen}] already has ` +
+        `artifact_path ${selected.artifact_path} (pathless derived only; no overwrite) (#4986)`,
+    };
+  }
   const nextReadings = readings.map((reading, index) => {
     if (index !== chosen) {
       return reading;
     }
-    if (reading.artifact_path === pointer) {
-      return reading;
-    }
-    changed = true;
     return { ...reading, artifact_path: pointer };
   });
   return {
-    changed,
+    ok: true,
+    changed: true,
     clause: {
       ...clause,
       artifact_path: pointer,
@@ -137,6 +177,22 @@ export function bindSelectedClausesToDeclaredPath(
       message: `${BIND_CLAUSE_VERB} refused: unknown clause id(s): ${missing.join(", ")}`,
     };
   }
+  // readAcceptanceClauses defaults missing chosen_reading to 0. Inspect the
+  // raw row so bind never silently picks reading[0] (#4986 Greptile P1).
+  const acceptanceRaw = asRecord(plan.acceptance);
+  const rawRows = Array.isArray(acceptanceRaw?.clauses) ? acceptanceRaw.clauses : [];
+  const rawChosenById = new Map<number, boolean>();
+  for (const [index, entry] of rawRows.entries()) {
+    const row = asRecord(entry);
+    if (row === null) {
+      continue;
+    }
+    const id = typeof row.id === "number" && row.id > 0 ? row.id : index + 1;
+    const hasReadings = Array.isArray(row.readings) && row.readings.length > 0;
+    const explicit =
+      typeof row.chosen_reading === "number" || typeof row.chosenReading === "number";
+    rawChosenById.set(id, !hasReadings || explicit);
+  }
   const bound = new Map<number, AcceptanceClause>();
   const boundIds: number[] = [];
   for (const id of wanted) {
@@ -144,7 +200,19 @@ export function bindSelectedClausesToDeclaredPath(
     if (current === undefined) {
       continue;
     }
+    if (rawChosenById.get(id) === false) {
+      return {
+        ok: false,
+        boundIds: [],
+        message:
+          `${BIND_CLAUSE_VERB} refused: clause ${id} has readings but no explicit ` +
+          `chosen_reading (fail closed; do not default to reading[0]) (#4986)`,
+      };
+    }
     const next = applyPathToClause(current, pointer);
+    if (!next.ok) {
+      return { ok: false, boundIds: [], message: next.message };
+    }
     if (next.changed) {
       boundIds.push(id);
     }
@@ -184,7 +252,9 @@ export function bindSelectedClausesToDeclaredPath(
         text: reading.text,
         artifact_path: reading.artifact_path,
       }));
-      stamped.chosen_reading = replacement.chosen_reading ?? 0;
+      if (typeof replacement.chosen_reading === "number") {
+        stamped.chosen_reading = replacement.chosen_reading;
+      }
     }
     return stamped;
   });

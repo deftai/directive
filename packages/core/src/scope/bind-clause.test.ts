@@ -123,6 +123,100 @@ describe("bindSelectedClausesToDeclaredPath (#4986)", () => {
       }).message,
     ).toContain("unknown clause id");
   });
+
+  it("refuses overwrite of already-bound or stated artifact_path", () => {
+    const { root, pointer } = repoWithPointer();
+    const plan: Record<string, unknown> = {
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "already bound stated clause",
+            artifact_path: "packages/a/other.test.ts",
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["packages/a/**"] } },
+    };
+    const result = bindSelectedClausesToDeclaredPath(plan, {
+      path: pointer,
+      clauseIds: [1],
+      projectRoot: root,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("already has artifact_path");
+    const acceptance = plan.acceptance as { clauses: Array<{ artifact_path: string | null }> };
+    expect(acceptance.clauses[0]?.artifact_path).toBe("packages/a/other.test.ts");
+  });
+
+  it("refuses readings without an explicit chosen_reading", () => {
+    const { root, pointer } = repoWithPointer();
+    const plan: Record<string, unknown> = {
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "ambiguous pathless",
+            artifact_path: null,
+            ambiguous: true,
+            readings: [
+              { text: "reading A", artifact_path: null },
+              { text: "reading B", artifact_path: null },
+            ],
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["packages/a/**"] } },
+    };
+    const result = bindSelectedClausesToDeclaredPath(plan, {
+      path: pointer,
+      clauseIds: [1],
+      projectRoot: root,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("no explicit chosen_reading");
+  });
+
+  it("binds the explicit chosen_reading when pathless", () => {
+    const { root, pointer } = repoWithPointer();
+    const plan: Record<string, unknown> = {
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "ambiguous pathless",
+            artifact_path: null,
+            ambiguous: true,
+            chosen_reading: 1,
+            readings: [
+              { text: "reading A", artifact_path: null },
+              { text: "reading B", artifact_path: null },
+            ],
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["packages/a/**"] } },
+    };
+    const result = bindSelectedClausesToDeclaredPath(plan, {
+      path: pointer,
+      clauseIds: [1],
+      projectRoot: root,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.boundIds).toEqual([1]);
+    const acceptance = plan.acceptance as {
+      clauses: Array<{
+        artifact_path: string | null;
+        chosen_reading?: number;
+        readings?: Array<{ artifact_path: string | null }>;
+      }>;
+    };
+    expect(acceptance.clauses[0]?.artifact_path).toBe(pointer);
+    expect(acceptance.clauses[0]?.chosen_reading).toBe(1);
+    expect(acceptance.clauses[0]?.readings?.[0]?.artifact_path).toBeNull();
+    expect(acceptance.clauses[0]?.readings?.[1]?.artifact_path).toBe(pointer);
+  });
 });
 
 describe("bind then stampMatchAnyFileEvidence (#4986)", () => {
