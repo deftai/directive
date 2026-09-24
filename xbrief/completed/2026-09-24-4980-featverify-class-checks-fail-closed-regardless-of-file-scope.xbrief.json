@@ -1,0 +1,600 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4980",
+    "updated": "2026-09-24T13:27:42Z"
+  },
+  "plan": {
+    "title": "feat(verify): class checks fail closed regardless of file_scope or digest — test artifact under production root, production reference to test root, test identity in infra, protected globs (#3145 class)",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(verify): class checks fail closed regardless of file_scope or digest — test artifact under production root, production reference to test root, test identity in infra, protected globs (#3145 class)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4980",
+      "Overview": "\n\n1. On every change set, including a first PR with no active brief and no file_scope, task check fails closed on the four classes below. Failure is independent of brief declarations, of verify:test-boundary policy (including warn), and of author role. There is no approve, skip, or phrase. Remediation is move or remove the path. Output does not mention scope:record-approved-scope.\n2. The check is diff-scoped against the merge base. Pre-existing tree violations that the PR does not touch do not fail this gate.\n3. Allow lists and enforcementMode are read from the merge-base policy copy. A same-PR allow entry or warn flip that would clear a violation in the same change set fails, with the policy edit named.\n4. Classes (all kept; none withdrawn):\n   - Class 1: test-only artifact (existing verify:test-boundary classifier markers) added or modified under a non-test root.\n   - Class 2: production-root file referencing a configured test root.\n   - Class 3: deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set. Locked test required. This class is unconditional on this bind.\n   - Class 4: new diff-scoped predicate over a configured protected-glob list (defaults: hooks, authz, the verifier itself, publish policy, .deft/approved-scope/, plus project-configured globs). pathishIsProtectedDest is not this check.\n5. Exempt: paths under configured test roots; CHANGELOG.md. A paired test under a test root passes with no prompt and no digest.\n6. A change to the verifier, hooks, authz, or publish policy is a class-4 hit by construction. It lands as its own diff on the merge base before any story that depends on it, and is never carried inside a story PR.\n7. Fence, budget, and proceed stay on #4956. This issue is not a mint/digest/.deft/approved-scope write and not \"only flip verify:test-boundary to enforce.\"\n8. Docs: content/docs/scope-provenance.md states class checks hold independently of file_scope and of any digest. Tests lock all four classes and the two exemptions. CHANGELOG Unreleased line.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:37b4f2f2dd9613cf96b6440123d35e39df1322702272448163a9b88999573049\n\n\n",
+      "Labels": "enhancement, determinism, agent-experience, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "On every change set, including a first PR with no active brief and no file_scope, task check fails closed on the four classes below. Failure is independent of brief declarations, of verify:test-boundary policy (including warn), and of author role. There is no approve, skip, or phrase. Remediation is move or remove the path. Output does not mention scope:record-approved-scope.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "The check is diff-scoped against the merge base. Pre-existing tree violations that the PR does not touch do not fail this gate.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Allow lists and enforcementMode are read from the merge-base policy copy. A same-PR allow entry or warn flip that would clear a violation in the same change set fails, with the policy edit named.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Classes (all kept; none withdrawn):",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Class 1: test-only artifact (existing verify:test-boundary classifier markers) added or modified under a non-test root.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Class 2: production-root file referencing a configured test root.",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Class 3: deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set. Locked test required. This class is unconditional on this bind.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Class 4: new diff-scoped predicate over a configured protected-glob list (defaults: hooks, authz, the verifier itself, publish policy, .deft/approved-scope/, plus project-configured globs). pathishIsProtectedDest is not this check.",
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Exempt: paths under configured test roots; CHANGELOG.md. A paired test under a test root passes with no prompt and no digest.",
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "A change to the verifier, hooks, authz, or publish policy is a class-4 hit by construction. It lands as its own diff on the merge base before any story that depends on it, and is never carried inside a story PR.",
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Fence, budget, and proceed stay on #4956. This issue is not a mint/digest/.deft/approved-scope write and not \"only flip verify:test-boundary to enforce.\"",
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Docs: content/docs/scope-provenance.md states class checks hold independently of file_scope and of any digest. Tests lock all four classes and the two exemptions. CHANGELOG Unreleased line.",
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5005#fa17a55a881cabbba6ccb71fad374b75cd11f462",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4980",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4980: feat(verify): class checks fail closed regardless of file_scope or digest — test artifact under production root, production reference to test root, test identity in infra, protected globs (#3145 class)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4956",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4956"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 12 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "On every change set, including a first PR with no active brief and no file_scope, task check fails closed on the four classes below. Failure is independent of brief declarations, of verify:test-boundary policy (including warn), and of author role. There is no approve, skip, or phrase. Remediation is move or remove the path. Output does not mention scope:record-approved-scope.",
+        "The check is diff-scoped against the merge base. Pre-existing tree violations that the PR does not touch do not fail this gate.",
+        "Allow lists and enforcementMode are read from the merge-base policy copy. A same-PR allow entry or warn flip that would clear a violation in the same change set fails, with the policy edit named.",
+        "Classes (all kept; none withdrawn):",
+        "Class 1: test-only artifact (existing verify:test-boundary classifier markers) added or modified under a non-test root.",
+        "Class 2: production-root file referencing a configured test root.",
+        "Class 3: deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set. Locked test required. This class is unconditional on this bind.",
+        "Class 4: new diff-scoped predicate over a configured protected-glob list (defaults: hooks, authz, the verifier itself, publish policy, .deft/approved-scope/, plus project-configured globs). pathishIsProtectedDest is not this check.",
+        "Exempt: paths under configured test roots; CHANGELOG.md. A paired test under a test root passes with no prompt and no digest.",
+        "A change to the verifier, hooks, authz, or publish policy is a class-4 hit by construction. It lands as its own diff on the merge base before any story that depends on it, and is never carried inside a story PR.",
+        "Fence, budget, and proceed stay on #4956. This issue is not a mint/digest/.deft/approved-scope write and not \"only flip verify:test-boundary to enforce.\"",
+        "Docs: content/docs/scope-provenance.md states class checks hold independently of file_scope and of any digest. Tests lock all four classes and the two exemptions. CHANGELOG Unreleased line."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On every change set, including a first PR with no active brief and no file_scope, task check fails closed on the four classes below. Failure is independent of brief declarations, of verify:test-boundary policy (including warn), and of author role. There is no approve, skip, or phrase. Remediation is move or remove the path. Output does not mention scope:record-approved-scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The check is diff-scoped against the merge base. Pre-existing tree violations that the PR does not touch do not fail this gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Allow lists and enforcementMode are read from the merge-base policy copy. A same-PR allow entry or warn flip that would clear a violation in the same change set fails, with the policy edit named.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Classes (all kept; none withdrawn):",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Class 1: test-only artifact (existing verify:test-boundary classifier markers) added or modified under a non-test root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Class 2: production-root file referencing a configured test root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Class 3: deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set. Locked test required. This class is unconditional on this bind.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Class 4: new diff-scoped predicate over a configured protected-glob list (defaults: hooks, authz, the verifier itself, publish policy, .deft/approved-scope/, plus project-configured globs). pathishIsProtectedDest is not this check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Exempt: paths under configured test roots; CHANGELOG.md. A paired test under a test root passes with no prompt and no digest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "A change to the verifier, hooks, authz, or publish policy is a class-4 hit by construction. It lands as its own diff on the merge base before any story that depends on it, and is never carried inside a story PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Fence, budget, and proceed stay on #4956. This issue is not a mint/digest/.deft/approved-scope write and not \"only flip verify:test-boundary to enforce.\"",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Docs: content/docs/scope-provenance.md states class checks hold independently of file_scope and of any digest. Tests lock all four classes and the two exemptions. CHANGELOG Unreleased line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because the #3145 class still merges green under warn-only verify:test-boundary and the scope-provenance digest ceremony, and the fail-closed class check was split from #4956 so it can ship without waiting on the fence.\n\ncharter: refutation\nrefutation-target: The #3145 class (test artifact under a production root, production reference to a test root, test identity in infra, protected glob touch) is adequately gated by warn-only verify:test-boundary plus the scope-provenance file_scope digest ceremony, so a fail-closed class check independent of brief, policy, and digest is unnecessary.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is the leftover class-check remainder split from the already-critiqued #4956 fence arc. The hole is local to task check / verify:test-boundary classifiers and protected globs. It is not a whole-motion babysit or action-loop hang. N=1.\n\npain: P1, P2, P3, P4\n\nP1. A test-only artifact under a production root still merges green when verify:test-boundary is warn and no brief/file_scope is present.\nP2. A production file that references a configured test root still merges green under the same conditions.\nP3. A smoke/test identity or role binding in an infrastructure template still merges green under the same conditions.\nP4. A story change set that touches a protected glob (hooks, authz, verifier, publish policy, .deft/approved-scope/, project-configured) still merges green under the same conditions, or only fails through a digest ceremony that does not require anyone to read the path.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4980-dc\norigin-ref: origin/master\ndispatch-sha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\npin-kind: origin-default\ntarget-digest: sha256:37b4f2f2dd9613cf96b6440123d35e39df1322702272448163a9b88999573049\n\nPin reads use git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0. The issue body is the proposal under test. Fence/budget/proceed stay on #4956. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5802367203,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802367203",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:26:12Z",
+          "updated_at": "2026-09-24T01:14:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\ncharter: refutation\nround: 1 critic\nseat: grok. Launcher: grok.\nid-ceiling: 5802367203\nsha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\narc-mode: no-ingest\n\n## Verdict\n\nThe refutation target does **not** survive. Warn-only `verify:test-boundary` plus the scope-provenance `file_scope` digest ceremony do not adequately gate the #3145 class. A fail-closed class check that is independent of brief, policy, and digest remains necessary for the four named classes.\n\nInjection / swarm lens: authority and untrusted path placement are in scope. Under defaults, an agent change set with no active brief can land production-root test artifacts and production→test-root references while `task check` stays green; the digest ceremony never fires when there is no `file_scope` to mint, and when it does fire it authorizes listed paths rather than refusing the class.\n\n## Warn-only test-boundary exits 0 on already-classified hits\nblocks-the-design\nEvidence: At `4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0`, `packages/core/src/test-boundary/evaluate.ts` maps findings to `exitCode = 0` when `enforcementMode === \"warn\"`. `defaultTestBoundaryPolicy()` and `loadTestBoundaryPolicy` fall-through both default to warn when no authored policy exists; this tree has no `.deft/test-boundary.policy.json` at the pin, and `xbrief/PROJECT-DEFINITION.xbrief.json` carries no `plan.policy.testBoundary`. `tasks/verify.yml` invokes `verify:test-boundary` with only `{{.CLI_ARGS}}` (no hardcoded `--enforce`); `Taskfile.yml` `check:framework-source` / `check:consumer` list the bare dep. Locked unit test `warn mode returns exit 0 with findings` uses `infra/scripts/test_release.py`. Re-ran the exit-mapping probe: warn+finding → 0, enforce+finding → 1.\nFailure mode: Binding the refutation target treats warn-only composition as an adequate gate. The #3145 fixtures the classifier already names (`infra/scripts/test_release.py`, `infra/deploy.sh` → `tests/fixtures/…`) still merge green under the default `task check` path.\nDisposition: Drop the claim that warn-only `verify:test-boundary` adequately gates the class. Any bind path must keep a fail-closed class check that does not depend on projects opting into `enforcementMode: enforce`.\n\n## Scope-provenance digests path lists; it does not class-check content\nblocks-the-design\nEvidence: `packages/core/src/scope-provenance/evaluate.ts` evaluates modified `xbrief/active/` payloads against `.deft/approved-scope/<plan-id>.json` digests. Locked test `passes clean when no active xbriefs change`. Remediation strings point at `scope:record-approved-scope` / human mint (#3110), which is an approve path for a declared `file_scope`. Docs at `content/docs/scope-provenance.md` describe expansion and same-PR self-auth, not test-under-source / infra-identity / protected-glob class refusal. Authz `protected-dest-realpath.ts` classifies shell dest-of-write aliases for `.deft/approved-scope` / `.deft/authz`; it is not a change-set class gate on `task check`.\nFailure mode: A no-brief PR that only adds `infra/scripts/test_*.py` or touches hooks never enters the digest ceremony, so “adequately gated by … file_scope digest ceremony” is vacuously false on the acceptance path the issue names. When a brief does declare the path and a human mints, the ceremony green-lights the touch instead of refusing the class.\nDisposition: Stop treating scope-provenance as a substitute for an independent class check. Digest ceremony and class refusal are different controls; the former cannot discharge the latter.\n\n## Classes 3 and 4 are outside the existing test-boundary kind set\nblocks-the-design\nEvidence: `TestBoundaryViolationKind` at the pin is exactly `test-under-source-root` | `production-references-test-root`. Grep of `packages/core/src/test-boundary/` finds no smoke/principal/credential/role-binding classifier and no protected-glob touch kind. Enforce-mode probe over `infra/templates/role.json` with a smoke-test principal string yields zero findings under the two-kind evaluator. `verify:intent-constraint` and `verify:observable-scope` gate throw/numeric facts and UI oracle deltas; they do not cover infra test identities or protected globs as class 3/4.\nFailure mode: Even the strongest steelman of the refutation target (“flip defaults to enforce”) still leaves P3 (test identity in infra) and P4 (protected glob touch) merge-green. The presumption that the two named mechanisms cover the whole #3145 class set is false on inventory.\nDisposition: Reject the refutation target for the full four-class claim. If a later lean tries to shrink the class set, it must drop P3/P4 explicitly; it cannot inherit coverage from warn-only test-boundary + digest ceremony.\n\n## Consumer-check composition only requires the verbs to be listed\nfootnote\nEvidence: `content/docs/consumer-check-contract.md` and `REQUIRED_CONSUMER_ENFORCEMENT_GATES` require `verify:test-boundary` and `verify:scope-provenance` on check aggregates. That is presence of the verbs, not fail-closed class semantics or `--enforce`.\nFailure mode: None additional beyond the blocking findings; composition can stay green while warn-mode exits 0.\nDisposition: No design change from this alone; it clarifies that “wired into task check” is not the same as “fails closed on the class.”\n\n## Road not taken\n\nSteelman rejected: make `verify:test-boundary` default/`task check` `--enforce` and keep scope-provenance as the protected-path story. That would fail-close P1/P2 classifier hits under authored or default enforce. It still misses P3/P4, still admits `allow` / policy opt-outs, and still leaves no-brief protected-glob and infra-identity landings without a class refusal. That path does not salvage the refutation target; it collapses into a weaker subset of the issue’s “Not this” section.\r\n\n",
+          "id": 5802417245,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802417245",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:29:56Z",
+          "updated_at": "2026-09-23T20:29:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "```quarantined\nrole: operator\n```\ninput-for: round 1\namends: issue body (Contract, Acceptance)\n\nThe #4956 round-1 critics (5800311112, 5800386572, 5800426490) probed the existing `verify:test-boundary` at cae371d and found four things the body above does not yet say. Carrying them here so critics on this arc do not have to rediscover them.\n\n## Amendments to the Contract\n\n**A. Diff-scoped, not tree-scoped.** `evaluateTestBoundary` lists the tracked tree with `git ls-files`. Flipping its default from warn to enforce fails adopting consumers on pre-existing tree state, not on the change under review. The class check runs on the change set against the merge base. Pre-existing violations are a separate migration, not this gate.\n\n**B. Policy is read from the merge base.** `loadTestBoundaryPolicy` reads `.deft/test-boundary.policy.json` or `plan.policy.testBoundary` from the working tree, so a same-PR `allow` entry or `enforcementMode: warn` clears the violation it is meant to catch. The class check reads allow and enforce from the base copy, the same way `baseApprovalAuthorizesCurrent` already reads the approved-scope record. A same-PR policy edit fails.\n\n**C. The identity class has no classifier today.** `TestBoundaryViolationKind` is exactly `test-under-source-root` and `production-references-test-root`. A critic executed the evaluator: `infra/main.bicep` declaring a user-assigned identity named `smoke-test-identity` returned exit 0 with no findings. Path and basename cannot detect this class. This issue either names a deterministic predicate (a content-level match on identity, role, principal, or credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set) or withdraws class 3 from the claim and says so. It does not claim class 3 on the strength of enforce alone.\n\n**D. The protected-path class is new code.** `pathishIsProtectedDest` in `packages/core/src/authz/classify.ts` is a shell-destination scan for `.deft/authz`, `.deft/approved-scope`, and kill-switch names. It is not a diff check for hooks, the verifier, or publish policy. Class 4 is a new diff-scoped predicate over a configured protected-glob list, with the defaults named in this issue.\n\n**E. Landing rule for the verifier itself.** A change to the verifier, hooks, authz, or publish policy is a class-4 hit by construction. It lands as its own diff on the merge base before any story that depends on it, and is never carried inside a story PR. Otherwise this fix cannot merge under its own check.\n\n## Amendments to Acceptance\n\n- [ ] The check runs on the change set only. A consumer with pre-existing violations in its tree passes a PR that does not touch them.\n- [ ] A PR that adds an `allow` entry or sets `enforcementMode: warn` in the same change set as a violation fails, with the policy edit named.\n- [ ] Class 3 has a named predicate with a locked test, or the body says class 3 is withdrawn.\n- [ ] `infra/main.bicep` (or equivalent) adding an identity or role binding whose name matches the test-marker set fails with the class named, if class 3 is kept.\n- [ ] A protected-glob hit fails with the path named; the default glob list is in the body.\n\nRefs #4956 comments 5800311112, 5800386572, 5800426490. The Not-this list stands.",
+          "id": 5802420911,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802420911",
+          "user": {
+            "login": "ape-deft",
+            "id": 309468868,
+            "node_id": "U_kgDOEnIexA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/309468868?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/ape-deft",
+            "html_url": "https://github.com/ape-deft",
+            "followers_url": "https://api.github.com/users/ape-deft/followers",
+            "following_url": "https://api.github.com/users/ape-deft/following{/other_user}",
+            "gists_url": "https://api.github.com/users/ape-deft/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/ape-deft/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/ape-deft/subscriptions",
+            "organizations_url": "https://api.github.com/users/ape-deft/orgs",
+            "repos_url": "https://api.github.com/users/ape-deft/repos",
+            "events_url": "https://api.github.com/users/ape-deft/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/ape-deft/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:30:12Z",
+          "updated_at": "2026-09-23T20:30:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWarn-only test-boundary and the scope-provenance digest do not stop the #3145 class. Default task check still exits green on already-classified hits, the digest never fires on a no-brief PR, and when it does fire it authorizes listed paths instead of refusing the class. Classes 3 and 4 are not in the two-kind detector set at all.\n\nThe build contract is a fail-closed class check on the change set, independent of brief, file_scope, and verify:test-boundary policy. It is diff-scoped against the merge base, reads allow/enforce from the base policy copy, names a deterministic predicate for infra test identities or withdraws that class, adds protected-glob as new code, and lands verifier/hooks/authz/publish-policy changes as their own diff before any story that depends on them. Fence, budget, and proceed stay on #4956.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5802417245 and operator input 5802420911 check the findings. Whether the list covers the four pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. The issue body's fail-closed class-check direction binds in the form sharpened by critic 5802417245 and operator amendments 5802420911. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5802367203\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\n\n## Takes\n\n- 5802417245 Warn-only test-boundary exits 0 on already-classified hits — accept-into-contract\n- 5802417245 Scope-provenance digests path lists; it does not class-check content — accept-into-contract\n- 5802417245 Classes 3 and 4 are outside the existing test-boundary kind set — accept-into-contract\n- 5802420911 Diff-scoped, not tree-scoped — accept-into-contract\n- 5802420911 Policy is read from the merge base — accept-into-contract\n- 5802420911 The identity class has no classifier today — accept-into-contract\n- 5802420911 The protected-path class is new code — accept-into-contract\n- 5802420911 Landing rule for the verifier itself — accept-into-contract\n\nFootnote, outside the take map: 5802417245 Consumer-check composition only requires the verbs to be listed.\n\nSpec-path:\n\n## Bound remedy\n\n1. On every change set, including a first PR with no active brief and no file_scope, task check fails closed on the four classes below. Failure is independent of brief declarations, of verify:test-boundary policy (including warn), and of author role. There is no approve, skip, or phrase. Remediation is move or remove the path. Output does not mention scope:record-approved-scope.\n2. The check is diff-scoped against the merge base. Pre-existing tree violations that the PR does not touch do not fail this gate.\n3. Allow lists and enforcementMode are read from the merge-base policy copy. A same-PR allow entry or warn flip that would clear a violation in the same change set fails, with the policy edit named.\n4. Classes:\n   - Class 1: test-only artifact (existing verify:test-boundary classifier markers) added or modified under a non-test root.\n   - Class 2: production-root file referencing a configured test root.\n   - Class 3: deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set. Locked test required. If that predicate cannot be named in-product, withdraw class 3 in the body and drop P3 rather than claim it via enforce alone.\n   - Class 4: new diff-scoped predicate over a configured protected-glob list (defaults: hooks, authz, the verifier itself, publish policy, .deft/approved-scope/, plus project-configured globs). pathishIsProtectedDest is not this check.\n5. Exempt: paths under configured test roots; CHANGELOG.md. A paired test under a test root passes with no prompt and no digest.\n6. A change to the verifier, hooks, authz, or publish policy is a class-4 hit by construction. It lands as its own diff on the merge base before any story that depends on it, and is never carried inside a story PR.\n7. Fence, budget, and proceed stay on #4956. This issue is not a mint/digest/.deft/approved-scope write and not \"only flip verify:test-boundary to enforce.\"\n8. Docs: content/docs/scope-provenance.md states class checks hold independently of file_scope and of any digest. Tests lock all kept classes and the two exemptions. CHANGELOG Unreleased line.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:37b4f2f2dd9613cf96b6440123d35e39df1322702272448163a9b88999573049\n\n## Parent-side substantiation\n\nThe critic required dropping the claim that warn-only test-boundary plus digest ceremony gate the class, and required that P3/P4 cannot inherit coverage from the two-kind detector. Operator 5802420911 required diff-scope, base policy reads, a named class-3 predicate or withdrawal, class-4 as new code, and the verifier landing rule. All are in Bound remedy items 1–6.\n\naudit:warn-not-gate sha=4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0 pointer=comment:5802417245 reading=asserted\naudit:class34-new sha=4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0 pointer=comment:5802417245 reading=asserted\naudit:diff-scoped sha=4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0 pointer=comment:5802420911 reading=asserted",
+          "id": 5802435795,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802435795",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:31:19Z",
+          "updated_at": "2026-09-24T01:14:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok. Launcher: grok.\nid-ceiling: 5802435795\nsha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\narc-mode: no-ingest\n\n## Verdict\n\nRe-verified the pin and the in-envelope thread (Stop 1 `5802367203`, critic `5802417245`, operator `5802420911`, bind lean `5802435795`). Bound remedy covers P1, P2, and P4 as written. P3's primary predicate covers the pain, but the same Bound-remedy bullet still keeps a withdraw-and-drop-P3 contingency beside an operative `relieves: P3` cite. That is a framing defect on the harvest, not a hole in the class-1/2/4 design.\n\nInjection / swarm lens: authority and untrusted path placement stay in scope. The lean's fail-closed, brief-independent class check is the right control shape for agent change sets with no `file_scope`.\n\n## P3 withdraw contingency beside relieves cite\nsharpens-framing\nEvidence: Bind lean `5802435795` Bound remedy section 4 class 3 names a deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set, with a locked test required — that shape matches Stop 1 P3 and operator amendment C in `5802420911`. The same bullet then says if that predicate cannot be named in-product, withdraw class 3 and drop P3. The lean still carries operative line-start `relieves: P3`. At pin `4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0`, `TestBoundaryViolationKind` remains only `test-under-source-root` | `production-references-test-root`, so class 3 is still new code; the named predicate is the coverage, not enforce-alone.\nFailure mode: An implementer who takes the withdraw branch can ship without class 3 while the bind map still asserts P3 coverage. Path-1 / pain-coverage then treats an unmet infra-identity landing as relieved.\nDisposition: Edit the harvested Bound remedy so class 3 is unconditional (keep the named predicate and locked test; remove the withdraw/drop-P3 sentence). Parent posts a successor bind lean with that harvest change and dispatches another pain-audit. Do not bind the current harvest while the drop-P3 contingency and `relieves: P3` coexist.\n\n## P1 class-1 fail-closed covers warn-and-no-brief landings\nfootnote\nEvidence: Stop 1 P1 is a test-only artifact under a production root merging green when `verify:test-boundary` is warn and no brief/`file_scope` is present. Bound remedy section 1 plus section 4 class 1 fail closed on existing classifier markers under a non-test root, independent of brief and of warn policy; sections 2-3 add diff-scope and merge-base policy reads. Re-verify at the pin: `evaluate.ts` sets `exitCode = 0` when `enforcementMode === \"warn\"`; `defaultTestBoundaryPolicy()` defaults warn; no `.deft/test-boundary.policy.json`; locked test `warn mode returns exit 0 with findings` uses `infra/scripts/test_release.py`; `git ls-files` tree walk confirmed.\nFailure mode: None for the cite — building section 1 / section 4 class 1 closes the warn-and-no-brief green path P1 names.\nDisposition: P1 coverage on this lean holds; no harvest change from this finding.\n\n## P2 class-2 fail-closed covers production to test-root references\nfootnote\nEvidence: Stop 1 P2 is a production file referencing a configured test root under the same warn/no-brief conditions. Bound remedy section 4 class 2 is that reference class under the same section 1 independence. Re-verify: `production-references-test-root` is already a `TestBoundaryViolationKind`; warn still maps findings to exit 0; scope-provenance at `packages/core/src/scope-provenance/evaluate.ts` still digests `file_scope` / approved-scope records and does not class-check this content.\nFailure mode: None for the cite — the Bound remedy's class-2 gate is the missing fail-closed control.\nDisposition: P2 coverage on this lean holds; no harvest change from this finding.\n\n## P4 protected-glob predicate covers story touches and digest-only misses\nfootnote\nEvidence: Stop 1 P4 is a story change set touching a protected glob merging green, or failing only through a digest ceremony nobody must read. Bound remedy section 4 class 4 adds a new diff-scoped protected-glob predicate (defaults: hooks, authz, verifier, publish policy, `.deft/approved-scope/`, plus project globs) and states `pathishIsProtectedDest` is not this check; section 1 keeps failure independent of brief/digest; section 6 forces verifier/hooks/authz/publish-policy landings as their own merge-base diff. Re-verify: `pathishIsProtectedDest` only unions authz-dir / approved-scope-dir / kill-switch pathish for shell dest classification — not a `task check` change-set gate on hooks or the verifier.\nFailure mode: None for the cite — class 4 plus sections 1 and 6 close both the green path and the digest-as-substitute path.\nDisposition: P4 coverage on this lean holds; no harvest change from this finding.\r\n\n",
+          "id": 5802488897,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802488897",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:34:47Z",
+          "updated_at": "2026-09-23T20:34:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWarn-only test-boundary and the scope-provenance digest do not stop the #3145 class. The build contract is a fail-closed, diff-scoped class check on every change set, independent of brief, file_scope, and warn policy. Classes 1, 2, 3, and 4 are all kept. Class 3 is an unconditional named infra identity/role/principal/credential predicate with a locked test. There is no withdraw-and-drop-P3 branch beside the P3 relieve cite.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5802417245, operator 5802420911, and pain-audit 5802488897 check the findings. Whether the list covers the four pains stays open until a later critic targets those cites on this lean.\n\n**Lean:** Recut-supersedes 5802435795. Class 3 is unconditional. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5802435795\nRecut-supersedes: 5802435795\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\n\n## Takes\n\n- 5802417245 Warn-only test-boundary exits 0 on already-classified hits — accept-into-contract\n- 5802417245 Scope-provenance digests path lists; it does not class-check content — accept-into-contract\n- 5802417245 Classes 3 and 4 are outside the existing test-boundary kind set — accept-into-contract\n- 5802420911 Diff-scoped, not tree-scoped — accept-into-contract\n- 5802420911 Policy is read from the merge base — accept-into-contract\n- 5802420911 The identity class has no classifier today — accept-into-contract\n- 5802420911 The protected-path class is new code — accept-into-contract\n- 5802420911 Landing rule for the verifier itself — accept-into-contract\n- 5802488897 P3 withdraw contingency beside relieves cite — accept-into-contract\n\nFootnote, outside the take map: 5802417245 Consumer-check composition; 5802488897 P1/P2/P4 coverage footnotes.\n\nSpec-path:\n\n## Bound remedy\n\n1. On every change set, including a first PR with no active brief and no file_scope, task check fails closed on the four classes below. Failure is independent of brief declarations, of verify:test-boundary policy (including warn), and of author role. There is no approve, skip, or phrase. Remediation is move or remove the path. Output does not mention scope:record-approved-scope.\n2. The check is diff-scoped against the merge base. Pre-existing tree violations that the PR does not touch do not fail this gate.\n3. Allow lists and enforcementMode are read from the merge-base policy copy. A same-PR allow entry or warn flip that would clear a violation in the same change set fails, with the policy edit named.\n4. Classes (all kept; none withdrawn):\n   - Class 1: test-only artifact (existing verify:test-boundary classifier markers) added or modified under a non-test root.\n   - Class 2: production-root file referencing a configured test root.\n   - Class 3: deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set. Locked test required. This class is unconditional on this bind.\n   - Class 4: new diff-scoped predicate over a configured protected-glob list (defaults: hooks, authz, the verifier itself, publish policy, .deft/approved-scope/, plus project-configured globs). pathishIsProtectedDest is not this check.\n5. Exempt: paths under configured test roots; CHANGELOG.md. A paired test under a test root passes with no prompt and no digest.\n6. A change to the verifier, hooks, authz, or publish policy is a class-4 hit by construction. It lands as its own diff on the merge base before any story that depends on it, and is never carried inside a story PR.\n7. Fence, budget, and proceed stay on #4956. This issue is not a mint/digest/.deft/approved-scope write and not \"only flip verify:test-boundary to enforce.\"\n8. Docs: content/docs/scope-provenance.md states class checks hold independently of file_scope and of any digest. Tests lock all four classes and the two exemptions. CHANGELOG Unreleased line.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:37b4f2f2dd9613cf96b6440123d35e39df1322702272448163a9b88999573049\n\n## Parent-side substantiation\n\nPain-audit 5802488897 required removing the withdraw/drop-P3 contingency beside operative relieves: P3. Class 3 in item 4 is now unconditional. P1/P2/P4 footnotes needed no harvest change.\n\naudit:class3-unconditional sha=4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0 pointer=comment:5802488897 reading=asserted",
+          "id": 5802504966,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802504966",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:35:43Z",
+          "updated_at": "2026-09-24T01:14:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok. Launcher: grok.\nid-ceiling: 5802504966\nsha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\narc-mode: no-ingest\n\n## Verdict\n\nRe-verified the pin and the in-envelope thread (Stop 1 `5802367203`, critic `5802417245`, operator `5802420911`, prior lean `5802435795`, prior pain-audit `5802488897`, successor lean `5802504966`). Bound remedy on `5802504966` covers P1, P2, P3, and P4 as written. The prior sharpening defect (withdraw-and-drop-P3 contingency beside operative P3 relief) is gone from the harvested Bound remedy; class 3 is unconditional.\n\nInjection / swarm lens: authority and untrusted path placement stay in scope. The lean's fail-closed, brief-independent, diff-scoped class check remains the right control shape for agent change sets with no `file_scope`.\n\n## P3 unconditional class-3 predicate covers infra identity landings\nfootnote\nEvidence: Stop 1 P3 is a smoke/test identity or role binding in an infrastructure template merging green under warn and no brief/`file_scope`. Prior pain-audit `5802488897` required removing the withdraw/drop-P3 sentence while keeping the named predicate and locked test. Successor lean `5802504966` Bound remedy section 4 class 3 keeps the deterministic content-level match on identity/role/principal/credential declarations in infrastructure files whose name or bound resource matches the configured test-marker set, requires a locked test, and states this class is unconditional on this bind; the contingent \"If that predicate cannot be named… withdraw class 3… drop P3\" sentence is absent from the Bound remedy. Section 4 header says all classes kept, none withdrawn. Re-verify at pin `4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0`: `TestBoundaryViolationKind` remains only `test-under-source-root` | `production-references-test-root`, so class 3 is still new code; coverage is the named unconditional predicate, not enforce-alone.\nFailure mode: None for the cite — building unconditional class 3 closes the infra-identity green path P3 names, without a harvest branch that can drop the class while the cite remains.\nDisposition: P3 coverage on this lean holds; no harvest change from this finding.\n\n## P1 class-1 fail-closed covers warn-and-no-brief landings\nfootnote\nEvidence: Stop 1 P1 is a test-only artifact under a production root merging green when `verify:test-boundary` is warn and no brief/`file_scope` is present. Bound remedy section 1 plus section 4 class 1 fail closed on existing classifier markers under a non-test root, independent of brief and of warn policy; sections 2–3 add diff-scope and merge-base policy reads. Re-verify at the pin: `evaluate.ts` sets `exitCode = 0` when `enforcementMode === \"warn\"`; `defaultTestBoundaryPolicy()` defaults warn; no `.deft/test-boundary.policy.json` at the pin; locked test `warn mode returns exit 0 with findings` uses `infra/scripts/test_release.py`.\nFailure mode: None for the cite — building section 1 / section 4 class 1 closes the warn-and-no-brief green path P1 names.\nDisposition: P1 coverage on this lean holds; no harvest change from this finding.\n\n## P2 class-2 fail-closed covers production to test-root references\nfootnote\nEvidence: Stop 1 P2 is a production file referencing a configured test root under the same warn/no-brief conditions. Bound remedy section 4 class 2 is that reference class under the same section 1 independence. Re-verify: `production-references-test-root` is already a `TestBoundaryViolationKind`; warn still maps findings to exit 0; scope-provenance at `packages/core/src/scope-provenance/evaluate.ts` still digests `file_scope` / approved-scope records and does not class-check this content.\nFailure mode: None for the cite — the Bound remedy's class-2 gate is the missing fail-closed control.\nDisposition: P2 coverage on this lean holds; no harvest change from this finding.\n\n## P4 protected-glob predicate covers story touches and digest-only misses\nfootnote\nEvidence: Stop 1 P4 is a story change set touching a protected glob merging green, or failing only through a digest ceremony nobody must read. Bound remedy section 4 class 4 adds a new diff-scoped protected-glob predicate (defaults: hooks, authz, verifier, publish policy, `.deft/approved-scope/`, plus project globs) and states `pathishIsProtectedDest` is not this check; section 1 keeps failure independent of brief/digest; section 6 forces verifier/hooks/authz/publish-policy landings as their own merge-base diff. Re-verify: `pathishIsProtectedDest` only unions authz-dir / approved-scope-dir / kill-switch pathish for shell dest classification — not a `task check` change-set gate on hooks or the verifier.\nFailure mode: None for the cite — class 4 plus sections 1 and 6 close both the green path and the digest-as-substitute path.\nDisposition: P4 coverage on this lean holds; no harvest change from this finding.",
+          "id": 5802546815,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802546815",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:38:24Z",
+          "updated_at": "2026-09-23T20:38:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWarn-only test-boundary and the scope-provenance digest do not stop the #3145 class. The accepted change is a fail-closed, diff-scoped class check on every change set for four classes, with class 3 unconditional, policy read from the merge base, and verifier landings as their own diff. Fence work stays on #4956.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| Warn-only verify:test-boundary exits 0 on already-classified #3145 hits under default task check. | git show evaluate.ts exit mapping at 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0; locked warn-mode test; re-derived in 5802417245 and 5802546815. | verified |\n| Scope-provenance digests file_scope lists and does not class-check path content; no-brief PRs never enter the ceremony. | git show scope-provenance/evaluate.ts and docs at that SHA; re-derived in 5802417245. | verified |\n| TestBoundaryViolationKind is only test-under-source-root and production-references-test-root; classes 3 and 4 need new predicates. | grep/kinds at that SHA; re-derived in 5802417245 and 5802546815. | verified |\n| Class check must be diff-scoped vs merge base; allow/enforce read from base policy copy. | Operator 5802420911; accepted into lean 5802504966 items 2-3. | verified |\n| Class 3 is an unconditional named infra identity predicate with locked test; withdraw contingency removed. | Lean 5802504966 item 4; footnote-only pain-audit 5802546815. | verified |\n| Class 4 is new protected-glob diff check; pathishIsProtectedDest is not it; verifier landings are their own merge-base diff. | Lean 5802504966 items 4 and 6; re-derived in 5802417245 and 5802546815. | verified |",
+          "id": 5802557341,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802557341",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:39:11Z",
+          "updated_at": "2026-09-23T20:39:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWarn-only test-boundary and the scope-provenance digest do not stop the #3145 class. The accepted change is a fail-closed, diff-scoped class check for four classes, with class 3 unconditional and verifier landings as their own diff. Fence, budget, and proceed stay on #4956. The same parent wrote the Stop 1 warrant. Pain-audit 5802546815 re-derived the rows footnote-only.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5802504966.",
+          "id": 5802557693,
+          "html_url": "https://github.com/deftai/directive/issues/4980#issuecomment-5802557693",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:39:12Z",
+          "updated_at": "2026-09-23T20:39:12Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Pain\n\nThe #3145 incident merged green: a `test_*.py` script under `infra/scripts/`, a deployment script pointed at `tests/fixtures/`, smoke-test cloud identities in infrastructure templates. Today those still merge green unless a project policy sets `verify:test-boundary` to `enforce`. The scope-provenance mint was built to catch this class indirectly, by demanding a human digest on any path list. #4956 shows that ceremony stopping a swarm cohort repeatedly without anyone reading a path, and with agentic review and merge nobody reads the diff either.\n\nThe class check is the part of the #3145 defense that does not depend on a human reading anything and does not depend on how the #4956 fence design lands. It can ship now.\n\nSplit from #4956 (operator comment). #4956 keeps the fence, the proceed contract, and the budget; this issue holds only the fail-closed class check.\n\n## Contract\n\nOn every change set, including a first pull request with no active brief and no `file_scope`, `task check` fails closed on any of:\n\n1. **Test artifact under a production root.** A file whose name or contents mark it as test-only (`test_*.py`, `*.test.ts`, `*_test.go`, fixture/mocks/smoke markers per the existing `verify:test-boundary` classifier) added or modified under a root not configured as a test root.\n2. **Production reference to a test root.** A file under a production root that references a path under a configured test root (`tests/`, `__tests__/`, `fixtures/`, etc.).\n3. **Test-only identity or role binding in infrastructure.** A smoke/test principal, role, or credential reference added to an infrastructure template or deployment manifest.\n4. **Protected path touched by a story change set.** Hooks, authz, the verifier itself, publish policy, `.deft/approved-scope/`, and any project-configured protected glob.\n\nThese fail regardless of what any brief declares, regardless of `verify:test-boundary` policy, and regardless of who authored the change. There is no approve, skip, or phrase. The remediation is to move or remove the path.\n\nExempt: paths under configured test roots, `CHANGELOG.md`. A paired test for a production file placed in a test root is the normal Greptile residual and must pass with no prompt.\n\n## Not this\n\n- Not the fence, budget, or proceed contract. Those stay on #4956.\n- Not a mint, digest, or any `.deft/approved-scope/` write.\n- Not a role check. Maintainer and agent change sets are checked the same way.\n- Not making `verify:test-boundary` `enforce` the only change: the four classes above fail even where a project has left that policy at warn.\n- Not blocking tests. A test in a test root is free.\n\n## Acceptance\n\n- [ ] The #3145 change set (test script under `infra/scripts/`, deploy script referencing `tests/fixtures/`, smoke identities in templates) fails `task check` with the class named per path, on a branch with no active brief.\n- [ ] The same test content moved under `tests/` passes with no prompt and no digest anywhere.\n- [ ] A change set touching a protected glob fails with the path named.\n- [ ] Failure output offers no approve/skip path and does not mention `scope:record-approved-scope`.\n- [ ] Tests lock all four classes and the two exemptions.\n- [ ] `content/docs/scope-provenance.md` states that class checks hold independently of `file_scope` and of any digest.\n- [ ] CHANGELOG Unreleased line.\n\nRefs #4956, #3145, #3110, #4383, #4589",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5558243958,
+        "origin": "deftai/directive#4980",
+        "id": "github.issue.5558243958"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "37b4f2f2dd9613cf96b6440123d35e39df1322702272448163a9b88999573049"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "packages/core/src/class-checks/policy.ts",
+          "packages/core/src/class-checks/changed-files-enum.test.ts",
+          "packages/cli/src/verify-class-checks.ts",
+          "content/docs/scope-provenance.md",
+          "tasks/verify.yml"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5005,
+        "prBase": null,
+        "mergeCommit": "fa17a55a881cabbba6ccb71fad374b75cd11f462",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fa17a55a881cabbba6ccb71fad374b75cd11f462",
+        "verifiedAt": "2026-09-24T13:27:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-24T13:27:42Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-24T13:27:42Z"
+      }
+    },
+    "id": "github.issue.5558243958",
+    "updated": "2026-09-24T13:27:42Z"
+  }
+}

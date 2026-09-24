@@ -1,0 +1,473 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4988",
+    "updated": "2026-09-24T13:27:27Z"
+  },
+  "plan": {
+    "title": "feat(setup): write swarm.file_scope at authoring for every setup-created scope and show the paths at the confirmation gate — declaration only, no approval verb (supersedes #4383)",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(setup): write swarm.file_scope at authoring for every setup-created scope and show the paths at the confirmation gate — declaration only, no approval verb (supersedes #4383)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4988",
+      "Overview": "\n\n1. Setup writes a non-empty plan.metadata.swarm.file_scope for every scope it creates, at authoring, from operator-named path members only. Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. Auto-fill and derivation of file_scope from those answers are out of scope.\n2. The Post-Interview Confirmation Gate summary lists each scope's paths under that scope as display. Keep the existing write-files confirmation lexicon. No approval verb for approved-scope runs, nothing is written to .deft/approved-scope/, and no typed phrase for a digest is requested.\n3. content/skills/deft-directive-setup/SKILL.md and content/packs/skills/skills-pack-0.1.json no longer describe a mint step, a digest, or scope:record-approved-scope as a setup action. Forbid language may remain. The vBRIEF swarm-ready story contract is the shape setup emits.\n4. A setup-created scope passes the same file_scope presence check decompose already imposes. Operative surface is file_scope presence, not the full missingRequiredSwarmFields suite.\n5. Land order: the #4956 fence/provenance recut (retirement of approved-scope requirement for non-empty file_scope) lands before or with this setup authoring write. This story does not empty file_scope to pass and does not work around the acceptance item blocked on #4956.\n6. Not: end-of-setup mint/batch/--all; activate digest-equality (#4589 path retired by #4956); reversal of #4380/#3826; fence/budget (#4956); placement/protected globs (#4980).\n7. Tests lock items 1, 2, and 4. CHANGELOG Unreleased line. Supersedes #4383. At ingest, align the acceptance grep line with item 3 (forbid polarity may remain) rather than requiring a zero-hit mint/record-approved-scope grep that would delete useful forbids.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:33284bb9c42e930a72ccdf8cf9f0b6407d90c43ec6881259130b0e18ee8138a5\n\n\n",
+      "Labels": "enhancement, agent-experience, process, source-of-truth, area:installer, area:skills, area:vbrief, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Setup writes a non-empty plan.metadata.swarm.file_scope for every scope it creates, at authoring, from operator-named path members only. Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. Auto-fill and derivation of file_scope from those answers are out of scope.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5004#00f7d471d586e647581283b1c98a9a0311f40e05",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "The Post-Interview Confirmation Gate summary lists each scope's paths under that scope as display. Keep the existing write-files confirmation lexicon. No approval verb for approved-scope runs, nothing is written to .deft/approved-scope/, and no typed phrase for a digest is requested.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5004#00f7d471d586e647581283b1c98a9a0311f40e05",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "content/skills/deft-directive-setup/SKILL.md and content/packs/skills/skills-pack-0.1.json no longer describe a mint step, a digest, or scope:record-approved-scope as a setup action. Forbid language may remain. The vBRIEF swarm-ready story contract is the shape setup emits.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5004#00f7d471d586e647581283b1c98a9a0311f40e05",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "A setup-created scope passes the same file_scope presence check decompose already imposes. Operative surface is file_scope presence, not the full missingRequiredSwarmFields suite.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5004#00f7d471d586e647581283b1c98a9a0311f40e05",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Land order: the #4956 fence/provenance recut (retirement of approved-scope requirement for non-empty file_scope) lands before or with this setup authoring write. This story does not empty file_scope to pass and does not work around the acceptance item blocked on #4956.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5004#00f7d471d586e647581283b1c98a9a0311f40e05",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Not: end-of-setup mint/batch/--all; activate digest-equality (#4589 path retired by #4956); reversal of #4380/#3826; fence/budget (#4956); placement/protected globs (#4980).",
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5004#00f7d471d586e647581283b1c98a9a0311f40e05",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Tests lock items 1, 2, and 4. CHANGELOG Unreleased line. Supersedes #4383. At ingest, align the acceptance grep line with item 3 (forbid polarity may remain) rather than requiring a zero-hit mint/record-approved-scope grep that would delete useful forbids.",
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5004#00f7d471d586e647581283b1c98a9a0311f40e05",
+          "recorded_at": "2026-09-24T13:27:16.046Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:installer",
+      "area:skills",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4988",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4988: feat(setup): write swarm.file_scope at authoring for every setup-created scope and show the paths at the confirmation gate — declaration only, no approval verb (supersedes #4383)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4956",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4956"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Setup writes a non-empty plan.metadata.swarm.file_scope for every scope it creates, at authoring, from operator-named path members only. Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. Auto-fill and derivation of file_scope from those answers are out of scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The Post-Interview Confirmation Gate summary lists each scope's paths under that scope as display. Keep the existing write-files confirmation lexicon. No approval verb for approved-scope runs, nothing is written to .deft/approved-scope/, and no typed phrase for a digest is requested.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "content/skills/deft-directive-setup/SKILL.md and content/packs/skills/skills-pack-0.1.json no longer describe a mint step, a digest, or scope:record-approved-scope as a setup action. Forbid language may remain. The vBRIEF swarm-ready story contract is the shape setup emits.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A setup-created scope passes the same file_scope presence check decompose already imposes. Operative surface is file_scope presence, not the full missingRequiredSwarmFields suite.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Land order: the #4956 fence/provenance recut (retirement of approved-scope requirement for non-empty file_scope) lands before or with this setup authoring write. This story does not empty file_scope to pass and does not work around the acceptance item blocked on #4956.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Not: end-of-setup mint/batch/--all; activate digest-equality (#4589 path retired by #4956); reversal of #4380/#3826; fence/budget (#4956); placement/protected globs (#4980).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests lock items 1, 2, and 4. CHANGELOG Unreleased line. Supersedes #4383. At ingest, align the acceptance grep line with item 3 (forbid polarity may remain) rather than requiring a zero-hit mint/record-approved-scope grep that would delete useful forbids.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Setup writes a non-empty plan.metadata.swarm.file_scope for every scope it creates, at authoring, from operator-named path members only. Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. Auto-fill and derivation of file_scope from those answers are out of scope.",
+        "The Post-Interview Confirmation Gate summary lists each scope's paths under that scope as display. Keep the existing write-files confirmation lexicon. No approval verb for approved-scope runs, nothing is written to .deft/approved-scope/, and no typed phrase for a digest is requested.",
+        "content/skills/deft-directive-setup/SKILL.md and content/packs/skills/skills-pack-0.1.json no longer describe a mint step, a digest, or scope:record-approved-scope as a setup action. Forbid language may remain. The vBRIEF swarm-ready story contract is the shape setup emits.",
+        "A setup-created scope passes the same file_scope presence check decompose already imposes. Operative surface is file_scope presence, not the full missingRequiredSwarmFields suite.",
+        "Land order: the #4956 fence/provenance recut (retirement of approved-scope requirement for non-empty file_scope) lands before or with this setup authoring write. This story does not empty file_scope to pass and does not work around the acceptance item blocked on #4956.",
+        "Not: end-of-setup mint/batch/--all; activate digest-equality (#4589 path retired by #4956); reversal of #4380/#3826; fence/budget (#4956); placement/protected globs (#4980).",
+        "Tests lock items 1, 2, and 4. CHANGELOG Unreleased line. Supersedes #4383. At ingest, align the acceptance grep line with item 3 (forbid polarity may remain) rather than requiring a zero-hit mint/record-approved-scope grep that would delete useful forbids."
+      ],
+      "confessions": []
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because setup creates scopes with no swarm.file_scope while decompose requires that field at authoring, so setup-born briefs are undeclared until mid-build, and the #4383 end-of-setup mint half is retired by the #4956 recut.\n\ncharter: refutation\nrefutation-target: Leaving plan.metadata.swarm.file_scope empty at setup authoring is acceptable, because paths can be declared mid-build or minted/approved at end of setup (#4383), so setup need not write a non-empty file_scope or show paths at the confirmation gate as declaration-only display.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is the leftover declaration half of #4383 after the #4956 provenance recut retired approval. The hole is local to setup authoring, the confirmation gate summary, and decompose/setup allocation agreement. Fence stays on #4956; placement on #4980. N=1.\n\npain: P1, P2, P3, P4\n\nP1. Setup creates scopes with empty or missing plan.metadata.swarm.file_scope, so verify:ac has no oracle and can pass vacuously (#4380).\nP2. The first path declaration for a setup-created scope happens mid-build, where provenance treats it as an expansion rather than an authoring declaration.\nP3. Setup skill and skills-pack still describe a mint, digest, or scope:record-approved-scope on the setup path after #4956 retired that approval half.\nP4. Setup-created scopes fail the same file_scope presence check decompose already imposes, so the two allocation paths disagree.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4988-dc\norigin-ref: origin/master\ndispatch-sha: 5f7ba7c784e21dbf2a65ef666c4ae667630ae499\npin-kind: origin-default\ntarget-digest: sha256:33284bb9c42e930a72ccdf8cf9f0b6407d90c43ec6881259130b0e18ee8138a5\n\nPin reads use git show 5f7ba7c784e21dbf2a65ef666c4ae667630ae499. The issue body is the proposal under test. Acceptance item \"first change does not stop for scope:record-approved-scope\" stays blocked on #4956. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5802629450,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802629450",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:44:33Z",
+          "updated_at": "2026-09-24T01:14:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4988\nCharter: refutation. Spend on the Stop 1 write-back is N=1. Only seat.\nRound: 1 critic. Fresh critic.\nId ceiling (inclusive): 5802629450\nSHA at dispatch: 5f7ba7c784e21dbf2a65ef666c4ae667630ae499\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4988\naudit-targets: none\nSeat: grok. Launcher: grok.\n\nHEAD at dispatch equals `5f7ba7c784e21dbf2a65ef666c4ae667630ae499` (`git rev-parse HEAD`). Pin reads used `git show 5f7ba7c784e21dbf2a65ef666c4ae667630ae499:<path>`. Envelope ignores comments with id greater than 5802629450. Stop 1 write-back is 5802629450.\n\nInventory before findings: setup skill authoring + Post-Interview Confirmation Gate; skills-pack setup body; `missingRequiredSwarmFields` / swarm-ready contract; `resolveWriteFence` empty-story rule; promote clause bind skip-on-empty; `content/docs/scope-provenance.md` (#3874 omit + non-empty-without-human-approval fail); plan-acceptance operator-named / invent polarity. Injection / swarm lens applies: path declaration timing is write-fence and provenance authority.\n\n## Deriving file_scope from languages or layout invents paths\nsharpens-framing\nEvidence: At the dispatch SHA, setup SKILL.md forbids inventing paths (Invent paths forbid on the `plan.metadata.swarm.file_scope` collect line) and plan-acceptance.md assigns file_scope to operator-collected members with the same invent forbid. Issue contract clause 1 still lists \"project layout, languages, the scope's stated deliverables\" as derivation inputs for a non-empty write. The Post-Interview Confirmation Gate summary lists fields that will be written; it does not itself distinguish operator-named paths from agent-synthesized globs.\nFailure mode: Setup stamps `src/**` or `packages/**` from a language or layout answer, shows those paths in the confirmation summary, and the operator's write-files yes binds invented ownership as if it were declaration. Downstream write fence and promote bind then enforce that invented list.\nDisposition: Before bind, clause 1 must treat language/layout only as prompt material for an explicit per-scope path question (or other operator-named members). Auto-fill of `file_scope` from those answers stays out of scope.\n\n## Non-empty setup declaration still fails provenance at this pin until #4956 lands\nsharpens-framing\nEvidence: `content/docs/scope-provenance.md` at the dispatch SHA still fails \"missing human approval with non-empty file_scope\", and #3874 still says omit `file_scope` when the operator will not mint. Tip commit at pin is `5f7ba7c78` (#4543); provenance mint/omit text remains. Issue acceptance already marks \"first change does not stop for scope:record-approved-scope\" as blocked on #4956.\nFailure mode: Implementing the authoring write on this tree produces setup-created briefs with non-empty `file_scope` and no digest; `verify:scope-provenance` fails closed (or warn-migrates only the empty case), so the declaration half cannot ship alone.\nDisposition: Bind lean must state land order: #4956 fence/provenance recut (or equivalent retirement of the approved-scope requirement) before or with the setup authoring write. This story still must not empty `file_scope` to pass.\n\n## Confirmation \"no approval verb\" is approved-scope only\nfootnote\nEvidence: Post-Interview Confirmation Gate at the pin still requires explicit `yes` / `confirmed` / `approve` before writing artifacts. Issue contract says the path list is display and that no `scope:record-approved-scope` / digest / typed phrase runs.\nFailure mode: Readers can conflate the existing write-files confirmation lexicon with an approved-scope countersignature and either reintroduce a mint step or strip the write confirmation.\nDisposition: Wording only. Keep the write-files gate; keep paths as summary fields; keep the forbid on approved-scope mint on the setup path.\n\n## Setup already closes the end-of-setup mint escape\nfootnote\nEvidence: Setup SKILL.md at the pin forbids minting an approved-scope digest. Skills-pack setup body still mentions `record-approved-scope` / mint only in that forbid / adjacent intent-constraint polarity. #3874 mint is a separate allocation-time TTY verb with omit-if-no-mint guidance, not a setup confirmation step.\nFailure mode: Treating \"mint at end of setup (#4383)\" as a live alternative to authoring declaration misreads the setup skill and confuses allocation mint with setup.\nDisposition: Census only; supports why the named refutation target does not hold.\n\nRoad-not-taken: keep #3874 omit-at-authoring and declare paths mid-build (the refutation target). Rejected: `missingRequiredSwarmFields` treats empty `file_scope` as missing; vbrief Swarm-Ready requires non-empty `file_scope`; empty story scope leaves `resolveWriteFence` on project policy only; promote clause bind skips when `file_scope` is empty; mid-build first fill is first-adoption or expansion under provenance at this pin.\n\nSteelman of the target: #3874 literally calls undeclared cohort briefs a deliberate outcome when the operator will not mint. That would flip only if setup-created story-shaped scopes were allowed to stay non-swarm-ready and unfenced, and if end-of-setup mint were a real setup step. Neither holds at the dispatch SHA: setup already requires swarm `depends_on` for story-shaped multi-scope writes while leaving `file_scope` as optional operator-named collect, and setup forbids the digest mint on its own path.\n\nRefutation target does not survive. Leaving `plan.metadata.swarm.file_scope` empty at setup authoring is not acceptable for setup-created scopes: the mid-build declaration escape arrives after an undeclared unfenced interval and trips provenance timing, and the end-of-setup mint/approval escape is already closed on the setup path and is the approval half this issue supersedes after the #4956 recut.\r\n\n",
+          "id": 5802694308,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802694308",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:49:20Z",
+          "updated_at": "2026-09-23T20:49:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSetup must not leave swarm.file_scope empty. Mid-build declaration and end-of-setup mint are not acceptable escapes for setup-created scopes. Setup writes a non-empty file_scope at authoring from operator-named paths only: language and layout answers are prompt material for an explicit per-scope path question, not auto-fill. The confirmation gate shows those paths as display. No approved-scope mint, digest, or record-approved-scope runs on the setup path. Setup and decompose share the same file_scope presence check. This story lands with or after the #4956 provenance recut; it does not empty file_scope to pass and does not work around the blocked first-change acceptance item.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5802694308 checks the findings. Whether the list covers the four pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. The issue body's declaration-only setup write binds in the form sharpened by critic 5802694308. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5802629450\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 5f7ba7c784e21dbf2a65ef666c4ae667630ae499\n\n## Takes\n\n- 5802694308 Deriving file_scope from languages or layout invents paths — accept-into-contract\n- 5802694308 Non-empty setup declaration still fails provenance at this pin until #4956 lands — accept-into-contract\n\nFootnote, outside the take map: 5802694308 Confirmation \"no approval verb\" is approved-scope only; 5802694308 Setup already closes the end-of-setup mint escape.\n\nSpec-path:\n\n## Bound remedy\n\n1. Setup writes a non-empty plan.metadata.swarm.file_scope for every scope it creates, at authoring, from operator-named path members only. Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. Auto-fill of file_scope from those answers is out of scope. Where derivation is uncertain, ask one question per scope.\n2. The Post-Interview Confirmation Gate summary lists each scope's paths under that scope as display. Keep the existing write-files confirmation lexicon. No approval verb for approved-scope runs, nothing is written to .deft/approved-scope/, and no typed phrase for a digest is requested.\n3. content/skills/deft-directive-setup/SKILL.md and content/packs/skills/skills-pack-0.1.json no longer describe a mint step, a digest, or scope:record-approved-scope as a setup action. Forbid language may remain. The vBRIEF swarm-ready story contract is the shape setup emits.\n4. A setup-created scope passes the same file_scope presence check decompose already imposes (missingRequiredSwarmFields / swarm-ready).\n5. Land order: the #4956 fence/provenance recut (retirement of approved-scope requirement for non-empty file_scope) lands before or with this setup authoring write. This story does not empty file_scope to pass and does not work around the acceptance item blocked on #4956.\n6. Not: end-of-setup mint/batch/--all; activate digest-equality (#4589 path retired by #4956); reversal of #4380/#3826; fence/budget (#4956); placement/protected globs (#4980).\n7. Tests lock items 1, 2, and 4. CHANGELOG Unreleased line. Supersedes #4383.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:33284bb9c42e930a72ccdf8cf9f0b6407d90c43ec6881259130b0e18ee8138a5\n\n## Parent-side substantiation\n\nThe critic required operator-named paths only (no language/layout auto-fill) and an explicit land-with-#4956 order. Both are Bound remedy items 1 and 5. Footnotes keep write-files confirmation and the existing setup mint forbid as census.\n\naudit:operator-named-only sha=5f7ba7c784e21dbf2a65ef666c4ae667630ae499 pointer=comment:5802694308 reading=asserted\naudit:land-with-4956 sha=5f7ba7c784e21dbf2a65ef666c4ae667630ae499 pointer=comment:5802694308 reading=asserted",
+          "id": 5802707172,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802707172",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:50:10Z",
+          "updated_at": "2026-09-24T01:14:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4988\nCharter: refutation. Pain-audit of asserted coverage on the bind lean. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5802707172\nSHA at dispatch: 5f7ba7c784e21dbf2a65ef666c4ae667630ae499\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4988\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nSeat: grok. Launcher: grok.\n\nHEAD equals `5f7ba7c784e21dbf2a65ef666c4ae667630ae499` (`git rev-parse HEAD`). Pin reads used `git show 5f7ba7c784e21dbf2a65ef666c4ae667630ae499:<path>`. Envelope ignores comments with id greater than 5802707172. Bind lean under audit is 5802707172. Stop 1 pains are 5802629450. Round-1 critic in envelope is 5802694308.\n\nInventory before findings: setup SKILL optional `? Collect plan.metadata.swarm.file_scope` plus invent/mint forbids; Post-Interview Confirmation Gate write-files lexicon; skills-pack setup body mirror; `missingRequiredSwarmFields` (`file_scope` among required keys) in `packages/core/src/vbrief-validation/story-quality.ts` and `packages/core/src/scope/decompose.ts`; Swarm-Ready Story Contract non-empty `file_scope`; `bindClausesToDeclaredScope` empty-scope no-op and walk `unverifiable: no artifact path bound`; `resolveWriteFence` empty story = project policy only; `content/docs/scope-provenance.md` fail on missing human approval with non-empty `file_scope` (#3874 omit guidance still present at pin). Injection / swarm lens applies: authoring declaration timing is write-fence and provenance authority.\n\n## Vestigial derivation clause can re-open auto-fill\nsharpens-framing\nEvidence: Bound remedy item 1 already requires operator-named path members only, treats language/layout/deliverables as prompt material for an explicit per-scope path question, and states auto-fill is out of scope. The same item still ends with \"Where derivation is uncertain, ask one question per scope.\" At the pin, setup and plan-acceptance forbid inventing paths; round-1 critic 5802694308 required that polarity in the harvest.\nFailure mode: An implementer reads the trailing sentence as restoring a derivation path for \"certain\" cases and stamps language/layout globs when the interview feels clear, undoing the operator-named-only sharpen already accepted into this lean.\nDisposition: Before bind, strike or reword that trailing sentence so item 1 cannot be read as permitting derivation/auto-fill. Operative rules above it stay.\n\n## Item 4 parenthetical names the whole missingRequiredSwarmFields suite\nfootnote\nEvidence: Stop 1 P4 and Bound remedy item 4's operative sentence are about the `file_scope` presence check. Item 4's parenthetical cites `missingRequiredSwarmFields / swarm-ready`, whose implementation also requires `verify_commands`, `expected_outputs`, `depends_on`, `conflict_group`, `size`, `file_scope_confidence`, and `model_tier`. Setup at the pin only mandates `depends_on` for story-shaped scopes and optional-collects `file_scope`.\nFailure mode: Readers may treat full swarm-ready field completeness as in-scope for this story.\nDisposition: Census. Operative file_scope-presence sentence already matches P4; the parenthetical is an imprecise gloss, not a second build.\n\n## Issue acceptance grep is stricter than Bound remedy item 3\nfootnote\nEvidence: Issue acceptance wants `grep` for `record-approved-scope|mint` on the setup skill/pack path to return nothing. Bound remedy item 3 removes mint/digest/`scope:record-approved-scope` as a setup action and allows forbid language to remain. At the pin, setup and pack already mention those tokens only in forbid / adjacent intent-constraint polarity (round-1 critic 5802694308 footnote).\nFailure mode: Ingest keeps a zero-hit acceptance line while the bind harvest preserves forbid polarity, or an implementer deletes useful forbids to satisfy the grep.\nDisposition: Align the acceptance line with item 3 at ingest, or move remaining forbid mentions if the operator wants a zero-hit grep. Does not reopen an affirmative mint step on the setup path.\n\nCoverage reading (not a cite line): Bound remedy items 1 and 5 cover P1 and P2 (authoring non-empty operator-named `file_scope`, land with or after the #4956 provenance recut so declaration is not forced through mid-build expansion or emptying). Item 3 covers P3 as removal of mint/digest/record-approved-scope as a setup action. Items 1 and 4 cover P4's file_scope presence agreement with decompose. The sharpening above changes item 1 harvest wording only.",
+          "id": 5802776851,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802776851",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:54:57Z",
+          "updated_at": "2026-09-23T20:54:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSetup writes a non-empty swarm.file_scope at authoring from operator-named paths only. Language and layout answers are prompt material for an explicit per-scope path question. There is no derivation or auto-fill branch. The confirmation gate shows the paths as display. No approved-scope mint runs on the setup path. Setup and decompose share the file_scope presence check. This story lands with or after #4956.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5802694308 and pain-audit 5802776851 check the findings. Whether the list covers the four pains stays open until a later critic targets those cites on this lean.\n\n**Lean:** Recut-supersedes 5802707172. Bound remedy item 1 has no vestigial derivation sentence. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5802707172\nRecut-supersedes: 5802707172\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 5f7ba7c784e21dbf2a65ef666c4ae667630ae499\n\n## Takes\n\n- 5802694308 Deriving file_scope from languages or layout invents paths — accept-into-contract\n- 5802694308 Non-empty setup declaration still fails provenance at this pin until #4956 lands — accept-into-contract\n- 5802776851 Vestigial derivation clause can re-open auto-fill — accept-into-contract\n\nFootnote, outside the take map: 5802694308 Confirmation \"no approval verb\" is approved-scope only; 5802694308 Setup already closes the end-of-setup mint escape; 5802776851 Item 4 parenthetical names the whole missingRequiredSwarmFields suite; 5802776851 Issue acceptance grep is stricter than Bound remedy item 3.\n\nSpec-path:\n\n## Bound remedy\n\n1. Setup writes a non-empty plan.metadata.swarm.file_scope for every scope it creates, at authoring, from operator-named path members only. Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) during the interview, not after. Auto-fill and derivation of file_scope from those answers are out of scope.\n2. The Post-Interview Confirmation Gate summary lists each scope's paths under that scope as display. Keep the existing write-files confirmation lexicon. No approval verb for approved-scope runs, nothing is written to .deft/approved-scope/, and no typed phrase for a digest is requested.\n3. content/skills/deft-directive-setup/SKILL.md and content/packs/skills/skills-pack-0.1.json no longer describe a mint step, a digest, or scope:record-approved-scope as a setup action. Forbid language may remain. The vBRIEF swarm-ready story contract is the shape setup emits.\n4. A setup-created scope passes the same file_scope presence check decompose already imposes. Operative surface is file_scope presence, not the full missingRequiredSwarmFields suite.\n5. Land order: the #4956 fence/provenance recut (retirement of approved-scope requirement for non-empty file_scope) lands before or with this setup authoring write. This story does not empty file_scope to pass and does not work around the acceptance item blocked on #4956.\n6. Not: end-of-setup mint/batch/--all; activate digest-equality (#4589 path retired by #4956); reversal of #4380/#3826; fence/budget (#4956); placement/protected globs (#4980).\n7. Tests lock items 1, 2, and 4. CHANGELOG Unreleased line. Supersedes #4383. At ingest, align the acceptance grep line with item 3 (forbid polarity may remain) rather than requiring a zero-hit mint/record-approved-scope grep that would delete useful forbids.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\nTarget-digest: sha256:33284bb9c42e930a72ccdf8cf9f0b6407d90c43ec6881259130b0e18ee8138a5\n\n## Parent-side substantiation\n\nPain-audit 5802776851 required removing the trailing \"Where derivation is uncertain\" sentence so item 1 cannot restore auto-fill. Item 1 now states auto-fill and derivation are out of scope with no residual derivation clause. Footnotes on item 4 parenthetical and acceptance grep are folded into items 4 and 7 without changing P1-P4 coverage.\n\naudit:no-derivation-clause sha=5f7ba7c784e21dbf2a65ef666c4ae667630ae499 pointer=comment:5802776851 reading=asserted",
+          "id": 5802786837,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802786837",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:55:37Z",
+          "updated_at": "2026-09-24T01:14:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4988\nCharter: refutation. Pain-audit of asserted coverage on the new bind lean after Recut-supersedes. Spend N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5802786837\nSHA at dispatch: 5f7ba7c784e21dbf2a65ef666c4ae667630ae499\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4988\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nSeat: grok. Launcher: grok.\n\nHEAD equals `5f7ba7c784e21dbf2a65ef666c4ae667630ae499` (`git rev-parse HEAD`). Pin reads used `git show 5f7ba7c784e21dbf2a65ef666c4ae667630ae499:<path>`. Envelope ignores comments with id greater than 5802786837. Bind lean under audit is 5802786837 (Recut-supersedes 5802707172). Stop 1 pains are 5802629450. Prior pain-audit in envelope is 5802776851. Round-1 critic in envelope is 5802694308.\n\nInventory before findings: setup SKILL `? Collect plan.metadata.swarm.file_scope` plus invent/mint forbids; Post-Interview Confirmation Gate write-files lexicon; skills-pack setup body mirror; `missingRequiredSwarmFields` (`file_scope` among required keys) in `packages/core/src/vbrief-validation/story-quality.ts` and `packages/core/src/scope/decompose.ts`; Swarm-Ready Story Contract non-empty `file_scope`; promote clause bind skip when `file_scope` is empty (`clause-file-scope-bind` / `unverifiable: no artifact path bound`); `resolveWriteFence` empty story = project policy only (`packages/core/src/policy/write-fence.ts`); `content/docs/scope-provenance.md` fail on missing human approval with non-empty `file_scope` (#3874 omit guidance still present at pin); plan-acceptance operator-named / invent polarity. Injection / swarm lens applies: authoring declaration timing is write-fence and provenance authority.\n\n## Prior vestigial derivation sentence is gone\nfootnote\nEvidence: Prior pain-audit 5802776851 required striking the trailing \"Where derivation is uncertain, ask one question per scope\" clause from Bound remedy item 1. Lean 5802786837 item 1 ends at \"Auto-fill and derivation of file_scope from those answers are out of scope.\" with no residual derivation sentence. Parent substantiation cites that strike.\nFailure mode: None remaining on this harvest for the prior sharpening.\nDisposition: Census. The sharpening that forced this Recut is discharged in the Bound remedy text.\n\n## Same-P* Recut-supersedes is parent Handoff machinery\nfootnote\nEvidence: Lean 5802786837 carries operative `Recut-supersedes: 5802707172` and the same four `relieves` markers the superseded lean asserted. Contract Handoff print condition 2 fires on that shape. Pain coverage grading still reads Bound remedy items against Stop 1 P1-P4.\nFailure mode: Readers may treat the Recut itself as a coverage miss or as critic work.\nDisposition: Census for the parent path. Outside this audit's coverage verdict on the Bound remedy.\n\n## Land-with-#4956 remains load-bearing at this pin\nfootnote\nEvidence: `content/docs/scope-provenance.md` at the pin still fails \"Agent-stamped or missing human approval with non-empty `file_scope`\"; #3874 still says omit when the operator will not mint. Bound remedy item 5 keeps land-before-or-with #4956 and the forbid on emptying `file_scope` to pass.\nFailure mode: Dropping item 5 would leave P1/P2 authoring write unable to ship on this tree.\nDisposition: Census. Coverage of P1 and P2 still depends on item 5 staying in the harvest.\n\nCoverage reading (not a cite line): Bound remedy items 1 and 4 cover P1 (authoring non-empty operator-named `file_scope` so promote bind / verify:ac have an oracle). Items 1 and 5 cover P2 (declaration at authoring; land with the #4956 provenance recut so first fill is not mid-build expansion or emptying). Item 3 covers P3 as removal of mint/digest/`scope:record-approved-scope` as a setup action; item 7 folds the prior acceptance-grep footnote without restoring an affirmative mint step. Items 1 and 4 cover P4's `file_scope` presence agreement with decompose, with item 4's operative-surface sentence limiting the gloss to presence. No blocking or sharpening findings on this lean.",
+          "id": 5802825969,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802825969",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:58:23Z",
+          "updated_at": "2026-09-23T20:58:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSetup must write non-empty swarm.file_scope at authoring from operator-named paths only. No auto-fill from language or layout. Confirmation shows paths as display. No approved-scope mint on the setup path. Setup and decompose share the file_scope presence check. Land with or after #4956.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| Empty file_scope at setup authoring leaves undeclared scopes (verify:ac / write fence / mid-build expansion). | git show setup skill, missingRequiredSwarmFields, resolveWriteFence, clause bind at 5f7ba7c784e21dbf2a65ef666c4ae667630ae499; re-derived in 5802694308 and 5802825969. | verified |\n| Language/layout auto-fill invents paths; operator-named collect only. | setup/plan-acceptance invent forbids at pin; critic 5802694308; lean 5802786837 item 1; footnote-only 5802825969. | verified |\n| Setup already forbids end-of-setup approved-scope mint; Bound remedy removes mint as a setup action and may keep forbid polarity. | setup SKILL/pack at pin; lean items 3 and 7; 5802694308 / 5802776851 footnotes. | verified |\n| Non-empty setup declaration still needs #4956 provenance recut before or with this write. | scope-provenance.md / #3874 at pin; lean item 5; 5802694308 and 5802825969. | verified |\n| Setup and decompose share file_scope presence; operative surface is presence, not the full missingRequiredSwarmFields suite. | story-quality.ts / decompose.ts at pin; lean item 4; 5802776851 footnote. | verified |",
+          "id": 5802837126,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802837126",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:59:10Z",
+          "updated_at": "2026-09-23T20:59:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSetup writes non-empty swarm.file_scope at authoring from operator-named paths only. Confirmation shows those paths as display. No approved-scope mint on the setup path. Setup and decompose agree on file_scope presence. Land with or after #4956. The same parent wrote the Stop 1 warrant. Pain-audit 5802825969 re-derived the rows footnote-only.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5802786837.",
+          "id": 5802837427,
+          "html_url": "https://github.com/deftai/directive/issues/4988#issuecomment-5802837427",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:59:11Z",
+          "updated_at": "2026-09-23T20:59:11Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Pain\n\nSetup creates scopes with no `plan.metadata.swarm.file_scope`. Decompose requires that field at authoring; setup never writes it. A setup-created scope is therefore born undeclared: `verify:ac` has no oracle and passes vacuously (#4380), the story write fence has no list, and the first time anyone declares paths it happens mid-build, where the provenance gate treats it as an expansion. The operator described the whole product in the setup interview and was never asked which files each scope owns.\n\nThis is the declaration half of #4383. The other half of #4383, an approval of the path list at end of setup, is retired: #4956 recut scope provenance on 2026-09-23 so that no human approves a `file_scope` anywhere, because with agentic review and merge nobody reads one. The fence is the brief on the merge base; placement and protected-path safety are #4980. The #4383 round-1 lean (5654751772, \"surface the existing mint at allocation\") predates that recut and is not carried here.\n\nFirst sitting for a new user is #4981 beat 4: they confirm the plan and the plan shows which files the work owns. No countersignature.\n\n## Contract\n\n1. Setup writes a non-empty `plan.metadata.swarm.file_scope` for every scope it creates, at authoring, derived from the paths the interview already collected (project layout, languages, the scope's stated deliverables). Where derivation is uncertain, setup asks one question per scope during the interview, not after.\n2. The Post-Interview Confirmation Gate summary lists each scope's paths under that scope. This is display. No approval verb runs, nothing is written to `.deft/approved-scope/`, and no typed phrase is requested.\n3. `content/skills/deft-directive-setup/SKILL.md` and the skills pack (`content/packs/skills/skills-pack-0.1.json`) no longer describe a mint step, a digest, or `scope:record-approved-scope` on the setup path. The vBRIEF swarm-ready story contract is the shape setup emits.\n4. The two allocation paths agree: a setup-created scope passes the same `file_scope` presence check decompose already imposes.\n\n## Not this\n\n- Not an end-of-setup mint, a batch mint, `--all`, or any approval verb. The path list is a declaration, not an authorization.\n- Not an activate digest-equality gate (that is the #4589 renewal path, retired by #4956).\n- Not a reversal of #4380 / #3826 on unverifiable clauses.\n- Not emptying `file_scope` as a back-out. #3874 is the current workaround, not the remedy.\n- Not the fence, budget, or split. Those are #4956. Not placement or protected globs. Those are #4980.\n\n## Acceptance\n\n- [ ] A fresh greenfield setup producing N scopes yields N briefs, each with non-empty `swarm.file_scope`, before any activation.\n- [ ] The confirmation gate summary shows the paths under each scope, and the transcript contains no approval prompt, no phrase, and no `scope:record-approved-scope`.\n- [ ] `grep -rn \"record-approved-scope\\|mint\" content/skills/deft-directive-setup content/packs/skills` returns nothing on the setup path.\n- [ ] `verify:ac` on a setup-created scope reports bound clauses, not `unverifiable: no artifact path bound`.\n- [ ] A first change under a setup-created scope does not stop for `scope:record-approved-scope`. **Blocked on #4956**; this story does not work around it and does not empty `file_scope` to pass.\n- [ ] Tests lock items 1, 2 and 4. CHANGELOG Unreleased line.\n\nSupersedes #4383. Refs #4956, #4980, #4981, #4380, #4589, #3874.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5559226945,
+        "origin": "deftai/directive#4988",
+        "id": "github.issue.5559226945"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "33284bb9c42e930a72ccdf8cf9f0b6407d90c43ec6881259130b0e18ee8138a5"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/skills/setup_file_scope_authoring_4988.test.ts"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5004,
+        "prBase": null,
+        "mergeCommit": "00f7d471d586e647581283b1c98a9a0311f40e05",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fa17a55a881cabbba6ccb71fad374b75cd11f462",
+        "verifiedAt": "2026-09-24T13:27:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-24T13:27:27Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-24T13:27:27Z"
+      }
+    },
+    "id": "github.issue.5559226945",
+    "updated": "2026-09-24T13:27:27Z"
+  }
+}
