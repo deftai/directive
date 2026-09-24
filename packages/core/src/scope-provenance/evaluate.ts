@@ -712,20 +712,51 @@ export function evaluateScopeProvenance(
       if (activeEntries.length > 1) {
         const ownClaim = normalizeFileScope([...headScope, ...baseScope]);
         const otherClaims: string[][] = [];
+        let peerBaseFailure: { readonly peerRel: string; readonly detail: string } | null = null;
         for (const other of activeEntries) {
           if (other.rel === rel) continue;
+          let otherBaseRaw: string | null;
           try {
-            const otherBaseRaw = readAtBase(other.rel);
-            if (otherBaseRaw === null) {
-              // Peer exists only on HEAD: no merge-base claim to attribute.
-              continue;
-            }
+            otherBaseRaw = readAtBase(other.rel);
+          } catch (err) {
+            const detail = err instanceof Error ? err.message : String(err);
+            peerBaseFailure = {
+              peerRel: other.rel,
+              detail: `merge-base peer brief read failed: ${detail}`,
+            };
+            break;
+          }
+          if (otherBaseRaw === null) {
+            // Peer exists only on HEAD: no merge-base claim to attribute.
+            continue;
+          }
+          try {
             otherClaims.push(
               normalizeFileScope(extractFileScope(JSON.parse(otherBaseRaw) as unknown)),
             );
-          } catch {
-            // Unreadable peer base: do not trust head-only peer claims.
+          } catch (err) {
+            const detail = err instanceof Error ? err.message : String(err);
+            peerBaseFailure = {
+              peerRel: other.rel,
+              detail: `merge-base peer brief unreadable JSON: ${detail}`,
+            };
+            break;
           }
+        }
+        if (peerBaseFailure !== null) {
+          // Base-visible peer that cannot be read/parsed must fail closed —
+          // silent discard would charge the peer's files as production extras.
+          findings.push({
+            xbriefRelPath: rel,
+            planId: planId ?? rel,
+            kind: "production-scope-over-budget",
+            expandedPaths: [],
+            detail: `peer ${peerBaseFailure.peerRel}: ${peerBaseFailure.detail}; fail closed (#4956)`,
+            remediation:
+              "Fix the merge-base peer brief read/parse before attributing multi-story " +
+              "production extras. There is no scope ceremony for proceed (#4956).",
+          });
+          continue;
         }
         storyChanged = changed.filter((f) => {
           const n = normalizeRepoRelPath(f);

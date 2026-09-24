@@ -298,11 +298,7 @@ function resolveMergeBaseCommitForFence(projectRoot: string): string {
     const detail = `${mb.stdout}\n${mb.stderr}`.trim();
     throw new StoryWriteFenceUnreadableError(
       "merge-base",
-      new Error(
-        detail.length > 0
-          ? detail
-          : `could not compute merge-base of HEAD and ${baseRef}`,
-      ),
+      new Error(detail.length > 0 ? detail : `could not compute merge-base of HEAD and ${baseRef}`),
     );
   }
   return sha;

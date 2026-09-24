@@ -286,9 +286,7 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
       approvedRecords: [],
     });
     expect(result.exitCode).toBe(1);
-    expect(result.findings.some((f) => f.kind === "production-scope-over-budget")).toBe(
-      true,
-    );
+    expect(result.findings.some((f) => f.kind === "production-scope-over-budget")).toBe(true);
   });
 
   it("fails closed when merge-base brief read throws (not treated as missing)", () => {
@@ -304,6 +302,65 @@ describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
     });
     expect(result.exitCode).toBe(1);
     expect(result.findings[0]?.detail).toMatch(/merge-base brief read failed/i);
+  });
+
+  it("fails closed when a base-visible peer brief cannot be parsed (no silent misattribution)", () => {
+    const baseA = xbrief("story-a", ["packages/core/src/a.ts"]);
+    const headA = xbrief("story-a", ["packages/core/src/a.ts"]);
+    const headB = xbrief("story-b", [
+      "packages/core/src/extra1.ts",
+      "packages/core/src/extra2.ts",
+      "packages/core/src/extra3.ts",
+    ]);
+    const result = evaluateScopeProvenance("/tmp/proj-peer-readfail", {
+      changedFiles: [
+        "packages/core/src/extra1.ts",
+        "packages/core/src/extra2.ts",
+        "packages/core/src/extra3.ts",
+      ],
+      activeXbriefs: new Map([
+        ["xbrief/active/a.xbrief.json", JSON.stringify(headA)],
+        ["xbrief/active/b.xbrief.json", JSON.stringify(headB)],
+      ]),
+      baseXbriefs: new Map([
+        ["xbrief/active/a.xbrief.json", JSON.stringify(baseA)],
+        // Malformed JSON on base: must surface, not charge extras onto A.
+        ["xbrief/active/b.xbrief.json", "{not-json"],
+      ]),
+      approvedRecords: [],
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => /peer .*unreadable JSON/i.test(f.detail))).toBe(true);
+    // Do not invent a production-extras list from the silent-discard path.
+    expect(
+      result.findings.some(
+        (f) =>
+          f.kind === "production-scope-over-budget" &&
+          f.expandedPaths.includes("packages/core/src/extra1.ts"),
+      ),
+    ).toBe(false);
+  });
+
+  it("fails closed when readAtBase throws for a base-visible peer", () => {
+    const baseA = xbrief("story-a", ["packages/core/src/a.ts"]);
+    const headA = xbrief("story-a", ["packages/core/src/a.ts"]);
+    const headB = xbrief("story-b", ["packages/core/src/b.ts"]);
+    const result = evaluateScopeProvenance("/tmp/proj-peer-throw", {
+      changedFiles: ["packages/core/src/orphan1.ts", "packages/core/src/orphan2.ts"],
+      activeXbriefs: new Map([
+        ["xbrief/active/a.xbrief.json", JSON.stringify(headA)],
+        ["xbrief/active/b.xbrief.json", JSON.stringify(headB)],
+      ]),
+      approvedRecords: [],
+      baseRef: "origin/master",
+      readAtBase: (rel) => {
+        if (rel.includes("a.xbrief")) return JSON.stringify(baseA);
+        if (rel.includes("b.xbrief")) throw new Error("git show peer interrupted");
+        return null;
+      },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => /peer .*read failed/i.test(f.detail))).toBe(true);
   });
 
   it("passes clean when no active xbriefs change and no base fence extras", () => {

@@ -25,7 +25,7 @@ export function parseInstallManifest(text: string): Record<string, string> {
   const data: Record<string, string> = {};
   for (const line of text.split("\n")) {
     const stripped = line.trim();
-    if (!stripped || !stripped.includes(":")) {
+    if (!stripped?.includes(":")) {
       continue;
     }
     const colon = stripped.indexOf(":");

@@ -159,7 +159,7 @@ function rewriteFrontmatterPlanId(
   let changed = false;
   for (let i = 1; i < close; i += 1) {
     const line = lines[i];
-    if (line !== undefined && line.startsWith("id:")) {
+    if (line?.startsWith("id:")) {
       found = true;
       if (line !== nextLine) {
         lines[i] = nextLine;
