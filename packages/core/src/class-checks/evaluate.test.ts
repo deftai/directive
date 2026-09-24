@@ -181,6 +181,53 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.findings.filter((f) => f.kind === "protected-glob")).toHaveLength(0);
   });
 
+  it("allows protected + exact composition-registration companions", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [
+        "packages/core/src/class-checks/evaluate.ts",
+        "packages/core/src/check/gate-lists.ts",
+        "packages/cli/src/dispatch.ts",
+        "packages/core/src/consumer-check-contract/evaluate.ts",
+        "packages/core/src/evaluator-surface/evaluate.ts",
+        "packages/core/src/check/named-cause.ts",
+      ],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**"],
+        testRoots: ["packages/*/src/**/*.test.*"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        ["packages/core/src/class-checks/evaluate.ts", "export {}\n"],
+        ["packages/core/src/check/gate-lists.ts", "export {}\n"],
+        ["packages/cli/src/dispatch.ts", "export {}\n"],
+        ["packages/core/src/consumer-check-contract/evaluate.ts", "export {}\n"],
+        ["packages/core/src/evaluator-surface/evaluate.ts", "export {}\n"],
+        ["packages/core/src/check/named-cause.ts", "export {}\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.filter((f) => f.kind === "protected-glob")).toHaveLength(0);
+  });
+
+  it("fails class 4 when protected mixes with check runtime outside registration", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [".githooks/pre-commit", "packages/core/src/check/orchestrator.ts"],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["packages/*/src/**"],
+        testRoots: ["packages/*/src/**/*.test.*"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [".githooks/pre-commit", "#!/bin/sh\n"],
+        ["packages/core/src/check/orchestrator.ts", "export const run = () => 1;\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "protected-glob")).toBe(true);
+  });
+
   it("exempts test-root paths and CHANGELOG.md", () => {
     const result = evaluateClassChecks("/tmp/proj", {
       baseRef: "origin/master",

@@ -454,8 +454,10 @@ function isStoryProductPath(
   const posix = normalizeRepoRelPath(relPath);
   if (isExempt(posix, tb.testRoots)) return false;
   if (isProtected(posix, protectedGlobs)) return false;
-  // Docs / task / disposition / check-composition wiring are landing companions
-  // for a verifier-only diff, not story product (#4980 item 6).
+  // Docs / task / disposition / exact composition-registration paths are
+  // landing companions for a verifier-only diff, not story product (#4980
+  // item 6). Directory blankets under check / consumer-check-contract /
+  // evaluator-surface would let substantive runtime edits bypass class 4.
   if (
     posix.startsWith("docs/") ||
     posix.startsWith("content/docs/") ||
@@ -467,9 +469,10 @@ function isStoryProductPath(
     posix === "packages/core/src/index.ts" ||
     posix === "packages/core/package.json" ||
     posix === "packages/cli/package.json" ||
-    posix.startsWith("packages/core/src/check/") ||
-    posix.startsWith("packages/core/src/consumer-check-contract/") ||
-    posix.startsWith("packages/core/src/evaluator-surface/") ||
+    posix === "packages/core/src/check/gate-lists.ts" ||
+    posix === "packages/core/src/check/named-cause.ts" ||
+    posix === "packages/core/src/consumer-check-contract/evaluate.ts" ||
+    posix === "packages/core/src/evaluator-surface/evaluate.ts" ||
     posix === "packages/cli/src/dispatch.ts" ||
     posix.endsWith(".test.ts") ||
     posix.endsWith(".test.tsx")
