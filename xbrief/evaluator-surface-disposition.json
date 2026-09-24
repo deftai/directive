@@ -1,16 +1,16 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 4980,
+  "issue": 5010,
   "surfaces": [
-    "Taskfile.yml",
-    "tasks/verify.yml",
-    "packages/core/src/check/gate-lists.ts",
-    "packages/core/src/consumer-check-contract/evaluate.ts",
-    "packages/core/src/evaluator-surface/evaluate.ts",
-    "packages/core/src/class-checks/**",
-    "packages/cli/src/verify-class-checks.ts",
+    "packages/cli/src/scope-record-intent-constraint.ts",
+    "packages/cli/src/scope-record-intent-constraint.test.ts",
+    "packages/cli/src/scope-record-observable-scope.ts",
+    "packages/cli/src/scope-record-observable-scope.test.ts",
+    "packages/core/src/check/named-cause.ts",
+    "packages/core/src/intent-constraint/**",
+    "packages/core/src/observable-scope/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for verify:class-checks landing (#4980): new fail-closed class gate plus check composition wiring. Not reviewed authorization under #3164."
+  "note": "Disclosure for #5010 remediation/docs recut of intent-constraint and observable-scope mid-build fail path (in-harness ask / rewrite-park; TTY mint legacy repair). Not reviewed authorization under #3164."
 }
