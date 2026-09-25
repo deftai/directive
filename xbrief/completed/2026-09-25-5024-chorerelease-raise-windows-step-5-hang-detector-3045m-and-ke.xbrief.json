@@ -40,11 +40,18 @@
         "title": "Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5040#e427824f0307237f215bbcf2d67781a4d876d630",
-          "recorded_at": "2026-09-25T19:07:54.379Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Product raise + docs/mint/named-cause landed in PR #5040. Production Windows Step 5 finishing inside 45m without --skip-ci (or a measured shortfall with a new tracked residual) is still owed on the next cut.",
+          "recorded_at": "2026-09-25T19:19:59.331Z",
+          "recorded_by": "MScottAdams",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-25T19:19:59.331Z",
+            "mintedVia": "parent-retained-leftover-complete",
+            "eventRef": "https://github.com/deftai/directive/pull/5040#e427824f0307237f215bbcf2d67781a4d876d630"
+          }
         }
       },
       {
