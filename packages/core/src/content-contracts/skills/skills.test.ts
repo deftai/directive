@@ -650,11 +650,30 @@ describe("test_skills", () => {
     expect(lower).toContain("treat as stale");
     expect(lower).toContain("query missing fields individually");
   });
+  it("deft_setup_deft_version_live_reader_stamp_seam", () => {
+    const text = readSkill(_SETUP_PATH);
+    expect(text).toContain("locateManifest");
+    expect(text).toContain("parseInstallManifest");
+    expect(text).toContain("manifestReportableVersion");
+    expect(text).toContain("reportable.version");
+    expect(text).not.toMatch(/0\.20\.0/);
+    expect(text).toContain("resolveProbeCurrentVersion");
+    expect(text).toContain('"dev"');
+    expect(text).toContain("install at X stamps X");
+    expect(text).toContain("upgrade X→Y restamps Y");
+    expect(text).toContain("omit `deft_version`");
+  });
+  it("deft_setup_skills_pack_has_no_0200_literal", () => {
+    const pack = readRepoFile("packs/skills/skills-pack-0.1.json");
+    expect(pack).not.toMatch(/0\.20\.0/);
+    expect(pack).toContain("manifestReportableVersion");
+  });
   it("deft_setup_deft_version_must_rule", () => {
     const text = readSkill(_SETUP_PATH);
-    expect(text).toContain("deft_version` field MUST be set");
+    expect(text).toContain("deft_version` field MUST be set to that live-reader version");
     expect(text).toContain("⊗");
-    expect(text).toContain("without including the `deft_version` field");
+    expect(text).toContain("omit `deft_version` on first write");
+    expect(text).toContain("placeholder `deft_version` when the live reader returns null");
   });
   it("deft_interview_exists", () => {
     expect(repoFileExists(_INTERVIEW_PATH)).toBeTruthy();
