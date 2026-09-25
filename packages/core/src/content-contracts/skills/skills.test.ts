@@ -662,6 +662,10 @@ describe("test_skills", () => {
     expect(text).toContain("install at X stamps X");
     expect(text).toContain("upgrade X→Y restamps Y");
     expect(text).toContain("omit `deft_version`");
+    expect(text).toContain("do **not** rewrite the stamp");
+    expect(text).toContain("do not rewrite an existing stamp");
+    expect(text).toContain("Freshness manifest exception");
+    expect(text).toContain("explicit exception");
   });
   it("deft_setup_skills_pack_has_no_0200_literal", () => {
     const pack = readRepoFile("packs/skills/skills-pack-0.1.json");

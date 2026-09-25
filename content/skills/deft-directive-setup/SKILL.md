@@ -134,7 +134,7 @@ When guiding an operator through migration on the pinned release, mention the mi
 
 **Flow:**
 - ! Start asking immediately — everything you need is in THIS file
-- ⊗ Explore the codebase, read framework files, or gather context before asking
+- ⊗ Explore the codebase, read framework files, or gather context before asking — except the Phase 1 freshness live-reader install-manifest / VERSION lookup (#4987)
 - ? Read `deft/main.md` or language files LATER when generating output
 
 **Interaction:**
@@ -187,13 +187,15 @@ VBA (Excel macros), VHDL, Visual Basic (.NET), Zig, 6502-DASM
 - **Defaults** — fallback values that PROJECT-DEFINITION.xbrief.json can override (strategy, coverage)
 
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
-- ⊗ Scan filesystem beyond checking that one path
+- ⊗ Scan filesystem beyond checking that one USER.md path — except the install-manifest / VERSION live-reader used by USER.md freshness (#4987)
 
 ### USER.md Freshness Detection
 
 ! When an existing USER.md is found (returning user), check its `deft_version` field before skipping Phase 1.
 
 ! **Live reader (#4987 / #2294):** Resolve the installed framework version with `locateManifest` → read the VERSION file → `parseInstallManifest` → `manifestReportableVersion` (`packages/core/src/doctor/manifest.ts` / `@deftai/directive-core` doctor surface). Compare and stamp only when `reportable.version` is a non-null stampable semver. ⊗ Invent a generated version file for this purpose. ⊗ Use `resolveProbeCurrentVersion` or `resolveVersion`'s `"dev"` fallback for USER.md freshness or first-write stamps.
+
+! **Freshness manifest exception (#4987):** That live-reader lookup is an explicit exception to the "do not scan past USER.md / read framework files before the first question" rules. When an existing USER.md is found, perform the install-manifest / VERSION read during freshness before deciding whether to skip Phase 1. ⊗ Use the exception to explore the codebase or read unrelated framework files.
 
 1. ! If `deft_version` is **missing**: the USER.md predates versioning -- treat as stale
 2. ! If `reportable.version` is null (missing manifest, `source: "sha"`, or `source: "none"`): ask nothing new for freshness and do **not** rewrite the stamp; on first write omit `deft_version` rather than writing a placeholder
@@ -973,8 +975,8 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Generate a USER.md that stamps a hard-coded framework version literal, or that uses `resolveProbeCurrentVersion` / `resolveVersion` `"dev"` fallback for freshness or first-write stamps
 - ⊗ Generate a USER.md with a placeholder `deft_version` when the live reader returns null
 - ⊗ Write `deft_version` or `DeftVersion` into PROJECT-DEFINITION, specification, or plan xBRIEFs. Those stamps are retired (HASH4271). Specification `deft_version` has no framework seeding path; Pass 1 absence locks are the only control.
-- ⊗ Explore codebase before Phase 1 questions
-- ⊗ Read framework files before first question
+- ⊗ Explore codebase before Phase 1 questions — except the freshness live-reader install-manifest / VERSION lookup (#4987)
+- ⊗ Read framework files before first question — except the freshness live-reader install-manifest / VERSION lookup (#4987)
 - ⊗ Batch multiple questions into one message — ask one at a time, interview style
 - ⊗ Ask jargon-heavy questions to non-technical users
 - ⊗ Ask about things inferable from codebase (Phase 2+)
