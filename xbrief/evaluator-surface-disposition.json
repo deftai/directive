@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5022,
+  "issue": 5028,
   "surfaces": [
     "vitest.config.ts",
+    "packages/core/src/vitest-runner/duration-sequencer.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5022 deeper cheapen: occupancy.test.ts share-plus-reset plus more spawnHeavyGlobs (spawn-occupancy, session extra-coverage, swarm/worktrees, evaluate-git). Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5028 cold-worktree DurationSequencer + spawn-heavy-before-unit groupOrder. Committed durations fixture replaces host-global cache.dir. Disclosure only; not #3164 authorization."
 }

@@ -3,6 +3,7 @@ import { cpus, tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 import { resolveCoverageDebtIssue } from "./packages/core/src/vitest-runner/coverage-debt.ts";
+import { DurationSequencer } from "./packages/core/src/vitest-runner/duration-sequencer.ts";
 
 // macOS exposes the same temporary directory through /var and /private/var.
 // Give test workers the canonical spelling so cwd/git comparisons and cleanup
@@ -247,6 +248,14 @@ export default defineConfig({
       resolve(import.meta.dirname, "packages/core/src/ts-check-lane/progress-reporter.ts"),
       "default",
     ],
+    // #5028: committed durations + DurationSequencer arm slowest-first on cold
+    // release worktrees (no host-global cache.dir). groupOrder below starts
+    // spawn-heavy before unit so the one-worker win32 tail does not idle the
+    // unit pool. Fixture: packages/core/fixtures/vitest-file-durations.json
+    // (interim seed until #5027 tee ranking refreshes it).
+    sequence: {
+      sequencer: DurationSequencer,
+    },
     env: testEnvironment,
     // Windows CI runs single files without tsc. Projects must inherit root
     // resolve.alias or @deftai/directive-types fails to resolve. Refs #4591.
@@ -255,6 +264,8 @@ export default defineConfig({
         extends: true,
         test: {
           name: "unit",
+          // Higher than spawn-heavy so long one-worker files start at t=0 (#5028).
+          sequence: { groupOrder: 1 },
           include: ["packages/*/src/**/*.test.ts"],
           exclude: [...spawnHeavyGlobs],
           testTimeout: isWin32 ? 240_000 : 5_000,
@@ -266,6 +277,8 @@ export default defineConfig({
         extends: true,
         test: {
           name: "spawn-heavy",
+          // Lower groupOrder runs first (#5028 cross-project idle conjunct).
+          sequence: { groupOrder: 0 },
           include: [...spawnHeavyGlobs],
           testTimeout: isWin32 ? 240_000 : 5_000,
           // Number(isWin32) is one Windows worker so unit keeps the timing cap.
