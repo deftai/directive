@@ -110,16 +110,27 @@ export function compareSpecsByCommittedDuration(
 
 /**
  * Cold-worktree sequencer: committed durations + BaseSequencer fallback (#5028).
- * Does not bind host-global cache.dir. Pair with sequence.groupOrder so
- * spawn-heavy starts before unit on the Step 5 project layout.
+ * Does not bind host-global cache.dir. Keep unit and spawn-heavy on the same
+ * Vitest groupOrder so projects overlap; do not serialize via groupOrder.
  */
 export class DurationSequencer extends BaseSequencer {
   #durations: ReadonlyMap<string, number> | null = null;
+  #loadWarned = false;
 
   #resolvedDurations(): ReadonlyMap<string, number> {
     if (this.#durations !== null) return this.#durations;
     const loaded = loadFileDurationsFromPath(DEFAULT_FILE_DURATIONS_PATH);
-    this.#durations = loaded.kind === "ok" ? loaded.durations : new Map();
+    if (loaded.kind !== "ok") {
+      if (!this.#loadWarned) {
+        this.#loadWarned = true;
+        console.warn(
+          `[DurationSequencer] committed durations unavailable (${loaded.kind}): ${loaded.reason}; falling back to BaseSequencer order`,
+        );
+      }
+      this.#durations = new Map();
+      return this.#durations;
+    }
+    this.#durations = loaded.durations;
     return this.#durations;
   }
 

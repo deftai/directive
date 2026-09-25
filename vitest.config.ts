@@ -249,10 +249,14 @@ export default defineConfig({
       "default",
     ],
     // #5028: committed durations + DurationSequencer arm slowest-first on cold
-    // release worktrees (no host-global cache.dir). groupOrder below starts
-    // spawn-heavy before unit so the one-worker win32 tail does not idle the
-    // unit pool. Fixture: packages/core/fixtures/vitest-file-durations.json
-    // (interim seed until #5027 tee ranking refreshes it).
+    // release worktrees (no host-global cache.dir). Do not set sequence.groupOrder
+    // here: Vitest finishes group N before group N+1, so spawn-heavy=0/unit=1
+    // would serialize the unit pool behind the one-worker drain and worsen the
+    // idle-tail. Keep both projects on the default group so they overlap; the
+    // sequencer sorts longest listed files first within each project. Fixture:
+    // packages/core/fixtures/vitest-file-durations.json (interim seed until
+    // #5027 tee ranking refreshes it). groupOrder remains a measured fallback
+    // only if a future pin proves concurrent projects still leave an idle tail.
     sequence: {
       sequencer: DurationSequencer,
     },
@@ -264,8 +268,6 @@ export default defineConfig({
         extends: true,
         test: {
           name: "unit",
-          // Higher than spawn-heavy so long one-worker files start at t=0 (#5028).
-          sequence: { groupOrder: 1 },
           include: ["packages/*/src/**/*.test.ts"],
           exclude: [...spawnHeavyGlobs],
           testTimeout: isWin32 ? 240_000 : 5_000,
@@ -277,8 +279,6 @@ export default defineConfig({
         extends: true,
         test: {
           name: "spawn-heavy",
-          // Lower groupOrder runs first (#5028 cross-project idle conjunct).
-          sequence: { groupOrder: 0 },
           include: [...spawnHeavyGlobs],
           testTimeout: isWin32 ? 240_000 : 5_000,
           // Number(isWin32) is one Windows worker so unit keeps the timing cap.

@@ -7,5 +7,5 @@
     "packages/core/src/vitest-runner/duration-sequencer.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5028 cold-worktree DurationSequencer + spawn-heavy-before-unit groupOrder. Committed durations fixture replaces host-global cache.dir. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #5028 cold-worktree DurationSequencer (no harmful groupOrder; projects stay concurrent). Committed durations fixture replaces host-global cache.dir. Disclosure only; not #3164 authorization."
 }

@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  FILE_DURATIONS_SCHEMA,
   compareSpecsByCommittedDuration,
+  FILE_DURATIONS_SCHEMA,
   loadFileDurationsFromPath,
   normalizeDurationPathKey,
   parseFileDurationsDocument,
@@ -69,9 +69,7 @@ describe("loadFileDurationsFromPath (#5028)", () => {
     expect(loaded.kind).toBe("ok");
     if (loaded.kind !== "ok") return;
     expect(loaded.durations.size).toBeGreaterThan(0);
-    expect(
-      loaded.durations.has("packages/cli/src/hook-host-identity-lifetime.test.ts"),
-    ).toBe(true);
+    expect(loaded.durations.has("packages/cli/src/hook-host-identity-lifetime.test.ts")).toBe(true);
   });
 
   it("returns missing for absent paths", () => {
@@ -97,11 +95,7 @@ describe("compareSpecsByCommittedDuration (#5028)", () => {
 
   it("orders longer listed files first", () => {
     expect(
-      compareSpecsByCommittedDuration(
-        "packages/slow.test.ts",
-        "packages/fast.test.ts",
-        durations,
-      ),
+      compareSpecsByCommittedDuration("packages/slow.test.ts", "packages/fast.test.ts", durations),
     ).toBeLessThan(0);
   });
 
@@ -133,8 +127,8 @@ describe("vitest.config.ts duration sequencer wiring (#5028)", () => {
     expect(source).not.toMatch(/cache:\s*\{\s*dir:/);
   });
 
-  it("sets spawn-heavy groupOrder before unit (cross-project idle conjunct)", () => {
-    expect(source).toMatch(/name:\s*"spawn-heavy"[\s\S]*groupOrder:\s*0/);
-    expect(source).toMatch(/name:\s*"unit"[\s\S]*groupOrder:\s*1/);
+  it("does not assign harmful groupOrder that serializes unit behind spawn-heavy", () => {
+    expect(source).not.toMatch(/name:\s*"unit"[\s\S]*?groupOrder:\s*1/);
+    expect(source).not.toMatch(/name:\s*"spawn-heavy"[\s\S]*?groupOrder:\s*0/);
   });
 });

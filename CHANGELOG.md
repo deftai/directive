@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **perf(vitest): committed durations + DurationSequencer arm slowest-first on cold release worktrees (Tracking #5028).** Fresh trees no longer depend on host-global node_modules/.vite cache.dir. sequence.groupOrder starts spawn-heavy before unit so the one-worker win32 tail does not idle the unit pool. Fixture packages/core/fixtures/vitest-file-durations.json is an interim seed until #5027 tee ranking refreshes it. Measurement note: before = v0.119.9 Step 5 kill at 30m with 1272/1284 and last completed spawn-heavy hook-host-identity-lifetime.test.ts while workers idle; after = structural groupOrder+sequencer on cold trees — full last-worker-idle to suite-end ms on a fresh Windows worktree owed on the next production Step 5 cut. Refs #5028, #5027, #5024.
+- **perf(vitest): committed durations + DurationSequencer arm slowest-first on cold release worktrees (Tracking #5028).** Fresh trees no longer depend on host-global vitest cache.dir. Fixture packages/core/fixtures/vitest-file-durations.json (interim until #5027). Refs #5028, #5027, #5024.
 
 ### Changed
 
