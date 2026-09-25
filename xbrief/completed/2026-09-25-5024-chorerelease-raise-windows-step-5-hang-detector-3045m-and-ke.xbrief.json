@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5024",
-    "updated": "2026-09-25T11:54:55Z"
+    "updated": "2026-09-25T19:07:55Z"
   },
   "plan": {
     "title": "chore(release): raise Windows Step 5 hang detector 30→45m and keep cheapening suite efficiency",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(release): raise Windows Step 5 hang detector 30→45m and keep cheapening suite efficiency",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5024",
@@ -16,28 +16,58 @@
     "items": [
       {
         "title": "Raise RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 with intent-constraint mint on the merge-base numeric-const (same #5022 in-harness ask + TTY land pattern). Update docs/RELEASING.md, content/skills/deft-directive-release/SKILL.md, CHANGELOG [Unreleased], and the 30m pin test so the wall matches.",
-        "status": "pending",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5040#e427824f0307237f215bbcf2d67781a4d876d630",
+          "recorded_at": "2026-09-25T19:07:54.379Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Realign named-cause hang-detector remedy text with the deliberate-raise path: cheapen first for ordinary exit-124; numeric raise only through tracked gate change + mint.",
-        "status": "pending",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5040#e427824f0307237f215bbcf2d67781a4d876d630",
+          "recorded_at": "2026-09-25T19:07:54.379Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).",
-        "status": "pending",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5040#e427824f0307237f215bbcf2d67781a4d876d630",
+          "recorded_at": "2026-09-25T19:07:54.379Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Portfolio framing: #5024 owns the hang raise and this framing. Children #5026 (coverage-at-Step-5 decision), #5027 (per-file durations artifact), and #5028 (slowest-first sequencing) remain separate bindable remediations. Do not silently widen this parent to implement those children.",
-        "status": "pending",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5040#e427824f0307237f215bbcf2d67781a4d876d630",
+          "recorded_at": "2026-09-25T19:07:54.379Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Keep Ubuntu GHA vitest coverage timeout-minutes a separate surface unless a later deliberate alignment lands. Tests lock the new 45m constant and the named-cause / docs wording that matches item 2.",
-        "status": "pending",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5040#e427824f0307237f215bbcf2d67781a4d876d630",
+          "recorded_at": "2026-09-25T19:07:54.379Z",
+          "recorded_by": "MScottAdams"
+        }
       }
     ],
     "tags": [
@@ -108,9 +138,11 @@
       ],
       "ambiguity_attestation": "none_found",
       "confessions": [
-        "Portfolio framing only: children #5026/#5027/#5028 are out of this product PR.",
-        "Measured-shortfall residual remains live if a later production Step 5 still dies inside 45m.",
-        "Absolute ban wording on RELEASE_CHECK_TIMEOUT_MS is removed from named-cause after the deliberate raise."
+        "Raise RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 with intent-constraint mint on the merge-base numeric-const (same #5022 in-harness ask + TTY land pattern). Update docs/RELEASING.md, content/skills/deft-directive-release/SKILL.md, CHANGELOG [Unreleased], and the 30m pin test so the wall matches.",
+        "Realign named-cause hang-detector remedy text with the deliberate-raise path: cheapen first for ordinary exit-124; numeric raise only through tracked gate change + mint.",
+        "Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).",
+        "Portfolio framing: #5024 owns the hang raise and this framing. Children #5026 (coverage-at-Step-5 decision), #5027 (per-file durations artifact), and #5028 (slowest-first sequencing) remain separate bindable remediations. Do not silently widen this parent to implement those children.",
+        "Keep Ubuntu GHA vitest coverage timeout-minutes a separate surface unless a later deliberate alignment lands. Tests lock the new 45m constant and the named-cause / docs wording that matches item 2."
       ]
     },
     "metadata": {
@@ -319,10 +351,33 @@
           "content/skills/deft-directive-release/SKILL.md",
           "CHANGELOG.md"
         ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5040,
+        "prBase": null,
+        "mergeCommit": "e427824f0307237f215bbcf2d67781a4d876d630",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a16b3ac6bae373205accb5751b48da890e7dac86",
+        "verifiedAt": "2026-09-25T19:07:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-25T19:07:55Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-25T19:07:55Z"
       }
     },
     "id": "github.issue.5577165251",
-    "updated": "2026-09-25T11:54:55Z",
+    "updated": "2026-09-25T19:07:55Z",
     "x-directive/intentConstraint": {
       "constraints": [
         {
