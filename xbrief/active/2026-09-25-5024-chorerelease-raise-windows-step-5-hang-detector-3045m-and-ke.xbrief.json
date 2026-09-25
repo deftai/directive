@@ -1,0 +1,337 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5024",
+    "updated": "2026-09-25T11:54:55Z"
+  },
+  "plan": {
+    "title": "chore(release): raise Windows Step 5 hang detector 30→45m and keep cheapening suite efficiency",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(release): raise Windows Step 5 hang detector 30→45m and keep cheapening suite efficiency",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5024",
+      "Overview": "\n\n1. Raise RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 with intent-constraint mint on the merge-base numeric-const (same #5022 in-harness ask + TTY land pattern). Update docs/RELEASING.md, content/skills/deft-directive-release/SKILL.md, CHANGELOG [Unreleased], and the 30m pin test so the wall matches.\n2. Realign named-cause hang-detector remedy text with the deliberate-raise path: cheapen first for ordinary exit-124; numeric raise only through tracked gate change + mint. Do not leave \"do not raise RELEASE_CHECK_TIMEOUT_MS\" as an absolute after this land.\n3. Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).\n4. Portfolio framing: #5024 owns the hang raise and this framing. Children #5026 (coverage-at-Step-5 decision), #5027 (per-file durations artifact), and #5028 (slowest-first sequencing) remain separate bindable remediations. Do not silently widen this parent to implement those children.\n5. Keep Ubuntu GHA vitest coverage timeout-minutes a separate surface unless a later deliberate alignment lands. Tests lock the new 45m constant and the named-cause / docs wording that matches item 2.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:e8f88020bef1820d482be2d2ceb4b01e6d6d4a7897fa54ded37a1cc00974110a\n\n\n",
+      "Labels": "bug, design, agent-experience, process, source-of-truth, area:release, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Raise RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 with intent-constraint mint on the merge-base numeric-const (same #5022 in-harness ask + TTY land pattern). Update docs/RELEASING.md, content/skills/deft-directive-release/SKILL.md, CHANGELOG [Unreleased], and the 30m pin test so the wall matches.",
+        "status": "pending",
+        "id": "clause.1"
+      },
+      {
+        "title": "Realign named-cause hang-detector remedy text with the deliberate-raise path: cheapen first for ordinary exit-124; numeric raise only through tracked gate change + mint.",
+        "status": "pending",
+        "id": "clause.2"
+      },
+      {
+        "title": "Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).",
+        "status": "pending",
+        "id": "clause.3"
+      },
+      {
+        "title": "Portfolio framing: #5024 owns the hang raise and this framing. Children #5026 (coverage-at-Step-5 decision), #5027 (per-file durations artifact), and #5028 (slowest-first sequencing) remain separate bindable remediations. Do not silently widen this parent to implement those children.",
+        "status": "pending",
+        "id": "clause.4"
+      },
+      {
+        "title": "Keep Ubuntu GHA vitest coverage timeout-minutes a separate surface unless a later deliberate alignment lands. Tests lock the new 45m constant and the named-cause / docs wording that matches item 2.",
+        "status": "pending",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:release",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5024",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5024: chore(release): raise Windows Step 5 hang detector 30→45m and keep cheapening suite efficiency"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Raise RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 with intent-constraint mint on the merge-base numeric-const (same #5022 in-harness ask + TTY land pattern). Update docs/RELEASING.md, content/skills/deft-directive-release/SKILL.md, CHANGELOG [Unreleased], and the 30m pin test so the wall matches.",
+        "Realign named-cause hang-detector remedy text with the deliberate-raise path: cheapen first for ordinary exit-124; numeric raise only through tracked gate change + mint.",
+        "Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).",
+        "Portfolio framing: #5024 owns the hang raise and this framing. Children #5026 (coverage-at-Step-5 decision), #5027 (per-file durations artifact), and #5028 (slowest-first sequencing) remain separate bindable remediations. Do not silently widen this parent to implement those children.",
+        "Keep Ubuntu GHA vitest coverage timeout-minutes a separate surface unless a later deliberate alignment lands. Tests lock the new 45m constant and the named-cause / docs wording that matches item 2."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Raise RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 with intent-constraint mint on the merge-base numeric-const (same #5022 in-harness ask + TTY land pattern). Update docs/RELEASING.md, content/skills/deft-directive-release/SKILL.md, CHANGELOG [Unreleased], and the 30m pin test so the wall matches.",
+          "artifact_path": "packages/core/src/release/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Realign named-cause hang-detector remedy text with the deliberate-raise path: cheapen first for ordinary exit-124; numeric raise only through tracked gate change + mint.",
+          "artifact_path": "packages/core/src/check/named-cause.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Portfolio framing: #5024 owns the hang raise and this framing. Children #5026 (coverage-at-Step-5 decision), #5027 (per-file durations artifact), and #5028 (slowest-first sequencing) remain separate bindable remediations. Do not silently widen this parent to implement those children.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep Ubuntu GHA vitest coverage timeout-minutes a separate surface unless a later deliberate alignment lands. Tests lock the new 45m constant and the named-cause / docs wording that matches item 2.",
+          "artifact_path": "packages/core/src/release/preflight.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Portfolio framing only: children #5026/#5027/#5028 are out of this product PR.",
+        "Measured-shortfall residual remains live if a later production Step 5 still dies inside 45m.",
+        "Absolute ban wording on RELEASE_CHECK_TIMEOUT_MS is removed from named-cause after the deliberate raise."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because after #5022/#5023 the Windows release Step 5 still dies at ~1272/1284 inside 30m and the cut ships with --skip-ci, so the hang ceiling and the still-bundled coverage/sequencer/durations levers remain an unsettled gate-shape problem rather than a finished cheapen.\n\ncharter: refutation\nrefutation-target: A 30-minute Windows Step 5 hang detector plus incident --skip-ci is an acceptable steady-state release gate after the #5022/#5023 cheapen, so a deliberate 45-minute raise (with intent-constraint mint) is unnecessary, and coverage-at-Step-5 / durations artifact / slowest-first sequencing can stay implicit inside this same issue without separate bindable remediations.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token ask and asked for separate arcs on #5024 plus children #5026/#5027/#5028. This parent issue owns the hang-detector raise and the portfolio framing; children own the coverage decision, durations artifact, and sequencer. It is not a whole-motion babysit hang. N=1.\n\npain: P1, P2, P3\n\nP1. Production task release Step 5 on this Windows host still cannot finish ts:check-lane (vitest with coverage) inside 30 minutes (v0.119.9: 1272/1284 at hang kill), so cuts ship with --skip-ci=#5022 as an incident path.\nP2. Raising RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 is a deliberate numeric-const gate change that still needs the same intent-constraint mint pattern as #5022, plus RELEASING.md / skill / CHANGELOG alignment, without casually equating GHA timeout-minutes.\nP3. Follow-on levers (coverage-at-Step-5 decision, per-file durations artifact, slowest-first sequencing across fresh worktrees) are still undecided and, if left implicit on this parent, will either stall the raise or silently widen the parent beyond a bindable first ship.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5024-dc\norigin-ref: origin/master\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\npin-kind: origin-default\ntarget-digest: sha256:6fa350c09f7332df81301b5439580545692bd4f57721f0e679d3aed8b4af1505\n\nPin reads use git show 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650. Children #5026/#5027/#5028 are separate arcs. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5825992502,
+          "html_url": "https://github.com/deftai/directive/issues/5024#issuecomment-5825992502",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:04:36Z",
+          "updated_at": "2026-09-25T03:04:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5024\ncharter: refutation\nround: 1 critic\nseat: grok\nlauncher: grok\nid-ceiling: 5825992502\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\narc-mode: no-ingest\naudit-targets: none\n\n## Verdict\n\nThe recorded refutation target does not survive.\n\nInventory at `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650` before findings: `RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES` are 30 (`packages/core/src/release/constants.ts`); `CI_VITEST_COVERAGE_TIMEOUT_MINUTES` stays 20 on the same file; `runReleaseCheck` arms that wall (`packages/core/src/release/preflight.ts`); `preflight.test.ts` pins the 30m constant under `#5022`; Step 5 skip path emits `formatSkipCiIncidentWarning` and requires `--allow-skip-ci=#N` (`packages/core/src/release/pipeline.ts`, `skip-ci-incident.ts`); hang exit-124 named-cause remedy still says \"Cheapen remaining Windows vitest --coverage cost; do not raise RELEASE_CHECK_TIMEOUT_MS\" (`packages/core/src/check/named-cause.ts`); `docs/RELEASING.md` § Vitest coverage hang recovery already treats production `--skip-ci` as incident-only and further timeout raises as deliberate issue/PR gate changes; open children `#5026` / `#5027` / `#5028` each own a distinct lever with out-of-scope pointing the hang raise back at `#5024`.\n\n## 30m plus incident skip-ci is not a steady-state release gate\nblocks-the-design\nEvidence: At the dispatch SHA, `validateSkipCiIncident` refuses production `--skip-ci` without `--allow-skip-ci=#N` (or `DEFT_RELEASE_E2E=1`), and `formatSkipCiIncidentWarning` states the cut ships untested npm builds and that the next production patch MUST cut without `--skip-ci` once the hang is fixed. `docs/RELEASING.md` § Vitest coverage hang recovery and the release skill Phase-1 file-and-merge contract mirror that incident-only posture. Issue `#5024` Out of scope names \"Using `--skip-ci` as the steady-state remedy.\" Measured evidence on the issue body and Stop 1: after `#5022`/`#5023`, v0.119.9 still died at 1272/1284 inside 30m and cut with `--skip-ci --allow-skip-ci=5022`.\nFailure mode: Binding the target keeps every Windows production cut on an incident hatch that skips vitest coverage, so npm publish proceeds without the Step 5 gate the hang detector exists to bound. Shared release authority (`--skip-ci` / `--allow-skip-ci`) becomes the normal path rather than a cited exception.\nDisposition: Reject the first conjunct. A bindable successor keeps the deliberate 30→45 raise (intent-constraint mint + docs/skill/CHANGELOG + pin-test update) or an equivalent measured path that lets the next production cut finish Step 5 without `--skip-ci`. Incident skip-ci stays escape hatch only.\n\n## Parent/child split is bindable; implicit bundling on #5024 is not\nblocks-the-design\nEvidence: Stop 1 (comment 5825992502) already records that `#5024` owns the hang-detector raise and portfolio framing while children `#5026`/`#5027`/`#5028` own coverage-at-Step-5, durations artifact, and slowest-first sequencing. Live REST at critique time: all three children are open with independent acceptance criteria; each child's Out of scope says the hang raise belongs on `#5024`. Parent AC3 asks follow-on levers to be \"scoped and landed or filed as children\" — and they are already filed.\nFailure mode: If those three levers stay implicit inside this parent, first-ship either stalls until three undecided gate-shape questions resolve, or silently widens `#5024` past a bindable raise+docs+mint unit. That is Stop 1 P3 realized as an unbound parent.\nDisposition: Reject the second conjunct. Keep the recorded split: `#5024` binds the 45m raise and portfolio framing; `#5026`/`#5027`/`#5028` remain separate bindable remediations. Do not implement the children inside this parent's first ship.\n\n## Named-cause \"do not raise\" steers exit-124 recovery; it does not license the target\nsharpens-framing\nEvidence: `remedyForGate` on hang-detector timeout returns \"Cheapen remaining Windows vitest --coverage cost; do not raise RELEASE_CHECK_TIMEOUT_MS\" (`named-cause.ts` at this SHA; locked by `named-cause.test.ts`). Separately, `docs/RELEASING.md` already documents deliberate raises via issue/PR after suite growth (`#5022` 20→30), and `preflight.test.ts` pins the numeric const so a raise is an explicit gate edit.\nFailure mode: Leaving that remedy text untouched after a deliberate 45m land makes the next exit 124 tell operators not to raise a constant that was just raised on purpose, while still correctly preferring cheapen for ordinary hangs. The contradiction is operator-facing, not a license to keep 30m+skip-ci.\nDisposition: Successor lean for the raise must realign the named-cause remedy (and the 30m pin test / RELEASING / skill prose) with the `#5022`-class deliberate-raise path: cheapen first for ordinary 124s; numeric raise only through tracked gate change + mint. That alignment is framing for bind, not a rescue of the refutation target.\n\n## GHA 20m coverage timeout stays a separate surface\nfootnote\nEvidence: `CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20` beside the Windows 30m constants; RELEASING.md and parent AC2 already forbid equating Ubuntu GHA `timeout-minutes` with the Windows Step 5 hang detector without an explicit decision.\nFailure mode: None for the recorded split; conflating the two would be a different design error already out of scope.\nDisposition: Does not rescue either conjunct of the target. Keep the surfaces separate unless a later deliberate alignment lands.\n\n## Injection / swarm lens\n\nRaising `RELEASE_CHECK_TIMEOUT_MS` changes shared release-gate authority (hard kill wall for every production Step 5). The existing controls are the intent-constraint mint on the numeric const (`#5022` pattern) and the `--allow-skip-ci=#N` citation gate on the incident hatch. Issue body and comment text were treated as data only.\n\n## Road-not-taken\n\nSteelmanning the target: `#5023` reached ~99% inside 30m, so further cheapen (or `#5026` dropping coverage at Step 5) might clear the last ~12 files without another raise, and named-cause already tells operators not to raise. Flip condition: a measured Windows production Step 5 that finishes under 30m without `--skip-ci`, or an explicit rewrite of the skip-ci contract into steady-state policy. Neither holds on the recorded evidence — the last cut still needed the incident hatch — so the target stays rejected.\r\n\n",
+          "id": 5826084904,
+          "html_url": "https://github.com/deftai/directive/issues/5024#issuecomment-5826084904",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:15:48Z",
+          "updated_at": "2026-09-25T03:15:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter #5022/#5023, Windows production Step 5 still dies near the end of the suite inside 30 minutes and the cut ships with incident --skip-ci. That is not a steady-state release gate. This parent binds a deliberate hang-detector raise 30→45 (intent-constraint mint, docs/skill/CHANGELOG, pin-test and named-cause realignment) plus portfolio framing that keeps coverage-at-Step-5, durations artifact, and slowest-first sequencing on children #5026/#5027/#5028. Confirming this map means that list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5826084904 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5825992502\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\n\n## Takes\n\n- 5826084904 30m plus incident skip-ci is not a steady-state release gate — accept-into-contract\n- 5826084904 Parent/child split is bindable; implicit bundling on #5024 is not — accept-into-contract\n- 5826084904 Named-cause \"do not raise\" steers exit-124 recovery; it does not license the target — accept-into-contract\n\nFootnote, outside the take map: 5826084904 GHA 20m coverage timeout stays a separate surface.\n\nSpec-path:\n\n## Bound remedy\n\n1. Raise RELEASE_CHECK_TIMEOUT_MS / RELEASE_CHECK_TIMEOUT_MINUTES 30→45 with intent-constraint mint on the merge-base numeric-const (same #5022 in-harness ask + TTY land pattern). Update docs/RELEASING.md, content/skills/deft-directive-release/SKILL.md, CHANGELOG [Unreleased], and the 30m pin test so the wall matches.\n2. Realign named-cause hang-detector remedy text with the deliberate-raise path: cheapen first for ordinary exit-124; numeric raise only through tracked gate change + mint. Do not leave \"do not raise RELEASE_CHECK_TIMEOUT_MS\" as an absolute after this land.\n3. Keep --skip-ci / --allow-skip-ci as incident escape hatch only. First ship on this parent is the raise + docs/mint/named-cause alignment that aims the next production Windows Step 5 at finishing inside 45m without --skip-ci (or documents a measured shortfall with a new tracked residual).\n4. Portfolio framing: #5024 owns the hang raise and this framing. Children #5026 (coverage-at-Step-5 decision), #5027 (per-file durations artifact), and #5028 (slowest-first sequencing) remain separate bindable remediations. Do not silently widen this parent to implement those children.\n5. Keep Ubuntu GHA vitest coverage timeout-minutes a separate surface unless a later deliberate alignment lands. Tests lock the new 45m constant and the named-cause / docs wording that matches item 2.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:e8f88020bef1820d482be2d2ceb4b01e6d6d4a7897fa54ded37a1cc00974110a\n\n## Parent-side substantiation\n\nThe critic rejected both conjuncts of the refutation target and required keeping the recorded parent/child split. Items 1 and 3 discharge the first conjunct; item 4 discharges the second. Item 2 accepts the named-cause sharpening without changing harvest ownership. Footnote GHA surface stays census.\n\naudit:raise-45m-or-measured-path sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826084904 reading=asserted\naudit:keep-child-split sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826084904 reading=asserted\r\n\n",
+          "id": 5826095513,
+          "html_url": "https://github.com/deftai/directive/issues/5024#issuecomment-5826095513",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:17:02Z",
+          "updated_at": "2026-09-25T03:17:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5024\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5826095513\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\n## Verdict\n\nSuccessor lean 5826095513 Bound remedy covers Stop 1 pains P1, P2, and P3 as asserted. Re-verified anchors at `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650` match critic 5826084904: `RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES` are 30 (`packages/core/src/release/constants.ts`); `runReleaseCheck` arms that wall (`packages/core/src/release/preflight.ts`); `preflight.test.ts` pins the 30m constant under `#5022`; hang-detector named-cause remedy still says \"Cheapen remaining Windows vitest --coverage cost; do not raise RELEASE_CHECK_TIMEOUT_MS\" (`packages/core/src/check/named-cause.ts`); `validateSkipCiIncident` / `formatSkipCiIncidentWarning` keep production `--skip-ci` incident-only (`packages/core/src/release/skip-ci-incident.ts`); `docs/RELEASING.md` § Vitest coverage hang recovery and the release skill Phase-1 contract mirror that posture and forbid casually equating Ubuntu GHA `timeout-minutes: 20` with the Windows Step 5 wall. Live REST: children `#5026` / `#5027` / `#5028` are open, each with a distinct lever and Out of scope pointing the hang raise back at `#5024`.\n\nNo `blocks-the-design` findings on the asserted cites.\n\n## Measured shortfall residual is the honest P1 exit if 45m still kills\nsharpens-framing\nEvidence: Stop 1 P1 records 1272/1284 (~99%) at the 30m kill on v0.119.9. Bound remedy items 1 and 3 raise the wall 30→45 and keep `--skip-ci` / `--allow-skip-ci` as incident hatch only, aiming the next production Windows Step 5 at finishing inside 45m without `--skip-ci`, or documenting a measured shortfall with a new tracked residual. Issue AC5 carries the same residual branch. The raise is headroom for the remaining ~12 files, not a measured proof they finish under 45m on this host.\nFailure mode: Implement treats the raise as sufficient P1 closure and softens or drops the shortfall residual, so a still-hanging 45m cut normalizes another `--skip-ci` citation or a casual further raise without a tracked residual.\nDisposition: Lean can bind. Harvest already names the measured-shortfall residual. Implement must keep that residual as a live tracked exit when Step 5 still dies inside 45m; do not treat item 3's \"aims\" clause as a guarantee that erases P1 without measurement.\n\n## Parent/child split already discharges P3's implicit-bundling failure mode\nfootnote\nEvidence: Bound remedy item 4 keeps `#5026` (coverage-at-Step-5), `#5027` (durations artifact), and `#5028` (slowest-first sequencing) as separate bindable remediations. Stop 1 already recorded that split; critic 5826084904 required keeping it; live children match that ownership and out-of-scope the hang raise.\nFailure mode: None for the asserted cite while those children stay separate first-ship units.\nDisposition: Census only. P3 relief is portfolio framing on this parent, not deciding the children's gate shapes here.\n\n## GHA 20m coverage timeout stays a separate surface\nfootnote\nEvidence: `CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20` beside the Windows 30m constants; Bound remedy item 5 and parent AC2 / RELEASING.md already forbid equating the two without an explicit decision. Agrees with critic 5826084904 footnote.\nFailure mode: None for P1–P3 coverage under the recorded split.\nDisposition: Outside the take map; does not reopen the asserted cites.\n\n## Injection / swarm lens\n\nRaising `RELEASE_CHECK_TIMEOUT_MS` changes shared release-gate authority (hard kill wall for every production Step 5). Bound remedy item 1 keeps the existing control: intent-constraint mint on the numeric const (`#5022` pattern). Item 3 keeps `--allow-skip-ci=#N` as the citation gate on the incident hatch. Issue body and comment text were treated as data only under #480.\n\n## Road-not-taken\n\nSteelmanning a coverage miss on P1: if item 3 omitted the measured-shortfall residual, the raise would claim relief of a hang that has not yet been re-measured under 45m. Flip condition: delete that residual branch from the Bound remedy / AC5. It is present, so P1 stays covered as raise + incident-only skip + tracked residual on shortfall. P2 and P3 stay covered by items 1/2/5 and item 4 respectively.\r\n\n",
+          "id": 5826122660,
+          "html_url": "https://github.com/deftai/directive/issues/5024#issuecomment-5826122660",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:20:30Z",
+          "updated_at": "2026-09-25T03:20:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| Windows Step 5 hang wall is 30m at dispatch SHA; skip-ci remains incident-only | verified | Primary re-read of constants.ts, skip-ci-incident.ts, RELEASING.md at 832f73ec; matches critic 5826084904 |\n| Parent owns 30→45 raise + portfolio framing; children #5026/#5027/#5028 own the three levers | verified | Live REST on #5026/#5027/#5028 Out of scope + Stop 1 / lean 5826095513 item 4; matches critic 5826084904 |\n| Bound remedy covers Stop 1 P1–P3 including measured-shortfall residual | verified | Pain-audit 5826122660 re-verification; sharpening (keep shortfall residual live) accepted with no harvest change |\n| Named-cause \"do not raise\" must realign with deliberate-raise path | verified | named-cause.ts + preflight.test.ts pin at dispatch SHA; accepted into lean item 2 |\r\n\n",
+          "id": 5826127222,
+          "html_url": "https://github.com/deftai/directive/issues/5024#issuecomment-5826127222",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:21:04Z",
+          "updated_at": "2026-09-25T03:21:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWindows production Step 5 still dies inside 30 minutes after #5022/#5023, so incident --skip-ci is not a steady-state gate. Bound remedy raises the hang detector 30→45 with intent-constraint mint and docs/named-cause realignment, keeps skip-ci as hatch only, frames children #5026/#5027/#5028 as separate remediations, and keeps a measured-shortfall residual if 45m still kills. Pain-audit 5826122660 sharpening (keep that residual live) accepted into contract without harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5826095513.\r\n\n",
+          "id": 5826128653,
+          "html_url": "https://github.com/deftai/directive/issues/5024#issuecomment-5826128653",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:21:15Z",
+          "updated_at": "2026-09-25T03:21:15Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nAfter the deliberate Step 5 hang-detector raise 20→30 (#5022) and the Windows vitest cheapen that landed with it, this host still cannot finish `ts:check-lane` (vitest with coverage) inside 30 minutes during a production `task release` cut.\n\nOn the v0.119.9 cut (2026-09-25), the last full-suite attempt reached **1272/1284 files (~99%)** at the 30-minute hang kill (last completed: `packages/cli/src/hook-host-identity-lifetime.test.ts`). The cut shipped with incident `--skip-ci=#5022`.\n\nOperator direction: raise the Windows release Step 5 hang detector to **45 minutes**, and continue improving test / coverage efficiency so future cuts do not depend on skip-ci.\n\n## Acceptance criteria\n\n1. `RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES` raised **30→45** with docs/skill/`RELEASING.md` updated (deliberate gate change; do not raise casually). Intent-constraint mint on merge base for the new numeric-const (in-harness ask + TTY land), same pattern as #5022.\n2. GHA vitest coverage `timeout-minutes` stays a separate surface unless deliberately aligned in the same change.\n3. Follow-on cheapen / efficiency work is scoped and landed or filed as children: spawn-heavy moves, share-plus-reset / in-process refactors, fixture cost, and any remaining unit-pool stragglers that still dominate wall clock on Windows with coverage.\n4. CHANGELOG `[Unreleased]` records the raise (and any cheapen) with Tracking/Refs to this issue.\n5. A subsequent production `task release` Step 5 on this Windows host completes inside the new 45m ceiling **without** `--skip-ci` (or documents a measured shortfall with a new tracked residual).\n\n## Evidence (v0.119.9)\n\n- Prior tip under 20m: **52/1284 (~4%)** at kill (`extra-coverage.test.ts`) — #5022\n- After #5023 cheapen + 30m raise: **1272/1284 (~99%)** at 30m kill (`hook-host-identity-lifetime.test.ts`)\n- Host probe during #5022 diagnosis: `git --version` median ~252ms (above RELEASING.md ~150ms guidance)\n- Incident citation for the cut: `--skip-ci --allow-skip-ci=5022`\n\n## Out of scope\n\n- Using `--skip-ci` as the steady-state remedy\n- Equating Ubuntu CI `timeout-minutes` with the Windows release Step 5 hang detector without an explicit decision\n\n## Related\n\n- #5022 / #5023 (20→30 + cheapen)\n- #2859 file-and-merge before resume\n- #2652 / #4230 / #4591 hang recovery and prior Windows coverage cheapen",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5577165251,
+        "origin": "deftai/directive#5024",
+        "id": "github.issue.5577165251"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e8f88020bef1820d482be2d2ceb4b01e6d6d4a7897fa54ded37a1cc00974110a"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/release/constants.ts",
+          "packages/core/src/release/preflight.test.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "packages/core/src/vitest-runner/vitest-config-contract.test.ts",
+          "docs/RELEASING.md",
+          "content/skills/deft-directive-release/SKILL.md",
+          "CHANGELOG.md"
+        ]
+      }
+    },
+    "id": "github.issue.5577165251",
+    "updated": "2026-09-25T11:54:55Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "45",
+          "unit": "minutes",
+          "rejectionScope": "operation",
+          "rationale": "Deliberate Windows release Step 5 hang-detector raise 30→45 for suite growth (#5024); operator Scott approved in-harness. Matches RELEASE_CHECK_TIMEOUT_MINUTES and RELEASE_CHECK_TIMEOUT_MS = 45 * 60 * 1000."
+        }
+      ]
+    }
+  }
+}
