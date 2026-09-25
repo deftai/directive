@@ -1,0 +1,391 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4978",
+    "updated": "2026-09-25T17:23:59Z"
+  },
+  "plan": {
+    "title": "leftover(#4751): closed node --test grammar including exact built-in --test-reporter names",
+    "status": "running",
+    "narratives": {
+      "Description": "leftover(#4751): closed node --test grammar including exact built-in --test-reporter names",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4978",
+      "Overview": "\n\n- First ship is a closed `node --test` argv grammar inside `evaluateCommandSafety`. Add `node` to the static first-token list and route it through that grammar, same as python. Fall-through `{ ok: true, reason: null }` for `node` is forbidden. Do not ship a register-test-runner recipe. Do not wrap the filed command as `npm test` / `pnpm test`.\n- After `node`, `tokens[0]` is exactly `--test`. Every later token that starts with `-` must start with `--test-` or `--experimental-test-`. Refuse `--test-reporter-destination` and `--test-rerun-failures` including `=value`. `--test-reporter` / `--test-reporter=` values are a closed allow-set of exact built-in names (`spec`, `tap`, `junit`, `lcov`, `dot`) matched as a whole string, either the token after `--test-reporter` or the suffix after `--test-reporter=`. Other `--test-reporter` tokens refuse, including missing values, `data:`, path-like, package-name, percent-encoded URLs, and the live space form `--test-reporter data:…`. Non-dash positionals pass. Coverage flags only after `--test`. Keep `-r` / `-e` / `-p` on the negative list. Do not copy `tool-events/classify.ts` `some(--test)`.\n- Negative cases: `--import=`, `--require=`, `--experimental-loader=`, `--loader=`, `--inspect=`, `--inspect-port=`, `--eval=`, `--test-reporter-destination=`, `--test-rerun-failures=`, `--test-reporter=data:`, `--test-reporter=./file`, space forms of `--import` / `--require` / `--watch` / `--inspect-brk`, plus `-r` / `-e` / `-p`, plus `--test-reporter data:` and `--test-reporter ./file` as tests of the allow-set.\n- Persist recovery: at `readStoredLiteralAcceptanceDetailed` copy or evaluate merge, recheck each stored `literal_acceptance_rejected` row with current `evaluateCommandSafety`. Drop only rows whose command now returns ok. Leave other rejected rows. Do not clear the whole ledger.\n- Refusal reason for an unknown first token enumerates the accepted first tokens. The `safety-rejected` remedy names `npm test` / `pnpm test` as the known-safe wrap of a different recorded command.\n- Scope sentence: this remainder changes the first-token grammar only. It does not change which fields are AC oracles. Flip the `safety-branches.test.ts` pins that refuse `node --test`. `run.ts` `shell: true` / `env: process.env` stays the #4702 residual.\n\n",
+      "Labels": "bug, adoption-blocker, process, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "First ship is a closed `node --test` argv grammar inside `evaluateCommandSafety`. Add `node` to the static first-token list and route it through that grammar, same as python. Fall-through `{ ok: true, reason: null }` for `node` is forbidden. Do not ship a register-test-runner recipe. Do not wrap the filed command as `npm test` / `pnpm test`.",
+        "status": "pending",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety.ts",
+          "recorded_at": "2026-09-25T17:31:33Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "After `node`, `tokens[0]` is exactly `--test`. Every later token that starts with `-` must start with `--test-` or `--experimental-test-`. Refuse `--test-reporter-destination` and `--test-rerun-failures` including `=value`. `--test-reporter` / `--test-reporter=` values are a closed allow-set of exact built-in names (`spec`, `tap`, `junit`, `lcov`, `dot`) matched as a whole string, either the token after `--test-reporter` or the suffix after `--test-reporter=`. Other `--test-reporter` tokens refuse, including missing values, `data:`, path-like, package-name, percent-encoded URLs, and the live space form `--test-reporter data:…`. Non-dash positionals pass. Coverage flags only after `--test`. Keep `-r` / `-e` / `-p` on the negative list. Do not copy `tool-events/classify.ts` `some(--test)`.",
+        "status": "pending",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety.ts",
+          "recorded_at": "2026-09-25T17:31:33Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Negative cases: `--import=`, `--require=`, `--experimental-loader=`, `--loader=`, `--inspect=`, `--inspect-port=`, `--eval=`, `--test-reporter-destination=`, `--test-rerun-failures=`, `--test-reporter=data:`, `--test-reporter=./file`, space forms of `--import` / `--require` / `--watch` / `--inspect-brk`, plus `-r` / `-e` / `-p`, plus `--test-reporter data:` and `--test-reporter ./file` as tests of the allow-set.",
+        "status": "pending",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-09-25T17:31:33Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Persist recovery: at `readStoredLiteralAcceptanceDetailed` copy or evaluate merge, recheck each stored `literal_acceptance_rejected` row with current `evaluateCommandSafety`. Drop only rows whose command now returns ok. Leave other rejected rows. Do not clear the whole ledger.",
+        "status": "pending",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/capture.ts",
+          "recorded_at": "2026-09-25T17:31:33Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Refusal reason for an unknown first token enumerates the accepted first tokens. The `safety-rejected` remedy names `npm test` / `pnpm test` as the known-safe wrap of a different recorded command.",
+        "status": "pending",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "recorded_at": "2026-09-25T17:31:33Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Scope sentence: this remainder changes the first-token grammar only. It does not change which fields are AC oracles. Flip the `safety-branches.test.ts` pins that refuse `node --test`. `run.ts` `shell: true` / `env: process.env` stays the #4702 residual.",
+        "status": "pending",
+        "id": "clause.6",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-09-25T17:31:33Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "process",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4978",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4978: leftover(#4751): closed node --test grammar including exact built-in --test-reporter names"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4751",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4751"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "node --test",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        },
+        {
+          "command": "shell: true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        },
+        {
+          "command": "env: process.env",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/literal-acceptance/safety.ts",
+          "packages/core/src/literal-acceptance/capture.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/core/src/literal-acceptance/literal-acceptance.test.ts",
+          "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because `verify:ac` safety-rejects `node --test …` at the first-token allowlist, so a standard Node project cannot pass `task deft:check` even when the tests themselves pass.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4978-dc\norigin-ref: origin/HEAD\ndispatch-sha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\n\ncharter: open critique\nspend: N=1\nspend-ask: asked\nspend-why: operator \"use appropriate n\". Specified leftover remainder: closed `node --test` argv grammar including exact built-in `--test-reporter` names after #4751 recut 5800470603. Two-remedy fork (add `node` vs register a test-runner recipe) already closed on the parent.\nDual-stop cap: 6 posts\n\npain: P1\n\ntarget: #4978\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: evaluateCommandSafety must admit a closed node --test argv grammar so a standard Node project can pass task deft:check when the tests themselves pass; bare first-token `node` and a register-test-runner recipe are out of this remainder.\n\n## Gate stamp\n\nRound-1 ceiling is this write-back (spend N=1). Single grok critic.\n\nP1 is leftover(#4751) as filed: a closed `node --test` argv grammar in `evaluateCommandSafety`. Parent Dual-stop remaining 0; finish not still possible. Recut 5800470603 absorbed exact built-in reporter names. This number holds that remainder.\n\nRe-measured at dispatch SHA `4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0` by pin-read.\n\nPin-read:\n\n- `packages/core/src/literal-acceptance/safety.ts` `ALLOWED_FIRST_TOKENS` is `task`, `deft`, `directive`, `pnpm`, `npm`, `npx`, `yarn`, `bun`, `vitest`, plus `python`/`python3`/`py`. Comment at the set: bare pytest, uv, go test, and node --test stay out.\n- Same function: unknown first token returns `first token ${JSON.stringify(first)} is not in the literal-AC allowlist` before any argv grammar. `node --test` never reaches a Node branch.\n- Python interpreters have `evaluatePythonPytestArgs` (exact `-m pytest`). There is no Node `--test` grammar at this SHA.\n- `packages/core/src/literal-acceptance/safety-branches.test.ts` pins `node --test` as allowlist refuse.\n\nWhat this P1 is not:\n\n- Not adding bare `node` to the first-token allowlist.\n- Not a register-test-runner recipe.\n- Not wrapping the filed command as `npm test` / `pnpm test`.\n- Not FiScope `npm run lint` / `npm run build` / `task deft:check` (comment 5737701588).\n- Not changing which fields are AC oracles.\n- Not `run.ts` `shell: true` / `env: process.env` (#4702 residual).\n\nOpen forks the critic may take: bind the closed `node --test` grammar as filed (exact `--test`, `--test-` / `--experimental-test-` later dash tokens, exact built-in reporter names, persist-recovery of stored `literal_acceptance_rejected` rows); refuse a wider Node interpreter surface; keep first-token refuse and treat `npm test` as the only wrap.\n\n",
+          "id": 5802197814,
+          "html_url": "https://github.com/deftai/directive/issues/4978#issuecomment-5802197814",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:14:11Z",
+          "updated_at": "2026-09-23T20:14:11Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, fresh critic, open critique. Input ceiling 5802197814. Tree reads pinned to `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:<path>`. Checks ran on that SHA (dest HEAD equals dispatch-sha) under Node v24.20.0.\n\n## Anchors re-verified by execution\n\n`pnpm exec vitest run packages/core/src/literal-acceptance/safety-branches.test.ts`: 35 passed. The three `node --test` pins still refuse with `/allowlist/`.\n\n`pnpm exec tsx` import of `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/safety.ts` `evaluateCommandSafety`:\n\n| command | ok | reason |\n| --- | --- | --- |\n| `node --test` | false | `first token \"node\" is not in the literal-AC allowlist` |\n| `node --test tests/display.test.js` | false | same first-token reason |\n| `node -e 1` / `node script.js` | false | same first-token reason |\n| `npm test` / `pnpm test` / `python -m pytest` / `vitest run` | true | `reason: null` |\n| `go test` / `curl https://example.com` | false | first-token allowlist |\n| `python -m pytest --foo` | true | python rest is open after exact `-m pytest` |\n| `node --test --test-name-pattern=a\\|b` | false | shell metacharacter `\"\\|\"` |\n\nUnknown-first-token reasons name the refused token only. They do not enumerate `ALLOWED_FIRST_TOKENS`. After the python branch, `evaluateCommandSafety` returns `{ ok: true, reason: null }`. Every token in the set at this SHA has a dedicated branch, so that return is dead for allowlisted bins today. Adding `node` to the set without a grammar would hit it.\n\n`git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/capture.ts` `CLI_START_RE` already includes `node`, so a stated `node --test` is captured as shell-shaped and `pushCommand` records it on `literal_acceptance_rejected`.\n\nLive Node v24.20.0, argv spawn, one-test `a.test.cjs` in `/tmp/4978-node-test`:\n\n| invocation | observed |\n| --- | --- |\n| `--test-reporter=spec` and `--test-reporter spec` | exit 0 |\n| `--test-reporter=dot` | exit 0, stdout `.` |\n| `--test-reporter=data:text/javascript,console.log%281%29` | stdout `1`, then TypeError, exit 7 |\n| `--test-reporter data:text/javascript,console.log%281%29` | stdout `1`, then TypeError, exit 7 |\n| `--test-reporter=./reporter.cjs` and `--test-reporter ./reporter.cjs` | stdout `CUSTOM_REPORTER_RAN`, exit 7 |\n| `--test-global-setup=./setup.cjs` and `--test-global-setup ./setup.cjs` | stdout `GLOBAL_SETUP_RAN`, exit 0 |\n\n`node --help` on this runtime also lists `--test-global-setup=...`, `--test-randomize`, `--test-random-seed=...`, `--test-coverage-*`, `--experimental-test-tag-filter=...`. Those dash tokens start with `--test-` or `--experimental-test-`.\n\n## Findings\n\n### Reporter names are a closed allow-set on both attachments — sharpens-framing\n\n**Evidence.** Bound remainder (issue body after recut 5800470603, Stop 1 5802197814) already says `--test-reporter` / `--test-reporter=` values are exact built-in names (`spec`, `tap`, `junit`, `lcov`, `dot`) via in-tree exact-token match. The negative-case list names `--test-reporter=data:` and `--test-reporter=./file`, and names space forms of `--import` / `--require` / `--watch` / `--inspect-brk`. Live Node on this host evaluates the space form `--test-reporter data:text/javascript,console.log%281%29` (stdout `1`) and loads `--test-reporter ./reporter.cjs`.\n\n`git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/safety.ts` `evaluatePythonPytestArgs` matches `tokens[0] === \"-m\"` and `tokens[1] === \"pytest\"`, then returns `{ ok: true, reason: null }` for the rest. That is two whitespace tokens and no `=` split. Applying that analog to `--test-reporter` checks the next token for `spec` and leaves `--test-reporter=data:text/javascript,…` as one dash token that starts with `--test-`. Prefix-allow then admits the parent pain-audit 5800442997 shape. A denylist that exact-matches the listed stub `--test-reporter=data:` leaves the longer percent-encoded URL and the space form.\n\n**Failure mode.** Tests copied from the negative-case list pin the `=` stubs. `node --test tests/display.test.js` goes green. Promoted `swarm.verify_commands` can still evaluate JavaScript through `--test-reporter data:…` or `--test-reporter=data:text/javascript,console.log%28process.env.HOME%29`, with `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/run.ts` `shell: true` / `env: process.env` as the standing #4702 residual.\n\n**Disposition consequence.** The remainder can bind. State the reporter bullet as a closed allow-set of those five names, matched as a whole string, either as the token after `--test-reporter` or as the suffix after `--test-reporter=`. Other `--test-reporter` tokens refuse, including missing values. Keep the listed `=` strings and add the live space-form fixtures as tests of that allow-set. `evaluatePythonPytestArgs` is the space-form analog only.\n\n### Persist recovery already has a read/merge site — sharpens-framing\n\n**Evidence.** `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/capture.ts` `readStoredLiteralAcceptanceDetailed` copies `metadata.literal_acceptance_rejected` through `recordRejected` with the stored reason. It does not call `evaluateCommandSafety` on those rows. `mergeRejected` unions by `command\\0reason`. `attachLiteralAcceptanceCommands` writes that union back whenever it attaches. `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/evaluate.ts` `evaluateLiteralAcceptanceFromPlan` sets `ok = false` when any merged rejected row remains.\n\nLive on this SHA: a plan whose rejected ledger holds `{ command: \"npm test\", reason: \"first token \\\"node\\\" is not in the literal-AC allowlist\" }` fails the gate while `evaluateCommandSafety(\"npm test\")` returns `{ ok: true, reason: null }`. The same copy path keeps a stored `node --test` first-token refuse after a new grammar would accept that string. `CLI_START_RE` already treats `node` as a capture start, so that row is the filed-command path.\n\n**Failure mode.** Shipping the grammar and flipping `safety-branches.test.ts` leaves consumers who already captured `node --test` blocked on the old first-token reason. `task deft:check` stays red for the command this remainder admits.\n\n**Disposition consequence.** The remainder can bind. Recheck each persisted rejected row with current `evaluateCommandSafety` at the `readStoredLiteralAcceptanceDetailed` copy loop, or at the evaluate merge. Drop only rows whose command now returns ok. Leave other rejected rows. Reuse `literal_acceptance_rejected` and `evaluateCommandSafety`.\n\n## Footnotes\n\n- `--test-global-setup` runs a file (live `GLOBAL_SETUP_RAN`). Prefix `--test-` admits it. Same trust class as non-dash positional test files Bound already allows, and as `python -m pytest <paths>`. Path-like `--test-reporter` values stay on the refuse list because that is the `data:` / package-resolve class from 5800442997.\n- `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/product-first-done-gate/acceptance-resolver.ts` `REMEDY[\"safety-rejected\"]` is still `promote a safe alternative into plan.metadata.swarm.verify_commands or remove the stated command from the task statement (#3267)`. Bound already asks that string to name `npm test` / `pnpm test` as the known-safe wrap of a different recorded command. Existing slot; no new predicate.\n- `node.exe --test` still fails as an unknown first token (`node.exe`). Remainder first token is `node`.\n- `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/tool-events/classify.ts` still uses `rest.some((t) => normalizeToken(t) === \"--test\")`. Bound already keeps that as a verify bucket. Safety `tokens[0]` exactly `--test` is the execution grammar.\n\n## Injection / swarm lens\n\nThis remainder changes which promoted `swarm.verify_commands` strings may spawn. Those strings can come from issue text after promote. Control is the closed `node --test` argv grammar (exact `--test`, dash-token prefix, destination and rerun-failures refuse, closed reporter-name allow-set on both attachments) plus the existing metachar scan in `safety.ts`. The metachar scan does not decode `data:` percent-encoding. `run.ts` `shell: true` / `env: process.env` stays the #4702 residual Bound already keeps.\n\n## Road not taken\n\nI considered classifying the space-form reporter row as `blocks-the-design` because live eval still works and the negative-case list omits it. Strongest case: a builder who copies the listed stubs and the python two-token analog re-admits `--test-reporter=data:…`, which is the parent blocking hole. What flips me to sharpening: Bound already names `--test-reporter` / `--test-reporter=` values as those five exact names. A closed allow-set on both attachments is a statement of that bullet. What would flip me to blocking: treating the negative-case list as the complete reporter rule.\n\nI considered keeping first-token refuse and naming `npm test` as the wrap. Strongest case: `evaluateCommandSafety(\"npm test\")` is already `{ ok: true, reason: null }` on this SHA, and the spawn surface does not grow. What flips me off: Stop 1 P1 is the original `node --test` string; Bound already records that wrap as a different command; this leftover exists because that wrap leaves the filed string red.\n\n## Verdict\n\nBind the closed `node --test` grammar as filed, including exact built-in reporter names and persist recheck of stored `literal_acceptance_rejected` rows. Take the two sharpenings: reporter names as a closed five-name allow-set on both attachments, and persist recheck at the existing capture read/merge. Bare first-token `node` and a register-test-runner recipe stay out of this remainder.\n\n",
+          "id": 5802368427,
+          "html_url": "https://github.com/deftai/directive/issues/4978#issuecomment-5802368427",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:26:17Z",
+          "updated_at": "2026-09-23T20:26:17Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe round-1 grok critic found no blocking defect in the leftover remainder: a closed `node --test` argv grammar can bind as filed. Confirming this map keeps exact `--test`, later dash tokens limited to `--test-` / `--experimental-test-`, refuse of destination and rerun-failures, a closed five-name reporter allow-set on both `--test-reporter` attachments (space form and `=` form), persist recheck of stored `literal_acceptance_rejected` rows, and the listed negative cases. Bare first-token `node` and a register-test-runner recipe stay out. That recut is what would relieve P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings. Charter stays open critique.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after N=1 critic. Cites critic 5802368427 (grok-4.6). Supersedes Stop 1 write-back 5802197814. Round 1 sibling count 1.\n\nTarget-digest: sha256:0f864755a46d204d903c6a654669d5468112ba1c82196a6d141159f4bd61f665\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4978-dc\norigin-ref: origin/HEAD\ndispatch-sha: 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0\nDual-stop cap: 6 posts\ndest-wo: leftover-complete\n\n## Takes\n\n- 5802368427 Reporter names are a closed allow-set on both attachments — sharpens-framing — accept-into-contract\n- 5802368427 Persist recovery already has a read/merge site — sharpens-framing — accept-into-contract\n\nrelieves: P1\n\n## Bound remedy\n\n- First ship is a closed `node --test` argv grammar inside `evaluateCommandSafety`. Add `node` to the static first-token list and route it through that grammar, same as python. Fall-through `{ ok: true, reason: null }` for `node` is forbidden. Do not ship a register-test-runner recipe. Do not wrap the filed command as `npm test` / `pnpm test`.\n- After `node`, `tokens[0]` is exactly `--test`. Every later token that starts with `-` must start with `--test-` or `--experimental-test-`. Refuse `--test-reporter-destination` and `--test-rerun-failures` including `=value`. `--test-reporter` / `--test-reporter=` values are a closed allow-set of exact built-in names (`spec`, `tap`, `junit`, `lcov`, `dot`) matched as a whole string, either the token after `--test-reporter` or the suffix after `--test-reporter=`. Other `--test-reporter` tokens refuse, including missing values, `data:`, path-like, package-name, percent-encoded URLs, and the live space form `--test-reporter data:…`. Non-dash positionals pass. Coverage flags only after `--test`. Keep `-r` / `-e` / `-p` on the negative list. Do not copy `tool-events/classify.ts` `some(--test)`.\n- Negative cases: `--import=`, `--require=`, `--experimental-loader=`, `--loader=`, `--inspect=`, `--inspect-port=`, `--eval=`, `--test-reporter-destination=`, `--test-rerun-failures=`, `--test-reporter=data:`, `--test-reporter=./file`, space forms of `--import` / `--require` / `--watch` / `--inspect-brk`, plus `-r` / `-e` / `-p`, plus `--test-reporter data:` and `--test-reporter ./file` as tests of the allow-set.\n- Persist recovery: at `readStoredLiteralAcceptanceDetailed` copy or evaluate merge, recheck each stored `literal_acceptance_rejected` row with current `evaluateCommandSafety`. Drop only rows whose command now returns ok. Leave other rejected rows. Do not clear the whole ledger.\n- Refusal reason for an unknown first token enumerates the accepted first tokens. The `safety-rejected` remedy names `npm test` / `pnpm test` as the known-safe wrap of a different recorded command.\n- Scope sentence: this remainder changes the first-token grammar only. It does not change which fields are AC oracles. Flip the `safety-branches.test.ts` pins that refuse `node --test`. `run.ts` `shell: true` / `env: process.env` stays the #4702 residual.\n\n",
+          "id": 5802409842,
+          "html_url": "https://github.com/deftai/directive/issues/4978#issuecomment-5802409842",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:29:22Z",
+          "updated_at": "2026-09-23T20:29:22Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit of asserted coverage on successor lean 5802409842 (ceiling). Stop 1 write-back 5802197814 names `pain: P1` as first-token refuse of `node --test` so `task deft:check` stays red while the tests pass. Tree reads pinned to `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:<path>`. dest HEAD equals that SHA. Live Node v24.20.0.\n\n## Anchors re-verified by execution\n\n`pnpm exec vitest run packages/core/src/literal-acceptance/safety-branches.test.ts`: 35 passed. The `node --test` pins still refuse with `/allowlist/`.\n\n`pnpm exec tsx` import of `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/safety.ts` `evaluateCommandSafety`:\n\n| command | ok | reason |\n| --- | --- | --- |\n| `node --test` | false | `first token \"node\" is not in the literal-AC allowlist` |\n| `node --test tests/display.test.js` | false | same first-token reason |\n| `node --test --test-reporter=spec` / `node --test --test-reporter spec` | false | same first-token reason |\n| `node -e 1` / `node script.js` / `node --import tsx --test` / `node --test --watch` | false | same first-token reason |\n| `npm test` / `pnpm test` / `python -m pytest` / `vitest run` | true | `reason: null` |\n| `python -m pytest --foo` | true | python rest is open after exact `-m pytest` |\n| `go test` / `curl https://example.com` | false | first-token allowlist |\n| `node --test --test-name-pattern=a\\|b` | false | shell metacharacter `\"\\|\"` |\n\nUnknown-first-token reasons name the refused token only. They do not enumerate `ALLOWED_FIRST_TOKENS`. After the python branch, `evaluateCommandSafety` returns `{ ok: true, reason: null }`. Every token in the set at this SHA has a dedicated branch, so that return is dead for allowlisted bins today. Adding `node` to the set without a dedicated grammar would hit it. Bound forbids that fall-through.\n\n`git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/check/cached-orchestrator.ts` runs Product AC (`verify:ac`) first. `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/product-first-done-gate/evaluate.ts` calls `evaluateLiteralAcceptanceFromPlan`. `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/product-first-done-gate/acceptance-resolver.ts` maps a non-empty `rejected` list to predicate `safety-rejected`.\n\n`git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/capture.ts` `readStoredLiteralAcceptanceDetailed` copies `metadata.literal_acceptance_rejected` through `recordRejected` with the stored reason. It does not call `evaluateCommandSafety` on those rows. `mergeRejected` unions by `command\\0reason`. Live fixture: a plan whose rejected ledger holds `{ command: \"node --test\", reason: \"first token \\\"node\\\" is not in the literal-AC allowlist\" }` and whose `swarm.verify_commands` is `npm test` still fails `evaluateLiteralAcceptanceFromPlan` (`ok: false`, code 1) while `evaluateCommandSafety(\"npm test\")` is `{ ok: true, reason: null }`. Bound persist recheck is the other half of coverage for already-captured plans.\n\nLive Node v24.20.0, argv spawn, one-test `a.test.cjs` in `/tmp/4978-pain-audit`:\n\n| invocation | observed |\n| --- | --- |\n| `node --test a.test.cjs` | exit 0 |\n| `--test-reporter=data:text/javascript,console.log%28\"DATA_EVAL\"%29` and the space form | stdout `DATA_EVAL`, then TypeError, exit 7 |\n| `--test-reporter=spec,tap` | `ERR_MODULE_NOT_FOUND` package `spec,tap` |\n| `--test-reporter` with no value, next token `a.test.cjs` | `ERR_MODULE_NOT_FOUND` package `a.test.cjs` |\n| `--test-reporter=html` | `ERR_MODULE_NOT_FOUND` package `html` |\n| `--test-global-setup=data:…` and the space form | `ERR_MODULE_NOT_FOUND` under cwd as a file path; no `DATA_EVAL` |\n| `--test-global-setup=./setup.cjs`, space form, and absolute `/tmp/…/setup.cjs` | stdout `GLOBAL_SETUP_RAN`, exit 0 |\n| `--test-global-setup=tap` / `file:` URL | cwd file-path miss, not package resolve |\n\n`git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/capture.ts` `CLI_START_RE` already includes `node`, so a stated `node --test` is captured as shell-shaped and `pushCommand` records it on `literal_acceptance_rejected`.\n\nBound on 5802409842 admits `node --test` and `node --test <paths>` through a dedicated grammar (exact `--test`, later dash tokens limited to `--test-` / `--experimental-test-`, closed five-name reporter allow-set on both attachments including missing values, destination and rerun-failures refuse), and rechecks stored rejected rows with current `evaluateCommandSafety`, dropping only rows whose command now returns ok. That is the filed P1 string plus the persist half that currently fail-closes `verify:ac` / `task deft:check`.\n\n## Findings\n\n### `--test-global-setup` is a cwd file path — footnote\n\nLive `--test-global-setup=data:…` does not evaluate JavaScript. Node looks for a file under cwd. Relative and absolute paths run `GLOBAL_SETUP_RAN`. That is the same path-load class Bound already allows for non-dash positional test files and that `python -m pytest <paths>` already allows. Reporter `data:` stays the eval class; Bound's closed five-name allow-set covers it.\n\n### Bare `--test-reporter` package-resolves the next positional — footnote\n\nLive `node --test --test-reporter a.test.cjs` looks up package `a.test.cjs`. Bound already refuses other `--test-reporter` tokens including missing values. That refuse is load-bearing for the closed grammar.\n\n### `node.exe --test` stays an unknown first token — footnote\n\nFirst token is `node.exe`. Bound first token is `node`.\n\n## Injection / swarm lens\n\nThis remainder changes which promoted `swarm.verify_commands` strings may spawn. Those strings can come from issue text after promote. Control is the closed `node --test` argv grammar (exact `--test`, dash-token prefix, destination and rerun-failures refuse, closed reporter-name allow-set on both attachments including missing values) plus persist recheck of stored `literal_acceptance_rejected` rows plus the existing metachar scan in `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/safety.ts`. The metachar scan does not decode `data:` percent-encoding. Reporter allow-set is the control for that shape. `git show 4e6f0fed0c04a3f00573d39b7d3a5396da8a13d0:packages/core/src/literal-acceptance/run.ts` `shell: true` / `env: process.env` stays the #4702 residual Bound already keeps.\n\n## Road not taken\n\nI considered classifying persist \"copy or evaluate merge\" as `blocks-the-design` because `readStoredLiteralAcceptanceDetailed` copies stored reasons and `attachLiteralAcceptanceCommands` unions them back. Strongest case: evaluate-merge-only recheck leaves the xBRIEF row in place for a later attach. What flips me to footnote: the measured P1 path is `evaluateLiteralAcceptanceFromPlan` inside `verify:ac` / first check-graph gate; Bound's evaluate-merge site covers that gate. The copy site also stops attach from re-unioning a now-ok row. Either site unblocks the named pain.\n\nI considered classifying `--test-global-setup` prefix-allow as `blocks-the-design` because it runs JavaScript. Strongest case: it looks like the parent reporter `data:` hole on another `--test-` flag. What flips me: live `data:` on global-setup is a cwd path miss; reporter `data:` prints `DATA_EVAL`. What would flip me to blocking: a runtime where `--test-global-setup` loads `data:` or package names the way `--test-reporter` does.\n\n## Verdict\n\nBound remedy on successor lean 5802409842 covers Stop 1 `P1`. The first-token refuse of `node --test` is the named pain; the dedicated grammar admits that string; persist recheck drops the stored first-token row that still fail-closes the gate today. Census is footnote-only. Harvested Bound-remedy stays as written.\n\n",
+          "id": 5802621265,
+          "html_url": "https://github.com/deftai/directive/issues/4978#issuecomment-5802621265",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:43:57Z",
+          "updated_at": "2026-09-23T20:43:57Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nCites successor lean 5802409842.\n\n| Claim | Source | Method |\n|---|---|---|\n| Classified headings on lean 5802409842 are accept-into-contract | critic 5802368427 reporter allow-set; persist recheck | parent takes on 5802409842 |\n| Bound remedy relieves Stop 1 P1 (first-token refuse of `node --test`) | pain-audit 5802621265 | critic after lean targeting pain-P1; footnote-only census |\n| Closed five-name reporter allow-set covers both attachments including missing values | critic 5802368427; pain-audit 5802621265 | live Node `--test-reporter` `data:` eval vs Bound refuse |\n| Persist recheck of stored `literal_acceptance_rejected` rows unblocks captured plans | critic 5802368427; pain-audit 5802621265 | `evaluateLiteralAcceptanceFromPlan` fixture with stored `node --test` row |\n\n",
+          "id": 5802633713,
+          "html_url": "https://github.com/deftai/directive/issues/4978#issuecomment-5802633713",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:44:52Z",
+          "updated_at": "2026-09-23T20:44:52Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA closed `node --test` argv grammar, including exact built-in reporter names and persist recheck of stored rejected rows, relieves the leftover remainder on this number. Bare first-token `node` and a register-test-runner recipe stay out.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5802409842.\n\nTable comment 5802633713.\n\n",
+          "id": 5802633907,
+          "html_url": "https://github.com/deftai/directive/issues/4978#issuecomment-5802633907",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T20:44:53Z",
+          "updated_at": "2026-09-23T20:44:53Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Pain\n\nUnmet Stop 1 P1 from #4751 (write-back 5799047264): `verify:ac` safety-rejects `node --test …` because first token `\"node\"` is not in `ALLOWED_FIRST_TOKENS`, so a standard Node project cannot pass `task deft:check` even when the tests themselves pass.\n\n#4751 yolo leftover-split per #4593 after Dual-stop cap 5 spent and finish not still possible (blocking-count 0 then 1). Pain-audit 5800442997 blocked prefix-allowed `--test-reporter=data:` JavaScript evaluation. Recut 5800470603 absorbed exact built-in reporter names. This issue owns that remainder.\n\n## Why this number exists\n\nOperator confirmed leftover-split. No deliverable remainder stays on #4751 (Dual-stop remaining 0; finish not still possible). This number holds P1 as filed: a closed `node --test` argv grammar in `evaluateCommandSafety`.\n\nmechanism-shaped: true\n\nRefs #4751, #4593.\n\n## Bound remainder (from #4751 recut 5800470603)\n\n- First ship is a closed `node --test` argv grammar inside `evaluateCommandSafety`. Add `node` to the static list and route it through that grammar, same as python. Fall-through `{ ok: true, reason: null }` for `node` is forbidden. Do not ship a register-test-runner recipe as this remainder.\n- After `node`, `tokens[0]` is exactly `--test`. Every later token that starts with `-` must start with `--test-` or `--experimental-test-`. Refuse `--test-reporter-destination` and `--test-rerun-failures` including `=value`. `--test-reporter` / `--test-reporter=` values are exact built-in names (`spec`, `tap`, `junit`, `lcov`, `dot`) via in-tree exact-token match. Refuse `data:`, path-like, and package-name reporter values. Non-dash positionals pass. Coverage flags only after `--test`; coverage-first stays refused. Do not copy `tool-events/classify.ts` `some(--test)`. Keep `-r` / `-e` / `-p` on the negative list.\n- Negative cases: `--import=`, `--require=`, `--experimental-loader=`, `--loader=`, `--inspect=`, `--inspect-port=`, `--eval=`, `--test-reporter-destination=`, `--test-rerun-failures=`, `--test-reporter=data:`, `--test-reporter=./file`, plus space forms of `--import` / `--require` / `--watch` / `--inspect-brk`, plus `-r` / `-e` / `-p`.\n- Persist recovery: a stored `literal_acceptance_rejected` row for a command that now passes current safety must be reconciled; admission of a new grammar does not leave the old first-token refuse blocking. Do not clear the whole ledger.\n- Refusal reason for an unknown first token enumerates the accepted first tokens. The `safety-rejected` remedy names `npm test` / `pnpm test` as the known-safe wrap. That wrap is a different recorded command; it does not make the original `node --test` string admissible.\n- Scope sentence: this remainder changes the first-token grammar only. It does not change which fields are AC oracles. FiScope `npm run lint` / `npm run build` / `task deft:check` stays a different first-token family (#4751 comment 5737701588).\n- Flip the `safety-branches.test.ts` pins that refuse `node --test` with the grammar. `run.ts` `shell: true` / `env: process.env` stays the #4702 residual.\n\n## What this is not\n\n- Not adding bare `node` to the first-token allowlist.\n- Not a register-test-runner recipe.\n- Not wrapping the filed command as `npm test` / `pnpm test` (those are a different recorded command).\n- Not FiScope `npm run lint` / `npm run build` / `task deft:check` (comment 5737701588).\n- Not changing which fields are AC oracles.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5557957621,
+        "origin": "deftai/directive#4978",
+        "id": "github.issue.5557957621"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0f864755a46d204d903c6a654669d5468112ba1c82196a6d141159f4bd61f665"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "First ship is a closed `node --test` argv grammar inside `evaluateCommandSafety`. Add `node` to the static first-token list and route it through that grammar, same as python. Fall-through `{ ok: true, reason: null }` for `node` is forbidden. Do not ship a register-test-runner recipe. Do not wrap the filed command as `npm test` / `pnpm test`.",
+        "After `node`, `tokens[0]` is exactly `--test`. Every later token that starts with `-` must start with `--test-` or `--experimental-test-`. Refuse `--test-reporter-destination` and `--test-rerun-failures` including `=value`. `--test-reporter` / `--test-reporter=` values are a closed allow-set of exact built-in names (`spec`, `tap`, `junit`, `lcov`, `dot`) matched as a whole string, either the token after `--test-reporter` or the suffix after `--test-reporter=`. Other `--test-reporter` tokens refuse, including missing values, `data:`, path-like, package-name, percent-encoded URLs, and the live space form `--test-reporter data:…`. Non-dash positionals pass. Coverage flags only after `--test`. Keep `-r` / `-e` / `-p` on the negative list. Do not copy `tool-events/classify.ts` `some(--test)`.",
+        "Negative cases: `--import=`, `--require=`, `--experimental-loader=`, `--loader=`, `--inspect=`, `--inspect-port=`, `--eval=`, `--test-reporter-destination=`, `--test-rerun-failures=`, `--test-reporter=data:`, `--test-reporter=./file`, space forms of `--import` / `--require` / `--watch` / `--inspect-brk`, plus `-r` / `-e` / `-p`, plus `--test-reporter data:` and `--test-reporter ./file` as tests of the allow-set.",
+        "Persist recovery: at `readStoredLiteralAcceptanceDetailed` copy or evaluate merge, recheck each stored `literal_acceptance_rejected` row with current `evaluateCommandSafety`. Drop only rows whose command now returns ok. Leave other rejected rows. Do not clear the whole ledger.",
+        "Refusal reason for an unknown first token enumerates the accepted first tokens. The `safety-rejected` remedy names `npm test` / `pnpm test` as the known-safe wrap of a different recorded command.",
+        "Scope sentence: this remainder changes the first-token grammar only. It does not change which fields are AC oracles. Flip the `safety-branches.test.ts` pins that refuse `node --test`. `run.ts` `shell: true` / `env: process.env` stays the #4702 residual."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "First ship is a closed `node --test` argv grammar inside `evaluateCommandSafety`. Add `node` to the static first-token list and route it through that grammar, same as python. Fall-through `{ ok: true, reason: null }` for `node` is forbidden. Do not ship a register-test-runner recipe. Do not wrap the filed command as `npm test` / `pnpm test`.",
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "After `node`, `tokens[0]` is exactly `--test`. Every later token that starts with `-` must start with `--test-` or `--experimental-test-`. Refuse `--test-reporter-destination` and `--test-rerun-failures` including `=value`. `--test-reporter` / `--test-reporter=` values are a closed allow-set of exact built-in names (`spec`, `tap`, `junit`, `lcov`, `dot`) matched as a whole string, either the token after `--test-reporter` or the suffix after `--test-reporter=`. Other `--test-reporter` tokens refuse, including missing values, `data:`, path-like, package-name, percent-encoded URLs, and the live space form `--test-reporter data:…`. Non-dash positionals pass. Coverage flags only after `--test`. Keep `-r` / `-e` / `-p` on the negative list. Do not copy `tool-events/classify.ts` `some(--test)`.",
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Negative cases: `--import=`, `--require=`, `--experimental-loader=`, `--loader=`, `--inspect=`, `--inspect-port=`, `--eval=`, `--test-reporter-destination=`, `--test-rerun-failures=`, `--test-reporter=data:`, `--test-reporter=./file`, space forms of `--import` / `--require` / `--watch` / `--inspect-brk`, plus `-r` / `-e` / `-p`, plus `--test-reporter data:` and `--test-reporter ./file` as tests of the allow-set.",
+          "artifact_path": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Persist recovery: at `readStoredLiteralAcceptanceDetailed` copy or evaluate merge, recheck each stored `literal_acceptance_rejected` row with current `evaluateCommandSafety`. Drop only rows whose command now returns ok. Leave other rejected rows. Do not clear the whole ledger.",
+          "artifact_path": "packages/core/src/literal-acceptance/capture.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Refusal reason for an unknown first token enumerates the accepted first tokens. The `safety-rejected` remedy names `npm test` / `pnpm test` as the known-safe wrap of a different recorded command.",
+          "artifact_path": "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Scope sentence: this remainder changes the first-token grammar only. It does not change which fields are AC oracles. Flip the `safety-branches.test.ts` pins that refuse `node --test`. `run.ts` `shell: true` / `env: process.env` stays the #4702 residual.",
+          "artifact_path": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5557957621",
+    "updated": "2026-09-25T17:23:59Z"
+  }
+}
