@@ -265,7 +265,7 @@ function main() {
   // analyzers see a non-shell spawn; win32 global still uses a quoted cmd.exe
   // wrapper inside buildSpawnPlan, never shell:true (#2911 / #3175).
   // windowsVerbatimArguments is only the win32 global plan: libuv must not
-  // re-escape the outer /s quotes (#4772). Vendored argv stays a direct Node spawn.
+  // re-escape the outer /s quotes (#4772 / #3629). Vendored argv stays a direct Node spawn.
   const result = spawnSync(plan.command, plan.args, {
     stdio: "inherit",
     env: childEnv,
@@ -313,7 +313,8 @@ function buildSpawnPlan(mode, target, argv, opts = {}) {
     if (platform === "win32") {
       // Only the global shim name/path and operator argv — no process.execPath.
       // Outer quotes are the first and last characters cmd.exe /s strips.
-      // windowsVerbatimArguments stops libuv from escaping that line again (#4772).
+      // windowsVerbatimArguments stops libuv from escaping that line again
+      // (#4772 / #3629 spaced --project-root).
       const commandLine = [target, ...argv].map(quoteWin32Arg).join(" ");
       return {
         command: "cmd.exe",
