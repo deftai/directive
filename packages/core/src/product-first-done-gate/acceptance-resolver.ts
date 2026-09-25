@@ -86,7 +86,7 @@ const REMEDY: Record<AcceptancePredicate, string> = {
   "config-error": "fix plan.acceptance so it matches the #3284 schema, then re-run task verify:ac",
   "noop-refused": NOOP_ACCEPTANCE_REMEDIATION,
   "safety-rejected":
-    "promote a safe alternative into plan.metadata.swarm.verify_commands or remove the stated command from the task statement (#3267)",
+    "promote a safe alternative such as npm test / pnpm test (a different recorded command) into plan.metadata.swarm.verify_commands or remove the stated command from the task statement (#3267)",
   "commands-failed":
     "fix the product until the stated acceptance command exits as expected — the command, not the gate, is the oracle (#3284)",
   "empty-acceptance":

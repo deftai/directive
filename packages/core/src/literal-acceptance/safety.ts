@@ -35,11 +35,28 @@ const SHELL_META_CHARS = new Set([
  * First-token allowlist for **execution** (#3267 Greptile P1 ambient-authority).
  * Network/SCM tools (curl/gh/git/docker) are intentionally excluded — they retain
  * ambient credentials. Capture may still record broader CLI shape; only these
- * tokens may spawn. Wrappers, package managers, vitest, and the Python
- * interpreters require the argument grammars below. python, python3, and py
- * are exact `-m pytest` only (#4702). Bare pytest, uv, go test, and node --test stay out.
+ * tokens may spawn. Wrappers, package managers, vitest, the Python interpreters,
+ * and `node` require the argument grammars below. python, python3, and py are
+ * exact `-m pytest` only (#4702). `node` is exact `--test` only (#4978). Bare
+ * pytest, uv, and go test stay out.
  */
 const PYTHON_PYTEST_INTERPRETERS = new Set(["python", "python3", "py"]);
+
+/** Built-in `node --test --test-reporter` names (#4978). Exact whole-string match. */
+const NODE_TEST_REPORTERS = new Set(["spec", "tap", "junit", "lcov", "dot"]);
+
+/** Strip one layer of matching wrapping quotes so shell-stripped dash forms cannot bypass. */
+function unwrapShellQuotes(token: string): string {
+  if (token.length < 2) {
+    return token;
+  }
+  const first = token[0];
+  const last = token[token.length - 1];
+  if ((first === "'" && last === "'") || (first === '"' && last === '"')) {
+    return token.slice(1, -1);
+  }
+  return token;
+}
 
 const ALLOWED_FIRST_TOKENS = new Set([
   "task",
@@ -51,9 +68,13 @@ const ALLOWED_FIRST_TOKENS = new Set([
   "yarn",
   "bun",
   "vitest",
+  "node",
   ...PYTHON_PYTEST_INTERPRETERS,
 ]);
 
+function formatAllowedFirstTokens(): string {
+  return [...ALLOWED_FIRST_TOKENS].sort().join(", ");
+}
 /**
  * Exact wrapper subcommands that are verification-shaped (no scope/policy/scm/swarm
  * mutations). Additional args after these tokens are allowed (e.g. `task check --json`).
@@ -280,7 +301,9 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
   if (!ALLOWED_FIRST_TOKENS.has(first)) {
     return {
       ok: false,
-      reason: `first token ${JSON.stringify(first)} is not in the literal-AC allowlist`,
+      reason:
+        `first token ${JSON.stringify(first)} is not in the literal-AC allowlist ` +
+        `(accepted: ${formatAllowedFirstTokens()})`,
     };
   }
 
@@ -313,9 +336,13 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
     return evaluatePythonPytestArgs(rest);
   }
 
+  // node: closed `--test` argv grammar only (#4978). Fall-through ok for node is forbidden.
+  if (first === "node") {
+    return evaluateNodeTestArgs(rest);
+  }
+
   return { ok: true, reason: null };
 }
-
 /**
  * Restrict task/deft/directive to verification-shaped subcommands.
  * Fail closed on scope/policy/swarm/pr/scm/lifecycle mutations.
@@ -470,6 +497,76 @@ function evaluatePythonPytestArgs(rest: string): CommandSafetyResult {
       reason:
         "python/python3/py is limited to -m pytest " +
         "(other interpreter modes and modules denied for ambient-authority)",
+    };
+  }
+  return { ok: true, reason: null };
+}
+
+/**
+ * `node`: closed `--test` argv grammar (#4978 / leftover #4751).
+ * tokens[0] must be exactly `--test`. Later dash tokens must start with
+ * `--test-` or `--experimental-test-`. `--test-reporter` values are a closed
+ * five-name allow-set on both attachments. Destination, rerun-failures, and
+ * module-loading `--test-global-setup` refuse. Wrapping quotes are stripped
+ * before dash-token checks so shell-stripped forms cannot bypass.
+ */
+function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
+  const tokens = rest.length === 0 ? [] : rest.trim().split(/\s+/);
+  if (unwrapShellQuotes(tokens[0] ?? "") !== "--test") {
+    return {
+      ok: false,
+      reason:
+        "node is limited to --test " + "(other interpreter modes denied for ambient-authority)",
+    };
+  }
+  for (let i = 1; i < tokens.length; i += 1) {
+    const token = unwrapShellQuotes(tokens[i] as string);
+    if (!token.startsWith("-")) {
+      continue;
+    }
+    if (
+      token === "--test-reporter-destination" ||
+      token.startsWith("--test-reporter-destination=") ||
+      token === "--test-rerun-failures" ||
+      token.startsWith("--test-rerun-failures=") ||
+      token === "--test-global-setup" ||
+      token.startsWith("--test-global-setup=")
+    ) {
+      return {
+        ok: false,
+        reason: `node --test flag ${JSON.stringify(token)} is denied`,
+      };
+    }
+    if (token === "--test-reporter") {
+      const rawValue = tokens[i + 1];
+      const value = rawValue === undefined ? undefined : unwrapShellQuotes(rawValue);
+      if (value === undefined || !NODE_TEST_REPORTERS.has(value)) {
+        return {
+          ok: false,
+          reason: "node --test --test-reporter value must be one of spec|tap|junit|lcov|dot",
+        };
+      }
+      i += 1;
+      continue;
+    }
+    if (token.startsWith("--test-reporter=")) {
+      const value = unwrapShellQuotes(token.slice("--test-reporter=".length));
+      if (!NODE_TEST_REPORTERS.has(value)) {
+        return {
+          ok: false,
+          reason: "node --test --test-reporter value must be one of spec|tap|junit|lcov|dot",
+        };
+      }
+      continue;
+    }
+    if (token.startsWith("--test-") || token.startsWith("--experimental-test-")) {
+      continue;
+    }
+    return {
+      ok: false,
+      reason:
+        `node --test dash token ${JSON.stringify(token)} must start with ` +
+        "--test- or --experimental-test-",
     };
   }
   return { ok: true, reason: null };
