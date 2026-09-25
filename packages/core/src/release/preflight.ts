@@ -14,13 +14,13 @@ import { spawnSync } from "node:child_process";
 import type { CachedCheckCompletion, CheckOrchestratorSeams } from "../check/orchestrator.js";
 import { dispatchTaskCheck } from "../check/orchestrator.js";
 import { suiteActuallyRan } from "../check/suite-gate-supervisor.js";
+import { defaultRunGh } from "../pr-merge-readiness/gh.js";
+import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
   ENV_HYGIENE_ADVISORY,
 } from "../product-first-done-gate/index.js";
-import { defaultRunGh } from "../pr-merge-readiness/gh.js";
-import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import {
   COVERAGE_DEBT_ENV,
   DEFAULT_REPO,
