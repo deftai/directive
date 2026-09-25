@@ -638,6 +638,8 @@ export function readStoredLiteralAcceptanceDetailed(
     }
 
     // Persisted rejected ledger (operator visibility across reloads).
+    // Recheck each row with current evaluateCommandSafety; drop only rows that
+    // now pass (#4978 persist recovery). Leave other rejected rows.
     const persistedRejected =
       metadata[LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY] ??
       metadata.literalAcceptanceRejected ??
@@ -647,9 +649,13 @@ export function readStoredLiteralAcceptanceDetailed(
         const rec = asRecord(entry);
         if (rec === null) continue;
         if (!isNonEmptyString(rec.command) || !isNonEmptyString(rec.reason)) continue;
+        const command = rec.command.trim();
+        if (evaluateCommandSafety(command).ok) {
+          continue;
+        }
         recordRejected(
           buckets,
-          rec.command.trim(),
+          command,
           rec.reason.trim(),
           isNonEmptyString(rec.sourceSpan) ? rec.sourceSpan : null,
         );
