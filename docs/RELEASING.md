@@ -63,6 +63,8 @@ Rank helper:
 pnpm exec tsx packages/core/src/ts-check-lane/duration-rank.ts --top 20 .deft/check-tees/<session>/<run>.log
 ```
 
+`--top` is required (no coded default). Use `--top 20` for the #5024 cheapen baseline paste.
+
 Paste the top-20 from the next production Windows Step 5 cut into #5024 as the cheapen baseline. Out of scope here: acting on the ranking; uploading the artifact.
 
 Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-link).

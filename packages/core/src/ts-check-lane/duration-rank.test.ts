@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_TOP_N,
   formatRankLines,
   main,
   omissionNoteForHeartbeat,
@@ -66,7 +65,7 @@ describe("scrape + rank", () => {
       expect(ok.omissionNote).toContain(String(PROGRESS_FILE_HEARTBEAT_MS));
       expect(ok.entries).toHaveLength(1);
     }
-    const empty = rankTeeText("ts:check-lane last-file only\n");
+    const empty = rankTeeText("ts:check-lane last-file only\n", 5);
     expect(empty).toEqual(
       expect.objectContaining({
         ok: false,
@@ -82,10 +81,11 @@ describe("scrape + rank", () => {
   });
 });
 
-describe("parseTopN / defaults", () => {
-  it("defaults to bound-remedy top-20", () => {
-    expect(DEFAULT_TOP_N).toBe(20);
-    expect(parseTopN(undefined)).toEqual({ ok: true, topN: 20 });
+describe("parseTopN", () => {
+  it("requires an explicit positive integer (no coded default)", () => {
+    expect(parseTopN(undefined)).toEqual(expect.objectContaining({ ok: false, kind: "bad-top" }));
+    expect(parseTopN("")).toEqual(expect.objectContaining({ ok: false, kind: "bad-top" }));
+    expect(parseTopN("20")).toEqual({ ok: true, topN: 20 });
   });
 
   it("returns bad-top for non-positive values", () => {
@@ -99,14 +99,12 @@ describe("parseTopN / defaults", () => {
 });
 
 describe("rankTeeFile / main", () => {
-  const dirs: string[] = [];
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it("reads a tee file and returns ranked entries", () => {
     const dir = mkdtempSync(join(tmpdir(), "duration-rank-"));
-    dirs.push(dir);
     const path = join(dir, "tee.log");
     writeFileSync(
       path,
@@ -147,13 +145,13 @@ describe("rankTeeFile / main", () => {
     expect(err.join("")).toBe("");
   });
 
-  it("main returns 1 on usage without throwing", () => {
+  it("main returns 1 when --top is omitted", () => {
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation(((chunk: string) => {
       err.push(String(chunk));
       return true;
     }) as typeof process.stderr.write);
-    expect(main([])).toBe(1);
+    expect(main(["tee.log"])).toBe(1);
     expect(err.join("")).toContain("Usage:");
   });
 });

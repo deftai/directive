@@ -6,14 +6,14 @@
  * Those lines flush via writeSync when elapsed >= PROGRESS_FILE_HEARTBEAT_MS (30s).
  * Sub-30s files never appear. Stock vitest JsonReporter is not used: it writes
  * only in onTestRunEnd and does not survive hang kill (taskkill /T /F / SIGKILL).
+ *
+ * Caller supplies topN (CLI requires --top). No default N in code — RELEASING.md
+ * documents `--top 20` for the #5024 paste.
  */
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { PROGRESS_FILE_HEARTBEAT_MS, TIMELINE_PREFIX } from "./progress.js";
-
-/** Bound-remedy top-20 paste default for #5024 cheapen baseline. */
-export const DEFAULT_TOP_N = 20;
 
 /** Line regex for flushed timeline file duration rows. */
 const FILE_DURATION_RE = new RegExp(
@@ -103,7 +103,11 @@ export function formatRankLines(entries: readonly FileDurationEntry[]): string[]
 
 export function parseTopN(raw: string | undefined): { ok: true; topN: number } | RankErr {
   if (raw === undefined || raw === "") {
-    return { ok: true, topN: DEFAULT_TOP_N };
+    return {
+      ok: false,
+      kind: "bad-top",
+      message: "missing --top N; pass a positive integer (RELEASING.md uses --top 20 for #5024)",
+    };
   }
   const n = Number(raw);
   if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
@@ -116,7 +120,7 @@ export function parseTopN(raw: string | undefined): { ok: true; topN: number } |
   return { ok: true, topN: n };
 }
 
-export function rankTeeText(text: string, topN: number = DEFAULT_TOP_N): RankResult {
+export function rankTeeText(text: string, topN: number): RankResult {
   if (!Number.isFinite(topN) || !Number.isInteger(topN) || topN <= 0) {
     return {
       ok: false,
@@ -141,7 +145,7 @@ export function rankTeeText(text: string, topN: number = DEFAULT_TOP_N): RankRes
   };
 }
 
-export function rankTeeFile(path: string, topN: number = DEFAULT_TOP_N): RankResult {
+export function rankTeeFile(path: string, topN: number): RankResult {
   let text: string;
   try {
     text = readFileSync(path, "utf8");
@@ -158,11 +162,12 @@ export function rankTeeFile(path: string, topN: number = DEFAULT_TOP_N): RankRes
 
 export function usageMessage(): string {
   return [
-    "Usage: duration-rank [--top N] <tee-log>",
+    "Usage: duration-rank --top N <tee-log>",
     "",
     "Scrape flushed `ts:check-lane timeline file <path> <ms>` lines from a",
     "Step 5 / ts:check-lane tee under .deft/check-tees/** and print the top N",
-    `by duration (default ${String(DEFAULT_TOP_N)}).`,
+    "by duration. --top is required (no coded default; RELEASING.md shows",
+    "--top 20 for the #5024 cheapen baseline paste).",
     "",
     omissionNoteForHeartbeat(),
     "",
@@ -182,25 +187,27 @@ export function main(argv: readonly string[]): number {
     return 0;
   }
 
-  let topN = DEFAULT_TOP_N;
   const topIdx = args.findIndex((a) => a === "--top" || a.startsWith("--top="));
-  if (topIdx >= 0) {
-    const token = args[topIdx] ?? "";
-    let raw: string | undefined;
-    if (token.startsWith("--top=")) {
-      raw = token.slice("--top=".length);
-      args.splice(topIdx, 1);
-    } else {
-      raw = args[topIdx + 1];
-      args.splice(topIdx, 2);
-    }
-    const parsed = parseTopN(raw);
-    if (!parsed.ok) {
-      process.stderr.write(`${parsed.message}\n`);
-      return 1;
-    }
-    topN = parsed.topN;
+  if (topIdx < 0) {
+    process.stderr.write(`${usageMessage()}\n`);
+    return 1;
   }
+
+  const token = args[topIdx] ?? "";
+  let raw: string | undefined;
+  if (token.startsWith("--top=")) {
+    raw = token.slice("--top=".length);
+    args.splice(topIdx, 1);
+  } else {
+    raw = args[topIdx + 1];
+    args.splice(topIdx, 2);
+  }
+  const parsed = parseTopN(raw);
+  if (!parsed.ok) {
+    process.stderr.write(`${parsed.message}\n`);
+    return 1;
+  }
+  const topN = parsed.topN;
 
   const path = args[0];
   if (path === undefined || path.length === 0 || args.length !== 1) {
