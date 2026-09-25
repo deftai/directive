@@ -35,11 +35,18 @@
         "title": "Cheapening targets measured cost (named heavy files and/or host stale-binary / spawn cost). Success is Step 5 green under the existing timeout, not a higher timeout.",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5023",
-          "recorded_at": "2026-09-25T02:33:36.228Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "PR #5023 landed measured cheapens and raised hang detector 20→30m; Step 5 still did not complete under that timeout on the v0.119.9 cut (1272/1284 at 30m → --skip-ci=#5022). Green under timeout without skip-ci is owed on successor #5024 (30→45 + further cheapen). Merge evidence alone does not satisfy clause 2 success criterion.",
+          "recorded_at": "2026-09-25T15:53:38.877Z",
+          "recorded_by": "MScottAdams",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-25T15:53:38.877Z",
+            "mintedVia": "parent-retained-leftover-complete",
+            "eventRef": "https://github.com/deftai/directive/issues/5024"
+          }
         }
       },
       {
