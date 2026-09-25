@@ -1,0 +1,465 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5026",
+    "updated": "2026-09-25T11:54:59Z"
+  },
+  "plan": {
+    "title": "chore(release): decide whether Windows Step 5 runs vitest without --coverage (coverage-of-record from GHA)",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(release): decide whether Windows Step 5 runs vitest without --coverage (coverage-of-record from GHA)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5026",
+      "Overview": "\n\n1. Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.\n2. Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.\n3. Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.\n4. Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.\n5. Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:1acdd9ed2cbe1693f1e48ebd0445dd8fe942f3bf953eefe36714dd438ef50601\n\n\n",
+      "Labels": "chore, design, agent-experience, process, source-of-truth, area:release, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.",
+        "status": "pending",
+        "id": "clause.1"
+      },
+      {
+        "title": "Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.",
+        "status": "pending",
+        "id": "clause.2"
+      },
+      {
+        "title": "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.",
+        "status": "pending",
+        "id": "clause.3"
+      },
+      {
+        "title": "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
+        "status": "pending",
+        "id": "clause.4"
+      },
+      {
+        "title": "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024.",
+        "status": "pending",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "chore",
+      "design",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:release",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5026",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5026: chore(release): decide whether Windows Step 5 runs vitest without --coverage (coverage-of-record from GHA)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5022",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5022"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "\"test\": \"vitest run --coverage\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "pnpm run test",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/ts-check-lane/run-lane.ts",
+          "packages/core/src/ts-check-lane/run-lane.test.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/release/preflight.test.ts",
+          "docs/RELEASING.md",
+          "CHANGELOG.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Windows Step 5 wall clock is dominated by vitest --coverage spawn cost (#4591), while the merge-base coverage number already exists from Ubuntu GHA, so whether the release host must regenerate coverage is an unsettled gate-shape decision rather than a cheapen.\n\ncharter: refutation\nrefutation-target: Windows release Step 5 must run vitest with --coverage on the host because that local regeneration is the release correctness gate and the only legitimate coverage-of-record, so GHA coverage on the merge base cannot stand in and dropping --coverage would weaken the cut.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token ask. Recommended child of #5024. Gate-shape decision, not a cheapen. N=1.\n\npain: P1, P2, P3\n\nP1. Coverage multiplies every CLI boot and git spawn on Step 5, so keeping --coverage on the Windows host is the largest remaining wall-clock lever after #5022/#5023, yet the release gate's actual need is tip pass/fail.\nP2. No written RELEASING.md decision records whether Step 5 runs with coverage; \"we always did\" is not a rationale, and GHA timeout-minutes stays a separate surface (#5024).\nP3. If coverage stays, the measured host cost of --coverage vs not is unknown; if coverage drops, there is no recorded coverage-of-record citation (GHA run id on the merge base) or tee contract for the cut.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5026-dc\norigin-ref: origin/master\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\npin-kind: origin-default\ntarget-digest: sha256:66c914e6f8079abf63a72b8edd00ca83ef46895d27af5e36afd8c4a64719b593\n\nPin reads use git show 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650. Parent #5024; siblings #5027/#5028. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5825992657,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5825992657",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:04:38Z",
+          "updated_at": "2026-09-25T03:04:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5026\ncharter: refutation\nround: 1\nseat: grok\nlauncher: grok\nid-ceiling: 5825992657\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\narc-mode: no-ingest\naudit-targets: none\n\nConfirmed `git rev-parse HEAD` = `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650`. Pin reads via `git show 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650:<path>`. Envelope ignores comments with id > 5825992657. Stop 1 write-back is 5825992657.\n\nRefutation target (Stop 1): Windows release Step 5 must run vitest with `--coverage` on the host because that local regeneration is the release correctness gate and the only legitimate coverage-of-record, so GHA coverage on the merge base cannot stand in and dropping `--coverage` would weaken the cut.\n\n**Verdict: the refutation target does not survive** as that conjunction. Tip assertion pass/fail and coverage-of-record authority are already separate mechanisms; GHA already runs the same `pnpm run test` instrument under the same floor. What survives as residual is a narrower binding obligation if host `--coverage` drops: fail-closed tip-SHA GHA coverage citation, plus an explicit stance on win32-exercised paths.\n\n## Tip correctness is not host coverage regeneration\nsharpens-framing\nEvidence: At the dispatch SHA, `package.json` `\"test\"` is `vitest run --coverage`; `ts:check-lane` `buildTestLaneCommand()` is `pnpm run test` plus reporters (`packages/core/src/ts-check-lane/progress.ts`); `run-lane.ts` tees `coverage: true` as a timeline condition, not as a separate correctness predicate. `vitest.config.ts` states the 75 floor is a collapse detector and puts per-change rigor on `verify:forward-coverage` (#3514), with thresholds identical on win32 and Linux CI (#3512). Release `--skip-ci` (`skip-ci-incident.ts`) skips the whole Step 5 suite and WARNs that npm ships untested — a different axis from keeping `vitest run` while dropping instrumentation.\nFailure mode: Binding the target as written fuses tip pass/fail with local re-instrumentation, so any Step 5 that still fails closed on assertions while citing tip-SHA GHA for the floor would be framed as weakening the cut even when assertion correctness is intact.\nDisposition: Before bind, split the premise into (1) tip assertion gate on the release host and (2) which artifact is coverage-of-record. Do not treat “drop `--coverage`” as synonymous with `--skip-ci`.\n\n## Same-instrument GHA already exists; “only / cannot stand in” overclaims\nsharpens-framing\nEvidence: `.github/workflows/ci-lane.yml` job step `Test with coverage (vitest)` runs `pnpm run test` with `timeout-minutes: 20` (constants also name `CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20`). That is the same script and the same vitest-4 / v8 instrument as the host lane. `vitest.config.ts` / CHANGELOG #3512 lock one uniform floor with no platform carve-out. Inventory before new seams: local `coverage/` + auto-hatch (`pipeline.ts` / `auto-hatch.ts`), SHA suite stamp that may skip a re-run at the same clean HEAD (`suite-stamp.ts`; CI never trusts the laptop stamp), hang detector `RELEASE_CHECK_TIMEOUT_MS` 30m, and incident `--skip-ci`. No release seam yet cites a GHA run id as coverage-of-record (`docs/RELEASING.md` only separates the GHA 20m wall from the Windows hang detector).\nFailure mode: Treating host regeneration as the sole legitimate record forces Windows re-instrumentation cost (#4591 spawn-heavy coverage wall clock) even when the tip SHA already has a green same-instrument GHA coverage run under the shared floor.\nDisposition: Reject “only legitimate” and “cannot stand in.” If a successor lean drops host `--coverage`, it must add a fail-closed tip-SHA GHA coverage citation (run id on the tee) — merge-base prose alone is not enough — and must keep that path distinct from `--skip-ci`.\n\n## Suite stamp already shows coverage-of-record is not “regenerate every cut”\nfootnote\nEvidence: `packages/core/src/release/suite-stamp.ts` and Step 5 in `pipeline.ts` allow skipping the suite on a suite-stamp hit at the same clean HEAD after prior green or `PASS_WITH_DEBT`.\nFailure mode: None for bind by itself; it undercuts the rhetoric that every cut’s correctness depends on a fresh local coverage regeneration.\nDisposition: Keep as context when stating why host `--coverage` is optional cost rather than unique legitimacy.\n\n## Win32-exercised path residual if Ubuntu is sole floor reader\nfootnote\nEvidence: Runner and suite shape already special-case win32 (worker caps, coverage `.tmp` globalSetup, spawn-heavy project) while keeping the numeric floor identical (#3512). RELEASING.md routine-cut table still says green tip CI is a precondition, not a substitute for Step 5 coverage — policy prose defending today’s shape, not a second instrument.\nFailure mode: A bind that drops host `--coverage` and trusts Ubuntu-only coverage without naming the residual could miss collapse on win32-only product branches the Ubuntu job never executes.\nDisposition: Does not rescue the full target. A no-coverage host lean should either accept that residual explicitly or keep a narrower win32 coverage probe; it does not require keeping full host `--coverage` as the only coverage-of-record.\n\nRoad-not-taken: keep host `--coverage` forever and raise only the hang detector (#5024) / cheapen siblings (#5027/#5028). Rejected because the target’s legitimacy claim fails against the same-instrument GHA floor and the already-split collapse-detector role; wall-clock relief then stays trapped behind an overclaimed SoT. Steelman that would flip toward survival: show that win32-unique covered lines are material to the 75 floor on release tips, or that tip SHAs routinely lack a green GHA coverage run when cuts start — then host regeneration (or a Windows CI coverage required check) becomes necessary for the floor, not merely habitual.\n\nInjection / swarm lens: N/A for concurrency/worktrees/prompts; the target does change which artifact has coverage authority, and that authority split is already handled in the sharpening findings above.\r\n\n",
+          "id": 5826046023,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826046023",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:11:14Z",
+          "updated_at": "2026-09-25T03:11:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWindows Step 5 tip pass/fail does not require regenerating vitest coverage on the host. Same-instrument GHA already runs `pnpm run test` under the shared floor, so host `--coverage` is not the only legitimate coverage-of-record. The bind is a written RELEASING.md decision: prefer dropping host `--coverage` while keeping tip assertions, citing tip-SHA GHA coverage as coverage-of-record (fail-closed tee), staying distinct from `--skip-ci`, and naming the win32 residual. If coverage is kept, record the measured host cost instead.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5826046023 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5825992657\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\n\n## Takes\n\n- 5826046023 Tip correctness is not host coverage regeneration — accept-into-contract\n- 5826046023 Same-instrument GHA already exists; “only / cannot stand in” overclaims — accept-into-contract\n\nFootnote, outside the take map: 5826046023 Suite stamp already shows coverage-of-record is not “regenerate every cut”; 5826046023 Win32-exercised path residual if Ubuntu is sole floor reader.\n\nSpec-path:\n\n## Bound remedy\n\n1. Write a deliberate RELEASING.md decision on whether Windows release Step 5 (`ts:check-lane`) runs vitest with `--coverage`. \"We always did\" is not a rationale. CHANGELOG [Unreleased] records the outcome with Refs #5026.\n2. Preferred bind (no-coverage host): Step 5 keeps tip assertion pass/fail via `vitest run` without `--coverage`; do not treat that as `--skip-ci`. Coverage-of-record for the cut is a green GHA “Test with coverage (vitest)” run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed (merge-base prose alone is not enough). Record measured before/after Step 5 wall clock on the Windows host.\n3. Keep-coverage alternative: leave host `--coverage` in place; close this issue only with the measured host cost (`--coverage` vs not, same tip, same host) so the cost is a known number.\n4. Name the win32 residual explicitly if Ubuntu GHA is the sole floor reader (accept that residual, or keep a narrower win32 coverage probe). Do not require full host `--coverage` solely to paper over that residual without the written decision.\n5. GHA `timeout-minutes` / hang-detector raises stay on #5024; spawn-heavy cheapen stays on #5027/#5028. Child of #5024.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:66c914e6f8079abf63a72b8edd00ca83ef46895d27af5e36afd8c4a64719b593\n\n## Parent-side substantiation\n\nThe critic required splitting tip assertion from local re-instrumentation and rejecting host regeneration as the sole coverage-of-record. Items 1–4 do that. Suite-stamp and win32-residual footnotes stay census.\n\naudit:tip-vs-coverage-split sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826046023 reading=asserted\naudit:gha-coverage-of-record sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826046023 reading=asserted",
+          "id": 5826057630,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826057630",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:12:41Z",
+          "updated_at": "2026-09-25T03:12:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5026\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5826057630\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nConfirmed `git rev-parse HEAD` = `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650`. Pin reads via `git show 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650:<path>`. Envelope ignores comments with id > 5826057630. Bind lean under audit: 5826057630. Pains from Stop 1 5825992657. Round-1 critic in envelope: 5826046023.\n\nPain-audit of asserted coverage on Bound remedy items 1–5 against P1–P3. Re-verified anchors at the pin.\n\n## Unconditional P1 cite vs keep-coverage closeout\nblocks-the-design\nEvidence: Stop 1 P1 names keeping host `--coverage` as the largest remaining Step 5 wall-clock lever after #5022/#5023, with tip pass/fail as the actual release-gate need. Bound remedy item 2 (preferred) drops host `--coverage` while keeping tip assertions — that path addresses P1. Item 3 keeps host `--coverage` and only records measured cost (`--coverage` vs not). At the pin, `package.json` `\"test\"` is still `vitest run --coverage` and `run-lane.ts` tees `coverage: true`; the wall-clock lever remains if item 3 is the closeout. Lean 5826057630 still asserts coverage of P1 for the whole Bound remedy.\nFailure mode: Binding the lean as written clears P1 while a first-class keep-coverage closeout leaves the named wall-clock lever in place, so path-1 pain coverage would treat P1 as discharged when Step 5 still pays the multiplier.\nDisposition: Retract or recut the P1 coverage claim so it attaches only to the preferred no-coverage bind. Keep-coverage closeout cannot claim P1 coverage; that branch satisfies the measurement half of P3 only.\n\n## Step-5-only seam vs shared `pnpm run test`\nsharpens-framing\nEvidence: Bound remedy item 2 requires Step 5 `vitest run` without `--coverage` and also requires GHA “Test with coverage (vitest)” as coverage-of-record. At the pin both the host lane (`buildTestLaneCommand` → `pnpm run test`) and `.github/workflows/ci-lane.yml` (`pnpm run test`, `timeout-minutes: 20`) share `package.json` `\"test\": \"vitest run --coverage\"`. No Step-5-local argv/script/env fork is named in the Bound remedy.\nFailure mode: An implementer edits the shared `\"test\"` script to drop `--coverage` and collapses the same-instrument GHA coverage-of-record the lean depends on.\nDisposition: Before bind, name a Step-5-only (or host-lane-only) seam that drops instrumentation while leaving GHA / `pnpm run test` coverage intact.\n\n## P2 written decision + separate GHA timeout surface\nfootnote\nEvidence: Item 1 requires a deliberate RELEASING.md decision (and CHANGELOG Refs #5026). Item 5 keeps GHA `timeout-minutes` / hang-detector raises on #5024. Pin read of `docs/RELEASING.md` still separates the Ubuntu 20m wall from the Windows 30m hang detector and still frames Step 5 as full check+coverage with no written drop decision — matching Stop 1 P2’s gap. Round-1 critic 5826046023’s accepted takes are reflected in items 1–2.\nFailure mode: None against the P2 coverage claim on this map.\nDisposition: Census only; P2’s written-decision and separate-timeout halves are both present on the Bound remedy.\n\n## P3 measure-or-cite contract holds (tip-SHA tighten)\nfootnote\nEvidence: Item 3 records measured host cost if coverage stays. Item 2, if coverage drops, requires a fail-closed tee citing a green GHA coverage run id on the tip SHA being cut (merge-base prose alone refused — matching 5826046023). Stop 1 P3 text said “merge base”; Bound remedy uses tip SHA. Pin confirms no release seam yet cites a GHA run id as coverage-of-record; `skip-ci-incident.ts` remains a whole-suite skip with WARN, distinct from item 2’s keep-assertions path.\nFailure mode: None against the P3 coverage claim; the tip-SHA cite is a stricter form of the missing citation/tee pain.\nDisposition: Census only; keep the tip-SHA wording when stating coverage-of-record.\n\nRoad-not-taken: treat item 3 as outside the bind contract (preferred-only harvest) so P1 coverage could stand without recut. Rejected for this audit because item 3 is inside `## Bound remedy` as a first-class closeout, so the unconditional P1 claim has to be judged against that full list. Steelman that would flip the blocking finding: rewrite the lean so keep-coverage is explicitly outside the relieved contract (or is a later operator choice after preferred bind), leaving only items that drop host `--coverage` under the P1 claim.\n\nInjection / swarm lens: coverage-of-record authority moves under item 2; Bound remedy already pairs that with fail-closed tip-SHA citation and skip-ci separation. No additional concurrency/worktree/prompt finding.",
+          "id": 5826083874,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826083874",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:15:42Z",
+          "updated_at": "2026-09-25T03:15:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5826083874 blocked the bind: lean 5826057630 claimed P1 relief for the whole Bound remedy while item 3 (keep-coverage + measure only) leaves the wall-clock lever in place. This map retracts that P1 cite. The tip-vs-coverage split and GHA coverage-of-record takes from critic 5826046023 still stand as accepted headings; the harvest that claimed unconditional P1 does not.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same parent authored Stop 1, the retracted bind, and these takes.\n\n**Lean:** retraction of #5026 bind after pain-audit 5826083874. Cites critic 5826046023 and pain-audit 5826083874. Supersedes lean 5826057630.\n\nsiblings: 1\nRound: 1\nResidual: unrelieved P1 on the retracted map\nsupersedes: 5826057630\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\n\n## Takes\n\n- 5826083874 Unconditional P1 cite vs keep-coverage closeout — accept-into-contract\n- 5826083874 Step-5-only seam vs shared `pnpm run test` — accept-into-contract\n\nFootnote, outside the take map: 5826083874 P2 written decision; 5826083874 P3 measure-or-cite (tip-SHA tighten).\n\nSpec-path:\n\n## Bound remedy\n\n1. Retract relieves P1 on lean 5826057630. Keep-coverage closeout (prior item 3) cannot claim P1 coverage.\n2. Prior items that only measure cost under keep-coverage are not a P1 harvest.\n3. Round-1 accepted takes (tip assertion vs host instrumentation; GHA same-instrument coverage-of-record) remain the disposition map for a corrected preferred-only bind.\n4. Child of #5024; GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028.\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\ndoes-not-relieve: P3\n\nTarget-digest: sha256:66c914e6f8079abf63a72b8edd00ca83ef46895d27af5e36afd8c4a64719b593\n\n## Parent-side substantiation\n\nPain-audit required retracting unconditional P1 over a keep-coverage closeout. This map records that retraction.\n\naudit:p1-overclaim-retract sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826083874 reading=asserted",
+          "id": 5826103409,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826103409",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:17:59Z",
+          "updated_at": "2026-09-25T03:17:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUnconditional P1 relief on a Bound remedy that still offers keep-coverage closeout does not bind. Retraction  supersedes lean 5826057630. A corrected preferred-only bind (drop host --coverage via a Step-5-only seam; tip-SHA GHA coverage-of-record; written RELEASING.md decision) remains available under Dual-stop remainder and is the candidate generation after this Handoff.\n\nThis is not an instruction to a later builder.\n\nopen-question: bind preferred-only no-coverage Step 5 with a host-lane-only seam that leaves shared pnpm run test / GHA coverage intact, tip-SHA GHA run-id tee, measured wall clock, and honest relieves on that harvest only?\n\nHandoff because blocking pain-audit 5826083874 then retraction with does-not-relieve after Spec-path.",
+          "id": 5826103561,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826103561",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:18:01Z",
+          "updated_at": "2026-09-25T03:18:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nHost `--coverage` on Windows Step 5 is not the only legitimate coverage-of-record. The bind is preferred-only: drop host instrumentation via a Step-5/host-lane-only seam that leaves shared `pnpm run test` / GHA coverage intact, keep tip assertions, cite tip-SHA GHA coverage-of-record fail-closed on the tee, write the RELEASING.md decision, and measure wall clock. Keep-coverage is outside this relieved harvest (operator may still choose it later as a non-P1 closeout with measured cost only).\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant. Critic 5826046023 and pain-audit 5826083874 check the findings. Retraction 5826103409 withdrew the prior overclaim. Whether this list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** corrected bind after retraction. The refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5826103409\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\n\n## Takes\n\n- 5826046023 Tip correctness is not host coverage regeneration — accept-into-contract\n- 5826046023 Same-instrument GHA already exists; “only / cannot stand in” overclaims — accept-into-contract\n- 5826083874 Unconditional P1 cite vs keep-coverage closeout — accept-into-contract\n- 5826083874 Step-5-only seam vs shared `pnpm run test` — accept-into-contract\n\nFootnote, outside the take map: suite-stamp / win32-residual from 5826046023; P2/P3 footnotes from 5826083874.\n\nSpec-path:\n\n## Bound remedy\n\n1. Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.\n2. Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.\n3. Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.\n4. Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.\n5. Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:1acdd9ed2cbe1693f1e48ebd0445dd8fe942f3bf953eefe36714dd438ef50601\n\n## Parent-side substantiation\n\nPain-audit required preferred-only P1 coverage and a Step-5-only seam. Items 1–5 are that corrected harvest. Retraction 5826103409 cleared the overclaim.\n\naudit:preferred-only-p1 sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826083874 reading=asserted\naudit:step5-only-seam sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826083874 reading=asserted",
+          "id": 5826106092,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826106092",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:18:21Z",
+          "updated_at": "2026-09-25T11:53:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5026\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nseat: grok\nlauncher: grok\nid-ceiling: 5826106092\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\nConfirmed `git rev-parse HEAD` = `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650`. Pin reads via `git show 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650:<path>`. Envelope ignores comments with id > 5826106092. Bind lean under audit: 5826106092. Pains from Stop 1 5825992657. Envelope also includes critic 5826046023, prior pain-audit 5826083874, retraction 5826103409, Handoff 5826103561. Prior lean 5826057630 was retracted for unconditional P1 over keep-coverage.\n\nPain-audit of asserted coverage on corrected Bound remedy items 1–5 against P1–P3. Re-verified anchors at the pin.\n\n## P1 preferred-only drop removes the wall-clock lever\nfootnote\nEvidence: Stop 1 P1 names keeping host `--coverage` as the largest remaining Step 5 wall-clock lever after #5022/#5023, with tip pass/fail as the actual release-gate need. Lean 5826106092 Bound remedy items 1–2 drop host instrumentation via a Step-5/host-lane-only seam while keeping tip assertions; item 5 puts keep-coverage-plus-measure-only outside this relieved harvest. Pin still shows `package.json` `\"test\": \"vitest run --coverage\"`, `buildTestLaneCommand()` → `pnpm run test`, and `run-lane.ts` teeing `coverage: true` — the pre-fix shape that item 2’s seam must fork without editing the shared script GHA also uses. Prior pain-audit 5826083874 blocked unconditional P1 over an in-list keep-coverage closeout; retraction 5826103409 withdrew that map; this corrected lean matches that disposition.\nFailure mode: None against the P1 coverage claim on this preferred-only harvest.\nDisposition: Census only; P1 attaches to the no-coverage bind alone.\n\n## P2 written decision + separate GHA timeout surface\nfootnote\nEvidence: Item 1 requires a deliberate RELEASING.md decision that Step 5 drops host `--coverage` (CHANGELOG Refs #5026; \"we always did\" refused). Item 5 keeps GHA `timeout-minutes` / hang-detector raises on #5024 (and cheapen on #5027/#5028). Pin `docs/RELEASING.md` still separates the Ubuntu 20m wall (`CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20`) from the Windows 30m hang detector (`RELEASE_CHECK_TIMEOUT_MS`) and still frames Step 5 as full check+coverage with no written drop decision — matching Stop 1 P2’s gap that item 1 closes.\nFailure mode: None against the P2 coverage claim on this map.\nDisposition: Census only; both P2 halves are present on the Bound remedy.\n\n## P3 drop-path cite/tee (tip-SHA) under preferred-only\nfootnote\nEvidence: Item 3 requires a fail-closed Step 5 tee citing a green GHA coverage run id on the tip SHA being cut (merge-base prose alone refused — matching round-1 critic 5826046023). Item 4 records measured before/after wall clock for the no-coverage lane. Keep-coverage measure stays outside the relieved harvest with keep-coverage itself (item 5), so the stay-arm of Stop 1 P3 does not ride inside this bind the way prior item 3 did under 5826057630. Pin confirms no release seam yet cites a GHA run id as coverage-of-record; `skip-ci-incident.ts` remains a whole-suite skip with WARN, distinct from item 3’s keep-assertions path. Stop 1 P3 text said “merge base”; Bound remedy uses tip SHA (stricter).\nFailure mode: None against the P3 coverage claim on this preferred-only harvest.\nDisposition: Census only; P3 relief is via the drop-path cite/tee (+ wall-clock measure); keep the tip-SHA wording.\n\n## Host auto-hatch / coverage-debt soft-pass under no-coverage Step 5\nsharpens-framing\nEvidence: At the pin, `packages/core/src/release/pipeline.ts` still resolves local `coverage/coverage-final.json` for Step 5 auto-hatch / `PASS_WITH_DEBT`, and `docs/RELEASING.md` still documents host `--allow-coverage-debt` / branch-hairline hatch as live Step 5 soft-pass. Bound remedy items 1–3 move host coverage-of-record to tip-SHA GHA and drop host `--coverage`, but do not explicitly name what happens to that host hatch path when the lane no longer regenerates a fresh local report.\nFailure mode: Item 1’s RELEASING rewrite could leave hatch/debt soft-pass prose (and operator expectation of local `coverage-final` soft-pass) standing beside a no-coverage host lane whose floor is the GHA cite, creating a dual SoT for Step 5 coverage authority.\nDisposition: When writing the item 1 decision, name host auto-hatch / `--allow-coverage-debt` soft-pass as retired or re-homed for the no-coverage host lane; floor enforcement stays the tip-SHA GHA cite (item 3). Does not add a new Bound-remedy item or reopen keep-coverage.\n\nRoad-not-taken: re-block on P3 because the stay-arm measure is outside harvest. Rejected because keep-coverage-plus-measure is explicitly outside the relieved contract (item 5), so the stay-arm precondition is not part of this bind — unlike 5826057630, where keep-coverage was a first-class Bound-remedy closeout under an unconditional P1 cite. Steelman that would flip toward a P3 block: put keep-coverage measure back inside `## Bound remedy` while still asserting whole-pain P3 relief without a drop-path cite, or claim P3 while omitting the tip-SHA tee.\n\nInjection / swarm lens: coverage-of-record authority moves under items 2–3; Bound remedy already pairs that with fail-closed tip-SHA citation, Step-5-only seam, and skip-ci separation. Hatch-retirement sharpening above is the remaining authority-statement gap on the host docs path. No additional concurrency/worktree/prompt finding.\r\n\n",
+          "id": 5826131433,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826131433",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:21:34Z",
+          "updated_at": "2026-09-25T03:21:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5826131433 found corrected lean 5826106092 covers P1–P3. Sharpening (host auto-hatch / coverage-debt soft-pass under no-coverage Step 5) is accepted into contract without harvest change: the item 1 RELEASING rewrite must name that hatch as retired or re-homed for the no-coverage host lane; floor stays the tip-SHA GHA cite. Bind remains successor lean 5826106092.\n\n## Takes\n\n- 5826131433 Host auto-hatch / coverage-debt soft-pass under no-coverage Step 5 — accept-into-contract (no Bound-remedy harvest change)\n\nFootnote census: 5826131433 P1 preferred-only drop; 5826131433 P2 written decision; 5826131433 P3 drop-path cite/tee.",
+          "id": 5826138835,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826138835",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:22:29Z",
+          "updated_at": "2026-09-25T03:22:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nHost `--coverage` is not the only legitimate Windows Step 5 coverage-of-record. Bound remedy drops host instrumentation via a Step-5-only seam, keeps tip assertions, cites tip-SHA GHA as coverage-of-record, writes the RELEASING.md decision, and measures wall clock. Pain-audit 5826131433 was footnote-only on P1–P3 coverage; hatch-retirement sharpening accepted without harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5826106092.",
+          "id": 5826139027,
+          "html_url": "https://github.com/deftai/directive/issues/5026#issuecomment-5826139027",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:22:31Z",
+          "updated_at": "2026-09-25T03:22:31Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nDecide, deliberately, whether the Windows release Step 5 (`ts:check-lane`) needs to run vitest **with** coverage. The release gate needs pass/fail on the tip; the coverage number for the same merge base already exists from the Ubuntu GHA coverage run on the PR. Coverage is the multiplier on every CLI boot and every git spawn in the suite, so it is the largest single lever on Step 5 wall clock (#4591 diagnosed the 20m kill as spawn-heavy coverage wall clock, not fixtures).\n\nRecommended child of #5024. This is a gate-shape decision, not a cheapen; it should be argued and recorded, not slipped in.\n\n## Proposal\n\n- Step 5 on Windows runs `vitest run` (no `--coverage`) as the correctness gate.\n- Coverage-of-record for a release is the GHA coverage run on the merge base of the release tip. The release notes / tee cite that run id.\n- If a coverage threshold must be enforced at cut time, Step 5 reads the GHA coverage summary for the merge base rather than regenerating it on the host.\n- The GHA vitest coverage `timeout-minutes` stays a separate surface (as #5024 already holds).\n\n## Acceptance criteria\n\n- A written decision (RELEASING.md) on whether Step 5 runs with coverage, with the rationale either way. \"We always did\" is not a rationale.\n- If decided no-coverage: `ts:check-lane` at Step 5 drops `--coverage`; the Step 5 tee records the GHA coverage run cited as coverage-of-record; a measured before/after Step 5 wall clock on the Windows host is recorded here.\n- If decided keep-coverage: this issue closes with the reason and the measured cost of coverage (`--coverage` vs not, same host, same tip) so the cost is a known number rather than an assumption.\n- CHANGELOG [Unreleased] records the outcome with Refs to this issue.\n\n## Out of scope\n\n- Raising the hang detector (that is #5024 itself).\n- Changing which files are in the `spawn-heavy` project (separate cheapen children).\n- Using `--skip-ci` as steady state.\n\n## Related\n\nParent #5024. Refs #5022, #5023, #4591, #2652.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5577412458,
+        "origin": "deftai/directive#5026",
+        "id": "github.issue.5577412458"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1acdd9ed2cbe1693f1e48ebd0445dd8fe942f3bf953eefe36714dd438ef50601"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "chore(release): decide whether Windows Step 5 runs vitest without --coverage (coverage-of-record from GHA)",
+        "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail.",
+        "CHANGELOG [Unreleased] with Refs #5026.",
+        "\"We always did\" is not a rationale.",
+        "Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork).",
+        "Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`.",
+        "GHA “Test with coverage (vitest)” remains coverage-of-record.",
+        "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed.",
+        "Merge-base prose alone is not enough.",
+        "This path is not `--skip-ci`.",
+        "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
+        "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe).",
+        "Keep-coverage-plus-measure-only is outside this relieved harvest.",
+        "GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028.",
+        "Child of #5024.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:1acdd9ed2cbe1693f1e48ebd0445dd8fe942f3bf953eefe36714dd438ef50601"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5577412458",
+    "updated": "2026-09-25T11:54:59Z"
+  }
+}

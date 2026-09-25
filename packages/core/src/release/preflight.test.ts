@@ -8,7 +8,23 @@ import {
 } from "../product-first-done-gate/index.js";
 import { SKIP_NOTICE } from "../ts-check-lane/run-lane.js";
 import { RELEASE_CHECK_TIMEOUT_MS } from "./constants.js";
-import { releaseCheckEnv, runReleaseCheck } from "./preflight.js";
+import {
+  evaluateTipShaCoverageOfRecord,
+  extractActionsRunIdFromHtmlUrl,
+  formatCoverageOfRecordCite,
+  isCoverageOfRecordCheckName,
+  releaseCheckEnv,
+  runReleaseCheck,
+} from "./preflight.js";
+
+const GREEN_CITE = {
+  ok: true as const,
+  cite: {
+    tipSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    runId: "36086680776",
+    checkName: "TypeScript (build + lint + test)",
+  },
+};
 
 describe("releaseCheckEnv", () => {
   it("scrubs ambient DEFT_ALLOW_* so Step 5 unit tests stay uncontaminated", () => {
@@ -59,13 +75,78 @@ describe("releaseCheckEnv", () => {
   });
 });
 
+describe("tip-SHA GHA coverage-of-record (#5026)", () => {
+  it("recognizes aggregator and TypeScript lane / run names", () => {
+    expect(isCoverageOfRecordCheckName("TypeScript (build + lint + test)")).toBe(true);
+    expect(isCoverageOfRecordCheckName("TypeScript (Blacksmith primary) / run")).toBe(true);
+    expect(isCoverageOfRecordCheckName("Go (test + build)")).toBe(false);
+  });
+
+  it("extracts actions run id from check-run html_url", () => {
+    expect(
+      extractActionsRunIdFromHtmlUrl(
+        "https://github.com/deftai/directive/actions/runs/36086680776/job/107920255034",
+      ),
+    ).toBe("36086680776");
+  });
+
+  it("fail-closes when tip has no green coverage-bearing check", () => {
+    const result = evaluateTipShaCoverageOfRecord("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", [
+      {
+        name: "Go (test + build)",
+        status: "completed",
+        conclusion: "success",
+        htmlUrl: "https://github.com/deftai/directive/actions/runs/1/job/2",
+      },
+    ]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/no green tip-SHA GHA coverage-of-record/);
+  });
+
+  it("cites run id from a green TypeScript aggregator", () => {
+    const result = evaluateTipShaCoverageOfRecord("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", [
+      {
+        name: "TypeScript (build + lint + test)",
+        status: "completed",
+        conclusion: "success",
+        htmlUrl: "https://github.com/deftai/directive/actions/runs/36086680776/job/1",
+      },
+    ]);
+    expect(result).toEqual({
+      ok: true,
+      cite: {
+        tipSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        runId: "36086680776",
+        checkName: "TypeScript (build + lint + test)",
+      },
+    });
+    if (result.ok) {
+      expect(formatCoverageOfRecordCite(result.cite)).toContain("gha-run=36086680776");
+    }
+  });
+});
+
 describe("runReleaseCheck", () => {
   it("returns ok when task check exits 0", () => {
     const [ok, msg] = runReleaseCheck("/proj", {
       dispatchCheck: () => 0,
+      resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(true);
     expect(msg).toContain("task check");
+    expect(msg).toContain("coverage-of-record gha-run=36086680776");
+  });
+
+  it("fail-closes when tip-SHA GHA coverage-of-record cite is missing (#5026)", () => {
+    const [ok, msg] = runReleaseCheck("/proj", {
+      dispatchCheck: () => 0,
+      resolveCoverageOfRecord: () => ({
+        ok: false,
+        reason: "no green tip-SHA GHA coverage-of-record check on deadbeef",
+      }),
+    });
+    expect(ok).toBe(false);
+    expect(msg).toMatch(/coverage-of-record/);
   });
 
   it("returns timeout message on exit 124 (#2652)", () => {
@@ -74,6 +155,7 @@ describe("runReleaseCheck", () => {
         expect(seams?.timeoutMs).toBe(RELEASE_CHECK_TIMEOUT_MS);
         return 124;
       },
+      resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(false);
     expect(msg).toContain("timed out");
@@ -83,6 +165,7 @@ describe("runReleaseCheck", () => {
   it("returns generic failure for other non-zero exits", () => {
     const [ok, msg] = runReleaseCheck("/proj", {
       dispatchCheck: () => 42,
+      resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(false);
     expect(msg).toContain("exit 42");
@@ -98,13 +181,14 @@ describe("runReleaseCheck", () => {
         });
         return 0;
       },
+      resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(false);
     expect(msg).toMatch(/did not run|SKIP_NOTICE/);
   });
 
   it("stamps a successful full-suite when the collector reports run without SKIP_NOTICE", () => {
-    const [ok] = runReleaseCheck("/proj", {
+    const [ok, msg] = runReleaseCheck("/proj", {
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 0,
@@ -113,8 +197,10 @@ describe("runReleaseCheck", () => {
         });
         return 0;
       },
+      resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(true);
+    expect(msg).toContain("coverage-of-record");
   });
 });
 
@@ -149,6 +235,7 @@ describe("runReleaseCheck hang bound (#4801)", () => {
         expect(seams?.useTaskCache).toBeUndefined();
         return 0;
       },
+      resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(seen).toBe(now + RELEASE_CHECK_TIMEOUT_MS);
   });
@@ -163,6 +250,7 @@ describe("runReleaseCheck hang bound (#4801)", () => {
         });
         return 124;
       },
+      resolveCoverageOfRecord: () => GREEN_CITE,
     });
     expect(ok).toBe(false);
     expect(msg).toContain("verify:ac");

@@ -20,7 +20,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { cpus } from "node:os";
-import { posix, win32 } from "node:path";
+import { join, posix, win32 } from "node:path";
 import { ACTIVE_SCOPE_PIN_ENV } from "../hooks/scope.js";
 import {
   ENV_CHECK_AC_ONLY,
@@ -37,8 +37,45 @@ import {
   buildTestLaneCommand,
   formatLanePhaseLine,
   formatTimelineConditionsLine,
+  PROGRESS_REPORTER_RELATIVE_PATH,
   resolveTestLaneCommand,
 } from "./progress.js";
+
+/**
+ * Step-5-only host lane (#5026): when release preflight is set, drop host
+ * vitest `--coverage` by invoking vitest directly instead of `pnpm run test`
+ * (shared package.json script stays instrumented for GHA).
+ */
+export function isStep5HostNoCoverage(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env[RELEASE_PREFLIGHT_ENV] === "1";
+}
+
+/** Host-lane test argv: coverage via `pnpm run test`, or Step-5 `pnpm exec vitest run`. */
+export function resolveHostLaneTestCommand(
+  projectRoot: string,
+  options: {
+    readonly hostCoverage: boolean;
+    readonly reporterExists?: (path: string) => boolean;
+  },
+): readonly string[] {
+  if (options.hostCoverage) {
+    return resolveTestLaneCommand(projectRoot, options.reporterExists);
+  }
+  const exists = options.reporterExists ?? existsSync;
+  const reporterAbs = join(projectRoot, ...PROGRESS_REPORTER_RELATIVE_PATH.split("/"));
+  if (!exists(reporterAbs)) {
+    return ["exec", "vitest", "run"];
+  }
+  return [
+    "exec",
+    "vitest",
+    "run",
+    "--reporter",
+    PROGRESS_REPORTER_RELATIVE_PATH,
+    "--reporter",
+    "default",
+  ];
+}
 
 /** Release Step-5 / session-pin vars that must not leak into vitest (#2434 / #4230 / #4506 / #4630). */
 const TS_LANE_POISON_ENV_KEYS = [
@@ -190,6 +227,8 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   const now = options.now ?? Date.now;
   const cpuCount = options.cpus ?? cpus().length;
   const tsbuildinfoExists = options.tsbuildinfoExists ?? existsSync;
+  const laneEnv = options.env ?? process.env;
+  const hostCoverage = !isStep5HostNoCoverage(laneEnv);
   const tsbuildinfoRels = [
     "packages/core/dist/.tsbuildinfo",
     "packages/cli/dist/.tsbuildinfo",
@@ -200,7 +239,7 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   );
   out(
     formatTimelineConditionsLine({
-      coverage: true,
+      coverage: hostCoverage,
       supervised: true,
       host: process.platform,
       cpus: cpuCount,
@@ -227,7 +266,10 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
     for (const command of LANE_COMMANDS) {
       const resolved =
         command[1] === "test"
-          ? resolveTestLaneCommand(projectRoot, options.reporterExists)
+          ? resolveHostLaneTestCommand(projectRoot, {
+              hostCoverage,
+              reporterExists: options.reporterExists,
+            })
           : command;
       const argv = [pnpm, ...resolved];
       // Soft-pass via lane-private env (vitest CAC rejects unknown CLI debt tokens).

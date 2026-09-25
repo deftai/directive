@@ -38,9 +38,23 @@ See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard f
 
 `task release` Step 5 starts with a read-only CHANGELOG node-type guard (regular file plus symlink-ancestor floor). `--skip-ci` skips the CI suite, not that guard. Step 6 is **Prepare release artifacts** (in-memory ROADMAP + CHANGELOG; pair-open existing destinations; no writes). Step 7 is **Write release artifacts** (ROADMAP to completion, then CHANGELOG). `--skip-build` skips Step 8 (`task build`), not prepare-artifacts.
 
+## Windows Step 5 host coverage decision (#5026)
+
+**Decision.** Windows release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`) runs tip assertion pass/fail via `pnpm exec vitest run` **without** host `--coverage`. Shared `package.json` `"test": "vitest run --coverage"` stays instrumented so GHA `pnpm run test` / "Test with coverage (vitest)" remains the same instrument. This is **not** `--skip-ci` (assertions still run on the host).
+
+**Rationale.** Tip correctness is assertion pass/fail. Coverage-of-record authority is the green GHA coverage-bearing TypeScript check on the **tip SHA** being cut (aggregator `TypeScript (build + lint + test)` or lane `TypeScript (…) / run`). Host re-instrumentation was the largest remaining Step 5 wall-clock lever after #5022/#5023; "we always did" is not a rationale. Keep-coverage-plus-measure-only is outside this harvest.
+
+**Coverage-of-record cite (fail-closed).** On Step 5 success, `runReleaseCheck` cites `coverage-of-record gha-run=<id> tip=<sha> check=<name>` on the tee. Merge-base prose alone is refused. Missing green tip-SHA GHA coverage fails closed.
+
+**Host auto-hatch / `--allow-coverage-debt` soft-pass.** Retired for the no-coverage host lane. Floor enforcement is the tip-SHA GHA cite, not a fresh local `coverage/coverage-final.json`. Do not expect local branch-hairline soft-pass from a lane that no longer regenerates coverage.
+
+**Win32 residual (accepted).** Ubuntu GHA is the sole coverage floor reader. Win32-only product branches the Ubuntu job never executes are an accepted residual of this bind; hang-detector / GHA timeout raises stay on #5024; spawn-heavy cheapen stays on #5027/#5028.
+
+**Measured wall clock (Windows host).** Before (coverage host): v0.119.9 production cut hit the Step 5 hang detector at 30m (exit 124) with host `--coverage` active. Package-scoped proxy on this host (`packages/core/src/ts-check-lane`, unit project): no-coverage 3.05s vs with-coverage 7.76s (~2.5x). After (full Step 5 no-coverage lane): record the first production Step 5 wall clock on the release tee after this lands.
+
 ## Vitest coverage hang recovery (#2652 / #4230)
 
-Release Step 5 runs `task check` on the **cached** path with a **30-minute hang detector** (`RELEASE_CHECK_TIMEOUT_MS`; `runReleaseCheck` arms `timeoutMs`). That is hang detection, not a success SLA. Ambient `task check` tees without that kill. `task release` does not take the uncached `--no-cache` path. Do **not** raise this constant casually -- further increases are a deliberate gate change via issue/PR (suite growth raised 20 to 30 under #5022).
+Release Step 5 runs `task check` on the **cached** path with a **30-minute hang detector** (`RELEASE_CHECK_TIMEOUT_MS`; `runReleaseCheck` arms `timeoutMs`). That is hang detection, not a success SLA. Ambient `task check` tees without that kill. Under #5026 the Step 5 host suite drops `--coverage` (assertions remain); ambient `task check` still uses `pnpm run test` with coverage. `task release` does not take the uncached `--no-cache` path. Do **not** raise this constant casually -- further increases are a deliberate gate change via issue/PR (suite growth raised 20 to 30 under #5022).
 
 **Stale-binary diagnostic (before treating 124 as a vitest hang).** If a single-shot `Measure-Command { node -e 0 }` is greater than about 100 ms or `git --version` is greater than about 150 ms, investigate before assuming a suite hang. Probe with a **repeated** measurement and read the **median** — the first invocation in a fresh shell is a warm. Confirm with the claimant's differential: rename the original binary, copy a fresh file onto the original path; the renamed original stays slow and the fresh copy at the same path goes fast. Then copy-over-self / reinstall. Measured 40 min → 3.6 min on deft01 2026-09-07. Bitdefender exceptions are optional (216–277 s across states, within noise).
 
@@ -110,7 +124,7 @@ Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 b
 
 ## Routine vs hard cut for Step 5 (#2953)
 
-Release Step 5 (`task check` with Vitest coverage) is the longest local gate. Two operator modes share the **same safety bar for coverage** — they differ in hygiene and intent, not in silent soft-pass.
+Release Step 5 (`task check`; host assertions without `--coverage` per #5026) is the longest local gate. Coverage-of-record is tip-SHA GHA. Two operator modes share the **same safety bar for tip assertions + tip-SHA GHA cite** — they differ in hygiene and intent, not in silent soft-pass.
 
 ### Hard cut (default)
 
@@ -128,14 +142,14 @@ Speed comes from **not scanning junk trees** and from **pre-cut hygiene**, not f
 1. **Default-exclude scratch / worktree noise (#2953).** Content, link, stub, codebase-map, and build-dist walks skip `.deft-scratch/` (and legacy `swarm-worktrees/`) by default. Release Step 5 must not enumerate `.deft-scratch/worktrees/**` unless you are deliberately debugging those trees.
 2. **Prefer a clean tip.** Confirm required CI checks are green on the `master` tip you will tag (`gh run list` / required status). Green tip CI is a **precondition for calm routine cuts**, not a substitute for Step 5.
 3. **Prune stale worktrees before the cut** when a maintainer clone is heavy: `git worktree list`, remove abandoned `.deft-scratch/worktrees/*` entries, or cut from a clean clone. This is operator hygiene, not a flag.
-4. **Still run full Step 5** unless you are in an explicit incident path (`--skip-ci` + `--allow-skip-ci=#N`). Routine does **not** mean “trust CI and skip coverage.”
+4. **Still run full Step 5** (host assertions + tip-SHA GHA coverage-of-record cite) unless you are in an explicit incident path (`--skip-ci` + `--allow-skip-ci=#N`). Routine does **not** mean “trust CI and skip the host assertion suite.”
 
 ### Trust CI vs full local check
 
 | Mode | When | Step 5 coverage | Soft-pass rule |
 | --- | --- | --- | --- |
-| **Hard cut** | Default; large / risky tip | Full `task check` + coverage | Only #2866 hatch or #2652 skip-ci with `#N` |
-| **Routine cut** | Calm tip; scratch excluded; CI green on tip | Full `task check` + coverage (same) | Same — no silent soft-pass |
+| **Hard cut** | Default; large / risky tip | Full `task check` assertions + tip-SHA GHA cite (#5026) | Tip-SHA GHA cite fail-closed; host debt hatch retired; #2652 skip-ci with `#N` |
+| **Routine cut** | Calm tip; scratch excluded; CI green on tip | Same host assertions + tip-SHA GHA cite | Same — no silent soft-pass |
 | **Incident skip** | Tracked hang / unblock with review | Skipped via `--skip-ci` | Requires `--allow-skip-ci=#N` + loud WARN |
 
 Optional future: a explicit “trust recent green required checks on tip” flag may land as a separate story. Until then, **hard cut = full Step 5** and **routine cut = full Step 5 + scratch exclude + hygiene**. Do not invent a silent lighter path that zeros coverage thresholds without `#N`.

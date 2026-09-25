@@ -21,7 +21,9 @@ import {
 } from "./progress.js";
 import { TsCheckLaneProgressReporter } from "./progress-reporter.js";
 import {
+  isStep5HostNoCoverage,
   LANE_COMMANDS,
+  resolveHostLaneTestCommand,
   resolvePnpm,
   runTsLane,
   SKIP_NOTICE,
@@ -171,10 +173,17 @@ describe("runTsLane", () => {
       });
 
       expect(rc).toBe(0);
+      // Step 5 drops host --coverage via pnpm exec vitest run (#5026).
       expect(runner.calls.map((c) => c.argv)).toEqual([
         ["/usr/bin/pnpm", "run", "lint"],
         ["/usr/bin/pnpm", "run", "build"],
-        ["/usr/bin/pnpm", ...buildTestLaneCommand()],
+        [
+          "/usr/bin/pnpm",
+          ...resolveHostLaneTestCommand("/repo", {
+            hostCoverage: false,
+            reporterExists: () => true,
+          }),
+        ],
       ]);
       // Debt env is only active during the test step.
       expect(seenDebt).toEqual([undefined, undefined, "2618"]);
@@ -186,6 +195,48 @@ describe("runTsLane", () => {
         process.env.DEFT_TS_LANE_COVERAGE_DEBT = prior;
       }
     }
+  });
+
+  it("drops host vitest --coverage under release Step 5 while leaving ambient lane on pnpm run test (#5026)", () => {
+    expect(isStep5HostNoCoverage({ [RELEASE_PREFLIGHT_ENV]: "1" })).toBe(true);
+    expect(isStep5HostNoCoverage({})).toBe(false);
+    expect(
+      resolveHostLaneTestCommand("/repo", { hostCoverage: false, reporterExists: () => true }),
+    ).toEqual([
+      "exec",
+      "vitest",
+      "run",
+      "--reporter",
+      PROGRESS_REPORTER_RELATIVE_PATH,
+      "--reporter",
+      "default",
+    ]);
+    expect(
+      resolveHostLaneTestCommand("/repo", { hostCoverage: true, reporterExists: () => true }),
+    ).toEqual([...buildTestLaneCommand()]);
+
+    const messages: string[] = [];
+    const runner = new Runner([0, 0, 0]);
+    const rc = runTsLane("/repo", {
+      pnpm: "/usr/bin/pnpm",
+      runner: runner.run,
+      out: (m) => messages.push(m),
+      reporterExists: () => true,
+      env: { [RELEASE_PREFLIGHT_ENV]: "1" },
+    });
+    expect(rc).toBe(0);
+    expect(messages[0]).toContain("coverage=false");
+    expect(runner.calls[2]?.argv).toEqual([
+      "/usr/bin/pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "--reporter",
+      PROGRESS_REPORTER_RELATIVE_PATH,
+      "--reporter",
+      "default",
+    ]);
+    expect(runner.calls[2]?.argv.join(" ")).not.toContain("--coverage");
   });
 
   it("restores a prior DEFT_TS_LANE_COVERAGE_DEBT after the test step", () => {
