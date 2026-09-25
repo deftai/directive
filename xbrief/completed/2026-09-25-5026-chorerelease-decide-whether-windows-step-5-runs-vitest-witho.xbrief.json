@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5026",
-    "updated": "2026-09-25T11:54:59Z"
+    "updated": "2026-09-25T13:50:11Z"
   },
   "plan": {
     "title": "chore(release): decide whether Windows Step 5 runs vitest without --coverage (coverage-of-record from GHA)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(release): decide whether Windows Step 5 runs vitest without --coverage (coverage-of-record from GHA)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5026",
@@ -16,28 +16,65 @@
     "items": [
       {
         "title": "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.",
-        "status": "pending",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5032#a3f51b991c096be59a99756305c8dd6590ed5fb3",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.",
-        "status": "pending",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5032#a3f51b991c096be59a99756305c8dd6590ed5fb3",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.",
-        "status": "pending",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5032#a3f51b991c096be59a99756305c8dd6590ed5fb3",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
       },
       {
         "title": "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
-        "status": "pending",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Production Windows Step 5 wall-clock / last-worker-idle measurement owed on next cut; structural land is on the merged PR.",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-25T13:50:01.966Z",
+            "mintedVia": "parent-retained-leftover-complete",
+            "eventRef": "https://github.com/deftai/directive/pull/5032#a3f51b991c096be59a99756305c8dd6590ed5fb3"
+          }
+        }
       },
       {
         "title": "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024.",
-        "status": "pending",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5032#a3f51b991c096be59a99756305c8dd6590ed5fb3",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
       }
     ],
     "tags": [
@@ -395,6 +432,31 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "1acdd9ed2cbe1693f1e48ebd0445dd8fe942f3bf953eefe36714dd438ef50601"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5032,
+        "prBase": null,
+        "mergeCommit": "a3f51b991c096be59a99756305c8dd6590ed5fb3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a3f51b991c096be59a99756305c8dd6590ed5fb3",
+        "verifiedAt": "2026-09-25T13:50:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGQ4NjEtYjgyMi03YWIyLTllMGUtYTc5MTc2NWNlNTkw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-25T13:50:11Z",
+      "completedSessionId": "host:grok:v1:MDFhMGQ4NjEtYjgyMi03YWIyLTllMGUtYTc5MTc2NWNlNTkw",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-25T13:50:11Z"
       }
     },
     "acceptance": {
@@ -466,6 +528,6 @@
       ]
     },
     "id": "github.issue.5577412458",
-    "updated": "2026-09-25T11:54:59Z"
+    "updated": "2026-09-25T13:50:11Z"
   }
 }

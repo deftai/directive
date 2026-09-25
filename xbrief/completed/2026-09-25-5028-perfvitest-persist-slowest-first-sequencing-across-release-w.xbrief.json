@@ -1,0 +1,361 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5028",
+    "updated": "2026-09-25T13:50:23Z"
+  },
+  "plan": {
+    "title": "perf(vitest): persist slowest-first sequencing across release worktrees so Step 5 has no idle tail",
+    "status": "completed",
+    "narratives": {
+      "Description": "perf(vitest): persist slowest-first sequencing across release worktrees so Step 5 has no idle tail",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5028",
+      "Overview": "\n\n1. Prefer issue option 2: commit a durations file produced from the Step 5 durations artifact (#5027) and add a small custom sequence.sequencer that sorts by those durations, falling back to default order for files not listed. This is the reviewable, cross-machine path.\n2. Do not bind bare host-global cache.dir persistence (option 1) as the sole remedy. Shared host cache races concurrent worktrees and is non-reviewable machine state. Exclusive per-cut cache paths are out of preferred scope for this issue.\n3. Cross-project idle (unit workers draining while spawn-heavy's single win32 worker serializes the long tail): implement must either set sequence.groupOrder so spawn-heavy starts before unit on the Step 5 shape (issue option 3 as measured fallback / conjunct), or land measured evidence that option 2 alone already shrinks last-worker-idle→suite-end under the pin's project layout. Do not leave that fork unnamed.\n4. Acceptance requires recorded before/after time from last-worker-idle to suite end on the Windows host on a fresh worktree.\n5. vitest.config.ts change renews xbrief/evaluator-surface-disposition.json. CHANGELOG [Unreleased] with Refs to this issue. Depends on #5027 durations input. Parent #5024. Out of scope: moving files between projects; changing worker counts or pool type.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:7d07e5e182760f817d2e17a87ff9a80e7ad4585bf36064b88065a523258f81bb\n\n\n",
+      "Labels": "enhancement, design, agent-experience, process, area:release, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Prefer issue option 2: commit a durations file produced from the Step 5 durations artifact (#5027) and add a small custom sequence.sequencer that sorts by those durations, falling back to default order for files not listed. This is the reviewable, cross-machine path.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5030#909569636a2499e54d482537f81a79759349f8d4",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Do not bind bare host-global cache.dir persistence (option 1) as the sole remedy. Shared host cache races concurrent worktrees and is non-reviewable machine state. Exclusive per-cut cache paths are out of preferred scope for this issue.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5030#909569636a2499e54d482537f81a79759349f8d4",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Cross-project idle (unit workers draining while spawn-heavy's single win32 worker serializes the long tail): implement must either set sequence.groupOrder so spawn-heavy starts before unit on the Step 5 shape (issue option 3 as measured fallback / conjunct), or land measured evidence that option 2 alone already shrinks last-worker-idle→suite-end under the pin's project layout. Do not leave that fork unnamed.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5030#909569636a2499e54d482537f81a79759349f8d4",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Acceptance requires recorded before/after time from last-worker-idle to suite end on the Windows host on a fresh worktree.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Production Windows Step 5 wall-clock / last-worker-idle measurement owed on next cut; structural land is on the merged PR.",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-25T13:50:01.966Z",
+            "mintedVia": "parent-retained-leftover-complete",
+            "eventRef": "https://github.com/deftai/directive/pull/5030#909569636a2499e54d482537f81a79759349f8d4"
+          }
+        }
+      },
+      {
+        "title": "vitest.config.ts change renews xbrief/evaluator-surface-disposition.json. CHANGELOG [Unreleased] with Refs to this issue. Depends on #5027 durations input. Parent #5024. Out of scope: moving files between projects; changing worker counts or pool type.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5030#909569636a2499e54d482537f81a79759349f8d4",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "agent-experience",
+      "process",
+      "area:release",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5028",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5028: perf(vitest): persist slowest-first sequencing across release worktrees so Step 5 has no idle tail"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5023",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5023"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Prefer issue option 2: commit a durations file produced from the Step 5 durations artifact (#5027) and add a small custom sequence.sequencer that sorts by those durations, falling back to default order for files not listed. This is the reviewable, cross-machine path.",
+        "Do not bind bare host-global cache.dir persistence (option 1) as the sole remedy. Shared host cache races concurrent worktrees and is non-reviewable machine state. Exclusive per-cut cache paths are out of preferred scope for this issue.",
+        "Cross-project idle (unit workers draining while spawn-heavy's single win32 worker serializes the long tail): implement must either set sequence.groupOrder so spawn-heavy starts before unit on the Step 5 shape (issue option 3 as measured fallback / conjunct), or land measured evidence that option 2 alone already shrinks last-worker-idle→suite-end under the pin's project layout. Do not leave that fork unnamed.",
+        "Acceptance requires recorded before/after time from last-worker-idle to suite end on the Windows host on a fresh worktree.",
+        "vitest.config.ts change renews xbrief/evaluator-surface-disposition.json. CHANGELOG [Unreleased] with Refs to this issue. Depends on #5027 durations input. Parent #5024. Out of scope: moving files between projects; changing worker counts or pool type."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Prefer issue option 2: commit a durations file produced from the Step 5 durations artifact (#5027) and add a small custom sequence.sequencer that sorts by those durations, falling back to default order for files not listed. This is the reviewable, cross-machine path.",
+          "artifact_path": "packages/core/src/vitest-runner/duration-sequencer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Do not bind bare host-global cache.dir persistence (option 1) as the sole remedy. Shared host cache races concurrent worktrees and is non-reviewable machine state. Exclusive per-cut cache paths are out of preferred scope for this issue.",
+          "artifact_path": "vitest.config.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Cross-project idle (unit workers draining while spawn-heavy's single win32 worker serializes the long tail): implement must either set sequence.groupOrder so spawn-heavy starts before unit on the Step 5 shape (issue option 3 as measured fallback / conjunct), or land measured evidence that option 2 alone already shrinks last-worker-idle→suite-end under the pin's project layout. Do not leave that fork unnamed.",
+          "artifact_path": "vitest.config.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Acceptance requires recorded before/after time from last-worker-idle to suite end on the Windows host on a fresh worktree.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "vitest.config.ts change renews xbrief/evaluator-surface-disposition.json. CHANGELOG [Unreleased] with Refs to this issue. Depends on #5027 durations input. Parent #5024. Out of scope: moving files between projects; changing worker counts or pool type.",
+          "artifact_path": "xbrief/evaluator-surface-disposition.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Full last-worker-idle to suite-end ms on a fresh Windows worktree is owed on the next production Step 5 cut; structural DurationSequencer is landed and harmful groupOrder removed.",
+        "Vitest serializes sequence.groupOrder groups, so spawn-heavy=0/unit=1 would idle the unit pool; option-2 DurationSequencer with concurrent projects is the bound idle-tail path."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a fresh release worktree has no vitest results cache, so default slowest-first never arms and Step 5 ends with a few multi-second files running alone while other workers idle (v0.119.9 tail at 1272/1284).\n\ncharter: refutation\nrefutation-target: Vitest's default cache-backed slowest-first sequencer under node_modules/.vite/vitest is sufficient for release worktrees, so a fresh worktree idle-tail needs no persisted durations cache, committed durations file with custom sequencer, or spawn-heavy-before-unit ordering.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token ask. Recommended child of #5024. Ordering fix without touching tests. N=1.\n\npain: P1, P2, P3\n\nP1. Fresh release worktrees have no vitest results cache, so long spawn-heavy files land in glob order and the run finishes with an idle-worker tail.\nP2. Host-local cache.dir persistence is machine state; without a reviewable committed durations file (from #5027) or an explicit ordering fallback, the remedy is non-deterministic across machines.\nP3. Measured before/after time from last-worker-idle to suite end is not yet required on the issue, so a sequencer change can land without proving the idle-tail shrank.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5028-dc\norigin-ref: origin/master\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\npin-kind: origin-default\ntarget-digest: sha256:cc28e21c10c4d41e40445968a46376c6566480bf19ab8213974208a52387485d\n\nPin reads use git show 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650. Parent #5024; depends on durations input from #5027 for option 2. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5825993019,
+          "html_url": "https://github.com/deftai/directive/issues/5028#issuecomment-5825993019",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:04:40Z",
+          "updated_at": "2026-09-25T03:04:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5028\nCharter: refutation\nRound: 1 critic\nId ceiling: 5825993019\nSHA at dispatch: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\narc-mode: no-ingest\naudit-targets: none\nSeat: grok. Launcher: grok.\n\nRefutation target (Stop 1 5825993019): Vitest's default cache-backed slowest-first sequencer under node_modules/.vite/vitest is sufficient for release worktrees, so a fresh worktree idle-tail needs no persisted durations cache, committed durations file with custom sequencer, or spawn-heavy-before-unit ordering.\n\nVerdict: the refutation target does not survive.\n\n## Cold worktree leaves BaseSequencer without durations\nsharpens-framing\nEvidence: `git rev-parse HEAD` = 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650. `git show` that SHA:`vitest.config.ts` sets neither `cacheDir` nor `test.cache` nor `sequence.sequencer`. This dest has no `node_modules/.vite`. Sibling primary install vitest@4.1.11 `BaseSequencer.sort` (node_modules/vitest/dist/chunks/coverage.DM_a_rWm.js) reads `cache.getFileTestResults(project:relpath)` and only then sorts longer/failed first; without both sides cached it falls through to file-size stats or a zero compare. Vitest docs (sequence / cache) state the longer-first behaviour is cache-backed under `node_modules/.vite/vitest` / Vite `cacheDir`.\nFailure mode: a fresh release worktree or clean clone arms discovery without prior `results.json`, so default slowest-first never orders by duration. Binding the status-quo target leaves the idle-tail AC unmet on the cut shape the issue names.\nDisposition: successor lean must treat cold disarm as the accepted premise and pick among the issue's options 1–3 (or an equivalent that restores duration order / project order on a cold tree).\n\n## Same groupOrder plus one-worker spawn-heavy still idles unit workers\nsharpens-framing\nEvidence: at the pin, `projects` are `unit` (win32 `maxWorkers` ≤12) and `spawn-heavy` (win32 `maxWorkers: Number(isWin32)` → 1). Neither sets `sequence.groupOrder` (default 0). Vitest sequence docs: same groupOrder runs together; groups run low→high. Issue body last-completed at the v0.119.9 30m kill is `hook-host-identity-lifetime.test.ts`, which is in `spawnHeavyGlobs` at this SHA. Warm primary `results.json` (2494 entries, mtime 2026-09-24) still records multi-minute `unit:` files (e.g. `occupancy.test.ts` ~685s) alongside `spawn-heavy:` keys.\nFailure mode: even when duration cache is warm, unit's worker pool can drain while spawn-heavy's single worker serializes the long tail, producing the same \"workers idle, few files alone\" shape. Option 1 or 2 alone can fix within-project order and still miss the cross-project idle the AC measures.\nDisposition: before bind, name whether `sequence.groupOrder` (issue option 3 / existing Vitest mechanism) is required conjunctively with cache/sequencer, or record a measured before/after where cache-only already drives last-worker-idle→end under the pin's project layout.\n\n## Host-persisted cache.dir is shared mutable sequencer state\nsharpens-framing\nEvidence: issue option 1 points `cache.dir` / Vite `cacheDir` outside the worktree. Vitest writes a single `results.json` under that tree (`ResultsCache.writeToCache` / `resolveCacheDir` → `node_modules/.vite/vitest/<hash>/results.json`). Release hygiene text at the pin already contemplates clean clones and pruning `.deft-scratch/worktrees` while Step 5 runs `vitest run --coverage` in the cut cwd; concurrent worktrees on one host are normal for swarm/release prep.\nFailure mode: two worktrees sharing one host cache race the same `results.json`, or one cut's durations poison another's project-prefixed keys after layout moves (warm cache still carries both `unit:` and `spawn-heavy:` keys for files #5022 moved). Shared host cache is non-reviewable machine state across cuts.\nDisposition: if option 1 remains in the bind set, require an exclusive cache path per worktree/cut (or drop option 1 in favour of committed durations / groupOrder). Do not bind bare host-global persistence as the sole remedy.\n\n## Cold fallback is size, not pure glob order\nfootnote\nEvidence: `BaseSequencer.sort` cold path compares `cache.getFileStats` sizes when results are missing; only when both stats are missing does it return 0. Issue prose saying files \"land wherever the glob order puts them\" is slightly loose.\nFailure mode: none for bind; sizing still is not duration order and still fails the fresh-worktree slowest-first AC.\nDisposition: no harvest change; optional wording fix on the lean.\n\n## evaluator-surface renewal already on the AC\nfootnote\nEvidence: pin `xbrief/evaluator-surface-disposition.json` is a disclosure renewed for #5022 naming `vitest.config.ts`. Issue AC already requires renewal for this change.\nFailure mode: none beyond ordinary forgetfulness.\nDisposition: keep the AC; no new mechanism.\r\n\n",
+          "id": 5826046402,
+          "html_url": "https://github.com/deftai/directive/issues/5028#issuecomment-5826046402",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:11:17Z",
+          "updated_at": "2026-09-25T03:11:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA fresh release worktree has no vitest results cache, so default slowest-first never arms and Step 5 can finish with an idle-worker tail. Host-global cache.dir is machine state and race-prone across concurrent worktrees. The bind is a reviewable committed durations file plus custom sequencer (input from #5027), with spawn-heavy-before-unit groupOrder only as the measured fallback if durations alone do not shrink last-worker-idle to suite end. Measurement and evaluator-surface renewal stay on the acceptance criteria.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5826046402 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5825993019\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\n\n## Takes\n\n- 5826046402 Cold worktree leaves BaseSequencer without durations — accept-into-contract\n- 5826046402 Same groupOrder plus one-worker spawn-heavy still idles unit workers — accept-into-contract\n- 5826046402 Host-persisted cache.dir is shared mutable sequencer state — accept-into-contract\n\nFootnotes, outside the take map: 5826046402 Cold fallback is size, not pure glob order; 5826046402 evaluator-surface renewal already on the AC.\n\nSpec-path:\n\n## Bound remedy\n\n1. Prefer issue option 2: commit a durations file produced from the Step 5 durations artifact (#5027) and add a small custom sequence.sequencer that sorts by those durations, falling back to default order for files not listed. This is the reviewable, cross-machine path.\n2. Do not bind bare host-global cache.dir persistence (option 1) as the sole remedy. Shared host cache races concurrent worktrees and is non-reviewable machine state. Exclusive per-cut cache paths are out of preferred scope for this issue.\n3. Cross-project idle (unit workers draining while spawn-heavy's single win32 worker serializes the long tail): implement must either set sequence.groupOrder so spawn-heavy starts before unit on the Step 5 shape (issue option 3 as measured fallback / conjunct), or land measured evidence that option 2 alone already shrinks last-worker-idle→suite-end under the pin's project layout. Do not leave that fork unnamed.\n4. Acceptance requires recorded before/after time from last-worker-idle to suite end on the Windows host on a fresh worktree.\n5. vitest.config.ts change renews xbrief/evaluator-surface-disposition.json. CHANGELOG [Unreleased] with Refs to this issue. Depends on #5027 durations input. Parent #5024. Out of scope: moving files between projects; changing worker counts or pool type.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:7d07e5e182760f817d2e17a87ff9a80e7ad4585bf36064b88065a523258f81bb\n\n## Parent-side substantiation\n\nThe critic rejected cold-cache sufficiency, required naming the cross-project idle fork, and refused bare host-global cache.dir as sole remedy. Items 1–4 do that. Footnotes stay census.\n\naudit:committed-durations-preferred sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826046402 reading=asserted\naudit:cross-project-idle-fork sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826046402 reading=asserted\naudit:no-bare-host-cache sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826046402 reading=asserted",
+          "id": 5826061099,
+          "html_url": "https://github.com/deftai/directive/issues/5028#issuecomment-5826061099",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:13:07Z",
+          "updated_at": "2026-09-25T11:53:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#5028\nCharter: refutation\nRound: 4 Pass-4 audit (pain-audit of relieves)\nCritic role: fresh\nId ceiling (inclusive): 5826061099\nSHA at dispatch: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\nRun posture: arc-mode: no-ingest\nSeat: grok. Launcher: grok.\naudit-targets: pain-P1, pain-P2, pain-P3\n\n## Verdict\n\nSuccessor lean 5826061099 Bound remedy covers Stop 1 pains P1, P2, and P3 as asserted (`relieves: P1`, `relieves: P2`, `relieves: P3`). Re-verified at `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650`: `vitest.config.ts` sets neither `cacheDir` / `test.cache` nor `sequence.sequencer` nor `sequence.groupOrder`; this dest has no `node_modules/.vite`; projects are `unit` (win32 `maxWorkers` ≤12) and `spawn-heavy` (win32 `maxWorkers: Number(isWin32)` → 1); `hook-host-identity-lifetime.test.ts` remains in `spawnHeavyGlobs`. Round-1 critic 5826046402 cold-disarm, cross-project idle, and host-cache findings map onto Bound remedy items 1–4.\n\nNo `blocks-the-design` findings on the asserted cites.\n\n## P1 cold-cache idle tail is covered by durations sequencer plus named cross-project fork\nfootnote\nEvidence: Stop 1 P1 is fresh-worktree missing results cache → idle-worker tail. Bound remedy item 1 commits a durations file (#5027) and a custom `sequence.sequencer` that sorts by it on cold trees. Item 3 requires either `sequence.groupOrder` so spawn-heavy starts before unit, or measured evidence that option 2 alone already shrinks last-worker-idle→suite-end under this pin's project layout. Item 4 records that measurement on a fresh Windows worktree.\nFailure mode: none for the cite; within-project duration order alone can still leave unit workers idle while spawn-heavy's single win32 worker serializes, and item 3 already names that fork.\nDisposition: Census only. `relieves: P1` holds.\n\n## P2 host-cache non-determinism is covered by preferring committed durations\nfootnote\nEvidence: Stop 1 P2 refuses host-local `cache.dir` machine state without a reviewable committed durations file or explicit ordering fallback. Bound remedy item 1 prefers option 2; item 2 refuses bare host-global persistence as the sole remedy; item 3 names groupOrder as measured fallback / conjunct.\nFailure mode: none for the cite.\nDisposition: Census only. `relieves: P2` holds.\n\n## P3 measurement bind is covered; Stop 1 wording was slightly ahead of the body AC\nfootnote\nEvidence: Stop 1 P3 says measured before/after last-worker-idle→suite-end \"is not yet required on the issue.\" The live issue Acceptance criteria already lists that measurement. Bound remedy item 4 still elevates it as acceptance on a fresh Windows worktree, so a sequencer change cannot bind without the recorded comparison.\nFailure mode: none for the cite; the lean closes the land-without-proof hole even where the body AC already named the metric.\nDisposition: Census only. `relieves: P3` holds. Optional later wording: a quantitative shrink bar is outside P3 as named.\n\n## Pin layout makes groupOrder the likely conjunct\nsharpens-framing\nEvidence: At this SHA both projects share default `groupOrder` 0 and spawn-heavy is capped to one win32 worker. A custom sequencer sorts files inside each project; it does not by itself start the spawn-heavy group before unit. Bound remedy item 3 already states the fork as groupOrder conjunct / measured fallback.\nFailure mode: Implement treats the OR as equal-weight and ships option 2 alone after a soft \"shrinks\" reading while the cross-project idle shape named in round-1 remains.\nDisposition: Lean can bind. Harvest already names groupOrder. On this pin, expect the groupOrder branch unless measurement honestly shows option 2 alone removes the idle-tail shape; no Bound-remedy rewrite required.\n\n## Injection / swarm lens\nCommitted durations plus a config-local sequencer replaces shared host `results.json` mutable state. No additional blocking residual under #480 for this ordering fix.\n\n## Road-not-taken\n\nSteelmanning a P1 miss: item 3's measured-evidence branch could rubber-stamp a tiny shrink. Flip condition: if item 4 omitted the fresh-worktree before/after record, P1/P3 would be soft. Item 4 is present and operative, so the asserted cites stay covered.",
+          "id": 5826090098,
+          "html_url": "https://github.com/deftai/directive/issues/5028#issuecomment-5826090098",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:16:25Z",
+          "updated_at": "2026-09-25T03:16:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA fresh release worktree has no vitest results cache, so default slowest-first never arms. The bind is a committed durations file plus custom sequencer from #5027, not bare host-global cache.dir. Cross-project idle stays named: expect sequence.groupOrder so spawn-heavy starts before unit unless measurement honestly shows option 2 alone clears the idle-tail shape. Pain-audit 5826090098 sharpening (groupOrder the likely conjunct on this pin) accepted into contract without harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5826061099.",
+          "id": 5826097930,
+          "html_url": "https://github.com/deftai/directive/issues/5028#issuecomment-5826097930",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:17:21Z",
+          "updated_at": "2026-09-25T03:17:21Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nVitest's default sequencer runs slowest files first, but only from a cached `results.json` under `node_modules/.vite/vitest/`. A fresh release worktree has no cache, so the long spawn-heavy files land wherever the glob order puts them and the run ends with a few multi-second files running alone while the other workers idle. The v0.119.9 evidence shows this tail: 1272/1284 at the 30m kill, last completed `hook-host-identity-lifetime.test.ts`.\n\nRecommended child of #5024. Fixing the order removes the idle tail without touching any test.\n\n## Proposal\n\nPick one:\n\n1. **Persist the vitest results cache** on the release host across cuts (`cache.dir` pointed outside the worktree), so the default sequencer has durations on every cut.\n2. **Commit a durations file** (produced by the Step 5 durations artifact, #5027) and add a small custom `sequence.sequencer` that sorts by it, falling back to default order for files not listed.\n3. Zero-code version: run the `spawn-heavy` project before `unit` so the long files start at t=0.\n\nOption 2 is deterministic across machines and reviewable; option 1 is host state; option 3 is the fallback if neither lands.\n\n## Acceptance criteria\n\n- Step 5 on the Windows host starts the slowest known files first on a fresh worktree.\n- Measured: time from \"last worker goes idle\" to suite end on the Windows host, before and after, recorded here.\n- vitest.config.ts change carries the usual `xbrief/evaluator-surface-disposition.json` disclosure renewal.\n- CHANGELOG [Unreleased] records the change with Refs to this issue.\n\n## Out of scope\n\n- Moving files between `unit` and `spawn-heavy` (separate cheapen children).\n- Changing worker counts or pool type.\n\n## Related\n\nParent #5024. Siblings #5026, #5027. Refs #5023, #4591.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5577423547,
+        "origin": "deftai/directive#5028",
+        "id": "github.issue.5577423547"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7d07e5e182760f817d2e17a87ff9a80e7ad4585bf36064b88065a523258f81bb"
+      },
+      "swarm": {
+        "file_scope": [
+          "vitest.config.ts",
+          "packages/core/src/vitest-runner/duration-sequencer.ts",
+          "packages/core/src/vitest-runner/duration-sequencer.test.ts",
+          "packages/core/fixtures/vitest-file-durations.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "CHANGELOG.md"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5030,
+        "prBase": null,
+        "mergeCommit": "909569636a2499e54d482537f81a79759349f8d4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a3f51b991c096be59a99756305c8dd6590ed5fb3",
+        "verifiedAt": "2026-09-25T13:50:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGQ4NmUtNmVmOC03MjcwLTg2NDMtZGVkMDdiNWI4ZWFl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-25T13:50:23Z",
+      "completedSessionId": "host:grok:v1:MDFhMGQ4NmUtNmVmOC03MjcwLTg2NDMtZGVkMDdiNWI4ZWFl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-25T13:50:23Z"
+      }
+    },
+    "id": "github.issue.5577423547",
+    "updated": "2026-09-25T13:50:23Z"
+  }
+}

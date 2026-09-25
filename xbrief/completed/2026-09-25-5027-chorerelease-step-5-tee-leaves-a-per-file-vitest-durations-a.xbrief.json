@@ -1,0 +1,435 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5027",
+    "updated": "2026-09-25T13:50:52Z"
+  },
+  "plan": {
+    "title": "chore(release): Step 5 tee leaves a per-file vitest durations artifact so \"what is slow\" is a sort",
+    "status": "completed",
+    "narratives": {
+      "Description": "chore(release): Step 5 tee leaves a per-file vitest durations artifact so \"what is slow\" is a sort",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5027",
+      "Overview": "\n\n1. Reject last-completed-file plus hand-timed isolates as sufficient evidence for suite-wide dominance. Require a duration-bearing ranking from the Windows production Step 5 cut (or an equivalent durable sort), not the hang-cause path alone.\n2. Inventory first: the retained tee already emits flushed `ts:check-lane timeline file <path> <ms>` lines via the progress reporter (`writeSync`, ≥ `PROGRESS_FILE_HEARTBEAT_MS` / 30s). Prefer a scrape+rank helper over that stream, or another mechanism that flushes per completed file before kill. Do not claim stock vitest `--reporter=json` / `outputFile` flushes on hang kill (`JsonReporter` writes in `onTestRunEnd`; win32 kill is `taskkill /T /F`, POSIX `SIGKILL`).\n3. If the timeline path is kept, state the 30s omission explicitly (sub-30s files never appear). Hang-kill durability binds only for flush-before-kill mechanisms (existing progress reporter path qualifies; stock JSON does not).\n4. Ship a tiny rank helper (timeline scrape or equivalent) that prints top N by duration; RELEASING.md notes where the artifact/tee lines land and how to rank; paste top-20 from the next production cut into #5024 as the cheapen baseline. CHANGELOG [Unreleased] with Refs to this issue. No test-suite changes required for this instrumentation path. Out of scope: acting on the ranking (cheapen children); uploading the artifact.\n5. Child of #5024; siblings #5026 / #5028. Refs #5023, #4591, #4567, #4801, #5022.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:9578fb56babe1ae2b310b7403a834dc5753b45b23d10d3c6be6a7ffe7870735a\n\n\n",
+      "Labels": "chore, design, agent-experience, process, area:release, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Reject last-completed-file plus hand-timed isolates as sufficient evidence for suite-wide dominance. Require a duration-bearing ranking from the Windows production Step 5 cut (or an equivalent durable sort), not the hang-cause path alone.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5031#9ef7a4c61a3030d34b199843329bdfef1a1b0e73",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Inventory first: the retained tee already emits flushed `ts:check-lane timeline file <path> <ms>` lines via the progress reporter (`writeSync`, ≥ `PROGRESS_FILE_HEARTBEAT_MS` / 30s). Prefer a scrape+rank helper over that stream, or another mechanism that flushes per completed file before kill. Do not claim stock vitest `--reporter=json` / `outputFile` flushes on hang kill (`JsonReporter` writes in `onTestRunEnd`; win32 kill is `taskkill /T /F`, POSIX `SIGKILL`).",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5031#9ef7a4c61a3030d34b199843329bdfef1a1b0e73",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "If the timeline path is kept, state the 30s omission explicitly (sub-30s files never appear). Hang-kill durability binds only for flush-before-kill mechanisms (existing progress reporter path qualifies; stock JSON does not).",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5031#9ef7a4c61a3030d34b199843329bdfef1a1b0e73",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Ship a tiny rank helper (timeline scrape or equivalent) that prints top N by duration; RELEASING.md notes where the artifact/tee lines land and how to rank; paste top-20 from the next production cut into #5024 as the cheapen baseline. CHANGELOG [Unreleased] with Refs to this issue. No test-suite changes required for this instrumentation path. Out of scope: acting on the ranking (cheapen children); uploading the artifact.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5031#9ef7a4c61a3030d34b199843329bdfef1a1b0e73",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Child of #5024; siblings #5026 / #5028. Refs #5023, #4591, #4567, #4801, #5022.",
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5031#9ef7a4c61a3030d34b199843329bdfef1a1b0e73",
+          "recorded_at": "2026-09-25T13:50:01.966Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "chore",
+      "design",
+      "agent-experience",
+      "process",
+      "area:release",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5027",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5027: chore(release): Step 5 tee leaves a per-file vitest durations artifact so \"what is slow\" is a sort"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5023",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5023"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "chore(release): Step 5 tee leaves a per-file vitest durations artifact so \"what is slow\" is a sort",
+        "Reject last-completed-file plus hand-timed isolates as sufficient evidence for suite-wide dominance.",
+        "Require a duration-bearing ranking from the Windows production Step 5 cut (or an equivalent durable sort), not the hang-cause path alone.",
+        "Inventory first: the retained tee already emits flushed `ts:check-lane timeline file <path> <ms>` lines via the progress reporter (`writeSync`, ≥ `PROGRESS_FILE_HEARTBEAT_MS` / 30s).",
+        "Prefer a scrape+rank helper over that stream, or another mechanism that flushes per completed file before kill.",
+        "Do not claim stock vitest `--reporter=json` / `outputFile` flushes on hang kill (`JsonReporter` writes in `onTestRunEnd`; win32 kill is `taskkill /T /F`, POSIX `SIGKILL`).",
+        "If the timeline path is kept, state the 30s omission explicitly (sub-30s files never appear).",
+        "Hang-kill durability binds only for flush-before-kill mechanisms (existing progress reporter path qualifies; stock JSON does not).",
+        "Ship a tiny rank helper (timeline scrape or equivalent) that prints top N by duration; RELEASING.md notes where the artifact/tee lines land and how to rank; paste top-20 from the next production cut into #5024 as the cheapen baseline.",
+        "CHANGELOG [Unreleased] with Refs to this issue.",
+        "No test-suite changes required for this instrumentation path.",
+        "Out of scope: acting on the ranking (cheapen children); uploading the artifact.",
+        "Child of #5024; siblings #5026 / #5028.",
+        "Refs #5023, #4591, #4567, #4801, #5022.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:9578fb56babe1ae2b310b7403a834dc5753b45b23d10d3c6be6a7ffe7870735a"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Reject last-completed-file plus hand-timed isolates as sufficient evidence for suite-wide dominance. Require a duration-bearing ranking from the Windows production Step 5 cut (or an equivalent durable sort), not the hang-cause path alone.",
+          "artifact_path": "packages/core/src/ts-check-lane/duration-rank.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Inventory first: the retained tee already emits flushed `ts:check-lane timeline file <path> <ms>` lines via the progress reporter (`writeSync`, ≥ `PROGRESS_FILE_HEARTBEAT_MS` / 30s). Prefer a scrape+rank helper over that stream, or another mechanism that flushes per completed file before kill. Do not claim stock vitest `--reporter=json` / `outputFile` flushes on hang kill (`JsonReporter` writes in `onTestRunEnd`; win32 kill is `taskkill /T /F`, POSIX `SIGKILL`).",
+          "artifact_path": "packages/core/src/ts-check-lane/duration-rank.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "If the timeline path is kept, state the 30s omission explicitly (sub-30s files never appear). Hang-kill durability binds only for flush-before-kill mechanisms (existing progress reporter path qualifies; stock JSON does not).",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Ship a tiny rank helper (timeline scrape or equivalent) that prints top N by duration; RELEASING.md notes where the artifact/tee lines land and how to rank; paste top-20 from the next production cut into #5024 as the cheapen baseline. CHANGELOG [Unreleased] with Refs to this issue. No test-suite changes required for this instrumentation path. Out of scope: acting on the ranking (cheapen children); uploading the artifact.",
+          "artifact_path": "packages/core/src/ts-check-lane/duration-rank.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Child of #5024; siblings #5026 / #5028. Refs #5023, #4591, #4567, #4801, #5022.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "chore(release): Step 5 tee leaves a per-file vitest durations artifact so \"what is slow\" is a sort",
+        "Reject last-completed-file plus hand-timed isolates as sufficient evidence for suite-wide dominance.",
+        "Require a duration-bearing ranking from the Windows production Step 5 cut (or an equivalent durable sort), not the hang-cause path alone.",
+        "Inventory first: the retained tee already emits flushed `ts:check-lane timeline file <path> <ms>` lines via the progress reporter (`writeSync`, ≥ `PROGRESS_FILE_HEARTBEAT_MS` / 30s).",
+        "Prefer a scrape+rank helper over that stream, or another mechanism that flushes per completed file before kill.",
+        "Do not claim stock vitest `--reporter=json` / `outputFile` flushes on hang kill (`JsonReporter` writes in `onTestRunEnd`; win32 kill is `taskkill /T /F`, POSIX `SIGKILL`).",
+        "If the timeline path is kept, state the 30s omission explicitly (sub-30s files never appear).",
+        "Hang-kill durability binds only for flush-before-kill mechanisms (existing progress reporter path qualifies; stock JSON does not).",
+        "Ship a tiny rank helper (timeline scrape or equivalent) that prints top N by duration; RELEASING.md notes where the artifact/tee lines land and how to rank; paste top-20 from the next production cut into #5024 as the cheapen baseline.",
+        "CHANGELOG [Unreleased] with Refs to this issue.",
+        "No test-suite changes required for this instrumentation path.",
+        "Out of scope: acting on the ranking (cheapen children); uploading the artifact.",
+        "Child of #5024; siblings #5026 / #5028.",
+        "Refs #5023, #4591, #4567, #4801, #5022.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:9578fb56babe1ae2b310b7403a834dc5753b45b23d10d3c6be6a7ffe7870735a"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Step 5 hang evidence today is only the last completed file name plus hand-timed isolates (#5023), so which files dominate wall clock cannot be sorted and every cheapen child re-measures.\n\ncharter: refutation\nrefutation-target: The last-completed-file name at hang kill plus hand-timed isolated runs are sufficient evidence for which files dominate Windows Step 5 wall clock, so a per-file vitest durations JSON artifact in the Step 5 tee (including on hang kill) is unnecessary ceremony.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token ask. Recommended child of #5024. Cheap instrumentation input for sequencer and future cheapen children. N=1.\n\npain: P1, P2, P3\n\nP1. After a Step 5 hang kill, operators only know the last completed file, not a ranked duration list, so follow-on cheapen children cannot cite a sort.\nP2. Tee retention already keeps the log on exit 124 (#4567), but there is no companion vitest-results.json with per-file durations flushed usefully on kill.\nP3. Without a tiny rank helper and RELEASING.md note, even a JSON artifact will not become the baseline paste into #5024 / sequencer work.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5027-dc\norigin-ref: origin/master\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\npin-kind: origin-default\ntarget-digest: sha256:976ffb143dd5c6726a5e56aa65dfdbd6b6a9ef790f7660da77613c7e43365c4e\n\nPin reads use git show 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650. Parent #5024; sibling #5026 (coverage decision) and #5028 (sequencer). This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5825992812,
+          "html_url": "https://github.com/deftai/directive/issues/5027#issuecomment-5825992812",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:04:39Z",
+          "updated_at": "2026-09-25T03:04:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1 refutation seat. Dispatch SHA `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650` matches `git rev-parse HEAD`. Input ceiling honored at Stop 1 comment `5825992812`.\n\n**Refutation target does not survive.** Last-completed-file at hang kill plus hand-timed isolates do not give a sortable ranking of which files dominate Windows Step 5 wall clock. A durable per-file duration sort from the production cut remains necessary. That does not automatically bind the issue body's stock vitest JSON + hang-kill flush wording; inventory below changes how that successor must be stated.\n\n## Last-file is a hang cursor, not a wall-clock ranking\nblocks-the-design\nEvidence: At `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650`, `packages/core/src/ts-check-lane/progress.ts` `formatLastFileLine` emits only `ts:check-lane last-file <path> (<n>/<total> files)` with no duration field. `packages/core/src/check/named-cause.ts` `lastCompletedTestFile` / `extractHangDetectorCause` surface that single path on exit 124. Issue #5024 body (related inventory) records the v0.119.9 30m kill at **1272/1284** with last completed `packages/cli/src/hook-host-identity-lifetime.test.ts` — a near-end cursor, not a ranked cost list.\nFailure mode: If the premise binds, operators and cheapen children treat the hang-cursor file as the dominant wall-clock file. Cheapen work aims at the wrong target while the files that consumed the 30m budget stay unsorted.\nDisposition: Drop the sufficiency claim for last-file. Any bindable lean must require a duration-bearing ranking from the cut (or an equivalent durable sort), not the hang-cause path alone.\n\n## Isolates understate contended Step 5 cost\nblocks-the-design\nEvidence: Issue #5023 body timing table (related inventory) already separates columns: check-tee under hang (contended) vs isolated `--coverage`. Example: `dispatcher-owner-liveness` ~49s contended vs ~20s isolated; `extra-coverage` ~39s vs ~18.8s. Same leaf that produced those isolates still needed full-suite progress to judge Step 5 finishability.\nFailure mode: Ranking dominance from hand-timed isolates alone mis-orders cheapen children relative to the Windows release path (`runReleaseCheck` → supervised `ts:check-lane` with coverage, fork workers, and tee-contended wall clock). Follow-on work re-measures the production cut anyway.\nDisposition: Isolates stay useful for before/after on a named suspect. They are not sufficient evidence for suite-wide dominance. The premise's \"plus hand-timed isolated runs\" clause cannot carry the sort.\n\n## Tee already carries partial per-file durations; stock JSON does not flush on hang kill\nsharpens-framing\nEvidence: Inventory at the dispatch SHA before proposing a new artifact: `TsCheckLaneProgressReporter.onTestModuleEnd` already emits flushed `ts:check-lane timeline file <path> <ms> project=…` via `formatFileDurationLine` when timeline is active and elapsed ≥ `PROGRESS_FILE_HEARTBEAT_MS` (30s); `writeFlushedLine` uses `writeSync` and also mirrors to stderr for tee capture. `superviseChild` retains the tee on exit 124; hang kill is `taskkill /T /F /PID` on win32 and `SIGKILL` on POSIX (`killDescendantTree`). Lane argv today is `--reporter <progress-reporter> --reporter default` only (`buildTestLaneCommand`) — no `json` / `outputFile`. Upstream vitest `JsonReporter` writes `outputFile` inside `onTestRunEnd` (vitest `packages/vitest/src/node/reporters/json.ts`); force tree-kill does not run that end hook, so there is no per-file flush guarantee for stock `--reporter=json` on hang kill.\nFailure mode: Binding \"JSON in the tee including on hang kill\" as written invents a flush property the tree does not have, while understating the already-flushed timeline duration lines that survive in `.deft/check-tees/**.log`. Binding \"ceremony unnecessary\" because last-file+isolates exist also understates that partial timeline stream and its 30s gate (sub-30s files never appear).\nDisposition: After this refutation fails, the successor lean must inventory the timeline file lines first (scrape+rank helper vs new reporter), state the 30s omission explicitly if that path is kept, and bind hang-kill durability only for a mechanism that flushes per completed file before kill (the existing progress reporter path does; stock vitest JSON does not).\n\nRoad-not-taken: strongest steelman of the target is \"grep/sort the retained timeline `file … Nms` lines; skip JSON.\" What flips it is the conjunction already above: named-cause still exposes only last-file, isolates disagree with contended tee times, the 30s gate is incomplete, and no one-command rank helper exists yet — so \"sufficient today\" still fails even when the tee is not empty of durations.\r\n\n",
+          "id": 5826058542,
+          "html_url": "https://github.com/deftai/directive/issues/5027#issuecomment-5826058542",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:12:48Z",
+          "updated_at": "2026-09-25T03:12:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLast-completed-file at hang kill is only a cursor, and hand-timed isolates understate contended Step 5 cost, so they cannot rank which files dominate Windows wall clock. A durable duration sort from the production cut is required. The tee already has partial per-file timeline durations (flushed for files ≥30s); stock vitest JSON does not flush on hang kill. Bind prefers inventorying and ranking that timeline (or another per-file flush-before-kill mechanism), states the 30s omission if timeline is kept, and does not invent a JsonReporter flush guarantee.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5826058542 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5825992812\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\n\n## Takes\n\n- 5826058542 Last-file is a hang cursor, not a wall-clock ranking — accept-into-contract\n- 5826058542 Isolates understate contended Step 5 cost — accept-into-contract\n- 5826058542 Tee already carries partial per-file durations; stock JSON does not flush on hang kill — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Reject last-completed-file plus hand-timed isolates as sufficient evidence for suite-wide dominance. Require a duration-bearing ranking from the Windows production Step 5 cut (or an equivalent durable sort), not the hang-cause path alone.\n2. Inventory first: the retained tee already emits flushed `ts:check-lane timeline file <path> <ms>` lines via the progress reporter (`writeSync`, ≥ `PROGRESS_FILE_HEARTBEAT_MS` / 30s). Prefer a scrape+rank helper over that stream, or another mechanism that flushes per completed file before kill. Do not claim stock vitest `--reporter=json` / `outputFile` flushes on hang kill (`JsonReporter` writes in `onTestRunEnd`; win32 kill is `taskkill /T /F`, POSIX `SIGKILL`).\n3. If the timeline path is kept, state the 30s omission explicitly (sub-30s files never appear). Hang-kill durability binds only for flush-before-kill mechanisms (existing progress reporter path qualifies; stock JSON does not).\n4. Ship a tiny rank helper (timeline scrape or equivalent) that prints top N by duration; RELEASING.md notes where the artifact/tee lines land and how to rank; paste top-20 from the next production cut into #5024 as the cheapen baseline. CHANGELOG [Unreleased] with Refs to this issue. No test-suite changes required for this instrumentation path. Out of scope: acting on the ranking (cheapen children); uploading the artifact.\n5. Child of #5024; siblings #5026 / #5028. Refs #5023, #4591, #4567, #4801, #5022.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:9578fb56babe1ae2b310b7403a834dc5753b45b23d10d3c6be6a7ffe7870735a\n\n## Parent-side substantiation\n\nThe critic required dropping last-file+isolates sufficiency and binding hang-kill durability only for flush-before-kill mechanisms after inventorying the existing timeline stream. Items 1–4 do that. Stock JSON flush is refused, not deferred.\n\naudit:timeline-first-inventory sha=832f73ec9e9b5824f002d6ae52da5f3ec7bb5650 pointer=comment:5826058542 reading=asserted",
+          "id": 5826072331,
+          "html_url": "https://github.com/deftai/directive/issues/5027#issuecomment-5826072331",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:14:22Z",
+          "updated_at": "2026-09-25T11:53:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5027\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5826072331\ndispatch-sha: 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\n## Verdict\n\nSuccessor lean 5826072331 Bound remedy covers Stop 1 pains P1, P2, and P3 as asserted. Re-verified anchors at `832f73ec9e9b5824f002d6ae52da5f3ec7bb5650` match critic 5826058542 and the lean's inventory: `formatLastFileLine` / `lastCompletedTestFile` expose only the hang cursor; `formatFileDurationLine` emits flushed `ts:check-lane timeline file <path> <ms>` via `writeFlushedLine`/`writeSync` when timeline is active and elapsed ≥ `PROGRESS_FILE_HEARTBEAT_MS` (30s); `buildTestLaneCommand` is `--reporter <progress> --reporter default` only (no json/`outputFile`); `superviseChild` returns `teePath`/`teeRel` on exit 124; win32 kill remains `taskkill /T /F`, POSIX `SIGKILL`; `scripts/vitest-top.mjs` is absent; RELEASING.md has hang/tee recovery prose and no rank-helper or durations-artifact note yet.\n\nNo `blocks-the-design` findings on the asserted cites.\n\n## P2 relief is flush-before-kill duration durability, not a deferred JSON companion\nsharpens-framing\nEvidence: Stop 1 P2 English names a companion `vitest-results.json` flushed usefully on kill. Bound remedy items 2–3 refuse stock vitest `--reporter=json` / `outputFile` hang-kill flush (`JsonReporter` writes in `onTestRunEnd`; tree-kill skips that hook) and prefer scrape+rank of the already-flushed timeline file lines (or another per-completed-file flush-before-kill mechanism). Item 4 ships the helper against that stream and documents tee lines.\nFailure mode: Implement treats P2 as still owed a `vitest-results.json` beside the tee, adds stock JsonReporter, and claims hang-kill durability the tree does not have, while the timeline path that actually survives exit 124 stays unranked.\nDisposition: Lean can bind. Harvest already names the substitute and refuses the JSON flush guarantee. Implement and later synthesis must discharge P2 via the flush-before-kill ranking path in items 2–4; do not revive stock JsonReporter as optional P2 completion.\n\n## Top-N paste is among emitted duration lines under the 30s gate\nfootnote\nEvidence: `onTestModuleEnd` emits `formatFileDurationLine` only when `elapsed >= PROGRESS_FILE_HEARTBEAT_MS`. Item 3 already requires stating that omission when the timeline path is kept. Item 4's top-20 paste is the ranking output of that mechanism (or an equivalent that flushes per completed file).\nFailure mode: Operators expect twenty all-files rows and read a short ≥30s list as incomplete instrumentation.\nDisposition: Census only. Item 3's honesty clause already forces the correct reading; helper/RELEASING should define top-N among emitted duration lines.\n\n## P3 helper and RELEASING gap is the ship work\nfootnote\nEvidence: At this SHA there is no `scripts/vitest-top.mjs` (or peer), and RELEASING.md does not yet document ranking tee timeline durations. Bound remedy item 4 is exactly that addition plus the #5024 top-20 paste and CHANGELOG Refs.\nFailure mode: Treating absence at the pin SHA as a coverage miss would invent a pre-land artifact the lean is written to create.\nDisposition: Outside residual. P3 cite tracks the Bound-remedy ship list.\n\n## Injection / swarm lens\nLocal Step 5 tee scrape, rank helper, and RELEASING note do not add a new cross-agent authority surface. Progress-reporter stdout/stderr already feeds the retained tee under the existing supervisor. No additional blocking residual under #480 for this instrumentation bind.\n\n## Road-not-taken\n\nSteelmanning a P2 coverage miss: keep the Stop 1 English literal and require a companion `vitest-results.json` that flushes on kill. Flip condition: if Bound remedy deferred JSON without binding a flush-before-kill alternative, `relieves: P2` would fail. Items 2–4 bind the timeline/equivalent path and refuse stock JSON flush, so the substance of P2 (useful per-file durations durable across hang kill, plus a one-command rank into #5024) stays covered.\r\n\n",
+          "id": 5826104691,
+          "html_url": "https://github.com/deftai/directive/issues/5027#issuecomment-5826104691",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:18:10Z",
+          "updated_at": "2026-09-25T03:18:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\nPain-audit 5826104691 sharpening \"P2 relief is flush-before-kill duration durability, not a deferred JSON companion\" — accept-into-contract without harvest change. Bound remedy items 2–4 already refuse stock JsonReporter hang-kill flush and bind the timeline/equivalent path. Footnotes (30s top-N among emitted lines; P3 is ship work) stay outside the take map. Bind remains successor lean 5826072331.",
+          "id": 5826119622,
+          "html_url": "https://github.com/deftai/directive/issues/5027#issuecomment-5826119622",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:20:06Z",
+          "updated_at": "2026-09-25T03:20:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLast-file and isolates are not enough to rank Windows Step 5 wall clock. Bound remedy requires a duration sort from the production cut, prefers ranking already-flushed tee timeline lines (or another flush-before-kill path), refuses inventing a stock JsonReporter hang-kill flush, and ships the helper plus RELEASING note. Pain-audit 5826104691 sharpening (P2 is flush-before-kill durability, not deferred JSON) accepted into contract without harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5826072331.",
+          "id": 5826121451,
+          "html_url": "https://github.com/deftai/directive/issues/5027#issuecomment-5826121451",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:20:20Z",
+          "updated_at": "2026-09-25T03:20:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLast-file plus isolates cannot rank Step 5 wall clock. Bind a duration sort from the production cut, prefer scrape+rank of already-flushed timeline file lines (or another flush-before-kill mechanism), refuse stock JsonReporter hang-kill flush, state the 30s omission if timeline is kept, and ship the rank helper plus RELEASING note.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| Last-completed-file is hang cursor only (no duration); not a wall-clock ranking. | git show progress.ts formatLastFileLine + named-cause lastCompletedTestFile at 832f73ec9e9b5824f002d6ae52da5f3ec7bb5650; critic 5826058542. | verified |\n| Hand-timed isolates understate contended Step 5 cost vs check-tee. | #5023 timing table columns; critic 5826058542. | verified |\n| Tee already emits flushed timeline file Nms lines (≥30s); stock JsonReporter writes only in onTestRunEnd and does not flush under taskkill/SIGKILL. | progress reporter writeFlushedLine; buildTestLaneCommand argv; vitest JsonReporter; killDescendantTree at pin; critic 5826058542 / pain-audit 5826104691. | verified |\n| Bound remedy covers P1–P3; P2 discharges via flush-before-kill ranking path, not deferred stock JSON. | lean 5826072331 items 1–4; pain-audit 5826104691. | verified |",
+          "id": 5826121456,
+          "html_url": "https://github.com/deftai/directive/issues/5027#issuecomment-5826121456",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T03:20:20Z",
+          "updated_at": "2026-09-25T03:20:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nEvery Step 5 cut should leave a per-file durations artifact. Today the evidence for \"what is slow\" is the last completed file name at the hang kill and hand-timed isolated runs (#5023 timing table). That says nothing about which files dominate wall clock. With a JSON reporter on the Step 5 invocation, \"which files dominate\" becomes a sort, and the next cheapen child can cite it instead of re-measuring.\n\nRecommended child of #5024. Cheap, no test changes, and it is the input the sequencer child and every future cheapen needs.\n\n## Proposal\n\n- Add `--reporter=default --reporter=json --outputFile=<step5 tee dir>/vitest-results.json` to the `ts:check-lane` invocation used at Step 5 (and optionally in `task check`).\n- The Step 5 tee retention already keeps the log on exit 124 (#4567); keep the JSON beside it, including on a hang kill (write what vitest has emitted so far, or use a reporter that flushes per file).\n- A tiny script (`scripts/vitest-top.mjs` or similar) prints the top N files by duration from that JSON, so the ranking is one command.\n\n## Acceptance criteria\n\n- A Step 5 run on the Windows host leaves `vitest-results.json` in the tee dir, with per-file durations, including when killed by the hang detector.\n- The top-20 by duration from the next production cut is pasted into #5024 as the baseline for follow-on cheapen children.\n- RELEASING.md notes where the artifact lands and how to rank it.\n- CHANGELOG [Unreleased] records the addition with Refs to this issue.\n\n## Out of scope\n\n- Acting on the ranking (that is the cheapen children).\n- Uploading the artifact anywhere; local tee dir is enough.\n\n## Related\n\nParent #5024. Sibling #5026 (coverage-at-Step-5 decision). Refs #5023, #4591, #4567.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5577418303,
+        "origin": "deftai/directive#5027",
+        "id": "github.issue.5577418303"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9578fb56babe1ae2b310b7403a834dc5753b45b23d10d3c6be6a7ffe7870735a"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/ts-check-lane/progress.ts",
+          "packages/core/src/ts-check-lane/progress-reporter.ts",
+          "packages/core/src/ts-check-lane/duration-rank.ts",
+          "packages/core/src/ts-check-lane/duration-rank.test.ts",
+          "docs/RELEASING.md",
+          "CHANGELOG.md"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5031,
+        "prBase": null,
+        "mergeCommit": "9ef7a4c61a3030d34b199843329bdfef1a1b0e73",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a3f51b991c096be59a99756305c8dd6590ed5fb3",
+        "verifiedAt": "2026-09-25T13:50:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGQ4YmQtNmY1NC03ZGIyLTlkNGYtNzgyNWE2MGYyY2Ji"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-25T13:50:52Z",
+      "completedSessionId": "host:grok:v1:MDFhMGQ4YmQtNmY1NC03ZGIyLTlkNGYtNzgyNWE2MGYyY2Ji",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-25T13:50:52Z"
+      }
+    },
+    "id": "github.issue.5577418303",
+    "updated": "2026-09-25T13:50:52Z"
+  }
+}
