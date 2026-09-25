@@ -182,6 +182,25 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
     assert.equal(plan.windowsVerbatimArguments, true);
   });
 
+  it("keeps a spaced --project-root and #2547 apostrophe free-text as one token each (#3629)", () => {
+    const project = "E:/CSI Coding/csh-platform";
+    const summary = "It's a & test";
+    const argv = shellSplit(
+      `verify:branch --project-root "${project}" --summary "${summary}"`,
+    );
+    const plan = buildSpawnPlan("global", "deft", argv, WIN32);
+    assert.equal(plan.shell, false);
+    assert.equal(plan.windowsVerbatimArguments, true);
+    assert.deepEqual(splitCmdTokens(cmdSlashSPayload(plan.args[3])), [
+      "deft",
+      "verify:branch",
+      "--project-root",
+      project,
+      "--summary",
+      summary,
+    ]);
+  });
+
   const live = process.platform === "win32" ? it : it.skip;
   live("round-trips a spaced project dir, a spaced deft.cmd, and token a&b", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-4772-"));
@@ -254,11 +273,23 @@ describe("buildSpawnPlan — other paths keep shell:false", () => {
     assert.deepEqual(plan.args, ["/bin.js", "release", "a&b"]);
   });
 
+  it("win32 global verbatim plan differs from vendored non-verbatim argv (#3629)", () => {
+    const argv = ["verify:branch", "--project-root", "E:/CSI Coding/csh-platform"];
+    const globalPlan = buildSpawnPlan("global", "deft", argv, WIN32);
+    const vendoredPlan = buildSpawnPlan("vendored", "/bin.js", argv, WIN32);
+    assert.equal(globalPlan.command, "cmd.exe");
+    assert.equal(globalPlan.windowsVerbatimArguments, true);
+    assert.equal(vendoredPlan.command, "/node");
+    assert.equal(vendoredPlan.windowsVerbatimArguments, undefined);
+    assert.deepEqual(vendoredPlan.args, ["/bin.js", ...argv]);
+  });
+
   it("posix global spawns the shim directly with shell:false", () => {
     const plan = buildSpawnPlan("global", "deft", ["release", "a&b"], POSIX);
     assert.equal(plan.shell, false);
     assert.equal(plan.command, "deft");
     assert.deepEqual(plan.args, ["release", "a&b"]);
+    assert.equal(plan.windowsVerbatimArguments, undefined);
   });
 
   it("posix vendored spawns node with shell:false", () => {
