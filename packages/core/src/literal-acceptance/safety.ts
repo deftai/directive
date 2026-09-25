@@ -45,6 +45,19 @@ const PYTHON_PYTEST_INTERPRETERS = new Set(["python", "python3", "py"]);
 /** Built-in `node --test --test-reporter` names (#4978). Exact whole-string match. */
 const NODE_TEST_REPORTERS = new Set(["spec", "tap", "junit", "lcov", "dot"]);
 
+/** Strip one layer of matching wrapping quotes so shell-stripped dash forms cannot bypass. */
+function unwrapShellQuotes(token: string): string {
+  if (token.length < 2) {
+    return token;
+  }
+  const first = token[0];
+  const last = token[token.length - 1];
+  if ((first === "'" && last === "'") || (first === '"' && last === '"')) {
+    return token.slice(1, -1);
+  }
+  return token;
+}
+
 const ALLOWED_FIRST_TOKENS = new Set([
   "task",
   "deft",
@@ -493,11 +506,13 @@ function evaluatePythonPytestArgs(rest: string): CommandSafetyResult {
  * `node`: closed `--test` argv grammar (#4978 / leftover #4751).
  * tokens[0] must be exactly `--test`. Later dash tokens must start with
  * `--test-` or `--experimental-test-`. `--test-reporter` values are a closed
- * five-name allow-set on both attachments. Destination and rerun-failures refuse.
+ * five-name allow-set on both attachments. Destination, rerun-failures, and
+ * module-loading `--test-global-setup` refuse. Wrapping quotes are stripped
+ * before dash-token checks so shell-stripped forms cannot bypass.
  */
 function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
   const tokens = rest.length === 0 ? [] : rest.trim().split(/\s+/);
-  if (tokens[0] !== "--test") {
+  if (unwrapShellQuotes(tokens[0] ?? "") !== "--test") {
     return {
       ok: false,
       reason:
@@ -505,7 +520,7 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
     };
   }
   for (let i = 1; i < tokens.length; i += 1) {
-    const token = tokens[i] as string;
+    const token = unwrapShellQuotes(tokens[i] as string);
     if (!token.startsWith("-")) {
       continue;
     }
@@ -513,7 +528,9 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
       token === "--test-reporter-destination" ||
       token.startsWith("--test-reporter-destination=") ||
       token === "--test-rerun-failures" ||
-      token.startsWith("--test-rerun-failures=")
+      token.startsWith("--test-rerun-failures=") ||
+      token === "--test-global-setup" ||
+      token.startsWith("--test-global-setup=")
     ) {
       return {
         ok: false,
@@ -521,7 +538,8 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
       };
     }
     if (token === "--test-reporter") {
-      const value = tokens[i + 1];
+      const rawValue = tokens[i + 1];
+      const value = rawValue === undefined ? undefined : unwrapShellQuotes(rawValue);
       if (value === undefined || !NODE_TEST_REPORTERS.has(value)) {
         return {
           ok: false,
@@ -532,7 +550,7 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
       continue;
     }
     if (token.startsWith("--test-reporter=")) {
-      const value = token.slice("--test-reporter=".length);
+      const value = unwrapShellQuotes(token.slice("--test-reporter=".length));
       if (!NODE_TEST_REPORTERS.has(value)) {
         return {
           ok: false,
