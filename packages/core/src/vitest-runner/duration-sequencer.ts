@@ -123,7 +123,7 @@ export class DurationSequencer extends BaseSequencer {
     return this.#durations;
   }
 
-  async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
+  override async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
     const baseOrdered = await super.sort(files);
     const durations = this.#resolvedDurations();
     if (durations.size === 0) return baseOrdered;
