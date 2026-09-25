@@ -124,6 +124,40 @@ describe("tip-SHA GHA coverage-of-record (#5026)", () => {
       expect(formatCoverageOfRecordCite(result.cite)).toContain("gha-run=36086680776");
     }
   });
+
+  it("fail-closes when actions URL is missing (does not cite check-run id)", () => {
+    const result = evaluateTipShaCoverageOfRecord("cccccccccccccccccccccccccccccccccccccccc", [
+      {
+        name: "TypeScript (build + lint + test)",
+        status: "completed",
+        conclusion: "success",
+        id: 999001122,
+      },
+    ]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toMatch(/lacks parseable actions\/runs URL/);
+      expect(result.reason).not.toMatch(/999001122/);
+    }
+  });
+
+  it("fail-closes when actions URL is unparseable (does not cite check-run id)", () => {
+    const result = evaluateTipShaCoverageOfRecord("dddddddddddddddddddddddddddddddddddddddd", [
+      {
+        name: "TypeScript (build + lint + test)",
+        status: "completed",
+        conclusion: "success",
+        htmlUrl:
+          "https://github.com/deftai/directive/commit/dddddddddddddddddddddddddddddddddddddddd",
+        id: 888776655,
+      },
+    ]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toMatch(/lacks parseable actions\/runs URL/);
+      expect(result.reason).not.toMatch(/888776655/);
+    }
+  });
 });
 
 describe("runReleaseCheck", () => {

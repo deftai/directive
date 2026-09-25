@@ -133,15 +133,15 @@ export function evaluateTipShaCoverageOfRecord(
       reason: `no green tip-SHA GHA coverage-of-record check on ${tipSha.slice(0, 12)}`,
     };
   }
-  const fromUrl =
+  // Workflow run id only — never fall back to check-run id (different namespace).
+  const runId =
     preferred.htmlUrl !== undefined ? extractActionsRunIdFromHtmlUrl(preferred.htmlUrl) : null;
-  const runId = fromUrl ?? (typeof preferred.id === "number" ? String(preferred.id) : null);
   if (runId === null) {
     return {
       ok: false,
       reason:
         `green coverage-of-record check ${preferred.name} on ${tipSha.slice(0, 12)} ` +
-        "lacks actions run id",
+        "lacks parseable actions/runs URL (check-run id is not a workflow run id)",
     };
   }
   return {

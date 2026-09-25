@@ -42,7 +42,12 @@ import {
 } from "./git.js";
 import { checkVbriefLifecycleSyncNative, runBuildNative } from "./native-steps.js";
 import { todayIso } from "./paths.js";
-import { runReleaseCheck } from "./preflight.js";
+import {
+  type CoverageOfRecordResult,
+  defaultResolveCoverageOfRecord,
+  formatCoverageOfRecordCite,
+  runReleaseCheck,
+} from "./preflight.js";
 import {
   type PreparedArtifacts,
   prepareReleaseArtifacts,
@@ -87,6 +92,11 @@ function resolveCoverageReportMtimeMs(
   } catch {
     return null;
   }
+}
+
+function resolveCoverageCite(projectRoot: string, seams: ReleaseSeams): CoverageOfRecordResult {
+  const resolve = seams.resolveCoverageOfRecord ?? defaultResolveCoverageOfRecord;
+  return resolve(projectRoot);
 }
 
 function recordSuiteStamp(
@@ -287,6 +297,16 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     });
 
     if (stampEval.kind === "hit") {
+      // #5026: stamp skip must not bypass tip-SHA GHA coverage-of-record.
+      const citeResult = resolveCoverageCite(projectRoot, seams);
+      if (!citeResult.ok) {
+        emit(
+          5,
+          label,
+          `FAIL (${citeResult.reason}; suite stamp hit but tip-SHA GHA coverage-of-record required)`,
+        );
+        return EXIT_VIOLATION;
+      }
       const debtNote =
         stampEval.stamp.suite === "pass_with_debt" && stampEval.stamp.debtIssue != null
           ? ` PASS_WITH_DEBT(#${stampEval.stamp.debtIssue})`
@@ -294,7 +314,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       emit(
         5,
         label,
-        `OK (suite stamp hit at ${stampEval.stamp.headSha.slice(0, 12)}; suite skipped${debtNote})`,
+        `OK (suite stamp hit at ${stampEval.stamp.headSha.slice(0, 12)}; suite skipped${debtNote}; ${formatCoverageOfRecordCite(citeResult.cite)})`,
       );
     } else {
       // Bind auto-hatch coverage-final trust to this suite invocation (#3187).
@@ -399,12 +419,22 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         }
 
         if (decision.kind === "pass_with_debt") {
+          // #5026: PASS_WITH_DEBT must still cite tip-SHA GHA coverage-of-record.
+          const citeResult = resolveCoverageCite(projectRoot, seams);
+          if (!citeResult.ok) {
+            emit(
+              5,
+              label,
+              `FAIL (${citeResult.reason}; PASS_WITH_DEBT but tip-SHA GHA coverage-of-record required)`,
+            );
+            return EXIT_VIOLATION;
+          }
           process.stderr.write(formatAutoHatchBanner(decision.issue, decision.totals));
           recordSuiteStamp(projectRoot, "pass_with_debt", decision.issue, seams);
           emit(
             5,
             label,
-            `OK (PASS_WITH_DEBT(#${decision.issue}); auto-hatch ${decision.created ? "filed" : "bound"}; suite not re-run)`,
+            `OK (PASS_WITH_DEBT(#${decision.issue}); auto-hatch ${decision.created ? "filed" : "bound"}; suite not re-run; ${formatCoverageOfRecordCite(citeResult.cite)})`,
           );
         } else {
           const debtHint =

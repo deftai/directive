@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **fix(release): suite-stamp / PASS_WITH_DEBT must cite tip-SHA GHA coverage-of-record; never cite check-run id as gha-run (Tracking #5026).**
+
 ### Removed
 
 ## [0.119.9] - 2026-09-25

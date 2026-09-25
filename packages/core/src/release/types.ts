@@ -118,6 +118,14 @@ export interface ReleaseSeams {
   /** #3187 — CI detector; when true suite stamp is never trusted. */
   readonly isCi?: () => boolean;
   /**
+   * #5026 — tip-SHA GHA coverage-of-record cite. Required on stamp-hit and
+   * PASS_WITH_DEBT Step 5 success paths (suite skip must not bypass the cite).
+   * When omitted, production uses defaultResolveCoverageOfRecord.
+   */
+  readonly resolveCoverageOfRecord?: (
+    projectRoot: string,
+  ) => import("./preflight.js").CoverageOfRecordResult;
+  /**
    * #3527 — closed-verb grants for the tag-push / npm-publish gate.
    * When omitted, production loads active human-origin grants from disk.
    */

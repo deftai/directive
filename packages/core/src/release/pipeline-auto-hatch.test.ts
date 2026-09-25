@@ -15,6 +15,15 @@ const hairlineTotals = {
   statements: 86.0,
 };
 
+const GREEN_COVERAGE_CITE = {
+  ok: true as const,
+  cite: {
+    tipSha: "aaaabbbbccccddddeeeeffffaaaabbbbccccdddd",
+    runId: "36086680776",
+    checkName: "TypeScript (build + lint + test)",
+  },
+};
+
 const tempRoots: string[] = [];
 
 function tempProject(): string {
@@ -101,6 +110,7 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
         files.set(p, c);
       },
       isCi: () => false,
+      resolveCoverageOfRecord: () => GREEN_COVERAGE_CITE,
     };
 
     try {
@@ -110,6 +120,7 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
       const err = cap.lines.join("");
       expect(err).toMatch(/PASS_WITH_DEBT\(#4242\)/);
       expect(err).toMatch(/AUTO-HATCH/);
+      expect(err).toMatch(/coverage-of-record gha-run=36086680776/);
     } finally {
       cap.restore();
     }
@@ -229,12 +240,73 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
       },
       writeFile: () => undefined,
       isCi: () => false,
+      resolveCoverageOfRecord: () => GREEN_COVERAGE_CITE,
     };
 
     try {
       expect(runPipeline(baseConfig(projectRoot), seams)).toBe(0);
       expect(runCiCalls).toBe(0);
-      expect(cap.lines.join("")).toMatch(/suite stamp hit/);
+      const err = cap.lines.join("");
+      expect(err).toMatch(/suite stamp hit/);
+      expect(err).toMatch(/coverage-of-record gha-run=36086680776/);
+    } finally {
+      cap.restore();
+    }
+  });
+
+  it("fail-closes suite stamp hit without tip-SHA GHA coverage-of-record (#5026)", () => {
+    const cap = captureStderr();
+    let runCiCalls = 0;
+    const sha = "aaaabbbbccccddddeeeeffffaaaabbbbccccdddd";
+    const stampPathSuffix = "release-suite-stamp.json";
+    const projectRoot = tempProject();
+    const stampContent = JSON.stringify({
+      schemaVersion: 1,
+      headSha: sha,
+      suite: "pass_with_debt",
+      debtIssue: 4242,
+      recordedAt: "2026-08-07T00:00:00.000Z",
+    });
+
+    const seams: ReleaseSeams = {
+      validateReleaseInputs: passReleaseInputs,
+      todayIso: () => "2026-08-07",
+      spawnText: (_c, a) => {
+        if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
+        if (a.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };
+        if (a.includes("rev-parse")) return { status: 0, stdout: `${sha}\n`, stderr: "" };
+        return { status: 0, stdout: "", stderr: "" };
+      },
+      checkTagAvailable: () => [true, "ok"],
+      runCi: () => {
+        runCiCalls += 1;
+        return [true, "should not run"];
+      },
+      headSha: () => sha,
+      fileExists: (p) => {
+        if (p.endsWith("CHANGELOG.md") || p.endsWith("ROADMAP.md")) return true;
+        if (p.includes(stampPathSuffix)) return true;
+        return false;
+      },
+      readFile: (p) => {
+        if (p.includes(stampPathSuffix)) return stampContent;
+        return CHANGELOG;
+      },
+      writeFile: () => undefined,
+      isCi: () => false,
+      resolveCoverageOfRecord: () => ({
+        ok: false,
+        reason: "no green tip-SHA GHA coverage-of-record check on aaaabbbbcccc",
+      }),
+    };
+
+    try {
+      expect(runPipeline(baseConfig(projectRoot), seams)).toBe(1);
+      expect(runCiCalls).toBe(0);
+      const err = cap.lines.join("");
+      expect(err).toMatch(/FAIL/);
+      expect(err).toMatch(/coverage-of-record/);
+      expect(err).toMatch(/suite stamp hit/);
     } finally {
       cap.restore();
     }
