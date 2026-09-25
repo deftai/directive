@@ -40,11 +40,11 @@ See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard f
 
 ## Vitest coverage hang recovery (#2652 / #4230)
 
-Release Step 5 runs `task check` on the **cached** path with a **20-minute hang detector** (`runReleaseCheck` arms `timeoutMs`). That is hang detection, not a success SLA. Ambient `task check` tees without that kill. `task release` does not take the uncached `--no-cache` path.
+Release Step 5 runs `task check` on the **cached** path with a **30-minute hang detector** (`RELEASE_CHECK_TIMEOUT_MS`; `runReleaseCheck` arms `timeoutMs`). That is hang detection, not a success SLA. Ambient `task check` tees without that kill. `task release` does not take the uncached `--no-cache` path. Do **not** raise this constant casually -- further increases are a deliberate gate change via issue/PR (suite growth raised 20 to 30 under #5022).
 
 **Stale-binary diagnostic (before treating 124 as a vitest hang).** If a single-shot `Measure-Command { node -e 0 }` is greater than about 100 ms or `git --version` is greater than about 150 ms, investigate before assuming a suite hang. Probe with a **repeated** measurement and read the **median** — the first invocation in a fresh shell is a warm. Confirm with the claimant's differential: rename the original binary, copy a fresh file onto the original path; the renamed original stays slow and the fresh copy at the same path goes fast. Then copy-over-self / reinstall. Measured 40 min → 3.6 min on deft01 2026-09-07. Bitdefender exceptions are optional (216–277 s across states, within noise).
 
-GHA `CI` → “Test with coverage (vitest)” uses the same 20-minute wall-clock budget (`timeout-minutes: 20` on that step). The default path did not already enforce 20 minutes before this hang detector.
+GHA `CI` → “Test with coverage (vitest)” keeps its own 20-minute wall (`timeout-minutes: 20` on that step). Do not equate that Ubuntu CI budget with the Windows release Step 5 hang detector.
 
 **When Step 5 or CI appears stuck**
 

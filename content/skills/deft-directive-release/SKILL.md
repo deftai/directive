@@ -264,6 +264,8 @@ The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke
 
 ⊗ Use `--skip-ci` on a production cut except under explicit operator incident review — it skips Step 5 vitest coverage and ships untested npm builds (#2652). When unavoidable, pass `--allow-skip-ci=#N` citing the tracked issue; Step 5 emits a loud WARN. See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Vitest coverage hang recovery. The next patch after the hang fix must cut without `--skip-ci`.
 
+! Release Step 5 hang detector is **30 minutes** (`RELEASE_CHECK_TIMEOUT_MS` / `RELEASE_CHECK_TIMEOUT_MINUTES`). Hang detection, not a success SLA. Do **not** raise casually -- further increases are a deliberate gate change via issue/PR (suite growth raised 20 to 30 under #5022). Do not equate Ubuntu CI `timeout-minutes: 20` with this Windows release Step 5 wall.
+
 ```
 task release -- <version> --summary "<text>"
 ```

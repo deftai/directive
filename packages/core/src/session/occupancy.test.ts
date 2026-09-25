@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { decideHook } from "../hooks/dispatcher.js";
 import { completeCohort } from "../swarm/complete-cohort.js";
 import {
@@ -75,6 +75,14 @@ const TEST_WORKER_AUTH = {
   workerGithubAuthMode: "host-gh" as const,
   expectedPrincipal: { kind: "user" as const, login: "test-worker" },
 };
+
+const sharedTemps: string[] = [];
+const ephemeralTemps: string[] = [];
+let sharedRoot: string | null = null;
+let sharedOther: string | null = null;
+let sharedRitual: { root: string; head: string } | null = null;
+let ritualWorktreesPending = false;
+
 function gitInitIfNeeded(project: string): void {
   try {
     execFileSync("git", ["rev-parse", "--git-common-dir"], { cwd: project, stdio: "ignore" });
@@ -82,19 +90,101 @@ function gitInitIfNeeded(project: string): void {
     execFileSync("git", ["init", "-q"], { cwd: project });
   }
 }
-const temps: string[] = [];
+
+function resetLeaseFiles(root: string): void {
+  rmSync(join(root, ".deft"), { recursive: true, force: true });
+  rmSync(join(root, ".deft-scratch"), { recursive: true, force: true });
+  rmSync(join(root, "xbrief"), { recursive: true, force: true });
+  rmSync(join(root, ".deft-directive-disable"), { force: true });
+  // ownedRitualRepo rewrites PROJECT-DEFINITION after reset; keep the dir.
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  mkdirSync(join(root, ".deft"), { recursive: true });
+}
+
+function pruneExtraWorktrees(root: string): void {
+  let listed = "";
+  try {
+    listed = execFileSync("git", ["worktree", "list", "--porcelain"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+  } catch {
+    return;
+  }
+  const primary = resolve(root);
+  for (const block of listed.split(/\n(?=worktree )/)) {
+    const match = /^worktree (.+)$/m.exec(block);
+    if (match === null) continue;
+    const wt = resolve(match[1]!.trim());
+    if (wt === primary) continue;
+    try {
+      execFileSync("git", ["worktree", "remove", "--force", wt], {
+        cwd: root,
+        encoding: "utf8",
+      });
+    } catch {
+      rmSync(wt, { recursive: true, force: true });
+      try {
+        execFileSync("git", ["worktree", "prune"], { cwd: root, encoding: "utf8" });
+      } catch {
+        // best-effort cleanup for share-plus-reset
+      }
+    }
+  }
+}
+
+function resetSharedFixtures(): void {
+  if (sharedRoot !== null) resetLeaseFiles(sharedRoot);
+  if (sharedOther !== null) resetLeaseFiles(sharedOther);
+  if (sharedRitual !== null) {
+    // Lease/xbrief residue only — avoid git reset/clean on every case (#5022).
+    if (ritualWorktreesPending) {
+      pruneExtraWorktrees(sharedRitual.root);
+      ritualWorktreesPending = false;
+    }
+    resetLeaseFiles(sharedRitual.root);
+  }
+}
+
 afterEach(() => {
-  for (const t of temps) rmSync(t, { recursive: true, force: true });
-  temps.length = 0;
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  resetSharedFixtures();
+  for (const t of ephemeralTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+});
+
+afterAll(() => {
+  for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+  sharedRoot = null;
+  sharedOther = null;
+  sharedRitual = null;
 });
 
 function tempRoot(): string {
-  // #3663 assignment write needs a Git common directory
-  const root = mkdtempSync(join(tmpdir(), "occupancy-"));
-  temps.push(root);
-  gitInitIfNeeded(root);
-  return root;
+  // #3663 assignment write needs a Git common directory. Share one init across
+  // cases; afterEach clears lease/xbrief residue (#5022 share-plus-reset).
+  if (sharedRoot === null) {
+    sharedRoot = mkdtempSync(join(tmpdir(), "occupancy-"));
+    sharedTemps.push(sharedRoot);
+    gitInitIfNeeded(sharedRoot);
+  }
+  return sharedRoot;
 }
+
+function otherRoot(): string {
+  if (sharedOther === null) {
+    sharedOther = mkdtempSync(join(tmpdir(), "occupancy-other-"));
+    sharedTemps.push(sharedOther);
+    gitInitIfNeeded(sharedOther);
+  }
+  return sharedOther;
+}
+
+beforeAll(() => {
+  tempRoot();
+  otherRoot();
+  ownedRitualRepo("owner", new Date("2026-08-17T12:00:00Z"));
+});
 
 /**
  * Beat an owner's lease every half TTL until its claim age crosses the absolute
@@ -684,7 +774,7 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(capped.message).not.toContain("found no live lease");
 
     // An ordinary idle lease still reads as an ordinary idle lease.
-    const idle = tempRoot();
+    const idle = otherRoot();
     applyWorktreeOccupancy(idle, { sessionId: "owner", now: claimedAt });
     const stale = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1000);
     const idleBeat = heartbeatOccupancy(idle, { sessionId: "owner", now: stale, env: {} });
@@ -991,6 +1081,7 @@ describe("worktree occupancy lease (#3433)", () => {
     const root = ownedRitualRepo("owner", new Date());
     const linked = join(root, "wt");
     git(root, ["worktree", "add", "-q", linked, "HEAD"]);
+    ritualWorktreesPending = true;
     const now = new Date("2026-09-14T12:00:00Z");
     expect(
       applyWorktreeOccupancy(linked, { sessionId: "peer", now, intent: "mutation" }).action,
@@ -1115,7 +1206,7 @@ describe("worktree occupancy lease (#3433)", () => {
         `symlink alias required for occupancy path canonicalization: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
-    temps.push(alias);
+    ephemeralTemps.push(alias);
     const now = new Date("2026-08-17T12:00:00Z");
     applyWorktreeOccupancy(root, { sessionId: "owner", now });
     expect(occupancyWorktreeMatches(root, alias)).toBe(true);
@@ -1753,13 +1844,31 @@ function ritualPayloadFor(root: string, sessionId: string, head: string, started
   });
 }
 
-/** Real repo plus a fresh mutation ritual owned by `sessionId`. */
+/** Real repo plus a fresh mutation ritual owned by `sessionId` (share-plus-reset). */
 function ownedRitualRepo(sessionId: string, startedAt: Date): string {
-  const root = mkdtempSync(join(tmpdir(), "occ-ritual-order-"));
-  temps.push(root);
-  mkdirSync(join(root, ".deft"), { recursive: true });
-  mkdirSync(join(root, "xbrief"), { recursive: true });
-  writeFileSync(join(root, "README.md"), "x\n", "utf8");
+  if (sharedRitual === null) {
+    const root = mkdtempSync(join(tmpdir(), "occ-ritual-order-"));
+    sharedTemps.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "x\n", "utf8");
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { policy: { sessionRitualStalenessHours: 4 } },
+      }),
+      "utf8",
+    );
+    git(root, ["init", "-q"]);
+    git(root, ["config", "user.email", "t@t.local"]);
+    git(root, ["config", "user.name", "T"]);
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "init"]);
+    const head = git(root, ["rev-parse", "HEAD"]);
+    sharedRitual = { root, head };
+  }
+  const { root, head } = sharedRitual;
   writeFileSync(
     join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
@@ -1768,15 +1877,7 @@ function ownedRitualRepo(sessionId: string, startedAt: Date): string {
     }),
     "utf8",
   );
-  git(root, ["init", "-q"]);
-  git(root, ["config", "user.email", "t@t.local"]);
-  git(root, ["config", "user.name", "T"]);
-  git(root, ["add", "-A"]);
-  git(root, ["commit", "-q", "-m", "init"]);
-  writeRitualState(
-    root,
-    ritualPayloadFor(root, sessionId, git(root, ["rev-parse", "HEAD"]), startedAt),
-  );
+  writeRitualState(root, ritualPayloadFor(root, sessionId, head, startedAt));
   return root;
 }
 
@@ -2442,7 +2543,7 @@ describe("explicit lease membership (#3755)", () => {
       childSessionId: "never-granted",
       now,
     });
-    const free = revokeOccupancyMembership(tempRoot(), {
+    const free = revokeOccupancyMembership(otherRoot(), {
       sessionId: MEMBERSHIP_OWNER,
       childSessionId: MEMBERSHIP_CHILD,
       now,
@@ -2530,7 +2631,7 @@ describe("explicit lease membership (#3755)", () => {
 
   it("refuses to grant on a lease this session does not hold yet", () => {
     const now = new Date("2026-08-28T09:00:00Z");
-    const free = grantOccupancyMembership(tempRoot(), {
+    const free = grantOccupancyMembership(otherRoot(), {
       sessionId: MEMBERSHIP_OWNER,
       childSessionId: MEMBERSHIP_CHILD,
       role: "leaf-implementation",
@@ -2920,8 +3021,9 @@ describe("child occupancy terminal release (#3999)", () => {
 
 describe("live sibling-lease discriminator (#4445)", () => {
   function gitRepo(): string {
+    // Worktree mutations stay ephemeral; do not share across #4445 cases.
     const root = mkdtempSync(join(tmpdir(), "occ-4445-"));
-    temps.push(root);
+    ephemeralTemps.push(root);
     git(root, ["init", "-q"]);
     git(root, ["config", "user.email", "t@t.local"]);
     git(root, ["config", "user.name", "T"]);
