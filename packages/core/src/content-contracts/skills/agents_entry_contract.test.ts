@@ -215,6 +215,14 @@ const EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS = [
   "verify:consumer-test-lane",
 ] as const;
 
+/** Every-session already-installed skip (#4539 / #1309). */
+const ALREADY_INSTALLED_SKIP_MARKERS = [
+  "directive --version",
+  "evaluateSkew",
+  "reject-global",
+  "npx @deftai/directive init",
+] as const;
+
 /** After-merge one-origin orphan-active DONE gate (#3429). */
 const AFTER_MERGE_ORPHAN_ACTIVE_MARKERS = [
   "verify:orphan-active -- --issue",
@@ -911,6 +919,10 @@ describe("test_agents_entry_contract", () => {
   it("evaluator_surface_and_consumer_test_lane_pin_present_in_both_files (#4386 / #1309)", () => {
     expect(missingMarkers(template, EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, EVALUATOR_SURFACE_CONSUMER_LANE_MARKERS)).toEqual([]);
+  });
+  it("already_installed_skip_markers_present_in_both_files (#4539 / #1309)", () => {
+    expect(missingMarkers(template, ALREADY_INSTALLED_SKIP_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, ALREADY_INSTALLED_SKIP_MARKERS)).toEqual([]);
   });
 
   it("after_merge_completed_tracked_markers_present_in_both_files", () => {

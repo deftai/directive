@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { destContentionItTimeout } from "../../core/src/vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { clampVerifyAcExit, parseArgs, run } from "./verify-ac.js";
 
 describe("clampVerifyAcExit (#3449)", () => {
@@ -283,37 +284,41 @@ describe("verify:ac run (#3284)", () => {
     expect(parsed.commands[0]?.command).toBe("pnpm --version");
   });
 
-  it("runs stated plan.acceptance.commands and exits 0 on pass (#3449)", () => {
-    const root = mkdtempSync(join(tmpdir(), "verify-ac-stated-run-"));
-    const active = join(root, "xbrief", "active");
-    mkdirSync(active, { recursive: true });
-    writeFileSync(
-      join(active, "story.xbrief.json"),
-      JSON.stringify({
-        xBRIEFInfo: { version: "0.8" },
-        plan: {
-          title: "t",
-          acceptance: {
-            commands: [{ command: "pnpm --version" }],
-            none_stated: false,
-            source_rung: "stated",
+  it(
+    "runs stated plan.acceptance.commands and exits 0 on pass (#3449)",
+    destContentionItTimeout(),
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "verify-ac-stated-run-"));
+      const active = join(root, "xbrief", "active");
+      mkdirSync(active, { recursive: true });
+      writeFileSync(
+        join(active, "story.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "t",
+            acceptance: {
+              commands: [{ command: "pnpm --version" }],
+              none_stated: false,
+              source_rung: "stated",
+            },
+            metadata: {},
+            items: [],
           },
-          metadata: {},
-          items: [],
-        },
-      }),
-      "utf8",
-    );
-    const prevSummary = process.env.DEFT_RUN_SUMMARY_PATH;
-    delete process.env.DEFT_RUN_SUMMARY_PATH;
-    try {
-      expect(run(["--project-root", root, "--quiet"])).toBe(0);
-    } finally {
-      if (prevSummary === undefined) {
-        delete process.env.DEFT_RUN_SUMMARY_PATH;
-      } else {
-        process.env.DEFT_RUN_SUMMARY_PATH = prevSummary;
+        }),
+        "utf8",
+      );
+      const prevSummary = process.env.DEFT_RUN_SUMMARY_PATH;
+      delete process.env.DEFT_RUN_SUMMARY_PATH;
+      try {
+        expect(run(["--project-root", root, "--quiet"])).toBe(0);
+      } finally {
+        if (prevSummary === undefined) {
+          delete process.env.DEFT_RUN_SUMMARY_PATH;
+        } else {
+          process.env.DEFT_RUN_SUMMARY_PATH = prevSummary;
+        }
       }
-    }
-  });
+    },
+  );
 });

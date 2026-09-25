@@ -43,6 +43,10 @@ function isFilelessCommand(token: string): boolean {
     token.startsWith(`${RECOVERY_LADDER_NPX_PREFIX} `) ||
     token === "directive doctor" ||
     token === "deft doctor" ||
+    token === "directive doctor --full" ||
+    token === "deft doctor --full" ||
+    token === "directive --version" ||
+    token === "deft --version" ||
     token === "deft agents:refresh" ||
     token === "deft update"
   );

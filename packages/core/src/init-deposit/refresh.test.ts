@@ -2112,105 +2112,117 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
   });
 
-  it("writes the .gitignore entry but NEVER un-tracks .deft/core (boundary test, a4)", async () => {
-    const project = freshRoot("update-boundary-");
-    const contentRoot = installFakeContentPackage(project, "0.54.0");
-    initGitRepo(project);
-    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.54.0" });
-    execFileSync("git", ["add", "-A"], { cwd: project });
-    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+  it(
+    "writes the .gitignore entry but NEVER un-tracks .deft/core (boundary test, a4)",
+    destContentionItTimeout(),
+    async () => {
+      const project = freshRoot("update-boundary-");
+      const contentRoot = installFakeContentPackage(project, "0.54.0");
+      initGitRepo(project);
+      writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.54.0" });
+      execFileSync("git", ["add", "-A"], { cwd: project });
+      execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
 
-    const trackedBefore = execFileSync("git", ["ls-files", "--", ".deft/core"], {
-      cwd: project,
-      encoding: "utf8",
-    });
-    expect(trackedBefore.trim().length).toBeGreaterThan(0);
+      const trackedBefore = execFileSync("git", ["ls-files", "--", ".deft/core"], {
+        cwd: project,
+        encoding: "utf8",
+      });
+      expect(trackedBefore.trim().length).toBeGreaterThan(0);
 
-    const out: string[] = [];
-    const code = await runRefreshDepositCli({
-      projectDir: project,
-      jsonOut: true,
-      nonInteractive: true,
-      upgrade: true,
-      classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
-      writeOut: (t) => out.push(t),
-      writeErr: () => {},
-      seams: {
-        resolveContentRoot: async () => contentRoot,
-        readEngineVersion: () => "0.54.0",
-        nowIso: () => "2026-07-03T12:00:00Z",
-        evaluateAgentHookReadiness: () => agentHookReadiness(),
-      },
-    });
+      const out: string[] = [];
+      const code = await runRefreshDepositCli({
+        projectDir: project,
+        jsonOut: true,
+        nonInteractive: true,
+        upgrade: true,
+        classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+        writeOut: (t) => out.push(t),
+        writeErr: () => {},
+        seams: {
+          resolveContentRoot: async () => contentRoot,
+          readEngineVersion: () => "0.54.0",
+          nowIso: () => "2026-07-03T12:00:00Z",
+          evaluateAgentHookReadiness: () => agentHookReadiness(),
+        },
+      });
 
-    expect(code).toBe(0);
+      expect(code).toBe(0);
 
-    // Boundary: the committed deposit stays tracked -- `update` never runs the
-    // destructive `git rm --cached .deft/core` (that is migrate --untrack-core,
-    // #2269). If it had, ls-files would be empty here.
-    const trackedAfter = execFileSync("git", ["ls-files", "--", ".deft/core"], {
-      cwd: project,
-      encoding: "utf8",
-    });
-    expect(trackedAfter.trim().length).toBeGreaterThan(0);
+      // Boundary: the committed deposit stays tracked -- `update` never runs the
+      // destructive `git rm --cached .deft/core` (that is migrate --untrack-core,
+      // #2269). If it had, ls-files would be empty here.
+      const trackedAfter = execFileSync("git", ["ls-files", "--", ".deft/core"], {
+        cwd: project,
+        encoding: "utf8",
+      });
+      expect(trackedAfter.trim().length).toBeGreaterThan(0);
 
-    // And nothing under .deft/core is staged for deletion (a git rm --cached would
-    // surface as a staged `D` entry in porcelain).
-    const porcelain = execFileSync("git", ["status", "--porcelain"], {
-      cwd: project,
-      encoding: "utf8",
-    });
-    expect(porcelain).not.toMatch(/^D..*\.deft\/core/m);
-    expect(porcelain).not.toMatch(/^.D.*\.deft\/core/m);
+      // And nothing under .deft/core is staged for deletion (a git rm --cached would
+      // surface as a staged `D` entry in porcelain).
+      const porcelain = execFileSync("git", ["status", "--porcelain"], {
+        cwd: project,
+        encoding: "utf8",
+      });
+      expect(porcelain).not.toMatch(/^D..*\.deft\/core/m);
+      expect(porcelain).not.toMatch(/^.D.*\.deft\/core/m);
 
-    // The non-destructive .gitignore write DID land the canonical baseline.
-    expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft-cache/");
-  });
+      // The non-destructive .gitignore write DID land the canonical baseline.
+      expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft-cache/");
+    },
+  );
 
-  it("#2148: does NOT deposit deft-core-guard.yml when .deft/core is gitignored / not tracked", async () => {
-    const project = freshRoot("refresh-no-guard-untracked-");
-    const contentRoot = installFakeContentPackage(project);
-    initGitRepo(project);
+  it(
+    "#2148: does NOT deposit deft-core-guard.yml when .deft/core is gitignored / not tracked",
+    destContentionItTimeout(),
+    async () => {
+      const project = freshRoot("refresh-no-guard-untracked-");
+      const contentRoot = installFakeContentPackage(project);
+      initGitRepo(project);
 
-    await runRefreshDeposit(
-      { projectDir: project, jsonOut: false, nonInteractive: false, upgrade: true },
-      { printf: () => {} },
-      {
-        resolveContentRoot: async () => contentRoot,
-        readEngineVersion: () => "0.53.0",
-        nowIso: () => "2026-06-24T12:00:00Z",
-        gitPorcelain: () => "",
-        // Simulate gitignored / not-tracked deposit (npm-managed layout).
-        gitLsFiles: () => "",
-      },
-    );
+      await runRefreshDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: false, upgrade: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          readEngineVersion: () => "0.53.0",
+          nowIso: () => "2026-06-24T12:00:00Z",
+          gitPorcelain: () => "",
+          // Simulate gitignored / not-tracked deposit (npm-managed layout).
+          gitLsFiles: () => "",
+        },
+      );
 
-    expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(false);
-  });
+      expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(false);
+    },
+  );
 
-  it("#2148: DOES deposit deft-core-guard.yml when .deft/core is git-tracked (vendored layout)", async () => {
-    const project = freshRoot("refresh-guard-tracked-");
-    const contentRoot = installFakeContentPackage(project);
-    initGitRepo(project);
-    // Simulate a tracked deposit by making gitLsFiles return a tracked path.
-    mkdirSync(join(project, ".deft", "core"), { recursive: true });
-    writeFileSync(join(project, ".deft", "core", "main.md"), "# tracked\n", "utf8");
+  it(
+    "#2148: DOES deposit deft-core-guard.yml when .deft/core is git-tracked (vendored layout)",
+    destContentionItTimeout(),
+    async () => {
+      const project = freshRoot("refresh-guard-tracked-");
+      const contentRoot = installFakeContentPackage(project);
+      initGitRepo(project);
+      // Simulate a tracked deposit by making gitLsFiles return a tracked path.
+      mkdirSync(join(project, ".deft", "core"), { recursive: true });
+      writeFileSync(join(project, ".deft", "core", "main.md"), "# tracked\n", "utf8");
 
-    await runRefreshDeposit(
-      { projectDir: project, jsonOut: false, nonInteractive: false, upgrade: true },
-      { printf: () => {} },
-      {
-        resolveContentRoot: async () => contentRoot,
-        readEngineVersion: () => "0.53.0",
-        nowIso: () => "2026-06-24T12:00:00Z",
-        gitPorcelain: () => "",
-        // Simulate a tracked deposit.
-        gitLsFiles: () => ".deft/core/main.md\n",
-      },
-    );
+      await runRefreshDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: false, upgrade: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          readEngineVersion: () => "0.53.0",
+          nowIso: () => "2026-06-24T12:00:00Z",
+          gitPorcelain: () => "",
+          // Simulate a tracked deposit.
+          gitLsFiles: () => ".deft/core/main.md\n",
+        },
+      );
 
-    expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(true);
-  });
+      expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(true);
+    },
+  );
 
   it("prints Removed/wrote/stripped from the same ledger as refresh JSON (#3392)", async () => {
     const project = freshRoot("refresh-ledger-");

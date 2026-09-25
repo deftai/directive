@@ -112,7 +112,14 @@ describe("runToolchainCheck", () => {
     expect(seen).not.toContain("uv");
     expect(seen).not.toContain("pnpm");
     expect(seen).not.toContain("task");
-    expect(probeRoots.every((root) => root === projectRoot)).toBe(true);
+    expect(seen).toContain("gh");
+    const ghIndex = seen.indexOf("gh");
+    expect(probeRoots[ghIndex]).toBeUndefined();
+    expect(
+      probeRoots.every((root, index) =>
+        seen[index] === "gh" ? root === undefined : root === projectRoot,
+      ),
+    ).toBe(true);
     expect(result.lines.join("\n")).toMatch(/package manager: npm.*packageManager field/i);
   });
 
@@ -445,5 +452,113 @@ describe("runToolchainCheck", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.lines.some((line) => line.includes("gh advisory:"))).toBe(false);
+  });
+
+  it("surfaces ETIMEDOUT when gh --version times out with empty stdio (#3610)", () => {
+    const result = defaultCommandRunner(["gh", "--version"], 1_000, {
+      execFileSync: () => {
+        throw Object.assign(new Error("spawnSync gh ETIMEDOUT"), {
+          code: "ETIMEDOUT",
+          status: null,
+          stdout: "",
+          stderr: "",
+        });
+      },
+    });
+    expect(result).toMatchObject({ returncode: 1 });
+    expect("stderr" in result ? result.stderr : "").toContain("ETIMEDOUT");
+  });
+
+  it("retries gh --version once after ETIMEDOUT (#3610)", () => {
+    let calls = 0;
+    const result = defaultCommandRunner(["gh", "--version"], 1_000, {
+      execFileSync: () => {
+        calls += 1;
+        if (calls === 1) {
+          throw Object.assign(new Error("spawnSync gh ETIMEDOUT"), {
+            code: "ETIMEDOUT",
+            status: null,
+            stdout: "",
+            stderr: "",
+          });
+        }
+        return "gh version 2.101.0 (2026-09-15)\n";
+      },
+    });
+    expect(calls).toBe(2);
+    expect(result).toMatchObject({
+      returncode: 0,
+      stdout: "gh version 2.101.0 (2026-09-15)\n",
+    });
+  });
+
+  it("does not retry gh --version when stderr has a real diagnostic (#3610)", () => {
+    let calls = 0;
+    const result = defaultCommandRunner(["gh", "--version"], 1_000, {
+      execFileSync: () => {
+        calls += 1;
+        throw Object.assign(new Error("failed"), {
+          status: 1,
+          stdout: "",
+          stderr: "unknown command",
+        });
+      },
+    });
+    expect(calls).toBe(1);
+    expect(result).toEqual({ returncode: 1, stdout: "", stderr: "unknown command" });
+  });
+
+  it("does not retry git --version after ETIMEDOUT (#3610)", () => {
+    let calls = 0;
+    const result = defaultCommandRunner(["git", "--version"], 1_000, {
+      execFileSync: () => {
+        calls += 1;
+        throw Object.assign(new Error("spawnSync git ETIMEDOUT"), {
+          code: "ETIMEDOUT",
+          status: null,
+          stdout: "",
+          stderr: "",
+        });
+      },
+    });
+    expect(calls).toBe(1);
+    expect(result).toMatchObject({ returncode: 1 });
+  });
+
+  it("resolves Windows gh.exe on PATH and sets GH_NO_UPDATE_NOTIFIER (#3610)", () => {
+    const ghPath = "C:\\Program Files\\GitHub CLI\\gh.EXE";
+    const calls: Array<{
+      bin: string;
+      args: readonly string[];
+      cwd?: string;
+      env?: NodeJS.ProcessEnv;
+    }> = [];
+    const result = defaultCommandRunner(["gh", "--version"], 1_000, {
+      platform: "win32",
+      cwd: "C:\\consumer",
+      env: {
+        Path: "C:\\Program Files\\GitHub CLI",
+        PATHEXT: ".EXE",
+        SystemRoot: "C:\\Windows",
+      },
+      exists: (path) => path === ghPath,
+      execFileSync: (bin, args, options) => {
+        calls.push({ bin, args, cwd: options.cwd, env: options.env });
+        return "gh version 2.101.0 (2026-09-15)\n";
+      },
+    });
+    expect(result).toMatchObject({
+      returncode: 0,
+      stdout: "gh version 2.101.0 (2026-09-15)\n",
+    });
+    expect(calls).toEqual([
+      {
+        bin: ghPath,
+        args: ["--version"],
+        cwd: undefined,
+        env: expect.objectContaining({ GH_NO_UPDATE_NOTIFIER: "1" }),
+      },
+    ]);
+    expect(calls[0]?.bin).not.toBe("gh");
   });
 });

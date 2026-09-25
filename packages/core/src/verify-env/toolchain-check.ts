@@ -89,6 +89,7 @@ export interface DefaultCommandRunnerOptions extends CommandRunnerOptions {
 
 interface CommandExecutionError {
   readonly code?: string;
+  readonly signal?: string;
   readonly status?: number;
   readonly stdout?: string;
   readonly stderr?: string;
@@ -97,6 +98,22 @@ interface CommandExecutionError {
 
 function executionFailure(error: unknown): CommandExecutionError {
   return error as CommandExecutionError;
+}
+
+function spawnFailureDiagnostic(failure: CommandExecutionError): string {
+  if (typeof failure.stderr === "string" && failure.stderr.trim() !== "") {
+    return failure.stderr;
+  }
+  if (typeof failure.stdout === "string" && failure.stdout.trim() !== "") {
+    return failure.stdout;
+  }
+  if (typeof failure.code === "string" && failure.code.trim() !== "") {
+    return failure.code;
+  }
+  if (typeof failure.signal === "string" && failure.signal.trim() !== "") {
+    return failure.signal;
+  }
+  return "";
 }
 
 function failedExecution(error: unknown): {
@@ -108,8 +125,27 @@ function failedExecution(error: unknown): {
   return {
     returncode: typeof failure.status === "number" ? failure.status : 1,
     stdout: typeof failure.stdout === "string" ? failure.stdout : "",
-    stderr: typeof failure.stderr === "string" ? failure.stderr : String(failure.message ?? error),
+    stderr: spawnFailureDiagnostic(failure),
   };
+}
+
+function isGhVersionProbe(bin: string, args: readonly string[]): boolean {
+  return bin === "gh" && args.length === 1 && args[0] === "--version";
+}
+
+function childEnvForGhVersionProbe(baseEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return { ...baseEnv, GH_NO_UPDATE_NOTIFIER: "1" };
+}
+
+function shouldRetryGhVersionProbe(
+  result:
+    | { returncode: number; stdout: string; stderr: string }
+    | { error: "not-found" | "exception"; message: string },
+): boolean {
+  if ("error" in result) return false;
+  if (result.returncode === 0) return false;
+  if (/ETIMEDOUT/i.test(result.stderr)) return true;
+  return result.stdout.trim() === "" && result.stderr.trim() === "";
 }
 
 function windowsShellReportsMissing(error: unknown): boolean {
@@ -161,58 +197,95 @@ export function defaultCommandRunner(
     options.execFileSync ??
     ((file, fileArgs, execOptions) =>
       childProcess.execFileSync(file, [...fileArgs], execOptions) as string);
-  const execOptions: ToolchainExecFileOptions = {
-    encoding: "utf8",
-    timeout: timeoutMs,
-    stdio: ["ignore", "pipe", "pipe"],
-    shell: false,
-    cwd: options.cwd,
-    env,
-  };
+  const ghProbe = isGhVersionProbe(bin, args);
+  const spawnEnv = ghProbe ? childEnvForGhVersionProbe(env) : env;
+  const spawnCwd = ghProbe ? undefined : options.cwd;
 
-  // Windows package-manager shims are commonly .cmd files. Resolve an
-  // absolute PATH candidate first so cmd.exe cannot select a repo-local shim,
-  // then invoke the fixed `--version` probe through the system interpreter.
-  if (platform === "win32" && isFixedWindowsPackageManagerProbe(bin, args)) {
-    const resolvedBin = resolveCommandOnPath(bin, {
-      env,
-      platform,
-      exists: options.exists,
-    });
-    if (resolvedBin === null) {
-      return { error: "not-found", message: "" };
-    }
-    const isCommandShim = /\.(?:cmd|bat)$/i.test(resolvedBin);
-    const executable = isCommandShim ? windowsCommandInterpreter(env) : resolvedBin;
-    const shimEnv = isCommandShim ? childEnvWithResolvedPackageManagerShim(env, resolvedBin) : env;
-    const commandLine = `"%${RESOLVED_PACKAGE_MANAGER_SHIM_ENV}%" --version`;
-    const executableArgs = isCommandShim ? ["/d", "/s", "/c", `"${commandLine}"`] : args;
-    // Mirror Node's cmd.exe shell plan: the outer command quote satisfies /s,
-    // while verbatim arguments prevent libuv from re-escaping the command line.
-    const commandOptions = isCommandShim
-      ? { ...execOptions, env: shimEnv, windowsVerbatimArguments: true }
-      : execOptions;
-    try {
-      const stdout = execFileSync(executable, executableArgs, commandOptions);
-      return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
-    } catch (error: unknown) {
-      if (windowsShellReportsMissing(error)) {
+  const spawnOnce = ():
+    | { returncode: number; stdout: string; stderr: string }
+    | { error: "not-found" | "exception"; message: string } => {
+    const execOptions: ToolchainExecFileOptions = {
+      encoding: "utf8",
+      timeout: timeoutMs,
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: false,
+      cwd: spawnCwd,
+      env: spawnEnv,
+    };
+
+    // Windows package-manager shims are commonly .cmd files. Resolve an
+    // absolute PATH candidate first so cmd.exe cannot select a repo-local shim,
+    // then invoke the fixed `--version` probe through the system interpreter.
+    if (platform === "win32" && isFixedWindowsPackageManagerProbe(bin, args)) {
+      const resolvedBin = resolveCommandOnPath(bin, {
+        env: spawnEnv,
+        platform,
+        exists: options.exists,
+      });
+      if (resolvedBin === null) {
         return { error: "not-found", message: "" };
       }
-      return failedExecution(error);
+      const isCommandShim = /\.(?:cmd|bat)$/i.test(resolvedBin);
+      const executable = isCommandShim ? windowsCommandInterpreter(spawnEnv) : resolvedBin;
+      const shimEnv = isCommandShim
+        ? childEnvWithResolvedPackageManagerShim(spawnEnv, resolvedBin)
+        : spawnEnv;
+      const commandLine = `"%${RESOLVED_PACKAGE_MANAGER_SHIM_ENV}%" --version`;
+      const executableArgs = isCommandShim ? ["/d", "/s", "/c", `"${commandLine}"`] : args;
+      // Mirror Node's cmd.exe shell plan: the outer command quote satisfies /s,
+      // while verbatim arguments prevent libuv from re-escaping the command line.
+      const commandOptions = isCommandShim
+        ? { ...execOptions, env: shimEnv, windowsVerbatimArguments: true }
+        : execOptions;
+      try {
+        const stdout = execFileSync(executable, executableArgs, commandOptions);
+        return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
+      } catch (error: unknown) {
+        if (windowsShellReportsMissing(error)) {
+          return { error: "not-found", message: "" };
+        }
+        return failedExecution(error);
+      }
     }
-  }
 
-  try {
-    const stdout = execFileSync(bin, args, execOptions);
-    return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
-  } catch (err: unknown) {
-    const e = executionFailure(err);
-    if (e.code === "ENOENT") {
-      return { error: "not-found", message: "" };
+    if (platform === "win32" && ghProbe) {
+      const resolvedBin = resolveCommandOnPath(bin, {
+        env: spawnEnv,
+        platform,
+        exists: options.exists,
+      });
+      if (resolvedBin === null) {
+        return { error: "not-found", message: "" };
+      }
+      try {
+        const stdout = execFileSync(resolvedBin, args, execOptions);
+        return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
+      } catch (error: unknown) {
+        const failure = executionFailure(error);
+        if (failure.code === "ENOENT") {
+          return { error: "not-found", message: "" };
+        }
+        return failedExecution(error);
+      }
     }
-    return failedExecution(err);
+
+    try {
+      const stdout = execFileSync(bin, args, execOptions);
+      return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
+    } catch (err: unknown) {
+      const e = executionFailure(err);
+      if (e.code === "ENOENT") {
+        return { error: "not-found", message: "" };
+      }
+      return failedExecution(err);
+    }
+  };
+
+  let result = spawnOnce();
+  if (ghProbe && shouldRetryGhVersionProbe(result)) {
+    result = spawnOnce();
   }
+  return result;
 }
 
 export interface ToolchainCheckOptions {
@@ -263,7 +336,11 @@ export function runToolchainCheck(
   const failed: string[] = [];
 
   for (const tool of selectedTools) {
-    const result = runner(tool.command, DEFAULT_TIMEOUT_MS, { cwd: projectRoot, env });
+    const result = runner(
+      tool.command,
+      DEFAULT_TIMEOUT_MS,
+      tool.name === "gh" ? { env } : { cwd: projectRoot, env },
+    );
     if ("error" in result) {
       if (result.error === "not-found") {
         missing.push(tool.name);

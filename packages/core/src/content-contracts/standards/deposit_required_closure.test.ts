@@ -8,6 +8,7 @@ import {
   loadDepositRequiredDeclaration,
   resolveDeclarationFile,
 } from "../../validate-content/deposit-required.js";
+import { destContentionItTimeout } from "../../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { readText, repoRoot } from "./_helpers.js";
 
 const staged: string[] = [];
@@ -31,14 +32,18 @@ function stageDeclaredPack(root: string): string {
 }
 
 describe("declared deposit closure against staged pack (#3601 C1)", () => {
-  it("every declared required path exists after running content-package prepack", () => {
-    const root = repoRoot();
-    const declaration = loadDepositRequiredDeclaration(resolveDeclarationFile(root) as string);
-    expect(declaration.paths.length).toBeGreaterThan(0);
-    const pack = stageDeclaredPack(root);
-    const result = evaluateDepositClosure({ packRoot: pack, paths: declaration.paths });
-    expect(result.ok, result.missing.join(", ")).toBe(true);
-  });
+  it(
+    "every declared required path exists after running content-package prepack",
+    destContentionItTimeout(),
+    () => {
+      const root = repoRoot();
+      const declaration = loadDepositRequiredDeclaration(resolveDeclarationFile(root) as string);
+      expect(declaration.paths.length).toBeGreaterThan(0);
+      const pack = stageDeclaredPack(root);
+      const result = evaluateDepositClosure({ packRoot: pack, paths: declaration.paths });
+      expect(result.ok, result.missing.join(", ")).toBe(true);
+    },
+  );
 
   it("fails when a declared file is deleted from the staged pack output", () => {
     const root = repoRoot();
