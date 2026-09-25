@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4660",
-    "updated": "2026-09-25T18:24:59Z"
+    "updated": "2026-09-25T23:30:34Z"
   },
   "plan": {
     "title": "[UAT Tester 1] Setup interview cannot persist: no host session identity / read-only session:start",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A Codex setup session that starts with deft session:start -- --read-only already wrote USER.md. The recorded command does not require a host owner. This story locks that non-claiming start, keeps Phase 1 as the preferences-file write, and routes project identity to the writer landed on issue 4663.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4660",
@@ -18,34 +18,58 @@
     "items": [
       {
         "title": "Read-only session start stays a non-claiming command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given deft session:start -- --read-only, when the hook classifies the command, then requiresOwner stays false and occupancy is not claimed."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5048#a9874ee4d7039737dfef1477a99bdcd7b93665b2",
+          "recorded_at": "2026-09-25T23:30:33.501Z",
+          "recorded_by": "MScottAdams"
         }
       },
       {
         "title": "Phase 1 remains the preferences-file write.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given setup Phase 1, when the interview completes, then USER.md is written at the platform path and that write is the Phase 1 persist."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5048#a9874ee4d7039737dfef1477a99bdcd7b93665b2",
+          "recorded_at": "2026-09-25T23:30:33.501Z",
+          "recorded_by": "MScottAdams"
         }
       },
       {
         "title": "Project identity is the writer on issue 4663: the Phase 2 narrative strings in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty, not an agent patch of that file, and without setting policy keys.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given an empty xbrief/active set, when Phase 2 stores project identity, then the writer stores Overview TechStack Strategy Quality ProjectRules and Branching on xbrief/PROJECT-DEFINITION.xbrief.json without an agent patch and without setting policy keys."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5048#a9874ee4d7039737dfef1477a99bdcd7b93665b2",
+          "recorded_at": "2026-09-25T23:30:33.501Z",
+          "recorded_by": "MScottAdams"
         }
       },
       {
         "title": "The proposed work brief stays Phase 3 and waits on that identity write.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given Phase 2 identity is not yet written, when setup reaches the proposed work brief, then Phase 3 waits on that identity write and does not emit the brief first."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5048#a9874ee4d7039737dfef1477a99bdcd7b93665b2",
+          "recorded_at": "2026-09-25T23:30:33.501Z",
+          "recorded_by": "MScottAdams"
         }
       }
     ],
@@ -114,6 +138,10 @@
       "ambiguity_attestation": "none_found",
       "confessions": [
         "[UAT Tester 1] Setup interview cannot persist: no host session identity / read-only session:start",
+        "Read-only session start stays a non-claiming command.",
+        "Phase 1 remains the preferences-file write.",
+        "Project identity is the writer on issue 4663: the Phase 2 narrative strings in xbrief/PROJECT-DEFINITION.xbrief.json while xbrief/active/ is empty, not an agent patch of that file, and without setting policy keys.",
+        "The proposed work brief stays Phase 3 and waits on that identity write.",
         "operator-deferred: P1 #4663 Target-digest: sha256:5630aa538480c9cf2d29188d6e7d3121fe39a6962c3265135b5c2377cfdea4d4"
       ]
     },
@@ -422,9 +450,32 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "Source of truth is the bound design-critique successor lean 5786133015 on issue #4660. There is no FR/spec section to trace."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5048,
+        "prBase": null,
+        "mergeCommit": "a9874ee4d7039737dfef1477a99bdcd7b93665b2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "53e2aedf15efffa6d04a729f5219611a497b1237",
+        "verifiedAt": "2026-09-25T23:30:34Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-25T23:30:34Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-25T23:30:34Z"
       }
     },
     "id": "github.issue.5480358057",
-    "updated": "2026-09-25T18:24:59Z"
+    "updated": "2026-09-25T23:30:34Z"
   }
 }
