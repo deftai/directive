@@ -105,7 +105,7 @@ describe("pruneSuiteTees", () => {
     const abs = join(root, ...rel.split("/"));
     mkdirSync(join(abs, ".."), { recursive: true });
     writeFileSync(abs, "live\n", "utf8");
-    touchTeeMtime(abs, Date.now() - 40 * 60 * 1000);
+    touchTeeMtime(abs, Date.now() - 50 * 60 * 1000);
     const removed = pruneSuiteTees({
       projectRoot: root,
       nowMs: Date.now(),
@@ -122,7 +122,7 @@ describe("pruneSuiteTees", () => {
     const abs = join(root, ...rel.split("/"));
     mkdirSync(join(abs, ".."), { recursive: true });
     writeFileSync(abs, "stale\n", "utf8");
-    touchTeeMtime(abs, Date.now() - 40 * 60 * 1000);
+    touchTeeMtime(abs, Date.now() - 50 * 60 * 1000);
     const removed = pruneSuiteTees({
       projectRoot: root,
       nowMs: Date.now(),
