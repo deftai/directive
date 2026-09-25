@@ -44,7 +44,7 @@ import {
 /**
  * Step-5-only host lane (#5026): when release preflight is set, drop host
  * vitest `--coverage` by invoking vitest directly instead of `pnpm run test`
- * (shared package.json script stays instrumented for GHA).
+ * (shared package.json `"test": "vitest run --coverage"` stays instrumented for GHA).
  */
 export function isStep5HostNoCoverage(env: NodeJS.ProcessEnv = process.env): boolean {
   return env[RELEASE_PREFLIGHT_ENV] === "1";

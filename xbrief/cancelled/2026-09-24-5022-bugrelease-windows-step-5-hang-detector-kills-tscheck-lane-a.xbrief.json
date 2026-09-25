@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5022",
-    "updated": "2026-09-24T23:52:30.145Z"
+    "updated": "2026-09-25T12:04:21Z"
   },
   "plan": {
     "title": "bug(release): Windows Step 5 hang detector kills ts:check-lane at 52/1284 files during v0.119.9 cut",
-    "status": "running",
+    "status": "cancelled",
     "narratives": {
       "Description": "bug(release): Windows Step 5 hang detector kills ts:check-lane at 52/1284 files during v0.119.9 cut",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5022",
@@ -16,22 +16,22 @@
     "items": [
       {
         "title": "On this Windows host, `task release` Step 5 `ts:check-lane` (vitest with coverage) completes inside the existing 20-minute hang detector without `--skip-ci` and without raising `RELEASE_CHECK_TIMEOUT_MS`.",
-        "status": "proposed",
+        "status": "cancelled",
         "id": "clause.1"
       },
       {
         "title": "Cheapening targets measured cost (named heavy files and/or host stale-binary / spawn cost). Success is Step 5 green under the existing timeout, not a higher timeout.",
-        "status": "proposed",
+        "status": "cancelled",
         "id": "clause.2"
       },
       {
         "title": "CHANGELOG `[Unreleased]` records the cheapen with Tracking/Refs to this issue.",
-        "status": "proposed",
+        "status": "cancelled",
         "id": "clause.3"
       },
       {
         "title": "After merge, the paused v0.119.9 cut can resume Phase 1 and pass Step 5 without `--skip-ci`.",
-        "status": "proposed",
+        "status": "cancelled",
         "id": "clause.4"
       }
     ],
@@ -177,10 +177,14 @@
           "packages/cli/src/render-cli/pack-cli.test.ts",
           "packages/core/src/packs/pack-render.test.ts"
         ]
+      },
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-09-25T12:04:21Z"
       }
     },
     "id": "github.issue.5575483807",
-    "updated": "2026-09-24T23:52:30.145Z",
+    "updated": "2026-09-25T12:04:21Z",
     "x-directive/intentConstraint": {
       "constraints": [
         {

@@ -403,6 +403,51 @@
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
+        "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.",
+        "Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.",
+        "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.",
+        "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
+        "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.",
+          "artifact_path": "packages/core/src/ts-check-lane/run-lane.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.",
+          "artifact_path": "packages/core/src/release/preflight.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
         "chore(release): decide whether Windows Step 5 runs vitest without --coverage (coverage-of-record from GHA)",
         "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail.",
         "CHANGELOG [Unreleased] with Refs #5026.",
@@ -413,51 +458,12 @@
         "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed.",
         "Merge-base prose alone is not enough.",
         "This path is not `--skip-ci`.",
-        "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
         "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe).",
         "Keep-coverage-plus-measure-only is outside this relieved harvest.",
         "GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028.",
         "Child of #5024.",
         "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:1acdd9ed2cbe1693f1e48ebd0445dd8fe942f3bf953eefe36714dd438ef50601"
-      ],
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Write a deliberate RELEASING.md decision that Windows release Step 5 drops host vitest `--coverage` while keeping tip assertion pass/fail. CHANGELOG [Unreleased] with Refs #5026. \"We always did\" is not a rationale.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Implement the drop via a Step-5-only or host-lane-only seam (argv / script / env fork). Do not edit the shared `package.json` `\"test\": \"vitest run --coverage\"` in a way that removes instrumentation from GHA `pnpm run test`. GHA “Test with coverage (vitest)” remains coverage-of-record.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "Coverage-of-record for the cut is a green GHA coverage run on the tip SHA being cut; the Step 5 tee cites that run id fail-closed. Merge-base prose alone is not enough. This path is not `--skip-ci`.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Record measured before/after Step 5 wall clock on the Windows host for the no-coverage lane.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "Name the win32 residual explicitly (accept Ubuntu-only floor reader, or keep a narrower win32 coverage probe). Keep-coverage-plus-measure-only is outside this relieved harvest. GHA timeout / hang-detector stay on #5024; cheapen on #5027/#5028. Child of #5024.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
-      "ambiguity_attestation": "none_found"
+      ]
     },
     "id": "github.issue.5577412458",
     "updated": "2026-09-25T11:54:59Z"

@@ -42,7 +42,7 @@ See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard f
 
 **Decision.** Windows release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`) runs tip assertion pass/fail via `pnpm exec vitest run` **without** host `--coverage`. Shared `package.json` `"test": "vitest run --coverage"` stays instrumented so GHA `pnpm run test` / "Test with coverage (vitest)" remains the same instrument. This is **not** `--skip-ci` (assertions still run on the host).
 
-**Rationale.** Tip correctness is assertion pass/fail. Coverage-of-record authority is the green GHA coverage-bearing TypeScript check on the **tip SHA** being cut (aggregator `TypeScript (build + lint + test)` or lane `TypeScript (…) / run`). Host re-instrumentation was the largest remaining Step 5 wall-clock lever after #5022/#5023; "we always did" is not a rationale. Keep-coverage-plus-measure-only is outside this harvest.
+**Rationale.** Tip correctness is assertion pass/fail. Coverage-of-record authority is the green GHA coverage-bearing TypeScript check on the **tip SHA** being cut (aggregator `TypeScript (build + lint + test)` or lane `TypeScript (…) / run`). Host re-instrumentation was the largest remaining Step 5 wall-clock lever after #5022/#5023; "We always did" is not a rationale. Keep-coverage-plus-measure-only is outside this harvest.
 
 **Coverage-of-record cite (fail-closed).** On Step 5 success, `runReleaseCheck` cites `coverage-of-record gha-run=<id> tip=<sha> check=<name>` on the tee. Merge-base prose alone is refused. Missing green tip-SHA GHA coverage fails closed.
 
