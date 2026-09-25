@@ -125,28 +125,37 @@ export function evaluateTipShaCoverageOfRecord(
         "(need TypeScript aggregator or lane / run success; merge-base prose is not enough; not --skip-ci)",
     };
   }
-  const preferred =
-    successes.find((run) => run.name === "TypeScript (build + lint + test)") ?? successes[0];
-  if (preferred === undefined) {
-    return {
-      ok: false,
-      reason: `no green tip-SHA GHA coverage-of-record check on ${tipSha.slice(0, 12)}`,
-    };
+  // Prefer aggregator when it has a parseable Actions URL; otherwise still consider
+  // a green lane / run with a valid workflow-run URL. Never use check-run id as gha-run.
+  const withParseableRunId: Array<{
+    readonly run: CoverageOfRecordCheckRun;
+    readonly runId: string;
+  }> = [];
+  for (const run of successes) {
+    const runId = run.htmlUrl !== undefined ? extractActionsRunIdFromHtmlUrl(run.htmlUrl) : null;
+    if (runId !== null) withParseableRunId.push({ run, runId });
   }
-  // Workflow run id only — never fall back to check-run id (different namespace).
-  const runId =
-    preferred.htmlUrl !== undefined ? extractActionsRunIdFromHtmlUrl(preferred.htmlUrl) : null;
-  if (runId === null) {
+  const preferredCite =
+    withParseableRunId.find((entry) => entry.run.name === "TypeScript (build + lint + test)") ??
+    withParseableRunId[0];
+  if (preferredCite === undefined) {
+    const named =
+      successes.find((run) => run.name === "TypeScript (build + lint + test)") ?? successes[0];
+    const checkName = named?.name ?? "coverage-of-record";
     return {
       ok: false,
       reason:
-        `green coverage-of-record check ${preferred.name} on ${tipSha.slice(0, 12)} ` +
+        `green coverage-of-record check ${checkName} on ${tipSha.slice(0, 12)} ` +
         "lacks parseable actions/runs URL (check-run id is not a workflow run id)",
     };
   }
   return {
     ok: true,
-    cite: { tipSha, runId, checkName: preferred.name },
+    cite: {
+      tipSha,
+      runId: preferredCite.runId,
+      checkName: preferredCite.run.name,
+    },
   };
 }
 

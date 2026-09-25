@@ -158,6 +158,56 @@ describe("tip-SHA GHA coverage-of-record (#5026)", () => {
       expect(result.reason).not.toMatch(/888776655/);
     }
   });
+
+  it("cites lane run when aggregator is green but lacks parseable actions/runs URL", () => {
+    const result = evaluateTipShaCoverageOfRecord("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", [
+      {
+        name: "TypeScript (build + lint + test)",
+        status: "completed",
+        conclusion: "success",
+        id: 111222333,
+      },
+      {
+        name: "TypeScript (Blacksmith primary) / run",
+        status: "completed",
+        conclusion: "success",
+        htmlUrl: "https://github.com/deftai/directive/actions/runs/36086680999/job/2",
+      },
+    ]);
+    expect(result).toEqual({
+      ok: true,
+      cite: {
+        tipSha: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        runId: "36086680999",
+        checkName: "TypeScript (Blacksmith primary) / run",
+      },
+    });
+  });
+
+  it("still prefers aggregator when both aggregator and lane have parseable run URLs", () => {
+    const result = evaluateTipShaCoverageOfRecord("ffffffffffffffffffffffffffffffffffffffff", [
+      {
+        name: "TypeScript (Blacksmith primary) / run",
+        status: "completed",
+        conclusion: "success",
+        htmlUrl: "https://github.com/deftai/directive/actions/runs/11111111111/job/1",
+      },
+      {
+        name: "TypeScript (build + lint + test)",
+        status: "completed",
+        conclusion: "success",
+        htmlUrl: "https://github.com/deftai/directive/actions/runs/22222222222/job/1",
+      },
+    ]);
+    expect(result).toEqual({
+      ok: true,
+      cite: {
+        tipSha: "ffffffffffffffffffffffffffffffffffffffff",
+        runId: "22222222222",
+        checkName: "TypeScript (build + lint + test)",
+      },
+    });
+  });
 });
 
 describe("runReleaseCheck", () => {
