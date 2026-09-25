@@ -501,8 +501,7 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
     return {
       ok: false,
       reason:
-        "node is limited to --test " +
-        "(other interpreter modes denied for ambient-authority)",
+        "node is limited to --test " + "(other interpreter modes denied for ambient-authority)",
     };
   }
   for (let i = 1; i < tokens.length; i += 1) {
@@ -526,8 +525,7 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
       if (value === undefined || !NODE_TEST_REPORTERS.has(value)) {
         return {
           ok: false,
-          reason:
-            "node --test --test-reporter value must be one of spec|tap|junit|lcov|dot",
+          reason: "node --test --test-reporter value must be one of spec|tap|junit|lcov|dot",
         };
       }
       i += 1;
@@ -538,8 +536,7 @@ function evaluateNodeTestArgs(rest: string): CommandSafetyResult {
       if (!NODE_TEST_REPORTERS.has(value)) {
         return {
           ok: false,
-          reason:
-            "node --test --test-reporter value must be one of spec|tap|junit|lcov|dot",
+          reason: "node --test --test-reporter value must be one of spec|tap|junit|lcov|dot",
         };
       }
       continue;

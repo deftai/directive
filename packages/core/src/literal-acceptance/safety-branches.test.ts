@@ -253,9 +253,7 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     expect(evaluateStampAcceptanceSafety({ commands: [{ command: "py -m pytest" }] }).ok).toBe(
       true,
     );
-    expect(evaluateStampAcceptanceSafety({ commands: [{ command: "node --test" }] }).ok).toBe(
-      true,
-    );
+    expect(evaluateStampAcceptanceSafety({ commands: [{ command: "node --test" }] }).ok).toBe(true);
     for (const command of [
       "pytest",
       "uv run --with pytest python -m pytest",
