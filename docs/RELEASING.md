@@ -53,6 +53,18 @@ GHA `CI` → “Test with coverage (vitest)” keeps its own 20-minute wall (`ti
 3. **GHA:** cancel the stuck run (`gh run cancel <run_id>`) after the step exceeds ~20 minutes; inspect logs for `ts:check-lane last-file` (or a 20% band) before the stall. Re-run failed jobs only after a fix lands (`gh run rerun <run_id> --failed`).
 4. **Production `--skip-ci` is an incident**, not a normal path: it skips vitest coverage and ships **untested** npm builds. Requires `--allow-skip-ci=#N` citing the tracked issue; Step 5 emits a loud WARN. Use only under operator review; the next patch after a hang fix must cut **without** `--skip-ci`.
 
+**Per-file duration ranking from the retained tee (#5027).** Step 5 / supervised `ts:check-lane` tees land under `.deft/check-tees/**/*.log` (retained on exit 124). The progress reporter already flushes `ts:check-lane timeline file <path> <ms> project=…` via `writeSync` when a file's elapsed time is ≥ `PROGRESS_FILE_HEARTBEAT_MS` (30s). That stream is the hang-kill-durable ranking input — last-completed-file is only a hang cursor, and hand-timed isolates understate contended Step 5 cost. Stock vitest `--reporter=json` / `outputFile` is **not** used here: `JsonReporter` writes in `onTestRunEnd`, which does not run under win32 `taskkill /T /F` or POSIX `SIGKILL`.
+
+Omission (explicit): files that finish in under 30s never emit a timeline file line, so they never appear in the ranking. Top-N is among emitted duration lines only.
+
+Rank helper:
+
+```text
+pnpm exec tsx packages/core/src/ts-check-lane/duration-rank.ts --top 20 .deft/check-tees/<session>/<run>.log
+```
+
+Paste the top-20 from the next production Windows Step 5 cut into #5024 as the cheapen baseline. Out of scope here: acting on the ranking; uploading the artifact.
+
 Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-link).
 
 ## Fixable check failure during release (#2859)

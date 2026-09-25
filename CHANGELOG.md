@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
 - **perf(vitest): committed durations + DurationSequencer arm slowest-first on cold release worktrees (Tracking #5028).** Fresh trees no longer depend on host-global vitest cache.dir. Fixture packages/core/fixtures/vitest-file-durations.json (interim until #5027). Refs #5028, #5027, #5024.
+- **Step 5 tee duration ranking helper (#5027).** Scrape flushed `ts:check-lane timeline file <path> <ms>` lines from `.deft/check-tees/**` and print top-N by duration (`packages/core/src/ts-check-lane/duration-rank.ts`). Sub-30s files are omitted (progress reporter heartbeat gate). Does not claim stock vitest JsonReporter flushes on hang kill. RELEASING.md documents tee location, ranking command, and the #5024 top-20 paste. Tracking #5027. Refs #5024, #5023, #4567.
 
 ### Changed
 
@@ -6786,6 +6786,7 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
+
 
 
 
