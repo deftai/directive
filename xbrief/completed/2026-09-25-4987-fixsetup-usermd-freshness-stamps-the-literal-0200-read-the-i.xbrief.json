@@ -1,0 +1,482 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4987",
+    "updated": "2026-09-25T22:31:23Z"
+  },
+  "plan": {
+    "title": "fix(setup): USER.md freshness stamps the literal 0.20.0 — read the installed version (version-stamp split from #4378)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(setup): USER.md freshness stamps the literal 0.20.0 — read the installed version (version-stamp split from #4378)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4987",
+      "Overview": "\n\n1. Phase 1 freshness comparison and deft_version stamp/read use locateManifest + parseInstallManifest + manifestReportableVersion (#2294). Remove the 0.20.0 literals from content/skills/deft-directive-setup and content/packs/skills (skills-pack source). Do not invent a generated version file.\n2. Stamp / rewrite only when reportable.version is a non-null stampable semver. When version is null (missing manifest, source sha, or source none), ask nothing new and do not rewrite the stamp; on first write omit or leave deft_version unset rather than writing a placeholder. Forbid resolveProbeCurrentVersion / resolveVersion \"dev\" fallback for USER.md freshness and first-write stamps. Treat Anti-Patterns MUST-set / deft_setup_deft_version_must_rule rewrite as required companion to this omit rule.\n3. Narrow Acceptance grep to content/skills/deft-directive-setup plus content/packs/skills (or equivalent skills-pack-only path) so lessons-pack historical v0.20.0-rc.3 lines stay out of this split. Keep detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue. #4981 needs only this piece.\n4. Tests lock: install at X stamps X and second run leaves it; upgrade X→Y restamps Y once after missing-field questions; unreportable version does not rewrite; no 0.20.0 literal remains under the narrowed paths. CHANGELOG Unreleased line. Fixture hygiene under packages/ is optional harvest, not a widen.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:6f571ce16ec589f7ffc6e794138fb9489424cda281869fe6b8335f1fbcccd78f\n\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, area:installer, area:skills, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Phase 1 freshness comparison and deft_version stamp/read use locateManifest + parseInstallManifest + manifestReportableVersion (#2294). Remove the 0.20.0 literals from content/skills/deft-directive-setup and content/packs/skills (skills-pack source). Do not invent a generated version file.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-setup/SKILL.md",
+          "recorded_at": "2026-09-25T19:23:34Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Stamp / rewrite only when reportable.version is a non-null stampable semver. When version is null (missing manifest, source sha, or source none), ask nothing new and do not rewrite the stamp; on first write omit or leave deft_version unset rather than writing a placeholder. Forbid resolveProbeCurrentVersion / resolveVersion \"dev\" fallback for USER.md freshness and first-write stamps. Treat Anti-Patterns MUST-set / deft_setup_deft_version_must_rule rewrite as required companion to this omit rule.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-setup/SKILL.md",
+          "recorded_at": "2026-09-25T19:23:34Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Narrow Acceptance grep to content/skills/deft-directive-setup plus content/packs/skills (or equivalent skills-pack-only path) so lessons-pack historical v0.20.0-rc.3 lines stay out of this split. Keep detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue. #4981 needs only this piece.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/skills/skills-pack-0.1.json",
+          "recorded_at": "2026-09-25T19:23:34Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Tests lock: install at X stamps X and second run leaves it; upgrade X→Y restamps Y once after missing-field questions; unreportable version does not rewrite; no 0.20.0 literal remains under the narrowed paths. CHANGELOG Unreleased line. Fixture hygiene under packages/ is optional harvest, not a widen.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/skills.test.ts",
+          "recorded_at": "2026-09-25T19:23:34Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:installer",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4987",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4987: fix(setup): USER.md freshness stamps the literal 0.20.0 — read the installed version (version-stamp split from #4378)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4378",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4378"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Phase 1 freshness comparison and deft_version stamp/read use locateManifest + parseInstallManifest + manifestReportableVersion (#2294). Remove the 0.20.0 literals from content/skills/deft-directive-setup and content/packs/skills (skills-pack source). Do not invent a generated version file.",
+        "Stamp / rewrite only when reportable.version is a non-null stampable semver. When version is null (missing manifest, source sha, or source none), ask nothing new and do not rewrite the stamp; on first write omit or leave deft_version unset rather than writing a placeholder. Forbid resolveProbeCurrentVersion / resolveVersion \"dev\" fallback for USER.md freshness and first-write stamps. Treat Anti-Patterns MUST-set / deft_setup_deft_version_must_rule rewrite as required companion to this omit rule.",
+        "Narrow Acceptance grep to content/skills/deft-directive-setup plus content/packs/skills (or equivalent skills-pack-only path) so lessons-pack historical v0.20.0-rc.3 lines stay out of this split. Keep detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue. #4981 needs only this piece.",
+        "Tests lock: install at X stamps X and second run leaves it; upgrade X→Y restamps Y once after missing-field questions; unreportable version does not rewrite; no 0.20.0 literal remains under the narrowed paths. CHANGELOG Unreleased line. Fixture hygiene under packages/ is optional harvest, not a widen."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Phase 1 freshness comparison and deft_version stamp/read use locateManifest + parseInstallManifest + manifestReportableVersion (#2294). Remove the 0.20.0 literals from content/skills/deft-directive-setup and content/packs/skills (skills-pack source). Do not invent a generated version file.",
+          "artifact_path": "content/skills/deft-directive-setup/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Stamp / rewrite only when reportable.version is a non-null stampable semver. When version is null (missing manifest, source sha, or source none), ask nothing new and do not rewrite the stamp; on first write omit or leave deft_version unset rather than writing a placeholder. Forbid resolveProbeCurrentVersion / resolveVersion \"dev\" fallback for USER.md freshness and first-write stamps. Treat Anti-Patterns MUST-set / deft_setup_deft_version_must_rule rewrite as required companion to this omit rule.",
+          "artifact_path": "content/skills/deft-directive-setup/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Narrow Acceptance grep to content/skills/deft-directive-setup plus content/packs/skills (or equivalent skills-pack-only path) so lessons-pack historical v0.20.0-rc.3 lines stay out of this split. Keep detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue. #4981 needs only this piece.",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Tests lock: install at X stamps X and second run leaves it; upgrade X→Y restamps Y once after missing-field questions; unreportable version does not rewrite; no 0.20.0 literal remains under the narrowed paths. CHANGELOG Unreleased line. Fixture hygiene under packages/ is optional harvest, not a widen.",
+          "artifact_path": "packages/core/src/content-contracts/skills/skills.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Issue title is tracking metadata, not an independently verified clause.",
+        "Do not invent a generated version file — covered by clause 1 live-reader seam.",
+        "Keep detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue.",
+        "#4981 needs only this piece.",
+        "Fixture hygiene under packages/ is optional harvest, not a widen.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest metadata on the lean, not a product clause."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because Phase 1 USER.md freshness still compares and stamps against the deposited literal 0.20.0, so a newer install can rewrite the stamp backward and then stop asking, silently disabling the freshness check.\n\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered with recommended N per issue after the missing-token ask. This is instance-set conformance against the already-bound #4378 live-reader lean (comment 5654755223), not a whole-motion babysit hang. Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. content/packs/skills/skills-pack-0.1.json still carries the literal 0.20.0 for Phase 1 freshness/template text; the rendered setup skill inherits it, so fixing the rendered skill alone does not fix the pack.\nP2. A later run on a newer install can stamp 0.20.0 back into USER.md and then treat the stamp as current, so freshness silently downgrades and disables itself.\nP3. #4981 / Directive Tutorial second-run acceptance needs only this version-stamp piece; detect-then-confirm, import, wizard renderer, and the rest of #4378 must stay off this issue, and the live reader must be manifestReportableVersion() (#2294) rather than a generated version file.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4987-dc\norigin-ref: origin/HEAD\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\npin-kind: origin-default\ntarget-digest: sha256:9c081f2bee6e5af669088d78e329ffddfc1425cdbba740c5e0a0613aafa40392\n\nPin reads use git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980. Split from #4378; refs #4981/#2294. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5837066395,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837066395",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:00:13Z",
+          "updated_at": "2026-09-25T18:00:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nseat: grok\nlauncher: grok\nround: 1\nid-ceiling: 5837066395\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\ncharter: open critique\ntarget: https://github.com/deftai/directive/issues/4987\n\n## Acceptance grep sweeps lessons history\nsharpens-framing\nEvidence: At `042eea8c31f5629b1fc0cfa2f75e4cb967af7980`, `git grep '0\\.20\\.0'` under `content/packs` hits both `content/packs/skills/skills-pack-0.1.json` (setup body, three freshness/template sites) and `content/packs/lessons/lessons-pack-0.1.json` (`v0.20.0-rc.3` historical source lines). Issue Acceptance item 1 requires `grep -r \"0\\.20\\.0\" content/skills/deft-directive-setup content/packs` to return nothing. Contract clause 1 limits the literal ban to the setup skill and the skills pack for this purpose.\nFailure mode: After the three setup literals are removed, Acceptance still fails on unrelated lessons history, or the harvest is forced to rewrite lesson text that is outside this version-stamp split.\nDisposition: Narrow Acceptance to `content/skills/deft-directive-setup` plus `content/packs/skills` (or an equivalent skills-pack-only path) so it matches clause 1.\n\n## Null version is sha as well as none\nsharpens-framing\nEvidence: `git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980:packages/core/src/doctor/manifest.ts` — `manifestReportableVersion` returns `source: \"sha\"` with `version: null` for sha-only manifests, and `source: \"none\"` only when both version and sha are absent. `packages/core/src/doctor/coverage-final.test.ts` locks that four-way classify. `checkManifestVersionReportable` in `packages/core/src/doctor/checks.ts` treats sha-only as unreportable semver (advisory fail), same stampable emptiness as no provenance. Issue Contract clause 2 and Acceptance name only reader return `none`.\nFailure mode: An implementer who branches only on `source === \"none\"` still stamps on sha-only installs (empty string, raw sha, or another placeholder), rewriting USER.md and defeating the no-placeholder / no-rewrite rule the split exists to keep.\nDisposition: Bind the no-ask / no-rewrite path to `reportable.version === null` (missing manifest, `sha`, and `none`), matching the doctor reportable check’s stampable-semver gate.\n\n## Adjacent probe helper stamps `dev`\nsharpens-framing\nEvidence: Inventory at the dispatch SHA: the named live reader is `manifestReportableVersion` after `locateManifest` / `parseInstallManifest` (doctor path in `checks.ts`). Adjacent `resolveProbeCurrentVersion` in `packages/core/src/check-updates/index.ts` uses `manifestTagToVersion` then falls through to `resolveVersion` in `packages/core/src/doctor/paths.ts`, which returns the literal `\"dev\"` when no VERSION candidate reads. Setup remains an agent-executed skill (`content/skills/deft-directive-setup/SKILL.md`); there is no agent-facing argv that returns only `reportable.version`. Injection / swarm lens: USER.md is shared preference authority; a wrong version read silently rewrites `deft_version` and disables freshness (P2).\nFailure mode: Harvest reuses the probe helper as “the live reader,” stamps `dev` on sha-only or missing-manifest installs, and the Acceptance “no readable manifest → do not rewrite” case fails closed only in prose.\nDisposition: Before bind, name the stamp seam as locate + parse + `manifestReportableVersion`, stamp only when `version` is non-null, and forbid `resolveProbeCurrentVersion` / `resolveVersion` `\"dev\"` fallback for USER.md freshness and first-write stamps. A new generated version file stays out of scope.\n\n## Greenfield write when version is null\nfootnote\nEvidence: Anti-Patterns in the setup skill still say `deft_version` MUST be set when generating USER.md; Contract clause 2 / Acceptance only describe no rewrite when the reader returns none. First-write with `version === null` is not named.\nFailure mode: Agents may invent a placeholder on greenfield to satisfy the MUST, or skip the field and trip the same anti-pattern.\nDisposition: Successor lean can one-line that unreportable installs omit or leave `deft_version` unset on first write as well; not required to block bind if the null-version rule above is stated for every stamp path.\n\n## Fixture literal outside Acceptance paths\nfootnote\nEvidence: `packages/core/src/user-config/experimental-rules.test.ts` still embeds `**deft_version**: 0.20.0` at the dispatch SHA; Acceptance grep does not cover `packages/`.\nFailure mode: CI fixtures keep teaching the retired constant after skill/pack cleanup.\nDisposition: Harvest hygiene only; no contract recut.\n\n",
+          "id": 5837203359,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837203359",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:09:26Z",
+          "updated_at": "2026-09-25T18:09:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPhase 1 USER.md freshness still stamps and compares against the deposited literal 0.20.0. This map binds the already-named live-reader fix: freshness and deft_version stamps go through locateManifest + parseInstallManifest + manifestReportableVersion; stamp only when reportable.version is non-null (covering sha and none); remove the setup/skills-pack literals; keep #4378 remainder and lessons history off this issue; narrow Acceptance so it does not sweep lessons-pack history. Confirming this map means that list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5837203359 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** open critique of the drafted contract; this map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5837066395\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\n\n## Takes\n\n- 5837203359 Acceptance grep sweeps lessons history — accept-into-contract\n- 5837203359 Null version is sha as well as none — accept-into-contract\n- 5837203359 Adjacent probe helper stamps `dev` — accept-into-contract\n\nFootnotes, outside the take map: 5837203359 Greenfield write when version is null; 5837203359 Fixture literal outside Acceptance paths.\n\nSpec-path:\n\n## Bound remedy\n\n1. Phase 1 freshness comparison and deft_version stamp/read use locateManifest + parseInstallManifest + manifestReportableVersion (#2294). Remove the 0.20.0 literals from content/skills/deft-directive-setup and content/packs/skills (skills-pack source). Do not invent a generated version file.\n2. Stamp / rewrite only when reportable.version is a non-null stampable semver. When version is null (missing manifest, source sha, or source none), ask nothing new and do not rewrite the stamp; on first write omit or leave deft_version unset rather than writing a placeholder. Forbid resolveProbeCurrentVersion / resolveVersion \"dev\" fallback for USER.md freshness and first-write stamps.\n3. Narrow Acceptance grep to content/skills/deft-directive-setup plus content/packs/skills (or equivalent skills-pack-only path) so lessons-pack historical v0.20.0-rc.3 lines stay out of this split. Keep detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue. #4981 needs only this piece.\n4. Tests lock: install at X stamps X and second run leaves it; upgrade X→Y restamps Y once after missing-field questions; unreportable version does not rewrite; no 0.20.0 literal remains under the narrowed paths. CHANGELOG Unreleased line. Fixture hygiene under packages/ is optional harvest, not a widen.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:6f571ce16ec589f7ffc6e794138fb9489424cda281869fe6b8335f1fbcccd78f\n\n## Parent-side substantiation\n\nAll three sharpening findings are accepted into the bound remedy: item 3 narrows Acceptance; item 2 binds null-version (sha+none); item 1 names the stamp seam and forbids the probe/dev fallback. Footnotes stay census (greenfield omit; packages fixture hygiene).\n\naudit:live-reader-stamp-seam sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837203359 reading=asserted\naudit:null-version-no-rewrite sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837203359 reading=asserted",
+          "id": 5837225323,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837225323",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:10:58Z",
+          "updated_at": "2026-09-25T19:14:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nseat: grok\nlauncher: grok\nround: 4\npass: pain-audit of relieves\nid-ceiling: 5837225323\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\ncharter: open critique\ntarget: https://github.com/deftai/directive/issues/4987\nbind-lean: 5837225323\nstop1: 5837066395\nprior-critic: 5837203359\n\nHEAD at dispatch pin `042eea8c31f5629b1fc0cfa2f75e4cb967af7980` (rev-parse match; no fetch/checkout). Re-verified with `git show` at that SHA.\n\n## P1 pack + rendered skill literals\nfootnote\nEvidence: At the pin, `content/packs/skills/skills-pack-0.1.json` embeds three `0.20.0` freshness/template sites in the setup body; rendered `content/skills/deft-directive-setup/SKILL.md` carries the same three (freshness compare, post-query stamp, template `**deft_version**: 0.20.0`). Bound remedy item 1 requires removal from both `content/skills/deft-directive-setup` and `content/packs/skills`. Item 3 keeps Acceptance on those paths.\nFailure mode: None against the asserted cite — both surfaces are named, matching Stop 1 P1 (pack is source; skill-alone fix insufficient).\nDisposition: Asserted P1 coverage holds. Harvest still runs `task packs:render` / `task packs:verify-drift` after the pack edit (`setup-stamp-retirement.ts`); that is process hygiene already implied by dual-path removal, not a Bound-remedy hole.\n\n## P2 silent downgrade via literal stamp\nfootnote\nEvidence: P2 is the deposited `0.20.0` rewrite on a newer install, then match-as-current. Bound remedy item 1 replaces compare/stamp with `locateManifest` + `parseInstallManifest` + `manifestReportableVersion` (#2294) and forbids a generated version file. Item 2 stamps only when `reportable.version` is non-null (missing / `sha` / `none` → no ask, no rewrite) and forbids `resolveProbeCurrentVersion` / `resolveVersion` `\"dev\"` fallback. Re-checked: `manifestReportableVersion` returns `version: null` for sha-only and none; `resolveVersion` still falls through to `\"dev\"` at the pin — already excluded by item 2.\nFailure mode: None against the asserted cite — the literal stamp path and the known wrong-reader fallback are both closed in the Bound remedy.\nDisposition: Asserted P2 coverage holds. Round-1 sharpening on null-version and probe/`dev` is already inside items 1–2.\n\n## P3 tutorial slice + live reader, #4378 remainder off\nfootnote\nEvidence: Bound remedy item 1 names `manifestReportableVersion` (#2294) and forbids inventing a generated version file. Item 3 keeps detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue, and states #4981 needs only this piece. Matches Stop 1 P3 and issue Contract / Not this.\nFailure mode: None against the asserted cite — reader, anti-generated-file, and scope fence are all operative on the bind map.\nDisposition: Asserted P3 coverage holds.\n\n## Anti-Patterns MUST-set vs item 2 omit\nfootnote\nEvidence: At the pin, setup Anti-Patterns still require `deft_version` MUST be set and forbid generating USER.md without the field; `skills.test.ts` `deft_setup_deft_version_must_rule` locks those strings. Bound remedy item 2 already requires omit / leave unset on first write when version is null. Item 4 marks packages/ fixture hygiene optional (the `experimental-rules.test.ts` `0.20.0` embed).\nFailure mode: Harvest that rewrites Anti-Patterns for item 2 without updating the content-contract reds CI; leaving the MUST fights the null-omit rule already bound.\nDisposition: Census only — item 2 already owns the behavior; treat the Anti-Patterns + `deft_setup_deft_version_must_rule` rewrite as required companion to item 2, and keep the experimental-rules `0.20.0` fixture as the optional packages/ hygiene in item 4. No Bound-remedy recut.\n\n## Target-digest drift (out of pain cites)\nfootnote\nEvidence: Lean `Target-digest: sha256:9c081f2bee6e5af669088d78e329ffddfc1425cdbba740c5e0a0613aafa40392` does not match live REST issue-body sha256 `0a7aeab58330aedae1bfbe7fcc65da8f9b3ee2a4e440824f7d2c418202fe46fb` at audit time.\nFailure mode: Later ingest can refuse stale-target while pain cites are otherwise clear.\nDisposition: Outside P1–P3 coverage. Parent/operator refresh when ingest is wanted; does not change Bound-remedy relief of the three pains.\n\n",
+          "id": 5837285306,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837285306",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:15:16Z",
+          "updated_at": "2026-09-25T18:15:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified claims\n\n| Claim | Method | Result |\n| --- | --- | --- |\n| skills-pack and setup skill still embed literal 0.20.0 for Phase 1 freshness/template at dispatch SHA | git show / git grep at 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 | Confirmed (three sites in pack body; three in rendered skill) |\n| manifestReportableVersion returns version null for sha-only and none | git show packages/core/src/doctor/manifest.ts + coverage-final.test.ts at pin | Confirmed |\n| resolveVersion / resolveProbeCurrentVersion can fall through to \"dev\" | git show check-updates/index.ts and doctor/paths.ts at pin | Confirmed; Bound remedy forbids that fallback for USER.md stamps |\n| Round-1 critic 5837203359 classified three sharpenings, zero blocks | REST comment read under ceiling | Confirmed; all accepted into lean 5837225323 |\n| Pain-audit 5837285306 of relieves P1–P3 is footnote-only | REST comment read | Confirmed; no harvest change |\n\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nbind-lean: 5837225323",
+          "id": 5837332731,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837332731",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:18:39Z",
+          "updated_at": "2026-09-25T18:18:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nbind-lean: 5837225323\npain-audit: 5837285306\nverified-claims: (this arc's verified-claims table comment)\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\nTarget-digest: sha256:6f571ce16ec589f7ffc6e794138fb9489424cda281869fe6b8335f1fbcccd78f\n\n## Completed-arc record\n\nIndependent no-ingest yolo N=1 arc on #4987. Bound remedy is successor lean 5837225323 (live reader stamp seam; null-version no-rewrite; narrowed Acceptance; #4378 remainder off). Pain-audit 5837285306 footnote-only. Chip design-critique:ingest-ready is list state. Ingest remains a later operator verb: task issue:ingest.",
+          "id": 5837333036,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837333036",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:18:41Z",
+          "updated_at": "2026-09-25T19:14:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPhase 1 USER.md freshness still stamped and compared against deposited literal 0.20.0. Bound remedy replaces that with locateManifest + parseInstallManifest + manifestReportableVersion, stamps only when reportable.version is non-null, removes setup/skills-pack literals, narrows Acceptance off lessons history, and keeps #4378 remainder off this issue. Pain-audit 5837285306 of relieves P1–P3 was footnote-only. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837225323.",
+          "id": 5837393594,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837393594",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:22:46Z",
+          "updated_at": "2026-09-25T18:22:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA prior synthesis comment (5837333036) carried an operative Target-digest line and was therefore classified as a successor lean, blocking ingest-ready clearance that still cited bind lean 5837225323. This Recut supersedes that false lean and re-binds the same harvest already accepted after pain-audit 5837285306. Confirming this map means that list is the build contract. The same parent wrote the Stop 1 warrant. Critic 5837203359 and pain-audit 5837285306 check the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** Recut superseding 5837333036. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5837333036\nRecut-supersedes: 5837333036\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\n\n## Takes\n\n- 5837203359 Acceptance grep sweeps lessons history — accept-into-contract\n- 5837203359 Null version is sha as well as none — accept-into-contract\n- 5837203359 Adjacent probe helper stamps `dev` — accept-into-contract\n\nFootnotes, outside the take map: 5837203359 Greenfield write when version is null; 5837203359 Fixture literal outside Acceptance paths; 5837285306 pain-audit footnotes (packs:render hygiene; Anti-Patterns companion; Target-digest drift note).\n\nSpec-path:\n\n## Bound remedy\n\n1. Phase 1 freshness comparison and deft_version stamp/read use locateManifest + parseInstallManifest + manifestReportableVersion (#2294). Remove the 0.20.0 literals from content/skills/deft-directive-setup and content/packs/skills (skills-pack source). Do not invent a generated version file.\n2. Stamp / rewrite only when reportable.version is a non-null stampable semver. When version is null (missing manifest, source sha, or source none), ask nothing new and do not rewrite the stamp; on first write omit or leave deft_version unset rather than writing a placeholder. Forbid resolveProbeCurrentVersion / resolveVersion \"dev\" fallback for USER.md freshness and first-write stamps. Treat Anti-Patterns MUST-set / deft_setup_deft_version_must_rule rewrite as required companion to this omit rule.\n3. Narrow Acceptance grep to content/skills/deft-directive-setup plus content/packs/skills (or equivalent skills-pack-only path) so lessons-pack historical v0.20.0-rc.3 lines stay out of this split. Keep detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue. #4981 needs only this piece.\n4. Tests lock: install at X stamps X and second run leaves it; upgrade X→Y restamps Y once after missing-field questions; unreportable version does not rewrite; no 0.20.0 literal remains under the narrowed paths. CHANGELOG Unreleased line. Fixture hygiene under packages/ is optional harvest, not a widen.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:6f571ce16ec589f7ffc6e794138fb9489424cda281869fe6b8335f1fbcccd78f\n\n## Parent-side substantiation\n\nHarvest unchanged from lean 5837225323 / pain-audit 5837285306. This Recut exists only to restore a real Bound-remedy lean as the latest Target-digest carrier after a mis-shaped synthesis comment.\n\naudit:restore-bind-after-false-lean sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837225323 reading=asserted",
+          "id": 5837421800,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837421800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:24:49Z",
+          "updated_at": "2026-09-25T19:14:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nseat: grok\nlauncher: grok\nround: 4\npass: Pass-4 audit (pain-audit of relieves)\nid-ceiling: 5837421800\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\ncharter: open critique\ntarget: https://github.com/deftai/directive/issues/4987\nbind-lean: 5837421800\nstop1: 5837066395\nprior-critic: 5837203359\nprior-pain-audit: 5837285306\nharvest-peer: 5837225323\n\nHEAD at dispatch pin `042eea8c31f5629b1fc0cfa2f75e4cb967af7980` (rev-parse match; no fetch/checkout). Re-verified with `git show` at that SHA. Recut lean 5837421800 restores Bound-remedy after false Target-digest carrier 5837333036; harvest matches already-audited 5837225323 for P1–P3 relief, with item 2 now naming the Anti-Patterns companion the prior pain-audit already treated as required hygiene.\n\n## P1 pack + rendered skill literals\nfootnote\nEvidence: At the pin, `content/packs/skills/skills-pack-0.1.json` embeds three `0.20.0` freshness/template sites in the setup body; rendered `content/skills/deft-directive-setup/SKILL.md` carries the same three (freshness compare, post-query stamp, template `**deft_version**: 0.20.0`). Recut Bound remedy item 1 requires removal from both `content/skills/deft-directive-setup` and `content/packs/skills`. Item 3 keeps Acceptance on those paths (lessons-pack historical `v0.20.0-rc.3` stays out).\nFailure mode: None against the asserted cite — both surfaces are named, matching Stop 1 P1 (pack is source; skill-alone fix insufficient).\nDisposition: Asserted P1 coverage holds on the Recut map. Harvest still runs `task packs:render` / pack-drift verify after the pack edit; that is process hygiene already implied by dual-path removal, not a Bound-remedy hole.\n\n## P2 silent downgrade via literal stamp\nfootnote\nEvidence: P2 is the deposited `0.20.0` rewrite on a newer install, then match-as-current. Recut item 1 replaces compare/stamp with `locateManifest` + `parseInstallManifest` + `manifestReportableVersion` (#2294) and forbids a generated version file. Item 2 stamps only when `reportable.version` is non-null (missing / `sha` / `none` → no ask, no rewrite) and forbids `resolveProbeCurrentVersion` / `resolveVersion` `\"dev\"` fallback. Re-checked at pin: `manifestReportableVersion` returns `version: null` for sha-only and none; `resolveVersion` still falls through to `\"dev\"` — already excluded by item 2. Recut also names Anti-Patterns MUST-set / `deft_setup_deft_version_must_rule` rewrite as required companion to the omit rule (elevated from prior pain-audit 5837285306 footnote).\nFailure mode: None against the asserted cite — the literal stamp path and the known wrong-reader fallback are both closed in the Bound remedy.\nDisposition: Asserted P2 coverage holds. Round-1 sharpening on null-version and probe/`dev` remains inside items 1–2.\n\n## P3 tutorial slice + live reader, #4378 remainder off\nfootnote\nEvidence: Recut item 1 names `manifestReportableVersion` (#2294) and forbids inventing a generated version file. Item 3 keeps detect-then-confirm, import, wizard renderer, and the rest of #4378 off this issue, and states #4981 needs only this piece. Matches Stop 1 P3 and issue Contract / Not this.\nFailure mode: None against the asserted cite — reader, anti-generated-file, and scope fence are all operative on the Recut bind map.\nDisposition: Asserted P3 coverage holds.\n\n## Recut harvest peer match\nfootnote\nEvidence: Comparing Recut 5837421800 Bound remedy to peer lean 5837225323: items 1, 3, and 4 are the same text; item 2 adds only the Anti-Patterns / `deft_setup_deft_version_must_rule` companion already dispositioned by pain-audit 5837285306. Parent substantiation correctly points at restore-after-false-lean rather than a new mechanism.\nFailure mode: None for P1–P3 — no new gap versus the already-audited map.\nDisposition: Census only. Fresh critic confirms the Recut is the same harvest for pain relief.\n\n## Target-digest drift (out of pain cites)\nfootnote\nEvidence: Recut `Target-digest: sha256:9c081f2bee6e5af669088d78e329ffddfc1425cdbba740c5e0a0613aafa40392` does not match live REST issue-body sha256 `0a7aeab58330aedae1bfbe7fcc65da8f9b3ee2a4e440824f7d2c418202fe46fb` at audit time (same drift noted on 5837285306).\nFailure mode: Later ingest can refuse stale-target while pain cites are otherwise clear.\nDisposition: Outside P1–P3 coverage. Parent/operator refresh when ingest is wanted; does not change Bound-remedy relief of the three pains.\r\n\n",
+          "id": 5837464316,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837464316",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:27:43Z",
+          "updated_at": "2026-09-25T18:27:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPhase 1 USER.md freshness still stamped and compared against deposited literal 0.20.0. Bound remedy replaces that with locateManifest + parseInstallManifest + manifestReportableVersion, stamps only when reportable.version is non-null, removes setup/skills-pack literals, narrows Acceptance off lessons history, and keeps #4378 remainder off this issue. Pain-audit 5837464316 of Recut lean 5837421800 was footnote-only (same harvest as 5837225323). The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837421800.",
+          "id": 5837471832,
+          "html_url": "https://github.com/deftai/directive/issues/4987#issuecomment-5837471832",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:28:09Z",
+          "updated_at": "2026-09-25T18:28:09Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Pain\n\nThe Phase 1 (USER.md) freshness check compares `deft_version` to \"the current framework version\", but the deposited skill carries the literal `0.20.0` as that version. A later run on any newer install stamps `0.20.0` back into USER.md and then stops asking, because the stamp now matches the constant. The check silently downgrades and disables itself.\n\nThis is the one defect in #4378 that has no design question attached. The #4378 round-1 leans bound it as \"fix version stamp with the live reader, not a generated artifact\" (5654755223) and left the rest of that RFC (detect-then-confirm, import, wizard renderer) on a recut. #4981 needs only this piece before the Directive Tutorial's second-run acceptance can hold. Split out so the tutorial does not wait on the RFC.\n\n## Evidence (from #4378 critics at e9336c3eb, re-verify at HEAD)\n\n- `content/packs/skills/skills-pack-0.1.json` line 321 carries `0.20.0` three times. The rendered `content/skills/deft-directive-setup/SKILL.md` Phase 1 freshness and template text inherit it. Fixing the rendered skill alone does not fix the pack.\n- `packages/core/src/doctor/manifest.ts` already has `manifestReportableVersion()` (#2294), classifying `tag | ref | sha | none`. That is the live reader.\n- Newest released heading at that SHA was `0.117.0`; the stamp constant was five minor versions behind the tree it shipped in.\n\n## Contract\n\n1. The freshness comparison and the `deft_version` stamp read the installed framework version through the existing live reader. No version literal remains in the setup skill or the skills pack for this purpose.\n2. When the reader returns `none` (no manifest, unknown install), freshness asks nothing new and does not rewrite the stamp. It never writes a placeholder or an older version over a newer one.\n3. A second run on the same install leaves `deft_version` unchanged. A run on a newer install updates the stamp once, after the missing-field questions, exactly as the current design intends.\n\n## Not this\n\n- Not detect-then-confirm, import from other agents, provenance fields beyond `deft_version`, a wizard renderer, non-interactive mode, or scoped reset. Those stay on #4378.\n- Not a generated version file that the skill reads instead of the manifest. The lean explicitly rejected \"a generated reader worse than the bug.\"\n- Not a change to what Phase 1 asks.\n\n## Acceptance\n\n- [ ] `grep -r \"0\\.20\\.0\" content/skills/deft-directive-setup content/packs` returns nothing.\n- [ ] On an install at version X, a fresh USER.md is stamped X; a second run leaves it X and asks no freshness questions.\n- [ ] On an install upgraded from X to Y, one run asks only the missing fields and restamps Y.\n- [ ] With no readable manifest, the stamp is not rewritten and the run does not fail.\n- [ ] Tests lock the three behaviours above against the live reader.\n- [ ] CHANGELOG Unreleased line.\n\nRefs #4378, #4981, #2294",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5559107108,
+        "origin": "deftai/directive#4987",
+        "id": "github.issue.5559107108"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6f571ce16ec589f7ffc6e794138fb9489424cda281869fe6b8335f1fbcccd78f"
+      },
+      "swarm": {
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/core/src/content-contracts/skills/skills.test.ts",
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5049,
+        "prBase": null,
+        "mergeCommit": "60245c44261800b41cb3505895d9be956af341f2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b0e58abe5d1f2d2b88b0eb579007dc0831550bde",
+        "verifiedAt": "2026-09-25T22:31:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-25T22:31:23Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-25T22:31:23Z"
+      }
+    },
+    "id": "github.issue.5559107108",
+    "updated": "2026-09-25T22:31:23Z"
+  }
+}

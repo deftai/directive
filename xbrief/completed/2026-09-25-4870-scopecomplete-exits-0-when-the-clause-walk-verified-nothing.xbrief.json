@@ -1,0 +1,460 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4870",
+    "updated": "2026-09-25T22:32:11Z"
+  },
+  "plan": {
+    "title": "scope:complete exits 0 when the clause walk verified nothing",
+    "status": "completed",
+    "narratives": {
+      "Description": "scope:complete exits 0 when the clause walk verified nothing",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4870",
+      "Overview": "\n\n1. On scope:complete, fail closed when the acceptance walk it consumes reports 0 verified / N unverifiable in the #4866 detection shape, unless that walk's predicate is executable-pass (a green executable oracle ran for the plan). Evidence markers + #3826 no-oracle alone must not make complete exit 0 on that printed zero-verified walk after derivation injects clause items. verify:ac may still pass; do not reverse #3826 globally inside verify:ac.\n2. Keep #4866 as adjacent check-path precedent; reuse its detection helpers/text if useful. The bound change is on the complete-side predicate (or the shared walk result complete consumes), not rapid-check composition alone.\n3. #3497 green stated-command pathless / all-unverifiable completes that are executable-pass remain allowed under item 1. Do not silently widen into unrelated evidence-writer work owned elsewhere on #4814.\n4. Parent #4814 stays a tracker. First ship on #4870 is this single complete/walk done predicate (tests + CHANGELOG). Other #4814 findings stay off this issue.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:07cda0719a7a2f0975c97cd2d2cd192ffe62a803a3402e535726e0e556137d52\n\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, source-of-truth, area:cli, area:vbrief, status:child, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "On scope:complete, fail closed when the acceptance walk it consumes reports 0 verified / N unverifiable in the #4866 detection shape, unless that walk's predicate is executable-pass (a green executable oracle ran for the plan). Evidence markers + #3826 no-oracle alone must not make complete exit 0 on that printed zero-verified walk after derivation injects clause items. verify:ac may still pass; do not reverse #3826 globally inside verify:ac.",
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5050#78c3f2321b54998a44649116c1ca9553c856a88f",
+          "recorded_at": "2026-09-25T22:32:10.205Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Keep #4866 as adjacent check-path precedent; reuse its detection helpers/text if useful. The bound change is on the complete-side predicate (or the shared walk result complete consumes), not rapid-check composition alone.",
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5050#78c3f2321b54998a44649116c1ca9553c856a88f",
+          "recorded_at": "2026-09-25T22:32:10.205Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "#3497 green stated-command pathless / all-unverifiable completes that are executable-pass remain allowed under item 1. Do not silently widen into unrelated evidence-writer work owned elsewhere on #4814.",
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5050#78c3f2321b54998a44649116c1ca9553c856a88f",
+          "recorded_at": "2026-09-25T22:32:10.205Z",
+          "recorded_by": "MScottAdams"
+        }
+      },
+      {
+        "title": "Parent #4814 stays a tracker. First ship on #4870 is this single complete/walk done predicate (tests + CHANGELOG). Other #4814 findings stay off this issue.",
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5050#78c3f2321b54998a44649116c1ca9553c856a88f",
+          "recorded_at": "2026-09-25T22:32:10.205Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:vbrief",
+      "status:child",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4870",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4870: scope:complete exits 0 when the clause walk verified nothing"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/check/rapid-zero-verified.test.ts packages/core/src/scope/acceptance-evidence.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "bound remedy executable oracle for complete/walk predicate (#4870)",
+      "sentences": [
+        "On scope:complete, fail closed when the acceptance walk it consumes reports 0 verified / N unverifiable in the #4866 detection shape, unless that walk's predicate is executable-pass (a green executable oracle ran for the plan). Evidence markers + #3826 no-oracle alone must not make complete exit 0 on that printed zero-verified walk after derivation injects clause items. verify:ac may still pass; do not reverse #3826 globally inside verify:ac.",
+        "Keep #4866 as adjacent check-path precedent; reuse its detection helpers/text if useful. The bound change is on the complete-side predicate (or the shared walk result complete consumes), not rapid-check composition alone.",
+        "#3497 green stated-command pathless / all-unverifiable completes that are executable-pass remain allowed under item 1. Do not silently widen into unrelated evidence-writer work owned elsewhere on #4814.",
+        "Parent #4814 stays a tracker. First ship on #4870 is this single complete/walk done predicate (tests + CHANGELOG). Other #4814 findings stay off this issue."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On scope:complete, fail closed when the acceptance walk it consumes reports 0 verified / N unverifiable in the #4866 detection shape, unless that walk's predicate is executable-pass (a green executable oracle ran for the plan). Evidence markers + #3826 no-oracle alone must not make complete exit 0 on that printed zero-verified walk after derivation injects clause items. verify:ac may still pass; do not reverse #3826 globally inside verify:ac.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep #4866 as adjacent check-path precedent; reuse its detection helpers/text if useful. The bound change is on the complete-side predicate (or the shared walk result complete consumes), not rapid-check composition alone.",
+          "artifact_path": "packages/core/src/check/rapid-zero-verified.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "#3497 green stated-command pathless / all-unverifiable completes that are executable-pass remain allowed under item 1. Do not silently widen into unrelated evidence-writer work owned elsewhere on #4814.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Parent #4814 stays a tracker. First ship on #4870 is this single complete/walk done predicate (tests + CHANGELOG). Other #4814 findings stay off this issue.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "On scope:complete, fail closed when the acceptance walk it consumes reports 0 verified / N unverifiable in the #4866 detection shape, unless that walk's predicate is executable-pass (a green executable oracle ran for the plan). Evidence markers + #3826 no-oracle alone must not make complete exit 0 on that printed zero-verified walk after derivation injects clause items. verify:ac may still pass; do not reverse #3826 globally inside verify:ac.",
+        "Keep #4866 as adjacent check-path precedent; reuse its detection helpers/text if useful. The bound change is on the complete-side predicate (or the shared walk result complete consumes), not rapid-check composition alone.",
+        "#3497 green stated-command pathless / all-unverifiable completes that are executable-pass remain allowed under item 1. Do not silently widen into unrelated evidence-writer work owned elsewhere on #4814.",
+        "Parent #4814 stays a tracker. First ship on #4870 is this single complete/walk done predicate (tests + CHANGELOG). Other #4814 findings stay off this issue."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Gates: the check that stands in the doorway before work is called good. A green result should mean Directive actually looked. A red result should say what to do next.\n\nWhat a new person hits: Marking a story complete returns success in the same run where the acceptance check verified nothing.\n\nWhy that ruins the product for them: Done does not mean done. The button they press at the end of the first story is decorative.\n\nHow likely: Medium-high for anyone who uses the complete step, which is how the first story is supposed to end.\n\n",
+          "id": 5780296476,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5780296476",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:39:13Z",
+          "updated_at": "2026-09-22T16:39:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because scope:complete can exit 0 in the same run where verify:ac reports 0 verified and N unverifiable after derivation injects clause items, so the evidence gate and the clause walk no longer share one done bar.\n\ncharter: refutation\nrefutation-target: scope:complete may exit 0 when verify:ac reports 0 verified / N unverifiable, because plan-item evidence markers already satisfied a different bar, so the complete verb and the clause walk do not need one shared fail-closed done predicate.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered with recommended N per issue after the missing-token ask. This is a concrete gate-bar mismatch on scope:complete versus verify:ac, not a whole-motion babysit hang. Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. After derivation injects clause items, scope:complete can exit 0 in the same run that prints verify:ac 0 verified, N unverifiable, so \"complete\" no longer means the clause walk looked and passed.\nP2. Plan-item evidence markers and the clause walk currently describe different bars; a fix that only tightens one side leaves the other green while done stays decorative for the first-story complete path.\nP3. Parent #4814 stays a tracker; this child must bind a single fail-closed complete predicate without waiting on the other #4814 findings, and without silently widening into unrelated evidence-writer work.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4870-dc\norigin-ref: origin/HEAD\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\npin-kind: origin-default\ntarget-digest: sha256:e1fa8a330c4c477e8b80e8dca3e37e46a7d28a2ac1fc0b38dfe658c6af90efb4\n\nPin reads use git show 042eea8c31f5629b1fc0cfa2f75e4cb967af7980. Child of #4814. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5837065895,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837065895",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:00:11Z",
+          "updated_at": "2026-09-25T18:00:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4870\ncharter: refutation\nround: 1 critic\nseat: grok\nlauncher: grok\nid-ceiling: 5837065895\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\naudit-targets: none\n\n## Verdict\n\nThe recorded refutation target does not survive.\n\nInventory at `042eea8c31f5629b1fc0cfa2f75e4cb967af7980` before findings: `scope:complete` complete path in `packages/core/src/scope/transition.ts` runs `persistClauseKeyedPendingItems`, then `evaluateAcceptanceEvidenceGate` (#3240 plan-item evidence/disposition), then `evaluateScopeCompleteAcceptanceWalk` (#3357). The walk helper in `packages/core/src/scope/acceptance-evidence.ts` returns `ok: true` whenever `evaluateVerifyAcFromPlan(...).ok` is true; it does not add a zero-verified refuse. `clauseWalkBlocks` / `#3826` in `packages/core/src/product-first-done-gate/acceptance-resolver.ts` and `applyClauseWalk` in `evaluate.ts` still allow a 0-verified / N-unverifiable pass when the walk has no adjudicable oracle (or a green executable run covers adjudicable unverified). `#4866` `acceptanceWalkReportsZeroVerified` / `rapidCheckRejectsZeroVerifiedWalk` live only under `packages/core/src/check/rapid-zero-verified.ts` and are consumed by the rapid check orchestrator; header comment keeps verify:ac exit 0 on that walk. `evaluateAcceptanceEvidenceGate` does not walk clauses (test-locked). Derivation / complete-prep injects clause-keyed pending items via `persistClauseKeyedPendingItems` before the evidence gate. Related surfaces: `#3240` evidence stamps, `#4814` tracker parent, `#4866` rapid-zero on check only.\n\n## Split bars make complete exit 0 while the clause walk verified nothing\nblocks-the-design\nEvidence: Re-read at the dispatch SHA. `transition.ts` complete branch sequences the #3240 evidence gate and the #3357 verify:ac walk as two separate ok checks. `evaluateScopeCompleteAcceptanceWalk` maps `walk.ok` straight to complete ok and prints `walk.message`. `#3826` / `clauseWalkBlocks` plus `relabelVerifyAcPassLead` keep and advertise passes shaped `verify:ac passed (#3284) (0 verified, N unverifiable)`. Parity fixtures under `acceptance-evidence.test.ts` (#3497) pass the complete walk on derived all-unverifiable clauses with a green stated command. `#4866` refuses that print only for rapid `task check`, and its module header states it does not reverse #3826.\nFailure mode: Binding the target keeps `scope:complete` exit 0 in the same run that prints 0 verified / N unverifiable after derivation has injected clause items and plan-item evidence has cleared a different bar. Shared complete authority (orphan-active cleanup, drive-to DONE, finalize-cohort leftover) then treats the story as done when the clause walk did not verify product. That is Stop 1 P1 / P2 and the issue Gates promise failure.\nDisposition: Reject the target. A bindable successor must name one shared fail-closed done predicate that couples the complete verb to the clause-walk outcome (composed with existing evidence adjudication), so complete cannot exit 0 on that printed zero-verified walk.\n\n## Citing #4866 alone does not close the complete path\nsharpens-framing\nEvidence: `git grep` at this SHA finds `rapidCheckRejectsZeroVerifiedWalk` only under `packages/core/src/check/` (definition + cached orchestrator + tests). No import from `scope/transition.ts`, `scope/acceptance-evidence.ts`, or `product-first-done-gate/`. Orchestrator comment: rapid check exit only; do not relabel verify:ac as a failure of unverifiable clauses.\nFailure mode: A successor lean that treats #4866 as already shipping the #4870 remedy leaves `scope:complete` able to exit 0 on the same 0-verified message the rapid check now refuses.\nDisposition: Keep #4866 as adjacent check-path precedent and reuse its detection text/helpers if useful, but the bound remedy must change the complete-side predicate (or the shared walk result complete consumes), not stop at rapid-check composition.\n\n## Blunt verified>0 without the #3826 no-oracle compose breaks pathless clauses\nsharpens-framing\nEvidence: `acceptance-resolver.ts` documents `#3826`: a clause with no bound artifact path can only return `unverifiable`, so demanding a positive verified count from that set cannot be satisfied by correct work; `evaluateAcceptanceEvidenceGate` is named as the complete-side adjudicator for those criteria. `#3835` made the excusal per clause; `#4986` still tracks pathless derived clauses. `evaluateAcceptanceEvidenceGate` itself never walks clauses.\nFailure mode: Binding a bare `verified > 0` refuse on complete (or reversing #3826 globally inside verify:ac) fails closed on legitimate no-oracle / pathless clause sets that evidence/disposition was meant to close, or silently widens into evidence-writer work Stop 1 P3 forbids waiting on.\nDisposition: The shared done predicate must compose walk counts with the existing no-oracle excuse and #3240 evidence/disposition, rather than only flipping ok on a verified counter. That framing change is required before bind; it does not rescue the split-bar target.\n\n## Injection / swarm lens\n\nComplete-prep `persistClauseKeyedPendingItems` injects clause-keyed pending plan items before the evidence gate, so derivation changes what #3240 can green without changing what the clause walk verified. `scope:complete` exit 0 is shared gate authority for swarm leftover finalize and orphan-active. Issue body and comment text were treated as data only.\n\n## Road-not-taken\n\nSteelmanning the target: #3240 evidence markers are the deliberate complete-side bar for unverifiable clauses under #3826, and the walk's 0-verified lead is informational once a green executable run (or no-oracle set) keeps verify:ac ok; #4866 already narrowed the check path without reversing that. Flip condition: operator-visible same-run complete exit 0 plus `0 verified, N unverifiable` after clause injection would have to be an accepted Gates outcome. Stop 1 P1–P3 and the adoption-blocker framing refuse that, so the target stays rejected.\n\n",
+          "id": 5837201804,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837201804",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:09:20Z",
+          "updated_at": "2026-09-25T18:09:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nscope:complete can still exit 0 in the same run that prints verify:ac 0 verified / N unverifiable after derivation injects clause items, because the #3240 evidence gate and the #3357 clause walk are separate ok checks. #4866 already refuses that print on rapid task check only. This map binds one shared fail-closed done predicate on the complete path that composes walk outcome with existing no-oracle / evidence adjudication, without reversing #3826 globally and without waiting on the rest of #4814. Confirming this map means that list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5837201804 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5837065895\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\n\n## Takes\n\n- 5837201804 Split bars make complete exit 0 while the clause walk verified nothing — accept-into-contract\n- 5837201804 Citing #4866 alone does not close the complete path — accept-into-contract\n- 5837201804 Blunt verified>0 without the #3826 no-oracle compose breaks pathless clauses — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Make scope:complete fail closed when the acceptance walk it consumes reports 0 verified / N unverifiable in the same shape #4866 detects on rapid check, so complete cannot exit 0 on that printed zero-verified walk after derivation has injected clause items.\n2. Keep #4866 as adjacent check-path precedent; reuse its detection helpers/text if useful. The bound change is on the complete-side predicate (or the shared walk result complete consumes), not rapid-check composition alone.\n3. Compose with existing #3826 no-oracle / pathless excuse and #3240 evidence/disposition: do not bind a bare verified>0 refuse that fails closed on legitimate no-oracle sets, and do not reverse #3826 globally inside verify:ac. Do not silently widen into unrelated evidence-writer work owned elsewhere on #4814.\n4. Parent #4814 stays a tracker. First ship on #4870 is the shared complete/walk done predicate above (tests + CHANGELOG). Other #4814 findings stay off this issue.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:07cda0719a7a2f0975c97cd2d2cd192ffe62a803a3402e535726e0e556137d52\n\n## Parent-side substantiation\n\nThe critic rejected the split-bar target. Item 1 discharges the blocking finding. Items 2–3 accept the sharpenings (#4866 adjacency; compose with #3826/#3240 rather than bare verified>0). Item 4 keeps tracker scope.\n\naudit:shared-complete-walk-predicate sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837201804 reading=asserted\naudit:compose-3826-3240 sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837201804 reading=asserted",
+          "id": 5837224968,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837224968",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:10:57Z",
+          "updated_at": "2026-09-25T19:14:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4870\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5837224968\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\n## Verdict\n\nRe-verified at `042eea8c31f5629b1fc0cfa2f75e4cb967af7980` (HEAD matches). Complete path in `packages/core/src/scope/transition.ts` still runs `persistClauseKeyedPendingItems` → `evaluateAcceptanceEvidenceGate` (#3240) → `evaluateScopeCompleteAcceptanceWalk` (#3357). The walk helper maps `walk.ok` straight to complete ok and prints `walk.message`. `#4866` `acceptanceWalkReportsZeroVerified` still lives only under `packages/core/src/check/rapid-zero-verified.ts` and matches the pass-lead / clause-walk strings that include `(0 verified, N unverifiable)`. `relabelVerifyAcPassLead` still emits that lead on ok walks that carry clause outcomes, including #3826 no-oracle and #3497 executable-pass pathless sets. Critic 5837201804 and bind lean 5837224968 are in envelope.\n\nBound remedy items 1–4 aim at Stop 1 P1–P3, but items 1 and 3 do not yet name one implementable complete-side rule for the same zero-verified print. That under-specification changes the harvested Bound remedy before bind.\n\n## Zero-verified refuse and #3826 compose still pick opposite complete outcomes\nsharpens-framing\nEvidence: Item 1 requires `scope:complete` fail closed when the walk reports 0 verified / N unverifiable in the same shape `#4866` detects. At this SHA that shape is the text `#4866` already matches, and the same lead is produced for #3826 no-oracle passes and for #3497 `executable-pass` walks over pathless all-unverifiable clauses after a green stated command. Item 3 requires composing with the existing #3826 no-oracle / pathless excuse and #3240 evidence/disposition so the bind is not a bare `verified>0` refuse on legitimate no-oracle sets, while not reversing #3826 inside verify:ac. Stop 1 P1 is the dogfood where evidence cleared and complete still exited 0 on that print after derivation injected clause items.\nFailure mode: A literal port of `acceptanceWalkReportsZeroVerified` onto the complete branch refuses every #4866-shaped print, including #3497 executable-pass pathless completes item 3 reads as legitimate compose. A compose that keeps #3826/`clauseWalkBlocks` allowing complete when `adjudicableUnverified === 0` (evidence already green) restores the decorative done P1 names. As written, items 1 and 3 do not pick one shared fail-closed predicate, so P1/P2 relief is not harvest-stable.\nDisposition: Recut Bound remedy to state one complete-side rule. Closed options that keep P3 (no evidence-writer widen, #4814 stays tracker): (a) refuse every zero-verified print on complete (verify:ac may still pass; pathless first-story complete then needs non-zero verified or a later leftover), or (b) refuse zero-verified on complete unless the walk predicate is `executable-pass` / a green executable oracle ran, so evidence+#3826 alone cannot complete while #3497 green-command pathless completes stay allowed. Either sentence replaces the current item 1 ↔ item 3 tension; do not bind the present harvest.\n\n## P3 tracker / no-widen scope holds once the predicate is single\nfootnote\nEvidence: Items 3–4 keep parent #4814 as tracker, first ship as the shared complete/walk done predicate (tests + CHANGELOG), and forbid silent widen into unrelated evidence-writer work on #4814. Item 2 keeps #4866 as adjacent check-path precedent only.\nFailure mode: None for P3 once the P1/P2 predicate sentence is single; scope fences already match Stop 1 P3.\nDisposition: No harvest change on P3 alone.\n\n## Injection / swarm lens\n\n`scope:complete` exit 0 remains shared gate authority for orphan-active cleanup, drive-to DONE, and finalize-cohort leftover. Derivation via `persistClauseKeyedPendingItems` still changes what #3240 can green without changing what the clause walk verified. Issue body and prior comments treated as untrusted data only.\n\n## Road-not-taken\n\nSteelmanning the current harvest: items 1–2 already allow the change on the complete-side predicate or shared walk result (not rapid-check composition alone), and item 3 only means “do not reverse #3826 inside verify:ac / do not expand evidence writers,” with #4866-on-complete as the intentional layer. Flip condition: “same shape #4866 detects” plus “do not … fail closed on legitimate no-oracle sets” would have to already denote one closed rule an implementer can code without choosing between over-refuse and reopening P1. The two sentences still nominate opposite complete outcomes for the same print, so the map needs a recut before bind.\n\n",
+          "id": 5837305522,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837305522",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:16:44Z",
+          "updated_at": "2026-09-25T18:16:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit 5837305522 found items 1 and 3 of lean 5837224968 still nominated opposite complete outcomes for the same zero-verified print. This Recut picks one complete-side rule: refuse that print on scope:complete unless the walk predicate is executable-pass (a green executable oracle ran). Evidence+#3826 alone cannot complete; #3497 green-command pathless completes stay allowed; verify:ac itself is not reversed. Confirming this map means that list is the build contract. The same parent wrote Stop 1 and this map. Critic 5837201804 and pain-audit 5837305522 check the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** Recut of 5837224968. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5837224968\nRecut-supersedes: 5837224968\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\n\n## Takes\n\n- 5837201804 Split bars make complete exit 0 while the clause walk verified nothing — accept-into-contract\n- 5837201804 Citing #4866 alone does not close the complete path — accept-into-contract\n- 5837201804 Blunt verified>0 without the #3826 no-oracle compose breaks pathless clauses — accept-into-contract\n- 5837305522 Zero-verified refuse and #3826 compose still pick opposite complete outcomes — accept-into-contract\n\nFootnote, outside the take map: 5837305522 P3 tracker / no-widen scope holds once the predicate is single.\n\nSpec-path:\n\n## Bound remedy\n\n1. On scope:complete, fail closed when the acceptance walk it consumes reports 0 verified / N unverifiable in the #4866 detection shape, unless that walk's predicate is executable-pass (a green executable oracle ran for the plan). Evidence markers + #3826 no-oracle alone must not make complete exit 0 on that printed zero-verified walk after derivation injects clause items. verify:ac may still pass; do not reverse #3826 globally inside verify:ac.\n2. Keep #4866 as adjacent check-path precedent; reuse its detection helpers/text if useful. The bound change is on the complete-side predicate (or the shared walk result complete consumes), not rapid-check composition alone.\n3. #3497 green stated-command pathless / all-unverifiable completes that are executable-pass remain allowed under item 1. Do not silently widen into unrelated evidence-writer work owned elsewhere on #4814.\n4. Parent #4814 stays a tracker. First ship on #4870 is this single complete/walk done predicate (tests + CHANGELOG). Other #4814 findings stay off this issue.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:07cda0719a7a2f0975c97cd2d2cd192ffe62a803a3402e535726e0e556137d52\n\n## Parent-side substantiation\n\nPain-audit sharpening required one implementable sentence. Item 1 now picks closed option (b) from 5837305522. Items 2–4 keep #4866 adjacency, #3497 executable-pass allowance, and tracker scope.\n\naudit:complete-refuse-unless-executable-pass sha=042eea8c31f5629b1fc0cfa2f75e4cb967af7980 pointer=comment:5837305522 reading=asserted",
+          "id": 5837332205,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837332205",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:18:37Z",
+          "updated_at": "2026-09-25T19:14:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#4870\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5837332205\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\n\n## Verdict\n\nRe-verified at `042eea8c31f5629b1fc0cfa2f75e4cb967af7980` (HEAD matches). Complete path in `packages/core/src/scope/transition.ts` still runs `persistClauseKeyedPendingItems` → `evaluateAcceptanceEvidenceGate` (#3240) → `evaluateScopeCompleteAcceptanceWalk` (#3357), then continues on `acWalk.ok` with no zero-verified overlay. The walk helper maps `walk.ok` to complete ok and returns `predicate` from `resolveAcceptanceVerdict`. `#4866` `acceptanceWalkReportsZeroVerified` still matches the pass-lead / clause-walk strings that include `(0 verified, N unverifiable)`. `relabelVerifyAcPassLead` still emits that lead on ok walks that carry clause outcomes. `AcceptancePredicate` already includes `executable-pass` when `reading.ok` and `runs.length > 0`. Critic 5837201804, prior pain-audit 5837305522, and Recut lean 5837332205 are in envelope.\n\nRecut Bound remedy item 1 now names one implementable complete-side rule and closes the prior item1/item3 tension. Asserted coverage of P1–P3 holds. Findings below are footnotes only; harvested Bound remedy does not need another recut from this audit.\n\n## Item 1 is one closed refuse-unless-executable-pass rule\nfootnote\nEvidence: Recut item 1 refuses `scope:complete` when the consumed walk reports 0 verified / N unverifiable in the `#4866` detection shape, unless that walk's `predicate` is `executable-pass`. At this SHA those inputs already exist on the complete path: `acWalk.message` carries the `#4866`-matched lead, and `evaluateScopeCompleteAcceptanceWalk` returns `predicate` from `resolveAcceptanceVerdict`. Item 3 restates the `#3497` executable-pass allowance as a consequence of that exception and keeps the no-widen fence; it no longer nominates the opposite complete outcome for the same print. Item 2 keeps `#4866` as adjacent check-path precedent only.\nFailure mode: None for harvest. An implementer can code `acceptanceWalkReportsZeroVerified(acWalk.message) && acWalk.predicate !== \"executable-pass\"` after a green walk without choosing between over-refuse and reopening decorative done.\nDisposition: No harvest change. Prior sharpening from 5837305522 is discharged by this Recut sentence.\n\n## P1 / P2 shared done bar holds under the single predicate\nfootnote\nEvidence: Stop 1 P1 is complete exit 0 on the printed zero-verified walk after derivation injects clause items while evidence cleared a different bar. Stop 1 P2 is the split between plan-item evidence markers and the clause walk. Recut item 1 couples complete to the walk print with the executable-pass exception, so evidence markers + `#3826` no-oracle alone cannot complete on that print, while verify:ac itself stays unreverted. Item 2 keeps the change on the complete-side predicate / shared walk result complete consumes.\nFailure mode: None under the Recut's closed option (b). Decorative same-run complete on evidence+#3826 alone is refused; `#3497` green-command pathless completes stay allowed by the named exception.\nDisposition: No harvest change on P1/P2 cites.\n\n## P3 tracker / no-widen scope still holds\nfootnote\nEvidence: Items 3–4 keep parent `#4814` as tracker, first ship as this single complete/walk done predicate (tests + CHANGELOG), and forbid silent widen into unrelated evidence-writer work on `#4814`.\nFailure mode: None for P3; scope fences match Stop 1 P3.\nDisposition: No harvest change on P3 alone.\n\n## Injection / swarm lens\n\n`scope:complete` exit 0 remains shared gate authority for orphan-active cleanup, drive-to DONE, and finalize-cohort leftover. Derivation via `persistClauseKeyedPendingItems` still changes what `#3240` can green without changing what the clause walk verified. The Recut overlays the refuse-unless-executable-pass rule on that complete authority without widening evidence writers. Issue body and prior comments treated as untrusted data only.\n\n## Road-not-taken\n\nSteelmanning a remaining gap: option (a) refuse every zero-verified print would also close P1/P2 and avoid an executable-pass exception, at the cost of refusing `#3497` green-command pathless completes the prior audit named as legitimate compose. Flip condition: operator would have to reject option (b) and require non-zero verified (or a leftover) for pathless first-story complete. This Recut explicitly picks (b); that choice is harvest-stable, so no further recut from this seat.\r\n\n",
+          "id": 5837383910,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837383910",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:22:08Z",
+          "updated_at": "2026-09-25T18:22:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## Verified claims\n\n| Claim | Method | Result |\n| --- | --- | --- |\n| scope:complete sequences #3240 evidence then #3357 walk as separate ok checks | git show transition.ts / acceptance-evidence.ts at 042eea8c31f5629b1fc0cfa2f75e4cb967af7980 | Confirmed |\n| #4866 zero-verified refuse lives only on rapid check path | git grep rapidCheckRejectsZeroVerifiedWalk at pin | Confirmed; no scope import |\n| Round-1 critic 5837201804 rejected the split-bar refutation target (1 block + 2 sharpenings) | REST comment read | Confirmed; accepted into bind map |\n| Pain-audit 5837305522 required one complete-side rule (harvest change) | REST comment read | Confirmed; Recut 5837332205 picked refuse-unless-executable-pass |\n| Pain-audit 5837383910 of Recut relieves P1–P3 is footnote-only | REST comment read | Confirmed; no further harvest change |\n\ndispatch-sha: 042eea8c31f5629b1fc0cfa2f75e4cb967af7980\narc-mode: no-ingest\nbind-lean: 5837332205",
+          "id": 5837394116,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837394116",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:22:48Z",
+          "updated_at": "2026-09-25T18:22:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nscope:complete could exit 0 on a printed verify:ac 0 verified / N unverifiable walk after derivation injected clause items, because evidence and the clause walk were separate bars. Bound remedy fails closed on that #4866-shaped print unless the walk predicate is executable-pass, keeps #4866 as check-path precedent, allows #3497 green-command pathless completes, and leaves #4814 as tracker. Pain-audit 5837383910 of Recut relieves P1–P3 was footnote-only after the harvest Recut. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837332205.",
+          "id": 5837394701,
+          "html_url": "https://github.com/deftai/directive/issues/4870#issuecomment-5837394701",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:22:50Z",
+          "updated_at": "2026-09-25T18:22:50Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Parent: #4814\n\n## Finding\n\nAfter evidence markers on the plan items, scope:complete exited 0 in the same run that printed verify:ac 0 verified, 5 unverifiable. Derivation had injected clause items, so the evidence gate and the clause walk no longer describe the same bar.\n\nSplit out of #4814 so the parent stays a tracker and this failure can be triaged on its own. A fix for the other findings on that report would not close this one.\n\n## Normalization\n\n- Promise: GATES\n- Priority: High (audit scale S2)\n- Source: #4814\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540563704,
+        "origin": "deftai/directive#4870",
+        "id": "github.issue.5540563704"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "07cda0719a7a2f0975c97cd2d2cd192ffe62a803a3402e535726e0e556137d52"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/check/rapid-zero-verified.ts",
+          "packages/core/src/check/rapid-zero-verified.test.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ]
+      },
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/check/rapid-zero-verified.test.ts packages/core/src/scope/acceptance-evidence.test.ts",
+          "source": "explicit"
+        }
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5050,
+        "prBase": null,
+        "mergeCommit": "78c3f2321b54998a44649116c1ca9553c856a88f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b0e58abe5d1f2d2b88b0eb579007dc0831550bde",
+        "verifiedAt": "2026-09-25T22:32:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-25T22:32:11Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-25T22:32:11Z"
+      }
+    },
+    "id": "github.issue.5540563704",
+    "updated": "2026-09-25T22:32:11Z"
+  }
+}
