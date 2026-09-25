@@ -233,6 +233,19 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function exitAfterStdoutFlush(code: number): void {
+  const done = (): void => {
+    process.exit(code);
+  };
+  // Piped/redirected ranking output can still sit in the stdout buffer when a
+  // hard exit runs; end() drains that buffer before terminating.
+  if (!process.stdout.writable || process.stdout.writableEnded) {
+    done();
+    return;
+  }
+  process.stdout.end(done);
+}
+
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  process.exit(main(process.argv.slice(2)));
+  exitAfterStdoutFlush(main(process.argv.slice(2)));
 }

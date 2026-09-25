@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -99,12 +99,18 @@ describe("parseTopN", () => {
 });
 
 describe("rankTeeFile / main", () => {
+  const temps: string[] = [];
+
   afterEach(() => {
     vi.restoreAllMocks();
+    for (const dir of temps.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("reads a tee file and returns ranked entries", () => {
     const dir = mkdtempSync(join(tmpdir(), "duration-rank-"));
+    temps.push(dir);
     const path = join(dir, "tee.log");
     writeFileSync(
       path,
@@ -128,6 +134,7 @@ describe("rankTeeFile / main", () => {
 
   it("main prints top rows and exits 0", () => {
     const dir = mkdtempSync(join(tmpdir(), "duration-rank-main-"));
+    temps.push(dir);
     const path = join(dir, "tee.log");
     writeFileSync(path, formatFileDurationLine("z.test.ts", 33_000, "unit"), "utf8");
     const out: string[] = [];
