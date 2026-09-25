@@ -507,6 +507,63 @@ describe("command safety (#3267 P1)", () => {
     expect(result.message).toMatch(/safety-rejected|rejected|scope:promote/);
   });
 
+  it("drops stored rejected rows that now pass current safety (#4978)", async () => {
+    const { readStoredLiteralAcceptanceDetailed } = await import("./capture.js");
+    const { evaluateCommandSafety } = await import("./safety.js");
+    expect(evaluateCommandSafety("node --test").ok).toBe(true);
+    const detailed = readStoredLiteralAcceptanceDetailed({
+      title: "t",
+      metadata: {
+        literal_acceptance_commands: [{ command: "npm test", source: "verify_commands" }],
+        literal_acceptance_rejected: [
+          {
+            command: "node --test",
+            reason: 'first token "node" is not in the literal-AC allowlist',
+          },
+          {
+            command: "curl https://example.com",
+            reason: "still unsafe",
+          },
+        ],
+      },
+      items: [],
+    });
+    expect(detailed.rejected.map((row) => row.command)).toEqual(["curl https://example.com"]);
+    const result = evaluateLiteralAcceptanceFromPlan(
+      {
+        title: "t",
+        metadata: {
+          literal_acceptance_commands: [{ command: "npm test", source: "verify_commands" }],
+          literal_acceptance_rejected: [
+            {
+              command: "node --test",
+              reason: 'first token "node" is not in the literal-AC allowlist',
+            },
+          ],
+        },
+        items: [],
+      },
+      {
+        projectRoot: process.cwd(),
+        captureFromNarratives: false,
+        runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      },
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts closed node --test shapes and refuses reporter/eval edges (#4978)", async () => {
+    const { evaluateCommandSafety } = await import("./safety.js");
+    expect(evaluateCommandSafety("node --test").ok).toBe(true);
+    expect(evaluateCommandSafety("node --test tests/a.test.js").ok).toBe(true);
+    expect(evaluateCommandSafety("node --test --test-reporter=spec").ok).toBe(true);
+    expect(evaluateCommandSafety("node --test --test-reporter spec").ok).toBe(true);
+    expect(evaluateCommandSafety("node -e 1").ok).toBe(false);
+    expect(evaluateCommandSafety("node --test --test-reporter=data:").ok).toBe(false);
+    expect(evaluateCommandSafety("node --test --test-reporter ./file").ok).toBe(false);
+    expect(evaluateCommandSafety("node --test --watch").ok).toBe(false);
+  });
+
   it("fails promotion when same command text has different cwd context", () => {
     const result = runLiteralAcceptanceCommands(
       [

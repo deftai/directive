@@ -115,6 +115,21 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
   });
 
   it.each([
+    "node --test",
+    "node --test tests/display.test.js",
+    "node --test --test-reporter=spec",
+    "node --test --test-reporter spec",
+    "node --test --test-reporter=tap",
+    "node --test --test-reporter=junit",
+    "node --test --test-reporter=lcov",
+    "node --test --test-reporter=dot",
+    "node --test --test-name-pattern=foo",
+    "node --test --experimental-test-coverage",
+  ])("accepts closed node --test shape %s (#4978)", (command) => {
+    expect(evaluateCommandSafety(command)).toEqual({ ok: true, reason: null });
+  });
+
+  it.each([
     ["pytest", /allowlist/],
     ["pytest --testmon", /allowlist/],
     ["uv run --with pytest python -m pytest", /allowlist/],
@@ -124,7 +139,36 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     ],
     ["go test", /allowlist/],
     ["go test ./...", /allowlist/],
-    ["node --test", /allowlist/],
+    ["node", /--test/],
+    ["node script.js", /--test/],
+    ["node -e 1", /--test/],
+    ["node -r ./x", /--test/],
+    ["node -p 1", /--test/],
+    ["node --import=tsx --test", /--test/],
+    ["node --test --import=tsx", /dash token|--import/],
+    ["node --test --require=./x", /dash token|--require/],
+    ["node --test --experimental-loader=./x", /dash token|--experimental-loader/],
+    ["node --test --loader=./x", /dash token|--loader/],
+    ["node --test --inspect=9229", /dash token|--inspect/],
+    ["node --test --inspect-port=9229", /dash token|--inspect-port/],
+    ["node --test --eval=1", /dash token|--eval/],
+    ["node --test --import tsx", /dash token|--import/],
+    ["node --test --require ./x", /dash token|--require/],
+    ["node --test --watch", /dash token|--watch/],
+    ["node --test --inspect-brk", /dash token|--inspect-brk/],
+    ["node --test -r ./x", /dash token/],
+    ["node --test -e 1", /dash token/],
+    ["node --test -p 1", /dash token/],
+    ["node --test --test-reporter-destination=./out", /denied|reporter-destination/],
+    ["node --test --test-rerun-failures", /denied|rerun-failures/],
+    ["node --test --test-rerun-failures=1", /denied|rerun-failures/],
+    ["node --test --test-reporter=data:", /test-reporter/],
+    ["node --test --test-reporter=./file", /test-reporter/],
+    ["node --test --test-reporter data:text/javascript,1", /test-reporter/],
+    ["node --test --test-reporter ./file", /test-reporter/],
+    ["node --test --test-reporter", /test-reporter/],
+    ["node --test --test-reporter=html", /test-reporter/],
+    ["node.exe --test", /allowlist/],
     ["python -c 1", /-m pytest/],
     ["python -m pip install requests", /-m pytest/],
     ["python -m http.server", /-m pytest/],
@@ -135,16 +179,24 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     ["python -mpytest", /-m pytest/],
     ["python -M pytest", /-m pytest/],
     ["python -m PYTEST", /-m pytest/],
-  ] as const)("refuses %s (#4702)", (command, reason) => {
+  ] as const)("refuses %s (#4702 / #4978)", (command, reason) => {
     const result = evaluateCommandSafety(command);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(reason);
   });
 
-  it("validation surfaces every stamp refusal, not only no-op reasons (#4702)", () => {
-    const refused = "node --test";
-    const reason = evaluateCommandSafety(refused).reason ?? "";
+  it("enumerates accepted first tokens on unknown-bin refuse (#4978)", () => {
+    const reason = evaluateCommandSafety("curl https://example.com").reason ?? "";
     expect(reason).toMatch(/allowlist/);
+    expect(reason).toMatch(/accepted:/);
+    expect(reason).toMatch(/node/);
+    expect(reason).toMatch(/npm/);
+  });
+
+  it("validation surfaces every stamp refusal, not only no-op reasons (#4702)", () => {
+    const refused = "node -e 1";
+    const reason = evaluateCommandSafety(refused).reason ?? "";
+    expect(reason).toMatch(/--test/);
     expect(
       validatePlanAcceptance({
         commands: [{ command: refused }],
@@ -168,8 +220,14 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
         source_rung: "derived",
       }),
     ).toEqual([]);
+    expect(
+      validatePlanAcceptance({
+        commands: [{ command: "node --test" }],
+        none_stated: false,
+        source_rung: "derived",
+      }),
+    ).toEqual([]);
   });
-
   it.each([
     "python -M pytest",
     "python -m PYTEST",
@@ -195,11 +253,14 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     expect(evaluateStampAcceptanceSafety({ commands: [{ command: "py -m pytest" }] }).ok).toBe(
       true,
     );
+    expect(evaluateStampAcceptanceSafety({ commands: [{ command: "node --test" }] }).ok).toBe(
+      true,
+    );
     for (const command of [
       "pytest",
       "uv run --with pytest python -m pytest",
       "go test",
-      "node --test",
+      "node -e 1",
       "python -m http.server",
     ]) {
       const stamped = evaluateStampAcceptanceSafety({ commands: [{ command }] });
