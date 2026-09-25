@@ -263,7 +263,7 @@ function extractHangDetectorCause(
 
 export function remedyForGate(gateId: string, cause: string): string {
   if (/hang detector timeout/i.test(cause)) {
-    return "Cheapen remaining Windows vitest --coverage cost; do not raise RELEASE_CHECK_TIMEOUT_MS";
+    return "Cheapen remaining Windows Step 5 vitest wall-clock first; raise RELEASE_CHECK_TIMEOUT_MS only via tracked gate change + intent-constraint mint";
   }
   if (/global deft\/directive CLI not found/i.test(cause)) {
     return CLI_SPAWN_ERROR_REMEDY;

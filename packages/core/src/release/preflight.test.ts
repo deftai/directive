@@ -303,8 +303,8 @@ describe("remainingForDeadline (#4801)", () => {
 });
 
 describe("runReleaseCheck hang bound (#4801)", () => {
-  it("pins RELEASE_CHECK_TIMEOUT_MS at 30m (#5022)", () => {
-    expect(RELEASE_CHECK_TIMEOUT_MS).toBe(30 * 60 * 1000);
+  it("pins RELEASE_CHECK_TIMEOUT_MS at 45m (#5024)", () => {
+    expect(RELEASE_CHECK_TIMEOUT_MS).toBe(45 * 60 * 1000);
   });
 
   it("mints one absolute deadline at entry", () => {

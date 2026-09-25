@@ -180,7 +180,7 @@ describe("vitest.config.ts coverage wall classes (#4591)", () => {
     expect(source).toMatch(/RELEASE_CHECK_TIMEOUT_MS/);
     expect(source).toContain("#4744");
     expect(source).toMatch(/progress-reporter\.ts/);
-    expect(constants).toMatch(/RELEASE_CHECK_TIMEOUT_MS = 30 \* 60 \* 1000/);
+    expect(constants).toMatch(/RELEASE_CHECK_TIMEOUT_MS = 45 \* 60 \* 1000/);
   });
 
   it("splits spawn-heavy leftovers into their own vitest project", () => {

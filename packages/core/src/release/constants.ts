@@ -39,9 +39,9 @@ export const RELEASE_PREFLIGHT_ENV = "DEFT_RELEASE_PREFLIGHT";
 /** Set only by release Step-5 preflight when --allow-coverage-debt=#N is supplied (#2573). */
 export const COVERAGE_DEBT_ENV = "DEFT_ALLOW_COVERAGE_DEBT";
 
-/** Hard wall-clock cap for release Step 5 `task check` / vitest coverage (#2652 / #5022). */
-export const RELEASE_CHECK_TIMEOUT_MS = 30 * 60 * 1000;
-export const RELEASE_CHECK_TIMEOUT_MINUTES = 30;
+/** Hard wall-clock cap for release Step 5 `task check` / vitest (#2652 / #5022 / #5024). */
+export const RELEASE_CHECK_TIMEOUT_MS = 45 * 60 * 1000;
+export const RELEASE_CHECK_TIMEOUT_MINUTES = 45;
 
 /** Vitest coverage step cap in GHA CI (mirrors release Step 5 budget, #2652). */
 export const CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20;
