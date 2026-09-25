@@ -40,11 +40,18 @@
         "title": "Cross-project idle (unit workers draining while spawn-heavy's single win32 worker serializes the long tail): implement must either set sequence.groupOrder so spawn-heavy starts before unit on the Step 5 shape (issue option 3 as measured fallback / conjunct), or land measured evidence that option 2 alone already shrinks last-worker-idle→suite-end under the pin's project layout. Do not leave that fork unnamed.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5030#909569636a2499e54d482537f81a79759349f8d4",
-          "recorded_at": "2026-09-25T13:50:01.966Z",
-          "recorded_by": "MScottAdams"
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "groupOrder spawn-heavy-before-unit was removed as class-A residual (Vitest serializes groups and idled the unit pool). Measured last-worker-idle→end evidence that option-2 alone shrinks the idle tail is owed on the next Windows Step 5 cut; fork is named in PR #5030 / RELEASING.md.",
+          "recorded_at": "2026-09-25T14:10:18.513Z",
+          "recorded_by": "MScottAdams",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-25T14:10:18.513Z",
+            "mintedVia": "parent-retained-leftover-complete",
+            "eventRef": "https://github.com/deftai/directive/pull/5030#909569636a2499e54d482537f81a79759349f8d4"
+          }
         }
       },
       {
