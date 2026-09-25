@@ -2,7 +2,6 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatFileDurationLine, PROGRESS_FILE_HEARTBEAT_MS } from "./progress.js";
 import {
   DEFAULT_TOP_N,
   formatRankLines,
@@ -15,6 +14,7 @@ import {
   rankTeeText,
   scrapeFileDurations,
 } from "./duration-rank.js";
+import { formatFileDurationLine, PROGRESS_FILE_HEARTBEAT_MS } from "./progress.js";
 
 describe("parseFileDurationLine", () => {
   it("parses formatFileDurationLine output", () => {
@@ -29,7 +29,9 @@ describe("parseFileDurationLine", () => {
   it("ignores last-file and progress lines", () => {
     expect(parseFileDurationLine("ts:check-lane last-file a.test.ts (1/10 files)")).toBeNull();
     expect(parseFileDurationLine("ts:check-lane 20% (2/10 files)")).toBeNull();
-    expect(parseFileDurationLine("ts:check-lane timeline project unit complete 1000ms files=3")).toBeNull();
+    expect(
+      parseFileDurationLine("ts:check-lane timeline project unit complete 1000ms files=3"),
+    ).toBeNull();
   });
 });
 
@@ -74,9 +76,9 @@ describe("scrape + rank", () => {
   });
 
   it("formatRankLines prints stable columns", () => {
-    expect(
-      formatRankLines([{ file: "a.test.ts", elapsedMs: 31_000, project: "unit" }]),
-    ).toEqual([" 1.    31000ms  a.test.ts  project=unit"]);
+    expect(formatRankLines([{ file: "a.test.ts", elapsedMs: 31_000, project: "unit" }])).toEqual([
+      " 1.    31000ms  a.test.ts  project=unit",
+    ]);
   });
 });
 
@@ -87,12 +89,8 @@ describe("parseTopN / defaults", () => {
   });
 
   it("returns bad-top for non-positive values", () => {
-    expect(parseTopN("0")).toEqual(
-      expect.objectContaining({ ok: false, kind: "bad-top" }),
-    );
-    expect(parseTopN("x")).toEqual(
-      expect.objectContaining({ ok: false, kind: "bad-top" }),
-    );
+    expect(parseTopN("0")).toEqual(expect.objectContaining({ ok: false, kind: "bad-top" }));
+    expect(parseTopN("x")).toEqual(expect.objectContaining({ ok: false, kind: "bad-top" }));
   });
 
   it("states the 30s omission explicitly", () => {
@@ -127,9 +125,7 @@ describe("rankTeeFile / main", () => {
 
   it("returns read-error without throwing", () => {
     const result = rankTeeFile(join(tmpdir(), "missing-duration-rank-tee.log"), 5);
-    expect(result).toEqual(
-      expect.objectContaining({ ok: false, kind: "read-error" }),
-    );
+    expect(result).toEqual(expect.objectContaining({ ok: false, kind: "read-error" }));
   });
 
   it("main prints top rows and exits 0", () => {

@@ -41,9 +41,7 @@ export type RankErr = {
 
 export type RankResult = RankOk | RankErr;
 
-export function omissionNoteForHeartbeat(
-  heartbeatMs: number = PROGRESS_FILE_HEARTBEAT_MS,
-): string {
+export function omissionNoteForHeartbeat(heartbeatMs: number = PROGRESS_FILE_HEARTBEAT_MS): string {
   const seconds = Math.round(heartbeatMs / 1000);
   return (
     `Omission: only files with elapsed >= ${String(heartbeatMs)}ms ` +
