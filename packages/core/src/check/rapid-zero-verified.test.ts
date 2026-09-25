@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   acceptanceWalkReportsZeroVerified,
   rapidCheckRejectsZeroVerifiedWalk,
+  scopeCompleteRejectsZeroVerifiedWalk,
 } from "./rapid-zero-verified.js";
 
 const ZERO_WALK =
@@ -107,6 +108,38 @@ describe("rapidCheckRejectsZeroVerifiedWalk (#4866)", () => {
         mode: "rapid",
         gateId: "verify:ac",
         text: "verify:ac passed (#3284) [rung=stated]",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("scopeCompleteRejectsZeroVerifiedWalk (#4870)", () => {
+  it("refuses a zero-verified print when the walk was not executable-pass", () => {
+    expect(
+      scopeCompleteRejectsZeroVerifiedWalk({
+        text: ZERO_WALK,
+        predicate: "empty-pass",
+      }),
+    ).toBe(true);
+    expect(
+      scopeCompleteRejectsZeroVerifiedWalk({
+        text: ZERO_WALK,
+        predicate: "unclassified",
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps #3497 executable-pass and non-zero walks allowed", () => {
+    expect(
+      scopeCompleteRejectsZeroVerifiedWalk({
+        text: ZERO_WALK,
+        predicate: "executable-pass",
+      }),
+    ).toBe(false);
+    expect(
+      scopeCompleteRejectsZeroVerifiedWalk({
+        text: "verify:ac passed (#3284) (1 verified, 4 unverifiable) [rung=derived]",
+        predicate: "empty-pass",
       }),
     ).toBe(false);
   });

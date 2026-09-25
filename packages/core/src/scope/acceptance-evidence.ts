@@ -16,6 +16,10 @@
 import { isHumanOrigin } from "../authz/origin.js";
 import type { GrantOrigin } from "../authz/types.js";
 import {
+  SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
+  scopeCompleteRejectsZeroVerifiedWalk,
+} from "../check/rapid-zero-verified.js";
+import {
   type AcceptancePredicate,
   formatAcceptanceVerdict,
   resolveAcceptanceGateProfile,
@@ -1164,6 +1168,24 @@ export function evaluateScopeCompleteAcceptanceWalk(
   }
   const verdict = resolveAcceptanceVerdict(walk);
   if (walk.ok) {
+    // #4870: refuse the #4866 zero-verified print on complete unless a green
+    // executable oracle ran. verify:ac / #3826 stay unreverted.
+    if (
+      scopeCompleteRejectsZeroVerifiedWalk({
+        text: walk.message,
+        predicate: verdict.predicate,
+      })
+    ) {
+      return {
+        ok: false,
+        message:
+          `${SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE}` +
+          `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION}\n${walk.message}`,
+        reports: [],
+        servedFrom,
+        predicate: verdict.predicate,
+      };
+    }
     return {
       ok: true,
       message: walk.message,

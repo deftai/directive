@@ -10,6 +10,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  acceptanceWalkReportsZeroVerified,
+  SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
+} from "../check/rapid-zero-verified.js";
 import { ITEM_CORE, scanVbrief } from "../vbrief-validate/conformance.js";
 import {
   ACCEPTANCE_DISPOSITION_KEY,
@@ -711,6 +715,31 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
     expect(walk.ok).toBe(true);
     expect(walk.predicate).toBe("executable-pass");
     expect(walk.message).not.toContain(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION);
+  });
+
+  it("refuses a zero-verified complete walk without executable-pass (#4870)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      {
+        id: "4870-zero-verified",
+        title: "zero verified no executable oracle",
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: unverifiableClauses,
+        },
+        metadata: {
+          swarm: { file_scope: ["packages/core/src"] },
+        },
+        items: [],
+      },
+      { ...walkOptions, runner: greenRunner },
+    );
+    expect(walk.ok).toBe(false);
+    expect(walk.predicate).not.toBe("executable-pass");
+    expect(walk.message).toContain(SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE.trim());
+    expect(acceptanceWalkReportsZeroVerified(walk.message)).toBe(true);
   });
 
   it("completes end to end through scope:complete with a green stated command (#3497)", () => {

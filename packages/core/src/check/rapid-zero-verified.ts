@@ -1,10 +1,11 @@
 /**
  * Rapid product-first check exit when the acceptance walk reports zero
- * verified clauses (#4866).
+ * verified clauses (#4866), and the complete-side refuse-unless-executable-pass
+ * overlay for the same print (#4870).
  *
  * verify:ac may still exit 0 on an unverifiable no-oracle walk (#3826).
- * This predicate does not change that. It also does not put other gates
- * back on the rapid list. The check orchestrator reads it only in rapid mode.
+ * These predicates do not change that. Rapid check reads only the #4866
+ * path; scope:complete reads the #4870 overlay on the walk it consumes.
  */
 import { isProductAcGate } from "../product-first-done-gate/check-mode.js";
 
@@ -16,6 +17,9 @@ const PASS_LEAD_ZERO_VERIFIED =
 
 export const RAPID_ZERO_VERIFIED_CHECK_NOTICE =
   "check: rapid product-first acceptance walk reported 0 verified clauses; not exit 0 (#4866)\n";
+
+export const SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE =
+  "scope:complete refused: acceptance walk reported 0 verified clauses without an executable-pass oracle (#4870)\n";
 
 /** True when verify:ac text reports a walk with zero verified clauses. */
 export function acceptanceWalkReportsZeroVerified(text: string): boolean {
@@ -36,4 +40,17 @@ export function rapidCheckRejectsZeroVerifiedWalk(input: {
     isProductAcGate(input.gateId) &&
     acceptanceWalkReportsZeroVerified(input.text)
   );
+}
+
+/**
+ * scope:complete must not exit 0 on the #4866 zero-verified print unless a
+ * green executable oracle already ran (predicate executable-pass). Evidence
+ * markers and #3826 no-oracle alone are not enough (#4870). verify:ac stays
+ * unreverted.
+ */
+export function scopeCompleteRejectsZeroVerifiedWalk(input: {
+  readonly text: string;
+  readonly predicate: string;
+}): boolean {
+  return acceptanceWalkReportsZeroVerified(input.text) && input.predicate !== "executable-pass";
 }
