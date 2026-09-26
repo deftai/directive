@@ -253,6 +253,15 @@ describe("init-deposit scaffold", () => {
       ).toThrow(/chars/);
     });
 
+    it("closes the generation heredoc at run-block indent and requires generation >= 1 (#4120)", () => {
+      const guard = depositGuard();
+      const run = " ".repeat(10);
+      expect(guard).toContain(`${run}python3 - "$BASE_REF" "$HEAD_SHA" <<'PY'`);
+      expect(guard).toContain(`\n${run}PY\n${run}fi\n`);
+      expect(guard).not.toMatch(/\n {12}PY\n/);
+      expect(guard).toContain("head generation is not an int >= 1");
+    });
+
     it("keeps the run block loadable: no column-0 body lines, no mega-lines", () => {
       const guard = depositGuard();
       const lines = guard.split("\n");

@@ -48,6 +48,18 @@ const LOADED_LANE_EDGE_ITS: ReadonlyArray<{ file: string; titlePrefix: string }>
     titlePrefix:
       "after init + commit + fresh clone, the pin is present and .deft/core is reconstitutable",
   },
+  {
+    file: "packages/core/src/init-deposit/refresh.test.ts",
+    titlePrefix: "writes the .gitignore entry but NEVER un-tracks .deft/core",
+  },
+  {
+    file: "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts",
+    titlePrefix: "every declared required path exists after running content-package prepack",
+  },
+  {
+    file: "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts",
+    titlePrefix: "fails when a declared file is deleted from the staged pack output",
+  },
 ];
 
 describe("destContentionItTimeout (#4847)", () => {

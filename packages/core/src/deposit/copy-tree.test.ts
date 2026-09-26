@@ -18,8 +18,18 @@ const itSymlink = it.skipIf(process.platform === "win32");
 // chmod mode bits are not reliably preserved by Node on Windows.
 const itChmod = it.skipIf(process.platform === "win32");
 
-import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
-import { copyTree, replaceTree } from "./copy-tree.js";
+import {
+  runInPortRecordMode,
+  runWithMutationLedger,
+  snapshotMutationSummary,
+} from "../fs/mutation-ledger.js";
+import {
+  copyTree,
+  discardTreeSnapshot,
+  replaceTree,
+  restoreExistingTree,
+  snapshotExistingTree,
+} from "./copy-tree.js";
 
 describe("copyTree (#1477 mode-preserving recursive copy)", () => {
   const created: string[] = [];
@@ -210,5 +220,62 @@ describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
     expect(summary.wrote).toEqual(expect.arrayContaining(["dst/kept.md"]));
     expect(summary.deleted).not.toEqual([]);
     expect(summary.wrote).not.toEqual([]);
+  });
+});
+
+describe("snapshotExistingTree / restoreExistingTree (#4120)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  it("restores a swapped dest from the snapshot", async () => {
+    const workspace = freshRoot("tree-snap-");
+    const dest = join(workspace, "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "VERSION"), "old\n", "utf8");
+    const snapshot = await snapshotExistingTree(dest);
+    expect(snapshot).not.toBeNull();
+    if (snapshot !== null) created.push(snapshot);
+    writeFileSync(join(dest, "VERSION"), "new\n", "utf8");
+    await restoreExistingTree({ snapshot, dest, projectDir: workspace });
+    expect(readFileSync(join(dest, "VERSION"), "utf8")).toBe("old\n");
+    await discardTreeSnapshot(snapshot);
+  });
+
+  it("returns null when the source tree is missing", async () => {
+    const workspace = freshRoot("tree-snap-missing-");
+    expect(await snapshotExistingTree(join(workspace, "absent"))).toBeNull();
+  });
+
+  it("removes dest when there is no snapshot", async () => {
+    const workspace = freshRoot("tree-snap-none-");
+    const dest = join(workspace, "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "VERSION"), "new\n", "utf8");
+    await restoreExistingTree({ snapshot: null, dest, projectDir: workspace });
+    expect(existsSync(dest)).toBe(false);
+    await discardTreeSnapshot(null);
+  });
+
+  it("skips snapshot and restore in port-record mode", async () => {
+    const workspace = freshRoot("tree-snap-port-");
+    const dest = join(workspace, "core");
+    mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, "VERSION"), "live\n", "utf8");
+    await runInPortRecordMode(async () => {
+      expect(await snapshotExistingTree(dest)).toBeNull();
+      await restoreExistingTree({ snapshot: null, dest, projectDir: workspace });
+    });
+    expect(readFileSync(join(dest, "VERSION"), "utf8")).toBe("live\n");
   });
 });

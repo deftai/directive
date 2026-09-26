@@ -129,6 +129,7 @@ describe("deposit journey e2e legs (#1942 S5)", () => {
         resolveContentRoot: async () => contentRoot,
         nowIso: () => "2026-06-24T12:00:00Z",
         gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        execGit: () => ({ status: 0, stdout: "", stderr: "" }),
       },
     );
 
@@ -158,11 +159,13 @@ describe("deposit journey e2e legs (#1942 S5)", () => {
     const project = freshRoot("e2e-upgrade-");
     const contentRoot = installFakeContentPackage(project, "0.53.0");
     const io = { printf: vi.fn() };
+    const execGit = () => ({ status: 0, stdout: "", stderr: "" });
     const seams = {
       resolveContentRoot: async () => contentRoot,
       readEngineVersion: () => "0.53.0",
       nowIso: () => "2026-06-24T12:00:00Z",
       gitPorcelain: () => "",
+      execGit,
     };
     const args = {
       projectDir: project,

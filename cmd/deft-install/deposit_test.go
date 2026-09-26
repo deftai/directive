@@ -589,6 +589,22 @@ func upgradeOnlyChangeSet() []string {
 
 // TestCoreGuard_ContentAwarePinEmbed pins #3193: deposited workflow embeds the
 // python3 pin/lock content checker (not path-only package.json exemption).
+func TestCoreGuard_GenerationHeredocCloserAndMinGeneration(t *testing.T) {
+	content := coreGuardWorkflowContent()
+	if !strings.Contains(content, "python3 - \"$BASE_REF\" \"$HEAD_SHA\" <<'PY'") {
+		t.Fatal("deposited guard must embed generation python3 heredoc")
+	}
+	if !strings.Contains(content, "\nPY\n          fi\n") {
+		t.Fatal("generation heredoc closer must be at column 0 (match pin-content closer)")
+	}
+	if strings.Contains(content, "            PY\n") {
+		t.Fatal("generation heredoc closer must not stay indented inside the if-block")
+	}
+	if !strings.Contains(content, "head generation is not an int >= 1") {
+		t.Fatal("generation guard must refuse head generation < 1")
+	}
+}
+
 func TestCoreGuard_ContentAwarePinEmbed(t *testing.T) {
 	content := coreGuardWorkflowContent()
 	for _, want := range []string{

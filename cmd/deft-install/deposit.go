@@ -20,6 +20,46 @@ import (
 //go:embed core_guard_pin_content.embed
 var coreGuardPinContentPy string
 
+// coreGuardGenerationPy is the #4120 monotonic GENERATION.json check vs origin/$BASE_REF.
+const coreGuardGenerationPy = `import json, subprocess, sys
+base_ref, head_sha = sys.argv[1], sys.argv[2]
+path = ".deft/GENERATION.json"
+def run(args):
+    p = subprocess.run(args, capture_output=True, text=True)
+    return p.returncode, p.stdout
+def ls(tree):
+    return run(["git", "--no-replace-objects", "ls-tree", tree, "--", path])
+def show(spec):
+    return run(["git", "--no-replace-objects", "show", spec])
+if not base_ref:
+    print("::error::BASE_REF missing for GENERATION.json monotonic check (#4120)")
+    sys.exit(1)
+code, out = ls("origin/" + base_ref)
+if code != 0:
+    print("::error::origin/$BASE_REF unreadable for GENERATION.json (#4120)")
+    sys.exit(1)
+base = None
+if out.strip():
+    code, blob = show("origin/" + base_ref + ":" + path)
+    if code != 0:
+        print("::error::cannot show origin base GENERATION.json (#4120)")
+        sys.exit(1)
+    base = json.loads(blob).get("generation")
+code, blob = show(head_sha + ":" + path)
+if code != 0:
+    print("::error::cannot show head GENERATION.json (#4120)")
+    sys.exit(1)
+head = json.loads(blob).get("generation")
+if type(head) is not int or head < 1:
+    print("::error::head generation is not an int >= 1 (#4120)")
+    sys.exit(1)
+if base is not None:
+    if type(base) is not int or base < 1 or not (head > base):
+        print("::error::GENERATION.json must increase vs origin/$BASE_REF (#4120)")
+        sys.exit(1)
+print("OK: GENERATION.json monotonic vs origin/$BASE_REF")
+`
+
 // coreGlob is the gitignore/linguist/CodeQL-style glob that matches every file
 // under the vendored framework payload. The payload at .deft/core/ is packaged,
 // machine-managed framework code (#1428) -- not consumer source -- so the
@@ -341,6 +381,15 @@ func coreGuardWorkflowContent() string {
 	}
 	pinContent := "          python3 - \"$BASE_SHA\" \"$HEAD_SHA\" <<'PY'\n" + pinBody.String() + "PY"
 
+	var genBody strings.Builder
+	for _, line := range strings.Split(strings.TrimSuffix(coreGuardGenerationPy, "\n"), "\n") {
+		genBody.WriteString("          ")
+		genBody.WriteString(line)
+		genBody.WriteByte('\n')
+	}
+	genContent := "          if printf '%s\\n' \"$changed\" | grep -qx '.deft/GENERATION.json'; then\n" +
+		"          python3 - \"$BASE_REF\" \"$HEAD_SHA\" <<'PY'\n" + genBody.String() + "PY\n          fi\n"
+
 	return `name: deft-core-guard
 
 # Deft framework guard (#1430 / #3127 / #3193): a single PR should not mix changes to the
@@ -366,6 +415,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           set -eu
           changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
@@ -389,7 +439,7 @@ jobs:
           if [ -n "$core" ]; then
 ` + pinContent + `
           fi
-          echo "OK: no mixed framework + app changes."
+` + genContent + `          echo "OK: no mixed framework + app changes."
 `
 }
 

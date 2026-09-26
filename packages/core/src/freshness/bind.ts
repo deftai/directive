@@ -13,7 +13,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
-import { readLiveGeneration, stampLiveGeneration } from "./generation.js";
+import { readLiveGeneration } from "./generation.js";
 import {
   type BoundGeneration,
   FRESHNESS_SCHEMA_VERSION,
@@ -113,13 +113,6 @@ export function legacySessionBindPath(projectRoot: string, sessionId: string): s
 export interface BindSessionOptions {
   readonly sessionId?: string | null;
   readonly nowIso?: string;
-  /**
-   * When live generation is missing (legacy deposit), stamp generation 1 from
-   * contentVersion before binding. Default true.
-   */
-  readonly ensureLive?: boolean;
-  /** Used only when ensuring a missing live token. */
-  readonly contentVersion?: string;
   readonly stampedBy?: string;
   /**
    * When binding with a sessionId, also write the default bind path.
@@ -267,16 +260,7 @@ export function bindSessionGeneration(
   projectRoot: string,
   options: BindSessionOptions = {},
 ): { bound: BoundGeneration; live: LiveGeneration; path: string } {
-  let live = readLiveGeneration(projectRoot);
-  if (live === null && options.ensureLive !== false) {
-    const contentVersion = options.contentVersion?.trim() || "0.0.0";
-    live = stampLiveGeneration(projectRoot, {
-      contentVersion,
-      stampedBy: options.stampedBy ?? "session-bind",
-      increment: false,
-      nowIso: options.nowIso,
-    });
-  }
+  const live = readLiveGeneration(projectRoot);
   if (live === null) {
     throw new Error(
       "freshness bind: no live generation token on disk; run directive update or init first",

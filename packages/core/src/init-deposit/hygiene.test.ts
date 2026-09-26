@@ -51,8 +51,10 @@ import {
   prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
   reconcileDepositToContentPackage,
+  snapshotGitIndex,
   splitLedgerForStaging,
   stageFrameworkPaths,
+  unstageFrameworkPaths,
 } from "./hygiene.js";
 import { CANONICAL_TASKFILE_INCLUDE } from "./scaffold.js";
 import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
@@ -1486,6 +1488,323 @@ describe("ledger intersection staging (#3394)", () => {
     expect(cached).toContain("AGENTS.md");
     expect(cached).not.toContain("package.json");
     expect(cached).not.toContain(".gitignore");
+  });
+
+  it("unstageFrameworkPaths restores the index so porcelain has no staged deposit paths (#4120)", () => {
+    const project = freshRoot("hygiene-unstage-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    initGitRepo(project);
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\nupdated\n", "utf8");
+
+    const staged = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      return depositStagePaths(project);
+    });
+    expect(staged.stagedPaths).toContain("AGENTS.md");
+    const cachedBefore = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(cachedBefore).toContain("AGENTS.md");
+
+    const result = unstageFrameworkPaths(project, staged.stagePaths);
+    expect(result.unstaged).toBe(true);
+    expect(result.error).toBeNull();
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const stagedLines = porcelain.split("\n").filter((line) => {
+      if (line.length === 0) return false;
+      const indexState = line[0];
+      return indexState !== " " && indexState !== "?";
+    });
+    expect(stagedLines).toEqual([]);
+    const cachedAfter = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(cachedAfter).not.toContain("AGENTS.md");
+  });
+
+  it("unstageFrameworkPaths restores a pre-staged installer path instead of resetting it (#4120)", () => {
+    const project = freshRoot("hygiene-unstage-keep-");
+    writeFileSync(join(project, "AGENTS.md"), "# original\n", "utf8");
+    initGitRepo(project);
+    writeFileSync(join(project, "AGENTS.md"), "# consumer staged\n", "utf8");
+    execFileSync("git", ["add", "--", "AGENTS.md"], { cwd: project });
+    const priorIndex = snapshotGitIndex(project);
+    expect(priorIndex).not.toBeNull();
+    writeFileSync(join(project, "AGENTS.md"), "# init deposit\n", "utf8");
+    execFileSync("git", ["add", "--", "AGENTS.md"], { cwd: project });
+    expect(execFileSync("git", ["show", ":AGENTS.md"], { cwd: project, encoding: "utf8" })).toBe(
+      "# init deposit\n",
+    );
+
+    const result = unstageFrameworkPaths(project, ["AGENTS.md"], {
+      priorIndex: priorIndex ?? [],
+    });
+    expect(result.unstaged).toBe(true);
+    expect(result.error).toBeNull();
+    expect(execFileSync("git", ["show", ":AGENTS.md"], { cwd: project, encoding: "utf8" })).toBe(
+      "# consumer staged\n",
+    );
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const agents = porcelain.split("\n").find((line) => line.includes("AGENTS.md"));
+    expect(agents).toBeDefined();
+    expect(agents?.[0]).not.toBe(" ");
+    expect(agents?.[0]).not.toBe("?");
+  });
+
+  it("snapshotGitIndex records a staged AGENTS.md deletion as missing (#4120)", () => {
+    const project = freshRoot("hygiene-snap-delete-");
+    writeFileSync(join(project, "AGENTS.md"), "# original\n", "utf8");
+    initGitRepo(project);
+    execFileSync("git", ["rm", "--cached", "-q", "--", "AGENTS.md"], { cwd: project });
+    const prior = snapshotGitIndex(project);
+    expect(prior?.some((entry) => entry.path === "AGENTS.md" && entry.missing === true)).toBe(true);
+    expect(prior?.some((entry) => entry.path === "AGENTS.md" && !entry.missing)).toBe(false);
+  });
+
+  it("unstageFrameworkPaths restores a staged AGENTS.md deletion instead of HEAD (#4120)", () => {
+    const project = freshRoot("hygiene-unstage-delete-");
+    writeFileSync(join(project, "AGENTS.md"), "# original\n", "utf8");
+    initGitRepo(project);
+    execFileSync("git", ["rm", "--cached", "-q", "--", "AGENTS.md"], { cwd: project });
+    const priorIndex = snapshotGitIndex(project);
+    writeFileSync(join(project, "AGENTS.md"), "# init deposit\n", "utf8");
+    execFileSync("git", ["add", "--", "AGENTS.md"], { cwd: project });
+    expect(execFileSync("git", ["show", ":AGENTS.md"], { cwd: project, encoding: "utf8" })).toBe(
+      "# init deposit\n",
+    );
+
+    const result = unstageFrameworkPaths(project, ["AGENTS.md"], {
+      priorIndex: priorIndex ?? [],
+    });
+    expect(result.unstaged).toBe(true);
+    expect(result.error).toBeNull();
+    expect(
+      execFileSync("git", ["ls-files", "--stage", "--", "AGENTS.md"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toBe("");
+    expect(
+      execFileSync("git", ["diff", "--cached", "--name-status", "--", "AGENTS.md"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toMatch(/^D\tAGENTS.md/);
+  });
+
+  it("unstageFrameworkPaths restores a staged AGENTS.md rename instead of resetting the source (#4120)", () => {
+    const project = freshRoot("hygiene-unstage-rename-");
+    writeFileSync(join(project, "AGENTS.md"), "# original\n", "utf8");
+    initGitRepo(project);
+    execFileSync("git", ["mv", "--", "AGENTS.md", "CONSUMER.md"], { cwd: project });
+    const priorIndex = snapshotGitIndex(project);
+    writeFileSync(join(project, "AGENTS.md"), "# init deposit\n", "utf8");
+    execFileSync("git", ["add", "--", "AGENTS.md"], { cwd: project });
+
+    const result = unstageFrameworkPaths(project, ["AGENTS.md"], {
+      priorIndex: priorIndex ?? [],
+    });
+    expect(result.unstaged).toBe(true);
+    expect(result.error).toBeNull();
+    expect(
+      execFileSync("git", ["ls-files", "--stage", "--", "AGENTS.md"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toBe("");
+    expect(
+      execFileSync("git", ["ls-files", "--stage", "--", "CONSUMER.md"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toMatch(/CONSUMER.md/);
+    expect(
+      execFileSync("git", ["diff", "--cached", "--name-status", "--find-renames"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toMatch(/R\d+\tAGENTS.md\tCONSUMER.md/);
+  });
+
+  it("unstageFrameworkPaths with priorIndex restores matching rows and resets extras (#4120)", () => {
+    const restored: { mode: string; sha: string; stage: number; path: string }[][] = [];
+    const unstaged: string[][] = [];
+    const prior = [{ mode: "100644", sha: "abc", stage: 0, path: "AGENTS.md" }];
+    const result = unstageFrameworkPaths("/tmp", ["AGENTS.md", ".deft/core"], {
+      gitPorcelain: () => "M  AGENTS.md\nA  .deft/core/main.md\n",
+      priorIndex: prior,
+      readIndexEntries: () => [
+        { mode: "100644", sha: "def", stage: 0, path: "AGENTS.md" },
+        { mode: "100644", sha: "fff", stage: 0, path: ".deft/core/main.md" },
+      ],
+      runGitRestoreIndex: (_root, entries) => {
+        restored.push([...entries]);
+      },
+      runGitUnstage: (_root, paths) => {
+        unstaged.push([...paths]);
+      },
+    });
+    expect(result.unstaged).toBe(true);
+    expect(result.error).toBeNull();
+    expect(restored).toEqual([prior]);
+    expect(unstaged).toEqual([[".deft/core/main.md"]]);
+  });
+
+  it("unstageFrameworkPaths with priorIndex force-removes staged deletions instead of resetting extras (#4120)", () => {
+    const restored: { mode: string; sha: string; stage: number; path: string }[][] = [];
+    const removed: string[][] = [];
+    const unstaged: string[][] = [];
+    const prior = [
+      {
+        mode: "000000",
+        sha: "0".repeat(40),
+        stage: 0,
+        path: "AGENTS.md",
+        missing: true as const,
+      },
+    ];
+    const result = unstageFrameworkPaths("/tmp", ["AGENTS.md", ".deft/core"], {
+      gitPorcelain: () => "A  AGENTS.md\nA  .deft/core/main.md\n",
+      priorIndex: prior,
+      readIndexEntries: () => [
+        { mode: "100644", sha: "def", stage: 0, path: "AGENTS.md" },
+        { mode: "100644", sha: "fff", stage: 0, path: ".deft/core/main.md" },
+      ],
+      runGitRestoreIndex: (_root, entries) => {
+        restored.push([...entries]);
+      },
+      runGitRemoveIndex: (_root, paths) => {
+        removed.push([...paths]);
+      },
+      runGitUnstage: (_root, paths) => {
+        unstaged.push([...paths]);
+      },
+    });
+    expect(result.unstaged).toBe(true);
+    expect(result.error).toBeNull();
+    expect(restored).toEqual([]);
+    expect(removed).toEqual([["AGENTS.md"]]);
+    expect(unstaged).toEqual([[".deft/core/main.md"]]);
+  });
+
+  it("unstageFrameworkPaths returns the force-remove error instead of throwing", () => {
+    const result = unstageFrameworkPaths("/tmp", ["AGENTS.md"], {
+      gitPorcelain: () => "A  AGENTS.md\n",
+      priorIndex: [
+        {
+          mode: "000000",
+          sha: "0".repeat(40),
+          stage: 0,
+          path: "AGENTS.md",
+          missing: true,
+        },
+      ],
+      readIndexEntries: () => [{ mode: "100644", sha: "def", stage: 0, path: "AGENTS.md" }],
+      runGitRemoveIndex: () => {
+        throw new Error("git update-index --force-remove (restore) failed");
+      },
+    });
+    expect(result.unstaged).toBe(false);
+    expect(result.error?.message).toMatch(/force-remove/);
+  });
+
+  it("unstageFrameworkPaths wraps non-Error force-remove throws", () => {
+    const result = unstageFrameworkPaths("/tmp", ["AGENTS.md"], {
+      gitPorcelain: () => "A  AGENTS.md\n",
+      priorIndex: [
+        {
+          mode: "000000",
+          sha: "0".repeat(40),
+          stage: 0,
+          path: "AGENTS.md",
+          missing: true,
+        },
+      ],
+      readIndexEntries: () => [{ mode: "100644", sha: "def", stage: 0, path: "AGENTS.md" }],
+      runGitRemoveIndex: () => {
+        throw "nope-remove";
+      },
+    });
+    expect(result.unstaged).toBe(false);
+    expect(result.error?.message).toBe("nope-remove");
+  });
+
+  it("snapshotGitIndex is null outside git", () => {
+    const project = freshRoot("hygiene-snap-nogit-");
+    expect(snapshotGitIndex(project)).toBeNull();
+  });
+
+  it("unstages deposit paths on an unborn HEAD (#4120)", () => {
+    const project = freshRoot("hygiene-unstage-unborn-");
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: project });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: project });
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    execFileSync("git", ["add", "--", "AGENTS.md"], { cwd: project });
+    expect(
+      execFileSync("git", ["status", "--porcelain"], { cwd: project, encoding: "utf8" }),
+    ).toMatch(/^A /m);
+
+    const result = unstageFrameworkPaths(project, ["AGENTS.md"]);
+    expect(result.unstaged).toBe(true);
+    expect(result.error).toBeNull();
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const stagedLines = porcelain.split("\n").filter((line) => {
+      if (line.length === 0) return false;
+      const indexState = line[0];
+      return indexState !== " " && indexState !== "?";
+    });
+    expect(stagedLines).toEqual([]);
+  });
+
+  it("unstageFrameworkPaths is a no-op for empty paths, missing git, or unstaged names", () => {
+    expect(unstageFrameworkPaths("/tmp", []).unstaged).toBe(false);
+    expect(
+      unstageFrameworkPaths("/tmp", ["AGENTS.md"], { gitPorcelain: () => null }).unstaged,
+    ).toBe(false);
+    expect(
+      unstageFrameworkPaths("/tmp", ["AGENTS.md"], {
+        gitPorcelain: () => "?? AGENTS.md\n",
+        readCachedNames: () => [],
+      }).unstaged,
+    ).toBe(false);
+  });
+
+  it("unstageFrameworkPaths returns the git error instead of throwing", () => {
+    const result = unstageFrameworkPaths("/tmp", ["AGENTS.md"], {
+      gitPorcelain: () => "A  AGENTS.md\n",
+      readCachedNames: () => ["AGENTS.md"],
+      runGitUnstage: () => {
+        throw new Error("git reset -- (unstage) failed");
+      },
+    });
+    expect(result.unstaged).toBe(false);
+    expect(result.error?.message).toMatch(/unstage/);
+  });
+
+  it("unstageFrameworkPaths wraps non-Error throws", () => {
+    const result = unstageFrameworkPaths("/tmp", ["AGENTS.md"], {
+      gitPorcelain: () => "A  AGENTS.md\n",
+      readCachedNames: () => ["AGENTS.md"],
+      runGitUnstage: () => {
+        throw "nope";
+      },
+    });
+    expect(result.unstaged).toBe(false);
+    expect(result.error?.message).toBe("nope");
   });
 
   it("never invokes git add -A", () => {

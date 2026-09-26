@@ -14,7 +14,12 @@ import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
 import { assertDepositContained } from "../deposit/contain.js";
-import { replaceTree } from "../deposit/copy-tree.js";
+import {
+  discardTreeSnapshot,
+  replaceTree,
+  restoreExistingTree,
+  snapshotExistingTree,
+} from "../deposit/copy-tree.js";
 import { assertLiveProcedureDepositClean } from "../deposit/live-procedure-targets.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
@@ -22,6 +27,13 @@ import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.j
 import { whichAllFromPath } from "../doctor/which.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { readLiveGeneration, stampLiveGeneration } from "../freshness/generation.js";
+import {
+  describeDryRunGenerationGate,
+  evaluateGenerationGate,
+  GENERATION_REWIND_ERROR_CODE,
+  type GenerationGateResult,
+  recheckGenerationGateLocal,
+} from "../freshness/generation-gate.js";
 import {
   type ContainedDestExecInput,
   type ContainedDestExecResult,
@@ -114,6 +126,7 @@ import {
   assertKnownUpdateFlags,
   decideUpdateGitGate,
   destPlanIsEmpty,
+  type GitExecFn,
   gitPreflightRequired,
   outOfRootWriterMightFire,
   probeUpdateGit,
@@ -148,6 +161,8 @@ export interface RefreshDepositResult {
   readonly mutations: MutationSummary;
   /** Pin+lock reconstitution failed; pin was reverted (#4710). */
   readonly pinLockRefreshError?: string;
+  /** #4120 generation rewind gate refused before dest writes. */
+  readonly generationRewindError?: string;
 }
 
 function hasCanonicalXbriefLifecycle(projectDir: string): boolean {
@@ -190,6 +205,13 @@ export interface RefreshDepositSeams {
   containedDestExec?: (input: ContainedDestExecInput) => ContainedDestExecResult;
   /** PATH resolve for lockfile manager binaries. Default {@link whichAllFromPath}. */
   resolveLockfileManager?: (execFile: string) => string | null;
+  /** Injected git exec for the #4120 generation rewind gate. */
+  execGit?: GitExecFn;
+  /**
+   * This-run generation decision from the CLI preflight. When set, skip a
+   * second invocation-owned fetch inside {@link runRefreshDeposit}.
+   */
+  generationGate?: GenerationGateResult;
 }
 
 /**
@@ -880,6 +902,48 @@ function reconstituteConsumerPinAndLock(
   return null;
 }
 
+/**
+ * Stamp from a this-run gate after rechecking the local token. A CLI-cached
+ * decideGenerationStamp can lag a concurrent writer (#4120).
+ */
+function stampRefreshGeneration(
+  projectDir: string,
+  generationGate: GenerationGateResult | null,
+  input: {
+    readonly contentVersion: string;
+    readonly increment: boolean;
+    readonly nowIso?: string;
+  },
+): string | undefined {
+  if (generationGate === null) {
+    stampLiveGeneration(projectDir, {
+      contentVersion: input.contentVersion,
+      stampedBy: "directive-update",
+      increment: input.increment,
+      nowIso: input.nowIso,
+    });
+    return undefined;
+  }
+  const gate = recheckGenerationGateLocal(generationGate, projectDir, {
+    increment: input.increment,
+    contentVersion: input.contentVersion,
+  });
+  if (gate.action === "refuse") {
+    return gate.message;
+  }
+  if (gate.action === "keep-prior") {
+    return undefined;
+  }
+  stampLiveGeneration(projectDir, {
+    contentVersion: input.contentVersion,
+    stampedBy: "directive-update",
+    increment: input.increment,
+    nowIso: input.nowIso,
+    forcedGeneration: gate.generation,
+  });
+  return undefined;
+}
+
 export async function runRefreshDeposit(
   args: RefreshDepositArgs,
   io: InitDepositIo,
@@ -925,7 +989,38 @@ export async function runRefreshDeposit(
     previousDepositVersion !== null &&
     normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
   const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
+
   const payloadReadRoot = recordModePayloadRoot({ contentRoot, deftDir, alreadyCurrent });
+
+  let generationGate: GenerationGateResult | null = null;
+  if (!isPortRecordMode()) {
+    generationGate =
+      seams.generationGate ??
+      evaluateGenerationGate({
+        projectDir,
+        contentVersion,
+        increment: !alreadyCurrent,
+        execGit: seams.execGit,
+      });
+    if (generationGate.action === "refuse") {
+      return {
+        projectDir,
+        deftDir,
+        contentVersion,
+        engineVersion,
+        previousDepositVersion,
+        alreadyCurrent,
+        strategy,
+        agentsMdUpdated: false,
+        versionSkewNotice,
+        legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: [],
+        mutations: emptyMutationSummary(),
+        generationRewindError: generationGate.message,
+      };
+    }
+  }
 
   if (alreadyCurrent) {
     io.printf("[deft update] Framework payload already current; skipping payload copy.\n");
@@ -949,11 +1044,28 @@ export async function runRefreshDeposit(
       priorGen !== null &&
       normalizeVersion(priorGen.contentVersion) === normalizeVersion(contentVersion);
     try {
-      stampLiveGeneration(projectDir, {
+      const rewind = stampRefreshGeneration(projectDir, generationGate, {
         contentVersion,
-        stampedBy: "directive-update",
         increment: false,
       });
+      if (rewind !== undefined) {
+        return {
+          projectDir,
+          deftDir,
+          contentVersion,
+          engineVersion,
+          previousDepositVersion,
+          alreadyCurrent,
+          strategy,
+          agentsMdUpdated: false,
+          versionSkewNotice,
+          legacyLayout: false,
+          taskfileWired: false,
+          stagedPaths: [],
+          mutations: snapshotMutationSummary(),
+          generationRewindError: rewind,
+        };
+      }
     } catch (err) {
       if (!generationMatches) {
         throw err;
@@ -961,47 +1073,103 @@ export async function runRefreshDeposit(
       // Token already matches content; ensure write failure is non-fatal noise.
     }
   } else {
-    // Full-tree replace (or injected seam). Additive copy is no longer the default.
-    // C3 the incoming package BEFORE replace so a reject cannot leave a broken deposit.
-    assertLiveProcedureDepositClean(contentRoot);
-    await copyContent(contentRoot, deftDir);
-    await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-    // Port-record skips dest IO; dest C3 would read the unreplaced tree (#4389).
-    if (!isPortRecordMode()) {
-      assertLiveProcedureDepositClean(deftDir);
+    // Recheck the local token before payload/VERSION swap so a concurrent
+    // unreadable stamp cannot report generation_rewind after dest mutation (#4120).
+    if (generationGate !== null) {
+      const preSwap = recheckGenerationGateLocal(generationGate, projectDir, {
+        increment: true,
+        contentVersion,
+      });
+      if (preSwap.action === "refuse") {
+        return {
+          projectDir,
+          deftDir,
+          contentVersion,
+          engineVersion,
+          previousDepositVersion,
+          alreadyCurrent,
+          strategy,
+          agentsMdUpdated: false,
+          versionSkewNotice,
+          legacyLayout: false,
+          taskfileWired: false,
+          stagedPaths: [],
+          mutations: emptyMutationSummary(),
+          generationRewindError: preSwap.message,
+        };
+      }
+      generationGate = preSwap;
     }
-    // #2913 / #2804 / #2347: fail-closed delete-not-in-source BEFORE VERSION stamp.
-    // replaceTree already drops dst-only paths; reconcile verifies and covers
-    // additive seams. Throws => no VERSION rewrite (refuse stamp until clean).
-    await reconcileDepositToContentPackage(deftDir, contentRoot, io);
 
-    const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
-    const stampedAt = nowIso();
-    const manifestFields: InstallManifestFields = {
-      ref: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
-      sha: "content-package",
-      tag: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
-      installRoot: CANONICAL_INSTALL_ROOT,
-      fetchedAt: stampedAt,
-      fetchedBy: "directive-update",
-      ...(previousManagedBy ? { managedBy: previousManagedBy } : {}),
-    };
-    const writtenManifestPath = writeInstallManifest(projectDir, deftDir, manifestFields);
+    const payloadSnapshot = await snapshotExistingTree(deftDir);
+    try {
+      // Full-tree replace (or injected seam). Additive copy is no longer the default.
+      // C3 the incoming package BEFORE replace so a reject cannot leave a broken deposit.
+      assertLiveProcedureDepositClean(contentRoot);
+      await copyContent(contentRoot, deftDir);
+      await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
+      // Port-record skips dest IO; dest C3 would read the unreplaced tree (#4389).
+      if (!isPortRecordMode()) {
+        assertLiveProcedureDepositClean(deftDir);
+      }
+      // #2913 / #2804 / #2347: fail-closed delete-not-in-source BEFORE VERSION stamp.
+      // replaceTree already drops dst-only paths; reconcile verifies and covers
+      // additive seams. Throws => no VERSION rewrite (refuse stamp until clean).
+      await reconcileDepositToContentPackage(deftDir, contentRoot, io);
 
-    // #2064: retire a stale legacy .deft/VERSION now that the canonical
-    // .deft/core/VERSION has been rewritten (folded in from install-upgrade so no
-    // manifest behavior is lost by the redirect). Best-effort; never fatal.
-    migrateLegacyInstallManifest(projectDir, writtenManifestPath);
+      const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
+      const stampedAt = nowIso();
+      const manifestFields: InstallManifestFields = {
+        ref: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
+        sha: "content-package",
+        tag: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
+        installRoot: CANONICAL_INSTALL_ROOT,
+        fetchedAt: stampedAt,
+        fetchedBy: "directive-update",
+        ...(previousManagedBy ? { managedBy: previousManagedBy } : {}),
+      };
+      const writtenManifestPath = writeInstallManifest(projectDir, deftDir, manifestFields);
 
-    // #3117: monotonic live generation MUST advance after a successful payload
-    // swap. Suppressing stamp failure would leave a prior bound/live match
-    // reporting `current` while the on-disk payload already changed (Greptile P1).
-    stampLiveGeneration(projectDir, {
-      contentVersion,
-      stampedBy: "directive-update",
-      increment: true,
-      nowIso: stampedAt,
-    });
+      // #2064: retire a stale legacy .deft/VERSION now that the canonical
+      // .deft/core/VERSION has been rewritten (folded in from install-upgrade so no
+      // manifest behavior is lost by the redirect). Best-effort; never fatal.
+      migrateLegacyInstallManifest(projectDir, writtenManifestPath);
+
+      // #3117: monotonic live generation MUST advance after a successful payload
+      // swap. Suppressing stamp failure would leave a prior bound/live match
+      // reporting `current` while the on-disk payload already changed (Greptile P1).
+      // Recheck local GENERATION.json before reusing a CLI-cached decision (#4120).
+      const rewind = stampRefreshGeneration(projectDir, generationGate, {
+        contentVersion,
+        increment: true,
+        nowIso: stampedAt,
+      });
+      if (rewind !== undefined) {
+        await restoreExistingTree({
+          snapshot: payloadSnapshot,
+          dest: deftDir,
+          projectDir,
+        });
+        return {
+          projectDir,
+          deftDir,
+          contentVersion,
+          engineVersion,
+          previousDepositVersion,
+          alreadyCurrent,
+          strategy,
+          agentsMdUpdated: false,
+          versionSkewNotice,
+          legacyLayout: false,
+          taskfileWired: false,
+          stagedPaths: [],
+          mutations: emptyMutationSummary(),
+          generationRewindError: rewind,
+        };
+      }
+    } finally {
+      await discardTreeSnapshot(payloadSnapshot);
+    }
   }
 
   const pinLockRefreshError = reconstituteConsumerPinAndLock(projectDir, contentVersion, io, seams);
@@ -1309,6 +1477,36 @@ function emitGitRefusal(
   return UPDATE_REFUSED_EXIT_CODE;
 }
 
+function emitGenerationRewindRefusal(
+  options: RunRefreshDepositCliOptions,
+  io: InitDepositIo,
+  projectDir: string,
+  message: string,
+  dryRun: boolean,
+  gitPreflight: UpdateGitPreflight | undefined,
+): number {
+  io.printf(`${message}\n`);
+  if (options.jsonOut) {
+    options.writeOut(
+      `${JSON.stringify(
+        {
+          success: false,
+          action: "update",
+          error_code: GENERATION_REWIND_ERROR_CODE,
+          message,
+          project_dir: projectDir,
+          ...gitPreflightJsonFields(gitPreflight),
+          ...(dryRun ? { dry_run: true } : {}),
+          mutations: mutationSummaryJson(emptyMutationSummary()),
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  }
+  return UPDATE_REFUSED_EXIT_CODE;
+}
+
 /** Emit the classified plan plus recorded port dest mutations (ADR-004). */
 async function emitDryRunPlan(
   options: RunRefreshDepositCliOptions,
@@ -1317,6 +1515,7 @@ async function emitDryRunPlan(
   classification: UpdateClassification,
   destResult: RefreshDepositResult,
   gitPreflight: UpdateGitPreflight,
+  generationGate?: ReturnType<typeof describeDryRunGenerationGate>,
 ): Promise<number> {
   const { previousVersion, contentVersion } = await readDryRunVersions(
     projectDir,
@@ -1352,6 +1551,7 @@ async function emitDryRunPlan(
           mutations: mutationSummaryJson(mutations),
           exclusions: [...UPDATE_DRY_RUN_EXCLUSIONS],
           ...gitPreflightJsonFields(gitPreflight),
+          ...(generationGate ? { generation_gate: generationGate } : {}),
           ...(options.allowDirtyNoStage === true
             ? {
                 allow_dirty_no_stage: true,
@@ -1419,6 +1619,7 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
   const detectLegacy = options.seams?.detectLegacy ?? detectLegacyLayout;
   let classification: UpdateClassification | null = null;
   let gitPreflight: UpdateGitPreflight | undefined;
+  let liveGenerationGate: GenerationGateResult | undefined;
   if (!detectLegacy(projectDir).legacy) {
     classification = classifyUpdateState(projectDir, options.classifySeams ?? {});
     if (classification.state === "not-initialized") {
@@ -1482,11 +1683,54 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
       );
     }
 
+    const versions = await readDryRunVersions(projectDir, options.seams ?? {});
+    const increment = depositRefreshPending(versions.previousVersion, versions.contentVersion);
     if (options.dryRun) {
+      const dryGate = describeDryRunGenerationGate({
+        projectDir,
+        contentVersion: versions.contentVersion,
+        increment,
+        execGit: options.seams?.execGit,
+      });
+      if (dryGate.verdict === "refuse") {
+        return emitGenerationRewindRefusal(
+          options,
+          io,
+          projectDir,
+          dryGate.message ?? "directive update: generation rewind refused",
+          true,
+          gitPreflight,
+        );
+      }
       if (destResult === null) {
         return 1;
       }
-      return emitDryRunPlan(options, io, projectDir, classification, destResult, gitPreflight);
+      return emitDryRunPlan(
+        options,
+        io,
+        projectDir,
+        classification,
+        destResult,
+        gitPreflight,
+        dryGate,
+      );
+    }
+
+    liveGenerationGate = evaluateGenerationGate({
+      projectDir,
+      contentVersion: versions.contentVersion,
+      increment,
+      execGit: options.seams?.execGit,
+    });
+    if (liveGenerationGate.action === "refuse") {
+      return emitGenerationRewindRefusal(
+        options,
+        io,
+        projectDir,
+        liveGenerationGate.message,
+        false,
+        gitPreflight,
+      );
     }
 
     if (options.allowDirtyNoStage === true && gitPreflight.kind === "dirty") {
@@ -1512,7 +1756,20 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
 
   return runWithMutationLedger(projectDir, async () => {
     try {
-      const result = await runRefreshDeposit(options, io, options.seams);
+      const result = await runRefreshDeposit(options, io, {
+        ...options.seams,
+        ...(liveGenerationGate !== undefined ? { generationGate: liveGenerationGate } : {}),
+      });
+      if (result.generationRewindError !== undefined) {
+        return emitGenerationRewindRefusal(
+          options,
+          io,
+          projectDir,
+          result.generationRewindError,
+          false,
+          gitPreflight,
+        );
+      }
       if (result.pinLockRefreshError !== undefined) {
         options.writeErr(`directive update: ${result.pinLockRefreshError}\n`);
         if (options.jsonOut) {

@@ -416,6 +416,7 @@ Full always-on contract for the interactive session-start ritual and its gated v
 After CLI/deposit upgrade, disk can show the new generation while a long-lived session still executes the pre-upgrade payload it loaded earlier. Disk-only "up to date" is **not** session readiness.
 
 - ! Successful `init` / payload `update` stamps a monotonic live generation at `.deft/GENERATION.json` (outside `.deft/core` so replace does not wipe the counter).
+- ! `directive update` refuses a stamp that would rewind versus the delivery-branch tip pinned this run (`error_code: generation_rewind`). Bind does not mint a missing token (#4120).
 - ! Mutation `session:start` (cold and re-arm) binds that generation into `.deft/session-bind.json` when payload surfaces load.
 - ! Query with `deft freshness:report` / `deft session:freshness` (`--json` supported). States: `current` | `stale_soft` | `stale_hard` | `unbound`. Exit `0` only when `current`.
 - ! Rebind without restarting a shared host runtime: re-load surfaces into the session, then `deft freshness:bind` (or re-arm / `session:ready`).

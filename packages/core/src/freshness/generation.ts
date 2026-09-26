@@ -38,6 +38,8 @@ export interface StampLiveGenerationOptions {
   readonly increment: boolean;
   readonly nowIso?: string;
   readonly surfaces?: SurfaceFingerprints;
+  /** Precomputed generation from the #4120 gate. When set, write this value. */
+  readonly forcedGeneration?: number;
 }
 
 function nowIsoDefault(): string {
@@ -80,7 +82,7 @@ export function parseLiveGeneration(raw: unknown): LiveGeneration | null {
   }
   const rec = raw as Record<string, unknown>;
   const generation = rec.generation;
-  if (typeof generation !== "number" || !Number.isInteger(generation) || generation < 1) {
+  if (typeof generation !== "number" || !Number.isSafeInteger(generation) || generation < 1) {
     return null;
   }
   const contentVersion =
@@ -108,6 +110,48 @@ export function parseLiveGeneration(raw: unknown): LiveGeneration | null {
     stampedBy,
     surfaces,
   };
+}
+
+export type LocalGenerationInspection =
+  | { readonly kind: "absent" }
+  | { readonly kind: "unreadable"; readonly reason: "invalid-json" | "invalid-record" }
+  | { readonly kind: "valid"; readonly token: LiveGeneration; readonly raw: string };
+
+/** Distinguish missing vs invalid local tokens (#4120 R1). */
+export function inspectLocalGeneration(projectRoot: string): LocalGenerationInspection {
+  const path = liveGenerationPath(projectRoot);
+  if (!existsSync(path)) {
+    return { kind: "absent" };
+  }
+  try {
+    const raw = readFileSync(path, "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    const token = parseLiveGeneration(parsed);
+    if (token === null) {
+      return { kind: "unreadable", reason: "invalid-record" };
+    }
+    return { kind: "valid", token, raw };
+  } catch {
+    return { kind: "unreadable", reason: "invalid-json" };
+  }
+}
+
+/** Next local generation number. Bootstrap uses generation 1 (existing stamp path). */
+export function nextLiveGenerationNumber(
+  prior: LiveGeneration | null,
+  options: { readonly increment: boolean; readonly contentVersion: string },
+): number {
+  const contentVersion = normalizeVersion(options.contentVersion);
+  if (prior === null) {
+    return 1;
+  }
+  if (options.increment) {
+    return prior.generation + 1;
+  }
+  if (normalizeVersion(prior.contentVersion) !== contentVersion) {
+    return prior.generation + 1;
+  }
+  return prior.generation;
 }
 
 /** Read the live generation token from the deposit (null when absent/unreadable). */
@@ -162,14 +206,29 @@ export function stampLiveGeneration(
   const prior = readLiveGeneration(projectRoot);
 
   let generation: number;
-  if (prior === null) {
-    generation = 1;
-  } else if (options.increment) {
-    generation = prior.generation + 1;
-  } else if (normalizeVersion(prior.contentVersion) !== contentVersion) {
-    // Content drifted without an explicit increment flag — still advance.
-    generation = prior.generation + 1;
+  if (options.forcedGeneration !== undefined) {
+    // A cached decideGenerationStamp can lag a concurrent local stamp. Never
+    // write an older generation over a newer one (#4120).
+    if (prior !== null && options.forcedGeneration <= prior.generation) {
+      generation = nextLiveGenerationNumber(prior, {
+        increment: options.increment,
+        contentVersion,
+      });
+    } else {
+      generation = options.forcedGeneration;
+    }
   } else {
+    generation = nextLiveGenerationNumber(prior, {
+      increment: options.increment,
+      contentVersion,
+    });
+  }
+  if (
+    prior !== null &&
+    !options.increment &&
+    generation === prior.generation &&
+    normalizeVersion(prior.contentVersion) === contentVersion
+  ) {
     // Already current: do not rewrite GENERATION.json (avoids dirty trees under
     // core.autocrlf=true after idempotent `directive update` — Windows #2118).
     return prior;

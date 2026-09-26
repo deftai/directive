@@ -11,12 +11,21 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { copyTree } from "../deposit/copy-tree.js";
+import {
+  copyTree,
+  discardTreeSnapshot,
+  restoreExistingTree,
+  snapshotExistingTree,
+} from "../deposit/copy-tree.js";
 import { assertLiveProcedureDepositClean } from "../deposit/live-procedure-targets.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { stampLiveGeneration } from "../freshness/generation.js";
+import {
+  evaluateGenerationGate,
+  recheckGenerationGateLocal,
+} from "../freshness/generation-gate.js";
 import { renderProjectDefinition } from "../render/project-render.js";
 import { readPin } from "../resolution/pin.js";
 import { depositOpenClawSoftRebindSkill } from "../session/openclaw-soft-rebind-deposit.js";
@@ -30,7 +39,7 @@ import {
 import { removeStaleMigratedFrameworkNarrative } from "../xbrief-migrate/migrate-project.js";
 import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
-import { depositStagePaths } from "./hygiene.js";
+import { depositStagePaths, snapshotGitIndex, unstageFrameworkPaths } from "./hygiene.js";
 import {
   type InitConsumerInvariantWriters,
   reassertInitConsumerInvariant,
@@ -59,6 +68,7 @@ import {
 } from "./scaffold.js";
 import { writeMultiHostSkillDiscovery } from "./skill-discovery-deposit.js";
 import { writeSlashCommandDeposit } from "./slash-deposit.js";
+import type { GitExecFn } from "./update-git-preflight.js";
 import { syncBareVersionMarker } from "./xbrief-projections.js";
 
 export interface InitDepositArgs {
@@ -77,6 +87,8 @@ export interface InitDepositResult {
   readonly stagedPaths: string[];
   /** Present when the #4533 consumer-file postcondition still fails after one re-assert. */
   readonly consumerInvariantError?: string;
+  /** #4120 generation rewind gate refused before dest writes. */
+  readonly generationRewindError?: string;
 }
 
 export interface InitDepositSeams {
@@ -90,6 +102,7 @@ export interface InitDepositSeams {
   /** Test fixture: overwrite consumer files after the first pin/agents/gitignore write (#4533). */
   afterFirstConsumerWrites?: (projectDir: string) => void;
   consumerInvariantWriters?: InitConsumerInvariantWriters;
+  execGit?: GitExecFn;
 }
 
 export function parseInitArgv(
@@ -351,6 +364,25 @@ export async function runInitDeposit(
     contentRoot,
     seams.readPackageVersion ?? readCorePackageVersion,
   );
+  let generationGate = evaluateGenerationGate({
+    projectDir,
+    contentVersion: version,
+    increment: true,
+    execGit: seams.execGit,
+  });
+  if (generationGate.action === "refuse") {
+    return {
+      projectDir,
+      deftDir,
+      skillsCreated: false,
+      taskfileWired: false,
+      configDir: "",
+      legacyLayout: false,
+      stagedPaths: [],
+      generationRewindError: generationGate.message,
+    };
+  }
+
   // #4429: refuse a lockfile mismatch before any deposit mutation so a throw
   // cannot leave .deft/core materialized without a pin. Then write the pin
   // before ensureInitGitignoreLines. Headless already emits the same pin
@@ -358,65 +390,149 @@ export async function runInitDeposit(
   // updated here (the prior "left untouched" behaviour is the defect this
   // call site closes).
   assertLockfileAllowsPinWrite(projectDir, version);
-  await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
-  await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-  assertLiveProcedureDepositClean(deftDir);
-  ensurePackageJsonPin(projectDir, version, io);
-  ensureInitGitignoreLines(projectDir, io);
-  ensurePrettierIgnoreLines(projectDir, io);
 
-  const manifestFields: InstallManifestFields = {
-    ref: version.startsWith("v") ? version : `v${version}`,
-    sha: "content-package",
-    tag: version.startsWith("v") ? version : `v${version}`,
-    installRoot: CANONICAL_INSTALL_ROOT,
-    fetchedAt: nowIso(),
-    fetchedBy: "directive-init",
-  };
-  writeInstallManifest(projectDir, deftDir, manifestFields);
-
-  writeAgentsMd(projectDir, deftDir, io);
-  seams.afterFirstConsumerWrites?.(projectDir);
-  const skillsCreated = writeAgentsSkills(projectDir, io);
-  writeMultiHostSkillDiscovery(projectDir, io);
-  await depositNeutralization(projectDir, io);
-  await writeConsumerVbrief(projectDir, deftDir, io);
-  seedMinimalProjectDefinition(projectDir, io);
-  // Seeding PROJECT-DEFINITION.xbrief.json makes resolveLifecycleRoot succeed.
-  // Align the same consumer derivatives update repairs (#2595 / #2806) so
-  // init + git add -A is already clean under core.autocrlf=true (#2118 / #3013).
-  syncBareVersionMarker(projectDir, version);
-  removeStaleMigratedFrameworkNarrative(projectDir);
-  writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
-  writeAgentHookDeposit(projectDir, io);
-  writeSlashCommandDeposit(projectDir, io);
-  // #3171: OpenClaw soft AGENTS re-bind skill when OC signals present (fail-closed otherwise).
-  depositOpenClawSoftRebindSkill({
-    /* env defaults; skip when OpenClaw not detected */
+  // Recheck the local token immediately before dest writes (#4120).
+  const preWrite = recheckGenerationGateLocal(generationGate, projectDir, {
+    increment: true,
+    contentVersion: version,
   });
-  // #3064: OpenClaw L2 product-command skills when OC signals present (fail-closed otherwise).
-  depositOpenClawL2ProductCommands({
-    projectRoot: projectDir,
-    printf: (t) => io.printf(t),
-  });
-
-  let taskfileWired = false;
-  if (args.nonInteractive) {
-    taskfileWired = ensureTaskfile(projectDir, io);
+  if (preWrite.action === "refuse") {
+    return {
+      projectDir,
+      deftDir,
+      skillsCreated: false,
+      taskfileWired: false,
+      configDir: "",
+      legacyLayout: false,
+      stagedPaths: [],
+      generationRewindError: preWrite.message,
+    };
   }
+  generationGate = preWrite;
 
-  const configDir = createUserConfigDir(io);
+  const payloadSnapshot = await snapshotExistingTree(deftDir);
+  const priorIndex = snapshotGitIndex(projectDir);
+  try {
+    await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
+    await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
+    assertLiveProcedureDepositClean(deftDir);
+    ensurePackageJsonPin(projectDir, version, io);
+    ensureInitGitignoreLines(projectDir, io);
+    ensurePrettierIgnoreLines(projectDir, io);
 
-  // Re-assert before staging so a concurrent overwrite is not left in the index
-  // while the working tree is repaired (#4533 Greptile P1).
-  const invariant = reassertInitConsumerInvariant({
-    projectDir,
-    deftDir,
-    pinVersion: version,
-    io,
-    writers: seams.consumerInvariantWriters,
-  });
-  if (invariant.refuseMessage !== null) {
+    const manifestFields: InstallManifestFields = {
+      ref: version.startsWith("v") ? version : `v${version}`,
+      sha: "content-package",
+      tag: version.startsWith("v") ? version : `v${version}`,
+      installRoot: CANONICAL_INSTALL_ROOT,
+      fetchedAt: nowIso(),
+      fetchedBy: "directive-init",
+    };
+    writeInstallManifest(projectDir, deftDir, manifestFields);
+
+    writeAgentsMd(projectDir, deftDir, io);
+    seams.afterFirstConsumerWrites?.(projectDir);
+    const skillsCreated = writeAgentsSkills(projectDir, io);
+    writeMultiHostSkillDiscovery(projectDir, io);
+    await depositNeutralization(projectDir, io);
+    await writeConsumerVbrief(projectDir, deftDir, io);
+    seedMinimalProjectDefinition(projectDir, io);
+    // Seeding PROJECT-DEFINITION.xbrief.json makes resolveLifecycleRoot succeed.
+    // Align the same consumer derivatives update repairs (#2595 / #2806) so
+    // init + git add -A is already clean under core.autocrlf=true (#2118 / #3013).
+    syncBareVersionMarker(projectDir, version);
+    removeStaleMigratedFrameworkNarrative(projectDir);
+    writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
+    writeAgentHookDeposit(projectDir, io);
+    writeSlashCommandDeposit(projectDir, io);
+    // #3171: OpenClaw soft AGENTS re-bind skill when OC signals present (fail-closed otherwise).
+    depositOpenClawSoftRebindSkill({
+      /* env defaults; skip when OpenClaw not detected */
+    });
+    // #3064: OpenClaw L2 product-command skills when OC signals present (fail-closed otherwise).
+    depositOpenClawL2ProductCommands({
+      projectRoot: projectDir,
+      printf: (t) => io.printf(t),
+    });
+
+    let taskfileWired = false;
+    if (args.nonInteractive) {
+      taskfileWired = ensureTaskfile(projectDir, io);
+    }
+
+    const configDir = createUserConfigDir(io);
+
+    // Re-assert before staging so a concurrent overwrite is not left in the index
+    // while the working tree is repaired (#4533 Greptile P1).
+    const invariant = reassertInitConsumerInvariant({
+      projectDir,
+      deftDir,
+      pinVersion: version,
+      io,
+      writers: seams.consumerInvariantWriters,
+    });
+    if (invariant.refuseMessage !== null) {
+      return {
+        projectDir,
+        deftDir,
+        skillsCreated,
+        taskfileWired,
+        configDir,
+        legacyLayout: false,
+        stagedPaths: [],
+        consumerInvariantError: invariant.refuseMessage,
+      };
+    }
+
+    // Upgrade commit recipe stays on update. Fresh-init success does not print it (#4656).
+    const staged = depositStagePaths(projectDir, {
+      includeTaskfile: taskfileWired,
+    });
+    const { stagedPaths } = staged;
+
+    // #3117: stamp live generation only after required init projections succeed.
+    // Stamping earlier would advance authority for a failed/partial init (Greptile).
+    // #4120: stamp the gate's proposed generation (tip+1 when a delivery tip exists).
+    // Never fall through to stampLiveGeneration's bootstrap 1.
+    if (generationGate.action === "stamp") {
+      const gate = recheckGenerationGateLocal(generationGate, projectDir, {
+        increment: true,
+        contentVersion: version,
+      });
+      if (gate.action === "refuse") {
+        await restoreExistingTree({
+          snapshot: payloadSnapshot,
+          dest: deftDir,
+          projectDir,
+        });
+        // Restore pre-init index rows (including staged deletions/renames)
+        // for installer paths; reset only names this run staged that were
+        // absent from the snapshot (#4120).
+        unstageFrameworkPaths(projectDir, staged.stagePaths, {
+          priorIndex: priorIndex ?? undefined,
+        });
+        return {
+          projectDir,
+          deftDir,
+          skillsCreated,
+          taskfileWired,
+          configDir,
+          legacyLayout: false,
+          stagedPaths: [],
+          generationRewindError: gate.message,
+        };
+      }
+      if (gate.action === "stamp") {
+        stampLiveGeneration(projectDir, {
+          contentVersion: version,
+          stampedBy: "directive-init",
+          increment: true,
+          nowIso: nowIso(),
+          forcedGeneration: gate.generation,
+        });
+      }
+    }
+
     return {
       projectDir,
       deftDir,
@@ -424,34 +540,11 @@ export async function runInitDeposit(
       taskfileWired,
       configDir,
       legacyLayout: false,
-      stagedPaths: [],
-      consumerInvariantError: invariant.refuseMessage,
+      stagedPaths,
     };
+  } finally {
+    await discardTreeSnapshot(payloadSnapshot);
   }
-
-  // Upgrade commit recipe stays on update. Fresh-init success does not print it (#4656).
-  const { stagedPaths } = depositStagePaths(projectDir, {
-    includeTaskfile: taskfileWired,
-  });
-
-  // #3117: stamp live generation only after required init projections succeed.
-  // Stamping earlier would advance authority for a failed/partial init (Greptile).
-  stampLiveGeneration(projectDir, {
-    contentVersion: version,
-    stampedBy: "directive-init",
-    increment: true,
-    nowIso: nowIso(),
-  });
-
-  return {
-    projectDir,
-    deftDir,
-    skillsCreated,
-    taskfileWired,
-    configDir,
-    legacyLayout: false,
-    stagedPaths,
-  };
 }
 
 export interface RunInitDepositCliOptions extends InitDepositArgs {
@@ -474,6 +567,24 @@ export async function runInitDepositCli(options: RunInitDepositCliOptions): Prom
 
   try {
     const result = await runInitDeposit(options, io, options.seams);
+    if (result.generationRewindError) {
+      options.writeErr(`${result.generationRewindError}\n`);
+      if (options.jsonOut) {
+        options.writeOut(
+          `${JSON.stringify(
+            {
+              success: false,
+              error: result.generationRewindError,
+              error_code: "generation_rewind",
+              deposit_completed: false,
+            },
+            null,
+            2,
+          )}\n`,
+        );
+      }
+      return 1;
+    }
     if (result.consumerInvariantError) {
       options.writeErr(`directive init: ${result.consumerInvariantError}\n`);
       if (options.jsonOut) {

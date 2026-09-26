@@ -9,5 +9,6 @@ export * from "./bind.js";
 export * from "./cli.js";
 export * from "./compare.js";
 export * from "./generation.js";
+export * from "./generation-gate.js";
 export * from "./report.js";
 export * from "./types.js";

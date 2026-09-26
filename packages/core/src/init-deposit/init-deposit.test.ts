@@ -14,6 +14,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
+import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { INIT_CONSUMER_INVARIANT_REFUSE_RECOVERY } from "./init-consumer-invariant.js";
 import {
   buildInstallSummaryJson,
@@ -26,6 +27,7 @@ import {
 } from "./init-deposit.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import { PIN_DEPENDENCY_NAME } from "./scaffold.js";
+import type { GitExecFn } from "./update-git-preflight.js";
 
 // `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
 // so a guarded parse keeps property reads from blowing up with a TypeError
@@ -105,7 +107,7 @@ describe("parseInitArgv", () => {
   });
 });
 
-describe("runInitDeposit", () => {
+describe("runInitDeposit", destContentionItTimeout(), () => {
   const created: string[] = [];
 
   afterEach(() => {
@@ -207,6 +209,246 @@ describe("runInitDeposit", () => {
     expect(lines.join("")).not.toContain("Commit hygiene");
     expect(lines.join("")).not.toContain("git add");
     expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it(
+    "does not exit 1 on git-binary ENOENT for empty-dir greenfield init (#4120)",
+    destContentionItTimeout(),
+    async () => {
+      const project = freshRoot("init-deposit-enoent-");
+      const contentRoot = installFakeContentPackage(project);
+      const out: string[] = [];
+      const err: string[] = [];
+
+      const code = await runInitDepositCli({
+        projectDir: project,
+        jsonOut: true,
+        nonInteractive: true,
+        writeOut: (text) => out.push(text),
+        writeErr: (text) => err.push(text),
+        seams: {
+          resolveContentRoot: async () => contentRoot,
+          nowIso: () => "2026-06-24T12:00:00Z",
+          gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+          evaluateAgentHookReadiness: () => agentHookReadiness(),
+          execGit: () => ({ status: 127, stdout: "", stderr: "", errorCode: "ENOENT" }),
+        },
+      });
+
+      expect(code).toBe(0);
+      expect(err.join("")).not.toMatch(/git binary not found/);
+      expect(out.join("")).not.toMatch(/generation_rewind/);
+      expect(parseJsonObject(out.join(""))).toMatchObject({
+        success: true,
+        deposit_completed: true,
+      });
+    },
+  );
+
+  it("stamps tip+1 on fresh init when the delivery tip already has a token (#4120)", async () => {
+    const project = freshRoot("init-deposit-tip-token-");
+    const contentRoot = installFakeContentPackage(project);
+    const oid = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const remoteToken = `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        generation: 4,
+        contentVersion: "0.110.0",
+        stampedAt: "2026-09-24T00:00:00Z",
+        stampedBy: "fixture",
+        surfaces: { payload: "0.110.0" },
+      },
+      null,
+      2,
+    )}\n`;
+    const execGit: GitExecFn = (args) => {
+      if (args.includes("remote")) {
+        return { status: 0, stdout: "origin\n", stderr: "" };
+      }
+      if (args.includes("fetch")) {
+        return { status: 0, stdout: "", stderr: "" };
+      }
+      if (args.includes("rev-parse")) {
+        return { status: 0, stdout: `${oid}\n`, stderr: "" };
+      }
+      if (args.includes("ls-tree")) {
+        return {
+          status: 0,
+          stdout: `100644 blob ${oid}\t.deft/GENERATION.json\n`,
+          stderr: "",
+        };
+      }
+      if (args.includes("show")) {
+        return { status: 0, stdout: remoteToken, stderr: "" };
+      }
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const result = await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        execGit,
+      },
+    );
+    expect(result.generationRewindError).toBeUndefined();
+    const stamped = parseJsonObject(readFileSync(join(project, ".deft/GENERATION.json"), "utf8"));
+    expect(stamped.generation).toBe(5);
+  });
+
+  it("rolls back the init payload when a post-write generation recheck refuses (#4120)", async () => {
+    const project = freshRoot("init-deposit-gen-unreadable-");
+    const contentRoot = installFakeContentPackage(project);
+    const result = await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        execGit: () => ({ status: 0, stdout: "", stderr: "" }),
+        afterFirstConsumerWrites: (projectDir) => {
+          mkdirSync(join(projectDir, ".deft"), { recursive: true });
+          writeFileSync(join(projectDir, ".deft", "GENERATION.json"), "{not json\n", "utf8");
+        },
+      },
+    );
+    expect(result.generationRewindError).toMatch(/invalid/);
+    expect(existsSync(join(project, ".deft", "core"))).toBe(false);
+    expect(readFileSync(join(project, ".deft", "GENERATION.json"), "utf8")).toBe("{not json\n");
+  });
+
+  it("unstages refused init deposit so porcelain has no staged paths (#4120)", async () => {
+    const project = freshRoot("init-deposit-gen-unstage-");
+    writeFileSync(join(project, "README.md"), "seed\n", "utf8");
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: project });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: project });
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+    const contentRoot = installFakeContentPackage(project);
+    const result = await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        execGit: () => ({ status: 0, stdout: "", stderr: "" }),
+        afterFirstConsumerWrites: (projectDir) => {
+          mkdirSync(join(projectDir, ".deft"), { recursive: true });
+          writeFileSync(join(projectDir, ".deft", "GENERATION.json"), "{not json\n", "utf8");
+        },
+      },
+    );
+    expect(result.generationRewindError).toMatch(/invalid/);
+    expect(result.stagedPaths).toEqual([]);
+    expect(existsSync(join(project, "AGENTS.md"))).toBe(true);
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const stagedLines = porcelain.split("\n").filter((line) => {
+      if (line.length === 0) return false;
+      const indexState = line[0];
+      return indexState !== " " && indexState !== "?";
+    });
+    expect(stagedLines).toEqual([]);
+  });
+
+  it("keeps a pre-staged installer path staged after refused-init rollback (#4120)", async () => {
+    const project = freshRoot("init-deposit-gen-keep-staged-");
+    writeFileSync(join(project, "README.md"), "seed\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# original\n", "utf8");
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: project });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: project });
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+    writeFileSync(join(project, "AGENTS.md"), "# consumer staged\n", "utf8");
+    execFileSync("git", ["add", "--", "AGENTS.md"], { cwd: project });
+    expect(execFileSync("git", ["show", ":AGENTS.md"], { cwd: project, encoding: "utf8" })).toBe(
+      "# consumer staged\n",
+    );
+
+    const contentRoot = installFakeContentPackage(project);
+    const result = await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        execGit: () => ({ status: 0, stdout: "", stderr: "" }),
+        afterFirstConsumerWrites: (projectDir) => {
+          mkdirSync(join(projectDir, ".deft"), { recursive: true });
+          writeFileSync(join(projectDir, ".deft", "GENERATION.json"), "{not json\n", "utf8");
+        },
+      },
+    );
+    expect(result.generationRewindError).toMatch(/invalid/);
+    expect(result.stagedPaths).toEqual([]);
+    expect(execFileSync("git", ["show", ":AGENTS.md"], { cwd: project, encoding: "utf8" })).toBe(
+      "# consumer staged\n",
+    );
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const agents = porcelain.split("\n").find((line) => line.includes("AGENTS.md"));
+    expect(agents).toBeDefined();
+    expect(agents?.[0]).not.toBe(" ");
+    expect(agents?.[0]).not.toBe("?");
+  });
+
+  it("keeps a staged AGENTS.md deletion after refused-init rollback (#4120)", async () => {
+    const project = freshRoot("init-deposit-gen-keep-deleted-");
+    writeFileSync(join(project, "README.md"), "seed\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# original\n", "utf8");
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: project });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: project });
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+    execFileSync("git", ["rm", "--cached", "-q", "--", "AGENTS.md"], { cwd: project });
+    expect(
+      execFileSync("git", ["ls-files", "--stage", "--", "AGENTS.md"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toBe("");
+
+    const contentRoot = installFakeContentPackage(project);
+    const result = await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        execGit: () => ({ status: 0, stdout: "", stderr: "" }),
+        afterFirstConsumerWrites: (projectDir) => {
+          mkdirSync(join(projectDir, ".deft"), { recursive: true });
+          writeFileSync(join(projectDir, ".deft", "GENERATION.json"), "{not json\n", "utf8");
+        },
+      },
+    );
+    expect(result.generationRewindError).toMatch(/invalid/);
+    expect(result.stagedPaths).toEqual([]);
+    expect(
+      execFileSync("git", ["ls-files", "--stage", "--", "AGENTS.md"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toBe("");
+    expect(
+      execFileSync("git", ["diff", "--cached", "--name-status", "--", "AGENTS.md"], {
+        cwd: project,
+        encoding: "utf8",
+      }),
+    ).toMatch(/^D\tAGENTS.md/);
   });
 
   it("directive init adds the canonical pin to an existing package.json (#4429)", async () => {

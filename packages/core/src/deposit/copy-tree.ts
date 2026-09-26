@@ -287,3 +287,43 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
     }
   }
 }
+
+/**
+ * Copy `src` to a temp tree for later restore. Null when missing or in
+ * port-record (dest-plan must not snapshot real dest).
+ */
+export async function snapshotExistingTree(src: string): Promise<string | null> {
+  if (isPortRecordMode()) {
+    return null;
+  }
+  if (!(await pathExists(src))) {
+    return null;
+  }
+  const dest = await mkdtemp(join(tmpdir(), "deft-tree-bak-"));
+  await copyTree(src, dest);
+  return dest;
+}
+
+/** Restore `dest` from {@link snapshotExistingTree}, or remove it when no snapshot. */
+export async function restoreExistingTree(input: {
+  readonly snapshot: string | null;
+  readonly dest: string;
+  readonly projectDir: string;
+}): Promise<void> {
+  if (isPortRecordMode()) {
+    return;
+  }
+  if (input.snapshot !== null) {
+    await replaceTree(input.snapshot, input.dest);
+    return;
+  }
+  containedRemove({ root: input.projectDir, target: input.dest, recursive: true });
+}
+
+/** Best-effort drop of a {@link snapshotExistingTree} temp dir. */
+export async function discardTreeSnapshot(snapshot: string | null): Promise<void> {
+  if (snapshot === null) {
+    return;
+  }
+  await rm(snapshot, { recursive: true, force: true }).catch(() => undefined);
+}
