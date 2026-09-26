@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 /**
  * CLI for verify:completed-write-guard (#3679).
  */
@@ -59,6 +60,17 @@ export function run(argv: string[]): number {
   const projectRoot = resolve(args.projectRoot);
   const result = evaluateCompletedWriteGuard(projectRoot, {
     ...(args.baseRef.length > 0 ? { baseRef: args.baseRef } : {}),
+    runGh: (command) => {
+      const proc = spawnSync(command[0] ?? "gh", command.slice(1), {
+        cwd: projectRoot,
+        encoding: "utf8",
+        timeout: 15_000,
+      });
+      return {
+        returncode: proc.status ?? 1,
+        stdout: proc.stdout ?? "",
+      };
+    },
   });
   if (result.message.length > 0 && !args.quiet) {
     if (result.code === 0) {

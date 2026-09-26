@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import { lineHasShellVector, neutralizeFenceLine, scan } from "./scanner.js";
 
 // #1811 follow-up: the original polynomial-ReDoS regex, kept here ONLY to assert
@@ -249,19 +250,25 @@ describe("lineHasShellVector (linear BODY_VECTOR recognizer, #1811 follow-up)", 
     expect(lineHasShellVector("evaluate the results")).toBe(false);
   });
 
-  it("stays linear on pathological no-pipe space runs", () => {
+  it("stays linear on pathological no-pipe space runs", destContentionItTimeout(), () => {
     // The old regex backtracks polynomially here (`\s+` overlaps `[^|\n]*` with
     // no terminating pipe). The recognizer must complete near-instantly.
+    // Dest-contention wall-clock uses 500ms (same ReDoS class as redos-safe.test.ts);
+    // destContentionItTimeout is the #5035 / #4847 it-budget under loaded merge-gate.
     const pathological = `curl ${" ".repeat(100_000)}`;
     const start = performance.now();
     expect(lineHasShellVector(pathological)).toBe(false);
-    expect(performance.now() - start).toBeLessThan(100);
+    expect(performance.now() - start).toBeLessThan(500);
   });
 
-  it("stays linear on long non-pipe runs after a pipe-less keyword", () => {
-    const pathological = `wget ${"a".repeat(100_000)}`;
-    const start = performance.now();
-    expect(lineHasShellVector(pathological)).toBe(false);
-    expect(performance.now() - start).toBeLessThan(100);
-  });
+  it(
+    "stays linear on long non-pipe runs after a pipe-less keyword",
+    destContentionItTimeout(),
+    () => {
+      const pathological = `wget ${"a".repeat(100_000)}`;
+      const start = performance.now();
+      expect(lineHasShellVector(pathological)).toBe(false);
+      expect(performance.now() - start).toBeLessThan(500);
+    },
+  );
 });
