@@ -17,12 +17,17 @@
       {
         "id": "clause.1",
         "title": "verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait.",
-        "status": "completed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5072",
-          "recorded_at": "2026-09-27T21:08:57.456Z",
-          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        "status": "pending",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Product #5072 ships PID-scoped heartbeats for native waits; PID-less heartbeat + sticky lease arm window and lease auto-clear alternative remain honesty gaps (Greptile #5075). Do not claim durable-wait clause complete on leftover alone.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-27T21:14:21.310Z",
+            "mintedVia": "leftover honesty after Greptile #5075 P1/P2: PID-less heartbeat arm window remains; lease auto-clear alternative not taken"
+          },
+          "recorded_at": "2026-09-27T21:14:21.310Z"
         }
       },
       {
@@ -50,12 +55,17 @@
       {
         "id": "clause.4",
         "title": "Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.",
-        "status": "completed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5072",
-          "recorded_at": "2026-09-27T21:08:57.456Z",
-          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        "status": "pending",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Product #5072 ships PID-scoped heartbeats for native waits; PID-less heartbeat + sticky lease arm window and lease auto-clear alternative remain honesty gaps (Greptile #5075). Do not claim durable-wait clause complete on leftover alone.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-27T21:14:21.310Z",
+            "mintedVia": "leftover honesty after Greptile #5075 P1/P2: PID-less heartbeat arm window remains; lease auto-clear alternative not taken"
+          },
+          "recorded_at": "2026-09-27T21:14:21.310Z"
         }
       },
       {
@@ -72,12 +82,17 @@
       {
         "id": "clause.6",
         "title": "#5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.",
-        "status": "completed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5072",
-          "recorded_at": "2026-09-27T21:08:57.456Z",
-          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        "status": "pending",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Product #5072 ships PID-scoped heartbeats for native waits; PID-less heartbeat + sticky lease arm window and lease auto-clear alternative remain honesty gaps (Greptile #5075). Do not claim durable-wait clause complete on leftover alone.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-27T21:14:21.310Z",
+            "mintedVia": "leftover honesty after Greptile #5075 P1/P2: PID-less heartbeat arm window remains; lease auto-clear alternative not taken"
+          },
+          "recorded_at": "2026-09-27T21:14:21.310Z"
         }
       },
       {
