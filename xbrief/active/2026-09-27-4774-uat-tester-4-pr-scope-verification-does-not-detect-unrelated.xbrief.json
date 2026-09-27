@@ -504,7 +504,8 @@
           "packages/core/src/scope-provenance/evaluate-git.test.ts",
           "packages/core/src/scope-provenance/index.ts",
           "packages/cli/src/verify-scope-provenance.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/scope-provenance/intent.test.ts"
         ],
         "verify_commands": [
           "task check"
