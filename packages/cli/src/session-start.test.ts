@@ -25,6 +25,7 @@ describe("session-start parseArgs", () => {
     posture: null,
     primaryClaimException: null,
     sessionId: null,
+    deferOwedReason: null,
   };
 
   it("defaults project root to cwd", () => {

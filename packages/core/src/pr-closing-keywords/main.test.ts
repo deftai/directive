@@ -695,6 +695,24 @@ describe("full-story mark admission shapes (#4919)", () => {
     ).toBe(false);
   });
 
+  it("refuses mixed proposed→completed + source diffs (no admission bypass) (#4919)", () => {
+    const files = [
+      { status: "removed", path: "xbrief/proposed/story.xbrief.json" },
+      { status: "added", path: "xbrief/completed/story.xbrief.json" },
+      { status: "modified", path: "packages/core/src/example.ts" },
+    ];
+    expect(isSkipActiveDeliveryShape(files)).toBe(true);
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "Tracking #1",
+      prNumber: 9,
+      projectRoot: ".",
+      repo: "deftai/directive",
+      files,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.messages.join("\n")).toMatch(/skip-active/);
+  });
+
   it("requires each changed nonterminal brief path to bind productPullRequest", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-admission-bind-"));
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });

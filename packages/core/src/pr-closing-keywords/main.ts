@@ -73,11 +73,10 @@ export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean
   let removedProposedOrPending = false;
   let removedActive = false;
   let addedCompleted = false;
-  let touchesNonBrief = false;
   for (const file of files) {
     const p = file.path.replace(/\\/g, "/");
     if (!(p.startsWith("xbrief/") || p.startsWith("vbrief/"))) {
-      touchesNonBrief = true;
+      // Mixed source+brief diffs still refuse skip-active; do not bypass admission (#4919).
       continue;
     }
     const status = file.status.toLowerCase();
@@ -100,7 +99,7 @@ export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean
       addedCompleted = true;
     }
   }
-  return removedProposedOrPending && addedCompleted && !removedActive && !touchesNonBrief;
+  return removedProposedOrPending && addedCompleted && !removedActive;
 }
 
 function fetchPrFiles(pr: number, repo: string, runGh: RunGhFn): PrDiffPath[] | null {

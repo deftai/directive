@@ -407,7 +407,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("close-owed still finalizes when create-only claim fails", () => {
+  it("close-owed does not proceed when create-only claim fails (#4919)", () => {
     const root = mkdtempSync(join(tmpdir(), "finalize-owed-close-"));
     mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
     writeFileSync(
@@ -519,9 +519,89 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         };
       },
     });
-    expect(finalizeCalls).toBe(1);
-    expect(result.result.finalized).toContain(4919);
-    expect(result.result.warnings.some((w) => w.includes("close-owed"))).toBe(true);
+    expect(finalizeCalls).toBe(0);
+    expect(result.result.finalized).not.toContain(4919);
+    expect(result.result.skipped).toContain(4919);
+    expect(result.result.warnings.some((w) => w.includes("in flight"))).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not mark live claims stale on transient fetch/auth failure (#4919)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-fetch-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
+      productPullRequest: 5100,
+    });
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/active/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+      }
+      if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+        return {
+          code: 1,
+          stdout: "",
+          stderr: "fatal: unable to access 'https://github.com/': Could not resolve host",
+        };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit,
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/pulls/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-09-27T00:00:00Z",
+              merge_commit_sha: "abc",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/issues/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ state: "open", labels: [] }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(inventory.stories.some((s) => s.state === "in-flight")).toBe(true);
+    expect(inventory.stories.some((s) => s.state === "stale")).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
 });

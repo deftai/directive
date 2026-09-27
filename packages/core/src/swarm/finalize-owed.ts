@@ -306,6 +306,14 @@ function listOpenFinalizePrs(
   return { headRefs, error: null };
 }
 
+/** Transient network/auth failures must not mark a live claim stale (#4919). */
+export function isTransientClaimFetchFailure(stderr: string, stdout: string): boolean {
+  const text = `${stderr}\n${stdout}`.toLowerCase();
+  return /could not resolve host|name or service not known|temporary failure in name resolution|connection (reset|refused|timed out)|operation timed out|timed out|unable to access|authentication failed|could not read username|http\s*(401|403|429|500|502|503)|ssl|tls|network is unreachable|could not read from remote|the remote end hung up|early eof|rpc failed|gnutls|curl\s*\d+|failed to connect/.test(
+    text,
+  );
+}
+
 function remoteClaimMeta(
   projectRoot: string,
   claimRef: string,
@@ -329,7 +337,11 @@ function remoteClaimMeta(
     "--force",
   ]);
   if (fetch.code !== 0) {
-    // Remote ref found but unreachable → abandoned / reclaimable (#4919).
+    if (isTransientClaimFetchFailure(fetch.stderr, fetch.stdout)) {
+      // Keep live; do not delete on transient fetch/auth failure (#4919).
+      return { exists: true, stale: false, ageMs: null };
+    }
+    // Missing object / remote ref gone after ls-remote → reclaimable.
     return { exists: true, stale: true, ageMs: null };
   }
   // Claim marker commit uses committer time (not delivery-tip author age).
@@ -630,6 +642,35 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
+    const claim = remoteClaimMeta(projectRoot, claimRef, runGit, nowMs);
+    if (claim.exists && !claim.stale) {
+      stories.push({
+        issue,
+        productPr,
+        relPath,
+        state: "in-flight",
+        claimRef,
+        pairingKey: key,
+        planIdentity: identity,
+        detail: "live claim ref (close-owed window)",
+        blocks: false,
+      });
+      continue;
+    }
+    if (claim.exists && claim.stale) {
+      stories.push({
+        issue,
+        productPr,
+        relPath,
+        state: "stale",
+        claimRef,
+        pairingKey: key,
+        planIdentity: identity,
+        detail: `stale claim ageMs=${String(claim.ageMs)} (close-owed window)`,
+        blocks: true,
+      });
+      continue;
+    }
     const issueState = fetchIssueState(issue, options.repo, runGh);
     if (issueState.error !== null || issueState.state === null) {
       stories.push({
@@ -861,16 +902,10 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
 
     const claim = tryClaimRef(projectRoot, story.claimRef, fetched.tip, runGit);
     if (!claim.claimed) {
-      if (story.state === "close-owed") {
-        // Existing finalize branch must not block close-only finalizer (#4919).
-        warnings.push(
-          `#${String(story.issue)}: close-owed proceeding without new claim (${claim.detail})`,
-        );
-      } else {
-        warnings.push(`#${String(story.issue)}: in flight (${claim.detail})`);
-        skipped.push(story.issue);
-        continue;
-      }
+      // Close-owed also requires the create-only claim; another live owner must win (#4919).
+      warnings.push(`#${String(story.issue)}: in flight (${claim.detail})`);
+      skipped.push(story.issue);
+      continue;
     }
 
     const runFinalize =

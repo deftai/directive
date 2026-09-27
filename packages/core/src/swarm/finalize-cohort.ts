@@ -11,6 +11,7 @@ import {
   stampProductPullRequestOntoPlan,
 } from "../orphan-active/running-briefs.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { evaluateAgentMerge } from "../policy/require-human-merge.js";
 import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
@@ -1961,17 +1962,26 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       }
       const lifecyclePr = prUrl === null ? null : lifecyclePrNumber(prUrl);
       if (errors.length === 0 && repo !== null && lifecyclePr !== null) {
-        const autoMerge = enableLeftoverAutoMerge(repo, lifecyclePr, runGh);
-        if (!autoMerge.ok) {
+        // Arm GitHub auto-merge only when agent merge is allowed (#4919 / #1193).
+        const agentMerge = evaluateAgentMerge(projectRoot);
+        if (agentMerge.allowed) {
+          const autoMerge = enableLeftoverAutoMerge(repo, lifecyclePr, runGh);
+          if (!autoMerge.ok) {
+            warnings.push(
+              `lifecycle PR #${String(lifecyclePr)}: auto-merge not enabled (${autoMerge.detail})`,
+            );
+          }
+        } else {
           warnings.push(
-            `lifecycle PR #${String(lifecyclePr)}: auto-merge not enabled (${autoMerge.detail})`,
+            `lifecycle PR #${String(lifecyclePr)}: auto-merge skipped (requireHumanMerge; ` +
+              "hand-off without auto-merge)",
           );
         }
         if (args.handOffLeftover === true) {
-          // Owed hand-off: leftover is open (auto-merge armed when possible); origin-close pending.
+          // Owed hand-off: leftover is open (auto-merge armed when policy allows); origin-close pending.
           pendingOrigin = originClosePendingState(originIssues, deliveryBranch);
         } else {
-          // requireHumanMerge is unchanged: wait, never merge the lifecycle pull request.
+          // Wait for land; never merge the lifecycle pull request from this command.
           const landed = waitForLifecycleLand({
             projectRoot,
             deliveryBranch,

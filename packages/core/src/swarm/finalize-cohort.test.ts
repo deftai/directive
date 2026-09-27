@@ -1854,6 +1854,70 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("skips leftover auto-merge under requireHumanMerge and hands off (#4919)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-human-merge-"));
+    const storyPath = writeActiveStory(project, "story-4919", 4919);
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "Project",
+          status: "running",
+          policy: {
+            allowDirectCommitsToMaster: false,
+            wipCap: 10,
+            requireHumanMerge: true,
+            deliveryBranch: "master",
+          },
+        },
+      }),
+      "utf8",
+    );
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        42: { merged: true, closingIssues: [], baseRef: "master" },
+        9999: { merged: false, closingIssues: [], baseRef: "master" },
+      },
+      { 4919: "open" },
+    );
+    const prevBot = process.env.DEFT_ALLOW_BOT_MERGE;
+    delete process.env.DEFT_ALLOW_BOT_MERGE;
+    try {
+      const result = finalizeCohort({
+        projectRoot: project,
+        storyTokens: [storyPath],
+        prNumbers: [42],
+        label: "story-4919",
+        repo: "deftai/directive",
+        deliveryBranch: "master",
+        handOffLeftover: true,
+        landProbeLimit: 1,
+        sleep: () => {},
+        runGit: mockRunGit(),
+        runGh: (cmd) => {
+          ghCalls.push([...cmd]);
+          return runGh(cmd);
+        },
+      });
+      expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+      expect(result.result.pending?.kind).toBe("origin-close");
+      expect(ghCalls.some((cmd) => cmd.includes("merge") && cmd.includes("--auto"))).toBe(false);
+      expect(
+        result.result.warnings.some(
+          (w) => w.includes("auto-merge skipped") && w.includes("requireHumanMerge"),
+        ),
+      ).toBe(true);
+    } finally {
+      if (prevBot === undefined) {
+        delete process.env.DEFT_ALLOW_BOT_MERGE;
+      } else {
+        process.env.DEFT_ALLOW_BOT_MERGE = prevBot;
+      }
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
+
   it("origin-closes without moving the implement brief when the completed file is already on the delivery branch (#4937)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-already-"));
     const storyPath = writeActiveStory(project, "story-4937", 4937);
