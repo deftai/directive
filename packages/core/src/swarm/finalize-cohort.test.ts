@@ -19,8 +19,8 @@ import { CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION } from "../intake/clause-d
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { runTransition } from "../scope/transition.js";
-import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
-import { finalizeCohort } from "./finalize-cohort.js";
+import { EXIT_CONFIG_ERROR, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
+import { finalizeClaimRef, finalizeCohort } from "./finalize-cohort.js";
 import { finalizeCohortMain, parseFinalizeCohortArgv } from "./finalize-cohort-cli.js";
 import type { TextCaptureResult } from "./subprocess.js";
 
@@ -425,7 +425,8 @@ describe("finalizeCohort", () => {
       runGh: mockRunGh({ 42: { merged: true, closingIssues: [2115] } }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
     expect(result.result.closing_issues).toEqual([2115]);
     rmSync(project, { recursive: true, force: true });
   });
@@ -452,7 +453,8 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
     expect(result.result.closing_issues).toEqual([2115]);
     expect(result.result.story_paths).toHaveLength(1);
     expect(result.result.story_paths[0]).toContain("story-real");
@@ -557,8 +559,9 @@ describe("finalizeCohort", () => {
       runGh: mockRunGh({ 103: { merged: true, closingIssues: [3041], baseRef: "master" } }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
-    expect(result.result.ok).toBe(true);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
+    expect(result.result.ok).toBe(false);
     expect(result.result.delivery_branch).toBe("master");
     expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
       "complete",
@@ -698,8 +701,9 @@ describe("finalizeCohort", () => {
       runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 2115] } }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
-    expect(result.result.ok).toBe(true);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
+    expect(result.result.ok).toBe(false);
     expect(result.result.story_paths).toHaveLength(1);
     expect(result.result.story_paths[0]).toContain("story-2240");
     expect(result.result.warnings.some((w) => w.includes("#2115"))).toBe(true);
@@ -725,8 +729,9 @@ describe("finalizeCohort", () => {
       runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 8888] } }, { 8888: "closed" }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
-    expect(result.result.ok).toBe(true);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
+    expect(result.result.ok).toBe(false);
     expect(result.result.story_paths).toHaveLength(1);
     expect(result.result.warnings.some((w) => w.includes("#8888") && w.includes("closed"))).toBe(
       true,
@@ -1133,7 +1138,7 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
-  it("does not origin-close before leftover-complete land (#4824)", () => {
+  it("does not origin-close before leftover-complete land (#4824 / #4919 pending)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-origin-noland-"));
     const storyPath = writeActiveStory(project, "story-4813", 4813);
     const ghCalls: string[][] = [];
@@ -1152,11 +1157,15 @@ describe("finalizeCohort", () => {
       runGh: capturing,
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.ok).toBe(false);
+    expect(result.result.pending?.kind).toBe("origin-close");
+    expect(result.stdout).toContain("FINALIZE INCOMPLETE");
+    expect(result.stdout).toContain("origin-close pending");
     expect(ghCalls.some((c) => c.includes("PATCH"))).toBe(false);
-    expect(result.result.warnings.some((w) => w.includes("leftover-complete not on origin"))).toBe(
-      true,
-    );
+    expect(
+      result.result.warnings.some((w) => w.includes("leftover-complete not on origin")),
+    ).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1374,8 +1383,9 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
-    expect(result.result.ok).toBe(true);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
+    expect(result.result.ok).toBe(false);
     expect(result.result.story_paths).toContain(storyPath);
     expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
       "complete",
@@ -1405,8 +1415,9 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
-    expect(result.result.ok).toBe(true);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
+    expect(result.result.ok).toBe(false);
     expect(result.result.story_paths).toContain(storyPath);
     expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
       "complete",
@@ -1528,7 +1539,8 @@ describe("finalizeCohort", () => {
       runGh: mockRunGh({ 42: { merged: true, closingIssues: [], baseRef: "master" } }),
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.pending?.kind).toBe("origin-close");
     expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
       "complete",
       storyPath,
@@ -1980,7 +1992,7 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
-  it("reports a successful lifecycle commit and leaves the issue open when --no-open-pr is set (#4937)", () => {
+  it("reports FINALIZE INCOMPLETE origin-close pending when --no-open-pr is set (#4937 / #4919)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-no-pr-"));
     const storyPath = writeActiveStory(project, "story-4937", 4937);
     const ghCalls: string[][] = [];
@@ -2004,19 +2016,22 @@ describe("finalizeCohort", () => {
         return runGh(cmd);
       },
     });
-    expect(result.exitCode).toBe(0);
-    expect(result.result.ok).toBe(true);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.ok).toBe(false);
     expect(result.result.commit_sha).toBe("abc123");
     expect(result.result.pr_url).toBeNull();
-    expect(result.stdout).toContain("Lifecycle commit succeeded");
-    expect(result.stdout).toContain("Issue not closed");
-    expect(result.stdout).toContain("no pull request was opened");
-    expect(result.stdout).toContain("not yet on origin/master");
-    expect(result.stdout).not.toContain("FINALIZE INCOMPLETE");
+    expect(result.result.pending?.kind).toBe("origin-close");
+    expect(result.stdout).toContain("FINALIZE INCOMPLETE");
+    expect(result.stdout).toContain("origin-close pending");
     expect(ghCalls.some((cmd) => cmd.includes("pr") && cmd.includes("create"))).toBe(false);
     expect(ghCalls.some((cmd) => cmd.includes("PATCH"))).toBe(false);
     expect(ghCalls.some((cmd) => cmd.includes("merge"))).toBe(false);
     rmSync(project, { recursive: true, force: true });
+  });
+
+  it("shares claim-ref derivation with finalize-owed (#4919)", () => {
+    expect(finalizeClaimRef(null, [5100], ["4919"])).toBe("swarm/finalize/pr-5100");
+    expect(finalizeClaimRef("4919", [5100], ["4919"])).toBe("swarm/finalize/4919");
   });
 
   it("leaves the checkout in place when worktree remove fails (#4937)", () => {

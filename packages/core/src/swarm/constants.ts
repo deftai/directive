@@ -3,6 +3,8 @@ import { policySetInvocation } from "../policy/policy-invocation.js";
 export const EXIT_OK = 0;
 export const EXIT_GATE_FAILED = 1;
 export const EXIT_CONFIG_ERROR = 2;
+/** Origin-close awaiting delivery-branch land (#4919). Not EXIT_GATE_FAILED. */
+export const EXIT_INCOMPLETE = 3;
 
 export const EXIT_VALIDATION_ERROR = 1;
 export const EXIT_FAILED = 1;

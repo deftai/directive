@@ -3,6 +3,8 @@ export { completeCohortMain } from "./complete-cohort-cli.js";
 export * from "./constants.js";
 export * from "./finalize-cohort.js";
 export { finalizeCohortMain, parseFinalizeCohortArgv } from "./finalize-cohort-cli.js";
+export * from "./finalize-owed.js";
+export { finalizeOwedMain, parseFinalizeOwedArgv } from "./finalize-owed-cli.js";
 export * from "./launch.js";
 export { launchMain, parseLaunchArgv } from "./launch-cli.js";
 export * from "./pre-dispatch.js";

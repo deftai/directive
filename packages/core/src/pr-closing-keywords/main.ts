@@ -1,5 +1,5 @@
-import { execFileSync } from "node:child_process";
-import { relative, resolve } from "node:path";
+import { execFileSync, existsSync, readFileSync, readdirSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import {
@@ -9,7 +9,10 @@ import {
 } from "../one-pr-unit/store.js";
 import { MISSING_ONE_PR_UNIT_CONSENT } from "../one-pr-unit/types.js";
 import { collectGithubRefs } from "../orphan-active/refs.js";
-import { listActiveRunningBriefs } from "../orphan-active/running-briefs.js";
+import {
+  listActiveRunningBriefs,
+  productPullRequestFromPlan,
+} from "../orphan-active/running-briefs.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
@@ -23,6 +26,214 @@ import type {
   ParsedArgs,
   RunGhFn,
 } from "./types.js";
+
+export interface PrDiffPath {
+  readonly status: string;
+  readonly path: string;
+}
+
+/** Leftover-shaped: every path under xbrief|vbrief, active removed, completed added (#4919). */
+export function isLeftoverShapedDiff(files: readonly PrDiffPath[]): boolean {
+  if (files.length === 0) {
+    return false;
+  }
+  let removedActive = false;
+  let addedCompleted = false;
+  for (const file of files) {
+    const p = file.path.replace(/\\/g, "/");
+    if (!(p.startsWith("xbrief/") || p.startsWith("vbrief/"))) {
+      return false;
+    }
+    const status = file.status.toLowerCase();
+    if (
+      (status === "removed" || status === "renamed" || status.startsWith("r")) &&
+      /\/active\//.test(p)
+    ) {
+      removedActive = true;
+    }
+    if (
+      (status === "added" || status === "renamed" || status.startsWith("r")) &&
+      /\/completed\//.test(p)
+    ) {
+      addedCompleted = true;
+    }
+  }
+  return removedActive && addedCompleted;
+}
+
+/** proposed|pending → completed without active is refused at admission (#4919). */
+export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean {
+  let removedProposedOrPending = false;
+  let removedActive = false;
+  let addedCompleted = false;
+  let touchesNonBrief = false;
+  for (const file of files) {
+    const p = file.path.replace(/\\/g, "/");
+    if (!(p.startsWith("xbrief/") || p.startsWith("vbrief/"))) {
+      touchesNonBrief = true;
+      continue;
+    }
+    const status = file.status.toLowerCase();
+    if (
+      (status === "removed" || status === "renamed" || status.startsWith("r")) &&
+      /\/(proposed|pending)\//.test(p)
+    ) {
+      removedProposedOrPending = true;
+    }
+    if (
+      (status === "removed" || status === "renamed" || status.startsWith("r")) &&
+      /\/active\//.test(p)
+    ) {
+      removedActive = true;
+    }
+    if (
+      (status === "added" || status === "renamed" || status.startsWith("r")) &&
+      /\/completed\//.test(p)
+    ) {
+      addedCompleted = true;
+    }
+  }
+  return removedProposedOrPending && addedCompleted && !removedActive && !touchesNonBrief;
+}
+
+function fetchPrFiles(
+  pr: number,
+  repo: string,
+  runGh: RunGhFn,
+): PrDiffPath[] | null {
+  const result = runGh(["gh", "api", `repos/${repo}/pulls/${String(pr)}/files?per_page=100`]);
+  if (result.returncode !== 0) {
+    process.stderr.write(
+      `Error: gh REST failed fetching PR #${pr} files: ${result.stderr.trim()}\n`,
+    );
+    return null;
+  }
+  try {
+    const payload: unknown = JSON.parse(result.stdout);
+    if (!Array.isArray(payload)) {
+      process.stderr.write(`Error: PR #${pr} files payload is not an array\n`);
+      return null;
+    }
+    const out: PrDiffPath[] = [];
+    for (const item of payload) {
+      if (typeof item !== "object" || item === null) continue;
+      const rec = item as Record<string, unknown>;
+      const path = typeof rec.filename === "string" ? rec.filename : "";
+      const status = typeof rec.status === "string" ? rec.status : "";
+      if (path.length > 0) {
+        out.push({ path, status });
+      }
+    }
+    return out;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`Error: failed to parse PR #${pr} files: ${message}\n`);
+    return null;
+  }
+}
+
+function briefHasMatchingProductPr(
+  projectRoot: string,
+  issue: number,
+  prNumber: number,
+  repo: string,
+): { ok: boolean; detail: string } {
+  const folders = [
+    "xbrief/proposed",
+    "xbrief/pending",
+    "xbrief/active",
+    "xbrief/completed",
+    "vbrief/proposed",
+    "vbrief/pending",
+    "vbrief/active",
+    "vbrief/completed",
+  ];
+  for (const folder of folders) {
+    const dir = join(projectRoot, folder);
+    if (!existsSync(dir)) continue;
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".json")) continue;
+      const full = join(dir, name);
+      try {
+        const raw: unknown = JSON.parse(readFileSync(full, "utf8"));
+        if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
+        const plan = (raw as Record<string, unknown>).plan;
+        if (typeof plan !== "object" || plan === null || Array.isArray(plan)) continue;
+        const planObj = plan as Record<string, unknown>;
+        const { issues } = collectGithubRefs(planObj, repo);
+        const matched = issues.some(
+          (ref) => ref.repo.toLowerCase() === repo.toLowerCase() && ref.number === issue,
+        );
+        if (!matched) continue;
+        if (productPullRequestFromPlan(planObj) === prNumber) {
+          return { ok: true, detail: relative(projectRoot, full).replace(/\\/g, "/") };
+        }
+        return {
+          ok: false,
+          detail:
+            `brief ${relative(projectRoot, full).replace(/\\/g, "/")} for #${String(issue)} ` +
+            `lacks metadata.productPullRequest=${String(prNumber)}`,
+        };
+      } catch {
+        /* skip unreadable */
+      }
+    }
+  }
+  return {
+    ok: false,
+    detail: `no TIP_NONTERMINAL/completed brief for #${String(issue)} with productPullRequest=${String(prNumber)}`,
+  };
+}
+
+/**
+ * Pre-merge full-story mark producer/admission (#4919 / #4864).
+ * Leftover-shaped diffs pass. Skip-active proposed|pending→completed refuses.
+ * Product PRs that touch nonterminal briefs require deft-story + matching metadata.
+ */
+export function evaluateFullStoryMarkAdmission(args: {
+  readonly bodyText: string | null;
+  readonly prNumber: number | null;
+  readonly projectRoot: string;
+  readonly repo: string;
+  readonly files: readonly PrDiffPath[];
+}): { ok: boolean; messages: string[] } {
+  const messages: string[] = [];
+  if (isLeftoverShapedDiff(args.files)) {
+    return { ok: true, messages: ["leftover-shaped diff admitted (#4919)"] };
+  }
+  if (isSkipActiveDeliveryShape(args.files)) {
+    return {
+      ok: false,
+      messages: [
+        "FAIL: skip-active delivery shape (proposed|pending → completed without active) refused (#4919). " +
+          "Route the brief through active/ or use a leftover-shaped rename from active/.",
+      ],
+    };
+  }
+  const touchesNonterminalBrief = args.files.some((f) => {
+    const p = f.path.replace(/\\/g, "/");
+    return /^(xbrief|vbrief)\/(proposed|pending|active)\//.test(p);
+  });
+  if (!touchesNonterminalBrief || args.prNumber === null) {
+    return { ok: true, messages };
+  }
+  const marks = parseAllDeftStoryMarks(args.bodyText ?? "");
+  if (marks.length === 0) {
+    return {
+      ok: false,
+      messages: [
+        "FAIL: product pull request touches nonterminal xBRIEF without `deft-story: N` (#4864 / #4919).",
+      ],
+    };
+  }
+  for (const issue of marks) {
+    const bind = briefHasMatchingProductPr(args.projectRoot, issue, args.prNumber, args.repo);
+    if (!bind.ok) {
+      messages.push(`FAIL: ${bind.detail}`);
+    }
+  }
+  return { ok: messages.length === 0, messages };
+}
 
 /**
  * Parse PR-body full-story close intent (#4864): a line `deft-story: N` (digits only).
@@ -546,6 +757,32 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   const fpFiltered = filterHits(fpHits, fpAllow);
   const intentFiltered =
     args.pr !== null && closeAllow.size === 0 ? [] : filterHits(intentHits, closeAllow);
+
+  // #4919 / #4864: full-story mark admission on live PR diffs (leftover exception).
+  if (args.pr !== null) {
+    const liveRepo = resolveLiveRepo(args, envBag);
+    if (liveRepo === null) {
+      process.stderr.write(`FAIL: ${LIVE_PR_REQUIRES_REPO}\n`);
+      return EXIT_CONFIG_ERROR;
+    }
+    const files = fetchPrFiles(args.pr, liveRepo, runGh);
+    if (files === null) {
+      return EXIT_CONFIG_ERROR;
+    }
+    const admission = evaluateFullStoryMarkAdmission({
+      bodyText,
+      prNumber: args.pr,
+      projectRoot: args.projectRoot ?? ".",
+      repo: liveRepo,
+      files,
+    });
+    if (!admission.ok) {
+      for (const message of admission.messages) {
+        process.stderr.write(`${message}\n`);
+      }
+      return EXIT_HITS_FOUND;
+    }
+  }
 
   // FP-only is false-positive detection, not the closer-set gate. Negated
   // "not Closes #N" must not mint a multi-origin unit. Intent/both run the gate.

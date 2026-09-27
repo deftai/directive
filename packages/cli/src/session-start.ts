@@ -30,6 +30,8 @@ import {
 export interface ParsedSessionStartArgs {
   projectRoot: string;
   deferValues: string[];
+  /** #4919: defer finalize-owed session gate with a recorded reason. */
+  deferOwedReason: string | null;
   emitJson: boolean;
   noHistory: boolean;
   readOnly: boolean;
@@ -105,6 +107,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
   const parsed: ParsedSessionStartArgs = {
     projectRoot: ".",
     deferValues: [],
+    deferOwedReason: null,
     emitJson: false,
     noHistory: false,
     readOnly: false,
@@ -192,6 +195,19 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
         return { ...parsed, error: "argument --defer: expected one argument" };
       }
       parsed.deferValues.push(value);
+    } else if (arg === "--defer-owed") {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith("--")) {
+        return { ...parsed, error: "argument --defer-owed: expected one argument" };
+      }
+      parsed.deferOwedReason = value;
+      i += 1;
+    } else if (arg?.startsWith("--defer-owed=")) {
+      const value = arg.slice("--defer-owed=".length);
+      if (value.length === 0 || value.startsWith("--")) {
+        return { ...parsed, error: "argument --defer-owed: expected one argument" };
+      }
+      parsed.deferOwedReason = value;
     } else if (arg === "--task-size" || arg === "--ceremony-task-size") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -545,6 +561,7 @@ export function run(argv: readonly string[]): number {
       occupant: args.occupant ?? undefined,
       primaryClaimException: args.primaryClaimException ?? undefined,
       sessionId: args.sessionId ?? undefined,
+      deferOwedReason: args.deferOwedReason,
       ...(args.ceremonyDepthOverride !== null
         ? {
             ceremonyDial: selectCeremonyDepth({

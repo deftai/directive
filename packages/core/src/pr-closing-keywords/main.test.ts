@@ -8,7 +8,10 @@ import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import {
   cmdPrCheckClosingKeywords,
+  evaluateFullStoryMarkAdmission,
   fullStoryCloseIntentFromBody,
+  isLeftoverShapedDiff,
+  isSkipActiveDeliveryShape,
   parseAllDeftStoryMarks,
   parseAllowList,
   parseArgs,
@@ -260,6 +263,10 @@ describe("run CLI --pr mode", () => {
     const calls: string[][] = [];
     const runGh: RunGhFn = (cmd) => {
       calls.push([...cmd]);
+      const joined = cmd.join(" ");
+      if (joined.includes("/files")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
       if (cmd.includes("body")) {
         return { returncode: 0, stdout: JSON.stringify({ body: "Refs #642 only." }), stderr: "" };
       }
@@ -281,6 +288,10 @@ describe("run CLI --pr mode", () => {
 
   it("finds negation hit from pr body", () => {
     const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/files")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
       if (cmd.includes("body")) {
         return {
           returncode: 0,
@@ -362,6 +373,9 @@ describe("one-PR-unit closer-set (#4494)", () => {
 
   it("live --pr single Closes without --allow-close passes (CI)", () => {
     const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/files")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
       if (cmd.includes("body")) {
         return {
           returncode: 0,
@@ -380,6 +394,9 @@ describe("one-PR-unit closer-set (#4494)", () => {
 
   it("live --pr five-origin comma-list without grant fails closed", () => {
     const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/files")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
       if (cmd.includes("body")) {
         return {
           returncode: 0,
@@ -462,8 +479,9 @@ describe("one-PR-unit closer-set (#4494)", () => {
       repo: "deftai/directive",
     });
     const runGh: RunGhFn = (cmd) => {
-      if (cmd.includes("api")) {
-        return { returncode: 0, stdout: JSON.stringify({ node_id: "PR_LEGIT" }), stderr: "" };
+      const joined = cmd.join(" ");
+      if (joined.includes("/files")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
       }
       if (cmd.includes("body")) {
         return {
@@ -471,6 +489,9 @@ describe("one-PR-unit closer-set (#4494)", () => {
           stdout: JSON.stringify({ body: "Closes #3728\nCloses #3804\n" }),
           stderr: "",
         };
+      }
+      if (cmd.includes("api")) {
+        return { returncode: 0, stdout: JSON.stringify({ node_id: "PR_LEGIT" }), stderr: "" };
       }
       return { returncode: 0, stdout: JSON.stringify({ commits: [] }), stderr: "" };
     };
@@ -610,6 +631,9 @@ describe("--allow-close running-for-N refuse (#4628)", () => {
 
   it("live --pr without --allow-close still skips intent (#3015)", () => {
     const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/files")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
       if (cmd.includes("body")) {
         return { returncode: 0, stdout: JSON.stringify({ body: "Closes #4494\n" }), stderr: "" };
       }
@@ -620,6 +644,45 @@ describe("--allow-close running-for-N refuse (#4628)", () => {
       EXIT_OK,
     );
     stderr.mockRestore();
+  });
+});
+
+describe("full-story mark admission shapes (#4919)", () => {
+  it("admits leftover-shaped diffs and refuses skip-active", () => {
+    expect(
+      isLeftoverShapedDiff([
+        { status: "removed", path: "xbrief/active/story.xbrief.json" },
+        { status: "added", path: "xbrief/completed/story.xbrief.json" },
+      ]),
+    ).toBe(true);
+    expect(
+      isSkipActiveDeliveryShape([
+        { status: "removed", path: "xbrief/proposed/story.xbrief.json" },
+        { status: "added", path: "xbrief/completed/story.xbrief.json" },
+      ]),
+    ).toBe(true);
+    const leftover = evaluateFullStoryMarkAdmission({
+      bodyText: "Tracking #1",
+      prNumber: 9,
+      projectRoot: ".",
+      repo: "deftai/directive",
+      files: [
+        { status: "removed", path: "xbrief/active/story.xbrief.json" },
+        { status: "added", path: "xbrief/completed/story.xbrief.json" },
+      ],
+    });
+    expect(leftover.ok).toBe(true);
+    const skip = evaluateFullStoryMarkAdmission({
+      bodyText: "Tracking #1",
+      prNumber: 9,
+      projectRoot: ".",
+      repo: "deftai/directive",
+      files: [
+        { status: "removed", path: "xbrief/proposed/story.xbrief.json" },
+        { status: "added", path: "xbrief/completed/story.xbrief.json" },
+      ],
+    });
+    expect(skip.ok).toBe(false);
   });
 });
 
