@@ -931,12 +931,15 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
   }
 
   for (const story of inventory.stories) {
-    if (
-      story.state === "in-flight" ||
-      story.state === "unverified" ||
-      story.state === "stale-unverified" ||
-      story.state === "backlog"
-    ) {
+    if (story.state === "in-flight" || story.state === "unverified" || story.state === "backlog") {
+      skipped.push(story.issue);
+      continue;
+    }
+    if (story.state === "stale-unverified") {
+      // Keep claim; block remains until issue verify succeeds (#4919).
+      warnings.push(
+        `#${String(story.issue)}: origin-issue unverified; claim still blocking (stale-unverified)`,
+      );
       skipped.push(story.issue);
       continue;
     }
@@ -1016,7 +1019,9 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     }
   }
 
-  const incomplete = warnings.some((w) => w.includes("origin-close pending"));
+  const incomplete = warnings.some(
+    (w) => w.includes("origin-close pending") || w.includes("origin-issue unverified"),
+  );
   const failed = errors.length > 0;
   return respondFinalizeOwed({
     delivery_branch: deliveryBranch,
@@ -1116,10 +1121,13 @@ function respondFinalizeOwed(input: {
     lines.push(`  ${input.note}`);
   }
   lines.push("");
+  const incompleteUnverified = input.warnings.some((w) => w.includes("origin-issue unverified"));
   lines.push(
     input.ok
       ? input.exitCode === EXIT_INCOMPLETE
-        ? "Result: FINALIZE-OWED INCOMPLETE -- origin-close pending on one or more stories."
+        ? incompleteUnverified
+          ? "Result: FINALIZE-OWED INCOMPLETE -- origin-issue unverified; claim still blocking."
+          : "Result: FINALIZE-OWED INCOMPLETE -- origin-close pending on one or more stories."
         : "Result: FINALIZE-OWED CLEAN."
       : "Result: FINALIZE-OWED FAILED.",
   );

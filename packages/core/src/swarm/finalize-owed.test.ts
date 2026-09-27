@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { EXIT_OK } from "./constants.js";
+import { EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   discoverFinalizeOwed,
   finalizeOwed,
@@ -1033,6 +1033,12 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
     expect(result.result.stories.some((s) => s.state === "stale-unverified" && s.blocks)).toBe(
       true,
     );
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.warnings.some((w) => w.includes("origin-issue unverified"))).toBe(true);
+    expect(result.stdout).toContain("FINALIZE-OWED INCOMPLETE");
+    expect(result.stdout).toContain("claim still blocking");
+    expect(result.stdout).not.toContain("FINALIZE-OWED CLEAN");
     rmSync(root, { recursive: true, force: true });
   });
 });
