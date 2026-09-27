@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4774",
@@ -18,64 +18,44 @@
         "title": "Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.172Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.172Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5064",
+          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
       {
         "title": "Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.172Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.172Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5064",
+          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
       {
         "title": "When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.172Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.172Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5064",
+          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
       {
         "title": "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.",
         "status": "completed",
         "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.172Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.172Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5064",
+          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       }
     ],
@@ -534,7 +514,7 @@
           "packages/core/src/scope-provenance/intent.test.ts"
         ],
         "verify_commands": [
-          "task --version"
+          "task check"
         ],
         "expected_outputs": [
           "PR opened Tracking #4774",

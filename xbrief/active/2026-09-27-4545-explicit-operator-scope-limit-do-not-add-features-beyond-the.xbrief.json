@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4545",
@@ -18,80 +18,55 @@
         "title": "When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.007Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.007Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5063",
+          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
       {
         "title": "Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.007Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.007Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5063",
+          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
       {
         "title": "Do not claim #198 / #241 / skill exit, content/contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.007Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.007Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5063",
+          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
       {
         "title": "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
         "status": "completed",
         "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.007Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.007Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5063",
+          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
       {
         "title": "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.",
         "status": "completed",
         "id": "clause.5",
-        "x-directive/disposition": {
-          "disposition": "waived",
-          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "mintedAt": "2026-09-27T17:35:59.007Z",
-            "mintedVia": "in-harness-ask"
-          },
-          "recorded_at": "2026-09-27T17:35:59.007Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5063",
+          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       }
     ],
@@ -421,7 +396,7 @@
           "packages/core/src/operator-scope-limit/types.ts"
         ],
         "verify_commands": [
-          "task --version"
+          "task check"
         ],
         "expected_outputs": [
           "PR opened Tracking #4545",
