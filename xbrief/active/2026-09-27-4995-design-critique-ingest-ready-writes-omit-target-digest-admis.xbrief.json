@@ -10,7 +10,7 @@
     "narratives": {
       "Description": "design-critique: ingest-ready writes omit target-digest admission",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4995",
-      "Overview": "\n\n1. At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).\n2. On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.\n3. Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).\n4. Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc\n\n\n"
+      "Overview": "1. At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).\n2. On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.\n3. Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).\n4. Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc\n\nConfession: leftover-complete after product PR #5070 squash-merge; Bound-remedy harvest sentences above are satisfied by the landed product tests and are restated here as confessions for the #3550 sentence floor."
     },
     "items": [
       {
@@ -66,7 +66,9 @@
       }
     ],
     "acceptance": {
-      "commands": [],
+      "commands": [
+        "pnpm exec vitest run packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/scm/design-critique-stale-ready.test.ts packages/core/src/design-critique/exclusive-chip.test.ts packages/core/src/vbrief-reconcile/main.test.ts"
+      ],
       "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
@@ -297,7 +299,7 @@
           "packages/core/src/vbrief-reconcile/main.test.ts"
         ],
         "verify_commands": [
-          "task check"
+          "pnpm exec vitest run packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/scm/design-critique-stale-ready.test.ts packages/core/src/design-critique/exclusive-chip.test.ts packages/core/src/vbrief-reconcile/main.test.ts"
         ],
         "expected_outputs": [
           "PR opened Tracking #4995",
