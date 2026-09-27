@@ -768,4 +768,176 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
     expect(inventory.stories).toEqual([]);
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("keeps already-stale nonterminal claims blocking when issue fetch fails (#4919)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-stale-issue-fail-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
+      productPullRequest: 5100,
+    });
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/active/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    const nowMs = Date.parse("2026-09-27T12:00:00Z");
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+      }
+      if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "log" && args.some((a) => String(a).includes("%ct"))) {
+        return {
+          code: 0,
+          stdout: String(Math.floor((nowMs - 3 * 60 * 60 * 1000) / 1000)),
+          stderr: "",
+        };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      now: () => nowMs,
+      runGit,
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/pulls/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-09-27T00:00:00Z",
+              merge_commit_sha: "abc",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/issues/")) {
+          return { returncode: 1, stdout: "", stderr: "API rate limit exceeded" };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    const stale = inventory.stories.filter((s) => s.state === "stale");
+    expect(stale).toHaveLength(1);
+    expect(stale[0]?.blocks).toBe(true);
+    expect(inventory.stories.some((s) => s.state === "unverified")).toBe(false);
+    expect(inventoryHasBlockingOwed(inventory)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps already-stale completed claims blocking when issue fetch fails (#4919)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-close-stale-issue-fail-"));
+    writeTipBrief(root, "xbrief/completed/story-a.xbrief.json", 4919, {
+      productPullRequest: 5100,
+      title: "story-a",
+    });
+    writeFileSync(
+      join(root, "xbrief", "completed", "story-a.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "story-a",
+          status: "done",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/4919",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: 5100 },
+        },
+      }),
+      "utf8",
+    );
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/completed/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/completed/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    const nowMs = Date.parse("2026-09-27T12:00:00Z");
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+      }
+      if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "log" && args.some((a) => String(a).includes("%ct"))) {
+        return {
+          code: 0,
+          stdout: String(Math.floor((nowMs - 3 * 60 * 60 * 1000) / 1000)),
+          stderr: "",
+        };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      now: () => nowMs,
+      runGit,
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/issues/")) {
+          return { returncode: 1, stdout: "", stderr: "API rate limit exceeded" };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    const stale = inventory.stories.filter((s) => s.state === "stale");
+    expect(stale).toHaveLength(1);
+    expect(stale[0]?.blocks).toBe(true);
+    expect(stale[0]?.detail).toContain("close-owed window");
+    expect(inventory.stories.some((s) => s.state === "unverified")).toBe(false);
+    expect(inventoryHasBlockingOwed(inventory)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
 });

@@ -348,6 +348,8 @@ describe("session:start scan", () => {
       runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
       verifyTools: () => ({ exitCode: 0 }),
       runTriageWelcome: () => ({ exitCode: 0 }),
+      // #4919: empty tip inventory — keep owed gate off the wire for this fixture.
+      probeFinalizeOwed: () => ({ lines: [], blocks: false, unknown: false }),
       scanWorkClaims: () => [
         "[deft work-claim] warning: deftai/directive#4200 carries status:claimed (busy). Warn is success; this is not a GitHub lock.",
       ],

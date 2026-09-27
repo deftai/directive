@@ -569,17 +569,32 @@ export function discoverFinalizeOwed(
     }
     const issueState = fetchIssueState(issue, options.repo, runGh);
     if (issueState.error !== null || issueState.state === null) {
-      stories.push({
-        issue,
-        productPr,
-        relPath,
-        state: "unverified",
-        claimRef,
-        pairingKey: briefPairingKey(relPath),
-        planIdentity: briefPlanIdentity(plan),
-        detail: issueState.error ?? "issue state unknown",
-        blocks: false,
-      });
+      // Already-stale claims keep blocking even when origin issue fetch fails (#4919).
+      if (claim.exists && claim.stale) {
+        stories.push({
+          issue,
+          productPr,
+          relPath,
+          state: "stale",
+          claimRef,
+          pairingKey: briefPairingKey(relPath),
+          planIdentity: briefPlanIdentity(plan),
+          detail: `stale claim ageMs=${String(claim.ageMs)}; issue verify failed: ${issueState.error ?? "issue state unknown"}`,
+          blocks: true,
+        });
+      } else {
+        stories.push({
+          issue,
+          productPr,
+          relPath,
+          state: "unverified",
+          claimRef,
+          pairingKey: briefPairingKey(relPath),
+          planIdentity: briefPlanIdentity(plan),
+          detail: issueState.error ?? "issue state unknown",
+          blocks: false,
+        });
+      }
       continue;
     }
     // Closed origin: do not reclaim/delete a finalize branch for finished work (#4919).
@@ -671,17 +686,32 @@ export function discoverFinalizeOwed(
     }
     const issueState = fetchIssueState(issue, options.repo, runGh);
     if (issueState.error !== null || issueState.state === null) {
-      stories.push({
-        issue,
-        productPr,
-        relPath,
-        state: "unverified",
-        claimRef,
-        pairingKey: key,
-        planIdentity: identity,
-        detail: issueState.error ?? "issue state unknown",
-        blocks: false,
-      });
+      // Already-stale claims keep blocking even when origin issue fetch fails (#4919).
+      if (claim.exists && claim.stale) {
+        stories.push({
+          issue,
+          productPr,
+          relPath,
+          state: "stale",
+          claimRef,
+          pairingKey: key,
+          planIdentity: identity,
+          detail: `stale claim ageMs=${String(claim.ageMs)} (close-owed window); issue verify failed: ${issueState.error ?? "issue state unknown"}`,
+          blocks: true,
+        });
+      } else {
+        stories.push({
+          issue,
+          productPr,
+          relPath,
+          state: "unverified",
+          claimRef,
+          pairingKey: key,
+          planIdentity: identity,
+          detail: issueState.error ?? "issue state unknown",
+          blocks: false,
+        });
+      }
       continue;
     }
     // Closed (or protected) origin: do not reclaim/delete the finalize branch (#4919).
