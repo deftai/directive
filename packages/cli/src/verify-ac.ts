@@ -132,9 +132,9 @@ export function clampVerifyAcExit(ok: boolean, code: number): number {
  * is gone and merge-base recovery did not supply one (#5055). Fail closed on
  * forge outage — do not skip.
  */
-function fetchOriginIssueBody(plan: Record<string, unknown>):
-  | { readonly ok: true; readonly text: string }
-  | { readonly ok: false; readonly reason: string } {
+function fetchOriginIssueBody(
+  plan: Record<string, unknown>,
+): { readonly ok: true; readonly text: string } | { readonly ok: false; readonly reason: string } {
   const refs = Array.isArray(plan.references) ? plan.references : [];
   let issueUrl: string | null = null;
   for (const entry of refs) {
@@ -166,7 +166,8 @@ function fetchOriginIssueBody(plan: Record<string, unknown>):
     return { ok: false, reason: `forge outage: ${proc.error.message}` };
   }
   if (proc.status !== 0) {
-    const detail = `${proc.stderr ?? ""}${proc.stdout ?? ""}`.trim() || `gh api exited ${String(proc.status)}`;
+    const detail =
+      `${proc.stderr ?? ""}${proc.stdout ?? ""}`.trim() || `gh api exited ${String(proc.status)}`;
     return { ok: false, reason: `forge outage: ${detail}` };
   }
   return { ok: true, text: typeof proc.stdout === "string" ? proc.stdout : "" };

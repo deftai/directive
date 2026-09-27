@@ -1415,11 +1415,7 @@ function applyAdmittedSourceIdentityGate(
     code: result.code === 2 ? 2 : 1,
     resolution: "fail",
     cause: ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE,
-    message: quiet
-      ? result.ok
-        ? ""
-        : result.message
-      : joinFloorMessage(floor, result.message),
+    message: quiet ? (result.ok ? "" : result.message) : joinFloorMessage(floor, result.message),
   };
 }
 
@@ -1533,9 +1529,7 @@ function loadAdmittedSourceFromMergeBase(
     return null;
   }
   const baseRef =
-    process.env.DEFT_BASE_REF?.trim() ||
-    process.env.GITHUB_BASE_REF?.trim() ||
-    "origin/master";
+    process.env.DEFT_BASE_REF?.trim() || process.env.GITHUB_BASE_REF?.trim() || "origin/master";
   const left = baseRef.includes("/") ? baseRef : `origin/${baseRef}`;
   const mb = defaultGitRunner(projectRoot, ["merge-base", left, "HEAD"]);
   if (mb.code !== 0) {
@@ -1614,7 +1608,10 @@ export function evaluateVerifyAcFromPath(
     options.oracleScopeKey?.trim() || resolveOracleScopeKey(plan, abs, projectRoot);
   let admittedSourceMergeBase = options.admittedSourceMergeBase;
   // #5055: when the working-tree pin is gone, recover from merge-base before the walk.
-  if (admittedSourceMergeBase === undefined && readAdmittedSourceSentences(plan.acceptance) === null) {
+  if (
+    admittedSourceMergeBase === undefined &&
+    readAdmittedSourceSentences(plan.acceptance) === null
+  ) {
     const fromBase = loadAdmittedSourceFromMergeBase(projectRoot, abs);
     if (fromBase !== null) {
       admittedSourceMergeBase = fromBase;

@@ -393,7 +393,11 @@ function statementSentencesOnPlan(plan: Record<string, unknown>): string[] {
 
 function preservedAcceptanceList(
   previous: Record<string, unknown> | null,
-  key: "sentences" | "confessions" | typeof ADMITTED_SOURCE_SENTENCES_KEY | typeof ADMITTED_SOURCE_DIGEST_KEY,
+  key:
+    | "sentences"
+    | "confessions"
+    | typeof ADMITTED_SOURCE_SENTENCES_KEY
+    | typeof ADMITTED_SOURCE_DIGEST_KEY,
 ): unknown {
   if (previous === null || !Object.hasOwn(previous, key)) {
     return undefined;
@@ -560,7 +564,7 @@ export function stampAcceptanceFromLiteralCapture(
     const pin =
       mintedSentences ??
       (Array.isArray(serializable.sentences)
-        ? readNonEmptyStringListLocal(serializable.sentences) ?? undefined
+        ? (readNonEmptyStringListLocal(serializable.sentences) ?? undefined)
         : undefined);
     if (pin !== undefined && pin.length > 0) {
       serializable[ADMITTED_SOURCE_SENTENCES_KEY] = pin;
