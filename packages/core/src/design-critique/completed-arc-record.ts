@@ -946,8 +946,9 @@ export type IngestReadyRemainingSetResult =
  * caller's job (fetchIssueComments + live REST body). Both runDesignCritiqueChip
  * and ScmLabelClient.apply exclusive fold use this helper. Composes
  * evaluateCompletedArcRecord with evaluateTargetDigestAdmission before any
- * label mutation (#4995 / #4700). Blocked threads reuse assertCompletedArcAllowsIngest
- * (existing throw). not-in-arc does not write. Unpinned leans stay admitted.
+ * label mutation (#4995 / #4700). Blocked / not-complete returns `{ ok: false }`
+ * (callers refuse without a new product throw). not-in-arc does not write.
+ * Unpinned leans stay admitted.
  */
 export function applyIngestReadyRemainingSet(
   client: LabelClient,

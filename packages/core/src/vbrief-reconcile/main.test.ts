@@ -2,10 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  DesignCritiqueIngestBlockedError,
-  hashIssueBodyBytes,
-} from "../design-critique/completed-arc-record.js";
+import { hashIssueBodyBytes } from "../design-critique/completed-arc-record.js";
 import { GitHubBodyError } from "../intake/github-body.js";
 import * as scm from "../scm/call.js";
 import {
@@ -420,9 +417,13 @@ describe("labels SCM client", () => {
         stderr: "",
       });
     const client = new ScmLabelClient();
-    expect(() =>
-      client.apply("deftai/directive", 4995, ["design-critique:ingest-ready"], []),
-    ).toThrow(DesignCritiqueIngestBlockedError);
+    const refused = client.apply("deftai/directive", 4995, ["design-critique:ingest-ready"], []);
+    expect(refused).toEqual({
+      ok: false,
+      kind: "ingest-ready-blocked",
+      reason: "stale-target",
+      detail: expect.stringContaining("Target-digest"),
+    });
     expect(spy.mock.calls.some((call) => (call[2] ?? []).includes("edit"))).toBe(false);
   });
 

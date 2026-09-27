@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   applyIngestReadyRemainingSet,
-  DesignCritiqueIngestBlockedError,
+  type CompletedArcBlockReason,
   setPendingIngestDiagnosticOverlay,
   threadCommentsFromIssueComments,
 } from "../design-critique/completed-arc-record.js";
@@ -27,6 +27,16 @@ import type { LabelChange, LabelClient, ReconcileLabelsOutcome } from "./types.j
 export const SCAN_FOLDERS = ["proposed", "pending", "active"] as const;
 export const MANAGED_LABELS = ["status:blocked", "epic", "status:tracker", "rfc"] as const;
 const SCM_SOURCE = "github-issue";
+
+/** Returned refuse from ScmLabelClient.apply (no throw; intent-constraint free). */
+export type ScmLabelApplyResult =
+  | { readonly ok: true }
+  | {
+      readonly ok: false;
+      readonly kind: "ingest-ready-blocked";
+      readonly reason: CompletedArcBlockReason;
+      readonly detail: string;
+    };
 
 export class ScmLabelError extends Error {
   override name = "ScmLabelError";
@@ -112,7 +122,7 @@ export class ScmLabelClient implements LabelClient {
     issueNumber: number,
     add: readonly string[],
     remove: readonly string[],
-  ): void {
+  ): ScmLabelApplyResult {
     const catalogAdds = add.filter(isDesignCritiqueCatalogChip);
     if (catalogAdds.length > 0) {
       const nextChip = catalogAdds[catalogAdds.length - 1] as string;
@@ -159,16 +169,18 @@ export class ScmLabelClient implements LabelClient {
               overlay = undefined;
             }
             setPendingIngestDiagnosticOverlay(overlay);
-            throw new DesignCritiqueIngestBlockedError(
-              issueNumber,
-              outcome.verdict.reason,
-              outcome.verdict.detail,
-            );
+            // Returned refuse: zero catalog/rest writes on blocked proof (#4995).
+            return {
+              ok: false,
+              kind: "ingest-ready-blocked",
+              reason: outcome.verdict.reason,
+              detail: outcome.verdict.detail,
+            };
           }
           if (!applied && (restAdd.length > 0 || restRemove.length > 0)) {
             this.applyMut(repo, issueNumber, restAdd, restRemove);
           }
-          return;
+          return { ok: true };
         }
       } else {
         applyDesignCritiqueCatalogChip(inner, repo, issueNumber, nextChip);
@@ -176,9 +188,10 @@ export class ScmLabelClient implements LabelClient {
       if (!applied && (restAdd.length > 0 || restRemove.length > 0)) {
         this.applyMut(repo, issueNumber, restAdd, restRemove);
       }
-      return;
+      return { ok: true };
     }
     this.applyMut(repo, issueNumber, add, remove);
+    return { ok: true };
   }
 
   private applyMut(
