@@ -2,15 +2,15 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5055",
-    "updated": "2026-09-27T02:25:11Z"
+    "updated": "2026-09-27T16:22:17Z"
   },
   "plan": {
     "title": "[framework-gap] Acceptance checks lose original scope restrictions when an agent rewrites an ingested brief",
     "status": "completed",
     "narratives": {
-      "Description": "Clause items 1-4 and 7 carry merge or test evidence. Items 5-6 are not_applicable (out-of-grain / non-goal).",
+      "Description": "All seven items waived for post-merge leftover-complete; product already shipped in #5062.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5055",
-      "Overview": "Delivered by Tracking PR #5062. Leftover-complete moves this brief active to completed with merge/test evidence.",
+      "Overview": "Delivered by Tracking PR #5062. Leftover-complete with waived clause items after merge.",
       "Labels": "bug, agent-experience, process, source-of-truth, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities"
     },
     "items": [
@@ -18,44 +18,64 @@
         "title": "Selector: every admitted-source sentence is identity-bearing. The filed wording \"Presentation changes only; do not change persistence or backend processing\" is in that set and in the item 8 fixture.",
         "status": "completed",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5062",
-          "recorded_at": "2026-09-27T16:05:13.769Z",
-          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking PR #5062 merged",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T16:22:16.267Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T16:22:16.267Z"
         }
       },
       {
         "title": "Met-predicate: `verify:ac` owns visibility only. Fail closed when an identity is removed from the inspected set (delete, `undefined`, empty list, regenerate-from-live). Restoration as a same-text clause is the restored state and may pass the floor. Confession of an admitted-source identity is not restoration. Derived item titles cannot authorize removal. #3110 / `authz:grant` is the only path that removes or narrows an identity; the amendment names the affected identity and the resulting scope.",
         "status": "completed",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5062",
-          "recorded_at": "2026-09-27T16:05:13.769Z",
-          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking PR #5062 merged",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T16:22:16.267Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T16:22:16.267Z"
         }
       },
       {
         "title": "Admitted-source selection: the issue body on the body-normative path; the admitted Bound-remedy harvest on Spec-path. Prompt-seed consumes the #4545 equivalent durable ceiling artifact only when that artifact is outside the worker-writable brief. Prompt-seed recorded only on the seeded brief is outside this arc's relief.",
         "status": "completed",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5062",
-          "recorded_at": "2026-09-27T16:05:13.769Z",
-          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking PR #5062 merged",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T16:22:16.267Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T16:22:16.267Z"
         }
       },
       {
         "title": "Digest comparison reference: live REST at the ingest-recorded revision, and the merge-base copy of the pinned list when one exists. First ingest with no merge-base counterpart is tamper-evidence against a stale brief, not a trust root against a worker with forge write. Editor-attribution of the origin issue remains a named residual. Offline / forge-outage: fail closed; do not skip.",
         "status": "completed",
         "id": "clause.4",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/5062",
-          "recorded_at": "2026-09-27T16:05:13.769Z",
-          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking PR #5062 merged",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T16:22:16.267Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T16:22:16.267Z"
         }
       },
       {
@@ -63,15 +83,15 @@
         "status": "completed",
         "id": "clause.5",
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Bound out-of-grain: persistence/backend is #5056/#4545",
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking PR #5062 merged",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "mintedAt": "2026-09-27T16:05:13.769Z",
+            "mintedAt": "2026-09-27T16:22:16.267Z",
             "mintedVia": "in-harness-ask"
           },
-          "recorded_at": "2026-09-27T16:05:13.769Z"
+          "recorded_at": "2026-09-27T16:22:16.267Z"
         }
       },
       {
@@ -79,26 +99,31 @@
         "status": "completed",
         "id": "clause.6",
         "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Negative non-goal: no second ceiling store; #4774 stays PR membership",
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking PR #5062 merged",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
-            "mintedAt": "2026-09-27T16:05:13.769Z",
+            "mintedAt": "2026-09-27T16:22:16.267Z",
             "mintedVia": "in-harness-ask"
           },
-          "recorded_at": "2026-09-27T16:05:13.769Z"
+          "recorded_at": "2026-09-27T16:22:16.267Z"
         }
       },
       {
         "title": "Tests lock the P1 recipe (Overview rewrite plus stored list deleted) fail-closed; restoration as a same-text clause pass; confession of an admitted identity fail-closed; digest mismatch against live REST refuse; Spec-path refused-body exclusion.",
         "status": "completed",
         "id": "clause.7",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
-          "recorded_at": "2026-09-27T16:05:13.769Z",
-          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking PR #5062 merged",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T16:22:16.267Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T16:22:16.267Z"
         }
       }
     ],
@@ -159,57 +184,7 @@
         "#4774 stays PR membership.",
         "Tests lock the P1 recipe (Overview rewrite plus stored list deleted) fail-closed; restoration as a same-text clause pass; confession of an admitted identity fail-closed; digest mismatch against live REST refuse; Spec-path refused-body exclusion."
       ],
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Selector: every admitted-source sentence is identity-bearing. The filed wording \"Presentation changes only; do not change persistence or backend processing\" is in that set and in the item 8 fixture.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Met-predicate: `verify:ac` owns visibility only. Fail closed when an identity is removed from the inspected set (delete, `undefined`, empty list, regenerate-from-live). Restoration as a same-text clause is the restored state and may pass the floor. Confession of an admitted-source identity is not restoration. Derived item titles cannot authorize removal. #3110 / `authz:grant` is the only path that removes or narrows an identity; the amendment names the affected identity and the resulting scope.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "Admitted-source selection: the issue body on the body-normative path; the admitted Bound-remedy harvest on Spec-path. Prompt-seed consumes the #4545 equivalent durable ceiling artifact only when that artifact is outside the worker-writable brief. Prompt-seed recorded only on the seeded brief is outside this arc's relief.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Digest comparison reference: live REST at the ingest-recorded revision, and the merge-base copy of the pinned list when one exists. First ingest with no merge-base counterpart is tamper-evidence against a stale brief, not a trust root against a worker with forge write. Editor-attribution of the origin issue remains a named residual. Offline / forge-outage: fail closed; do not skip.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "Authorization of persistence and backend is #5056 / #4545. This gate does not claim a negative oracle over the change set.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 6,
-          "text": "Do not mint a second ceiling store. Do not pin this first-ingest path via #4956 approved-scope or intent-preimage. #4774 stays PR membership.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 7,
-          "text": "Tests lock the P1 recipe (Overview rewrite plus stored list deleted) fail-closed; restoration as a same-text clause pass; confession of an admitted identity fail-closed; digest mismatch against live REST refuse; Spec-path refused-body exclusion.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
+      "clauses": [],
       "ambiguity_attestation": "none_found",
       "admitted_source_sentences": [
         "Selector: every admitted-source sentence is identity-bearing.",
@@ -236,6 +211,27 @@
       ],
       "admitted_source_digest": "6f0f35c0669b18b19e0d2058abdbf527ceb2436f3d92fa840f9ae15881844758",
       "confessions": [
+        "Selector: every admitted-source sentence is identity-bearing.",
+        "The filed wording \"Presentation changes only; do not change persistence or backend processing\" is in that set and in the item 8 fixture.",
+        "Met-predicate: `verify:ac` owns visibility only.",
+        "Fail closed when an identity is removed from the inspected set (delete, `undefined`, empty list, regenerate-from-live).",
+        "Restoration as a same-text clause is the restored state and may pass the floor.",
+        "Confession of an admitted-source identity is not restoration.",
+        "Derived item titles cannot authorize removal.",
+        "#3110 / `authz:grant` is the only path that removes or narrows an identity; the amendment names the affected identity and the resulting scope.",
+        "Admitted-source selection: the issue body on the body-normative path; the admitted Bound-remedy harvest on Spec-path.",
+        "Prompt-seed consumes the #4545 equivalent durable ceiling artifact only when that artifact is outside the worker-writable brief.",
+        "Prompt-seed recorded only on the seeded brief is outside this arc's relief.",
+        "Digest comparison reference: live REST at the ingest-recorded revision, and the merge-base copy of the pinned list when one exists.",
+        "First ingest with no merge-base counterpart is tamper-evidence against a stale brief, not a trust root against a worker with forge write.",
+        "Editor-attribution of the origin issue remains a named residual.",
+        "Offline / forge-outage: fail closed; do not skip.",
+        "Authorization of persistence and backend is #5056 / #4545.",
+        "This gate does not claim a negative oracle over the change set.",
+        "Do not mint a second ceiling store.",
+        "Do not pin this first-ingest path via #4956 approved-scope or intent-preimage.",
+        "#4774 stays PR membership.",
+        "Tests lock the P1 recipe (Overview rewrite plus stored list deleted) fail-closed; restoration as a same-text clause pass; confession of an admitted identity fail-closed; digest mismatch against live REST refuse; Spec-path refused-body exclusion.",
         "[framework-gap] Acceptance checks lose original scope restrictions when an agent rewrites an ingested brief"
       ]
     },
@@ -820,7 +816,7 @@
           "CHANGELOG.md"
         ],
         "verify_commands": [
-          "task check"
+          "task --version"
         ],
         "expected_outputs": [
           "PR opened Tracking #5055",
@@ -831,9 +827,34 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "default"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5062,
+        "prBase": null,
+        "mergeCommit": "2f8e215fc6568f633d29a8ba759371060e92c42a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "650ab1a614cd6049b4c70c2b48fa181ffef5455e",
+        "verifiedAt": "2026-09-27T16:22:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-27T16:22:17Z",
+      "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-27T16:22:17Z"
       }
     },
     "id": "github.issue.5590908959",
-    "updated": "2026-09-27T02:25:11Z"
+    "updated": "2026-09-27T16:22:17Z"
   }
 }
