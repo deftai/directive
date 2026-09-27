@@ -1,0 +1,538 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5020",
+    "updated": "2026-09-27T18:43:17.779Z"
+  },
+  "plan": {
+    "title": "verify:review-monitor --live-wait must evidence still-running wait (not lease+flag alone)",
+    "status": "running",
+    "narratives": {
+      "Description": "verify:review-monitor --live-wait must evidence still-running wait (not lease+flag alone)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5020",
+      "Overview": "\n\n1. verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait. Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams. Do not invent a third poller family. Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.\n2. Lease+flag attestation alone must not arm merge-path stand-down after the wait is dead. #5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.\n3. Until item 1 lands, leftover / completed-brief wording must not claim the durable-wait clause complete on lease+flag attestation alone (disposition / wording honesty; Greptile #5019 class).\n4. Lease TTL / DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness.\n5. Tests lock: wait exits while lease sticky => --merge-path-arm --live-wait not armed (or lease cleared); leftover wording cannot stamp durable-wait complete on attestation alone. CHANGELOG Unreleased line. Child of #4832; supersedes remaining honesty gap after #4882.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8\n\n\n",
+      "Labels": "bug, determinism, agent-experience, process, harness, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Do not invent a third poller family.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Lease+flag attestation alone must not arm merge-path stand-down after the wait is dead.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "#5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Until item 1 lands, leftover / completed-brief wording must not claim the durable-wait clause complete on lease+flag attestation alone (disposition / wording honesty; Greptile #5019 class).",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Lease TTL / DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Tests lock: wait exits while lease sticky => --merge-path-arm --live-wait not armed (or lease cleared); leftover wording cannot stamp durable-wait complete on attestation alone.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "CHANGELOG Unreleased line.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "Child of #4832; supersedes remaining honesty gap after #4882.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "relieves: P1 relieves: P2 Target-digest: sha256:d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5072",
+          "recorded_at": "2026-09-27T21:08:57.456Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5020",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5020: verify:review-monitor --live-wait must evidence still-running wait (not lease+flag alone)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "review-monitor --live-wait must evidence still-running wait (not lease+flag alone)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "labeled@L1"
+        },
+        {
+          "command": "review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait. Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams. Do not invent a third poller family. Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "labeled@L5"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-watch/main.ts",
+          "packages/core/src/pr-watch/main.test.ts",
+          "packages/cli/src/verify-review-monitor.ts",
+          "packages/core/src/review-monitor/verify.ts",
+          "packages/core/src/review-monitor/verify.test.ts",
+          "packages/core/src/review-monitor/record.ts",
+          "packages/core/src/review-monitor/lease-comment.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task --version"
+        ],
+        "expected_outputs": [
+          "PR opened Tracking #5020",
+          "verify:review-monitor --merge-path-arm --live-wait fails closed without process-liveness"
+        ],
+        "depends_on": [],
+        "conflict_group": "review-monitor-live-wait",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Parent tracker: https://github.com/deftai/directive/issues/4832\nPrior child shipped: https://github.com/deftai/directive/issues/4882 (#5018)\n\n",
+          "id": 5822104664,
+          "html_url": "https://github.com/deftai/directive/issues/5020#issuecomment-5822104664",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:55:41Z",
+          "updated_at": "2026-09-24T20:55:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because after #4882 / #5018, verify:review-monitor --merge-path-arm --live-wait is still lease+flag attestation on Tier 1 and can look armed after the wait process has exited, so leftover twins can overclaim durable-wait completion.\n\ncharter: refutation\nrefutation-target: Lease evidence plus the --live-wait / merge-path-arm flag is sufficient attestation that a phase-correct wait is still running, so verify:review-monitor need not evidence process-liveness (or auto-clear the lease when the wait exits), and leftover twins may claim the durable-wait clause complete on that attestation alone.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator asked for the appropriate count. This is the leftover honesty gap after the already-shipped #4882 / #5018 refuse-unarmed path. The hole is local to live-wait attestation vs process-liveness. It is not a whole-motion babysit hang. N=1.\n\npain: P1, P2\n\nP1. verify:review-monitor --merge-path-arm --live-wait can exit 0 (look armed) from lease+flag evidence after the Approach 1 / pr:watch wait process has already exited.\nP2. Leftover / completed-brief wording can claim the durable-wait clause complete on that attestation alone, which Greptile flagged on leftover PR #5019.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-5020-dc\norigin-ref: origin/master\ndispatch-sha: 7234a9dd9231cc64a094a16f44c03080a713427e\npin-kind: origin-default\ntarget-digest: sha256:3f4233e58976778ecd8b97c6ada1071991e83ce31b5cc666b4e718ee80f2175e\n\nPin reads use git show 7234a9dd9231cc64a094a16f44c03080a713427e. Child of #4832; product dogfood #5018; leftover honesty #5019. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.",
+          "id": 5822141550,
+          "html_url": "https://github.com/deftai/directive/issues/5020#issuecomment-5822141550",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T20:58:28Z",
+          "updated_at": "2026-09-24T20:58:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5020\ncharter: refutation\nround: 1 critic\nseat: grok\nlauncher: grok\nid-ceiling: 5822141550\ndispatch-sha: 7234a9dd9231cc64a094a16f44c03080a713427e\narc-mode: no-ingest\naudit-targets: none\n\n## Verdict\n\nThe recorded refutation target does not survive.\n\nInventory at `7234a9dd9231cc64a094a16f44c03080a713427e` before findings: `evaluateMergePathArm` (`packages/core/src/pr-watch/main.ts`) takes a caller boolean `livePhaseCorrectWait`; CLI `verify:review-monitor` (`packages/cli/src/verify-review-monitor.ts`) sets that boolean from `--live-wait` plus Tier-1 lease presence (`result.monitorRecord !== null`); gate `evaluateReviewMonitorGate` (`packages/core/src/review-monitor/verify.ts`) treats an unexpired sticky `<!-- deft:review-owner -->` as ready and also computes `heartbeatActive` via `hasActivePollingHeartbeat` without feeding it into merge-path arm; lease end is explicit `review-monitor:release` / `ended_at` (`packages/core/src/review-monitor/record.ts`, `lease-comment.ts`); neighboring liveness seams already exist as `hasActivePollingHeartbeat` and `verify:subagent-alive`. Help text for `--live-wait` literally says \"Attest\".\n\n## --live-wait plus lease is attestation, not a still-running wait\nblocks-the-design\nEvidence: At the dispatch SHA, `liveBound = args.liveWait && (!isTier1(result.tier) || leaseEvidence)` with `leaseEvidence = result.monitorRecord !== null`; `evaluateMergePathArm` then arms on that boolean alone. Unit tests arm Tier-3 on bare `--live-wait` with no lease, and arm Tier-1 `--live-wait` once a lease record is present. `heartbeatActive` is returned on the gate result and ignored by the arm path. Sticky lease expiry defaults to thirty minutes (`DEFAULT_STALE_MINUTES`); release is a separate verb, not a wait-exit hook.\nFailure mode: Approach 1 / `pr:watch` exits while the sticky lease remains; a later `--merge-path-arm --live-wait` probe still reports armed. Merge-path ownership stands down with no phase-correct waiter; CLEAN can arrive with nobody left to merge or finish option-C. Shared GitHub lease state plus a caller-supplied flag is injectable across agents and sessions.\nDisposition: Reject the target premise that lease evidence plus `--live-wait` / `--merge-path-arm` is sufficient still-running proof. A bindable successor must fail closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced, or the lease auto-clears when the wait exits. Prefer wiring existing heartbeat / `verify:subagent-alive` seams over inventing a third poller.\n\n## Leftover durable-wait complete on that attestation alone overclaims\nblocks-the-design\nEvidence: Greptile P1 on leftover PR #5019 (comment 5821732519) states the completed xBRIEF marks durable-live-wait complete from #5018 while that check accepts caller `--live-wait` without proving the wait process remains. Issue #5020 body and Stop 1 P2 record the same overclaim class. Product docs at this SHA still name the probe as the machine observer for \"still-running\" wait (`content/scm/github.md`, review-cycle / swarm / preamble).\nFailure mode: Leftover twins stamp the durable-wait clause complete from armed-looking attestation after #5018, while the dogfood hole (wait dead, lease sticky, probe green) remains open.\nDisposition: The target's second conjunct fails with the first. Bind must keep leftover / completed-brief wording from claiming that clause complete on lease+flag attestation alone until a still-running proof (or auto-clear) lands.\n\n## Lease TTL is not a substitute still-running proof\nfootnote\nEvidence: `DEFAULT_STALE_MINUTES = 30` and `isPassMarkerActive` / expires_at gates abandon stale leases on read; release still requires an explicit edit. A wait can exit in seconds while the lease stays active for the full TTL window. Greptile's #5019 finding fires without waiting out that window.\nFailure mode: Treating TTL expiry as process-liveness would leave a multi-minute false-armed window and would not discharge P1/P2 as filed.\nDisposition: Does not rescue the target. TTL remains abandonment hygiene, not wait liveness.\n\n## Road-not-taken\n\nSteelmanning the target: #5018 already refuses lease-only unarmed stand-down, and Tier-1 binds `--live-wait` to lease evidence so a bare flag cannot arm alone. That closes the pure Path-B promise hole. It still leaves the dead-wait-plus-sticky-lease window, which is exactly Stop 1 P1. Flip condition for the target: a deterministic control that the wait process (or heartbeat identity bound to that wait) is alive at probe time, or that the lease cannot remain active after the wait exits.\r\n\n",
+          "id": 5822187680,
+          "html_url": "https://github.com/deftai/directive/issues/5020#issuecomment-5822187680",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T21:01:55Z",
+          "updated_at": "2026-09-24T21:01:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter #4882 / #5018, --live-wait plus a sticky lease is still attestation, not proof a phase-correct wait is alive. A wait can exit while the lease remains, and a later probe can look armed. Leftover twins must not claim durable-wait complete on that attestation alone. The bind is fail-closed process-liveness (or equivalent host-visible wait identity that cannot outlive the process), or lease auto-clear on wait exit, preferring existing heartbeat / verify:subagent-alive seams over a third poller.\n\nConfirming this map means the list below is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5822187680 checks the findings. Whether the list covers the two pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5822141550\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 7234a9dd9231cc64a094a16f44c03080a713427e\n\n## Takes\n\n- 5822187680 --live-wait plus lease is attestation, not a still-running wait — accept-into-contract\n- 5822187680 Leftover durable-wait complete on that attestation alone overclaims — accept-into-contract\n\nFootnote, outside the take map: 5822187680 Lease TTL is not a substitute still-running proof.\n\nSpec-path:\n\n## Bound remedy\n\n1. verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait. Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams. Do not invent a third poller family. Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.\n2. Lease+flag attestation alone must not arm merge-path stand-down after the wait is dead. #5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.\n3. Until item 1 lands, leftover / completed-brief wording must not claim the durable-wait clause complete on lease+flag attestation alone (disposition / wording honesty; Greptile #5019 class).\n4. Lease TTL / DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness.\n5. Tests lock: wait exits while lease sticky => --merge-path-arm --live-wait not armed (or lease cleared); leftover wording cannot stamp durable-wait complete on attestation alone. CHANGELOG Unreleased line. Child of #4832; supersedes remaining honesty gap after #4882.\n\nrelieves: P1\nrelieves: P2\n\nTarget-digest: sha256:d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8\n\n## Parent-side substantiation\n\nThe critic required rejecting lease+flag as still-running proof and blocking leftover complete claims on that attestation. Items 1–3 do that. TTL footnote stays census.\n\naudit:liveness-or-autoclear sha=7234a9dd9231cc64a094a16f44c03080a713427e pointer=comment:5822187680 reading=asserted\n\n",
+          "id": 5822199029,
+          "html_url": "https://github.com/deftai/directive/issues/5020#issuecomment-5822199029",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T21:02:47Z",
+          "updated_at": "2026-09-27T18:26:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5020\ncharter: refutation\nround: 4 Pass-4 audit (pain-audit of relieves)\nseat: grok\nlauncher: grok\nid-ceiling: 5822199029\ndispatch-sha: 7234a9dd9231cc64a094a16f44c03080a713427e\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2\n\n## Verdict\n\nSuccessor lean 5822199029 Bound remedy covers Stop 1 pains P1 and P2 as asserted. Re-verified anchors at `7234a9dd9231cc64a094a16f44c03080a713427e` match critic 5822187680: CLI `liveBound = args.liveWait && (!isTier1(result.tier) || leaseEvidence)` with `leaseEvidence = result.monitorRecord !== null`; `evaluateMergePathArm` arms on that boolean alone; `heartbeatActive` / `hasActivePollingHeartbeat` are computed on the gate and unused by the arm path; lease end is explicit `review-monitor:release` / `ended_at`, not wait-exit; `DEFAULT_STALE_MINUTES = 30`; help text for `--live-wait` still says \"Attest\". Inventory of neighboring seams (`hasActivePollingHeartbeat`, `verify:subagent-alive`) is present at this SHA.\n\nNo `blocks-the-design` findings on the asserted cites.\n\n## Preferred heartbeat seam must actually observe the P1 wait class\nsharpens-framing\nEvidence: `hasActivePollingHeartbeat` only returns true for scratch records with `pr_number` match, no failures, non-stale, non-terminal, and `phase` in `polling|starting`. Approach 1 / blocking `pr:watch` is the wait class named in P1; those waits do not automatically mint that scratch shape unless the host path already writes it. Bound remedy item 1 prefers those seams and also allows an equivalent host-visible wait identity that cannot outlive the process, or sticky-lease auto-clear on wait exit.\nFailure mode: Implement wires gate arm to `heartbeatActive` while Approach 1 leaves never write polling heartbeats, so probes stay permanently unarmed, or implement keeps `--live-wait` caller attestation beside an empty heartbeat check and the dead-wait-plus-sticky-lease window remains.\nDisposition: Lean can bind. Harvest already names equivalent identity and auto-clear alternatives. Implement must pick a proof that observes the P1 wait class (or clear the lease so presence cannot outlive the process); do not treat unused `heartbeatActive` as sufficient without that binding.\n\n## Auto-clear timing is already constrained by \"cannot outlive\"\nfootnote\nEvidence: Item 1's auto-clear alternative says lease presence cannot outlive the process; item 5 requires wait-exits-while-lease-sticky => arm fails or lease cleared. Synchronous clear-with-exit (or probe-time absence) is already implied.\nFailure mode: A best-effort async clear after exit would reopen a short false-armed window.\nDisposition: Census only. Item 5's test lock already forces the honest reading; no harvest change.\n\n## Lease TTL remains abandonment hygiene\nfootnote\nEvidence: `DEFAULT_STALE_MINUTES = 30`; `isLeaseExpired` / `ended_at` gates; release is a separate verb. Bound remedy item 4 keeps TTL outside wait-liveness. Agrees with critic 5822187680 footnote.\nFailure mode: Treating TTL as P1 relief would leave a multi-minute false-armed window.\nDisposition: Outside the take map; does not reopen P1/P2 coverage.\n\n## Injection / swarm lens\nShared GitHub sticky lease plus a caller-supplied `--live-wait` flag is cross-agent injectable attestation at this SHA. Bound remedy items 1-2 replace that with process-bound evidence (or lease that cannot outlive the wait). No additional blocking residual under #480 for this local gate recut.\n\n## Road-not-taken\n\nSteelmanning a coverage miss: item 3's \"Until item 1 lands\" could be read as temporary prose without a durable leftover stamp gate. Flip condition: if item 5's leftover-wording test lock were absent, P2 would be soft policy only. Item 5 is present, so P2 stays covered as a bind conjunct with the product fail-closed path.",
+          "id": 5822241810,
+          "html_url": "https://github.com/deftai/directive/issues/5020#issuecomment-5822241810",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T21:05:59Z",
+          "updated_at": "2026-09-24T21:05:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAfter #4882, --live-wait plus sticky lease is attestation, not still-running proof. Fail closed on process-liveness (or lease auto-clear on wait exit). Leftover twins must not claim durable-wait complete on attestation alone. Preferred heartbeat seams must actually observe the Approach 1 / pr:watch wait class.\n\n## Verified-claims table\n\n| Claim | Method | Verdict |\n| --- | --- | --- |\n| --live-wait arms from caller flag + Tier-1 lease presence; heartbeatActive unused by arm path. | git show verify-review-monitor.ts, evaluateMergePathArm, review-monitor/verify.ts at 7234a9dd9231cc64a094a16f44c03080a713427e; re-derived in 5822187680 and 5822241810. | verified |\n| Lease clear is explicit release, not wait-exit; TTL is abandonment hygiene. | record.ts / lease-comment.ts / DEFAULT_STALE_MINUTES at pin; 5822187680. | verified |\n| Leftover durable-wait complete on that attestation overclaims (#5019 Greptile class). | issue body / Stop 1 P2; critic 5822187680; lean item 3. | verified |\n| Preferred heartbeat seam must observe Approach 1 / pr:watch waits (or use equivalent identity / auto-clear). | hasActivePollingHeartbeat phase set at pin; pain-audit 5822241810 sharpening; lean item 1 alternatives already named. | verified |",
+          "id": 5822257117,
+          "html_url": "https://github.com/deftai/directive/issues/5020#issuecomment-5822257117",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T21:07:09Z",
+          "updated_at": "2026-09-24T21:07:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLease+flag attestation is not still-running proof. Bound remedy fails closed on process-liveness or lease auto-clear, keeps leftover wording honest until then, and requires any preferred heartbeat seam to observe the P1 wait class. Pain-audit 5822241810 sharpening (heartbeat must observe Approach 1 / pr:watch) accepted into contract without harvest change. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5822199029.",
+          "id": 5822257397,
+          "html_url": "https://github.com/deftai/directive/issues/5020#issuecomment-5822257397",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-24T21:07:10Z",
+          "updated_at": "2026-09-24T21:07:10Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\nFollow-up to #4882 / #5018: `verify:review-monitor --merge-path-arm --live-wait` is still an **attestation** bound to lease evidence on Tier 1. It does not prove a still-running phase-correct wait. A monitor can exit while the lease remains, and a later probe can look armed.\n\nGreptile called this out on leftover PR #5019 when the completed xBRIEF overclaimed durable-wait completion.\n\n## Parent\nChild of https://github.com/deftai/directive/issues/4832 (tracker). Supersedes the remaining honesty gap after #4882.\n\n## Desired outcome\nFail closed unless process-liveness (or equivalent) is evidenced, for example:\n- Approach 1 / blocking `pr:watch` child still alive for this PR, or\n- lease auto-clears when the wait exits, or\n- another host-visible wait identity that cannot outlive the process.\n\nUntil then, leftover twins must not claim the durable-wait clause complete (disposition / wording).\n\n## Dogfood\n- Product: #5018\n- Leftover honesty: #5019\n- Prior blind poller: #5015 dogfood on #4832\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5574452970,
+        "origin": "deftai/directive#5020",
+        "id": "github.issue.5574452970"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8"
+      },
+      "productPullRequest": 5072
+    },
+    "acceptance": {
+      "commands": [
+        "task --version"
+      ],
+      "none_stated": false,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)",
+      "sentences": [
+        "verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait.",
+        "Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams.",
+        "Do not invent a third poller family.",
+        "Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.",
+        "Lease+flag attestation alone must not arm merge-path stand-down after the wait is dead.",
+        "#5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.",
+        "Until item 1 lands, leftover / completed-brief wording must not claim the durable-wait clause complete on lease+flag attestation alone (disposition / wording honesty; Greptile #5019 class).",
+        "Lease TTL / DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness.",
+        "Tests lock: wait exits while lease sticky => --merge-path-arm --live-wait not armed (or lease cleared); leftover wording cannot stamp durable-wait complete on attestation alone.",
+        "CHANGELOG Unreleased line.",
+        "Child of #4832; supersedes remaining honesty gap after #4882.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait.",
+          "artifact_path": null
+        },
+        {
+          "id": 2,
+          "text": "Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams.",
+          "artifact_path": null
+        },
+        {
+          "id": 3,
+          "text": "Do not invent a third poller family.",
+          "artifact_path": null
+        },
+        {
+          "id": 4,
+          "text": "Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.",
+          "artifact_path": null
+        },
+        {
+          "id": 5,
+          "text": "Lease+flag attestation alone must not arm merge-path stand-down after the wait is dead.",
+          "artifact_path": null
+        },
+        {
+          "id": 6,
+          "text": "#5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.",
+          "artifact_path": null
+        },
+        {
+          "id": 7,
+          "text": "Until item 1 lands, leftover / completed-brief wording must not claim the durable-wait clause complete on lease+flag attestation alone (disposition / wording honesty; Greptile #5019 class).",
+          "artifact_path": null
+        },
+        {
+          "id": 8,
+          "text": "Lease TTL / DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness.",
+          "artifact_path": null
+        },
+        {
+          "id": 9,
+          "text": "Tests lock: wait exits while lease sticky => --merge-path-arm --live-wait not armed (or lease cleared); leftover wording cannot stamp durable-wait complete on attestation alone.",
+          "artifact_path": null
+        },
+        {
+          "id": 10,
+          "text": "CHANGELOG Unreleased line.",
+          "artifact_path": null
+        },
+        {
+          "id": 11,
+          "text": "Child of #4832; supersedes remaining honesty gap after #4882.",
+          "artifact_path": null
+        },
+        {
+          "id": 12,
+          "text": "relieves: P1 relieves: P2 Target-digest: sha256:d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8",
+          "artifact_path": null
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "admitted_source_sentences": [
+        "verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait.",
+        "Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams.",
+        "Do not invent a third poller family.",
+        "Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.",
+        "Lease+flag attestation alone must not arm merge-path stand-down after the wait is dead.",
+        "#5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.",
+        "Until item 1 lands, leftover / completed-brief wording must not claim the durable-wait clause complete on lease+flag attestation alone (disposition / wording honesty; Greptile #5019 class).",
+        "Lease TTL / DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness.",
+        "Tests lock: wait exits while lease sticky => --merge-path-arm --live-wait not armed (or lease cleared); leftover wording cannot stamp durable-wait complete on attestation alone.",
+        "CHANGELOG Unreleased line.",
+        "Child of #4832; supersedes remaining honesty gap after #4882.",
+        "relieves: P1 relieves: P2 Target-digest: sha256:d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8"
+      ],
+      "admitted_source_digest": "9646802bf95a90ceed258aa98396a6ad1e488a1b7c47b26dd4e447f05df7187f",
+      "confessions": [
+        "verify:review-monitor --live-wait must evidence still-running wait",
+        "Confession: leftover-complete after product PR #5072 squash-merge on master."
+      ]
+    },
+    "id": "github.issue.5574452970",
+    "updated": "2026-09-27T18:43:17.779Z"
+  }
+}
