@@ -27,8 +27,11 @@ import { watch } from "./watch.js";
  */
 export const WAIT_HEARTBEAT_REFRESHER_JOIN_MS = Number.parseInt("2000", 10);
 
-/** Resolve refresher worker path (src→dist when vitest loads .ts) (#5020). */
-function resolveWaitHeartbeatRefresherWorkerPath(): string {
+/**
+ * Resolve refresher worker path (src→dist when vitest loads .ts) (#5020).
+ * Missing worker is a returned failure — caller continues unarmed (no throw).
+ */
+function resolveWaitHeartbeatRefresherWorkerPath(): string | null {
   const local = fileURLToPath(new URL("./wait-heartbeat-refresher-worker.js", import.meta.url));
   const srcSegment = `${sep}src${sep}`;
   const srcIdx = local.indexOf(srcSegment);
@@ -38,7 +41,7 @@ function resolveWaitHeartbeatRefresherWorkerPath(): string {
       : `${local.slice(0, srcIdx)}${sep}dist${sep}${local.slice(srcIdx + srcSegment.length)}`;
   const chosen = existsSync(local) ? local : distPath;
   if (!existsSync(chosen)) {
-    throw new Error(`wait-heartbeat refresher worker missing at ${local} or ${distPath}`);
+    return null;
   }
   return chosen;
 }
@@ -538,12 +541,11 @@ export function startWaitHeartbeatRefresher(
     pid,
   };
 
-  let workerPath: string;
-  try {
-    workerPath = resolveWaitHeartbeatRefresherWorkerPath();
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`pr_watch: wait heartbeat refresher failed to start: ${detail}\n`);
+  const workerPath = resolveWaitHeartbeatRefresherWorkerPath();
+  if (workerPath === null) {
+    process.stderr.write(
+      "pr_watch: wait heartbeat refresher worker missing; continuing without arming\n",
+    );
     return { stop: () => undefined };
   }
 

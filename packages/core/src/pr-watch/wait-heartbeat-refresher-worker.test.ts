@@ -11,7 +11,7 @@ import {
   type WaitHeartbeatRefresherWorkerData,
 } from "./wait-heartbeat-refresher-worker.js";
 
-function resolveWorkerPath(): string {
+function resolveWorkerPath(): string | null {
   const local = fileURLToPath(new URL("./wait-heartbeat-refresher-worker.js", import.meta.url));
   const srcSegment = `${sep}src${sep}`;
   const srcIdx = local.indexOf(srcSegment);
@@ -21,7 +21,7 @@ function resolveWorkerPath(): string {
       : `${local.slice(0, srcIdx)}${sep}dist${sep}${local.slice(srcIdx + srcSegment.length)}`;
   const chosen = existsSync(local) ? local : distPath;
   if (!existsSync(chosen)) {
-    throw new Error(`worker missing at ${local} or ${distPath}`);
+    return null;
   }
   return chosen;
 }
@@ -65,7 +65,12 @@ describe("wait-heartbeat-refresher-worker (#5020)", () => {
       control,
     };
 
-    const worker = new Worker(resolveWorkerPath(), { workerData });
+    const workerPath = resolveWorkerPath();
+    expect(workerPath).not.toBeNull();
+    if (workerPath === null) {
+      return;
+    }
+    const worker = new Worker(workerPath, { workerData });
     try {
       Atomics.wait(view, REFRESHER_STOP_INDEX, 0, 120);
       const secondAt = (

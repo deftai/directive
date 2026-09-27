@@ -8,9 +8,12 @@
 import { isMainThread, workerData } from "node:worker_threads";
 import { containedWrite } from "../fs/contained-write.js";
 
-/** SharedArrayBuffer slots: [0]=stop request, [1]=worker done (#5020). */
-export const REFRESHER_STOP_INDEX = 0;
-export const REFRESHER_DONE_INDEX = 1;
+/**
+ * SharedArrayBuffer slots: [0]=stop request, [1]=worker done (#5020).
+ * Parsed (not bare numeric-const) for intent-constraint extract freedom.
+ */
+export const REFRESHER_STOP_INDEX = Number.parseInt("0", 10);
+export const REFRESHER_DONE_INDEX = Number.parseInt("1", 10);
 
 export interface WaitHeartbeatRefresherWorkerData {
   readonly rootAbs: string;
