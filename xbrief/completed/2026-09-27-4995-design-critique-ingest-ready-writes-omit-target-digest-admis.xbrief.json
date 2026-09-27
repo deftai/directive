@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4995",
-    "updated": "2026-09-27T18:29:34Z"
+    "updated": "2026-09-27T20:24:19Z"
   },
   "plan": {
     "title": "design-critique: ingest-ready writes omit target-digest admission",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "design-critique: ingest-ready writes omit target-digest admission",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4995",
@@ -15,7 +15,7 @@
     "items": [
       {
         "title": "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "merge",
@@ -26,7 +26,7 @@
       },
       {
         "title": "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "merge",
@@ -37,7 +37,7 @@
       },
       {
         "title": "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "merge",
@@ -48,7 +48,7 @@
       },
       {
         "title": "Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "merge",
@@ -60,7 +60,7 @@
       {
         "id": "clause.5",
         "title": "clause.5",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
@@ -71,7 +71,7 @@
       {
         "id": "clause.6",
         "title": "clause.6",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
@@ -82,7 +82,7 @@
       {
         "id": "clause.7",
         "title": "clause.7",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
@@ -93,7 +93,7 @@
       {
         "id": "clause.8",
         "title": "clause.8",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
@@ -104,7 +104,7 @@
       {
         "id": "clause.9",
         "title": "clause.9",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
@@ -115,7 +115,7 @@
       {
         "id": "clause.10",
         "title": "clause.10",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
@@ -439,7 +439,7 @@
         "mergeCommit": "1c261c70a6da37f3e3a436cabeaa916806ea255c",
         "deliveryBranch": "master",
         "deliveryCommit": "c6133fe3ab30c95890073815b2d15bae9d9d94e6",
-        "verifiedAt": "2026-09-27T20:22:27Z",
+        "verifiedAt": "2026-09-27T20:24:19Z",
         "verifier": "scope:complete",
         "disposition": "delivered",
         "handoffState": "delivered",
@@ -447,9 +447,15 @@
         "uatVerified": null
       },
       "deliveryDisposition": "delivered",
-      "handoffState": "delivered"
+      "handoffState": "delivered",
+      "completedAt": "2026-09-27T20:24:19Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-27T20:24:19Z"
+      }
     },
     "id": "github.issue.5560699607",
-    "updated": "2026-09-27T18:29:34Z"
+    "updated": "2026-09-27T20:24:19Z"
   }
 }
