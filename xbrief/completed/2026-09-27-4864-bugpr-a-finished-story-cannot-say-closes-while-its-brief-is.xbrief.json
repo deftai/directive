@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4864",
-    "updated": "2026-09-27T18:49:14Z"
+    "updated": "2026-09-27T20:26:33Z"
   },
   "plan": {
     "title": "bug(pr): a finished story cannot say Closes while its brief is still active",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(pr): a finished story cannot say Closes while its brief is still active",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4864",
@@ -17,7 +17,7 @@
       {
         "id": "clause.1",
         "title": "Keep PR-open gate composition: #3015 closing-keyword intent, #4628 refuse --allow-close while a running brief is in xbrief/active, and Tracking as the default body while the brief is active.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -28,7 +28,7 @@
       {
         "id": "clause.2",
         "title": "Do not make Tracking illegal for partial PRs.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -39,7 +39,7 @@
       {
         "id": "clause.3",
         "title": "Do not drop #3015 or #4628.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -50,7 +50,7 @@
       {
         "id": "clause.4",
         "title": "Do not reverse #4628 so Closes can land while the brief is running.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -61,7 +61,7 @@
       {
         "id": "clause.5",
         "title": "Own the post-merge open-issue hole: for a full-story PR, record full-story close intent at PR open (or equivalent durable mark), and apply GitHub issue close when the brief leaves active after merge / leftover-complete — composing with or extending closeOriginsAfterLeftoverComplete / the #4919 finalize path.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -72,7 +72,7 @@
       {
         "id": "clause.6",
         "title": "#3791 brief sweep alone is not this fix.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -83,7 +83,7 @@
       {
         "id": "clause.7",
         "title": "Keep protected umbrella / partial-PR non-close (isProtectedStayingOpenUmbrella and related closeout constraints).",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -94,7 +94,7 @@
       {
         "id": "clause.8",
         "title": "Partial PRs must not auto-close umbrellas.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -105,7 +105,7 @@
       {
         "id": "clause.9",
         "title": "Tests + CHANGELOG: full-story Tracking-while-active still passes; after merge + brief leave-active, origin closes without hand PATCH for the full-story case; umbrella/partial stays open.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -116,7 +116,7 @@
       {
         "id": "clause.10",
         "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5071",
@@ -430,9 +430,32 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "default"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5071,
+        "prBase": null,
+        "mergeCommit": "c6133fe3ab30c95890073815b2d15bae9d9d94e6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c6133fe3ab30c95890073815b2d15bae9d9d94e6",
+        "verifiedAt": "2026-09-27T20:26:33Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-27T20:26:33Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-27T20:26:33Z"
       }
     },
     "id": "github.issue.5540187641",
-    "updated": "2026-09-27T18:49:14Z"
+    "updated": "2026-09-27T20:26:33Z"
   }
 }
