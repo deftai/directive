@@ -10,8 +10,10 @@
  *
  * Membership (#4774): when an active xBRIEF is in the change set, the allowlist
  * SoT is merge-base `.deft/approved-scope/<plan-id>.json` fileScope (never live
- * HEAD file_scope). Missing merge-base approved-scope fails closed. Closed
- * exemption after a mint exists includes the bound active xBRIEF path.
+ * HEAD file_scope). Missing merge-base approved-scope fails closed when
+ * non-exempt paths ride along; xBRIEF-only (+ CHANGELOG / peer) is the
+ * first-story delivery path. Closed exemption after a mint exists includes the
+ * bound active xBRIEF path. Multi-story unions peer approved scopes.
  * Same-PR approval rewrite stays fail-closed.
  *
  * Intent-pin checks (#3385) remain for existing base-committed records.
@@ -711,7 +713,8 @@ export function evaluateScopeProvenance(
     }
 
     // Membership (#4774): allowlist SoT is merge-base approved-scope fileScope.
-    // Active xBRIEF in the change set with no merge-base record → fail closed.
+    // Non-exempt product paths with no merge-base record → fail closed; xBRIEF-only
+    // (+ CHANGELOG / peer) remains the first-story delivery path.
     let baseApprovedFileScope: readonly string[] | null = null;
     let baseApprovedReadError: string | null = null;
     if (planId !== null && approvalRecordRel !== null) {
@@ -760,12 +763,55 @@ export function evaluateScopeProvenance(
       continue;
     }
 
+    const peerXbriefRelPaths: string[] = [];
+    const peerApprovedFileScopes: string[][] = [];
+    if (activeEntries.length > 1) {
+      for (const other of activeEntries) {
+        if (other.rel === rel) continue;
+        peerXbriefRelPaths.push(other.rel);
+        let otherPayload: unknown;
+        try {
+          otherPayload = JSON.parse(other.raw) as unknown;
+        } catch {
+          continue;
+        }
+        const otherPlanId = extractPlanId(otherPayload);
+        if (otherPlanId === null) continue;
+        const otherApprovalRel = `.deft/approved-scope/${otherPlanId.replace(/[^a-zA-Z0-9._-]/g, "_")}.json`;
+        let otherScope: readonly string[] | null = null;
+        if (options.baseApprovedRecords !== undefined) {
+          const injected = options.baseApprovedRecords.get(otherPlanId);
+          if (injected !== undefined) {
+            otherScope = normalizeFileScope(injected.fileScope);
+          }
+        } else {
+          const otherBaseRead = readAtBase(otherApprovalRel);
+          if (otherBaseRead.kind === "text") {
+            const parsed = parseApprovedScopeRecordRaw(otherBaseRead.text);
+            if (
+              parsed !== null &&
+              isHumanApprovalStamp(parsed.humanApproval) &&
+              parsed.planId === otherPlanId &&
+              normalizeRepoRelPath(parsed.xbriefRelPath) === normalizeRepoRelPath(other.rel)
+            ) {
+              otherScope = normalizeFileScope(parsed.fileScope);
+            }
+          }
+        }
+        if (otherScope !== null) {
+          peerApprovedFileScopes.push([...otherScope]);
+        }
+      }
+    }
+
     const membershipHit = evaluateApprovedScopeMembership({
       xbriefRelPath: rel,
       planId: planId ?? rel,
       xbriefModifiedInChangeSet: modified,
       baseApprovedFileScope: modified ? baseApprovedFileScope : null,
       changedFiles: changed,
+      peerXbriefRelPaths,
+      peerApprovedFileScopes,
     });
     // Only emit membership when the xBRIEF is in the change set (helper no-ops otherwise).
     if (membershipHit !== null) {

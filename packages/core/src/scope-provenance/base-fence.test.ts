@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  evaluateApprovedScopeMembership,
   evaluateProductionScopeFence,
   isConcreteFileScopeEntry,
   isTestOrFixturePath,
@@ -93,5 +94,73 @@ describe("evaluateProductionScopeFence (#4956)", () => {
     });
     // glob is not concrete; concrete count 1 → allowance 2; one extra lands
     expect(hit).toBeNull();
+  });
+});
+
+describe("evaluateApprovedScopeMembership (#4774)", () => {
+  it("allows first-story xBRIEF-only (+ CHANGELOG) without merge-base mint", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: null,
+      changedFiles: ["xbrief/active/story.xbrief.json", "CHANGELOG.md"],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("fails closed when non-exempt product paths ride with no merge-base mint", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: null,
+      changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts", ".gitignore"],
+    });
+    expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(hit?.expandedPaths).toEqual(
+      expect.arrayContaining(["packages/core/src/a.ts", ".gitignore"]),
+    );
+    expect(hit?.remediation).toMatch(/merge base/i);
+    expect(hit?.remediation).toMatch(/not undeclared-by-design attestation/i);
+    expect(hit?.remediation).toMatch(/Same-PR approval rewrite stays fail-closed/i);
+    expect(hit?.remediation).not.toMatch(/undeclared-by-design skip/i);
+  });
+
+  it("unions peer approved scopes so multi-story PRs do not flag peer files", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story-a.xbrief.json",
+      planId: "story-a",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      peerXbriefRelPaths: ["xbrief/active/story-b.xbrief.json"],
+      peerApprovedFileScopes: [["packages/core/src/b.ts"]],
+      changedFiles: [
+        "xbrief/active/story-a.xbrief.json",
+        "xbrief/active/story-b.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/b.ts",
+        "CHANGELOG.md",
+      ],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("still flags paths outside own and peer approved scopes", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story-a.xbrief.json",
+      planId: "story-a",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      peerXbriefRelPaths: ["xbrief/active/story-b.xbrief.json"],
+      peerApprovedFileScopes: [["packages/core/src/b.ts"]],
+      changedFiles: [
+        "xbrief/active/story-a.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/orphan.ts",
+      ],
+    });
+    expect(hit?.kind).toBe("change-set-outside-approved-scope");
+    expect(hit?.expandedPaths).toEqual(["packages/core/src/orphan.ts"]);
   });
 });

@@ -10,8 +10,10 @@
  *
  * Separately, #4774 membership compares the PR change set to merge-base
  * `.deft/approved-scope/<plan-id>.json` fileScope (never live HEAD file_scope).
- * An active xBRIEF in the change set with no merge-base approved-scope record
- * fails closed — omitting file_scope is not undeclared-by-design attestation.
+ * Active xBRIEF + non-exempt product paths with no merge-base record fails
+ * closed — omitting file_scope is not undeclared-by-design attestation. An
+ * xBRIEF-only (+ CHANGELOG / peer) change set still has a first-story delivery
+ * path. Multi-story membership unions peer merge-base approved scopes.
  */
 
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
@@ -203,6 +205,13 @@ export interface ApprovedScopeMembershipInput {
    */
   readonly baseApprovedFileScope: readonly string[] | null;
   readonly changedFiles: readonly string[];
+  /** Peer active xBRIEF paths (multi-story); exempt from this story's extras. */
+  readonly peerXbriefRelPaths?: readonly string[];
+  /**
+   * Peer merge-base approved-scope fileScope lists. Unioned into the allowlist
+   * so a valid multi-story PR is not charged for another story's files (#4774).
+   */
+  readonly peerApprovedFileScopes?: readonly (readonly string[])[];
 }
 
 export interface ApprovedScopeMembershipFinding {
@@ -214,10 +223,15 @@ export interface ApprovedScopeMembershipFinding {
   readonly remediation: string;
 }
 
+function normalizeMembershipRel(raw: string): string {
+  return raw.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
 function remediationForMissingApprovedScope(planId: string): string {
   return (
     "Land a human-stamped `.deft/approved-scope/<plan-id>.json` on the merge base " +
-    `before a PR that carries the active xBRIEF (planId=${planId}). ` +
+    `(separate mint / prior land; planId=${planId}) before a PR that also changes ` +
+    "non-exempt product paths with the active xBRIEF. " +
     "Omitting file_scope is not undeclared-by-design attestation (#4774). " +
     "Same-PR approval rewrite stays fail-closed (#3145 / #3205)."
   );
@@ -236,8 +250,9 @@ function remediationForOutsideApprovedScope(extras: readonly string[]): string {
  *
  * Allowlist SoT is merge-base approved-scope fileScope, never live HEAD
  * file_scope. Closed exemptions after a mint exists: the bound active xBRIEF
- * path, plus CHANGELOG.md (existing free path). Missing merge-base record with
- * the xBRIEF in the change set fails closed.
+ * path, peer active xBRIEF paths, plus CHANGELOG.md. Missing merge-base record
+ * fails closed when non-exempt paths ride along; an xBRIEF-only (+ CHANGELOG /
+ * peer) change set is the first-story delivery path (not undeclared-by-design).
  */
 export function evaluateApprovedScopeMembership(
   input: ApprovedScopeMembershipInput,
@@ -246,30 +261,52 @@ export function evaluateApprovedScopeMembership(
     return null;
   }
 
-  const xbriefRel = input.xbriefRelPath.replace(/\\/g, "/").replace(/^\.\//, "");
+  const xbriefRel = normalizeMembershipRel(input.xbriefRelPath);
+  const peerXbriefs = new Set(
+    (input.peerXbriefRelPaths ?? [])
+      .map((p) => normalizeMembershipRel(p))
+      .filter((p) => p.length > 0),
+  );
+  const peerAllow = normalizeFileScope((input.peerApprovedFileScopes ?? []).flat());
 
   if (input.baseApprovedFileScope === null) {
+    const offenders: string[] = [];
+    const seen = new Set<string>();
+    for (const raw of input.changedFiles) {
+      const rel = normalizeMembershipRel(raw);
+      if (rel.length === 0 || seen.has(rel)) continue;
+      seen.add(rel);
+      if (rel === xbriefRel) continue;
+      if (rel === CHANGELOG_REL) continue;
+      if (peerXbriefs.has(rel)) continue;
+      if (peerAllow.length > 0 && pathMatchesFileScope(rel, peerAllow)) continue;
+      offenders.push(rel);
+    }
+    if (offenders.length === 0) {
+      return null;
+    }
     return {
       xbriefRelPath: xbriefRel,
       planId: input.planId,
       kind: "active-xbrief-modified-without-digest",
-      expandedPaths: [],
+      expandedPaths: offenders,
       detail:
-        "active xBRIEF in change set without merge-base approved-scope record; " +
-        "fail closed (#4774 C24)",
+        "active xBRIEF in change set without merge-base approved-scope record and " +
+        `non-exempt paths present (${offenders.join(", ")}); fail closed (#4774 C24)`,
       remediation: remediationForMissingApprovedScope(input.planId),
     };
   }
 
-  const allow = normalizeFileScope(input.baseApprovedFileScope);
+  const allow = normalizeFileScope([...input.baseApprovedFileScope, ...peerAllow]);
   const extras: string[] = [];
   const seen = new Set<string>();
   for (const raw of input.changedFiles) {
-    const rel = raw.replace(/\\/g, "/").replace(/^\.\//, "");
+    const rel = normalizeMembershipRel(raw);
     if (rel.length === 0 || seen.has(rel)) continue;
     seen.add(rel);
     if (rel === xbriefRel) continue;
     if (rel === CHANGELOG_REL) continue;
+    if (peerXbriefs.has(rel)) continue;
     if (pathMatchesFileScope(rel, allow)) continue;
     extras.push(rel);
   }

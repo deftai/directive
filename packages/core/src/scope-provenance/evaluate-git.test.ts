@@ -136,6 +136,27 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
     expect(result.findings[0]?.detail).toMatch(/#4774/);
   });
 
+  it("allows first-story delivery when only the active xBRIEF lands (#4774)", () => {
+    root = initRepo();
+    writeTracked(root, "README.md", "seed\n");
+    commit(root, "base seed");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "brief-only"]);
+    writeTracked(
+      root,
+      "xbrief/active/story.xbrief.json",
+      `${JSON.stringify(xbrief("story-1", ["packages/core/src/foo.ts"]), null, 2)}\n`,
+    );
+    commit(root, "first story brief only");
+
+    const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.some((f) => f.kind === "active-xbrief-modified-without-digest")).toBe(
+      false,
+    );
+  });
+
   it("fails when production extras exceed the base allowance", () => {
     root = initRepo();
     const planId = "story-1";

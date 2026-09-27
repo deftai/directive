@@ -223,6 +223,83 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     });
     expect(result.exitCode).toBe(0);
   });
+
+  it("allows first-story delivery when only the active xBRIEF (+ CHANGELOG) lands", () => {
+    const result = evaluateScopeProvenance("/tmp/proj-first-story", {
+      changedFiles: ["xbrief/active/story.xbrief.json", "CHANGELOG.md"],
+      activeXbriefs: new Map([
+        [
+          "xbrief/active/story.xbrief.json",
+          JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"])),
+        ],
+      ]),
+      approvedRecords: [],
+      baseApprovedRecords: new Map(),
+      baseXbriefs: new Map(),
+      enforce: false,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.some((f) => f.kind === "active-xbrief-modified-without-digest")).toBe(
+      false,
+    );
+  });
+
+  it("unions peer merge-base approved scopes for multi-story membership", () => {
+    const approvedA = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story-a.xbrief.json",
+      payload: xbrief("story-a", ["packages/core/src/a.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const approvedB = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story-b.xbrief.json",
+      payload: xbrief("story-b", ["packages/core/src/b.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const result = evaluateScopeProvenance("/tmp/proj-multi-story", {
+      changedFiles: [
+        "xbrief/active/story-a.xbrief.json",
+        "xbrief/active/story-b.xbrief.json",
+        "packages/core/src/a.ts",
+        "packages/core/src/b.ts",
+        "CHANGELOG.md",
+      ],
+      activeXbriefs: new Map([
+        [
+          "xbrief/active/story-a.xbrief.json",
+          JSON.stringify(xbrief("story-a", ["packages/core/src/a.ts"])),
+        ],
+        [
+          "xbrief/active/story-b.xbrief.json",
+          JSON.stringify(xbrief("story-b", ["packages/core/src/b.ts"])),
+        ],
+      ]),
+      approvedRecords: [approvedA, approvedB],
+      baseApprovedRecords: new Map([
+        ["story-a", approvedA],
+        ["story-b", approvedB],
+      ]),
+      baseXbriefs: new Map([
+        [
+          "xbrief/active/story-a.xbrief.json",
+          JSON.stringify(xbrief("story-a", ["packages/core/src/a.ts"])),
+        ],
+        [
+          "xbrief/active/story-b.xbrief.json",
+          JSON.stringify(xbrief("story-b", ["packages/core/src/b.ts"])),
+        ],
+      ]),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.some((f) => f.kind === "change-set-outside-approved-scope")).toBe(false);
+  });
 });
 
 describe("evaluateScopeProvenance base-brief fence (#4956)", () => {
