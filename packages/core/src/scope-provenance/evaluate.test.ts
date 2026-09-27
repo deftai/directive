@@ -179,13 +179,18 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
       approvedRecords: [approved],
       baseApprovedRecords: new Map([["story-1", approved]]),
       baseXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"]))],
+        [
+          "xbrief/active/story.xbrief.json",
+          JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"])),
+        ],
       ]),
     });
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "change-set-outside-approved-scope")).toBe(true);
     const hit = result.findings.find((f) => f.kind === "change-set-outside-approved-scope");
-    expect(hit?.expandedPaths).toEqual(expect.arrayContaining(["packages/core/src/b.ts", ".gitignore"]));
+    expect(hit?.expandedPaths).toEqual(
+      expect.arrayContaining(["packages/core/src/b.ts", ".gitignore"]),
+    );
     expect(hit?.expandedPaths).not.toContain("xbrief/active/story.xbrief.json");
   });
 
@@ -202,12 +207,18 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     const result = evaluateScopeProvenance("/tmp/proj-exempt", {
       changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts", "CHANGELOG.md"],
       activeXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"]))],
+        [
+          "xbrief/active/story.xbrief.json",
+          JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"])),
+        ],
       ]),
       approvedRecords: [approved],
       baseApprovedRecords: new Map([["story-1", approved]]),
       baseXbriefs: new Map([
-        ["xbrief/active/story.xbrief.json", JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"]))],
+        [
+          "xbrief/active/story.xbrief.json",
+          JSON.stringify(xbrief("story-1", ["packages/core/src/a.ts"])),
+        ],
       ]),
     });
     expect(result.exitCode).toBe(0);

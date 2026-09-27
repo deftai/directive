@@ -3,6 +3,9 @@
  */
 
 export {
+  type ApprovedScopeMembershipFinding,
+  type ApprovedScopeMembershipInput,
+  type ApprovedScopeMembershipKind,
   CHANGELOG_REL,
   concreteProductionScopeEntries,
   evaluateApprovedScopeMembership,
@@ -12,9 +15,6 @@ export {
   isTestOrFixturePath,
   PRODUCTION_ALLOWANCE_CAP,
   PRODUCTION_ALLOWANCE_FLOOR,
-  type ApprovedScopeMembershipFinding,
-  type ApprovedScopeMembershipInput,
-  type ApprovedScopeMembershipKind,
   type ProductionScopeFenceFinding,
   type ProductionScopeFenceInput,
   pathMatchesFileScope,

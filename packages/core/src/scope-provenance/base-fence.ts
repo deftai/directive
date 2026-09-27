@@ -283,8 +283,7 @@ export function evaluateApprovedScopeMembership(
     planId: input.planId,
     kind: "change-set-outside-approved-scope",
     expandedPaths: extras,
-    detail:
-      `changed paths outside merge-base approved-scope fileScope (#4774): ${extras.join(", ")}`,
+    detail: `changed paths outside merge-base approved-scope fileScope (#4774): ${extras.join(", ")}`,
     remediation: remediationForOutsideApprovedScope(extras),
   };
 }
