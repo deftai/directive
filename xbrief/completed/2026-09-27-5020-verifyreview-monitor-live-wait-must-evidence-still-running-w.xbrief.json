@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5020",
-    "updated": "2026-09-27T18:43:17.779Z"
+    "updated": "2026-09-27T21:09:07Z"
   },
   "plan": {
     "title": "verify:review-monitor --live-wait must evidence still-running wait (not lease+flag alone)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "verify:review-monitor --live-wait must evidence still-running wait (not lease+flag alone)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5020",
@@ -17,7 +17,7 @@
       {
         "id": "clause.1",
         "title": "verify:review-monitor --merge-path-arm --live-wait fails closed unless process-liveness (or equivalent host-visible wait identity that cannot outlive the process) is evidenced for this PR's phase-correct wait.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -28,7 +28,7 @@
       {
         "id": "clause.2",
         "title": "Prefer wiring existing hasActivePollingHeartbeat / verify:subagent-alive seams.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -39,7 +39,7 @@
       {
         "id": "clause.3",
         "title": "Do not invent a third poller family.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -50,7 +50,7 @@
       {
         "id": "clause.4",
         "title": "Alternatively, the sticky lease auto-clears when the wait exits so lease presence cannot outlive the process.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -61,7 +61,7 @@
       {
         "id": "clause.5",
         "title": "Lease+flag attestation alone must not arm merge-path stand-down after the wait is dead.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -72,7 +72,7 @@
       {
         "id": "clause.6",
         "title": "#5018 refuse-unarmed remains; this issue closes the dead-wait-plus-sticky-lease window.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -83,7 +83,7 @@
       {
         "id": "clause.7",
         "title": "Until item 1 lands, leftover / completed-brief wording must not claim the durable-wait clause complete on lease+flag attestation alone (disposition / wording honesty; Greptile #5019 class).",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -94,7 +94,7 @@
       {
         "id": "clause.8",
         "title": "Lease TTL / DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -105,7 +105,7 @@
       {
         "id": "clause.9",
         "title": "Tests lock: wait exits while lease sticky => --merge-path-arm --live-wait not armed (or lease cleared); leftover wording cannot stamp durable-wait complete on attestation alone.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -116,7 +116,7 @@
       {
         "id": "clause.10",
         "title": "CHANGELOG Unreleased line.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -127,7 +127,7 @@
       {
         "id": "clause.11",
         "title": "Child of #4832; supersedes remaining honesty gap after #4882.",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -138,7 +138,7 @@
       {
         "id": "clause.12",
         "title": "relieves: P1 relieves: P2 Target-digest: sha256:d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5072",
@@ -426,7 +426,30 @@
         "algorithm": "sha256",
         "sha256": "d60fc2f4817b62a0720f5461cd9d4bf0903785db2afd73bc92820e10f6fcd6b8"
       },
-      "productPullRequest": 5072
+      "productPullRequest": 5072,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5072,
+        "prBase": null,
+        "mergeCommit": "9d19bddff15018705a2d1caab0f3d2d738cc4708",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9d19bddff15018705a2d1caab0f3d2d738cc4708",
+        "verifiedAt": "2026-09-27T21:09:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-27T21:09:07Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-27T21:09:07Z"
+      }
     },
     "acceptance": {
       "commands": [
@@ -533,6 +556,6 @@
       ]
     },
     "id": "github.issue.5574452970",
-    "updated": "2026-09-27T18:43:17.779Z"
+    "updated": "2026-09-27T21:09:07Z"
   }
 }
