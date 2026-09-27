@@ -129,16 +129,15 @@ export function clampVerifyAcExit(ok: boolean, code: number): number {
 
 /**
  * Spec-path briefs persist the refused GitHub body under plan.metadata.issueBody
- * (#4524 / #5055). Live recovery must use the Bound-remedy harvest (Overview),
- * not that refused raw body.
+ * (#4524 / #5055), including empty string when the origin body was empty. Live
+ * recovery must use the Bound-remedy harvest (Overview), not body-normative REST.
  */
 function planHasSpecPathRefusedBody(plan: Record<string, unknown>): boolean {
   const meta = asRecord(plan.metadata);
   if (meta === null) {
     return false;
   }
-  const body = meta.issueBody;
-  return typeof body === "string" && body.trim().length > 0;
+  return Object.hasOwn(meta, "issueBody") && typeof meta.issueBody === "string";
 }
 
 /**

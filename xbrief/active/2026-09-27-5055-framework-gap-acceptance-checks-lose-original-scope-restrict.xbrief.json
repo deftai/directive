@@ -160,7 +160,6 @@
       ],
       "ambiguity_attestation": "none_found",
       "admitted_source_sentences": [
-        "[framework-gap] Acceptance checks lose original scope restrictions when an agent rewrites an ingested brief",
         "Selector: every admitted-source sentence is identity-bearing.",
         "The filed wording \"Presentation changes only; do not change persistence or backend processing\" is in that set and in the item 8 fixture.",
         "Met-predicate: `verify:ac` owns visibility only.",
@@ -183,7 +182,7 @@
         "#4774 stays PR membership.",
         "Tests lock the P1 recipe (Overview rewrite plus stored list deleted) fail-closed; restoration as a same-text clause pass; confession of an admitted identity fail-closed; digest mismatch against live REST refuse; Spec-path refused-body exclusion."
       ],
-      "admitted_source_digest": "fa9c86910e63b7fc0a08cb0bb9425a6b5d0b2ad5bbebd135e62b761f9fd3df4b"
+      "admitted_source_digest": "6f0f35c0669b18b19e0d2058abdbf527ceb2436f3d92fa840f9ae15881844758"
     },
     "metadata": {
       "intended_placement": {

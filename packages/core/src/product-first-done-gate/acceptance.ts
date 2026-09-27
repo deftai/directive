@@ -391,6 +391,31 @@ function statementSentencesOnPlan(plan: Record<string, unknown>): string[] {
   return out;
 }
 
+/**
+ * Admitted-source sentences for the first-ingest pin (#5055 Bound).
+ * Body-normative: Overview is the issue-body copy. Spec-path: Overview is the
+ * Bound-remedy harvest. Title/items are not the admitted-source selector — mixing
+ * them makes live REST / harvest digest compare fail on an unchanged brief.
+ */
+function admittedSourceSentencesOnPlan(plan: Record<string, unknown>): string[] {
+  const narratives = asRecord(plan.narratives);
+  const overview = narratives?.Overview;
+  if (!isNonEmptyString(overview)) {
+    return [];
+  }
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const sentence of extractStatementSentences(overview.trim())) {
+    const key = sentence.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(sentence);
+  }
+  return out;
+}
+
 function preservedAcceptanceList(
   previous: Record<string, unknown> | null,
   key:
@@ -536,14 +561,12 @@ export function stampAcceptanceFromLiteralCapture(
   // #3550: the sentence list is text on the brief. A restamp keeps one that
   // is already there. Intake populates it from the statement when it is absent.
   const keptSentences = preservedAcceptanceList(previous, "sentences");
-  let mintedSentences: string[] | undefined;
   if (keptSentences !== undefined) {
     serializable.sentences = keptSentences;
   } else {
     const sentences = statementSentencesOnPlan(plan);
     if (sentences.length > 0) {
       serializable.sentences = sentences;
-      mintedSentences = sentences;
     }
   }
   const keptConfessions = preservedAcceptanceList(previous, "confessions");
@@ -561,12 +584,9 @@ export function stampAcceptanceFromLiteralCapture(
       serializable[ADMITTED_SOURCE_DIGEST_KEY] = keptDigest;
     }
   } else if (previous === null) {
-    const pin =
-      mintedSentences ??
-      (Array.isArray(serializable.sentences)
-        ? (readNonEmptyStringListLocal(serializable.sentences) ?? undefined)
-        : undefined);
-    if (pin !== undefined && pin.length > 0) {
+    // Same selector as live compare: Overview (issue body or Spec-path harvest).
+    const pin = admittedSourceSentencesOnPlan(plan);
+    if (pin.length > 0) {
       serializable[ADMITTED_SOURCE_SENTENCES_KEY] = pin;
       serializable[ADMITTED_SOURCE_DIGEST_KEY] = digestAdmittedSourceSentences(pin);
     }

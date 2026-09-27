@@ -384,9 +384,11 @@ export function runTransition(
 
     // #3357 / #4060: one bank-aware walk. Resolve-then-match-then-execute lives
     // inside evaluateScopeCompleteAcceptanceWalk. Do not run a standalone executor first.
+    // Pass xbriefPath so admitted-source git pin recovery cannot select a peer (#5055).
     const acWalk = evaluateScopeCompleteAcceptanceWalk(planObj, {
       projectRoot,
       runner: options.acceptanceRunner,
+      xbriefPath: resolvedPath,
     });
     if (!acWalk.ok) {
       return {

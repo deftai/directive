@@ -549,8 +549,9 @@ function persistVerifyAcSessionCache(
 }
 
 /**
- * Locate an active brief path for plan.id so plan-only readers (scope:complete)
- * can recover the admitted-source pin from git (#5055).
+ * Locate an active brief path for plan.id so plan-only readers can recover the
+ * admitted-source pin from git (#5055). Prefer a unique match; never pick an
+ * arbitrary peer when multiple active briefs share the same id.
  */
 function findActiveBriefPathForPlan(
   projectRoot: string,
@@ -560,6 +561,7 @@ function findActiveBriefPathForPlan(
   if (planId === null) {
     return null;
   }
+  const matches: string[] = [];
   for (const dirName of ["xbrief", "vbrief"] as const) {
     const active = join(projectRoot, dirName, "active");
     if (!existsSync(active)) {
@@ -580,20 +582,20 @@ function findActiveBriefPathForPlan(
         const root = asRecord(parsed);
         const briefPlan = asRecord(root?.plan);
         if (briefPlan !== null && briefPlan.id === planId) {
-          return abs;
+          matches.push(abs);
         }
       } catch {
         // Skip unreadable peers; recovery is best-effort.
       }
     }
   }
-  return null;
+  return matches.length === 1 ? (matches[0] ?? null) : null;
 }
 
 /**
  * Resolve git admitted-source pin for plan evaluation (#5055).
- * Uses options.xbriefPath when set; otherwise scans active/ by plan.id so
- * scope:complete matches standalone verify:ac missing-pin recovery.
+ * Prefer options.xbriefPath; else a unique active/ match by plan.id. Ambiguous
+ * id matches fail closed (no peer pin) — callers must pass xbriefPath.
  */
 function resolveAdmittedSourceGitPin(
   plan: Record<string, unknown>,
@@ -1327,14 +1329,16 @@ function formatMissingAdmittedIdentities(missing: readonly string[]): string {
   ].join("\n");
 }
 
-/** Spec-path briefs persist the refused GitHub body under plan.metadata.issueBody (#4524). */
+/**
+ * Spec-path briefs persist the refused GitHub body under plan.metadata.issueBody
+ * (#4524 / #5055), including empty string when the origin body was empty.
+ */
 function planHasSpecPathRefusedBody(plan: Record<string, unknown>): boolean {
   const meta = asRecord(plan.metadata);
   if (meta === null) {
     return false;
   }
-  const body = meta.issueBody;
-  return typeof body === "string" && body.trim().length > 0;
+  return Object.hasOwn(meta, "issueBody") && typeof meta.issueBody === "string";
 }
 
 /**

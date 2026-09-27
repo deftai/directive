@@ -1421,11 +1421,10 @@ function persistRefusedIssueBodyOnPlan(
   body: string,
   issueNumber: number,
 ): void {
-  if (body.length === 0) {
-    return;
-  }
+  // Always set the key on Spec-path — including empty body — so verify:ac can
+  // select harvest/Overview instead of falling through to body-normative REST (#5055).
   const meta = planMetadataRecord(plan);
-  meta[ISSUE_BODY_KEY] = scanUntrustedIngestText(issueNumber, body);
+  meta[ISSUE_BODY_KEY] = body.length === 0 ? "" : scanUntrustedIngestText(issueNumber, body);
   plan.metadata = meta;
 }
 

@@ -3,7 +3,7 @@
  * clause nor an explicit confession fails the oracle walk. An existence
  * clause or a quoted-token clause that verifies does not cover it.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -717,6 +717,48 @@ describe("admitted-source identity floor (#5055)", () => {
     expect(acceptance[ADMITTED_SOURCE_DIGEST_KEY]).toBe(digestAdmittedSourceSentences(pinned));
   });
 
+  it("first-stamp pin matches Overview/body selector so unchanged live compare passes", () => {
+    const plan = presentationRestrictionBrief();
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[];
+    // Title diverges from the body; pin must not include it (#5055 P1).
+    expect(pinned).not.toContain("Useful UI outcome");
+    const overview = (plan.narratives as Record<string, string>).Overview;
+    const overviewDigest = digestAdmittedSourceSentences(
+      extractStatementSentences(overview).map((s) => s.trim().replace(/\s+/g, " ")),
+    );
+    expect(acceptance[ADMITTED_SOURCE_DIGEST_KEY]).toBe(overviewDigest);
+
+    const clauses = (acceptance.clauses as { text: string; artifact_path: string | null }[]) ?? [];
+    let nextId = clauses.length + 1;
+    for (const text of pinned) {
+      if (clauses.some((clause) => clause.text === text)) {
+        continue;
+      }
+      clauses.push({
+        id: nextId,
+        text,
+        artifact_path: "probe.txt",
+        ambiguous: false,
+      } as never);
+      nextId += 1;
+    }
+    acceptance.clauses = clauses;
+    acceptance.sentences = pinned;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: null,
+      fetchAdmittedSourceText: () => ({
+        ok: true,
+        text: presentationRestrictionBody(),
+      }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.cause).not.toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+  });
+
   it("fails closed on Overview rewrite plus stored sentence list deleted (P1 recipe)", () => {
     const plan = presentationRestrictionBrief();
     const acceptance = plan.acceptance as Record<string, unknown>;
@@ -1106,5 +1148,119 @@ describe("admitted-source identity floor (#5055)", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE);
+  });
+
+  it("empty-body Spec-path live recovery uses Overview harvest, not body-normative REST", () => {
+    const harvestText = [
+      "Do the positive remedy only.",
+      PRESENTATION_RESTRICTION,
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ].join("\n");
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 5055,
+        title: "Empty-body Spec-path",
+        body: "",
+        labels: [],
+      },
+      "proposed",
+      "https://github.com/deftai/directive",
+      {
+        specPathHarvest: {
+          sourceText: harvestText,
+          items: [
+            { title: "Do the positive remedy only.", status: "pending" },
+            { title: PRESENTATION_RESTRICTION, status: "pending" },
+            { title: "probe.txt exists", status: "pending" },
+            { title: 'probe.txt contains "marker-token-3550"', status: "pending" },
+          ],
+        },
+      },
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    expect((plan.metadata as Record<string, unknown>).issueBody).toBe("");
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[];
+    expect(pinned).toEqual(expect.arrayContaining([PRESENTATION_RESTRICTION]));
+
+    const clauses = (acceptance.clauses as { text: string; artifact_path: string | null }[]) ?? [];
+    let nextId = clauses.length + 1;
+    for (const text of pinned) {
+      if (clauses.some((clause) => clause.text === text)) {
+        continue;
+      }
+      clauses.push({
+        id: nextId,
+        text,
+        artifact_path: "probe.txt",
+        ambiguous: false,
+      } as never);
+      nextId += 1;
+    }
+    acceptance.clauses = clauses;
+    acceptance.sentences = pinned;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: null,
+      // Simulate CLI Spec-path selector: harvest/Overview, not empty REST body.
+      fetchAdmittedSourceText: () => ({
+        ok: true,
+        text: (plan.narratives as Record<string, string>).Overview,
+      }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.cause).not.toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+  });
+
+  it("ambiguous plan.id without xbriefPath does not adopt a peer pin", () => {
+    const root = writeProbeRoot();
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+
+    const sharedId = "github.issue.5055-ambiguous";
+    const peerPlan = presentationRestrictionBrief();
+    peerPlan.id = sharedId;
+
+    const targetPlan = presentationRestrictionBrief();
+    targetPlan.id = sharedId;
+    bindProbeClauses(targetPlan);
+    const targetAcceptance = targetPlan.acceptance as Record<string, unknown>;
+    const pinned = [...(targetAcceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[])];
+    // Working pin deleted; digest remains. Ambiguous active/ scan must not pick a peer.
+    delete targetAcceptance[ADMITTED_SOURCE_SENTENCES_KEY];
+    delete targetAcceptance.sentences;
+
+    writeFileSync(
+      join(active, "a-peer.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: peerPlan }),
+      "utf8",
+    );
+    const targetPath = join(active, "b-target.xbrief.json");
+    writeFileSync(
+      targetPath,
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: targetPlan }),
+      "utf8",
+    );
+
+    const ambiguous = evaluateVerifyAcFromPlan(targetPlan, {
+      ...baseOptions(root),
+    });
+    expect(ambiguous.ok).toBe(false);
+    expect(ambiguous.cause).toBe(ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE);
+
+    // scope:complete passes xbriefPath; merge-base for that path restores identities.
+    const withPath = evaluateVerifyAcFromPlan(targetPlan, {
+      ...baseOptions(root),
+      xbriefPath: targetPath,
+      admittedSourceMergeBase: {
+        sentences: pinned,
+        digest: digestAdmittedSourceSentences(pinned),
+      },
+    });
+    expect(withPath.ok).toBe(false);
+    expect(withPath.message).toContain(PRESENTATION_RESTRICTION);
   });
 });

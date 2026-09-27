@@ -1706,6 +1706,28 @@ describe("buildIssueVbrief Spec-path Overview placement (#4524)", () => {
     expect(narratives.Overview).toContain("```rhai");
     expect(meta[ISSUE_BODY_KEY]).toBeUndefined();
   });
+
+  it("persists empty-string issueBody on Spec-path when the origin body is empty (#5055)", () => {
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 5055,
+        title: "empty-body Spec-path",
+        url: "https://github.com/o/r/issues/5055",
+        body: "",
+        labels: [],
+      },
+      "proposed",
+      "https://github.com/o/r",
+      { specPathHarvest: harvest },
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    const meta = (plan.metadata ?? {}) as Record<string, unknown>;
+    expect(Object.hasOwn(meta, ISSUE_BODY_KEY)).toBe(true);
+    expect(meta[ISSUE_BODY_KEY]).toBe("");
+    expect((plan.narratives as Record<string, string>).Overview).toContain(
+      "Replace Overview with harvest remainder",
+    );
+  });
 });
 
 describe("ingestOne Target-digest (#4243)", () => {
