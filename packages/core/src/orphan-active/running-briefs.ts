@@ -88,3 +88,28 @@ export function productPullRequestFromPlan(plan: Record<string, unknown>): numbe
   }
   return null;
 }
+
+/**
+ * Record or preserve full-story delivery bind (#4864): set metadata.productPullRequest.
+ * No-op success when already equal. Refuses overwrite of a different positive stamp.
+ * Leftover-complete must keep this field so completed briefs still bind the product PR.
+ */
+export function stampProductPullRequestOntoPlan(
+  plan: Record<string, unknown>,
+  prNumber: number,
+): boolean {
+  if (!Number.isInteger(prNumber) || prNumber <= 0) {
+    return false;
+  }
+  const existing = productPullRequestFromPlan(plan);
+  if (existing !== null && existing !== prNumber) {
+    return false;
+  }
+  const metadata = plan.metadata;
+  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) {
+    plan.metadata = { productPullRequest: prNumber };
+    return true;
+  }
+  (metadata as Record<string, unknown>).productPullRequest = prNumber;
+  return true;
+}

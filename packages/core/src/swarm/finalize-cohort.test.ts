@@ -16,6 +16,7 @@ vi.mock("../scope/transition.js", () => ({
 }));
 
 import { CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION } from "../intake/clause-derivation.js";
+import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { runTransition } from "../scope/transition.js";
 import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
@@ -1201,8 +1202,8 @@ describe("finalizeCohort", () => {
 
   it("origin-closes from PR-body deft-story mark after leftover land without --stories (#4864)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-deft-story-"));
-    // Leftover-complete does not stamp productPullRequest; PR-body intent alone must close.
-    writeCompletedStory(project, "story-4864", 4864);
+    // Leftover-complete preserves/stamps productPullRequest so completed briefs bind.
+    writeCompletedStory(project, "story-4864", 4864, { productPullRequest: 5100 });
     const ghCalls: string[][] = [];
     const runGh = mockRunGh(
       {
@@ -1232,6 +1233,45 @@ describe("finalizeCohort", () => {
     expect(
       ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4864"))),
     ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses deft-story mark when completed brief lacks productPullRequest (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-completed-absent-"));
+    writeCompletedStory(project, "story-9999", 9999);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        5200: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #4864\n\ndeft-story: 9999\n",
+        },
+      },
+      { 9999: "open", 4864: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5200],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-9999.xbrief.json"] }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("does not bind PR delivery") && e.includes("#9999"),
+      ),
+    ).toBe(true);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/9999"))),
+    ).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1498,6 +1538,11 @@ describe("finalizeCohort", () => {
         deliveryEvidence: expect.objectContaining({ prNumber: 42, prBase: "master" }),
       }),
     );
+    // Leftover-complete stamps productPullRequest so completed briefs still bind (#4864).
+    const stamped = JSON.parse(readFileSync(storyPath, "utf8")) as {
+      plan: Record<string, unknown>;
+    };
+    expect(productPullRequestFromPlan(stamped.plan)).toBe(42);
     rmSync(project, { recursive: true, force: true });
   });
 

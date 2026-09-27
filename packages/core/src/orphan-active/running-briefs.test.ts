@@ -5,6 +5,8 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   listActiveRunningBriefs,
   listActiveRunningBriefsFromLifecycleRoot,
+  productPullRequestFromPlan,
+  stampProductPullRequestOntoPlan,
 } from "./running-briefs.js";
 
 describe("listActiveRunningBriefs (#4628)", () => {
@@ -67,5 +69,17 @@ describe("listActiveRunningBriefs (#4628)", () => {
     const root = makeRoot();
     mkdirSync(join(root, "vbrief"));
     expect(listActiveRunningBriefs(root)).toEqual([]);
+  });
+});
+
+describe("stampProductPullRequestOntoPlan (#4864)", () => {
+  it("stamps absent metadata, preserves match, refuses overwrite", () => {
+    const plan: Record<string, unknown> = { status: "running" };
+    expect(stampProductPullRequestOntoPlan(plan, 5100)).toBe(true);
+    expect(productPullRequestFromPlan(plan)).toBe(5100);
+    expect(stampProductPullRequestOntoPlan(plan, 5100)).toBe(true);
+    expect(stampProductPullRequestOntoPlan(plan, 5200)).toBe(false);
+    expect(productPullRequestFromPlan(plan)).toBe(5100);
+    expect(stampProductPullRequestOntoPlan(plan, 0)).toBe(false);
   });
 });

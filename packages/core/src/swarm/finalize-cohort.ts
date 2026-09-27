@@ -1,12 +1,15 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
 import { extractIssueRef } from "../capacity/backfill.js";
 import { composeDocsImpactBody, verifyDocsImpactBodyFile } from "../docs/docs-impact.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
-import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
+import {
+  productPullRequestFromPlan,
+  stampProductPullRequestOntoPlan,
+} from "../orphan-active/running-briefs.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
@@ -414,12 +417,10 @@ function collectProductPullRequestOrigins(
 
 /**
  * PR-body `deft-story: N` may bind only when this PR is delivery for N (#4864):
- * - active: metadata.productPullRequest must equal this PR (unrelated PR must not bind)
- * - completed: brief for N is enough when productPullRequest is absent or matches
- *   (leftover-complete does not stamp productPullRequest; PR-body intent still closes)
+ * active or completed brief for N with metadata.productPullRequest === this PR.
+ * Absent stamp never binds (unrelated completed issue must not close).
  */
 function deftStoryMarkBindsDelivery(projectRoot: string, issue: number, prNumber: number): boolean {
-  let sawCompletedForIssue = false;
   for (const folder of [
     "xbrief/active",
     "vbrief/active",
@@ -430,7 +431,6 @@ function deftStoryMarkBindsDelivery(projectRoot: string, issue: number, prNumber
     if (!existsSync(dir)) {
       continue;
     }
-    const isActive = folder.endsWith("/active");
     for (const name of readdirSync(dir)) {
       if (!name.endsWith(".json")) {
         continue;
@@ -448,25 +448,56 @@ function deftStoryMarkBindsDelivery(projectRoot: string, issue: number, prNumber
         if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
           continue;
         }
-        const productPr = productPullRequestFromPlan(plan as Record<string, unknown>);
-        if (isActive) {
-          if (productPr === prNumber) {
-            return true;
-          }
-          continue;
-        }
-        if (productPr === prNumber) {
+        if (productPullRequestFromPlan(plan as Record<string, unknown>) === prNumber) {
           return true;
-        }
-        if (productPr === null) {
-          sawCompletedForIssue = true;
         }
       } catch {
         /* unreadable brief — try next */
       }
     }
   }
-  return sawCompletedForIssue;
+  return false;
+}
+
+/**
+ * Persist productPullRequest on an active brief before leftover-complete so the
+ * completed artifact still binds this PR for deft-story origin-close (#4864).
+ */
+function stampProductPullRequestOnBriefFile(
+  projectRoot: string,
+  briefPath: string,
+  prNumber: number,
+): boolean {
+  if (!Number.isInteger(prNumber) || prNumber <= 0) {
+    return false;
+  }
+  try {
+    const raw = JSON.parse(readFileSync(briefPath, "utf8")) as unknown;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return false;
+    }
+    const data = raw as Record<string, unknown>;
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      return false;
+    }
+    const planObj = plan as Record<string, unknown>;
+    if (productPullRequestFromPlan(planObj) === prNumber) {
+      return true;
+    }
+    if (!stampProductPullRequestOntoPlan(planObj, prNumber)) {
+      return false;
+    }
+    containedWrite({
+      root: projectRoot,
+      target: relative(projectRoot, briefPath),
+      data: `${JSON.stringify(data, null, 2)}\n`,
+      mode: "replace",
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function listLandedCompletedRelpaths(
@@ -1366,9 +1397,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           if (!deftStoryMarkBindsDelivery(projectRoot, issue, prNumber)) {
             errors.push(
               `#${String(issue)}: deft-story mark on PR #${String(prNumber)} does not bind PR delivery ` +
-                `(need active brief #${String(issue)} with metadata.productPullRequest=${String(prNumber)}, ` +
-                `or a completed brief for #${String(issue)} whose productPullRequest is absent or ` +
-                `equals ${String(prNumber)}) (#4864).`,
+                `(need active or completed brief #${String(issue)} with ` +
+                `metadata.productPullRequest=${String(prNumber)}) (#4864).`,
             );
             continue;
           }
@@ -1751,6 +1781,19 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
 
     let sweep: SweepResult | null = null;
     if (!skipSweep) {
+      // Stamp on the sweep root (checkout or project) so leftover-complete preserves bind (#4864).
+      if (!dryRun) {
+        for (const storyPath of sweepStories) {
+          const evidence =
+            sweepEvidence.get(resolve(storyPath)) ??
+            sweepEvidence.get(storyPath) ??
+            defaultEvidence;
+          const prNumber = evidence?.prNumber;
+          if (typeof prNumber === "number" && Number.isInteger(prNumber) && prNumber > 0) {
+            stampProductPullRequestOnBriefFile(sweepRoot, storyPath, prNumber);
+          }
+        }
+      }
       const hasDelivery = sweepEvidence.size > 0 || defaultEvidence !== null;
       const sweepResult = completeCohort({
         stories: sweepStories,
