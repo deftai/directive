@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4919",
-    "updated": "2026-09-27T21:12:51Z"
+    "updated": "2026-09-27T23:19:27Z"
   },
   "plan": {
     "title": "bug(swarm): a merged Tracking story is finalized by hand, one brief at a time",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(swarm): a merged Tracking story is finalized by hand, one brief at a time",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4919",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Leftover-complete for #4919 after product PR #5076.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "merge",
@@ -27,7 +27,7 @@
       },
       {
         "title": "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "merge",
@@ -38,7 +38,7 @@
       },
       {
         "title": "A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/evidence": {
           "kind": "merge",
@@ -49,7 +49,7 @@
       },
       {
         "title": "A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/evidence": {
           "kind": "merge",
@@ -60,7 +60,7 @@
       },
       {
         "title": "`--allow-close` while that brief is in `xbrief/active/` still fails (#4628)",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/evidence": {
           "kind": "merge",
@@ -71,7 +71,7 @@
       },
       {
         "title": "Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl`",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/evidence": {
           "kind": "merge",
@@ -82,7 +82,7 @@
       },
       {
         "title": "Parked stories with no merged pull request, and protected staying-open umbrellas, stay open",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/evidence": {
           "kind": "merge",
@@ -93,7 +93,7 @@
       },
       {
         "title": "From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/`",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/evidence": {
           "kind": "merge",
@@ -104,7 +104,7 @@
       },
       {
         "title": "Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.9",
         "x-directive/evidence": {
           "kind": "merge",
@@ -115,7 +115,7 @@
       },
       {
         "title": "A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.10",
         "x-directive/evidence": {
           "kind": "merge",
@@ -126,7 +126,7 @@
       },
       {
         "title": "After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.11",
         "x-directive/evidence": {
           "kind": "merge",
@@ -137,7 +137,7 @@
       },
       {
         "title": "Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.12",
         "x-directive/evidence": {
           "kind": "merge",
@@ -148,7 +148,7 @@
       },
       {
         "title": "A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.13",
         "x-directive/evidence": {
           "kind": "merge",
@@ -159,7 +159,7 @@
       },
       {
         "title": "The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.14",
         "x-directive/evidence": {
           "kind": "merge",
@@ -170,7 +170,7 @@
       },
       {
         "title": "The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.15",
         "x-directive/evidence": {
           "kind": "merge",
@@ -181,7 +181,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry on the implementing pull request",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.16",
         "x-directive/evidence": {
           "kind": "merge",
@@ -1102,7 +1102,30 @@
         "algorithm": "sha256",
         "sha256": "b1777455e0abfc73abfcf183392e0dce22593113da6f30b95b3a3703b0bbbe99"
       },
-      "productPullRequest": 5076
+      "productPullRequest": 5076,
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5076,
+        "prBase": null,
+        "mergeCommit": "918e1df24fd0d5d8e2c8c7e5408101aa76ee4909",
+        "deliveryBranch": "master",
+        "deliveryCommit": "918e1df24fd0d5d8e2c8c7e5408101aa76ee4909",
+        "verifiedAt": "2026-09-27T23:19:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-27T23:19:27Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-27T23:19:27Z"
+      }
     },
     "acceptance": {
       "commands": [
@@ -1142,6 +1165,6 @@
       ]
     },
     "id": "github.issue.5544930037",
-    "updated": "2026-09-27T21:12:51Z"
+    "updated": "2026-09-27T23:19:27Z"
   }
 }
