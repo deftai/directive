@@ -262,6 +262,69 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
     ], captured);
     rmSync(root, { recursive: true, force: true });
   });
+
+  live("round-trips spaced project-root with apostrophe-and-ampersand summary (#3629)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3629-"));
+    const projectDir = join(root, "directive uat");
+    const shimDir = join(root, "shim dir");
+    mkdirSync(projectDir, { recursive: true });
+    mkdirSync(shimDir, { recursive: true });
+    const shim = join(shimDir, "deft.cmd");
+    const capture = join(shimDir, "capture.ps1");
+    const outPath = join(projectDir, "argv.txt");
+    const projectSlash = projectDir.replace(/\\/g, "/");
+    const summary = "It's a & test";
+    writeFileSync(
+      capture,
+      [
+        '$me = Get-CimInstance Win32_Process -Filter "ProcessId=$PID"',
+        '$parent = Get-CimInstance Win32_Process -Filter "ProcessId=$($me.ParentProcessId)"',
+        "Set-Content -LiteralPath $env:DEFT_ARGV_OUT -Value $parent.CommandLine -Encoding utf8",
+        "",
+      ].join("\r\n"),
+      "utf8",
+    );
+    writeFileSync(shim, `@echo off\r\npowershell.exe -NoProfile -File "${capture}"\r\n`, "utf8");
+    const cmd = `verify:branch --project-root "${projectSlash}" --summary "${summary}"`;
+    const argv = shellSplit(cmd);
+    const plan = buildSpawnPlan("global", shim, argv, WIN32);
+    assert.equal(plan.shell, false);
+    assert.equal(plan.windowsVerbatimArguments, true);
+    assert.deepEqual(splitCmdTokens(cmdSlashSPayload(plan.args[3])), [
+      shim,
+      "verify:branch",
+      "--project-root",
+      projectSlash,
+      "--summary",
+      summary,
+    ]);
+    const script = join(__dirname, "engine-invoke.cjs");
+    const result = spawnSync(process.execPath, [script, "global", shim], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        DEFT_ENGINE_CMD_JSON: JSON.stringify(cmd),
+        DEFT_ARGV_OUT: outPath,
+      },
+    });
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    const captured = readFileSync(outPath, "utf8");
+    const shimAt = captured.toLowerCase().indexOf(shim.toLowerCase());
+    assert.ok(shimAt >= 0, captured);
+    let rest = captured.slice(shimAt + shim.length).trim();
+    if (rest.startsWith('"')) rest = rest.slice(1).trim();
+    if (rest.endsWith('"') && (rest.match(/"/g) || []).length % 2 === 1) {
+      rest = rest.slice(0, -1);
+    }
+    assert.deepEqual(splitCmdTokens(rest), [
+      "verify:branch",
+      "--project-root",
+      projectSlash,
+      "--summary",
+      summary,
+    ], captured);
+    rmSync(root, { recursive: true, force: true });
+  });
 });
 
 describe("buildSpawnPlan — other paths keep shell:false", () => {
