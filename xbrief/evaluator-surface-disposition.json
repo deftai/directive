@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 5028,
+  "issue": 4545,
   "surfaces": [
     "vitest.config.ts",
-    "packages/core/src/vitest-runner/duration-sequencer.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renewed disclosure for #5028 cold-worktree DurationSequencer (no harmful groupOrder; projects stay concurrent). Committed durations fixture replaces host-global cache.dir. Disclosure only; not #3164 authorization."
+  "note": "Renewed disclosure for #4545: vitest subpath alias for @deftai/directive-core/operator-scope-limit so CLI unit tests resolve the new core export. Disclosure only; not #3164 authorization."
 }

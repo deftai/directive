@@ -377,7 +377,8 @@
           "content/skills/deft-directive-setup/SKILL.md",
           "CHANGELOG.md",
           "content/packs/skills/skills-pack-0.1.json",
-          "vitest.config.ts"
+          "vitest.config.ts",
+          "xbrief/evaluator-surface-disposition.json"
         ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/operator-scope-limit packages/cli/src/verify-operator-scope-limit.test.ts"
