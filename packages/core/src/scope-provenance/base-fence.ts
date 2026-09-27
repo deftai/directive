@@ -49,7 +49,7 @@ export function isUnderConfiguredRoot(relPath: string, roots: readonly string[])
     const normalizedRoot = root.replace(/\\/g, "/").replace(/\/+$/, "");
     if (normalizedRoot.length === 0) continue;
     if (matchPath(normalizedRoot, n) || matchPath(root, n)) return true;
-    // Prefix form: "tests/**" already covered; also allow "tests" → tests/...
+    // Prefix form: root/** already covered; also allow bare root → root/...
     const bare = normalizedRoot
       .replace(/\/\*\*$/, "")
       .replace(/\/\*$/, "")
