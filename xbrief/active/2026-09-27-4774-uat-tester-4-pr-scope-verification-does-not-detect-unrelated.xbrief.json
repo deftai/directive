@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4774",
@@ -534,7 +534,7 @@
           "packages/core/src/scope-provenance/intent.test.ts"
         ],
         "verify_commands": [
-          "task --version"
+          "task check"
         ],
         "expected_outputs": [
           "PR opened Tracking #4774",

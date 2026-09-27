@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4545",
@@ -421,7 +421,7 @@
           "packages/core/src/operator-scope-limit/types.ts"
         ],
         "verify_commands": [
-          "task --version"
+          "task check"
         ],
         "expected_outputs": [
           "PR opened Tracking #4545",
