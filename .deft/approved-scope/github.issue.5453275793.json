@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-09-27-4545-explicit-operator-scope-limit-do-not-add-features-beyond-the.xbrief.json",
+  "planId": "github.issue.5453275793",
+  "approvedAt": "2026-09-27T15:25:46Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/contracts/intent-ceiling.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-setup/SKILL.md",
+    "docs/RULE-MAP.md",
+    "packages/cli/src/dispatch.ts",
+    "packages/cli/src/verify-operator-scope-limit.ts",
+    "packages/core/package.json",
+    "packages/core/src/operator-scope-limit/",
+    "vitest.config.ts",
+    "xbrief/evaluator-surface-disposition.json"
+  ],
+  "fileScopeDigest": "e296c3ba882a5f05fd603b141f60294b328216ad5f84d4dbe41749fc3f9facd3",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-09-27T15:25:46Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "973b5b2df2e50ffbc169cfc6e08d439771a1c58a84ff7dfa94d0e6c80152e8e9",
+  "digestAlgo": "intent-extract-v1"
+}
