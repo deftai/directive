@@ -378,7 +378,8 @@
           "CHANGELOG.md",
           "content/packs/skills/skills-pack-0.1.json",
           "vitest.config.ts",
-          "xbrief/evaluator-surface-disposition.json"
+          "xbrief/evaluator-surface-disposition.json",
+          "docs/RULE-MAP.md"
         ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/operator-scope-limit packages/cli/src/verify-operator-scope-limit.test.ts"
