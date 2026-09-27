@@ -354,9 +354,9 @@ describe("pr:watch wait heartbeat (#5020)", () => {
   it("writePrWatchWaitHeartbeat returns failures for invalid pr / empty terminal_state", () => {
     const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-bad-"));
     expect(writePrWatchWaitHeartbeat(root, 0, { phase: "polling" }).ok).toBe(false);
-    expect(
-      writePrWatchWaitHeartbeat(root, 9, { phase: "terminal", terminalState: "   " }).ok,
-    ).toBe(false);
+    expect(writePrWatchWaitHeartbeat(root, 9, { phase: "terminal", terminalState: "   " }).ok).toBe(
+      false,
+    );
   });
 
   it("bindLivePhaseCorrectWait missing flag stays unbound; non-Tier1 flag binds", () => {
