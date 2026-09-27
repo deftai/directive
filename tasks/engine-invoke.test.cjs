@@ -277,14 +277,13 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
     writeFileSync(
       capture,
       [
-        '$me = Get-CimInstance Win32_Process -Filter "ProcessId=$PID"',
-        '$parent = Get-CimInstance Win32_Process -Filter "ProcessId=$($me.ParentProcessId)"',
-        "Set-Content -LiteralPath $env:DEFT_ARGV_OUT -Value $parent.CommandLine -Encoding utf8",
+        "$argsJson = ($args | ConvertTo-Json -Compress)",
+        "Set-Content -LiteralPath $env:DEFT_ARGV_OUT -Value $argsJson -Encoding utf8",
         "",
       ].join("\r\n"),
       "utf8",
     );
-    writeFileSync(shim, `@echo off\r\npowershell.exe -NoProfile -File "${capture}"\r\n`, "utf8");
+    writeFileSync(shim, `@echo off\r\npowershell.exe -NoProfile -File "${capture}" %*\r\n`, "utf8");
     const cmd = `verify:branch --project-root "${projectSlash}" --summary "${summary}"`;
     const argv = shellSplit(cmd);
     const plan = buildSpawnPlan("global", shim, argv, WIN32);
@@ -308,21 +307,18 @@ describe("buildSpawnPlan — win32 global (subprocess-scm-01 / #2911)", () => {
       },
     });
     assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
-    const captured = readFileSync(outPath, "utf8");
-    const shimAt = captured.toLowerCase().indexOf(shim.toLowerCase());
-    assert.ok(shimAt >= 0, captured);
-    let rest = captured.slice(shimAt + shim.length).trim();
-    if (rest.startsWith('"')) rest = rest.slice(1).trim();
-    if (rest.endsWith('"') && (rest.match(/"/g) || []).length % 2 === 1) {
-      rest = rest.slice(0, -1);
-    }
-    assert.deepEqual(splitCmdTokens(rest), [
+    const raw = readFileSync(outPath);
+    const text = raw[0] === 0xef && raw[1] === 0xbb && raw[2] === 0xbf
+      ? raw.subarray(3).toString("utf8")
+      : raw.toString("utf8");
+    const captured = JSON.parse(text);
+    assert.deepEqual(captured, [
       "verify:branch",
       "--project-root",
       projectSlash,
       "--summary",
       summary,
-    ], captured);
+    ]);
     rmSync(root, { recursive: true, force: true });
   });
 });
