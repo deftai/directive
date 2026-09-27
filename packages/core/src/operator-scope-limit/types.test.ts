@@ -3,6 +3,7 @@ import {
   OPERATOR_SCOPE_CEILING_ARTIFACT_REL,
   OPERATOR_SCOPE_CEILING_PLAN_KEY,
   OPERATOR_SCOPE_CEILING_SCHEMA,
+  SURFACES_NOT_CHECKED_REMEDIATION,
   UNTRACEABLE_SURFACE_REMEDIATION,
 } from "./types.js";
 
@@ -12,5 +13,6 @@ describe("types (#4545)", () => {
     expect(OPERATOR_SCOPE_CEILING_PLAN_KEY).toContain("operatorScopeCeiling");
     expect(OPERATOR_SCOPE_CEILING_ARTIFACT_REL).toContain("operator-scope-ceiling.json");
     expect(UNTRACEABLE_SURFACE_REMEDIATION).toContain("remove, or add to the brief");
+    expect(SURFACES_NOT_CHECKED_REMEDIATION).toContain("--surfaces-file");
   });
 });

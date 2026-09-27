@@ -6,6 +6,13 @@ describe("detect (#4545)", () => {
     const prompt = ["- add vehicle", "", "Do not add features beyond the requirements."].join("\n");
     const hit = detectScopeLimitPhrase(prompt);
     expect(hit?.phrase).toContain("do not add");
-    expect(extractRequirementLines(prompt, { beforeIndex: hit!.index })).toEqual(["add vehicle"]);
+    expect(extractRequirementLines(prompt, { beforeIndex: hit?.index })).toEqual(["add vehicle"]);
+  });
+
+  it("keeps requirements after an early ceiling phrase", () => {
+    const prompt = ["Initial version only:", "- add vehicle"].join("\n");
+    const hit = detectScopeLimitPhrase(prompt);
+    expect(hit?.phrase).toBe("initial version only");
+    expect(extractRequirementLines(prompt, { beforeIndex: hit?.index })).toEqual(["add vehicle"]);
   });
 });

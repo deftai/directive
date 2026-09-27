@@ -29,22 +29,21 @@ export function detectScopeLimitPhrase(prompt: string): DetectedScopeLimit | nul
 
 /**
  * Extract requirement lines from an operator prompt shaped like the #4545
- * greenfield fixture: bullets / numbered lines / plain "add|update|…" lines
- * that appear before the scope-limit sentence (or the whole prompt when no
- * phrase is present — callers that need a ceiling still gate on detect).
+ * greenfield fixture: bullets / numbered lines / plain "add|update|…" lines.
+ *
+ * Scans the whole prompt so an early ceiling phrase (`Initial version only:`
+ * then `- add vehicle`) still keeps requirements that follow it. Scope-limit
+ * sentences themselves are filtered out. `beforeIndex` is accepted for call
+ * compatibility and ignored for truncation.
  */
 export function extractRequirementLines(
   prompt: string,
-  options: { readonly beforeIndex?: number } = {},
+  _options: { readonly beforeIndex?: number } = {},
 ): string[] {
   if (typeof prompt !== "string" || prompt.trim().length === 0) {
     return [];
   }
-  const slice =
-    typeof options.beforeIndex === "number" && options.beforeIndex >= 0
-      ? prompt.slice(0, options.beforeIndex)
-      : prompt;
-  const lines = slice.split(/\r?\n/);
+  const lines = prompt.split(/\r?\n/);
   const out: string[] = [];
   const seen = new Set<string>();
   for (const raw of lines) {

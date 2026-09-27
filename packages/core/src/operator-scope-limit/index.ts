@@ -3,6 +3,7 @@ export {
   detectScopeLimitPhrase,
   extractRequirementLines,
 } from "./detect.js";
+export { inventoryDefaultSurfaces } from "./inventory.js";
 export { SCOPE_LIMIT_PHRASES } from "./lexicon.js";
 export {
   applyCeilingToBrief,
@@ -18,6 +19,7 @@ export {
   type SeedCeilingResult,
   type ShippedSurface,
   type ShippedSurfaceKind,
+  SURFACES_NOT_CHECKED_REMEDIATION,
   UNTRACEABLE_SURFACE_REMEDIATION,
   type UntraceableSurface,
   type UntraceableSurfaceCheckResult,

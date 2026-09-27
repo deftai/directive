@@ -5,13 +5,22 @@
  * Seeds a hard ceiling from an operator prompt (closed lexicon) and lists
  * shipped surfaces not traceable to a recorded requirement line. Warn-first:
  * untraceable surfaces print WARN and exit 0; config errors exit 2.
+ *
+ * Default path always persists a durable ceiling artifact (or merges into
+ * --brief-out). Without --surfaces-file, runs a default app/actions inventory;
+ * empty inventory warns that surfaces were not checked (does not silent-skip).
  */
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  applyCeilingToBrief,
   evaluateUntraceableSurfaces,
+  inventoryDefaultSurfaces,
+  OPERATOR_SCOPE_CEILING_ARTIFACT_REL,
+  type OperatorScopeCeiling,
   type ShippedSurface,
+  SURFACES_NOT_CHECKED_REMEDIATION,
   seedOperatorScopeCeiling,
   UNTRACEABLE_SURFACE_REMEDIATION,
 } from "@deftai/directive-core/operator-scope-limit";
@@ -22,13 +31,14 @@ interface ParsedArgs {
   surfacesFile?: string;
   briefOut?: string;
   artifactOut?: string;
+  projectRoot: string;
   quiet: boolean;
   error?: string;
 }
 
 /** Parse verify-operator-scope-limit CLI args. */
 export function parseArgs(argv: string[]): ParsedArgs {
-  const parsed: ParsedArgs = { quiet: false };
+  const parsed: ParsedArgs = { quiet: false, projectRoot: "." };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--quiet") {
@@ -78,6 +88,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--artifact-out=")) {
       parsed.artifactOut = arg.slice("--artifact-out=".length);
+    } else if (arg === "--project-root") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --project-root: expected one argument" };
+      }
+      parsed.projectRoot = value;
+      i += 1;
+    } else if (arg?.startsWith("--project-root=")) {
+      parsed.projectRoot = arg.slice("--project-root=".length);
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -107,14 +126,11 @@ function loadPrompt(
   };
 }
 
-function loadSurfaces(
-  args: ParsedArgs,
+function loadSurfacesFile(
+  surfacesFile: string,
 ): { ok: true; surfaces: ShippedSurface[] } | { ok: false; detail: string } {
-  if (typeof args.surfacesFile !== "string" || args.surfacesFile.length === 0) {
-    return { ok: true, surfaces: [] };
-  }
   try {
-    const raw = readFileSync(resolve(args.surfacesFile), "utf8");
+    const raw = readFileSync(resolve(surfacesFile), "utf8");
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
       return { ok: false, detail: "--surfaces-file must be a JSON array" };
@@ -150,6 +166,73 @@ function loadSurfaces(
   }
 }
 
+function writeJsonFile(path: string, value: unknown): { ok: true } | { ok: false; detail: string } {
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      detail: `failed to write ${path}: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
+function loadExistingBrief(path: string): Record<string, unknown> | null {
+  if (!existsSync(path)) return null;
+  try {
+    const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+    return raw as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist ceiling: explicit outs, else default durable artifact under project root. */
+function persistCeiling(input: {
+  readonly projectRoot: string;
+  readonly ceiling: OperatorScopeCeiling;
+  readonly artifactOut?: string;
+  readonly briefOut?: string;
+}): { ok: true; durablePath: string } | { ok: false; detail: string } {
+  const { projectRoot, ceiling, artifactOut, briefOut } = input;
+  let durablePath: string | null = null;
+
+  if (typeof artifactOut === "string" && artifactOut.length > 0) {
+    const path = resolve(artifactOut);
+    const wrote = writeJsonFile(path, ceiling);
+    if (!wrote.ok) return wrote;
+    durablePath = path;
+  }
+
+  if (typeof briefOut === "string" && briefOut.length > 0) {
+    const path = resolve(briefOut);
+    const existing = loadExistingBrief(path);
+    const base: Record<string, unknown> =
+      existing ??
+      ({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { status: "draft", metadata: {} },
+      } as Record<string, unknown>);
+    // Merge/add ceiling onto existing proposed/active brief — never replace scope.
+    const merged = applyCeilingToBrief(base, ceiling);
+    const wrote = writeJsonFile(path, merged);
+    if (!wrote.ok) return wrote;
+    durablePath = path;
+  }
+
+  if (durablePath === null) {
+    const path = resolve(projectRoot, OPERATOR_SCOPE_CEILING_ARTIFACT_REL);
+    const wrote = writeJsonFile(path, ceiling);
+    if (!wrote.ok) return wrote;
+    durablePath = path;
+  }
+
+  return { ok: true, durablePath };
+}
+
 /** Run the gate and return the process exit code (0 clean/warn, 2 config). */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
@@ -158,15 +241,11 @@ export function run(argv: string[]): number {
     return 2;
   }
 
+  const projectRoot = resolve(args.projectRoot);
+
   const promptLoad = loadPrompt(args);
   if (!promptLoad.ok) {
     process.stderr.write(`verify_operator_scope_limit: ${promptLoad.detail}\n`);
-    return 2;
-  }
-
-  const surfacesLoad = loadSurfaces(args);
-  if (!surfacesLoad.ok) {
-    process.stderr.write(`verify_operator_scope_limit: ${surfacesLoad.detail}\n`);
     return 2;
   }
 
@@ -177,41 +256,55 @@ export function run(argv: string[]): number {
     return 2;
   }
 
-  if (typeof args.artifactOut === "string" && args.artifactOut.length > 0) {
-    writeFileSync(
-      resolve(args.artifactOut),
-      `${JSON.stringify(seeded.artifact, null, 2)}\n`,
-      "utf8",
-    );
-  }
-  if (typeof args.briefOut === "string" && args.briefOut.length > 0) {
-    const brief = seedOperatorScopeCeiling(promptLoad.prompt, {
-      xBRIEFInfo: { version: "0.8" },
-      plan: { status: "draft", metadata: {} },
-    });
-    if (brief.ok && brief.brief !== null) {
-      writeFileSync(resolve(args.briefOut), `${JSON.stringify(brief.brief, null, 2)}\n`, "utf8");
-    }
+  const persisted = persistCeiling({
+    projectRoot,
+    ceiling: seeded.ceiling,
+    artifactOut: args.artifactOut,
+    briefOut: args.briefOut,
+  });
+  if (!persisted.ok) {
+    process.stderr.write(`verify_operator_scope_limit: ${persisted.detail}\n`);
+    return 2;
   }
 
-  if (surfacesLoad.surfaces.length === 0) {
+  let surfaces: ShippedSurface[] = [];
+  let surfacesSource: "surfaces-file" | "default-inventory" = "default-inventory";
+  if (typeof args.surfacesFile === "string" && args.surfacesFile.length > 0) {
+    const surfacesLoad = loadSurfacesFile(args.surfacesFile);
+    if (!surfacesLoad.ok) {
+      process.stderr.write(`verify_operator_scope_limit: ${surfacesLoad.detail}\n`);
+      return 2;
+    }
+    surfaces = surfacesLoad.surfaces;
+    surfacesSource = "surfaces-file";
+  } else {
+    surfaces = inventoryDefaultSurfaces(projectRoot);
+    surfacesSource = "default-inventory";
+  }
+
+  if (surfaces.length === 0) {
     if (!args.quiet) {
       process.stdout.write(
-        `operator-scope-limit: ceiling recorded (phrase=${JSON.stringify(seeded.ceiling.matchedPhrase)}; ` +
+        `operator-scope-limit WARN: surfaces were not checked ` +
+          `(source=${surfacesSource}; durable=${persisted.durablePath}; ` +
+          `phrase=${JSON.stringify(seeded.ceiling.matchedPhrase)}; ` +
           `requirements=${seeded.ceiling.requirementLines.length}). ` +
-          "No --surfaces-file; surface list skipped.\n",
+          `Remediation: ${SURFACES_NOT_CHECKED_REMEDIATION}\n`,
       );
     }
+    // Warn-first: missing inventory does not fail the process.
     return 0;
   }
 
   const result = evaluateUntraceableSurfaces({
     requirementLines: seeded.ceiling.requirementLines,
-    surfaces: surfacesLoad.surfaces,
+    surfaces,
   });
 
   if (!args.quiet) {
-    process.stdout.write(`${result.message}\n`);
+    process.stdout.write(
+      `${result.message} (durable=${persisted.durablePath}; source=${surfacesSource})\n`,
+    );
     if (result.severity === "warn") {
       process.stdout.write(`Remediation: ${UNTRACEABLE_SURFACE_REMEDIATION}\n`);
     }

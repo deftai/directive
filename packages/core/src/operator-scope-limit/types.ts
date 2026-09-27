@@ -18,6 +18,10 @@ export const OPERATOR_SCOPE_CEILING_SCHEMA = "deft.operator-scope-ceiling.v1" as
 export const UNTRACEABLE_SURFACE_REMEDIATION =
   "remove, or add to the brief and get operator approval";
 
+/** Remediation when no surfaces inventory ran (no --surfaces-file / empty default). */
+export const SURFACES_NOT_CHECKED_REMEDIATION =
+  "pass --surfaces-file <json> listing server-action|route|page entries, or ensure app/actions surfaces exist under the project root";
+
 export type ShippedSurfaceKind = "server-action" | "route" | "page";
 
 export interface ShippedSurface {

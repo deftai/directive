@@ -96,6 +96,22 @@ describe("extractRequirementLines (#4545)", () => {
       "update mileage",
     ]);
   });
+
+  it("keeps requirements listed after an early ceiling phrase", () => {
+    const prompt = "Initial version only:\n- add vehicle";
+    const hit = detectScopeLimitPhrase(prompt);
+    expect(hit?.phrase).toBe("initial version only");
+    expect(extractRequirementLines(prompt, { beforeIndex: hit?.index })).toEqual(["add vehicle"]);
+    const seeded = seedOperatorScopeCeiling(prompt, null);
+    expect(seeded.ok).toBe(true);
+    if (!seeded.ok) return;
+    expect(seeded.ceiling.requirementLines).toEqual(["add vehicle"]);
+    const check = evaluateUntraceableSurfaces({
+      requirementLines: seeded.ceiling.requirementLines,
+      surfaces: [{ kind: "server-action", id: "addVehicleAction" }],
+    });
+    expect(check.severity).toBe("clean");
+  });
 });
 
 describe("seedOperatorScopeCeiling (#4545)", () => {
