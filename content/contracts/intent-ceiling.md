@@ -2,6 +2,14 @@
 
 Wave 2 of the layered authorization stack (#2948). Complements human-origin grants (#2944) and runtimeAuthority (#2711 / #1394).
 
+## Non-coverage — operator product-scope phrases (#4545)
+
+This contract is **slash-verb containment** only (`DEFT_SESSION_SLASH_VERB`, implement vs non-implement stems, hotfix classifier, human merge). It does **not** treat an operator's explicit product-scope sentence ("do not add", "nothing beyond", "initial version only", …) as a hard ceiling on shipped routes / actions / pages.
+
+⊗ Claim that `#198` / `#241` / skill exit, this file, or pre-PR Diff judgment already discharge that product-scope ceiling or a shipped-surface inventory.
+
+Hard ceiling + warn-first untraceable-surface list: `packages/core/src/operator-scope-limit/` and `deft verify:operator-scope-limit` (#4545).
+
 ## R1 — Slash-command intent containment
 
 When a session is originated by a slash command, that command is the **only** authorized verb for the session.

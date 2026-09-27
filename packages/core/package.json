@@ -67,6 +67,10 @@
       "types": "./dist/intent-constraint/index.d.ts",
       "default": "./dist/intent-constraint/index.js"
     },
+    "./operator-scope-limit": {
+      "types": "./dist/operator-scope-limit/index.d.ts",
+      "default": "./dist/operator-scope-limit/index.js"
+    },
     "./class-checks": {
       "types": "./dist/class-checks/index.d.ts",
       "default": "./dist/class-checks/index.js"

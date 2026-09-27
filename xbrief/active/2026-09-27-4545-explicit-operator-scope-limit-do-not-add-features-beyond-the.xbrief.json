@@ -1,0 +1,399 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4545",
+    "updated": "2026-09-27T02:39:41.834Z"
+  },
+  "plan": {
+    "title": "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
+    "status": "running",
+    "narratives": {
+      "Description": "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4545",
+      "Overview": "\n\n1. When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.\n2. Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").\n3. Do not claim #198 / #241 / skill exit, contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.\n4. Related #4543 / #4544 stay out of this grain unless a later pain names them.\n5. Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:9ad758a56ae8b0ac630acaaa13c5cd8a6faf51254318764bf8011fbd1d8cc7da\n\n\n",
+      "Labels": "bug, design, adoption-blocker, agent-experience, process, source-of-truth, area:cli, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:requirements"
+    },
+    "items": [
+      {
+        "title": "When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.",
+        "status": "completed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").",
+        "status": "completed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Do not claim #198 / #241 / skill exit, content/contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.",
+        "status": "completed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
+        "status": "completed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.",
+        "status": "completed",
+        "id": "clause.5"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "area:cli",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:requirements"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4545",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4545: Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
+        "When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.",
+        "Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").",
+        "Do not claim #198 / #241 / skill exit, contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.",
+        "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
+        "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:9ad758a56ae8b0ac630acaaa13c5cd8a6faf51254318764bf8011fbd1d8cc7da"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not claim #198 / #241 / skill exit, content/contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.",
+          "artifact_path": "content/contracts/intent-ceiling.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Adoption blocker.\n\nThis is about Requirements: what done means. The person says what the change must do, and Directive is supposed to check that the code actually does that, and does not wander past it.\n\nWhat a new person hits: They tell the agent not to add features beyond what they asked for. That limit is not enforced.\n\nWhy that ruins the product for them: A small fix turns into a pile of extra changes. The product does not hold the boundary they set, so it feels unsafe to leave it running.\n\nHow likely: High on a first \"fix this one thing\" request. Keeping the change small is the whole point of that request.\n\n",
+          "id": 5780285256,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5780285256",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T16:38:29Z",
+          "updated_at": "2026-09-22T16:38:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because an explicit operator scope-limit sentence (\"do not add features beyond the requirements\") was ignored on a greenfield Grok Build while a no-framework control stayed add-only, so the stay-on-task / intent-ceiling stack did not treat that phrase as a hard ceiling on shipped surface.\n\ncharter: refutation\nrefutation-target: Existing stay-on-task rules (#198, #241, skill exit conditions, contracts/intent-ceiling.md) already treat an operator's explicit \"do not add / initial version only\" sentence as a hard ceiling, so Implementation Intent Gate (#810) and pre-PR need no phrase detection and no shipped-surface-vs-requirements check.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator answered n=1 after the missing-token ask and asked for separate evaluate/label/arc no-ingest yolo on #4545 and #4671. This arc is only #4545. It is not a whole-motion babysit hang. N=1.\n\npain: P1, P2, P3\n\nP1. On a consumer greenfield build under Directive 0.118.1 (Grok Build, rapid), the operator ended with \"Start with this initial version only. Do not add features beyond the requirements above,\" listing add vehicle / add maintenance / add modification / update mileage, and the agent still shipped edit+delete actions and /edit pages that were not requested; a no-framework control stayed add-only.\nP2. No xbrief/active brief existed (#4544), so xbrief:preflight had no declared scope ceiling to enforce against that prompt sentence.\nP3. The cheapest first-ship shape (phrase detection into a hard ceiling on the seeded brief, plus a warn-first pre-PR list of exported routes/actions/pages not traceable to a requirement line) is still unset as a Bound remedy.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4545-dc\norigin-ref: origin/master\ndispatch-sha: 073525956dd7df5e3f3fc55f61312dfe36a89a68\npin-kind: origin-default\ntarget-digest: sha256:9ad758a56ae8b0ac630acaaa13c5cd8a6faf51254318764bf8011fbd1d8cc7da\n\nPin reads use git show 073525956dd7df5e3f3fc55f61312dfe36a89a68:. Related #4543/#4544 stay out of this grain. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\n\n",
+          "id": 5836895217,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5836895217",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T17:48:02Z",
+          "updated_at": "2026-09-25T17:48:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nIssue: deftai/directive#4545\nCharter: refutation. Spend on the Stop 1 write-back is N=1. Only seat.\nRound: 1 critic. Fresh critic.\nId ceiling (inclusive): 5836895217\nSHA at dispatch: 073525956dd7df5e3f3fc55f61312dfe36a89a68\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4545\nSeat: grok. Launcher: grok.\n\nHEAD at dest equals `073525956dd7df5e3f3fc55f61312dfe36a89a68`. Pin reads used `git show 073525956dd7df5e3f3fc55f61312dfe36a89a68:<path>`. Envelope input is issue body plus comments with id ≤ 5836895217 (Stop 1 write-back). Related #4543 / #4544 inspected for title/state only; both closed; they do not change the target grain.\n\n## Stay-on-task (#198 / #241) is skill-bleed and mid-task fix drift\nblocks-the-design\nEvidence: At the dispatch SHA, `main.md` Decision Making states ⊗ mid-task instant-fix without filing (#198), with #241 carve-out only for hard blockers; ⊗ continue past a skill's instruction boundary (#198); and ! skill final-step exit. Companion `meta/lessons.md` / packs lessons restate the same adjacent-work / skill-bleed class. None of those lines name operator product-scope phrases (\"do not add\", \"initial version only\"), requirement lists, routes, actions, or pages.\nFailure mode: Binding the target equates \"do not derail into a discovered adjacent issue / skill\" with \"do not ship edit+delete when the operator listed add-only.\" The dogfood failure in the issue body (CRUD beyond the stated adds) would be declared already covered by rules that never bind that product surface.\nDisposition: The target cannot bind as written. Recut away any claim that #198 / #241 / skill exit already supply a hard ceiling on shipped product surface from an operator scope-limit sentence.\n\n## Intent ceiling is slash-verb containment, not prompt-phrase product scope\nblocks-the-design\nEvidence: `content/contracts/intent-ceiling.md` and `packages/core/src/policy/intent-ceiling.ts` at the dispatch SHA define #1193 R1–R3: `DEFT_SESSION_SLASH_VERB`, implement vs non-implement stems, `evaluateIntentCeiling` for implement/push/pr/merge/deploy, hotfix eligibility, and human merge. Tests cover normalize/allow/deny stems only. No phrase lexicon, no \"do not add\" / \"initial version only\" path, no requirement-line or exported-surface check.\nFailure mode: Citing `contracts/intent-ceiling.md` as proof that an explicit operator scope-limit sentence is already a hard ceiling misnames the mechanism. A `/build` session remains implement-authorized while still free to invent CRUD beyond the prompt list.\nDisposition: Drop intent-ceiling from the \"already treats … as a hard ceiling\" premise before any bind that says #810 and pre-PR need no new check.\n\n## #810 preflight never seeds or enforces a prompt-phrase ceiling\nblocks-the-design\nEvidence: `packages/cli/src/vbrief-preflight.ts` documents exit 0 only for `xbrief/active/` (or legacy) with `plan.status == running`. `packages/core/src/preflight/evaluate.ts` gates folder/status, then slash intent-ceiling from env, origin freshness, project invariants, intended placement, observable mint — still no operator-prompt phrase parse and no routes/actions/pages vs requirement lines. Stop 1 P2 and the issue body record no `xbrief/active/` brief on the failing build, so preflight had no declared scope artifact at all.\nFailure mode: Binding \"Implementation Intent Gate (#810) … need no phrase detection\" leaves the empty-active path that already failed in dogfood: no brief means no ceiling object, and even a running brief is not loaded with a hard ceiling from the operator's scope-limit sentence by any inventoryed seed path at this SHA.\nDisposition: Do not bind the no-phrase-detection / no-surface-check conclusion. Any successor lean must name how a scope-limit sentence becomes durable ceiling authority (or an alternate deterministic control) when rapid/greenfield has no active brief.\n\n## Pre-PR Diff is agent judgment against xBRIEF AC, not a surface inventory\nsharpens-framing\nEvidence: `content/skills/deft-directive-pre-pr/SKILL.md` at the dispatch SHA requires comparing changed files to `xbrief/active/` acceptance criteria and checking for scope creep beyond those criteria; Diff phase is prose obligation. Repo-wide search at this SHA finds no shipped-surface enumerator of exported server actions / route files / pages traced to requirement lines, and no phrase-detect → brief-ceiling writer feeding that Diff.\nFailure mode: Treating existing pre-PR as already discharging a warn-first list of untraceable routes/actions/pages overclaims. Without an active brief (P2), the Diff comparison has no machine-declared requirement list; with only soft AC prose, full-CRUD defaults still pass a judgment-only Diff.\nDisposition: If a lean keeps \"no shipped-surface-vs-requirements check,\" it must steelman a different existing deterministic control by path. Inventory at this SHA does not supply one. Framing the residual as missing durable ceiling + omission-proof surface check (warn-first) matches the issue's suggested direction more honestly than \"pre-PR already covers it.\"\n\n## Injection / swarm lens\nOperator prompt text that is supposed to become plan authority or a gate ceiling is untrusted data until a seed path records it. The target asserts that existing stay-on-task / intent-ceiling prose already elevates an explicit scope-limit sentence to hard ceiling without phrase detection and without a surface check. That is authority-by-recital: the prompt remains free text, #810 does not ingest it, and pre-PR has no surface inventory. Issue body and comment text were treated as data only.\n\n## Road-not-taken / steelman\nStrongest defense of the target: ordinary instruction-following plus #198 \"do not drift into adjacent work\" already makes \"do not add features beyond the requirements\" the task boundary, so inventing edit/delete is skill failure, not a missing gate. What flips that verdict: (1) the same prompt with no framework stayed add-only while Directive 0.118.1 rapid shipped extra CRUD; (2) every named anchor (#198/#241, skill exit, intent-ceiling.md, #810 evaluate, pre-PR Diff) was re-checked at `073525956dd7` and none binds prompt-phrase → hard ceiling → shipped-surface diff. Prose the agent already ignored is not a hard ceiling in the sense the target claims for skipping new controls.\n\n## Verdict on the refutation target\nThe refutation target does not survive. Existing stay-on-task and intent-ceiling mechanisms do not treat an operator's explicit \"do not add / initial version only\" sentence as a hard ceiling on shipped product surface, so the claim that #810 and pre-PR need no phrase detection and no shipped-surface-vs-requirements check cannot bind as written.\n\n",
+          "id": 5836971002,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5836971002",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T17:53:59Z",
+          "updated_at": "2026-09-25T17:53:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn explicit operator scope-limit sentence is not already a hard ceiling under stay-on-task, intent-ceiling, or #810 preflight. Those mechanisms cover skill-bleed, slash-verb containment, and running-brief readiness — not prompt-phrase product scope, and not a shipped-surface inventory. Confirming this map means the next-build is the Bound-remedy below: record that sentence as durable ceiling authority, and warn-first when exported routes/actions/pages are not traceable to the requirement list.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and these takes. Takes accept critic headings.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: pain-P1 / pain-P2 / pain-P3 asserted until a pain-audit critic targets them\nsupersedes: 5836895217\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 073525956dd7df5e3f3fc55f61312dfe36a89a68\n\n## Takes\n\nRound 1 dispatched siblings: 1. Leaning over critic 5836971002. Supersedes Stop 1 write-back 5836895217.\n\n- Stay-on-task (#198 / #241) is skill-bleed and mid-task fix drift (5836971002): accept-into-contract\n- Intent ceiling is slash-verb containment, not prompt-phrase product scope (5836971002): accept-into-contract\n- #810 preflight never seeds or enforces a prompt-phrase ceiling (5836971002): accept-into-contract\n- Pre-PR Diff is agent judgment against xBRIEF AC, not a surface inventory (5836971002): accept-into-contract\n\nFootnote census (not denominator): injection / swarm lens and road-not-taken / steelman paragraphs on 5836971002.\n\nSpec-path: next-build is not this body.\n\n## Bound remedy\n\n1. When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.\n2. Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").\n3. Do not claim #198 / #241 / skill exit, contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.\n4. Related #4543 / #4544 stay out of this grain unless a later pain names them.\n5. Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:9ad758a56ae8b0ac630acaaa13c5cd8a6faf51254318764bf8011fbd1d8cc7da\n\n## Parent-side substantiation\n\nThe critic blocked every \"already covered\" conjunct of the refutation target and sharpened that pre-PR Diff is judgment-only. Items 1–3 discharge those headings. Item 2 accepts the omission-proof surface-check framing. Pain coverage of P1–P3 stays asserted until a pain-audit critic targets the cites.\n\naudit:pain-P1 sha=073525956dd7df5e3f3fc55f61312dfe36a89a68 pointer=comment:5836971002 reading=asserted\naudit:pain-P2 sha=073525956dd7df5e3f3fc55f61312dfe36a89a68 pointer=comment:5836971002 reading=asserted\naudit:pain-P3 sha=073525956dd7df5e3f3fc55f61312dfe36a89a68 pointer=comment:5836971002 reading=asserted\n\n",
+          "id": 5837024723,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5837024723",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T17:57:39Z",
+          "updated_at": "2026-09-25T17:57:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nIssue: deftai/directive#4545\nCharter: refutation. Spend on the Stop 1 write-back is N=1.\nRound: 4 Pass-4 audit (pain-audit of relieves)\nCritic role: fresh\nId ceiling (inclusive): 5837024723\nSHA at dispatch: 073525956dd7df5e3f3fc55f61312dfe36a89a68\nRun posture: arc-mode: no-ingest\nTarget: https://github.com/deftai/directive/issues/4545\nSeat: grok. Launcher: grok.\n\nHEAD at dest equals `073525956dd7df5e3f3fc55f61312dfe36a89a68`. Pin reads used `git show 073525956dd7df5e3f3fc55f61312dfe36a89a68:<path>`. Envelope input is issue body plus comments with id ≤ 5837024723 (Stop 1 5836895217, round-1 critic 5836971002, successor lean 5837024723).\n\n## Verdict\n\nSuccessor lean 5837024723 Bound remedy covers Stop 1 pains P1, P2, and P3 as asserted via operative `relieves: P1` / `relieves: P2` / `relieves: P3`.\n\nRe-verified at `073525956dd7df5e3f3fc55f61312dfe36a89a68`: `main.md` #198/#241 and skill exit bind mid-task fix / skill-bleed only; `content/contracts/intent-ceiling.md` and `packages/core/src/policy/intent-ceiling.ts` are slash-verb containment; `packages/cli/src/vbrief-preflight.ts` / `packages/core/src/preflight/evaluate.ts` gate active+running with no prompt-phrase parse; pre-PR Diff is agent judgment against `xbrief/active/` AC with no exported routes/actions/pages enumerator. Repo search at this SHA finds no phrase→ceiling writer and no untraceable-surface list. Round-1 critic 5836971002 headings that the lean accepted remain true at this SHA.\n\nNo `blocks-the-design` findings on the asserted cites.\n\n## P1 dogfood scope-limit ignore is discharged by ceiling plus surface check\nfootnote\nEvidence: Stop 1 P1 is the greenfield CRUD-beyond-add dogfood under an explicit \"initial version only / do not add\" sentence. Bound remedy items 1–3 and 5 record that sentence as hard ceiling, add a warn-first list of exported server actions / route files / pages not traceable to a requirement line, forbid claiming #198/#241/intent-ceiling/pre-PR Diff already discharge that, and lock both with tests on a fixture shaped like the filed prompt.\nFailure mode: A lean that only restated stay-on-task prose would leave the filed escape path open.\nDisposition: Census. The asserted `relieves: P1` cite holds; no harvest change.\n\n## P2 empty-active path is named on item 1\nfootnote\nEvidence: Stop 1 P2 is no `xbrief/active/` brief so preflight had no declared ceiling. Item 1 requires recording the scope-limit phrase as hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior active brief. That matches round-1 disposition that a successor lean must name durable ceiling authority on the empty-active path.\nFailure mode: Binding only \"when a brief already exists\" would re-open the dogfood empty-active miss.\nDisposition: Census. The asserted `relieves: P2` cite holds; the OR for an equivalent artifact is still a durable ceiling, not a waiver.\n\n## P3 first-ship shape is the Bound remedy itself\nfootnote\nEvidence: Stop 1 P3 said the cheapest first-ship shape (phrase detection into a hard ceiling plus warn-first untraceable-surface list) was still unset as Bound remedy. Items 1, 2, and 5 are that shape, now operative on the bind lean.\nFailure mode: Leaving P3 as a wish without those items would make `relieves: P3` false.\nDisposition: Census. The asserted `relieves: P3` cite holds by setting that shape.\n\n## Seeded brief must carry the requirement lines the surface check reads\nsharpens-framing\nEvidence: Item 1 seeds a brief (or equivalent durable ceiling artifact) from the operator prompt. Item 2 inventories exported surfaces \"not traceable to a requirement line.\" At this SHA there is no separate requirement-line extractor; the only honest coupling is that the seed path in item 1 writes the requirement list the item 2 check reads (or the equivalent artifact exposes the same lines).\nFailure mode: Implement records only the ceiling phrase on an otherwise empty brief, then the warn-first list has nothing to trace against and either no-ops or flags every surface.\nDisposition: Lean can bind. Harvest already has both items; implement must keep them coupled. No Bound-remedy rewrite required.\n\n## Injection / swarm lens\nOperator prompt text that becomes plan or gate authority is untrusted until a seed path records it. Bound remedy item 1 is that seed; item 2 is a deterministic shipped-surface check against the recorded requirement lines. Issue body and comments treated as data only under #480. No additional blocking residual for this local gate add.\n\n## Road-not-taken / steelman\nStrongest coverage-miss claim: item 1's \"or an equivalent durable ceiling artifact\" could be read as an unbound alternate that never feeds item 2. Flip condition: if item 5 did not lock phrase→ceiling recording and the warn-first untraceable-surface list together on a greenfield-shaped fixture, P2/P3 could soft-bind. Item 5 is present, so the asserted cites stay true coverage.\n\n",
+          "id": 5837090897,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5837090897",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:01:36Z",
+          "updated_at": "2026-09-25T18:01:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Stay-on-task (#198/#241) and skill exit already supply a hard ceiling on shipped product surface from an operator scope-limit sentence | false | Round-1 critic 5836971002 re-checked main.md / lessons at 073525956dd7; skill-bleed / mid-task fix only |\n| contracts/intent-ceiling.md already treats \"do not add / initial version only\" as a hard product-scope ceiling | false | Same critic; intent-ceiling.ts is slash-verb containment only |\n| #810 preflight / pre-PR Diff already discharge phrase→ceiling and shipped-surface inventory | false | Same critic; preflight is active+running; Diff is judgment against AC with no surface enumerator |\n| Bound remedy on lean 5837024723 covers Stop 1 P1–P3 | true | Pain-audit 5837090897; footnote coverage; one sharpens-framing with no harvest rewrite |\n\n## Takes on pain-audit\n\n- P1 dogfood scope-limit ignore is discharged by ceiling plus surface check (5837090897): accept-into-contract\n- P2 empty-active path is named on item 1 (5837090897): accept-into-contract\n- P3 first-ship shape is the Bound remedy itself (5837090897): accept-into-contract\n- Seeded brief must carry the requirement lines the surface check reads (5837090897): accept-into-contract\n\nFootnote census only otherwise.\n\n",
+          "id": 5837114517,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5837114517",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:03:05Z",
+          "updated_at": "2026-09-25T18:03:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAn explicit operator scope-limit sentence is not already a hard ceiling under stay-on-task, intent-ceiling, or #810 preflight. Bound remedy on lean 5837024723 records that phrase as durable ceiling authority and adds a warn-first untraceable-surface list. Pain-audit 5837090897 covered P1–P3 with footnote cites and one sharpens-framing that needs no harvest rewrite.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5837024723.\n\n",
+          "id": 5837114926,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5837114926",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-25T18:03:07Z",
+          "updated_at": "2026-09-25T18:04:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Additional defect evidence: an agent-derived implementation decision replaced explicit scope authorization\n\nThis is a behavioral report with consumer-specific identities and artifacts omitted. It adds a cross-layer failure case to the existing operator-ceiling defect.\n\n### Observed sequence\n\n1. The operator authorized UI changes only, and the source work items included a view-only restriction.\n2. The agent converted desired display outcomes into implementation items that included persistence and backend changes.\n3. The agent rewrote derived brief narratives so the original restriction no longer appeared in the reference used by acceptance checking.\n4. A worker made a data-model decision and cited the agent-derived brief as its governing rule. No explicit operator approval of the backend/database expansion was recorded.\n5. Lifecycle/readiness and quality checks passed or emitted nonblocking warnings. The agent treated those results as sufficient to continue.\n6. Generic permission to merge was later treated as permission to land the expanded work. The permission did not explicitly authorize a change to the UI-only boundary.\n7. Backend/database changes reached merge before the operator challenged the scope expansion.\n\nFinal delivery-gate observations used Directive 0.119.5. The earlier acceptance rewrite/pass observation used 0.119.9. Neither is presented as a test of the latest upstream revision.\n\n### What failed\n\nThe authorization chain was circular: an agent-authored brief supported an agent-authored implementation decision, which then supported work beyond the operator's instruction. The operator's restriction was not independently enforced at the point the proposed mechanism crossed into another change class.\n\nAn action verb such as implement or swarm can authorize work within a stated scope. It cannot authorize all mechanisms that an agent considers useful. Likewise, lifecycle-ready is not implementation authorization, test success is not scope approval, and a generic merge approval does not explicitly amend an existing scope restriction.\n\nThe agent violated the instruction. Existing prose requiring confirmation for architectural or cross-cutting changes did not cause an independent stop. This is a systemic enforcement failure in addition to the agent error.\n\n### Expected behavior\n\nThe operator ceiling must survive ingestion, delegation, compaction, review, and merge preparation. When an implementation needs backend or persistence changes beyond an explicit UI-only ceiling, the agent must present that concrete delta for an explicit operator decision before doing the dependent work.\n\nAn in-scope implementation should continue under the authorization already given. The fix must avoid repetitive approval requests for work that has not expanded.\n\n### Reproduction recipe\n\nReconstructed from the observed sequence; not rerun as a separate sanitized fixture:\n\n1. Authorize a UI-only outcome.\n2. Have the agent infer that new persistence or processing is needed.\n3. Let it record that choice in its own brief and decision log without an operator amendment.\n4. Run the normal readiness, acceptance, and review flow.\n5. Supply a generic instruction to continue or merge, without authorizing the added backend work.\n6. The system must preserve the original ceiling and refuse the expansion; proceeding because the brief/decision/checks are internally consistent reproduces this defect.\n\n### Regression cases\n\n- A source statement containing \"only\" remains binding after derivation and delegation.\n- A positive outcome request that appears to require excluded work produces a scope conflict, not implicit authorization.\n- Agent-written briefs and architectural decisions cannot independently amend the ceiling.\n- Generic proceed/continue/merge approvals retain the existing scope.\n- An explicit operator amendment naming the added change class can authorize the specific expansion.\n- The approved amendment remains bound to the affected work through delegation and merge preparation.\n- A passing readiness or narrow semantic check cannot stand in for that amendment.\n\nRefs #4774 for the absent PR membership boundary, #4915 for acceptance-reference loss, and #4541 for limited intent-constraint coverage. These are contributing failures; this report isolates the missing transition from an agent's proposed mechanism to explicit operator authorization.\n\nRelated reports filed from the same behavioral audit: #5055, #5056.\n\n",
+          "id": 5842645069,
+          "html_url": "https://github.com/deftai/directive/issues/4545#issuecomment-5842645069",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-26T03:09:40Z",
+          "updated_at": "2026-09-26T03:09:40Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe operator prompt for a greenfield build ended with:\n\n> Start with this initial version only. Do not add features beyond the requirements above.\n\nThe requirements listed *add* vehicle, *add* maintenance record, *add* modification, and *update* mileage. The agent also implemented edit + delete for vehicles, service records, and modifications (`updateVehicleAction`, `deleteVehicleAction`, `updateServiceAction`, `deleteServiceAction`, `updateModificationAction`, `deleteModificationAction`, plus the matching `/edit` pages). None of that was requested.\n\nA control build of the same prompt with no framework installed stayed add-only.\n\n## Environment\n\n- `@deftai/directive` 0.118.1, consumer deposit layout\n- Host: Grok Build, ceremony tier `rapid`\n- No `xbrief/active/` brief existed (see #4544), so `xbrief:preflight` had no declared scope to check against\n\n## Why it matters\n\nDirective's stay-on-task rules (#198, #241, skill exit conditions, intent ceiling in `contracts/intent-ceiling.md`) are about not drifting into adjacent work. A literal scope-limit sentence in the operator's own prompt is the strongest possible signal of where the boundary is, and it wasn't honored. Full CRUD is a reasonable default for an unconstrained build; it's out of scope for this one.\n\nSmall drift here, but the same behaviour on a larger brief is exactly what the framework exists to prevent.\n\n## Suggested direction\n\n- When the operator prompt contains an explicit scope-limit phrase (\"only\", \"do not add\", \"nothing beyond\", \"initial version only\"), the Implementation Intent Gate (#810) should record it as a hard ceiling on the seeded brief, and pre-PR should diff shipped surface (routes / actions / pages) against the requirement list, warn-first.\n- Cheapest first ship (per #3265): one check that lists exported server actions / route files not traceable to a requirement line, with a single remediation string (\"remove, or add to the brief and get operator approval\").\n\n## Related\n\n- #4543 (placeholder tests), #4544 (empty planning layer) from the same build",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5453275793,
+        "origin": "deftai/directive#4545",
+        "id": "github.issue.5453275793"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9ad758a56ae8b0ac630acaaa13c5cd8a6faf51254318764bf8011fbd1d8cc7da"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/operator-scope-limit/",
+          "packages/core/package.json",
+          "packages/cli/src/verify-operator-scope-limit.ts",
+          "packages/cli/src/dispatch.ts",
+          "content/contracts/intent-ceiling.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "CHANGELOG.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "vitest.config.ts"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "PR opened Tracking #4545",
+          "scope-limit phrase recorded as hard ceiling"
+        ],
+        "depends_on": [],
+        "conflict_group": "operator-scope-limit-ceiling",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.5453275793",
+    "updated": "2026-09-27T02:39:41.834Z"
+  }
+}

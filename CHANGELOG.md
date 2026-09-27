@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Operator scope-limit ceiling + warn-first untraceable-surface check (#4545).** Closed-lexicon phrases (`do not add`, `nothing beyond`, `initial version only`, …) seed a hard ceiling on the proposed brief (or durable artifact) even when rapid/greenfield has no `xbrief/active/` brief; `deft verify:operator-scope-limit` lists exported actions/routes/pages not traceable to a requirement line (warn-first; remediation: remove, or add to the brief and get operator approval). Distinct from slash-verb intent-ceiling (#1193). Refs #4545.
 - **perf(vitest): committed durations + DurationSequencer arm slowest-first on cold release worktrees (Tracking #5028).** Fresh trees no longer depend on host-global vitest cache.dir. Fixture packages/core/fixtures/vitest-file-durations.json (interim until #5027). Refs #5028, #5027, #5024.
 - **Step 5 tee duration ranking helper (#5027).** Scrape flushed `ts:check-lane timeline file <path> <ms>` lines from `.deft/check-tees/**` and print top-N by duration (`packages/core/src/ts-check-lane/duration-rank.ts`). Sub-30s files are omitted (progress reporter heartbeat gate). Does not claim stock vitest JsonReporter flushes on hang kill. RELEASING.md documents tee location, ranking command, and the #5024 top-20 paste. Tracking #5027. Refs #5024, #5023, #4567.
 
