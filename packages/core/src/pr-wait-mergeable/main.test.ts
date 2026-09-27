@@ -1,11 +1,16 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { prWatchHeartbeatAgentId } from "../pr-watch/main.js";
 import { hasActivePollingHeartbeat } from "../review-monitor/verify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED } from "./constants.js";
 import { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
+
+function sleepMs(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
 
 function cleanMonitorPayload(prNumber = 1370): Record<string, unknown> {
   return {
@@ -201,6 +206,56 @@ describe("runWaitMergeable", () => {
     );
     expect(code).toBe(EXIT_MERGED);
     expect(sawLive).toBe(true);
+    expect(hasActivePollingHeartbeat(root, 5020)).toBe(false);
+    stdout.mockRestore();
+    stderr.mockRestore();
+  });
+
+  it("refreshes heartbeat while the blocking monitor runs (#5020 P1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "wait-merge-hb-refresh-"));
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const hbPath = join(
+      root,
+      ".deft-scratch",
+      "subagent-status",
+      `${prWatchHeartbeatAgentId(5020)}.json`,
+    );
+    let firstAt = "";
+    let secondAt = "";
+    const code = runWaitMergeable(
+      [
+        "5020",
+        "--repo",
+        "deftai/directive",
+        "--cap-minutes",
+        "5",
+        "--json",
+        "--project-root",
+        root,
+      ],
+      {
+        protectedFn: makeProtectedFn(0),
+        heartbeatRefreshSeconds: 0.05,
+        monitorFn: (..._args) => {
+          firstAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
+            .last_heartbeat_at;
+          sleepMs(200);
+          secondAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
+            .last_heartbeat_at;
+          expect(hasActivePollingHeartbeat(root, 5020)).toBe(true);
+          return makeMonitorFn(0, cleanMonitorPayload(5020))();
+        },
+        mergeFn: makeMergeFn(0, "merged: squash"),
+        skipHumanMergeGate: true,
+        skipMergeApprovalHeadGate: true,
+        fetchPrHeadShaFn: () => "a".repeat(40),
+      },
+    );
+    expect(code).toBe(EXIT_MERGED);
+    expect(firstAt.length).toBeGreaterThan(0);
+    expect(secondAt.length).toBeGreaterThan(0);
+    expect(Date.parse(secondAt)).toBeGreaterThan(Date.parse(firstAt));
     expect(hasActivePollingHeartbeat(root, 5020)).toBe(false);
     stdout.mockRestore();
     stderr.mockRestore();

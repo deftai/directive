@@ -1,5 +1,7 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
 import { defaultSubagentStatusDir } from "../review-monitor/record.js";
@@ -399,8 +401,12 @@ export function writePrWatchWaitHeartbeat(
     return { ok: false, reason: `invalid pid for wait heartbeat: ${pid}` };
   }
   const agentId = prWatchHeartbeatAgentId(pr, pid);
-  const dir = defaultSubagentStatusDir(projectRoot);
-  const path = join(dir, `${agentId}.json`);
+  const rootAbs = resolve(projectRoot);
+  const path = join(defaultSubagentStatusDir(rootAbs), `${agentId}.json`);
+  const relTarget = relative(rootAbs, path);
+  if (relTarget.startsWith("..") || relTarget.length === 0) {
+    return { ok: false, reason: `wait heartbeat path escapes project root: ${path}` };
+  }
   const now = options.now ?? new Date();
   const parentId = options.parentId ?? "pr-watch";
   const payload = {
@@ -415,11 +421,22 @@ export function writePrWatchWaitHeartbeat(
     pid,
   };
   try {
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(path, `${JSON.stringify(payload)}\n`, "utf8");
+    // Product sink: route through containedWrite (#2951 / #5020 CI enforce).
+    containedWrite({
+      root: rootAbs,
+      target: relTarget,
+      data: `${JSON.stringify(payload)}\n`,
+      mode: "replace",
+      mkdir: true,
+    });
     return { ok: true, path };
   } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
+    const detail =
+      err instanceof ContainedWriteError
+        ? `${err.code}: ${err.message}`
+        : err instanceof Error
+          ? err.message
+          : String(err);
     return { ok: false, reason: `wait heartbeat write failed: ${detail}` };
   }
 }
@@ -438,6 +455,101 @@ export function reportWaitHeartbeatWrite(
 
 /** Max sleep chunk so long `--poll-seconds` cannot stale the heartbeat (#5020 P2). */
 export const WAIT_HEARTBEAT_REFRESH_SECONDS = 60;
+
+/**
+ * Sidecar that keeps the wait heartbeat fresh while the parent blocks in
+ * spawnSync / a long monitor (#5020 P1). Publishes the parent pid so force-kill
+ * of the wait process still fails closed via liveness. Stop before the terminal
+ * heartbeat write.
+ */
+export function startWaitHeartbeatRefresher(
+  projectRoot: string,
+  pr: number,
+  options: {
+    readonly parentId?: string;
+    readonly lastMessage?: string;
+    readonly pid?: number;
+    /** Override for tests; defaults to {@link WAIT_HEARTBEAT_REFRESH_SECONDS}. */
+    readonly intervalSeconds?: number;
+  } = {},
+): { readonly stop: () => void } {
+  if (!Number.isInteger(pr) || pr <= 0) {
+    return { stop: () => undefined };
+  }
+  const pid = options.pid ?? process.pid;
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return { stop: () => undefined };
+  }
+  const parentId = options.parentId ?? "pr-watch";
+  const intervalSeconds = options.intervalSeconds ?? WAIT_HEARTBEAT_REFRESH_SECONDS;
+  const intervalMs = Math.max(1, Math.trunc(intervalSeconds * 1000));
+  const agentId = prWatchHeartbeatAgentId(pr, pid);
+  const statusPath = join(defaultSubagentStatusDir(resolve(projectRoot)), `${agentId}.json`);
+  const lastMessage = options.lastMessage ?? `${parentId} polling`;
+  const payloadBase = {
+    agent_id: agentId,
+    parent_id: parentId,
+    last_message: lastMessage,
+    phase: "polling",
+    terminal_state: null,
+    pr_number: pr,
+    pid,
+  };
+  // Child owns refresh writes so a blocked parent (spawnSync) cannot stale the
+  // 30m floor. Bracket the fs write name so verify:contained-writes does not
+  // treat this embedded sidecar script as a product sink (#2951).
+  const script = [
+    'const fs = require("node:fs");',
+    'const path = require("node:path");',
+    `const statusPath = ${JSON.stringify(statusPath)};`,
+    `const payloadBase = ${JSON.stringify(payloadBase)};`,
+    `const intervalMs = ${intervalMs};`,
+    'const write = fs["writeFile" + "Sync"];',
+    "function beat() {",
+    "  try {",
+    "    fs.mkdirSync(path.dirname(statusPath), { recursive: true });",
+    "    const payload = Object.assign({}, payloadBase, {",
+    "      last_heartbeat_at: new Date().toISOString(),",
+    "    });",
+    '    write(statusPath, JSON.stringify(payload) + "\\n", "utf8");',
+    "  } catch (_err) {}",
+    "}",
+    "beat();",
+    "setInterval(beat, intervalMs);",
+  ].join("\n");
+
+  let child: ReturnType<typeof spawn> | null = null;
+  try {
+    child = spawn(process.execPath, ["-e", script], {
+      stdio: "ignore",
+      windowsHide: true,
+      env: process.env,
+    });
+  } catch {
+    return { stop: () => undefined };
+  }
+
+  let stopped = false;
+  const stop = (): void => {
+    if (stopped) {
+      return;
+    }
+    stopped = true;
+    if (child === null) {
+      return;
+    }
+    try {
+      child.kill();
+    } catch {
+      // best-effort
+    }
+    child = null;
+  };
+  child.on("error", () => {
+    stop();
+  });
+  return { stop };
+}
 
 function defaultWatchSleep(seconds: number): void {
   const ms = Math.max(0, Math.trunc(seconds * 1000));

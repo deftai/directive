@@ -1,5 +1,10 @@
 import { parseProtected } from "../pr-protected-issues/parse.js";
-import { reportWaitHeartbeatWrite, writePrWatchWaitHeartbeat } from "../pr-watch/main.js";
+import {
+  reportWaitHeartbeatWrite,
+  startWaitHeartbeatRefresher,
+  WAIT_HEARTBEAT_REFRESH_SECONDS,
+  writePrWatchWaitHeartbeat,
+} from "../pr-watch/main.js";
 import { waitMergeableAndMerge } from "./cascade.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { toResultDict } from "./result.js";
@@ -154,6 +159,11 @@ export interface RunWaitMergeableOptions {
   readonly skipMergeApprovalHeadGate?: boolean;
   readonly fetchPrHeadShaFn?: Parameters<typeof waitMergeableAndMerge>[2]["fetchPrHeadShaFn"];
   readonly mergeApprovalHeadFn?: Parameters<typeof waitMergeableAndMerge>[2]["mergeApprovalHeadFn"];
+  /**
+   * Heartbeat refresh interval while the blocking monitor runs (#5020 P1).
+   * Defaults to {@link WAIT_HEARTBEAT_REFRESH_SECONDS}; injectable for tests.
+   */
+  readonly heartbeatRefreshSeconds?: number;
 }
 
 export function runWaitMergeable(
@@ -183,6 +193,9 @@ export function runWaitMergeable(
 
   const projectRoot = args.projectRoot ?? process.cwd();
   const prNumber = args.prNumber as number;
+  const hbSink = (line: string): void => {
+    process.stderr.write(line.replace(/^pr_watch:/, "pr_wait_mergeable:"));
+  };
   // Post-CLEAN live arm: same hasActivePollingHeartbeat seam as pr:watch (#5020).
   reportWaitHeartbeatWrite(
     writePrWatchWaitHeartbeat(projectRoot, prNumber, {
@@ -190,10 +203,15 @@ export function runWaitMergeable(
       parentId: "pr-wait-mergeable",
       lastMessage: "pr:wait-mergeable-and-merge running",
     }),
-    (line) => {
-      process.stderr.write(line.replace(/^pr_watch:/, "pr_wait_mergeable:"));
-    },
+    hbSink,
   );
+  // Refresh for the full wait lifetime — default cap is 60m but heartbeat
+  // stales at 30m if written only once before the blocking monitor (#5020 P1).
+  const refresher = startWaitHeartbeatRefresher(projectRoot, prNumber, {
+    parentId: "pr-wait-mergeable",
+    lastMessage: "pr:wait-mergeable-and-merge running",
+    intervalSeconds: options.heartbeatRefreshSeconds ?? WAIT_HEARTBEAT_REFRESH_SECONDS,
+  });
 
   try {
     const result = waitMergeableAndMerge(prNumber, repo, {
@@ -241,6 +259,7 @@ export function runWaitMergeable(
 
     return result.exitCode;
   } finally {
+    refresher.stop();
     reportWaitHeartbeatWrite(
       writePrWatchWaitHeartbeat(projectRoot, prNumber, {
         phase: "terminal",
@@ -248,9 +267,7 @@ export function runWaitMergeable(
         parentId: "pr-wait-mergeable",
         lastMessage: "pr:wait-mergeable-and-merge exited",
       }),
-      (line) => {
-        process.stderr.write(line.replace(/^pr_watch:/, "pr_wait_mergeable:"));
-      },
+      hbSink,
     );
   }
 }

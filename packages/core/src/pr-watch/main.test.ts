@@ -22,6 +22,7 @@ import {
   printWatchHuman,
   prWatchHeartbeatAgentId,
   runWatch,
+  startWaitHeartbeatRefresher,
   watchResultToJson,
   writePrWatchWaitHeartbeat,
 } from "./main.js";
@@ -389,6 +390,28 @@ describe("pr:watch wait heartbeat (#5020)", () => {
       false,
     );
     expect(writePrWatchWaitHeartbeat(root, 9, { phase: "polling", pid: 0 }).ok).toBe(false);
+  });
+
+  it("startWaitHeartbeatRefresher advances last_heartbeat_at while parent blocks", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-refresh-"));
+    expect(writePrWatchWaitHeartbeat(root, 42, { phase: "polling" }).ok).toBe(true);
+    const hbPath = join(
+      root,
+      ".deft-scratch",
+      "subagent-status",
+      `${prWatchHeartbeatAgentId(42)}.json`,
+    );
+    const firstAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
+      .last_heartbeat_at;
+    const refresher = startWaitHeartbeatRefresher(root, 42, { intervalSeconds: 0.05 });
+    try {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+      const secondAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
+        .last_heartbeat_at;
+      expect(Date.parse(secondAt)).toBeGreaterThan(Date.parse(firstAt));
+    } finally {
+      refresher.stop();
+    }
   });
 
   it("bindLivePhaseCorrectWait missing flag stays unbound; non-Tier1 flag binds", () => {
