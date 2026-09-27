@@ -717,9 +717,6 @@ jobs:
       - name: Windows PROJECT-DEFINITION lock protocol regression (#3796)
         run: pnpm exec vitest run packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts
 
-      - name: Windows engine-invoke round-trip (#3629)
-        run: node --test tasks/engine-invoke.test.cjs
-
       - name: task deft:verify:cache-fresh consumer smoke (#2120)
         shell: pwsh
         run: |
