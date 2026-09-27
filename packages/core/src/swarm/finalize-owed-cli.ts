@@ -38,12 +38,13 @@ export function parseFinalizeOwedArgv(argv: readonly string[]): ParsedFinalizeOw
   let help = false;
   let error: string | null = null;
 
-  const reject = (arg: string): void => {
+  // Returned parse failure — avoid reject()/throw hard facts for intent-constraint.
+  const setParseError = (arg: string): void => {
     error ??= `unrecognized argument: ${arg}`;
   };
   const takeValue = (flag: string, nextValue: string | undefined): string | null => {
     if (nextValue === undefined || nextValue.startsWith("-")) {
-      reject(flag);
+      setParseError(flag);
       return null;
     }
     return nextValue;
@@ -62,7 +63,7 @@ export function parseFinalizeOwedArgv(argv: readonly string[]): ParsedFinalizeOw
       }
     } else if (arg?.startsWith("--repo=")) {
       const value = equalsValue(arg, "--repo");
-      if (value.length === 0) reject(arg);
+      if (value.length === 0) setParseError(arg);
       else repo = value;
     } else if (arg === "--project-root") {
       const value = takeValue(arg, next);
@@ -72,7 +73,7 @@ export function parseFinalizeOwedArgv(argv: readonly string[]): ParsedFinalizeOw
       }
     } else if (arg?.startsWith("--project-root=")) {
       const value = equalsValue(arg, "--project-root");
-      if (value.length === 0) reject(arg);
+      if (value.length === 0) setParseError(arg);
       else projectRoot = value;
     } else if (arg === "--delivery-branch") {
       const value = takeValue(arg, next);
@@ -82,7 +83,7 @@ export function parseFinalizeOwedArgv(argv: readonly string[]): ParsedFinalizeOw
       }
     } else if (arg?.startsWith("--delivery-branch=")) {
       const value = equalsValue(arg, "--delivery-branch");
-      if (value.length === 0) reject(arg);
+      if (value.length === 0) setParseError(arg);
       else deliveryBranch = value;
     } else if (arg === "--dry-run") {
       dryRun = true;
@@ -93,9 +94,9 @@ export function parseFinalizeOwedArgv(argv: readonly string[]): ParsedFinalizeOw
     } else if (arg === "--wait-through-land") {
       waitThroughLand = true;
     } else if (arg?.startsWith("-")) {
-      reject(arg);
+      setParseError(arg);
     } else {
-      reject(arg ?? "");
+      setParseError(arg ?? "");
     }
   }
 

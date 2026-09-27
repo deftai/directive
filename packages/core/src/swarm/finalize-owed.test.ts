@@ -996,6 +996,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
       }
       return { code: 0, stdout: "", stderr: "" };
     };
+    let finalizeCalls = 0;
     const result = finalizeOwed({
       projectRoot: root,
       repo: "deftai/directive",
@@ -1024,9 +1025,34 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
       runFinalize: () => {
-        throw new Error("finalize must not run for stale-unverified");
+        finalizeCalls += 1;
+        // Returned failure — stale-unverified must not reclaim/finalize (#4919).
+        return {
+          exitCode: EXIT_INCOMPLETE,
+          stdout: "",
+          result: {
+            project_root: root,
+            dry_run: false,
+            no_commit: false,
+            pr_numbers: [],
+            story_paths: [],
+            closing_issues: [],
+            sweep: null,
+            commit_sha: null,
+            branch: null,
+            pr_url: null,
+            delivery_branch: "master",
+            sweep_base: "master",
+            delivery_errors: [],
+            errors: ["finalize must not run for stale-unverified"],
+            warnings: [],
+            ok: false,
+            pending: null,
+          },
+        };
       },
     });
+    expect(finalizeCalls).toBe(0);
     expect(deletePushes).toHaveLength(0);
     expect(result.result.skipped).toContain(4919);
     expect(result.result.finalized).not.toContain(4919);
