@@ -15,24 +15,24 @@
     },
     "items": [
       {
-        "title": "One Tracking pull request and one story id bind that pull request's merge as delivery evidence",
+        "title": "Leftover-complete for #4919 after product PR #5076.",
         "status": "pending",
         "id": "clause.1",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:42.780Z",
+          "recorded_at": "2026-09-27T23:19:13.357Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "title": "Several pull requests in one finalize call are refused and the unpaired stories are named",
+        "title": "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
         "status": "pending",
         "id": "clause.2",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:42.780Z",
+          "recorded_at": "2026-09-27T23:19:13.357Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
@@ -1116,7 +1116,18 @@
         "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory."
       ],
       "admitted_source_digest": "c98ef34c3900b3e15a7034ef636021c5ca8204accbafb600bac4faedab81dd77",
-      "clauses": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Leftover-complete for #4919 after product PR #5076.",
+          "artifact_path": null
+        },
+        {
+          "id": 2,
+          "text": "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
+          "artifact_path": null
+        }
+      ],
       "sentences": [
         "Leftover-complete for #4919 after product PR #5076.",
         "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory."
