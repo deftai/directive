@@ -17,12 +17,6 @@
         "title": "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
         "status": "pending",
         "id": "clause.1",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts",
-          "recorded_at": "2026-09-27T20:08:05Z",
-          "recorded_by": "scope:stamp-evidence"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
@@ -39,12 +33,6 @@
         "title": "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.",
         "status": "pending",
         "id": "clause.2",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/scm/design-critique-stale-ready.test.ts",
-          "recorded_at": "2026-09-27T20:08:05Z",
-          "recorded_by": "scope:stamp-evidence"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
@@ -61,12 +49,6 @@
         "title": "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
         "status": "pending",
         "id": "clause.3",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/design-critique/exclusive-chip.test.ts",
-          "recorded_at": "2026-09-27T20:08:05Z",
-          "recorded_by": "scope:stamp-evidence"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
@@ -83,12 +65,6 @@
         "title": "Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
         "status": "pending",
         "id": "clause.4",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/vbrief-reconcile/main.test.ts",
-          "recorded_at": "2026-09-27T20:08:05Z",
-          "recorded_by": "scope:stamp-evidence"
-        },
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
