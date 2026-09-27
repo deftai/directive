@@ -41,4 +41,33 @@ describe("inventoryDefaultSurfaces (#4545)", () => {
     const root = mkdtempSync(join(tmpdir(), "osl-inv-empty-"));
     expect(inventoryDefaultSurfaces(root)).toEqual([]);
   });
+
+  it("recognizes export default function and export { name } forms", () => {
+    const root = mkdtempSync(join(tmpdir(), "osl-inv-export-"));
+    const actionsDir = join(root, "app", "actions");
+    mkdirSync(actionsDir, { recursive: true });
+    writeFileSync(
+      join(actionsDir, "actions.ts"),
+      [
+        "export default async function deleteVehicleAction() {}",
+        "async function updateVehicleAction() {}",
+        "export { updateVehicleAction }",
+        "export const addVehicleAction = async () => {}",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const ids = inventoryDefaultSurfaces(root)
+      .map((s) => s.id)
+      .sort();
+    expect(ids).toEqual(["addVehicleAction", "deleteVehicleAction", "updateVehicleAction"]);
+  });
+
+  it("skips framework helpers outside app/ and src/app/", () => {
+    const root = mkdtempSync(join(tmpdir(), "osl-inv-pkg-"));
+    const helperDir = join(root, "packages", "core", "src", "escalation");
+    mkdirSync(helperDir, { recursive: true });
+    writeFileSync(join(helperDir, "actions.ts"), "export function fileEscalation() {}\n", "utf8");
+    expect(inventoryDefaultSurfaces(root)).toEqual([]);
+  });
 });

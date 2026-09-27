@@ -33,7 +33,9 @@ export function detectScopeLimitPhrase(prompt: string): DetectedScopeLimit | nul
  *
  * Scans the whole prompt so an early ceiling phrase (`Initial version only:`
  * then `- add vehicle`) still keeps requirements that follow it. Scope-limit
- * sentences themselves are filtered out. `beforeIndex` is accepted for call
+ * sentences themselves are filtered out. Lines under exclusion headers
+ * (`Out of scope:`, `Excluded:`, …) are not recorded as requirements, so a
+ * shipped excluded action still warns. `beforeIndex` is accepted for call
  * compatibility and ignored for truncation.
  */
 export function extractRequirementLines(
@@ -46,9 +48,24 @@ export function extractRequirementLines(
   const lines = prompt.split(/\r?\n/);
   const out: string[] = [];
   const seen = new Set<string>();
+  let inExclusionBlock = false;
   for (const raw of lines) {
     const trimmed = raw.trim();
     if (trimmed.length === 0) continue;
+
+    const section = classifySectionHeader(trimmed);
+    if (section === "exclusion") {
+      inExclusionBlock = true;
+      continue;
+    }
+    if (section === "inclusion") {
+      inExclusionBlock = false;
+      // Fall through — a header like "Requirements: add vehicle" is rare;
+      // normally the header itself is not a requirement line.
+    }
+
+    if (inExclusionBlock) continue;
+
     const bullet = trimmed.replace(/^[-*•]\s+/, "").replace(/^\d+[.)]\s+/, "");
     const candidate = bullet.trim();
     if (!looksLikeRequirementLine(candidate)) continue;
@@ -62,6 +79,24 @@ export function extractRequirementLines(
 
 const REQUIREMENT_VERB =
   /^(add|update|create|delete|remove|list|view|get|set|edit|record|track)\b/i;
+
+/** Section headers that mark excluded / not-required content. */
+const EXCLUSION_HEADER =
+  /^(out of scope|excluded|exclusions|not in scope|do not include|beyond scope|non[- ]goals?)\b/i;
+
+/** Section headers that resume recording requirements. */
+const INCLUSION_HEADER = /^(requirements?|in scope|must|scope|accepted|include|features?)\b/i;
+
+function classifySectionHeader(line: string): "exclusion" | "inclusion" | null {
+  // Only treat short header-shaped lines (optional trailing colon).
+  const header = line.replace(/:\s*$/, "").trim();
+  if (header.length === 0 || header.length > 40) return null;
+  // Bullet bodies are never section headers.
+  if (/^[-*•]\s+/.test(line) || /^\d+[.)]\s+/.test(line)) return null;
+  if (EXCLUSION_HEADER.test(header)) return "exclusion";
+  if (INCLUSION_HEADER.test(header)) return "inclusion";
+  return null;
+}
 
 function looksLikeRequirementLine(line: string): boolean {
   if (line.length < 3 || line.length > 200) return false;

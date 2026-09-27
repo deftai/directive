@@ -5,15 +5,32 @@ import type { ShippedSurface } from "./types.js";
 const SKIP_DIR_RE =
   /(?:^|\/)(?:node_modules|\.git|\.deft|dist|build|coverage|\.next|out|\.turbo)(?:\/|$)/;
 
+/** App-router action layouts only — not package-local actions.ts helpers. */
 const ACTION_FILE_GLOBS = [
-  "**/actions.ts",
-  "**/actions.tsx",
-  "**/actions.js",
-  "**/actions.jsx",
-  "**/actions/**/*.ts",
-  "**/actions/**/*.tsx",
-  "**/actions/**/*.js",
-  "**/actions/**/*.jsx",
+  "app/**/actions.ts",
+  "app/**/actions.tsx",
+  "app/**/actions.js",
+  "app/**/actions.jsx",
+  "app/actions/**/*.ts",
+  "app/actions/**/*.tsx",
+  "app/actions/**/*.js",
+  "app/actions/**/*.jsx",
+  "app/**/actions/**/*.ts",
+  "app/**/actions/**/*.tsx",
+  "app/**/actions/**/*.js",
+  "app/**/actions/**/*.jsx",
+  "src/app/**/actions.ts",
+  "src/app/**/actions.tsx",
+  "src/app/**/actions.js",
+  "src/app/**/actions.jsx",
+  "src/app/actions/**/*.ts",
+  "src/app/actions/**/*.tsx",
+  "src/app/actions/**/*.js",
+  "src/app/actions/**/*.jsx",
+  "src/app/**/actions/**/*.ts",
+  "src/app/**/actions/**/*.tsx",
+  "src/app/**/actions/**/*.js",
+  "src/app/**/actions/**/*.jsx",
 ] as const;
 
 const PAGE_GLOBS = [
@@ -40,10 +57,14 @@ const ROUTE_GLOBS = [
 
 const EXPORT_FN = /\bexport\s+(?:async\s+)?function\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
 const EXPORT_CONST = /\bexport\s+const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=/g;
+const EXPORT_DEFAULT_FN =
+  /\bexport\s+default\s+(?:async\s+)?function\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
+const EXPORT_BRACE_LIST = /\bexport\s*\{([^}]+)\}/g;
 
 /**
  * Cheap default inventory of shipped surfaces when callers omit --surfaces-file.
- * Walks common Next.js app/actions layouts under projectRoot; never throws.
+ * Walks Next.js app/ and src/app/ actions, pages, and routes; never throws.
+ * Framework helpers under packages/core (and similar) are intentionally out.
  */
 export function inventoryDefaultSurfaces(projectRoot: string): ShippedSurface[] {
   if (typeof projectRoot !== "string" || projectRoot.trim().length === 0) {
@@ -105,18 +126,37 @@ function expandGlobs(projectRoot: string, globs: readonly string[]): string[] {
 function collectExportedNames(source: string): string[] {
   const names: string[] = [];
   const seen = new Set<string>();
-  for (const re of [EXPORT_FN, EXPORT_CONST]) {
+
+  const push = (name: string | undefined): void => {
+    if (typeof name !== "string" || name.length === 0 || seen.has(name)) return;
+    if (name === "default" || name === "type" || name === "as") return;
+    seen.add(name);
+    names.push(name);
+  };
+
+  for (const re of [EXPORT_DEFAULT_FN, EXPORT_FN, EXPORT_CONST]) {
     re.lastIndex = 0;
     let m: RegExpExecArray | null = re.exec(source);
     while (m !== null) {
-      const name = m[1];
-      if (typeof name === "string" && name.length > 0 && !seen.has(name)) {
-        seen.add(name);
-        names.push(name);
-      }
+      push(m[1]);
       m = re.exec(source);
     }
   }
+
+  EXPORT_BRACE_LIST.lastIndex = 0;
+  let brace: RegExpExecArray | null = EXPORT_BRACE_LIST.exec(source);
+  while (brace !== null) {
+    const body = brace[1] ?? "";
+    for (const part of body.split(",")) {
+      const token = part.trim();
+      if (token.length === 0 || token.startsWith("type ")) continue;
+      // `name` or `name as alias` — inventory the local binding being exported.
+      const local = token.split(/\s+as\s+/i)[0]?.trim();
+      push(local);
+    }
+    brace = EXPORT_BRACE_LIST.exec(source);
+  }
+
   return names;
 }
 

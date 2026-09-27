@@ -112,6 +112,29 @@ describe("extractRequirementLines (#4545)", () => {
     });
     expect(check.severity).toBe("clean");
   });
+
+  it("treats Out of scope actions as untraceable, not approved", () => {
+    const prompt = [
+      "Initial version only.",
+      "- add vehicle",
+      "",
+      "Out of scope:",
+      "- delete vehicle",
+    ].join("\n");
+    const seeded = seedOperatorScopeCeiling(prompt, null);
+    expect(seeded.ok).toBe(true);
+    if (!seeded.ok) return;
+    expect(seeded.ceiling.requirementLines).toEqual(["add vehicle"]);
+    const check = evaluateUntraceableSurfaces({
+      requirementLines: seeded.ceiling.requirementLines,
+      surfaces: [
+        { kind: "server-action", id: "addVehicleAction" },
+        { kind: "server-action", id: "deleteVehicleAction" },
+      ],
+    });
+    expect(check.severity).toBe("warn");
+    expect(check.untraceable.map((u) => u.surface.id)).toEqual(["deleteVehicleAction"]);
+  });
 });
 
 describe("seedOperatorScopeCeiling (#4545)", () => {

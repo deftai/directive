@@ -15,4 +15,17 @@ describe("detect (#4545)", () => {
     expect(hit?.phrase).toBe("initial version only");
     expect(extractRequirementLines(prompt, { beforeIndex: hit?.index })).toEqual(["add vehicle"]);
   });
+
+  it("does not record Out of scope bullets as requirements", () => {
+    const prompt = [
+      "Initial version only.",
+      "Requirements:",
+      "- add vehicle",
+      "",
+      "Out of scope:",
+      "- delete vehicle",
+      "- update vehicle",
+    ].join("\n");
+    expect(extractRequirementLines(prompt)).toEqual(["add vehicle"]);
+  });
 });
