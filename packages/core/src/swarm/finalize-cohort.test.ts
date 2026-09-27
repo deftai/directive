@@ -288,7 +288,7 @@ function mockRunGit(
             id: "story",
             references: [
               {
-                uri: "https://github.com/deftai/directive/issues/" + String(issue),
+                uri: `https://github.com/deftai/directive/issues/${String(issue)}`,
                 type: "x-xbrief/github-issue",
               },
             ],
@@ -1201,7 +1201,8 @@ describe("finalizeCohort", () => {
 
   it("origin-closes from PR-body deft-story mark after leftover land without --stories (#4864)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-deft-story-"));
-    writeCompletedStory(project, "story-4864", 4864, { productPullRequest: 5100 });
+    // Leftover-complete does not stamp productPullRequest; PR-body intent alone must close.
+    writeCompletedStory(project, "story-4864", 4864);
     const ghCalls: string[][] = [];
     const runGh = mockRunGh(
       {
@@ -1234,9 +1235,9 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
-  it("refuses deft-story mark that does not bind PR delivery for an unrelated completed issue (#4864)", () => {
+  it("refuses deft-story mark when completed brief is bound to a different product PR (#4864)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-unbound-mark-"));
-    writeCompletedStory(project, "story-9999", 9999);
+    writeCompletedStory(project, "story-9999", 9999, { productPullRequest: 1111 });
     const ghCalls: string[][] = [];
     const runGh = mockRunGh(
       {
@@ -1270,6 +1271,81 @@ describe("finalizeCohort", () => {
     expect(
       ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/9999"))),
     ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses deft-story mark on unrelated PR when active brief lacks matching productPullRequest (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-active-unrelated-"));
+    writeActiveStory(project, "story-4864", 4864);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        5200: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #4864\n\ndeft-story: 4864\n",
+        },
+      },
+      { 4864: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5200],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("does not bind PR delivery") && e.includes("#4864"),
+      ),
+    ).toBe(true);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4864"))),
+    ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("binds deft-story to active brief only when productPullRequest matches the PR (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-active-bound-mark-"));
+    const storyPath = writeActiveStory(project, "story-4864", 4864, {
+      productPullRequest: 5301,
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5301],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        5301: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #4864\n\ndeft-story: 4864\n",
+        },
+      }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.story_paths).toContain(storyPath);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({
+        assumeEvidenceValidated: true,
+        deliveryEvidence: expect.objectContaining({ prNumber: 5301 }),
+      }),
+    );
     rmSync(project, { recursive: true, force: true });
   });
 

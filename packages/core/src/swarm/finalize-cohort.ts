@@ -413,23 +413,24 @@ function collectProductPullRequestOrigins(
 }
 
 /**
- * PR-body `deft-story: N` may origin-close only when this PR binds delivery for N:
- * an active brief for N, or a completed brief with metadata.productPullRequest = PR.
+ * PR-body `deft-story: N` may bind only when this PR is delivery for N (#4864):
+ * - active: metadata.productPullRequest must equal this PR (unrelated PR must not bind)
+ * - completed: brief for N is enough when productPullRequest is absent or matches
+ *   (leftover-complete does not stamp productPullRequest; PR-body intent still closes)
  */
-function deftStoryMarkBindsDelivery(
-  projectRoot: string,
-  issue: number,
-  prNumber: number,
-): boolean {
-  const resolved = resolveStories(projectRoot, [String(issue)]);
-  if (resolved.resolved.length > 0) {
-    return true;
-  }
-  for (const folder of ["xbrief/completed", "vbrief/completed"] as const) {
+function deftStoryMarkBindsDelivery(projectRoot: string, issue: number, prNumber: number): boolean {
+  let sawCompletedForIssue = false;
+  for (const folder of [
+    "xbrief/active",
+    "vbrief/active",
+    "xbrief/completed",
+    "vbrief/completed",
+  ] as const) {
     const dir = resolve(projectRoot, folder);
     if (!existsSync(dir)) {
       continue;
     }
+    const isActive = folder.endsWith("/active");
     for (const name of readdirSync(dir)) {
       if (!name.endsWith(".json")) {
         continue;
@@ -447,13 +448,25 @@ function deftStoryMarkBindsDelivery(
         if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
           continue;
         }
-        return productPullRequestFromPlan(plan as Record<string, unknown>) === prNumber;
+        const productPr = productPullRequestFromPlan(plan as Record<string, unknown>);
+        if (isActive) {
+          if (productPr === prNumber) {
+            return true;
+          }
+          continue;
+        }
+        if (productPr === prNumber) {
+          return true;
+        }
+        if (productPr === null) {
+          sawCompletedForIssue = true;
+        }
       } catch {
-        /* unreadable completed brief — try next */
+        /* unreadable brief — try next */
       }
     }
   }
-  return false;
+  return sawCompletedForIssue;
 }
 
 function listLandedCompletedRelpaths(
@@ -1353,8 +1366,9 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           if (!deftStoryMarkBindsDelivery(projectRoot, issue, prNumber)) {
             errors.push(
               `#${String(issue)}: deft-story mark on PR #${String(prNumber)} does not bind PR delivery ` +
-                `(need an active brief for #${String(issue)}, or a completed brief with ` +
-                `metadata.productPullRequest=${String(prNumber)}) (#4864).`,
+                `(need active brief #${String(issue)} with metadata.productPullRequest=${String(prNumber)}, ` +
+                `or a completed brief for #${String(issue)} whose productPullRequest is absent or ` +
+                `equals ${String(prNumber)}) (#4864).`,
             );
             continue;
           }
