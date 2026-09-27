@@ -16,38 +16,90 @@
     "items": [
       {
         "title": "Selector: every admitted-source sentence is identity-bearing. The filed wording \"Presentation changes only; do not change persistence or backend processing\" is in that set and in the item 8 fixture.",
-        "status": "pending",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5062",
+          "recorded_at": "2026-09-27T12:38:34.969Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        }
       },
       {
         "title": "Met-predicate: `verify:ac` owns visibility only. Fail closed when an identity is removed from the inspected set (delete, `undefined`, empty list, regenerate-from-live). Restoration as a same-text clause is the restored state and may pass the floor. Confession of an admitted-source identity is not restoration. Derived item titles cannot authorize removal. #3110 / `authz:grant` is the only path that removes or narrows an identity; the amendment names the affected identity and the resulting scope.",
-        "status": "pending",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5062",
+          "recorded_at": "2026-09-27T12:38:34.969Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        }
       },
       {
         "title": "Admitted-source selection: the issue body on the body-normative path; the admitted Bound-remedy harvest on Spec-path. Prompt-seed consumes the #4545 equivalent durable ceiling artifact only when that artifact is outside the worker-writable brief. Prompt-seed recorded only on the seeded brief is outside this arc's relief.",
-        "status": "pending",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5062",
+          "recorded_at": "2026-09-27T12:38:34.969Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        }
       },
       {
         "title": "Digest comparison reference: live REST at the ingest-recorded revision, and the merge-base copy of the pinned list when one exists. First ingest with no merge-base counterpart is tamper-evidence against a stale brief, not a trust root against a worker with forge write. Editor-attribution of the origin issue remains a named residual. Offline / forge-outage: fail closed; do not skip.",
-        "status": "pending",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5062",
+          "recorded_at": "2026-09-27T12:38:34.969Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        }
       },
       {
         "title": "Authorization of persistence and backend is #5056 / #4545. This gate does not claim a negative oracle over the change set.",
-        "status": "pending",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound out-of-grain: persistence/backend is #5056/#4545",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T12:39:08.793Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T12:39:08.793Z"
+        }
       },
       {
         "title": "Do not mint a second ceiling store. Do not pin this first-ingest path via #4956 approved-scope or intent-preimage. #4774 stays PR membership.",
-        "status": "pending",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Negative non-goal: no second ceiling store; #4774 stays PR membership",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T12:39:08.793Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T12:39:08.793Z"
+        }
       },
       {
         "title": "Tests lock the P1 recipe (Overview rewrite plus stored list deleted) fail-closed; restoration as a same-text clause pass; confession of an admitted identity fail-closed; digest mismatch against live REST refuse; Spec-path refused-body exclusion.",
-        "status": "pending",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/sentence-floor.test.ts",
+          "recorded_at": "2026-09-27T12:38:34.969Z",
+          "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+        }
       }
     ],
     "tags": [
