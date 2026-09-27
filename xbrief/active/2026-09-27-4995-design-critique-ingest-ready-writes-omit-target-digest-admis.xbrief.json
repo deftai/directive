@@ -22,6 +22,17 @@
           "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts",
           "recorded_at": "2026-09-27T20:08:05Z",
           "recorded_by": "scope:stamp-evidence"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-27T20:13:35.501Z",
+            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
+          },
+          "recorded_at": "2026-09-27T20:13:35.501Z"
         }
       },
       {
@@ -33,6 +44,17 @@
           "pointer": "packages/core/src/scm/design-critique-stale-ready.test.ts",
           "recorded_at": "2026-09-27T20:08:05Z",
           "recorded_by": "scope:stamp-evidence"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-27T20:13:35.501Z",
+            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
+          },
+          "recorded_at": "2026-09-27T20:13:35.501Z"
         }
       },
       {
@@ -44,6 +66,17 @@
           "pointer": "packages/core/src/design-critique/exclusive-chip.test.ts",
           "recorded_at": "2026-09-27T20:08:05Z",
           "recorded_by": "scope:stamp-evidence"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-27T20:13:35.501Z",
+            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
+          },
+          "recorded_at": "2026-09-27T20:13:35.501Z"
         }
       },
       {
@@ -55,6 +88,17 @@
           "pointer": "packages/core/src/vbrief-reconcile/main.test.ts",
           "recorded_at": "2026-09-27T20:08:05Z",
           "recorded_by": "scope:stamp-evidence"
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "MScottAdams",
+            "mintedAt": "2026-09-27T20:13:35.501Z",
+            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
+          },
+          "recorded_at": "2026-09-27T20:13:35.501Z"
         }
       }
     ],
