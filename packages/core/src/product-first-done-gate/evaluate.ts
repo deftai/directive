@@ -8,8 +8,8 @@
  * floor, empty resolution is soft_empty — not a green run (#3334).
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import {
   emitAcceptanceStampFromPlan,
   MISSING_AMBIGUITY_ATTESTATION_CAUSE,
@@ -180,8 +180,8 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
   readonly sessionId?: string | null;
   readonly productPaths?: readonly string[];
   /**
-   * Merge-base copy of the admitted-source pin (#5055). Tests inject; production
-   * may resolve via git show of the brief. Null means "looked up, absent".
+   * Merge-base / HEAD copy of the admitted-source pin (#5055). Tests inject;
+   * production may resolve via git show of the brief. Null means "looked up, absent".
    */
   readonly admittedSourceMergeBase?: {
     readonly sentences: readonly string[];
@@ -189,11 +189,18 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
   } | null;
   /**
    * Live admitted-source text at the ingest-recorded revision (#5055).
-   * Returned failure on outage — do not skip. Tests inject.
+   * Body-normative: origin issue body. Spec-path: Bound-remedy harvest (not the
+   * refused raw body). Returned failure on outage — do not skip. Tests inject.
    */
   readonly fetchAdmittedSourceText?: () =>
     | { readonly ok: true; readonly text: string }
     | { readonly ok: false; readonly reason: string };
+  /**
+   * Absolute or project-relative xBRIEF path (#5055). When set, plan evaluation
+   * recovers the admitted-source pin from merge-base / HEAD the same way as
+   * evaluateVerifyAcFromPath — so scope:complete cannot skip missing-pin recovery.
+   */
+  readonly xbriefPath?: string | null;
 }
 
 /** Cause when an admitted-source identity left the inspected clause set (#5055). */
@@ -542,6 +549,72 @@ function persistVerifyAcSessionCache(
 }
 
 /**
+ * Locate an active brief path for plan.id so plan-only readers (scope:complete)
+ * can recover the admitted-source pin from git (#5055).
+ */
+function findActiveBriefPathForPlan(
+  projectRoot: string,
+  plan: Record<string, unknown>,
+): string | null {
+  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
+  if (planId === null) {
+    return null;
+  }
+  for (const dirName of ["xbrief", "vbrief"] as const) {
+    const active = join(projectRoot, dirName, "active");
+    if (!existsSync(active)) {
+      continue;
+    }
+    let names: string[] = [];
+    try {
+      names = readdirSync(active)
+        .filter((n) => n.endsWith(".xbrief.json") || n.endsWith(".vbrief.json"))
+        .sort();
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      const abs = join(active, name);
+      try {
+        const parsed = JSON.parse(readFileSync(abs, "utf8")) as unknown;
+        const root = asRecord(parsed);
+        const briefPlan = asRecord(root?.plan);
+        if (briefPlan !== null && briefPlan.id === planId) {
+          return abs;
+        }
+      } catch {
+        // Skip unreadable peers; recovery is best-effort.
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve git admitted-source pin for plan evaluation (#5055).
+ * Uses options.xbriefPath when set; otherwise scans active/ by plan.id so
+ * scope:complete matches standalone verify:ac missing-pin recovery.
+ */
+function resolveAdmittedSourceGitPin(
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions,
+  projectRoot: string,
+): { readonly sentences: readonly string[]; readonly digest: string | null } | null | undefined {
+  // Explicit null = looked up, absent — do not scan active/ again (#5055).
+  if (options.admittedSourceMergeBase !== undefined) {
+    return options.admittedSourceMergeBase;
+  }
+  const hinted =
+    typeof options.xbriefPath === "string" && options.xbriefPath.trim().length > 0
+      ? resolve(projectRoot, options.xbriefPath.trim())
+      : findActiveBriefPathForPlan(projectRoot, plan);
+  if (hinted === null) {
+    return undefined;
+  }
+  return loadAdmittedSourceFromGit(projectRoot, hinted);
+}
+
+/**
  * Evaluate product AC from an in-memory plan.
  */
 export function evaluateVerifyAcFromPlan(
@@ -549,12 +622,15 @@ export function evaluateVerifyAcFromPlan(
   options: EvaluateVerifyAcOptions = {},
 ): VerifyAcResult {
   const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
+  const projectRootEarly = resolve(options.projectRoot ?? process.cwd());
+  const admittedSourceMergeBase = resolveAdmittedSourceGitPin(plan, options, projectRootEarly);
   const optionsWithScope: EvaluateVerifyAcOptions = {
     ...options,
     oracleScopeKey: options.oracleScopeKey?.trim() || planId || null,
     bankScopeId: options.bankScopeId?.trim() || planId || options.bankScopeId,
     observedAcceptance:
       options.observedAcceptance !== undefined ? options.observedAcceptance : plan.acceptance,
+    ...(admittedSourceMergeBase !== undefined ? { admittedSourceMergeBase } : {}),
   };
   const acceptance = readPlanAcceptance(plan);
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
@@ -1245,10 +1321,21 @@ function formatMissingAdmittedIdentities(missing: readonly string[]): string {
   ].join("\n");
 }
 
+/** Spec-path briefs persist the refused GitHub body under plan.metadata.issueBody (#4524). */
+function planHasSpecPathRefusedBody(plan: Record<string, unknown>): boolean {
+  const meta = asRecord(plan.metadata);
+  if (meta === null) {
+    return false;
+  }
+  const body = meta.issueBody;
+  return typeof body === "string" && body.trim().length > 0;
+}
+
 /**
  * Resolve the authoritative admitted-source identity list (#5055).
- * Prefer merge-base pin when supplied, else working-tree pin, else live REST
- * extract. Empty / deleted working-tree pins do not remint from live narratives.
+ * Prefer git pin (merge-base / HEAD) when supplied, else working-tree pin, else
+ * live admitted-source extract. Empty / deleted working-tree pins do not remint
+ * from live narratives. Spec-path recovery must not admit the refused raw body.
  */
 function resolveAdmittedSourceIdentities(
   plan: Record<string, unknown>,
@@ -1258,7 +1345,7 @@ function resolveAdmittedSourceIdentities(
       readonly ok: true;
       readonly identities: readonly string[];
       readonly digest: string | null;
-      /** Live REST digest check applies only to a working-tree pin (#5055). */
+      /** Live digest check applies only to a working-tree pin (#5055). */
       readonly compareLiveDigest: boolean;
     }
   | { readonly ok: false; readonly cause: string; readonly message: string } {
@@ -1272,7 +1359,7 @@ function resolveAdmittedSourceIdentities(
         typeof mergeBase.digest === "string" && mergeBase.digest.trim().length > 0
           ? mergeBase.digest.trim()
           : digestAdmittedSourceSentences(identities),
-      // Spec-path harvest pins must not be compared to the raw issue body.
+      // Git pin is already the ingest-recorded reference — no live compare.
       compareLiveDigest: false,
     };
   }
@@ -1287,7 +1374,10 @@ function resolveAdmittedSourceIdentities(
     };
   }
 
-  // Pin deleted / emptied: recover from live REST when no merge-base pin exists.
+  const recordedDigest = readAdmittedSourceDigest(plan.acceptance);
+  const specPath = planHasSpecPathRefusedBody(plan);
+
+  // Pin deleted / emptied: recover from the admitted live source when no git pin.
   if (options.fetchAdmittedSourceText !== undefined) {
     const fetched = options.fetchAdmittedSourceText();
     if (!fetched.ok) {
@@ -1299,14 +1389,61 @@ function resolveAdmittedSourceIdentities(
     }
     const identities = extractStatementSentences(fetched.text).map(normalizeIdentityText);
     if (identities.length === 0) {
+      if (recordedDigest !== null) {
+        return {
+          ok: false,
+          cause: ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE,
+          message:
+            "verify:ac admitted-source digest (#5055): recovered source is empty but a digest remains",
+        };
+      }
       return { ok: true, identities: [], digest: null, compareLiveDigest: false };
+    }
+    const liveDigest = digestAdmittedSourceSentences(identities);
+    if (recordedDigest !== null && liveDigest !== recordedDigest) {
+      return {
+        ok: false,
+        cause: ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE,
+        message:
+          "verify:ac admitted-source digest (#5055): recovered source disagrees with the recorded digest",
+      };
+    }
+    // Spec-path with both pin+digest removed: do not trust a mutable harvest
+    // remnant without a digest check — refuse offline / restore from git.
+    if (specPath && recordedDigest === null) {
+      return {
+        ok: false,
+        cause: ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
+        message:
+          "verify:ac admitted-source digest (#5055): Spec-path pin and digest removed; restore from git or re-ingest the Bound-remedy harvest",
+      };
     }
     return {
       ok: true,
       identities,
-      digest: digestAdmittedSourceSentences(identities),
-      // Recovered from live bytes already — no second comparison.
+      digest: recordedDigest ?? liveDigest,
+      // Recovered + digest-checked already — no second comparison.
       compareLiveDigest: false,
+    };
+  }
+
+  // Digest remains but no pin, no git pin, no live source → refuse offline.
+  if (recordedDigest !== null) {
+    return {
+      ok: false,
+      cause: ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
+      message:
+        "verify:ac admitted-source digest (#5055): pin removed; provide live admitted-source text or restore from git",
+    };
+  }
+
+  // Spec-path with both fields removed and no recovery path → refuse offline.
+  if (specPath) {
+    return {
+      ok: false,
+      cause: ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
+      message:
+        "verify:ac admitted-source digest (#5055): Spec-path pin and digest removed; restore from git or re-ingest the Bound-remedy harvest",
     };
   }
 
@@ -1517,14 +1654,31 @@ function annotate(
 }
 
 /**
- * Load admitted-source pin from the merge-base copy of this brief (#5055).
- * Returned null when absent or unreadable — caller may fall through to live REST.
+ * Load admitted-source pin from a git treeish:path show (#5055).
  */
-function loadAdmittedSourceFromMergeBase(
+function loadAdmittedSourceAtTreeish(
+  projectRoot: string,
+  rel: string,
+  treeish: string,
+): { readonly sentences: readonly string[]; readonly digest: string | null } | null {
+  const shown = defaultGitRunner(projectRoot, ["show", `${treeish}:${rel}`]);
+  if (shown.code !== 0 || shown.stdout.trim().length === 0) {
+    return null;
+  }
+  return parseAdmittedSourceFromBriefText(shown.stdout);
+}
+
+/**
+ * Load admitted-source pin from merge-base, then HEAD (#5055).
+ * New branch-only briefs have no merge-base copy; HEAD still recovers a deleted
+ * working-tree pin after the ingest commit. Null → caller may fall through to live.
+ */
+function loadAdmittedSourceFromGit(
   projectRoot: string,
   xbriefPath: string,
 ): { readonly sentences: readonly string[]; readonly digest: string | null } | null {
-  const rel = relative(projectRoot, xbriefPath).replace(/\\/g, "/");
+  const abs = resolve(xbriefPath);
+  const rel = relative(projectRoot, abs).replace(/\\/g, "/");
   if (rel.length === 0 || rel.startsWith("..")) {
     return null;
   }
@@ -1532,22 +1686,22 @@ function loadAdmittedSourceFromMergeBase(
     process.env.DEFT_BASE_REF?.trim() || process.env.GITHUB_BASE_REF?.trim() || "origin/master";
   const left = baseRef.includes("/") ? baseRef : `origin/${baseRef}`;
   const mb = defaultGitRunner(projectRoot, ["merge-base", left, "HEAD"]);
-  if (mb.code !== 0) {
+  if (mb.code === 0) {
+    const fromMb = loadAdmittedSourceAtTreeish(projectRoot, rel, mb.stdout.trim());
+    if (fromMb !== null) {
+      return fromMb;
+    }
+  } else {
     const fallback = defaultGitRunner(projectRoot, ["merge-base", "origin/main", "HEAD"]);
-    if (fallback.code !== 0) {
-      return null;
+    if (fallback.code === 0) {
+      const fromMain = loadAdmittedSourceAtTreeish(projectRoot, rel, fallback.stdout.trim());
+      if (fromMain !== null) {
+        return fromMain;
+      }
     }
-    const shown = defaultGitRunner(projectRoot, ["show", `${fallback.stdout.trim()}:${rel}`]);
-    if (shown.code !== 0 || shown.stdout.trim().length === 0) {
-      return null;
-    }
-    return parseAdmittedSourceFromBriefText(shown.stdout);
   }
-  const shown = defaultGitRunner(projectRoot, ["show", `${mb.stdout.trim()}:${rel}`]);
-  if (shown.code !== 0 || shown.stdout.trim().length === 0) {
-    return null;
-  }
-  return parseAdmittedSourceFromBriefText(shown.stdout);
+  // Branch-only ingest: merge-base lacks the file; HEAD still has the pin.
+  return loadAdmittedSourceAtTreeish(projectRoot, rel, "HEAD");
 }
 
 function parseAdmittedSourceFromBriefText(
@@ -1607,18 +1761,17 @@ export function evaluateVerifyAcFromPath(
   const oracleScopeKey =
     options.oracleScopeKey?.trim() || resolveOracleScopeKey(plan, abs, projectRoot);
   let admittedSourceMergeBase = options.admittedSourceMergeBase;
-  // #5055: when the working-tree pin is gone, recover from merge-base before the walk.
-  if (
-    admittedSourceMergeBase === undefined &&
-    readAdmittedSourceSentences(plan.acceptance) === null
-  ) {
-    const fromBase = loadAdmittedSourceFromMergeBase(projectRoot, abs);
-    if (fromBase !== null) {
-      admittedSourceMergeBase = fromBase;
+  // #5055: recover git pin (merge-base / HEAD) even when a working pin remains so
+  // an edited/shrunk pin cannot silently replace the ingest-recorded identities.
+  if (admittedSourceMergeBase === undefined) {
+    const fromGit = loadAdmittedSourceFromGit(projectRoot, abs);
+    if (fromGit !== null) {
+      admittedSourceMergeBase = fromGit;
     }
   }
   const emitOptions: EvaluateVerifyAcOptions = {
     ...options,
+    xbriefPath: abs,
     oracleScopeKey,
     observedAcceptance: plan.acceptance,
     ...(admittedSourceMergeBase !== undefined ? { admittedSourceMergeBase } : {}),

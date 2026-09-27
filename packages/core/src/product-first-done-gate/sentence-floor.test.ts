@@ -930,4 +930,181 @@ describe("admitted-source identity floor (#5055)", () => {
     expect(result.cause).toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
     expect(result.message).toContain(PRESENTATION_RESTRICTION);
   });
+
+  it("fails closed when a present pin is shrunk against live admitted-source digest", () => {
+    const plan = presentationRestrictionBrief();
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = [...(acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[])];
+    const shrunk = pinned.filter((text) => text !== PRESENTATION_RESTRICTION);
+    acceptance[ADMITTED_SOURCE_SENTENCES_KEY] = shrunk;
+    acceptance[ADMITTED_SOURCE_DIGEST_KEY] = digestAdmittedSourceSentences(shrunk);
+    acceptance.sentences = shrunk;
+    const clauses = (acceptance.clauses as { text: string; artifact_path: string | null }[]) ?? [];
+    let nextId = clauses.length + 1;
+    for (const text of shrunk) {
+      if (clauses.some((clause) => clause.text === text)) {
+        continue;
+      }
+      clauses.push({
+        id: nextId,
+        text,
+        artifact_path: "probe.txt",
+        ambiguous: false,
+      } as never);
+      nextId += 1;
+    }
+    acceptance.clauses = clauses;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      // No git pin — live digest must still catch the shrink (#5055 P1).
+      admittedSourceMergeBase: null,
+      fetchAdmittedSourceText: () => ({
+        ok: true,
+        text: presentationRestrictionBody(),
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+  });
+
+  it("fails closed when pin and digest are both deleted with no git pin (body-normative)", () => {
+    const plan = presentationRestrictionBrief();
+    plan.narratives = {
+      ...(plan.narratives as Record<string, unknown>),
+      Overview: "Ship a useful UI outcome assembled from derived item titles only.",
+    };
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    delete acceptance[ADMITTED_SOURCE_SENTENCES_KEY];
+    delete acceptance[ADMITTED_SOURCE_DIGEST_KEY];
+    delete acceptance.sentences;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: null,
+      fetchAdmittedSourceText: () => ({
+        ok: true,
+        text: presentationRestrictionBody(),
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
+    expect(result.message).toContain(PRESENTATION_RESTRICTION);
+  });
+
+  it("honors the recorded digest when recovering a deleted pin from live source", () => {
+    const plan = presentationRestrictionBrief();
+    plan.narratives = {
+      ...(plan.narratives as Record<string, unknown>),
+      Overview: "Ship a useful UI outcome assembled from derived item titles only.",
+    };
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    delete acceptance[ADMITTED_SOURCE_SENTENCES_KEY];
+    // Digest remains — mutated live body must not rebuild a fresh pin (#5055 P1).
+    delete acceptance.sentences;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: null,
+      fetchAdmittedSourceText: () => ({
+        ok: true,
+        text: "Mutated origin body that omits the presentation restriction entirely.",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+    expect(result.message).toContain("recorded digest");
+  });
+
+  it("refuses Spec-path recovery that would admit the refused raw issue body", () => {
+    const harvestText = [
+      "Do the positive remedy only.",
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ].join("\n");
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 5055,
+        title: "Spec-path harvest",
+        body: presentationRestrictionBody(),
+        labels: [],
+      },
+      "proposed",
+      "https://github.com/deftai/directive",
+      {
+        specPathHarvest: {
+          sourceText: harvestText,
+          items: [
+            { title: "Do the positive remedy only.", status: "pending" },
+            { title: "probe.txt exists", status: "pending" },
+            { title: 'probe.txt contains "marker-token-3550"', status: "pending" },
+          ],
+        },
+      },
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const digest = acceptance[ADMITTED_SOURCE_DIGEST_KEY] as string;
+    delete acceptance[ADMITTED_SOURCE_SENTENCES_KEY];
+    // Digest remains; raw refused body must not become the identity set.
+    expect(digest).toBeTruthy();
+    expect((plan.metadata as Record<string, unknown>).issueBody).toContain(
+      PRESENTATION_RESTRICTION,
+    );
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: null,
+      fetchAdmittedSourceText: () => ({
+        ok: true,
+        // Attacker supplies the refused raw body instead of the harvest.
+        text: presentationRestrictionBody(),
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+  });
+
+  it("scope:complete plan walk recovers a deleted pin via admittedSourceMergeBase", () => {
+    const plan = presentationRestrictionBrief();
+    plan.narratives = {
+      ...(plan.narratives as Record<string, unknown>),
+      Overview: "Ship a useful UI outcome assembled from derived item titles only.",
+    };
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = [...(acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[])];
+    delete acceptance[ADMITTED_SOURCE_SENTENCES_KEY];
+    delete acceptance[ADMITTED_SOURCE_DIGEST_KEY];
+    delete acceptance.sentences;
+
+    const complete = evaluateScopeCompleteAcceptanceWalk(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: {
+        sentences: pinned,
+        digest: digestAdmittedSourceSentences(pinned),
+      },
+    });
+    expect(complete.ok).toBe(false);
+    expect(complete.message).toContain(PRESENTATION_RESTRICTION);
+  });
+
+  it("refuses offline when a digest remains but no git pin or live source is available", () => {
+    const plan = presentationRestrictionBrief();
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    delete acceptance[ADMITTED_SOURCE_SENTENCES_KEY];
+    delete acceptance.sentences;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: null,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE);
+  });
 });

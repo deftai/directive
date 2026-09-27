@@ -128,9 +128,41 @@ export function clampVerifyAcExit(ok: boolean, code: number): number {
 }
 
 /**
- * Live REST body for the origin issue when the working-tree admitted-source pin
- * is gone and merge-base recovery did not supply one (#5055). Fail closed on
- * forge outage — do not skip.
+ * Spec-path briefs persist the refused GitHub body under plan.metadata.issueBody
+ * (#4524 / #5055). Live recovery must use the Bound-remedy harvest (Overview),
+ * not that refused raw body.
+ */
+function planHasSpecPathRefusedBody(plan: Record<string, unknown>): boolean {
+  const meta = asRecord(plan.metadata);
+  if (meta === null) {
+    return false;
+  }
+  const body = meta.issueBody;
+  return typeof body === "string" && body.trim().length > 0;
+}
+
+/**
+ * Spec-path admitted source = Overview harvest remainder (#5055).
+ * Fail closed when Overview is empty — do not fall through to the refused body.
+ */
+function fetchSpecPathHarvest(
+  plan: Record<string, unknown>,
+): { readonly ok: true; readonly text: string } | { readonly ok: false; readonly reason: string } {
+  const narratives = asRecord(plan.narratives);
+  const overview = narratives?.Overview;
+  if (typeof overview === "string" && overview.trim().length > 0) {
+    return { ok: true, text: overview };
+  }
+  return {
+    ok: false,
+    reason:
+      "Spec-path Bound-remedy harvest unavailable (Overview empty); refuse offline / restore from git",
+  };
+}
+
+/**
+ * Live REST body for the origin issue (body-normative admitted source, #5055).
+ * Fail closed on forge outage — do not skip.
  */
 function fetchOriginIssueBody(
   plan: Record<string, unknown>,
@@ -173,6 +205,19 @@ function fetchOriginIssueBody(
   return { ok: true, text: typeof proc.stdout === "string" ? proc.stdout : "" };
 }
 
+/**
+ * Live admitted-source text for digest compare / missing-pin recovery (#5055).
+ * Spec-path → Bound-remedy harvest; body-normative → origin issue body.
+ */
+function fetchAdmittedSourceForPlan(
+  plan: Record<string, unknown>,
+): { readonly ok: true; readonly text: string } | { readonly ok: false; readonly reason: string } {
+  if (planHasSpecPathRefusedBody(plan)) {
+    return fetchSpecPathHarvest(plan);
+  }
+  return fetchOriginIssueBody(plan);
+}
+
 /** Evaluate one or many xBRIEF paths; return worst non-zero code (fail closed). */
 function evaluatePaths(
   paths: readonly string[],
@@ -199,15 +244,18 @@ function evaluatePaths(
       const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
       const root = asRecord(raw);
       const plan = asRecord(root?.plan);
-      // Arm live REST only when a digest is already recorded and the working-tree
-      // pin is gone — otherwise a Bound/Spec-path rewrite would be compared to
-      // the raw issue body (#5055).
-      if (
-        plan !== null &&
-        readAdmittedSourceSentences(plan.acceptance) === null &&
-        readAdmittedSourceDigest(plan.acceptance) !== null
-      ) {
-        fetchAdmittedSourceText = () => fetchOriginIssueBody(plan);
+      // Arm live admitted-source fetch when a pin is present (digest compare), a
+      // digest remains after pin delete (honor recorded digest), or Spec-path
+      // refused-body metadata marks harvest recovery (#5055). Spec-path callbacks
+      // return the Bound-remedy harvest, not the refused raw issue body. Body-
+      // normative both-deleted recovery prefers git HEAD / merge-base so
+      // pre-#5055 briefs without a pin are not suddenly floored by live REST.
+      if (plan !== null) {
+        const pin = readAdmittedSourceSentences(plan.acceptance);
+        const digest = readAdmittedSourceDigest(plan.acceptance);
+        if (pin !== null || digest !== null || planHasSpecPathRefusedBody(plan)) {
+          fetchAdmittedSourceText = () => fetchAdmittedSourceForPlan(plan);
+        }
       }
     } catch {
       // Path evaluation still runs; unreadable brief is handled inside evaluateVerifyAcFromPath.
