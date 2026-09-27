@@ -1782,7 +1782,9 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     let sweep: SweepResult | null = null;
     if (!skipSweep) {
       // Stamp on the sweep root (checkout or project) so leftover-complete preserves bind (#4864).
+      // Fail closed: stamp false → no complete/sweep and no origin-close for that delivery.
       if (!dryRun) {
+        const stampErrors: string[] = [];
         for (const storyPath of sweepStories) {
           const evidence =
             sweepEvidence.get(resolve(storyPath)) ??
@@ -1790,8 +1792,25 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             defaultEvidence;
           const prNumber = evidence?.prNumber;
           if (typeof prNumber === "number" && Number.isInteger(prNumber) && prNumber > 0) {
-            stampProductPullRequestOnBriefFile(sweepRoot, storyPath, prNumber);
+            if (!stampProductPullRequestOnBriefFile(sweepRoot, storyPath, prNumber)) {
+              stampErrors.push(
+                `${basename(storyPath)}: failed to stamp productPullRequest=${String(prNumber)} ` +
+                  `(already bound to another PR, or write failed); brief left active; ` +
+                  `origin not closed (#4864).`,
+              );
+            }
           }
+        }
+        if (stampErrors.length > 0) {
+          errors.push(...stampErrors);
+          return respond({
+            sweep: null,
+            commitSha: null,
+            branch,
+            prUrl: null,
+            ok: false,
+            exitCode: EXIT_GATE_FAILED,
+          });
         }
       }
       const hasDelivery = sweepEvidence.size > 0 || defaultEvidence !== null;

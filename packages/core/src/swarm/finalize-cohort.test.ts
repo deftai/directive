@@ -1546,6 +1546,100 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("fails closed when productPullRequest stamp refuses; no complete or origin-close (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-stamp-refuse-"));
+    const storyPath = writeActiveStory(project, "story-4864", 4864, {
+      productPullRequest: 9999,
+    });
+    const before = readFileSync(storyPath, "utf8");
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      { 42: { merged: true, closingIssues: [], baseRef: "master" } },
+      { 4864: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.ok).toBe(false);
+    expect(
+      result.result.errors.some(
+        (e) =>
+          e.includes("failed to stamp productPullRequest=42") && e.includes("brief left active"),
+      ),
+    ).toBe(true);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    expect(ghCalls.some((c) => c.includes("PATCH"))).toBe(false);
+    expect(existsSync(storyPath)).toBe(true);
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("stamps productPullRequest then completes and origin-closes when bind succeeds (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-stamp-ok-"));
+    const storyPath = writeActiveStory(project, "story-4864", 4864);
+    const completedRel = "xbrief/completed/story-4864.xbrief.json";
+    const completedPath = join(project, "xbrief", "completed", "story-4864.xbrief.json");
+    vi.mocked(runTransition).mockImplementation((verb: string, path: string) => {
+      if (verb === "complete") {
+        mkdirSync(dirname(completedPath), { recursive: true });
+        writeFileSync(completedPath, readFileSync(path, "utf8"), "utf8");
+        rmSync(path, { force: true });
+      }
+      return { ok: true, message: `${verb} ok` };
+    });
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      { 42: { merged: true, closingIssues: [], baseRef: "master" } },
+      { 4864: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [42],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: [completedRel] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({
+        assumeEvidenceValidated: true,
+        deliveryEvidence: expect.objectContaining({ prNumber: 42 }),
+      }),
+    );
+    expect(existsSync(storyPath)).toBe(false);
+    const stamped = JSON.parse(readFileSync(completedPath, "utf8")) as {
+      plan: Record<string, unknown>;
+    };
+    expect(productPullRequestFromPlan(stamped.plan)).toBe(42);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4864"))),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("does not attach delivery evidence when only issue N is passed (#4937)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-n-alone-"));
     const storyPath = writeActiveStory(project, "story-4937", 4937);
