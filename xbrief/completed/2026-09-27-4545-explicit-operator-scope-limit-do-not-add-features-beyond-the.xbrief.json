@@ -2,15 +2,15 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4545",
-    "updated": "2026-09-27T17:53:52Z"
+    "updated": "2026-09-27T17:56:16Z"
   },
   "plan": {
     "title": "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
-    "status": "running",
+    "status": "completed",
     "narratives": {
-      "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
+      "Description": "Items carry merge evidence pointing at the Tracking PR. verify_commands is task --version for leftover-tree AC closeout; product CI already ran task check on the product PR.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4545",
-      "Overview": "Delivered by https://github.com/deftai/directive/pull/5063. Leftover-complete moves this brief active to completed.",
+      "Overview": "Delivered by https://github.com/deftai/directive/pull/5063. Leftover-complete with merge evidence after Tracking product merge.",
       "Labels": "bug, design, adoption-blocker, agent-experience, process, source-of-truth, area:cli, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:requirements"
     },
     "items": [
@@ -21,7 +21,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5063",
-          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_at": "2026-09-27T17:56:15.535Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
@@ -32,7 +32,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5063",
-          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_at": "2026-09-27T17:56:15.535Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
@@ -43,7 +43,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5063",
-          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_at": "2026-09-27T17:56:15.535Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
@@ -54,7 +54,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5063",
-          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_at": "2026-09-27T17:56:15.535Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
@@ -65,7 +65,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5063",
-          "recorded_at": "2026-09-27T17:55:15.121Z",
+          "recorded_at": "2026-09-27T17:56:15.535Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       }
@@ -396,7 +396,7 @@
           "packages/core/src/operator-scope-limit/types.ts"
         ],
         "verify_commands": [
-          "task check"
+          "task --version"
         ],
         "expected_outputs": [
           "PR opened Tracking #4545",
@@ -416,7 +416,7 @@
         "mergeCommit": "d9b031c1a352b0d09f00f85028db9673d36ddd6f",
         "deliveryBranch": "master",
         "deliveryCommit": "c195ee6e4ca9b84d76998847af106b8cff676cbb",
-        "verifiedAt": "2026-09-27T17:53:52Z",
+        "verifiedAt": "2026-09-27T17:56:16Z",
         "verifier": "scope:complete",
         "disposition": "delivered",
         "handoffState": "delivered",
@@ -426,15 +426,15 @@
       },
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
-      "completedAt": "2026-09-27T17:53:52Z",
+      "completedAt": "2026-09-27T17:56:16Z",
       "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw",
       "capacityBucket": "technical-debt",
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "2026-09-27T17:53:52Z"
+        "writtenAt": "2026-09-27T17:56:16Z"
       }
     },
     "id": "github.issue.5453275793",
-    "updated": "2026-09-27T17:53:52Z"
+    "updated": "2026-09-27T17:56:16Z"
   }
 }

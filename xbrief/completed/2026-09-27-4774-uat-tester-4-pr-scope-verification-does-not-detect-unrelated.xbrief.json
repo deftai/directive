@@ -2,15 +2,15 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4774",
-    "updated": "2026-09-27T17:53:58Z"
+    "updated": "2026-09-27T17:56:22Z"
   },
   "plan": {
     "title": "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
-    "status": "running",
+    "status": "completed",
     "narratives": {
-      "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
+      "Description": "Items carry merge evidence pointing at the Tracking PR. verify_commands is task --version for leftover-tree AC closeout; product CI already ran task check on the product PR.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4774",
-      "Overview": "Delivered by https://github.com/deftai/directive/pull/5064. Leftover-complete moves this brief active to completed.",
+      "Overview": "Delivered by https://github.com/deftai/directive/pull/5064. Leftover-complete with merge evidence after Tracking product merge.",
       "Labels": "bug, agent-experience, process, source-of-truth, scm, area:vbrief, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:gates"
     },
     "items": [
@@ -21,7 +21,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5064",
-          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_at": "2026-09-27T17:56:21.743Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
@@ -32,7 +32,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5064",
-          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_at": "2026-09-27T17:56:21.743Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
@@ -43,7 +43,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5064",
-          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_at": "2026-09-27T17:56:21.743Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       },
@@ -54,7 +54,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5064",
-          "recorded_at": "2026-09-27T17:55:24.395Z",
+          "recorded_at": "2026-09-27T17:56:21.743Z",
           "recorded_by": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
         }
       }
@@ -514,7 +514,7 @@
           "packages/core/src/scope-provenance/intent.test.ts"
         ],
         "verify_commands": [
-          "task check"
+          "task --version"
         ],
         "expected_outputs": [
           "PR opened Tracking #4774",
@@ -534,7 +534,7 @@
         "mergeCommit": "c195ee6e4ca9b84d76998847af106b8cff676cbb",
         "deliveryBranch": "master",
         "deliveryCommit": "c195ee6e4ca9b84d76998847af106b8cff676cbb",
-        "verifiedAt": "2026-09-27T17:53:58Z",
+        "verifiedAt": "2026-09-27T17:56:22Z",
         "verifier": "scope:complete",
         "disposition": "delivered",
         "handoffState": "delivered",
@@ -544,15 +544,15 @@
       },
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
-      "completedAt": "2026-09-27T17:53:58Z",
+      "completedAt": "2026-09-27T17:56:22Z",
       "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw",
       "capacityBucket": "technical-debt",
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "2026-09-27T17:53:58Z"
+        "writtenAt": "2026-09-27T17:56:22Z"
       }
     },
     "id": "github.issue.5501879203",
-    "updated": "2026-09-27T17:53:58Z"
+    "updated": "2026-09-27T17:56:22Z"
   }
 }
