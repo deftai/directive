@@ -1,0 +1,523 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4774",
+    "updated": "2026-09-27T02:25:28Z"
+  },
+  "plan": {
+    "title": "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
+    "status": "running",
+    "narratives": {
+      "Description": "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4774",
+      "Overview": "\n\n- Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.\n- Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.\n- When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.\n- Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.\r\n\n",
+      "Labels": "bug, agent-experience, process, source-of-truth, scm, area:vbrief, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:gates"
+    },
+    "items": [
+      {
+        "title": "Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.",
+        "status": "pending",
+        "id": "clause.1"
+      },
+      {
+        "title": "Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.",
+        "status": "pending",
+        "id": "clause.2"
+      },
+      {
+        "title": "When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.",
+        "status": "pending",
+        "id": "clause.3"
+      },
+      {
+        "title": "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.",
+        "status": "pending",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "scm",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "focused-test-pass-1",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4774",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4774: [UAT Tester 4] PR scope verification does not detect unrelated baseline files"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
+        "Keep the diagnosis that C24 is uncaught.",
+        "Do not harvest verify:observable-scope as the hole.",
+        "Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope.",
+        "Same-PR approval rewrite stays fail-closed.",
+        "When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed.",
+        "Do not treat omitting file_scope as undeclared-by-design attestation.",
+        "That catches PR #5.",
+        "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a focused change-request PR can land unrelated baseline and project files with no Directive/SCM gate that compares the PR file list to the requested xBRIEF file_scope.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4774-dc\norigin-ref: origin/master\ndispatch-sha: 84a1be17b17245388769161188f35a4704a461e6\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answered use appropriate n and no need to ask; yolo standing; no-ingest; this is one verification gap, not whole-motion blast.\n\nDual-stop cap: 6 posts\n\nrefutation-target: verify:scope-provenance plus verify:observable-scope still do not identify or prevent unrelated baseline files in a focused change-request PR, because they compare live xBRIEF file_scope to a merge-base digest, not the PR file list to declared scope.\n\ntarget: #4774\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is UAT Tester 4 C24 FAIL on Directive 0.119.3: ZaenKai/directive-uat PR #5 listed 11 files (.gitignore, COST-ESTIMATE.md, Taskfile.yml, history/changes/story-a-health-endpoint/*, package-lock.json, package.json, src/index.js, src/server.js, tests/server.test.js, xbrief/active/2026-09-18-4-show-request-time-in-milliseconds.xbrief.json) for a request-time change. Tests and coverage passed. No scope-integrity warning. Reviewers may approve unrelated changes.\n\nPin-read at dispatch-sha 84a1be17b17245388769161188f35a4704a461e6:\n\n- packages/core/src/scope-provenance/digest.ts 1-7, 14-25, 49+: approved-scope digest of human-approved file_scope; PR verification compares live active xBRIEF against that baseline so same-PR xBRIEF edits cannot self-authorize new paths. It does not compare the PR file list to file_scope.\n- AGENTS.md / docs/scope-provenance.md: declared file_scope expansion after first mint hard-fails merge-time verify:scope-provenance; remint is scope:record-approved-scope --kind renewed-approval (#4589). Empty-scope --enforce only. That is expansion of declared scope, not extra files already in the tree riding along.\n- tasks/verify.yml 310, 320, 673: verify:scope-provenance, verify:observable-scope, verify:ac all take --project-root USER_WORKING_DIR. None of those verbs take a PR file list.\n- verify:docs-impact is a PR-body documentation block, not a file-list vs file_scope check.\n\nInventory already on the tree: #3145 provenance, #4589 remint, #3874 do-not-strip-file_scope, #4008 promote binds clauses to exact file_scope members, #3835 verify:ac reads only declared file_scope. No implement and no ingest from this parent.\r\n\n",
+          "id": 5746940976,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5746940976",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:09:29Z",
+          "updated_at": "2026-09-20T02:09:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Verdict\n\nThe named refutation target stands. `verify:scope-provenance` and `verify:observable-scope` still do not identify or prevent unrelated baseline files in a focused change-request PR.\n\nRe-verified at dispatch-sha 84a1be17b17245388769161188f35a4704a461e6. The gap is real. The because-clause still needs two recuts before harvest, or a later implement will close the wrong comparison.\n\n## sharpens-framing: observable-scope is not a path-membership miss\n\nEvidence: `packages/core/src/observable-scope/` has no `file_scope` symbol. `evaluateObservableScope` takes `git diff --name-only <mergeBase> HEAD` (or `--cached`) only to select markup paths against a base-pinned `observable-ui.policy.json`, then diffs parse5+typescript structure against a minted `allowedChanges` record. Unset policy on a Node UAT PR is N/A or inferred-defaults-warn (exit 0). `content/docs/observable-scope.md` first-ship is opt-in UI, not story path isolation.\n\nFailure mode: harvest that \"fixes\" both named verbs will retarget a UI-structure oracle onto `.gitignore` / `package-lock.json` / `COST-ESTIMATE.md`, which that verb is specified not to see.\n\nDisposition: keep the diagnosis that C24 is uncaught. Drop `verify:observable-scope` as a co-equal miss. Related analog, not the hole.\n\n## sharpens-framing: missing comparison is PR paths vs merge-base approved-scope, not vs live declared file_scope\n\nEvidence: `evaluateOneScopeProvenance` returns null when the active xBRIEF is not in the change set (`xbriefModifiedInChangeSet`). When it does run, `scopeExpansion` is live `file_scope` minus the approved digest's `fileScope`. Extra paths in `changedFilesVsBase` never become findings. Digest header (`digest.ts` 1-7) states the comparison is live xBRIEF vs approved digest so same-PR xBRIEF edits cannot self-authorize new paths (#3145 / #4589).\n\nThe target text names the missing comparison as \"the PR file list to declared scope.\" Live declared `file_scope` is what an agent can edit in the same PR. That is the hole provenance already closed for expansion.\n\nFailure mode: a new gate that set-includes PR paths against the live xBRIEF `file_scope` is passed by writing the extra baseline paths into the brief, then opening the PR. Tests and coverage still pass, same as C24.\n\nDisposition: if harvest adds a membership gate, the allowlist SoT is `.deft/approved-scope/<plan-id>.json` `fileScope` already on the merge base (human stamp), not `plan.metadata.swarm.file_scope` on HEAD. Same-PR approval rewrite stays fail-closed.\n\n## sharpens-framing: empty or undeclared file_scope leaves C24 FAIL even after that gate\n\nEvidence: #3874 remediation is mint at allocation or author the cohort brief undeclared. Empty scope without digest is warn-only unless `--enforce` (`evaluateOneScopeProvenance`; `content/docs/scope-provenance.md`). #3835 / #4008 bind AC and promote to declared `file_scope` members only; issue-body \"requested issue scope\" is not a path SoT.\n\nUAT C24 expected \"requested issue scope.\" The listed PR #5 files include `.gitignore`, `COST-ESTIMATE.md`, `Taskfile.yml`, `history/changes/…`, lockfile, and the active xBRIEF. A consumer brief that omitted `file_scope` (supported) has no membership allowlist. Inferring paths from the issue body fights #3835.\n\nFailure mode: ship PR-list ⊆ approved-scope, skip when undeclared → Tester 4 still FAIL. Fail-closed when undeclared → every #3874 undeclared story PR dies.\n\nDisposition: harvest must pick one: (a) C24 requires a declared, minted `file_scope` as a precondition, and undeclared UAT is a different gap; or (b) a second SoT besides `file_scope`. Do not silently skip.\n\n## sharpens-framing: raw PR-list ⊆ file_scope fails well-formed story PRs\n\nEvidence: the C24 list includes `xbrief/active/….xbrief.json`. Provenance itself requires that path in the change set to fire. Activate/implement PRs also routinely carry `.deft/approved-scope/*.json` on a prior mint PR. `verify:docs-impact` already compares a declared block to touched docs with a closed surface set, not an unbounded path subset.\n\nFailure mode: no exemption set → every honest story PR that adds its xBRIEF fails the new gate. Ad-hoc \"allow lockfiles\" becomes a bypass catalog.\n\nDisposition: harvest names a closed exemption set (at least the bound active xBRIEF path; approved-scope pair if the mint policy allows it on that PR) before bind.\n\n## footnote: Stop 1 digest.ts 49+ cite\n\nLine 49 is `APPROVED_SCOPE_DIR`. The comparison the write-back meant is the file header plus `evaluateOneScopeProvenance` / `scopeExpansion`. Does not change the verdict.\n\n## Inventory (existing mechanisms; none refute)\n\n- `verify:scope-provenance` (#3145 / #4589): live `file_scope` vs merge-base digest when the xBRIEF is in the change set. Change-set union is `base...HEAD` + `HEAD` + untracked, used only as that predicate and for same-PR approval rewrite. Composed on `CONSUMER_CHECK_GATES`.\n- `verify:observable-scope` (#4495): UI structure vs minted allows. No `file_scope`. N/A for the UAT file mix.\n- Path write fence (#516 / #2443): PreToolUse direct writes vs story `file_scope`. Empty story scope → project only. Shell dest-forms default `off`. Does not run at `git add` / commit / PR files. Does not see dirty baseline already in the tree. UAT step 1 is \"existing baseline and environment changes.\"\n- `verify:docs-impact` (#4099 / #4675): declared documentation block vs touched docs. Closest declared-vs-touched analog. Not path membership vs story scope.\n- `verify:intent-constraint`: minted throw/const facts vs merge-base, not paths vs `file_scope`.\n- `verify:test-boundary`: source/test roots policy. No `file_scope`.\n- `verify:ac` / #3835 / #4008: walk and promote bind to declared members; they do not scan the PR path set.\n- `syncMaxFiles` / `hotfixCriteria.maxFiles`: counts, not membership.\n- SPECIFICATION.md \"PR time match the actual diff\" / multi-vBRIEF `file_scope[]` attribution: judgment-gate `cleared_scope`, and \"v1 ships block-gated stories solo.\" Not a shipped PR-files ⊆ `file_scope` check.\n- pre-pr Diff phase: agent skill, not a deterministic check.\n\n## Injection / swarm lens\n\nA merge-time membership gate changes merge authority.\n\n- Bypass if it reads live `file_scope` (same-PR self-auth, #3145).\n- Bypass if empty/undeclared skips (#3874).\n- Identity: which approved-scope record when several running briefs share a tree (#4007 pin analog). Unattributable extra path on a multi-story PR has no shipped partition (SPECIFICATION v1 solo).\n- Untrusted PR filenames from REST must stay data (`docs-impact` already does this).\n- Worktrees: evaluate against the candidate tree's merge-base, not the primary checkout's leftover `file_scope`.\n- Shared state: keep same-PR rewrite of `.deft/approved-scope/` fail-closed.\n\n## Road-not-taken\n\nI considered treating the path write fence plus operator dirty-tree hygiene as already closing C24. That would flip if PreToolUse always ran, `file_scope` was always minted, and `git add` of pre-existing dirty files were fenced. None of those are true on 0.119.3-class consumer UAT, and closing on reviewer attention is a failed finding.\n\nSteelman of \"undeclared file_scope is deliberate, so C24 is not a gate miss\": true as #3874 policy, false as the UAT expected behavior. Flip: the operator asks for a Directive/SCM verification, not a second human review.\n\nThe named target stands with the recuts above. I do not refute it.",
+          "id": 5746985867,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5746985867",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:17:24Z",
+          "updated_at": "2026-09-20T02:17:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nC24 is uncaught: a focused PR can carry unrelated baseline files with no membership gate. Drop verify:observable-scope as a co-equal miss. If harvest adds a gate, compare PR paths to merge-base approved-scope, not live file_scope. Empty-scope and a closed exemption set (at least the bound active xBRIEF) must be decided before bind.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Expected. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 until bind plus pain-audit.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4774 membership gate after critic 5746985867. Cites critic 5746985867. Supersedes write-back 5746940976.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4774-dc\norigin-ref: origin/master\ndispatch-sha: 84a1be17b17245388769161188f35a4704a461e6\ntarget shape: single-issue\nDual-stop cap: 6 posts (spent 1 numbered critic)\n\nTakes:\n\n- 5746985867 observable-scope is not a path-membership miss — accept-into-contract\n- 5746985867 missing comparison is PR paths vs merge-base approved-scope, not vs live declared file_scope — accept-into-contract\n- 5746985867 empty or undeclared file_scope leaves C24 FAIL even after that gate — accept-into-contract\n- 5746985867 raw PR-listsubseteq file_scope fails well-formed story PRs — accept-into-contract\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=84a1be17b17245388769161188f35a4704a461e6 pointer=comment:5746985867 reading=asserted\n\n## Bound remedy\n\n- Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.\n- If harvest adds a membership gate, the allowlist SoT is .deft/approved-scope/<plan-id>.json fileScope on the merge base, not plan.metadata.swarm.file_scope on HEAD. Same-PR approval rewrite stays fail-closed.\n- Harvest must pick one: (a) C24 requires a declared minted file_scope as a precondition, and undeclared UAT is a different gap; or (b) a second SoT besides file_scope. Do not silently skip.\n- Name a closed exemption set before bind, at least the bound active xBRIEF path.\r\n\n",
+          "id": 5746998761,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5746998761",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:19:58Z",
+          "updated_at": "2026-09-20T02:19:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nC24 is uncaught. A focused PR can carry unrelated baseline files with no membership gate. This bind is that gate against merge-base approved-scope, not live file_scope, with a declared-mint precondition or a second SoT, plus a closed exemption set that includes the bound active xBRIEF. Not verify:observable-scope.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, successor lean 5746998761, and these takes.\n\nForward verdict: bind. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4774 bind after critic 5746985867. Cites critic 5746985867. Supersedes successor 5746998761. Predecessor 5746998761 does not carry relieves of P1.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4774-dc\norigin-ref: origin/master\ndispatch-sha: 84a1be17b17245388769161188f35a4704a461e6\ntarget shape: single-issue\nDual-stop cap: 6 posts (spent 1 numbered critic)\n\nTakes:\n\n- 5746985867 observable-scope is not a path-membership miss — accept-into-contract\n- 5746985867 missing comparison is PR paths vs merge-base approved-scope, not vs live declared file_scope — accept-into-contract\n- 5746985867 empty or undeclared file_scope leaves C24 FAIL even after that gate — accept-into-contract\n- 5746985867 raw PR-list subseteq file_scope fails well-formed story PRs — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=84a1be17b17245388769161188f35a4704a461e6 pointer=comment:5746985867 reading=asserted\n\n## Bound remedy\n\n- Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.\n- Membership gate allowlist SoT is .deft/approved-scope/<plan-id>.json fileScope on the merge base, not plan.metadata.swarm.file_scope on HEAD. Same-PR approval rewrite stays fail-closed.\n- Harvest picks (a): C24 requires a declared minted file_scope as a precondition; undeclared UAT is a different gap. Do not silently skip.\n- Closed exemption set before bind includes the bound active xBRIEF path.\r\n\n",
+          "id": 5747077077,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747077077",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:34:11Z",
+          "updated_at": "2026-09-20T02:34:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of bind lean 5747077077 at dispatch-sha 84a1be17b17245388769161188f35a4704a461e6. Pin-read via git show. Ceiling 5747077077 inclusive. Comments after that id are out of envelope.\n\nP1 (Stop 1 5746940976): UAT Tester 4 C24 FAIL on Directive 0.119.3. ZaenKai/directive-uat PR #5 listed 11 files for a request-time change. Tests and coverage passed. No scope-integrity warning.\n\nRe-verified, not restated.\n\n## 1. Pick (a) does not cover this P1 instance\n\nclassification: sharpens-framing\n\nEvidence. REST GET of ZaenKai/directive-uat PR #5:\n\n- 11 files match Stop 1 (`.gitignore`, `COST-ESTIMATE.md`, `Taskfile.yml`, `history/changes/story-a-health-endpoint/*`, lockfile, `package.json`, `src/index.js`, `src/server.js`, `tests/server.test.js`, the request-time xBRIEF). PR base is `refinement/2026-09-17`.\n- PR-head xBRIEF `xbrief/active/2026-09-18-4-show-request-time-in-milliseconds.xbrief.json` has no `plan.metadata.swarm`. `intended_placement.files` is `[]`.\n- `.deft/approved-scope` is 404 on that head.\n\nAt 84a1be17:\n\n- `evaluateOneScopeProvenance` returns null when the xBRIEF is not in the change set. Extra paths in `changedFilesVsBase` never become findings (`evaluate.ts` 407-409, 468-487, 740-747). `digest.ts` 1-7: live xBRIEF vs approved digest, not PR files vs `file_scope`.\n- Empty-scope modified without digest is warn-only unless `--enforce` (`evaluate.ts` 416-434; `content/docs/scope-provenance.md` table).\n- `packages/core/src/observable-scope/` has no `file_scope` symbol. Bind correctly drops that verb.\n- `intended_placement.files` is a size-review preflight seam, empty on ingest. Not a membership allowlist.\n\nBind 5747077077 Bound-remedy: allowlist SoT is merge-base `.deft/approved-scope/<plan-id>.json` `fileScope`; harvest picks (a) declared-mint precondition, undeclared UAT is a different gap; do not silently skip. The lean's operative cite is relieves of P1.\n\nFailure mode. Harvest that implements PR-paths ⊆ merge-base approved-scope, then N/A or warn on undeclared, leaves Tester 4 C24 FAIL on this PR. Fail-closed undeclared would catch the PR as missing mint and recut #3874, which pick (a) declined. Spec-path harvests Bound-remedy. An implementer following pick (a) plus that cite will treat P1 as covered while the motivating PR still has no allowlist.\n\nDisposition consequence. Diagnosis stands: C24 is uncaught; not `verify:observable-scope`; comparison is PR paths vs merge-base approved-scope, not live `file_scope`. Recut the harvested cite and Bound-remedy so P1 is not marked covered unless harvest actually catches this undeclared instance (a second SoT, or fail-closed undeclared as the catch). A declared-mint membership gate can remain remainder. It cannot carry a relieves cite of P1. Do not bind 5747077077 as P1 coverage.\n\n## 2. footnote: exemption floor and comparison base\n\nThe xBRIEF exemption is the declared-mint floor the round-1 critic required. C24's extra files (gitignore, COST-ESTIMATE, story-a history, lockfile) are the files a membership gate should flag, not exempt. PR #5's path set is vs `refinement/2026-09-17`. If harvest copies `resolveDefaultBaseRef`'s origin/master default outside CI, the range is the wrong PR. Neither decides whether pick (a) covers this P1. Not residual.\n\n## Injection / swarm lens\n\nTriggered: merge-time membership changes merge authority.\n\nBypass is skip-when-undeclared (this P1). Same-PR approval rewrite is already fail-closed on the tree. Identity of which approved-scope record when several running briefs share a tree does not arise here: this PR has zero records. Untrusted PR filenames stay data. Do not close on reviewer attention.\n\n## Road not taken\n\nTreat pick (a) as blocks-the-design and demand retraction of the membership-gate diagnosis. Rejected: the comparison is still the right one when an allowlist exists; the coverage claim is wrong. Flip if ingest harvests a relieves cite of P1 while the gate N/A's undeclared UAT.\n\nSteelman of footnote-only: pick (a) is prospective (UAT must mint, then extra files fail). What would flip that: P1 is this PR, which has no `swarm.file_scope` and no approved-scope. A gate that does not run on it leaves C24 FAIL. Those are load-bearing, so this is harvest/cite recut, not a footnote.\n\nNo implementation, no ingest, no dest occupancy, no successor lean.",
+          "id": 5747124614,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747124614",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:43:47Z",
+          "updated_at": "2026-09-20T02:43:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit: pick (a) plus relieves P1 overclaims, because ZaenKai/directive-uat PR #5 has an active xBRIEF with no file_scope and no approved-scope mint. This recut still compares PR paths to merge-base approved-scope, and when the PR contains an active xBRIEF, empty undeclared file_scope is not N/A — it fails closed unless the brief attests undeclared-by-design. That catches this P1 instance.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, bind 5747077077, and these takes.\n\nForward verdict: recut bind. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4774 recut bind after pain-audit 5747124614. Cites critic 5746985867, pain-audit 5747124614. Supersedes bind 5747077077. Predecessor 5747077077 does not carry a covering relieves of this P1 instance.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4774-dc\norigin-ref: origin/master\ndispatch-sha: 84a1be17b17245388769161188f35a4704a461e6\ntarget shape: single-issue\nDual-stop cap: 6 posts (spent 1 numbered critic plus reserved pain-audit)\n\nTakes:\n\n- 5746985867 observable-scope is not a path-membership miss — accept-into-contract\n- 5746985867 missing comparison is PR paths vs merge-base approved-scope, not vs live declared file_scope — accept-into-contract\n- 5746985867 empty or undeclared file_scope leaves C24 FAIL even after that gate — accept-into-contract\n- 5746985867 raw PR-list subseteq file_scope fails well-formed story PRs — accept-into-contract\n- 5747124614 Pick (a) does not cover this P1 instance — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=84a1be17b17245388769161188f35a4704a461e6 pointer=comment:5747124614 reading=asserted\n\n## Bound remedy\n\n- Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.\n- Membership gate allowlist SoT is .deft/approved-scope/<plan-id>.json fileScope on the merge base, not plan.metadata.swarm.file_scope on HEAD. Same-PR approval rewrite stays fail-closed.\n- When the PR contains an active xBRIEF, empty or undeclared file_scope is not N/A. Fail closed unless the brief attests undeclared-by-design (#3874). That catches PR #5 (xBRIEF present, no swarm.file_scope, no mint).\n- Closed exemption set includes the bound active xBRIEF path.\r\n\n",
+          "id": 5747150226,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747150226",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:49:38Z",
+          "updated_at": "2026-09-20T02:49:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of bind lean 5747150226 at dispatch-sha 84a1be17b17245388769161188f35a4704a461e6. Pin-read via git show. Ceiling 5747150226 inclusive. Comments after that id are out of envelope.\n\nP1 (Stop 1 5746940976): UAT Tester 4 C24 FAIL on Directive 0.119.3. ZaenKai/directive-uat PR #5 listed 11 files for a request-time change. Tests and coverage passed. No scope-integrity warning.\n\nRe-verified, not restated.\n\n## 1. #3874 unless as written reopens skip-when-undeclared\n\nclassification: sharpens-framing\n\nEvidence. REST GET of ZaenKai/directive-uat PR #5 (head 491111ad8c6589ae1024659922d5546eaa66fd65, base `refinement/2026-09-17` 7fc6c4bde):\n\n- 11 files match Stop 1 (`.gitignore`, `COST-ESTIMATE.md`, `Taskfile.yml`, `history/changes/story-a-health-endpoint/*`, lockfile, `package.json`, `src/index.js`, `src/server.js`, `tests/server.test.js`, the request-time xBRIEF).\n- PR-head xBRIEF `xbrief/active/2026-09-18-4-show-request-time-in-milliseconds.xbrief.json` has no `plan.metadata.swarm`. `intended_placement.files` is `[]`.\n- `.deft/approved-scope` is 404 on that head and on the PR base.\n\nAt 84a1be17:\n\n- `extractFileScope` returns `[]` when `swarm` is absent (`digest.ts` 72-92).\n- `evaluateOneScopeProvenance` returns null when the xBRIEF is not in the change set. Extra paths in `changedFilesVsBase` never become findings (`evaluate.ts` 407-409, 468-487). Empty-scope modified without digest is warn-only unless `--enforce` (`evaluate.ts` 416-434; `content/docs/scope-provenance.md` table). Consumer `verify:scope-provenance` is composed without `--enforce`.\n- `content/docs/scope-provenance.md` Cohort-created scope (#3874): if the operator does not mint, omit `file_scope`; undeclared cohort briefs are a deliberate outcome. CHANGELOG: author the cohort brief undeclared by design. No separate attest field exists on the tree.\n- `packages/core/src/observable-scope/` has no `file_scope` symbol. Bind correctly drops that verb.\n\nBind 5747150226 Bound-remedy: membership allowlist is merge-base `.deft/approved-scope/<plan-id>.json` `fileScope`; when the PR contains an active xBRIEF, empty or undeclared `file_scope` is not N/A; fail closed unless the brief attests undeclared-by-design (#3874); that catches PR #5 (xBRIEF present, no `swarm.file_scope`, no mint). The lean's operative cite is `relieves: P1`.\n\nThe unless and the catch claim contradict. #3874's published attest is omission of `file_scope`. The recut uses that same omission as proof PR #5 does not attest.\n\nFailure mode. Harvest that implements the unless as #3874 currently specifies treats PR #5 as attested undeclared-by-design, skips fail-closed, has no merge-base allowlist, and leaves Tester 4 C24 FAIL. A new HEAD-writable attest field is the same-PR self-auth hole provenance already closed for live `file_scope`. Spec-path harvests Bound-remedy. An implementer following the unless plus that cite will treat P1 as covered while this PR still has no allowlist.\n\nDisposition consequence. Diagnosis stands: C24 is uncaught; not `verify:observable-scope`; comparison is PR paths vs merge-base approved-scope, not live `file_scope`. Fail-closed undeclared when the change-set xBRIEF has no merge-base approved-scope is the catch of this instance. Drop live-HEAD / omission `unless the brief attests`. If #3874 undeclared stories must survive, the stamp is merge-base (human-minted empty `fileScope`), not omission and not a HEAD field. Do not bind 5747150226 as P1 coverage while the unless cites #3874 omission.\n\n## 2. footnote: comparison base and other active briefs\n\nPR #5's path set is vs `refinement/2026-09-17`. The UAT repo has no `master`/`main`; `default_branch` is `story/a-get-health-endpoint`. `resolveDefaultBaseRef` prefers `origin/master`. The PR base already has two other active xBRIEFs, also without `swarm.file_scope`. The xBRIEF exemption is still the declared-mint floor. None of that decides whether the #3874 unless covers this P1. Not residual.\n\n## Injection / swarm lens\n\nTriggered: merge-time membership changes merge authority.\n\nBypass is the #3874 omission unless (this P1). Same-PR approval rewrite is already fail-closed on the tree. Identity of which approved-scope record does not arise here: this PR has zero records. Untrusted PR filenames stay data. Do not close on reviewer attention.\n\n## Road not taken\n\nTreat fail-closed undeclared as blocks-the-design and demand retraction of the membership-gate diagnosis. Rejected: fail-closed without the omission unless still catches this PR; the coverage claim is wrong. Flip if ingest harvests a `relieves: P1` cite while the unless treats omit-`file_scope` as attest.\n\nSteelman of footnote-only: the parent intended omission not to count (they named no `swarm.file_scope` as the catch). What would flip that: #3874's published remediation is that omission, and Spec-path harvests Bound-remedy. Those are load-bearing, so this is harvest/cite recut, not a footnote.\n\nNo implementation, no ingest, no dest occupancy, no successor lean.",
+          "id": 5747181269,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747181269",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:56:54Z",
+          "updated_at": "2026-09-20T02:56:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit: the unless-undeclared-by-design carve-out is the same omission PR #5 already has, so it would skip this P1. This recut fails closed when the PR contains an active xBRIEF and there is no merge-base approved-scope record. No unless. That catches PR #5.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, recut 5747150226, and these takes.\n\nForward verdict: recut bind. Disposition: classified headings accept-into-contract. Residual: none.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4774 recut bind after pain-audit 5747181269. Cites critic 5746985867, pain-audit 5747124614, 5747181269. Supersedes recut 5747150226. Predecessor 5747150226 does not carry a covering relieves of this P1 instance.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4774-dc\norigin-ref: origin/master\ndispatch-sha: 84a1be17b17245388769161188f35a4704a461e6\ntarget shape: single-issue\nDual-stop cap: 6 posts (spent 1 numbered critic plus two pain-audits)\n\nTakes:\n\n- 5746985867 observable-scope is not a path-membership miss — accept-into-contract\n- 5746985867 missing comparison is PR paths vs merge-base approved-scope, not vs live declared file_scope — accept-into-contract\n- 5746985867 empty or undeclared file_scope leaves C24 FAIL even after that gate — accept-into-contract\n- 5746985867 raw PR-list subseteq file_scope fails well-formed story PRs — accept-into-contract\n- 5747124614 Pick (a) does not cover this P1 instance — accept-into-contract\n- 5747181269 unless undeclared-by-design reopens skip-when-undeclared — accept-into-contract\n\nrelieves: P1\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=84a1be17b17245388769161188f35a4704a461e6 pointer=comment:5747181269 reading=asserted\n\n## Bound remedy\n\n- Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.\n- Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.\n- When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.\n- Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.\r\n\n",
+          "id": 5747186912,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747186912",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T02:58:16Z",
+          "updated_at": "2026-09-20T02:58:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of bind lean 5747186912 at dispatch-sha 84a1be17b17245388769161188f35a4704a461e6. Pin-read via git show. Ceiling 5747186912 inclusive. Comments after that id are out of envelope.\n\nP1 (Stop 1 5746940976): UAT Tester 4 C24 FAIL on Directive 0.119.3. ZaenKai/directive-uat PR #5 listed 11 files for a request-time change. Tests and coverage passed. No scope-integrity warning.\n\nRe-verified, not restated.\n\nBound-remedy 5747186912 drops the #3874 omission unless. Fail closed when the PR contains an active xBRIEF and there is no merge-base approved-scope record. The lean's operative cite is `relieves: P1`.\n\n## 1. Recut fail-closed covers this P1 instance\n\nclassification: footnote\n\nEvidence. REST GET of ZaenKai/directive-uat PR #5 (head 491111ad8c6589ae1024659922d5546eaa66fd65, base `refinement/2026-09-17` 7fc6c4bde):\n\n- 11 files match Stop 1 (`.gitignore`, `COST-ESTIMATE.md`, `Taskfile.yml`, `history/changes/story-a-health-endpoint/*`, lockfile, `package.json`, `src/index.js`, `src/server.js`, `tests/server.test.js`, the request-time xBRIEF).\n- PR-head xBRIEF `xbrief/active/2026-09-18-4-show-request-time-in-milliseconds.xbrief.json` has `plan.id` `github.issue.5501227897`. No `plan.metadata.swarm`. `intended_placement.files` is `[]`.\n- `.deft/approved-scope` is 404 on that head and on the PR base. Would-be record path `.deft/approved-scope/github.issue.5501227897.json` is absent.\n- Repo branches are `refinement/2026-09-17`, `story/a-get-health-endpoint`, `story/b-health-status-webpage`. No `master`/`main`. `default_branch` is `story/a-get-health-endpoint`.\n\nAt 84a1be17:\n\n- `extractFileScope` returns `[]` when `swarm` is absent (`digest.ts` 72-92).\n- `evaluateOneScopeProvenance` returns null when the xBRIEF is not in the change set. Extra paths in `changedFilesVsBase` never become findings. When `approved === null` and scope is empty, missing digest is warn-only unless `--enforce` (`evaluate.ts` ~426-445, ~807-820; `content/docs/scope-provenance.md` table). Consumer `CONSUMER_CHECK_GATES` composes bare \"verify:scope-provenance\" with no `--enforce` args (`gate-lists.ts` 163-186).\n- `packages/core/src/observable-scope/` has no `file_scope` symbol. Bind correctly drops that verb.\n- CHANGELOG / docs #3874 published remediation is mint at allocation, or author the cohort brief undeclared by design. No separate attest field exists on the tree.\n\nThis PR has an active xBRIEF in the change set and no merge-base approved-scope record. Bound-remedy fail-closed with no unless is the catch of this instance. Membership against merge-base `fileScope` is the later path once a mint exists; it is not required to cover this P1. The xBRIEF-path exemption is gated on mint already on the merge base, so it does not skip this PR.\n\nFailure mode. None on this cite if harvest fail-closes (exit 1) on that pair. A membership-only harvest that N/A's when no record exists would miss; that would not be this Bound-remedy.\n\nDisposition consequence. Diagnosis stands. Do not recut 5747186912 for P1 coverage. Implementation traps below are not residual.\n\n## 2. footnote: current warn path and comparison base\n\nToday empty-scope-without-digest is the #3145 warn-unless-enforce path. Harvest of fail-closed must not reuse that severity, or consumer `task check` stays exit 0. `resolveDefaultBaseRef` prefers `origin/master` after env (`evaluate.ts` 114-132). When no merge-base candidate exists, the evaluator soft-skips exit 0 (`evaluate.ts` ~535-548). This UAT repo has no `master`/`main`. GitHub Actions would set `GITHUB_BASE_REF` to `refinement/2026-09-17`; UAT CI today only runs `no-mixed-core-and-app`, not this gate. PR base already has two other active xBRIEFs, also without `swarm.file_scope`; approval is path-bound, and this PR has zero records, so identity does not skip. None of that recuts the fail-closed cite. Not residual.\n\n## Injection / swarm lens\n\nTriggered: merge-time membership changes merge authority.\n\nBypass was the #3874 omission unless (prior lean). This recut drops it. Same-PR approval rewrite is already fail-closed on the tree. Untrusted PR filenames stay data. Do not close on reviewer attention.\n\n## Road not taken\n\nTreat fail-closed-no-mint as blocks-the-design because it prevents unsigned stories rather than naming the extra files. Rejected: expected is identify or prevent; this P1 has no mint; prevent is the catch. Flip if P1 were extra files after a merge-base mint already exists.\n\nTreat consumer `--enforce` composition / greenfield soft-skip as sharpens-framing that recuts Bound-remedy. Rejected: Bound-remedy already says fail closed with no unless. Naming `--enforce` or `GITHUB_BASE_REF` is harvest wiring, not a skip in the remedy. What would flip that: a harvest that implements only PR-paths subseteq allowlist and keeps warn-or-skip when the record is absent. That would not be this lean.\n\nNo implementation, no ingest, no dest occupancy, no successor lean.\n\n",
+          "id": 5747234709,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747234709",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T03:09:06Z",
+          "updated_at": "2026-09-20T03:09:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nC24 is uncaught. A focused PR with an active xBRIEF and no merge-base approved-scope fails closed. Comparison is PR paths vs merge-base approved-scope. Pain-audit of that cite was footnote-only.\n\nThis is not an instruction to a later builder.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| C24 is uncaught; not verify:observable-scope | verified | critic 5746985867; pin-read observable-scope has no file_scope |\n| Membership SoT is merge-base approved-scope | verified | critic 5746985867; digest.ts live vs approved; recut 5747186912 |\n| Fail-closed undeclared with no merge-base mint catches PR #5 | verified | pain-audit 5747234709 footnote-only; UAT xBRIEF no swarm.file_scope; approved-scope 404 |\n| Bound-remedy covers P1 | verified | closed cite relieves: P1 on bind 5747186912; pain-audit 5747234709 audit-targets: pain-P1 footnote-only |\r\n\n",
+          "id": 5747240563,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747240563",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T03:10:23Z",
+          "updated_at": "2026-09-20T03:10:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed. A focused PR that carries an active xBRIEF without a merge-base approved-scope record fails the membership gate. Comparison is PR paths vs that mint, not live file_scope.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5747186912.\r\n\n",
+          "id": 5747240660,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5747240660",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-20T03:10:25Z",
+          "updated_at": "2026-09-20T03:10:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Related, not merged. #2020 is the scope-adherence gate. This pull request had an empty `file_scope`, so a diff against declared paths would not have caught it. Both stay open.",
+          "id": 5777812152,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5777812152",
+          "user": {
+            "login": "polfer",
+            "id": 52183,
+            "node_id": "MDQ6VXNlcjUyMTgz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/52183?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/polfer",
+            "html_url": "https://github.com/polfer",
+            "followers_url": "https://api.github.com/users/polfer/followers",
+            "following_url": "https://api.github.com/users/polfer/following{/other_user}",
+            "gists_url": "https://api.github.com/users/polfer/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/polfer/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/polfer/subscriptions",
+            "organizations_url": "https://api.github.com/users/polfer/orgs",
+            "repos_url": "https://api.github.com/users/polfer/repos",
+            "events_url": "https://api.github.com/users/polfer/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/polfer/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-22T13:55:46Z",
+          "updated_at": "2026-09-22T13:55:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Additional defect evidence: undeclared scope admits backend changes during presentation-only work\n\nThis is a behavioral report with consumer-specific identities and artifacts omitted. It adds evidence to this existing issue rather than opening another missing-boundary report.\n\n### Observed behavior and version\n\nDirective CLI/core 0.119.5 was used for the final delivery gates. Active briefs lacked `swarm.file_scope`; intended-placement metadata also supplied no file or module boundary. There was no approved-scope record or intent preimage for those briefs on the relevant merge bases.\n\nThe briefs were modified and delivered alongside production changes. `verify:scope-provenance` emitted `active-xbrief-modified-without-digest` migration findings, explicitly said it was not failing, and returned exit 0. The normal gate wrapper invoked it without `--enforce`. Preflight also returned lifecycle-ready with empty intended placement.\n\nNo evidence showed a previously refused nonempty declaration being cleared in this occurrence. The declarations were absent from the initially authored briefs. The important failure path is therefore the ordinary undeclared-scope path, not only deliberate removal of an existing fence.\n\nThe provenance gate was present in the delivery composition. It ran and warned. This is not a report that CI omitted that gate.\n\n### Expected behavior\n\nAn explicitly restricted change must not become unrestricted because a brief lacks a declaration, an approval record, or a prior baseline. Before implementation or merge can rely on scope verification, the system must either have an enforceable boundary grounded in the operator's instruction or refuse the unclassified expansion.\n\nThe requirement is an effective boundary, not a mandatory external mint ceremony on every routine change. Any replacement for approved-scope records must preserve the operator's ceiling without letting the implementing agent authorize its own expansion.\n\n### Reproduction recipe\n\nReconstructed from the observed run; not independently rerun as a sanitized fixture:\n\n1. Begin with a presentation-only instruction.\n2. Author a new active brief with no `file_scope`, no intended file/module boundary, and no independently approved scope record on the merge base.\n3. Include a database or backend production change alongside the UI change.\n4. Run the normal scope-provenance and delivery checks using their default enforcement settings.\n5. Observe the missing-digest warning returning success rather than a refusal of the unapproved change.\n\n### Why this matters\n\nA missing fence can look like a successful scope check to subsequent automation. In the observed sequence, backend and persistence changes reached merge despite the presentation-only authorization. Independent product tests passed or ran successfully without answering whether those changes were authorized.\n\n### Regression cases\n\n- Absent declaration and empty declaration must not create an unrestricted production-change path.\n- A newly ingested brief with no merge-base counterpart must retain the operator boundary.\n- A matching plan ID, a freshly written brief, or an agent-authored decision cannot supply missing approval.\n- The normal local and hosted delivery paths must enforce the same result.\n- If a migration mode remains advisory, the aggregate result must make clear that scope authorization was not established.\n- A fully in-scope UI change should proceed without redundant permission requests.\n\nRefs #3715 for the broader fence-posture problem, #4956 and #4988 for later declaration/approval workflow changes, and #4545 for the operator ceiling. This evidence is version-bounded; it does not assert that later upstream changes have been tested or that historical mint mechanics must be restored.\n\nRelated reports filed from the same behavioral audit: #5055, #5056.\n\n",
+          "id": 5842644615,
+          "html_url": "https://github.com/deftai/directive/issues/4774#issuecomment-5842644615",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-26T03:09:37Z",
+          "updated_at": "2026-09-26T03:09:37Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "Original Tester 4 defect: #23\n\n## Summary\n\nThe request-time PR included unrelated baseline and project files beyond the requested change and change-request xBRIEF.\n\n## Expected behavior\n\nDirective/SCM verification should identify or prevent unrelated files from appearing in a focused change-request PR.\n\n## Actual behavior\n\nPR #5 contained 11 files, including:\n\n```text\n.gitignore\nCOST-ESTIMATE.md\nTaskfile.yml\nhistory/changes/story-a-health-endpoint/*\npackage-lock.json\npackage.json\nsrc/index.js\nsrc/server.js\ntests/server.test.js\nxbrief/active/2026-09-18-4-show-request-time-in-milliseconds.xbrief.json\n```\n\nThe request-time implementation itself passed tests and coverage, but the exact PR diff was broader than the issue scope.\n\n## Reproduction\n\n1. Establish a project with existing baseline and environment changes.\n2. Create a focused change-request branch and PR.\n3. Compare the PR file list against the requested issue scope.\n4. Observe that unrelated baseline/project files are included without a scope-integrity warning.\n\n## Environment\n\nWindows; Directive 0.119.3; GitHub PR #5 in `ZaenKai/directive-uat`.\n\n## Impact\n\nReviewers may approve unrelated changes, weakening change isolation and traceability.\n\n## Testing continuation\n\nTesting continued, but C24 remained FAIL.\n\n## Related GitHub issue or PR\n\nSource-run PR: `ZaenKai/directive-uat` PR #5.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5501879203,
+        "origin": "deftai/directive#4774",
+        "id": "github.issue.5501879203"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/base-fence.ts",
+          "packages/cli/src/verify-scope-provenance.ts",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "PR opened Tracking #4774",
+          "fail-closed without merge-base approved-scope"
+        ],
+        "depends_on": [],
+        "conflict_group": "pr-scope-membership-approved-scope",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.5501879203",
+    "updated": "2026-09-27T02:25:28Z"
+  }
+}
