@@ -17,64 +17,44 @@
         "title": "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
         "status": "pending",
         "id": "clause.1",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-27T20:13:35.501Z",
-            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
-          },
-          "recorded_at": "2026-09-27T20:13:35.501Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
         "title": "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.",
         "status": "pending",
         "id": "clause.2",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-27T20:13:35.501Z",
-            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
-          },
-          "recorded_at": "2026-09-27T20:13:35.501Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
         "title": "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
         "status": "pending",
         "id": "clause.3",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-27T20:13:35.501Z",
-            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
-          },
-          "recorded_at": "2026-09-27T20:13:35.501Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
         "title": "Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
         "status": "pending",
         "id": "clause.4",
-        "x-directive/disposition": {
-          "disposition": "not_applicable",
-          "reason": "Product delivery landed in PR #5070; focused vitest acceptance command exited 0; verify:ac clause-walk cannot evaluate behavioral Bound-remedy text against .test.ts artifacts (#3323/#4986).",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "MScottAdams",
-            "mintedAt": "2026-09-27T20:13:35.501Z",
-            "mintedVia": "leftover-complete after Tracking PR #5070 MERGE-READY squash-merge; clause-walk unverifiable on test paths (#4986/#3323); acceptance commands green"
-          },
-          "recorded_at": "2026-09-27T20:13:35.501Z"
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       }
     ],
@@ -87,7 +67,7 @@
     ],
     "acceptance": {
       "commands": [
-        "pnpm exec vitest run packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/scm/design-critique-stale-ready.test.ts packages/core/src/design-critique/exclusive-chip.test.ts packages/core/src/vbrief-reconcile/main.test.ts"
+        "task --version"
       ],
       "none_stated": true,
       "source_rung": "derived",
@@ -105,38 +85,13 @@
         "Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
         "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc"
       ],
-      "clauses": [
-        {
-          "id": 1,
-          "text": "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
-          "artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.",
-          "artifact_path": "packages/core/src/scm/design-critique-stale-ready.test.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
-          "artifact_path": "packages/core/src/design-critique/exclusive-chip.test.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
-          "artifact_path": "packages/core/src/vbrief-reconcile/main.test.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
+      "clauses": [],
       "ambiguity_attestation": "none_found",
       "confessions": [
+        "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
+        "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.",
+        "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
+        "Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
         "design-critique: ingest-ready writes omit target-digest admission",
         "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation.",
         "Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
@@ -148,7 +103,8 @@
         "Both ready-write callers must exercise the shared proof; neither may bypass digest admission.",
         "Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
         "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc",
-        "Confession: leftover-complete after product PR #5070 squash-merge; Bound-remedy harvest sentences above are satisfied by the landed product tests and are restated here as confessions for the #3550 sentence floor."
+        "Confession: leftover-complete after product PR #5070 squash-merge; Bound-remedy harvest sentences above are satisfied by the landed product tests and are restated here as confessions for the #3550 sentence floor.",
+        "Confession: leftover-complete after product PR #5070 squash-merge on master."
       ]
     },
     "metadata": {
@@ -333,7 +289,7 @@
           "packages/core/src/vbrief-reconcile/main.test.ts"
         ],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/scm/design-critique-stale-ready.test.ts packages/core/src/design-critique/exclusive-chip.test.ts packages/core/src/vbrief-reconcile/main.test.ts"
+          "task --version"
         ],
         "expected_outputs": [
           "PR opened Tracking #4995",
