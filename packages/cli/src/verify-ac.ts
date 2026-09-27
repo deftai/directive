@@ -18,6 +18,7 @@ import {
 import {
   emitVerifyAcTerminalOutcome,
   evaluateVerifyAcFromPath,
+  readAdmittedSourceDigest,
   readAdmittedSourceSentences,
   readPlanAcceptance,
   resolveAcceptanceGateProfile,
@@ -197,7 +198,14 @@ function evaluatePaths(
       const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
       const root = asRecord(raw);
       const plan = asRecord(root?.plan);
-      if (plan !== null && readAdmittedSourceSentences(plan.acceptance) === null) {
+      // Arm live REST only when a digest is already recorded and the working-tree
+      // pin is gone — otherwise a Bound/Spec-path rewrite would be compared to
+      // the raw issue body (#5055).
+      if (
+        plan !== null &&
+        readAdmittedSourceSentences(plan.acceptance) === null &&
+        readAdmittedSourceDigest(plan.acceptance) !== null
+      ) {
         fetchAdmittedSourceText = () => fetchOriginIssueBody(plan);
       }
     } catch {

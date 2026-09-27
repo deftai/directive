@@ -158,7 +158,32 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "admitted_source_sentences": [
+        "[framework-gap] Acceptance checks lose original scope restrictions when an agent rewrites an ingested brief",
+        "Selector: every admitted-source sentence is identity-bearing.",
+        "The filed wording \"Presentation changes only; do not change persistence or backend processing\" is in that set and in the item 8 fixture.",
+        "Met-predicate: `verify:ac` owns visibility only.",
+        "Fail closed when an identity is removed from the inspected set (delete, `undefined`, empty list, regenerate-from-live).",
+        "Restoration as a same-text clause is the restored state and may pass the floor.",
+        "Confession of an admitted-source identity is not restoration.",
+        "Derived item titles cannot authorize removal.",
+        "#3110 / `authz:grant` is the only path that removes or narrows an identity; the amendment names the affected identity and the resulting scope.",
+        "Admitted-source selection: the issue body on the body-normative path; the admitted Bound-remedy harvest on Spec-path.",
+        "Prompt-seed consumes the #4545 equivalent durable ceiling artifact only when that artifact is outside the worker-writable brief.",
+        "Prompt-seed recorded only on the seeded brief is outside this arc's relief.",
+        "Digest comparison reference: live REST at the ingest-recorded revision, and the merge-base copy of the pinned list when one exists.",
+        "First ingest with no merge-base counterpart is tamper-evidence against a stale brief, not a trust root against a worker with forge write.",
+        "Editor-attribution of the origin issue remains a named residual.",
+        "Offline / forge-outage: fail closed; do not skip.",
+        "Authorization of persistence and backend is #5056 / #4545.",
+        "This gate does not claim a negative oracle over the change set.",
+        "Do not mint a second ceiling store.",
+        "Do not pin this first-ingest path via #4956 approved-scope or intent-preimage.",
+        "#4774 stays PR membership.",
+        "Tests lock the P1 recipe (Overview rewrite plus stored list deleted) fail-closed; restoration as a same-text clause pass; confession of an admitted identity fail-closed; digest mismatch against live REST refuse; Spec-path refused-body exclusion."
+      ],
+      "admitted_source_digest": "fa9c86910e63b7fc0a08cb0bb9425a6b5d0b2ad5bbebd135e62b761f9fd3df4b"
     },
     "metadata": {
       "intended_placement": {
