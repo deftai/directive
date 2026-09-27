@@ -1,4 +1,11 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +34,8 @@ import {
   writePrWatchWaitHeartbeat,
 } from "./main.js";
 import type { WatchProbe, WatchResult } from "./types.js";
+
+const itSymlink = it.skipIf(process.platform === "win32");
 
 const HEAD = "abcdef1234567890abcdef1234567890abcdef12";
 
@@ -409,6 +418,67 @@ describe("pr:watch wait heartbeat (#5020)", () => {
       const secondAt = (JSON.parse(readFileSync(hbPath, "utf8")) as { last_heartbeat_at: string })
         .last_heartbeat_at;
       expect(Date.parse(secondAt)).toBeGreaterThan(Date.parse(firstAt));
+    } finally {
+      refresher.stop();
+    }
+  });
+
+  it("stop joins refresher so terminal write is not overwritten by a late refresh", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-stop-join-"));
+    const pid = 4_242_001;
+    expect(writePrWatchWaitHeartbeat(root, 55, { phase: "polling", pid }).ok).toBe(true);
+    const hbPath = join(
+      root,
+      ".deft-scratch",
+      "subagent-status",
+      `${prWatchHeartbeatAgentId(55, pid)}.json`,
+    );
+    const refresher = startWaitHeartbeatRefresher(root, 55, {
+      pid,
+      intervalSeconds: 0.05,
+      joinMs: 2_000,
+    });
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 120);
+    refresher.stop();
+    expect(
+      writePrWatchWaitHeartbeat(root, 55, {
+        phase: "terminal",
+        terminalState: "exited",
+        pid,
+      }).ok,
+    ).toBe(true);
+    // A late refresh after stop must not restore polling with a live parent pid.
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    const payload = JSON.parse(readFileSync(hbPath, "utf8")) as {
+      phase: string;
+      terminal_state: string | null;
+    };
+    expect(payload.phase).toBe("terminal");
+    expect(payload.terminal_state).toBe("exited");
+  });
+
+  itSymlink("refresher refuses a leaf symlink instead of following it", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-symlink-"));
+    const outside = mkdtempSync(join(tmpdir(), "pr-watch-hb-symlink-out-"));
+    const victim = join(outside, "victim.json");
+    writeFileSync(victim, '{"keep":true}\n', "utf8");
+    const statusDir = join(root, ".deft-scratch", "subagent-status");
+    mkdirSync(statusDir, { recursive: true });
+    const pid = 4_242_002;
+    const hbPath = join(statusDir, `${prWatchHeartbeatAgentId(66, pid)}.json`);
+    // Real file first so parents exist; then swap the leaf for an escaping symlink.
+    expect(writePrWatchWaitHeartbeat(root, 66, { phase: "polling", pid }).ok).toBe(true);
+    renameSync(hbPath, join(statusDir, "real-hb.json"));
+    symlinkSync(victim, hbPath);
+
+    const refresher = startWaitHeartbeatRefresher(root, 66, {
+      pid,
+      intervalSeconds: 0.05,
+    });
+    try {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+      // containedWrite must refuse — outside victim stays untouched.
+      expect(readFileSync(victim, "utf8")).toBe('{"keep":true}\n');
     } finally {
       refresher.stop();
     }

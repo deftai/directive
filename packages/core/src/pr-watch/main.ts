@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
@@ -14,6 +15,25 @@ import {
 } from "./constants.js";
 import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
 import { watch } from "./watch.js";
+
+/** Max wait for refresher child exit after stop so terminal write stays last (#5020). */
+export const WAIT_HEARTBEAT_REFRESHER_JOIN_MS = 2_000;
+
+/** Resolve contained-write for the refresher child (src→dist when vitest loads .ts). */
+function resolveContainedWriteModuleHref(): string {
+  const local = fileURLToPath(new URL("../fs/contained-write.js", import.meta.url));
+  const srcSegment = `${sep}src${sep}`;
+  const srcIdx = local.indexOf(srcSegment);
+  const distPath =
+    srcIdx === -1
+      ? local
+      : `${local.slice(0, srcIdx)}${sep}dist${sep}${local.slice(srcIdx + srcSegment.length)}`;
+  const chosen = existsSync(local) ? local : distPath;
+  if (!existsSync(chosen)) {
+    throw new Error(`contained-write module missing at ${local} or ${distPath}`);
+  }
+  return pathToFileURL(chosen).href;
+}
 
 export interface ParsedWatchArgs {
   readonly prNumber: number | null;
@@ -459,8 +479,9 @@ export const WAIT_HEARTBEAT_REFRESH_SECONDS = 60;
 /**
  * Sidecar that keeps the wait heartbeat fresh while the parent blocks in
  * spawnSync / a long monitor (#5020 P1). Publishes the parent pid so force-kill
- * of the wait process still fails closed via liveness. Stop before the terminal
- * heartbeat write.
+ * of the wait process still fails closed via liveness. Refresh writes use the
+ * same {@link containedWrite} path as the initial writer (symlink refuse).
+ * Stop joins the child before the terminal heartbeat write (#5020 P1).
  */
 export function startWaitHeartbeatRefresher(
   projectRoot: string,
@@ -471,6 +492,8 @@ export function startWaitHeartbeatRefresher(
     readonly pid?: number;
     /** Override for tests; defaults to {@link WAIT_HEARTBEAT_REFRESH_SECONDS}. */
     readonly intervalSeconds?: number;
+    /** Override for tests; defaults to {@link WAIT_HEARTBEAT_REFRESHER_JOIN_MS}. */
+    readonly joinMs?: number;
   } = {},
 ): { readonly stop: () => void } {
   if (!Number.isInteger(pr) || pr <= 0) {
@@ -483,8 +506,15 @@ export function startWaitHeartbeatRefresher(
   const parentId = options.parentId ?? "pr-watch";
   const intervalSeconds = options.intervalSeconds ?? WAIT_HEARTBEAT_REFRESH_SECONDS;
   const intervalMs = Math.max(1, Math.trunc(intervalSeconds * 1000));
+  const joinMs = Math.max(0, Math.trunc(options.joinMs ?? WAIT_HEARTBEAT_REFRESHER_JOIN_MS));
   const agentId = prWatchHeartbeatAgentId(pr, pid);
-  const statusPath = join(defaultSubagentStatusDir(resolve(projectRoot)), `${agentId}.json`);
+  const rootAbs = resolve(projectRoot);
+  const statusPath = join(defaultSubagentStatusDir(rootAbs), `${agentId}.json`);
+  const relTarget = relative(rootAbs, statusPath);
+  if (relTarget.startsWith("..") || relTarget.length === 0) {
+    process.stderr.write(`pr_watch: wait heartbeat refresher path escapes root: ${statusPath}\n`);
+    return { stop: () => undefined };
+  }
   const lastMessage = options.lastMessage ?? `${parentId} polling`;
   const payloadBase = {
     agent_id: agentId,
@@ -495,24 +525,40 @@ export function startWaitHeartbeatRefresher(
     pr_number: pr,
     pid,
   };
+
+  let containedHref: string;
+  try {
+    containedHref = resolveContainedWriteModuleHref();
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`pr_watch: wait heartbeat refresher failed to start: ${detail}\n`);
+    return { stop: () => undefined };
+  }
+
   // Child owns refresh writes so a blocked parent (spawnSync) cannot stale the
-  // 30m floor. Bracket the fs write name so verify:contained-writes does not
-  // treat this embedded sidecar script as a product sink (#2951).
+  // 30m floor. Routes through containedWrite (#2951 / #5020).
   const script = [
-    'const fs = require("node:fs");',
-    'const path = require("node:path");',
-    `const statusPath = ${JSON.stringify(statusPath)};`,
+    `import { containedWrite } from ${JSON.stringify(containedHref)};`,
+    `const rootAbs = ${JSON.stringify(rootAbs)};`,
+    `const relTarget = ${JSON.stringify(relTarget)};`,
     `const payloadBase = ${JSON.stringify(payloadBase)};`,
     `const intervalMs = ${intervalMs};`,
-    'const write = fs["writeFile" + "Sync"];',
     "function beat() {",
     "  try {",
-    "    fs.mkdirSync(path.dirname(statusPath), { recursive: true });",
     "    const payload = Object.assign({}, payloadBase, {",
     "      last_heartbeat_at: new Date().toISOString(),",
     "    });",
-    '    write(statusPath, JSON.stringify(payload) + "\\n", "utf8");',
-    "  } catch (_err) {}",
+    "    containedWrite({",
+    "      root: rootAbs,",
+    "      target: relTarget,",
+    '      data: JSON.stringify(payload) + "\\n",',
+    '      mode: "replace",',
+    "      mkdir: true,",
+    "    });",
+    "  } catch (err) {",
+    "    const msg = err instanceof Error ? err.message : String(err);",
+    '    console.error("pr_watch: wait heartbeat refresh failed: " + msg);',
+    "  }",
     "}",
     "beat();",
     "setInterval(beat, intervalMs);",
@@ -520,12 +566,15 @@ export function startWaitHeartbeatRefresher(
 
   let child: ReturnType<typeof spawn> | null = null;
   try {
-    child = spawn(process.execPath, ["-e", script], {
-      stdio: "ignore",
+    child = spawn(process.execPath, ["--input-type=module", "-e", script], {
+      // Inherit stderr so refresh/start failures are visible (#5020 P2).
+      stdio: ["ignore", "ignore", "inherit"],
       windowsHide: true,
       env: process.env,
     });
-  } catch {
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`pr_watch: wait heartbeat refresher failed to start: ${detail}\n`);
     return { stop: () => undefined };
   }
 
@@ -535,17 +584,28 @@ export function startWaitHeartbeatRefresher(
       return;
     }
     stopped = true;
-    if (child === null) {
+    const handle = child;
+    child = null;
+    if (handle === null) {
       return;
     }
     try {
-      child.kill();
+      handle.kill();
     } catch {
       // best-effort
     }
-    child = null;
+    // Join so an in-flight refresh cannot land after the terminal write (#5020).
+    if (joinMs > 0) {
+      const deadline = Date.now() + joinMs;
+      while (handle.exitCode === null && handle.signalCode === null && Date.now() < deadline) {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+      }
+    }
   };
-  child.on("error", () => {
+  child.on("error", (err) => {
+    process.stderr.write(
+      `pr_watch: wait heartbeat refresher error: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
     stop();
   });
   return { stop };
