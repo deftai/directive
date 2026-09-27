@@ -8,12 +8,11 @@
  * concrete-file allowance (floor 2, cap 5). Past the cap → split remediation,
  * never remint.
  *
- * Separately, #4774 membership compares the PR change set to a declared
- * allowlist. Prefer merge-base `.deft/approved-scope/<plan-id>.json` fileScope
- * when present; otherwise the merge-base brief file_scope; otherwise (first
- * introduction) the PR brief's non-empty file_scope. Empty/omitted file_scope
- * with no mint fails closed — not undeclared-by-design attestation. Peer
- * allowlists union only for peers whose xBRIEF also changed; peer coverage
+ * Separately, #4774 membership compares the PR change set to the merge-base
+ * approved-scope allowlist only. Empty mint is authoritative; missing mint
+ * fails closed — not undeclared-by-design attestation, and not PR-authored
+ * file_scope self-authorization. Peer allowlists union only for peers whose
+ * xBRIEF also changed and that carry their own non-empty mint; peer coverage
  * never clears a missing own allowlist.
  */
 
@@ -201,8 +200,8 @@ export interface ApprovedScopeMembershipInput {
   /** True when the bound active xBRIEF path is in the change set. */
   readonly xbriefModifiedInChangeSet: boolean;
   /**
-   * Declared membership allowlist (caller resolves mint → base brief →
-   * first-intro head brief). Null or empty means no declared allowlist.
+   * Declared membership allowlist (merge-base approved-scope only).
+   * Null or empty means no declared allowlist.
    */
   readonly baseApprovedFileScope: readonly string[] | null;
   readonly changedFiles: readonly string[];
@@ -230,31 +229,30 @@ function normalizeMembershipRel(raw: string): string {
 
 function remediationForMissingApprovedScope(planId: string): string {
   return (
-    "Declare a non-empty plan.metadata.swarm.file_scope on the active xBRIEF " +
-    `(first-story delivery) or land a human-stamped .deft/approved-scope/<plan-id>.json ` +
-    `on the merge base (planId=${planId}) before changing product paths with the active xBRIEF. ` +
-    "Omitting file_scope is not undeclared-by-design attestation (#4774). " +
-    "Same-PR approval rewrite stays fail-closed (#3145 / #3205)."
+    `Land a human-stamped .deft/approved-scope/<plan-id>.json on the merge base ` +
+    `(planId=${planId}) before changing product paths with the active xBRIEF. ` +
+    "PR-authored file_scope is not membership authority. Omitting approval is not " +
+    "undeclared-by-design attestation (#4774). Same-PR approval rewrite stays " +
+    "fail-closed (#3145 / #3205)."
   );
 }
 
 function remediationForOutsideApprovedScope(extras: readonly string[]): string {
   return (
-    "Remove or split paths outside the declared membership allowlist (merge-base " +
-    "approved-scope when present, else merge-base / first-intro brief file_scope), or land a " +
+    "Remove or split paths outside the merge-base approved-scope allowlist, or land a " +
     "renewed merge-base approval before widening. Live HEAD file_scope cannot authorize " +
-    `extras once a merge-base brief exists (#4774). Outside paths: ${extras.join(", ")}.`
+    `extras (#4774). Outside paths: ${extras.join(", ")}.`
   );
 }
 
 /**
  * PR change-set membership against a declared allowlist (#4774).
  *
- * Caller supplies the resolved allowlist (mint preferred, else brief
- * file_scope). Closed exemptions: the bound active xBRIEF path, peer active
- * xBRIEF paths that also changed, plus CHANGELOG.md. No declared allowlist
- * fails closed; peer coverage must not clear that miss. Peer allowlists union
- * only when this story already has its own non-empty allowlist.
+ * Caller supplies the merge-base approved-scope allowlist. Closed exemptions:
+ * the bound active xBRIEF path, peer active xBRIEF paths that also changed,
+ * plus CHANGELOG.md. No declared allowlist fails closed; peer coverage must
+ * not clear that miss. Peer allowlists union only when this story already has
+ * its own non-empty allowlist.
  */
 export function evaluateApprovedScopeMembership(
   input: ApprovedScopeMembershipInput,

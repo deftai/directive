@@ -9,12 +9,12 @@
  * `scope:record-approved-scope` as remint remediation.
  *
  * Membership (#4774): when an active xBRIEF is in the change set, the allowlist
- * prefers merge-base `.deft/approved-scope/<plan-id>.json` fileScope; else the
- * merge-base brief file_scope; else (first introduction) the PR brief's
- * non-empty file_scope. Empty/omitted file_scope with no mint fails closed.
- * Peer allowlists union only for peers whose xBRIEF also changed; peer coverage
- * never clears a missing own allowlist. Same-PR approval rewrite stays
- * fail-closed.
+ * is the merge-base approved-scope record only (including an authoritative empty
+ * fileScope). Missing mint fails closed — PR-authored or merge-base brief
+ * file_scope must not self-authorize. Peer allowlists union only for peers
+ * whose xBRIEF also changed and that have their own non-empty mint; peer
+ * coverage never clears a missing own allowlist. Same-PR approval rewrite
+ * stays fail-closed.
  *
  * Intent-pin checks (#3385) remain for existing base-committed records.
  *
@@ -723,8 +723,8 @@ export function evaluateScopeProvenance(
       continue;
     }
 
-    // Membership (#4774): allowlist prefers merge-base approved-scope; else
-    // merge-base brief file_scope; else first-intro PR brief file_scope.
+    // Membership (#4774): allowlist is merge-base approved-scope only.
+    // Present mint (including empty fileScope) is authoritative — no brief fallback.
     let mintFileScope: readonly string[] | null = null;
     let baseApprovedReadError: string | null = null;
     if (planId !== null && approvalRecordRel !== null) {
@@ -772,40 +772,18 @@ export function evaluateScopeProvenance(
       continue;
     }
 
-    /** Resolve declared membership allowlist (mint → base brief → first-intro head). */
-    const resolveMembershipAllowlist = (
-      storyRel: string,
-      storyPayload: unknown,
-      storyMint: readonly string[] | null,
-    ): readonly string[] | null => {
-      if (storyMint !== null && storyMint.length > 0) {
-        return storyMint;
-      }
-      const baseBriefRead = readAtBase(storyRel);
-      if (baseBriefRead.kind === "error") {
-        return null;
-      }
-      if (baseBriefRead.kind === "text") {
-        try {
-          const baseScope = normalizeFileScope(
-            extractFileScope(JSON.parse(baseBriefRead.text) as unknown),
-          );
-          return baseScope.length > 0 ? baseScope : null;
-        } catch {
-          return null;
-        }
-      }
-      // First introduction: no merge-base brief — use PR/head brief file_scope.
-      const headScope = normalizeFileScope(extractFileScope(storyPayload));
-      return headScope.length > 0 ? headScope : null;
-    };
-
-    const membershipAllowlist = modified
-      ? resolveMembershipAllowlist(rel, payload, mintFileScope)
-      : null;
+    // Mint present (incl. empty) wins; missing mint → null (Bound fail-closed).
+    const membershipAllowlist = modified ? mintFileScope : null;
 
     const peerXbriefRelPaths: string[] = [];
     const peerApprovedFileScopes: string[][] = [];
+    // Exempt sibling active-xBRIEF paths in the change set (incl. deletions).
+    for (const rawChanged of changed) {
+      const peerRel = normalizeRepoRelPath(rawChanged);
+      if (peerRel === normalizeRepoRelPath(rel)) continue;
+      if (!peerRel.startsWith("xbrief/active/") || !peerRel.endsWith(".xbrief.json")) continue;
+      if (!peerXbriefRelPaths.includes(peerRel)) peerXbriefRelPaths.push(peerRel);
+    }
     if (activeEntries.length > 1) {
       for (const other of activeEntries) {
         if (other.rel === rel) continue;
@@ -815,10 +793,10 @@ export function evaluateScopeProvenance(
         try {
           otherPayload = JSON.parse(other.raw) as unknown;
         } catch {
-          // Malformed peer: do not exempt its path; its own loop iteration fails closed.
+          // Malformed peer: path may still be exempt above; own loop fails closed.
           continue;
         }
-        peerXbriefRelPaths.push(other.rel);
+        if (!peerXbriefRelPaths.includes(other.rel)) peerXbriefRelPaths.push(other.rel);
         const otherPlanId = extractPlanId(otherPayload);
         let otherMint: readonly string[] | null = null;
         if (otherPlanId !== null) {
@@ -843,9 +821,9 @@ export function evaluateScopeProvenance(
             }
           }
         }
-        const otherAllow = resolveMembershipAllowlist(other.rel, otherPayload, otherMint);
-        if (otherAllow !== null && otherAllow.length > 0) {
-          peerApprovedFileScopes.push([...otherAllow]);
+        // Peer PR-authored / brief file_scope must not expand this allowlist.
+        if (otherMint !== null && otherMint.length > 0) {
+          peerApprovedFileScopes.push([...otherMint]);
         }
       }
     }

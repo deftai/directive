@@ -118,7 +118,7 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json", "CHANGELOG.md"],
     });
     expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
-    expect(hit?.remediation).toMatch(/file_scope/i);
+    expect(hit?.remediation).toMatch(/approved-scope/i);
     expect(hit?.remediation).toMatch(/not undeclared-by-design attestation/i);
     expect(hit?.remediation).not.toMatch(/undeclared-by-design skip/i);
   });

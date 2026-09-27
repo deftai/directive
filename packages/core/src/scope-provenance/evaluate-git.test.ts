@@ -115,7 +115,7 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
     expect(result.message).toMatch(/clean/i);
   });
 
-  it("allows first-story product paths covered by PR brief file_scope without mint (#4774)", () => {
+  it("fails closed when product paths land with no merge-base mint (#4774)", () => {
     root = initRepo();
     writeTracked(root, "README.md", "seed\n");
     commit(root, "base seed");
@@ -131,26 +131,31 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
     commit(root, "first PR with brief");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
-    expect(result.exitCode).toBe(0);
+    expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "active-xbrief-modified-without-digest")).toBe(
-      false,
+      true,
     );
   });
 
-  it("fails first-story when PR brief file_scope is empty (#4774)", () => {
+  it("empty merge-base mint refuses product paths even when brief lists them (#4774)", () => {
     root = initRepo();
-    writeTracked(root, "README.md", "seed\n");
-    commit(root, "base seed");
-    git(root, ["branch", "base"]);
-
-    git(root, ["checkout", "-q", "-b", "empty-scope"]);
+    const planId = "story-1";
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief("story-1", []), null, 2)}\n`,
+      `${JSON.stringify(xbrief(planId, ["packages/core/src/foo.ts"]), null, 2)}\n`,
     );
+    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, []));
+    commit(root, "base with empty mint");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "empty-mint"]);
     writeTracked(root, "packages/core/src/foo.ts", "export const a = 1;\n");
-    commit(root, "first story empty scope");
+    // Touch the active brief so membership runs (empty mint is authoritative).
+    const touched = xbrief(planId, ["packages/core/src/foo.ts"]);
+    (touched.plan as Record<string, unknown>).title = "empty-mint-touch";
+    writeTracked(root, "xbrief/active/story.xbrief.json", `${JSON.stringify(touched, null, 2)}\n`);
+    commit(root, "product under empty mint");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
     expect(result.exitCode).toBe(1);
@@ -158,19 +163,28 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
     expect(result.findings[0]?.detail).toMatch(/#4774/);
   });
 
-  it("allows first-story delivery when active xBRIEF + in-scope paths land (#4774)", () => {
+  it("allows in-scope delivery when merge-base mint covers the change set (#4774)", () => {
     root = initRepo();
-    writeTracked(root, "README.md", "seed\n");
-    commit(root, "base seed");
-    git(root, ["branch", "base"]);
-
-    git(root, ["checkout", "-q", "-b", "brief-only"]);
+    const planId = "story-1";
+    const scope = ["packages/core/src/foo.ts"];
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(xbrief("story-1", ["packages/core/src/foo.ts"]), null, 2)}\n`,
+      `${JSON.stringify(xbrief(planId, scope), null, 2)}\n`,
     );
-    commit(root, "first story brief only");
+    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, scope));
+    writeTracked(root, "packages/core/src/foo.ts", "export const a = 1;\n");
+    commit(root, "base with mint");
+    git(root, ["branch", "base"]);
+
+    git(root, ["checkout", "-q", "-b", "impl"]);
+    writeTracked(root, "packages/core/src/foo.ts", "export const a = 2;\n");
+    writeTracked(
+      root,
+      "xbrief/active/story.xbrief.json",
+      `${JSON.stringify(xbrief(planId, scope), null, 2)}\n`,
+    );
+    commit(root, "in-scope edit");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
     expect(result.exitCode).toBe(0);
