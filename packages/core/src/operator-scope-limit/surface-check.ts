@@ -8,6 +8,7 @@ import {
 /**
  * Warn-first list of exported surfaces not traceable to a requirement line (#4545).
  * Never throws; empty requirement lines yield every surface as untraceable (warn).
+ * Remediation (Bound): remove, or add to the brief and get operator approval.
  */
 export function evaluateUntraceableSurfaces(input: {
   readonly requirementLines: readonly string[];
