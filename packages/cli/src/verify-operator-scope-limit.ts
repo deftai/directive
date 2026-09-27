@@ -11,8 +11,8 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   evaluateUntraceableSurfaces,
-  seedOperatorScopeCeiling,
   type ShippedSurface,
+  seedOperatorScopeCeiling,
   UNTRACEABLE_SURFACE_REMEDIATION,
 } from "@deftai/directive-core/operator-scope-limit";
 
@@ -85,7 +85,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-function loadPrompt(args: ParsedArgs): { ok: true; prompt: string } | { ok: false; detail: string } {
+function loadPrompt(
+  args: ParsedArgs,
+): { ok: true; prompt: string } | { ok: false; detail: string } {
   if (typeof args.prompt === "string") {
     return { ok: true, prompt: args.prompt };
   }
@@ -176,7 +178,11 @@ export function run(argv: string[]): number {
   }
 
   if (typeof args.artifactOut === "string" && args.artifactOut.length > 0) {
-    writeFileSync(resolve(args.artifactOut), `${JSON.stringify(seeded.artifact, null, 2)}\n`, "utf8");
+    writeFileSync(
+      resolve(args.artifactOut),
+      `${JSON.stringify(seeded.artifact, null, 2)}\n`,
+      "utf8",
+    );
   }
   if (typeof args.briefOut === "string" && args.briefOut.length > 0) {
     const brief = seedOperatorScopeCeiling(promptLoad.prompt, {

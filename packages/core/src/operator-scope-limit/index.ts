@@ -1,7 +1,7 @@
 export {
+  type DetectedScopeLimit,
   detectScopeLimitPhrase,
   extractRequirementLines,
-  type DetectedScopeLimit,
 } from "./detect.js";
 export { SCOPE_LIMIT_PHRASES } from "./lexicon.js";
 export {
@@ -18,7 +18,7 @@ export {
   type SeedCeilingResult,
   type ShippedSurface,
   type ShippedSurfaceKind,
+  UNTRACEABLE_SURFACE_REMEDIATION,
   type UntraceableSurface,
   type UntraceableSurfaceCheckResult,
-  UNTRACEABLE_SURFACE_REMEDIATION,
 } from "./types.js";

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  SCOPE_LIMIT_PHRASES,
   detectScopeLimitPhrase,
   evaluateUntraceableSurfaces,
+  SCOPE_LIMIT_PHRASES,
   seedOperatorScopeCeiling,
 } from "./index.js";
 

@@ -1,8 +1,8 @@
 import {
   type ShippedSurface,
+  UNTRACEABLE_SURFACE_REMEDIATION,
   type UntraceableSurface,
   type UntraceableSurfaceCheckResult,
-  UNTRACEABLE_SURFACE_REMEDIATION,
 } from "./types.js";
 
 /**
@@ -35,9 +35,7 @@ export function evaluateUntraceableSurfaces(input: {
     };
   }
 
-  const listed = untraceable
-    .map((u) => `${u.surface.kind}:${u.surface.id}`)
-    .join(", ");
+  const listed = untraceable.map((u) => `${u.surface.kind}:${u.surface.id}`).join(", ");
   return {
     severity: "warn",
     untraceable,
@@ -117,7 +115,7 @@ function tokenizeSurface(id: string): string[] {
   // Split camelCase, paths, and punctuation into comparable stems.
   const spaced = id
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[\\/_.\-]+/g, " ")
+    .replace(/[\\/_.-]+/g, " ")
     .replace(/\[|\]/g, " ");
   return normalizeTokens(spaced);
 }

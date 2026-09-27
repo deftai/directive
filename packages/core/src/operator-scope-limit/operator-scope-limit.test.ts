@@ -1,17 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { detectScopeLimitPhrase, extractRequirementLines } from "./detect.js";
 import { SCOPE_LIMIT_PHRASES } from "./lexicon.js";
-import {
-  applyCeilingToBrief,
-  readCeilingFromBrief,
-  seedOperatorScopeCeiling,
-} from "./seed.js";
+import { applyCeilingToBrief, readCeilingFromBrief, seedOperatorScopeCeiling } from "./seed.js";
 import { evaluateUntraceableSurfaces } from "./surface-check.js";
 import {
   OPERATOR_SCOPE_CEILING_PLAN_KEY,
   OPERATOR_SCOPE_CEILING_SCHEMA,
-  UNTRACEABLE_SURFACE_REMEDIATION,
   type ShippedSurface,
+  UNTRACEABLE_SURFACE_REMEDIATION,
 } from "./types.js";
 
 /**
@@ -111,9 +107,7 @@ describe("seedOperatorScopeCeiling (#4545)", () => {
     if (!emptyActive.ok) return;
     expect(emptyActive.brief).toBeNull();
     expect(emptyActive.artifact.schema).toBe(OPERATOR_SCOPE_CEILING_SCHEMA);
-    expect(emptyActive.artifact.matchedPhrase).toBe(
-      "do not add features beyond the requirements",
-    );
+    expect(emptyActive.artifact.matchedPhrase).toBe("do not add features beyond the requirements");
     expect(emptyActive.artifact.requirementLines).toEqual([
       "add vehicle",
       "add maintenance record",

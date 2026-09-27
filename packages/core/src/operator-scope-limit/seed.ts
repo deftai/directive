@@ -92,9 +92,7 @@ export function applyCeilingToBrief(
   if (ceiling.requirementLines.length > 0) {
     const narrativesRaw = plan.narratives;
     const narratives =
-      narrativesRaw !== null &&
-      typeof narrativesRaw === "object" &&
-      !Array.isArray(narrativesRaw)
+      narrativesRaw !== null && typeof narrativesRaw === "object" && !Array.isArray(narrativesRaw)
         ? { ...(narrativesRaw as Record<string, unknown>) }
         : {};
     if (
