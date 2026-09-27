@@ -602,7 +602,13 @@ function resolveAdmittedSourceGitPin(
 ): { readonly sentences: readonly string[]; readonly digest: string | null } | null | undefined {
   // Explicit null = looked up, absent — do not scan active/ again (#5055).
   if (options.admittedSourceMergeBase !== undefined) {
-    return options.admittedSourceMergeBase;
+    // Options allow omitted digest; callers require string | null (#5055 / PR #5062).
+    return options.admittedSourceMergeBase === null
+      ? null
+      : {
+          sentences: options.admittedSourceMergeBase.sentences,
+          digest: options.admittedSourceMergeBase.digest ?? null,
+        };
   }
   const hinted =
     typeof options.xbriefPath === "string" && options.xbriefPath.trim().length > 0
