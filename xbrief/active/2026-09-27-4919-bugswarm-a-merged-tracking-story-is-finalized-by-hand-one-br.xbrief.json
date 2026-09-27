@@ -10,183 +10,183 @@
     "narratives": {
       "Description": "bug(swarm): a merged Tracking story is finalized by hand, one brief at a time",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4919",
-      "Overview": "Leftover-complete for #4919 after product PR #5076. Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.\n\nConfession: leftover-complete after product PR #5076 squash-merge on master.",
+      "Overview": "Leftover-complete for #4919 after product PR #5076. Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
       "Labels": "bug, swarm, agent-experience, process, source-of-truth, scm, area:cli, area:vbrief, design-critique:ingest-ready"
     },
     "items": [
       {
-        "id": "clause.1",
         "title": "One Tracking pull request and one story id bind that pull request's merge as delivery evidence",
         "status": "pending",
+        "id": "clause.1",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.2",
         "title": "Several pull requests in one finalize call are refused and the unpaired stories are named",
         "status": "pending",
+        "id": "clause.2",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.3",
         "title": "A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job",
         "status": "pending",
+        "id": "clause.3",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.4",
         "title": "A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job",
         "status": "pending",
+        "id": "clause.4",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.5",
         "title": "`--allow-close` while that brief is in `xbrief/active/` still fails (#4628)",
         "status": "pending",
+        "id": "clause.5",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.6",
         "title": "Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl`",
         "status": "pending",
+        "id": "clause.6",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.7",
         "title": "Parked stories with no merged pull request, and protected staying-open umbrellas, stay open",
         "status": "pending",
+        "id": "clause.7",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.8",
         "title": "From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/`",
         "status": "pending",
+        "id": "clause.8",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.9",
         "title": "Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight",
         "status": "pending",
+        "id": "clause.9",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.10",
         "title": "A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes",
         "status": "pending",
+        "id": "clause.10",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.11",
         "title": "After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch",
         "status": "pending",
+        "id": "clause.11",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.12",
         "title": "Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record",
         "status": "pending",
+        "id": "clause.12",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.13",
         "title": "A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list",
         "status": "pending",
+        "id": "clause.13",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.14",
         "title": "The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission",
         "status": "pending",
+        "id": "clause.14",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.15",
         "title": "The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run",
         "status": "pending",
+        "id": "clause.15",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
       {
-        "id": "clause.16",
         "title": "CHANGELOG `[Unreleased]` entry on the implementing pull request",
         "status": "pending",
+        "id": "clause.16",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_at": "2026-09-27T23:18:42.780Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       }
@@ -1105,33 +1105,30 @@
       "productPullRequest": 5076
     },
     "acceptance": {
+      "commands": [
+        "task --version"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "leftover-complete after product PR #5076; merge evidence on plan.items",
       "admitted_source_sentences": [
         "Leftover-complete for #4919 after product PR #5076.",
         "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory."
       ],
       "admitted_source_digest": "c98ef34c3900b3e15a7034ef636021c5ca8204accbafb600bac4faedab81dd77",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Leftover-complete for #4919 after product PR #5076.",
-          "artifact_path": null
-        },
-        {
-          "id": 2,
-          "text": "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
-          "artifact_path": null
-        }
-      ],
-      "commands": [
-        "task --version"
-      ],
-      "confessions": [
-        "bug(swarm): a merged Tracking story is finalized by hand one brief at a time",
-        "Confession: leftover-complete after product PR #5076 squash-merge on master.",
+      "clauses": [],
+      "sentences": [
         "Leftover-complete for #4919 after product PR #5076.",
         "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory."
       ],
-      "sentences": []
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(swarm): a merged Tracking story is finalized by hand one brief at a time",
+        "Leftover-complete for #4919 after product PR #5076. Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
+        "Leftover-complete for #4919 after product PR #5076.",
+        "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
+        "Confession: leftover-complete after product PR #5076 squash-merge on master."
+      ]
     },
     "id": "github.issue.5544930037",
     "updated": "2026-09-27T21:12:51Z"
