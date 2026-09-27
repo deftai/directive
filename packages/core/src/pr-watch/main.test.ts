@@ -346,9 +346,40 @@ describe("pr:watch wait heartbeat (#5020)", () => {
         join(root, ".deft-scratch", "subagent-status", `${prWatchHeartbeatAgentId(77)}.json`),
         "utf8",
       ),
-    ) as { phase: string; terminal_state: string | null };
+    ) as { phase: string; terminal_state: string | null; pid: number };
     expect(payload.phase).toBe("terminal");
     expect(payload.terminal_state).toBe("exited");
+    expect(payload.pid).toBe(process.pid);
+  });
+
+  it("dead pid leaves hasActivePollingHeartbeat false even with fresh polling file", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-dead-"));
+    const deadPid = 9_999_991;
+    const live = writePrWatchWaitHeartbeat(root, 88, { phase: "polling", pid: deadPid });
+    expect(live.ok).toBe(true);
+    // Fresh file alone must not arm after force-kill (finally never ran).
+    expect(hasActivePollingHeartbeat(root, 88, { isProcessAlive: () => false })).toBe(false);
+    expect(hasActivePollingHeartbeat(root, 88, { isProcessAlive: (pid) => pid === deadPid })).toBe(
+      true,
+    );
+  });
+
+  it("concurrent waits use pid-scoped files so one exit does not clear the other", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-conc-"));
+    expect(writePrWatchWaitHeartbeat(root, 99, { phase: "polling", pid: 1111 }).ok).toBe(true);
+    expect(writePrWatchWaitHeartbeat(root, 99, { phase: "polling", pid: 2222 }).ok).toBe(true);
+    expect(
+      writePrWatchWaitHeartbeat(root, 99, {
+        phase: "terminal",
+        terminalState: "exited",
+        pid: 1111,
+      }).ok,
+    ).toBe(true);
+    expect(
+      hasActivePollingHeartbeat(root, 99, {
+        isProcessAlive: (pid) => pid === 2222,
+      }),
+    ).toBe(true);
   });
 
   it("writePrWatchWaitHeartbeat returns failures for invalid pr / empty terminal_state", () => {
@@ -357,6 +388,7 @@ describe("pr:watch wait heartbeat (#5020)", () => {
     expect(writePrWatchWaitHeartbeat(root, 9, { phase: "terminal", terminalState: "   " }).ok).toBe(
       false,
     );
+    expect(writePrWatchWaitHeartbeat(root, 9, { phase: "polling", pid: 0 }).ok).toBe(false);
   });
 
   it("bindLivePhaseCorrectWait missing flag stays unbound; non-Tier1 flag binds", () => {
@@ -398,8 +430,9 @@ describe("pr:watch wait heartbeat (#5020)", () => {
         join(root, ".deft-scratch", "subagent-status", `${prWatchHeartbeatAgentId(77)}.json`),
         "utf8",
       ),
-    ) as { phase: string };
+    ) as { phase: string; pid: number };
     expect(payload.phase).toBe("terminal");
+    expect(payload.pid).toBe(process.pid);
   });
 });
 

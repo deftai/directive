@@ -368,6 +368,50 @@ describe("evaluateReviewMonitorGate", () => {
     expect(arm.armed).toBe(false);
   });
 
+  it("force-killed wait (fresh file, dead pid) leaves --live-wait unarmed (#5020)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-force-kill-"));
+    const deadPid = 9_999_992;
+    writePrWatchWaitHeartbeat(root, 5020, { phase: "polling", pid: deadPid });
+    // finally never ran; pid liveness still refuses the arm.
+    expect(
+      hasActivePollingHeartbeat(root, 5020, {
+        isProcessAlive: () => false,
+      }),
+    ).toBe(false);
+
+    const result = evaluateReviewMonitorGate({
+      pr: 5020,
+      projectRoot: root,
+      repo: "deftai/directive",
+      callSite: "solo",
+      environ: { GROK_BUILD: "1" },
+      seams: {
+        fetchComments: () => [
+          {
+            id: 1,
+            body: activeLeaseComment("owner", "monitor-5020"),
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "owner",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
+      now: NOW,
+    });
+    // Gate uses real process.kill; deadPid is almost certainly not alive.
+    expect(result.heartbeatActive).toBe(false);
+    const liveBind = bindLivePhaseCorrectWait({
+      liveWaitFlag: true,
+      tierIs1: true,
+      leaseEvidence: true,
+      heartbeatActive: result.heartbeatActive,
+      pr: 5020,
+    });
+    expect(liveBind.livePhaseCorrectWait).toBe(false);
+    expect(liveBind.reason).toBe("missing_process_liveness");
+  });
+
   it("DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness (#5020)", () => {
     expect(DEFAULT_STALE_MINUTES).toBe(30);
     // Dead-wait unarm is heartbeat/process-liveness, not TTL expiry.

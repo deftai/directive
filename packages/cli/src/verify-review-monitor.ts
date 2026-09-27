@@ -155,11 +155,12 @@ export function run(argv: readonly string[]): number {
       "\n#4882 / #5020 merge-path arm observer (optional):\n" +
         "  --merge-path-arm       Fail closed when neither live wait nor explicit finish\n" +
         "  --live-wait            Require still-running wait evidence for this PR\n" +
-        "                         (Tier 1: lease + active polling heartbeat / process-liveness;\n" +
+        "                         (Tier 1: lease + active polling heartbeat with pid liveness;\n" +
         "                         lease+flag alone is not armed — #5020)\n" +
         "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
         "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
-        "  Prefer Approach 1 / native pr:watch; homemade line-parsed --json is not an arm.\n",
+        "  Prefer Approach 1 / native pr:watch or post-CLEAN pr:wait-mergeable-and-merge;\n" +
+        "  homemade line-parsed --json is not an arm.\n",
     );
     return 0;
   }

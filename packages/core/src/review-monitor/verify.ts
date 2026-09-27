@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { sweepScratchDirs } from "../orchestration/subagent-monitor.js";
 import { resolveRepo } from "../triage/queue/repo.js";
@@ -18,6 +18,36 @@ import {
   reviewMonitorPath,
 } from "./record.js";
 import { isTier1, type MonitoringTierProbe, probeMonitoringTier } from "./tier-detection.js";
+
+/** Same ESRCH/EPERM contract as authz / delivery-attempt claim locks. */
+export function isWaitHeartbeatProcessAlive(pid: number): boolean {
+  if (!Number.isFinite(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    // ESRCH → dead. EPERM → exists but unsignalable — treat as alive.
+    if (code === "EPERM") return true;
+    return false;
+  }
+}
+
+/** Optional `pid` on a subagent-status heartbeat (native wait identity, #5020). */
+export function readWaitHeartbeatPid(filePath: string): number | null {
+  try {
+    const raw = readFileSync(filePath, "utf8");
+    const payload = JSON.parse(raw) as unknown;
+    if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+      return null;
+    }
+    const pid = (payload as Record<string, unknown>).pid;
+    const n = typeof pid === "number" ? pid : Number(pid);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
 
 export type ReviewMonitorCallSite =
   | "solo"
@@ -88,7 +118,12 @@ function spawnRedirect(probe: MonitoringTierProbe): string {
 export function hasActivePollingHeartbeat(
   projectRoot: string,
   pr: number,
-  options: { now?: Date; staleMinutes?: number } = {},
+  options: {
+    now?: Date;
+    staleMinutes?: number;
+    /** Inject for tests; defaults to `isWaitHeartbeatProcessAlive`. */
+    isProcessAlive?: (pid: number) => boolean;
+  } = {},
 ): boolean {
   const dir = defaultSubagentStatusDir(projectRoot);
   if (!existsSync(dir)) {
@@ -105,14 +140,24 @@ export function hasActivePollingHeartbeat(
     thresholdMinutes: options.staleMinutes ?? 30,
     now: options.now,
   });
-  return result.records.some(
-    (rec) =>
-      rec.pr_number === pr &&
-      rec.failures.length === 0 &&
-      !rec.is_stale &&
-      !rec.is_terminal &&
-      (rec.phase === "polling" || rec.phase === "starting"),
-  );
+  const alive = options.isProcessAlive ?? isWaitHeartbeatProcessAlive;
+  return result.records.some((rec) => {
+    if (
+      rec.pr_number !== pr ||
+      rec.failures.length > 0 ||
+      rec.is_stale ||
+      rec.is_terminal ||
+      (rec.phase !== "polling" && rec.phase !== "starting")
+    ) {
+      return false;
+    }
+    // When pid is published, it must still be alive — force-kill never runs finally (#5020).
+    const pid = readWaitHeartbeatPid(rec.path);
+    if (pid !== null && !alive(pid)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 export function evaluateReviewMonitorGate(

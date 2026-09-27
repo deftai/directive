@@ -1,4 +1,8 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { hasActivePollingHeartbeat } from "../review-monitor/verify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED } from "./constants.js";
 import { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
@@ -165,5 +169,40 @@ describe("runWaitMergeable", () => {
     expect(cmdPrWaitMergeable(["1370"])).toBe(EXIT_CONFIG_ERROR);
     stderr.mockRestore();
     stdout.mockRestore();
+  });
+
+  it("arms hasActivePollingHeartbeat while running and clears on exit (#5020 post-CLEAN)", () => {
+    const root = mkdtempSync(join(tmpdir(), "wait-merge-hb-"));
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    let sawLive = false;
+    const code = runWaitMergeable(
+      [
+        "5020",
+        "--repo",
+        "deftai/directive",
+        "--cap-minutes",
+        "5",
+        "--json",
+        "--project-root",
+        root,
+      ],
+      {
+        protectedFn: makeProtectedFn(0),
+        monitorFn: (..._args) => {
+          sawLive = hasActivePollingHeartbeat(root, 5020);
+          return makeMonitorFn(0, cleanMonitorPayload(5020))();
+        },
+        mergeFn: makeMergeFn(0, "merged: squash"),
+        skipHumanMergeGate: true,
+        skipMergeApprovalHeadGate: true,
+        fetchPrHeadShaFn: () => "a".repeat(40),
+      },
+    );
+    expect(code).toBe(EXIT_MERGED);
+    expect(sawLive).toBe(true);
+    expect(hasActivePollingHeartbeat(root, 5020)).toBe(false);
+    stdout.mockRestore();
+    stderr.mockRestore();
   });
 });
