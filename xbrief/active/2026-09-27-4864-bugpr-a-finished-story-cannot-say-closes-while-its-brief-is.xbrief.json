@@ -1,0 +1,437 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4864",
+    "updated": "2026-09-27T18:49:14Z"
+  },
+  "plan": {
+    "title": "bug(pr): a finished story cannot say Closes while its brief is still active",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(pr): a finished story cannot say Closes while its brief is still active",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4864",
+      "Overview": "\n\n1. Keep PR-open gate composition: #3015 closing-keyword intent, #4628 refuse --allow-close while a running brief is in xbrief/active, and Tracking as the default body while the brief is active. Do not make Tracking illegal for partial PRs. Do not drop #3015 or #4628. Do not reverse #4628 so Closes can land while the brief is running.\n2. Own the post-merge open-issue hole: for a full-story PR, record full-story close intent at PR open (or equivalent durable mark), and apply GitHub issue close when the brief leaves active after merge / leftover-complete — composing with or extending closeOriginsAfterLeftoverComplete / the #4919 finalize path. #3791 brief sweep alone is not this fix.\n3. Keep protected umbrella / partial-PR non-close (isProtectedStayingOpenUmbrella and related closeout constraints). Partial PRs must not auto-close umbrellas.\n4. Tests + CHANGELOG: full-story Tracking-while-active still passes; after merge + brief leave-active, origin closes without hand PATCH for the full-story case; umbrella/partial stays open.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52\n\n\n",
+      "Labels": "bug, swarm, agent-experience, review-cycle, process, source-of-truth, scm, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities, promise:tickets"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Keep PR-open gate composition: #3015 closing-keyword intent, #4628 refuse --allow-close while a running brief is in xbrief/active, and Tracking as the default body while the brief is active.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Do not make Tracking illegal for partial PRs.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Do not drop #3015 or #4628.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Do not reverse #4628 so Closes can land while the brief is running.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Own the post-merge open-issue hole: for a full-story PR, record full-story close intent at PR open (or equivalent durable mark), and apply GitHub issue close when the brief leaves active after merge / leftover-complete — composing with or extending closeOriginsAfterLeftoverComplete / the #4919 finalize path.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "#3791 brief sweep alone is not this fix.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Keep protected umbrella / partial-PR non-close (isProtectedStayingOpenUmbrella and related closeout constraints).",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Partial PRs must not auto-close umbrellas.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Tests + CHANGELOG: full-story Tracking-while-active still passes; after merge + brief leave-active, origin closes without hand PATCH for the full-story case; umbrella/partial stays open.",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5071",
+          "recorded_at": "2026-09-27T20:26:00.560Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "review-cycle",
+      "process",
+      "source-of-truth",
+      "scm",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:tickets"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4864",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4864: bug(pr): a finished story cannot say Closes while its brief is still active"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3015",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3015"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "task --version"
+      ],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(pr): a finished story cannot say Closes while its brief is still active",
+        "Keep PR-open gate composition: #3015 closing-keyword intent, #4628 refuse --allow-close while a running brief is in xbrief/active, and Tracking as the default body while the brief is active.",
+        "Do not make Tracking illegal for partial PRs.",
+        "Do not drop #3015 or #4628.",
+        "Do not reverse #4628 so Closes can land while the brief is running.",
+        "Own the post-merge open-issue hole: for a full-story PR, record full-story close intent at PR open (or equivalent durable mark), and apply GitHub issue close when the brief leaves active after merge / leftover-complete — composing with or extending closeOriginsAfterLeftoverComplete / the #4919 finalize path.",
+        "#3791 brief sweep alone is not this fix.",
+        "Keep protected umbrella / partial-PR non-close (isProtectedStayingOpenUmbrella and related closeout constraints).",
+        "Partial PRs must not auto-close umbrellas.",
+        "Tests + CHANGELOG: full-story Tracking-while-active still passes; after merge + brief leave-active, origin closes without hand PATCH for the full-story case; umbrella/partial stays open.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep PR-open gate composition: #3015 closing-keyword intent, #4628 refuse --allow-close while a running brief is in xbrief/active, and Tracking as the default body while the brief is active.",
+          "artifact_path": null
+        },
+        {
+          "id": 2,
+          "text": "Do not make Tracking illegal for partial PRs.",
+          "artifact_path": null
+        },
+        {
+          "id": 3,
+          "text": "Do not drop #3015 or #4628.",
+          "artifact_path": null
+        },
+        {
+          "id": 4,
+          "text": "Do not reverse #4628 so Closes can land while the brief is running.",
+          "artifact_path": null
+        },
+        {
+          "id": 5,
+          "text": "Own the post-merge open-issue hole: for a full-story PR, record full-story close intent at PR open (or equivalent durable mark), and apply GitHub issue close when the brief leaves active after merge / leftover-complete — composing with or extending closeOriginsAfterLeftoverComplete / the #4919 finalize path.",
+          "artifact_path": null
+        },
+        {
+          "id": 6,
+          "text": "#3791 brief sweep alone is not this fix.",
+          "artifact_path": null
+        },
+        {
+          "id": 7,
+          "text": "Keep protected umbrella / partial-PR non-close (isProtectedStayingOpenUmbrella and related closeout constraints).",
+          "artifact_path": null
+        },
+        {
+          "id": 8,
+          "text": "Partial PRs must not auto-close umbrellas.",
+          "artifact_path": null
+        },
+        {
+          "id": 9,
+          "text": "Tests + CHANGELOG: full-story Tracking-while-active still passes; after merge + brief leave-active, origin closes without hand PATCH for the full-story case; umbrella/partial stays open.",
+          "artifact_path": null
+        },
+        {
+          "id": 10,
+          "text": "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52",
+          "artifact_path": null
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "admitted_source_sentences": [
+        "Keep PR-open gate composition: #3015 closing-keyword intent, #4628 refuse --allow-close while a running brief is in xbrief/active, and Tracking as the default body while the brief is active.",
+        "Do not make Tracking illegal for partial PRs.",
+        "Do not drop #3015 or #4628.",
+        "Do not reverse #4628 so Closes can land while the brief is running.",
+        "Own the post-merge open-issue hole: for a full-story PR, record full-story close intent at PR open (or equivalent durable mark), and apply GitHub issue close when the brief leaves active after merge / leftover-complete — composing with or extending closeOriginsAfterLeftoverComplete / the #4919 finalize path.",
+        "#3791 brief sweep alone is not this fix.",
+        "Keep protected umbrella / partial-PR non-close (isProtectedStayingOpenUmbrella and related closeout constraints).",
+        "Partial PRs must not auto-close umbrellas.",
+        "Tests + CHANGELOG: full-story Tracking-while-active still passes; after merge + brief leave-active, origin closes without hand PATCH for the full-story case; umbrella/partial stays open.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52"
+      ],
+      "admitted_source_digest": "3d5535380c9e42edf03d8bb61385562c37948998d53e7527ceeb534ab6351434",
+      "confessions": [
+        "Confession: leftover-complete after product PR #5071 squash-merge on master."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because a full-story PR cannot pass closing-keyword checks with Closes while the brief is still active (#4628 refuses --allow-close), so Tracking is the only body that passes and GitHub leaves the issue open after merge; #3791 sweeps the brief but does not close the issue.\n\ncharter: refutation\nrefutation-target: It is acceptable that a full-story PR must write Tracking #N while the brief is still in xbrief/active, because --allow-close is correctly refused until scope:complete and Tracking remains the safe default, even though GitHub then leaves the finished issue open after squash-merge.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator continued the evaluate/label/arc campaign with recommended N standing. This is a concrete full-story close vs Tracking/active-brief gate composition defect (not dropping #3015/#4628). Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. Full-story PRs cannot say Closes/Fixes/Resolves while the brief is active; --allow-close is refused (#4628) and #3015 rejects real close keywords without it, so Tracking is the only passing body.\nP2. After squash-merge, #3791 moves active/ to completed/ but does not close the GitHub issue; finished stories stay open and need hand close (measured 2026-09-22 cohort).\nP3. Wanted: record full-story close intent at PR open and apply the close when the brief leaves active after merge, without completing the brief before merge and without letting partial PRs auto-close umbrellas. Do not make Tracking illegal; do not drop #3015 or #4628; do not treat #3791 as this fix.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4864-dc\norigin-ref: origin/HEAD\ndispatch-sha: 0040c878683735adb97f6e4527bc56ccd02af757\npin-kind: origin-default\ntarget-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52\n\nPin reads use git show 0040c878683735adb97f6e4527bc56ccd02af757. Refs #3015, #4628, #3791. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5858625914,
+          "html_url": "https://github.com/deftai/directive/issues/4864#issuecomment-5858625914",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T18:36:57Z",
+          "updated_at": "2026-09-27T18:36:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nIssue: deftai/directive#4864\nCharter: refutation\nRound: 1 critic\nId ceiling: 5858625914\nSHA at dispatch: 0040c878683735adb97f6e4527bc56ccd02af757\narc-mode: no-ingest\naudit-targets: none\nSeat: grok\nLauncher: grok\n\nRefutation target under test (Stop 1 comment 5858625914): It is acceptable that a full-story PR must write Tracking #N while the brief is still in xbrief/active, because --allow-close is correctly refused until scope:complete and Tracking remains the safe default, even though GitHub then leaves the finished issue open after squash-merge.\n\n## Open-after-merge acceptability does not bind\nblocks-the-design\nEvidence: At pin 0040c878, `refuseAllowCloseWhileRunning` in `packages/core/src/pr-closing-keywords/main.ts` fails `--allow-close N` when `listActiveRunningBriefs` still tracks N; pre-pr policy defaults Tracking/Refs. Separately, closed #4824 / CHANGELOG and `closeOriginsAfterLeftoverComplete` in `packages/core/src/swarm/finalize-cohort.ts` treat a still-open origin after leftover-complete land as refused DONE (\"Tracking/Refs does not auto-close\"), with tests that PATCH-close Tracking bodies. Live REST: #4824 closed; successor #4919 still open for hand finalize of merged Tracking stories. Issue #4864 body records the 2026-09-22 hand-close cohort.\nFailure mode: Binding the target as written would ratify \"finished story stays open after squash-merge\" as acceptable design, contradicting the already-shipped finalize DONE contract and the measured defect this issue was filed for.\nDisposition: Retract the acceptability-of-open-leftover half before any bind. Keep the gate-sound half (#3015 intent + #4628 running-brief refuse + Tracking as default while the brief is active).\n\n## Split PR-open Tracking from post-merge close ownership\nsharpens-framing\nEvidence: Inventory at the pin shows two seams, not one: (1) PR-open body lint (`pr-closing-keywords` + pre-pr Tracking default + Grok `stop-at: pr-open` forbidding pre-merge `scope:complete`); (2) post-merge origin-close already on `swarm:finalize-cohort` after leftover-complete land (#4824/#4937), while #3791/`complete-cohort` sweep moves briefs and does not close GitHub issues. Wanted text on #4864 asks to record full-story intent at PR open and apply close when the brief leaves `active/`, without dropping #3015/#4628.\nFailure mode: A successor lean that only restates \"Tracking while active is correct\" leaves P2 (open after merge) unowned. A lean that invents a second close authority beside finalize, or that reverses #4628 so Closes can land while the brief is running, splits or weakens shared issue-close lifecycle authority (injection/swarm lens).\nDisposition: Before bind, name the post-merge owner explicitly—compose with or extend `closeOriginsAfterLeftoverComplete` / #4919 finalize path, or a recorded full-story intent consumed when the brief leaves `active/`—and keep `--allow-close` refused while running. Do not make Tracking illegal for partial PRs.\n\n## Protected umbrella and closeout gates already constrain Closes\nfootnote\nEvidence: `isProtectedStayingOpenUmbrella` skips origin-close for umbrella/protected labels in finalize-cohort; `pr-closeout-attestable` fails merge when structured closing refs would close an unattested running brief. Live `--pr` intent-fail is skipped unless `--allow-close` is passed (`main.ts`), so local `--body-file` pre-pr remains the hard Tracking force while active.\nFailure mode: None for bind if the lean keeps partial-PR / umbrella non-close and does not treat #3791 as the GitHub close fix.\nDisposition: Carry-forward constraint only; no harvest change by itself.\n\n## Verdict\nThe refutation target does not survive. The composition that forces Tracking while the brief is active is sound and must stay. The claim that leaving the finished GitHub issue open after squash-merge is an acceptable terminal state is what fails, and that is the grain a Bound remedy must own.\r\n\n",
+          "id": 5858645770,
+          "html_url": "https://github.com/deftai/directive/issues/4864#issuecomment-5858645770",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T18:39:43Z",
+          "updated_at": "2026-09-27T18:39:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWhile a brief is still active, Tracking is the only PR body that passes closing-keyword checks, and that gate composition is sound. What fails is treating the finished GitHub issue staying open after squash-merge as an acceptable terminal. Confirming this map means the Bound remedy list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5858645770 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5858625914\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: 0040c878683735adb97f6e4527bc56ccd02af757\n\n## Takes\n\n- 5858645770 Open-after-merge acceptability does not bind — accept-into-contract\n- 5858645770 Split PR-open Tracking from post-merge close ownership — accept-into-contract\n- 5858645770 Protected umbrella and closeout gates already constrain Closes — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Keep PR-open gate composition: #3015 closing-keyword intent, #4628 refuse --allow-close while a running brief is in xbrief/active, and Tracking as the default body while the brief is active. Do not make Tracking illegal for partial PRs. Do not drop #3015 or #4628. Do not reverse #4628 so Closes can land while the brief is running.\n2. Own the post-merge open-issue hole: for a full-story PR, record full-story close intent at PR open (or equivalent durable mark), and apply GitHub issue close when the brief leaves active after merge / leftover-complete — composing with or extending closeOriginsAfterLeftoverComplete / the #4919 finalize path. #3791 brief sweep alone is not this fix.\n3. Keep protected umbrella / partial-PR non-close (isProtectedStayingOpenUmbrella and related closeout constraints). Partial PRs must not auto-close umbrellas.\n4. Tests + CHANGELOG: full-story Tracking-while-active still passes; after merge + brief leave-active, origin closes without hand PATCH for the full-story case; umbrella/partial stays open.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52\n\n## Parent-side substantiation\n\nThe critic kept the gate-sound half and blocked open-after-merge as acceptable. Item 1 preserves #3015/#4628/Tracking. Item 2 owns P2 via post-merge close authority. Item 3 keeps umbrella/partial fences. Item 4 is verification.\n\naudit:keep-tracking-while-active sha=0040c878683735adb97f6e4527bc56ccd02af757 pointer=comment:5858645770 reading=asserted\naudit:post-merge-full-story-close sha=0040c878683735adb97f6e4527bc56ccd02af757 pointer=comment:5858645770 reading=asserted\r\n\n",
+          "id": 5858649444,
+          "html_url": "https://github.com/deftai/directive/issues/4864#issuecomment-5858649444",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T18:40:15Z",
+          "updated_at": "2026-09-27T18:40:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nIssue: deftai/directive#4864\nCharter: refutation. Round: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nId ceiling (inclusive): 5858649444\nSHA at dispatch: 0040c878683735adb97f6e4527bc56ccd02af757 (HEAD matches; pin reads via git show)\narc-mode: no-ingest\nSeat: grok. Launcher: grok.\nBind lean under audit: 5858649444. Round-1 critic in envelope: 5858645770.\nStop 1 pains: 5858625914.\n\n## P1 covered by keeping Tracking-while-active gate composition\nfootnote\nEvidence: At 0040c878683735adb97f6e4527bc56ccd02af757, `refuseAllowCloseWhileRunning` in `packages/core/src/pr-closing-keywords/main.ts` fails `--allow-close N` when `listActiveRunningBriefs` still tracks N; intent mode (#3015) rejects bare Closes/Fixes/Resolves without that allowlist; live `--pr` intent-fail stays skipped unless `--allow-close` is passed, so local `--body-file` pre-pr remains the hard Tracking force while active. Bound remedy item 1 keeps that composition, refuses reversing #4628, and refuses making Tracking illegal for partial PRs. Critic 5858645770 already separated this gate-sound half from the open-after-merge half.\nFailure mode if under-covered: a harvest that reverses #4628 or drops #3015 so Closes can land while the brief is running. Item 1 closes that path as written.\nDisposition: Asserted coverage for P1 stands. Harvest unchanged.\n\n## P2 covered by named post-merge close ownership\nfootnote\nEvidence: Pin-read `closeOriginsAfterLeftoverComplete` in `packages/core/src/swarm/finalize-cohort.ts` REST-PATCHes still-open origins after leftover-complete land (#4824 CHANGELOG), and prints refused DONE when still open (\"Tracking/Refs does not auto-close\"). Complete-cohort / #3791 sweep moves briefs and does not close GitHub issues. Live REST: #4919 still open for finalize-owed / hand-finalize of merged Tracking stories; issue #4864 body records the 2026-09-22 hand-close cohort. Bound remedy item 2 owns the open-after-merge hole by recording full-story close intent (or equivalent durable mark) at PR open and applying close when the brief leaves active after merge / leftover-complete, composing with or extending `closeOriginsAfterLeftoverComplete` / the #4919 finalize path, and states #3791 alone is not this fix. Item 4 requires the full-story case close without hand PATCH after merge + leave-active.\nFailure mode if under-covered: a lean that only restates Tracking-while-active, or that treats #3791 brief sweep as GitHub close. Item 2 names a distinct post-merge owner.\nDisposition: Asserted coverage for P2 stands. Harvest unchanged.\n\n## P3 covered by record-at-open + apply-on-leave-active with umbrella fence\nfootnote\nEvidence: Stop 1 P3 wanted record full-story close intent at PR open and apply close when the brief leaves active after merge, without pre-merge `scope:complete`, without partial-PR umbrella auto-close, without making Tracking illegal, without dropping #3015/#4628, and without treating #3791 as the fix. Bound items 1–3 state that shape: item 1 keeps the active-window gates; item 2 records intent / equivalent mark and applies close on leave-active via finalize/origin-close composition; item 3 keeps `isProtectedStayingOpenUmbrella` and related closeout constraints so partial/umbrella stays open. Round-1 critic's sharpens-framing take (split PR-open Tracking from post-merge close ownership) is harvested into that split.\nFailure mode if under-covered: collapsing intent into pre-merge Closes, inventing a second close authority that bypasses finalize, or dropping the umbrella fence. Items 1–3 fence those collapses.\nDisposition: Asserted coverage for P3 stands. Harvest unchanged.\n\n## Equivalent durable mark vs unauthorized deft-close-intent token\nfootnote\nEvidence: Bound item 2 allows \"full-story close intent at PR open (or equivalent durable mark)\". Open #4919 body keeps `deft-close-intent: full` unauthorized and uses brief-side `productPullRequest` / `deft-story` as the candidate mark; origin-close still decides whom to close from completed-brief github-issue refs (#4824), not by parsing Tracking/Refs. The \"or equivalent\" clause admits that mark family without requiring a Closes body or a banned trailer.\nFailure mode: implement ambiguity only if a reader treats the phrase as mandating a new unauthorized trailer; the Bound list already allows equivalent durable marks beside Tracking.\nDisposition: Does not change harvested Bound remedy items 1–4. Bindable as written.\n\nCensus: four footnotes; zero blocks-the-design; zero sharpens-framing. Bound remedy items 1–4 cover pain-P1, pain-P2, and pain-P3 by keeping Tracking-while-active and owning post-merge close without dropping #3015/#4628 or treating #3791 as the close fix.\r\n\n",
+          "id": 5858664756,
+          "html_url": "https://github.com/deftai/directive/issues/4864#issuecomment-5858664756",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T18:42:22Z",
+          "updated_at": "2026-09-27T18:42:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nTracking while the brief is active stays the sound PR-open gate. The hole is finished GitHub issues left open after squash-merge. Bound remedy keeps #3015/#4628/Tracking, owns post-merge full-story close via recorded intent composing with finalize/origin-close (#4919 path), keeps umbrella/partial non-close, and refuses treating #3791 as the close fix. Pain-audit 5858664756 of relieves P1-P3 was footnote-only. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5858649444.\r\n\n",
+          "id": 5858667224,
+          "html_url": "https://github.com/deftai/directive/issues/4864#issuecomment-5858667224",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T18:42:42Z",
+          "updated_at": "2026-09-27T18:42:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "# bug(pr): a finished story cannot say Closes while its brief is still active\n\n## Summary\n\nA pull request that is the whole issue cannot pass the closing-keyword check with `Closes` / `Fixes` / `Resolves`. The brief is still in `xbrief/active` when the body is written, `--allow-close` is refused, and the only body that passes is `Tracking`. GitHub then leaves the issue open. Nothing after the merge closes it.\n\nTracking remains the right default for a partial pull request. This is the full-story case only.\n\n## What happens\n\n1. The closing-keyword check (#3015) rejects a real `Closes` / `Fixes` / `Resolves #N` unless the pull request is the full issue and the check is run with `--allow-close N`.\n2. #4628 refuses `--allow-close N` while issue N still has a running brief in `xbrief/active`.\n3. A Grok implement leaf stops when the pull request opens and must not `scope:complete` before the merge, so that brief is still active when the body is written.\n4. `Tracking #N` is the only body that passes. GitHub auto-closes only on `Closes` / `Fixes` / `Resolves`.\n5. After the merge, the brief sweep (#3791) moves `active/` to `completed/`. It does not close the GitHub issue.\n\nOn 2026-09-22 a cohort of finished stories stayed open for that reason and had to be closed by hand after the squash: #4522, #4707, #4812, #4819, #4839, #4841, #4843, #4844, #4846, #4847, #4854. The leaves were also told to write Tracking. That instruction made the miss certain. The product still cannot say Closes in this window.\n\n## Wanted\n\nA pull request that is the full issue can be marked so GitHub closes it, without completing the brief before the merge and without letting a partial pull request auto-close an umbrella.\n\nOne shape that fits the current gates: record the full-story intent at PR open, and apply the close when the brief leaves `active/` after the merge. `--allow-close` while the brief is still active stays refused.\n\n## Not this\n\n- Do not make Tracking illegal.\n- Do not drop #3015 or #4628.\n- Do not treat #3791 as this fix. That issue sweeps the brief. It does not close the GitHub issue.\n\nRefs #3015, #4628, #3791\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5540187641,
+        "origin": "deftai/directive#4864",
+        "id": "github.issue.5540187641"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "00c6a1f47aa3d4e4449f6083d81eef30445579521c2c1567deb37ef56771ea52"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/pr-closing-keywords/types.ts",
+          "packages/core/src/orphan-active/running-briefs.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task --version"
+        ],
+        "expected_outputs": [
+          "PR opened Tracking #4864",
+          "full-story post-merge origin close without hand PATCH"
+        ],
+        "depends_on": [],
+        "conflict_group": "full-story-closes-after-active",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.5540187641",
+    "updated": "2026-09-27T18:49:14Z"
+  }
+}
