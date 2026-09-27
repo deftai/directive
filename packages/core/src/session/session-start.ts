@@ -538,7 +538,8 @@ function restampSteps(
 /**
  * Finalize-owed session gate (#4919 Recut item 7).
  * Private tip fetch (not allowOptionalNetwork). Prints full inventory on any
- * non-backlog hit; blocks mutation on owed/close-owed/stale unless deferred.
+ * non-backlog hit; blocks mutation on owed/close-owed/stale/stale-unverified
+ * unless deferred.
  */
 function resolveFinalizeOwedRepo(
   projectRoot: string,

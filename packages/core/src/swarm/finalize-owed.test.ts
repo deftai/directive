@@ -844,9 +844,10 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
     });
-    const stale = inventory.stories.filter((s) => s.state === "stale");
-    expect(stale).toHaveLength(1);
-    expect(stale[0]?.blocks).toBe(true);
+    const blocked = inventory.stories.filter((s) => s.state === "stale-unverified");
+    expect(blocked).toHaveLength(1);
+    expect(blocked[0]?.blocks).toBe(true);
+    expect(inventory.stories.some((s) => s.state === "stale")).toBe(false);
     expect(inventory.stories.some((s) => s.state === "unverified")).toBe(false);
     expect(inventoryHasBlockingOwed(inventory)).toBe(true);
     rmSync(root, { recursive: true, force: true });
@@ -932,12 +933,106 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
     });
-    const stale = inventory.stories.filter((s) => s.state === "stale");
-    expect(stale).toHaveLength(1);
-    expect(stale[0]?.blocks).toBe(true);
-    expect(stale[0]?.detail).toContain("close-owed window");
+    const blocked = inventory.stories.filter((s) => s.state === "stale-unverified");
+    expect(blocked).toHaveLength(1);
+    expect(blocked[0]?.blocks).toBe(true);
+    expect(blocked[0]?.detail).toContain("close-owed window");
+    expect(inventory.stories.some((s) => s.state === "stale")).toBe(false);
     expect(inventory.stories.some((s) => s.state === "unverified")).toBe(false);
     expect(inventoryHasBlockingOwed(inventory)).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not reclaim/delete when stale claim issue verify fails (#4919)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-no-reclaim-unverified-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
+      productPullRequest: 5100,
+    });
+    const tipBody = readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8");
+    const nowMs = Date.parse("2026-09-27T12:00:00Z");
+    const deletePushes: string[][] = [];
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "fetch" && args.includes("origin") && args.includes("master")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "rev-parse") {
+        if (args[1]?.includes("^{tree}")) {
+          return { code: 0, stdout: "TREE\n", stderr: "" };
+        }
+        return { code: 0, stdout: "TIPSHA\n", stderr: "" };
+      }
+      if (args[0] === "update-ref") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const path = "xbrief/active/story-a.xbrief.json";
+        const matched = prefixes.some((p) => path.startsWith(String(p))) ? path : "";
+        return { code: 0, stdout: matched, stderr: "" };
+      }
+      if (args[0] === "show") {
+        return { code: 0, stdout: tipBody, stderr: "" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+      }
+      if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "log" && args.some((a) => String(a).includes("%ct"))) {
+        return {
+          code: 0,
+          stdout: String(Math.floor((nowMs - 3 * 60 * 60 * 1000) / 1000)),
+          stderr: "",
+        };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "push" && args.includes("--delete")) {
+        deletePushes.push([...args]);
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const result = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      now: () => nowMs,
+      runGit,
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/pulls/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-09-27T00:00:00Z",
+              merge_commit_sha: "abc",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/issues/")) {
+          return { returncode: 1, stdout: "", stderr: "API rate limit exceeded" };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+      runFinalize: () => {
+        throw new Error("finalize must not run for stale-unverified");
+      },
+    });
+    expect(deletePushes).toHaveLength(0);
+    expect(result.result.skipped).toContain(4919);
+    expect(result.result.finalized).not.toContain(4919);
+    expect(result.result.stories.some((s) => s.state === "stale-unverified" && s.blocks)).toBe(
+      true,
+    );
     rmSync(root, { recursive: true, force: true });
   });
 });

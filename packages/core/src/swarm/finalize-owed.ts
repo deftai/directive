@@ -31,6 +31,8 @@ export type FinalizeOwedState =
   | "owed"
   | "close-owed"
   | "stale"
+  /** Stale claim age, but origin issue not verified — blocks session, never reclaim. */
+  | "stale-unverified"
   | "in-flight"
   | "unverified"
   | "backlog"
@@ -569,13 +571,13 @@ export function discoverFinalizeOwed(
     }
     const issueState = fetchIssueState(issue, options.repo, runGh);
     if (issueState.error !== null || issueState.state === null) {
-      // Already-stale claims keep blocking even when origin issue fetch fails (#4919).
+      // Stale + unverified issue: block session, never reclaim/delete (#4919).
       if (claim.exists && claim.stale) {
         stories.push({
           issue,
           productPr,
           relPath,
-          state: "stale",
+          state: "stale-unverified",
           claimRef,
           pairingKey: briefPairingKey(relPath),
           planIdentity: briefPlanIdentity(plan),
@@ -649,7 +651,10 @@ export function discoverFinalizeOwed(
         s.issue === issue &&
         s.pairingKey === key &&
         s.planIdentity === identity &&
-        (s.state === "owed" || s.state === "in-flight" || s.state === "stale"),
+        (s.state === "owed" ||
+          s.state === "in-flight" ||
+          s.state === "stale" ||
+          s.state === "stale-unverified"),
     );
     if (already) {
       continue;
@@ -686,13 +691,13 @@ export function discoverFinalizeOwed(
     }
     const issueState = fetchIssueState(issue, options.repo, runGh);
     if (issueState.error !== null || issueState.state === null) {
-      // Already-stale claims keep blocking even when origin issue fetch fails (#4919).
+      // Stale + unverified issue: block session, never reclaim/delete (#4919).
       if (claim.exists && claim.stale) {
         stories.push({
           issue,
           productPr,
           relPath,
-          state: "stale",
+          state: "stale-unverified",
           claimRef,
           pairingKey: key,
           planIdentity: identity,
@@ -926,7 +931,12 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
   }
 
   for (const story of inventory.stories) {
-    if (story.state === "in-flight" || story.state === "unverified" || story.state === "backlog") {
+    if (
+      story.state === "in-flight" ||
+      story.state === "unverified" ||
+      story.state === "stale-unverified" ||
+      story.state === "backlog"
+    ) {
       skipped.push(story.issue);
       continue;
     }
