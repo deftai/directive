@@ -109,4 +109,24 @@ describe("inventoryDefaultSurfaces (#4545)", () => {
     const ids = inventoryDefaultSurfaces(root).map((s) => s.id);
     expect(ids).toEqual(["publicAction"]);
   });
+
+  it("inventories the local name for export { local as default }", () => {
+    const root = mkdtempSync(join(tmpdir(), "osl-inv-as-default-"));
+    const actionsDir = join(root, "app", "actions");
+    mkdirSync(actionsDir, { recursive: true });
+    writeFileSync(
+      join(actionsDir, "actions.ts"),
+      [
+        "async function deleteVehicleAction() {}",
+        "export { deleteVehicleAction as default }",
+        "export default async function namedDefaultAction() {}",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const ids = inventoryDefaultSurfaces(root)
+      .map((s) => s.id)
+      .sort();
+    expect(ids).toEqual(["deleteVehicleAction", "namedDefaultAction"]);
+  });
 });

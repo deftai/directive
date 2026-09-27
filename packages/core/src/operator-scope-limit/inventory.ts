@@ -151,9 +151,15 @@ function collectExportedNames(source: string): string[] {
       const token = part.trim();
       if (token.length === 0 || token.startsWith("type ")) continue;
       // `name` or `local as exported` — inventory the public export name.
+      // `local as default` keeps the local action name (do not discard as "default").
       const asParts = token.split(/\s+as\s+/i);
+      const local = asParts[0]?.trim();
       const exported = asParts[asParts.length - 1]?.trim();
-      push(exported);
+      if (asParts.length > 1 && exported === "default") {
+        push(local);
+      } else {
+        push(exported);
+      }
     }
     brace = EXPORT_BRACE_LIST.exec(source);
   }
