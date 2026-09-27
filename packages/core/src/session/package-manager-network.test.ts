@@ -220,6 +220,8 @@ function hermeticSessionOptions(observedDepths: string[] = []): SessionStartOpti
     runStalenessTickler: () => ({ lines: [], prompted: false }),
     // Keep triage on a no-op so the assertion is about the release probe only.
     runTriageWelcome: () => ({ exitCode: 0 }),
+    // #4919: empty tip inventory — default hot path must stay network-free.
+    probeFinalizeOwed: () => ({ lines: [], blocks: false, unknown: false }),
     // #3286: stub orientation so composed doctor does not probe npm config.
     orientationOptions: {
       doctorSection: {

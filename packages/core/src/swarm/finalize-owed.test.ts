@@ -604,4 +604,168 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
     expect(inventory.stories.some((s) => s.state === "stale")).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("keeps claims live on unknown fetch failure (not reclaim) (#4919)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-unknown-fetch-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
+      productPullRequest: 5100,
+    });
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/active/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+      }
+      if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+        return { code: 1, stdout: "", stderr: "fatal: remote error: unexpected backend failure" };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit,
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/pulls/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-09-27T00:00:00Z",
+              merge_commit_sha: "abc",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/issues/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ state: "open", labels: [] }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(inventory.stories.some((s) => s.state === "in-flight")).toBe(true);
+    expect(inventory.stories.some((s) => s.state === "stale")).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not reclaim stale claim when completed brief issue is already closed (#4919)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-closed-stale-"));
+    writeTipBrief(root, "xbrief/completed/story-a.xbrief.json", 4919, {
+      productPullRequest: 5100,
+      title: "story-a",
+    });
+    writeFileSync(
+      join(root, "xbrief", "completed", "story-a.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "story-a",
+          status: "done",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/4919",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: 5100 },
+        },
+      }),
+      "utf8",
+    );
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/completed/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/completed/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    const nowMs = Date.parse("2026-09-27T12:00:00Z");
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+      }
+      if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "log" && args.some((a) => String(a).includes("%ct"))) {
+        // Older than FINALIZE_CLAIM_STALE_MS.
+        return {
+          code: 0,
+          stdout: String(Math.floor((nowMs - 3 * 60 * 60 * 1000) / 1000)),
+          stderr: "",
+        };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      now: () => nowMs,
+      runGit,
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/issues/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ state: "closed", labels: [] }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(inventory.stories).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
 });

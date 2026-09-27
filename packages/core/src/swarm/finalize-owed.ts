@@ -314,6 +314,17 @@ export function isTransientClaimFetchFailure(stderr: string, stdout: string): bo
   );
 }
 
+/**
+ * Only missing-object / gone-ref fetch failures authorize reclaim after ls-remote
+ * found the claim. Unknown failures stay live (#4919).
+ */
+export function isReclaimableClaimFetchFailure(stderr: string, stdout: string): boolean {
+  const text = `${stderr}\n${stdout}`.toLowerCase();
+  return /missing objects?|bad object|not our ref|couldn't find remote ref|could not find remote ref|remote ref .+ not found|does not allow request for unadvertised object|remote did not send all necessary objects|upload-pack: not our ref/.test(
+    text,
+  );
+}
+
 function remoteClaimMeta(
   projectRoot: string,
   claimRef: string,
@@ -337,12 +348,12 @@ function remoteClaimMeta(
     "--force",
   ]);
   if (fetch.code !== 0) {
-    if (isTransientClaimFetchFailure(fetch.stderr, fetch.stdout)) {
-      // Keep live; do not delete on transient fetch/auth failure (#4919).
-      return { exists: true, stale: false, ageMs: null };
+    if (isReclaimableClaimFetchFailure(fetch.stderr, fetch.stdout)) {
+      // Missing object / remote ref gone after ls-remote → reclaimable.
+      return { exists: true, stale: true, ageMs: null };
     }
-    // Missing object / remote ref gone after ls-remote → reclaimable.
-    return { exists: true, stale: true, ageMs: null };
+    // Transient network/auth or unknown fetch failure: keep live (#4919).
+    return { exists: true, stale: false, ageMs: null };
   }
   // Claim marker commit uses committer time (not delivery-tip author age).
   const committer = runGit(projectRoot, ["log", "-1", "--format=%ct", privateRef]);
@@ -556,20 +567,6 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    if (claim.exists && claim.stale) {
-      stories.push({
-        issue,
-        productPr,
-        relPath,
-        state: "stale",
-        claimRef,
-        pairingKey: briefPairingKey(relPath),
-        planIdentity: briefPlanIdentity(plan),
-        detail: `stale claim ageMs=${String(claim.ageMs)}`,
-        blocks: true,
-      });
-      continue;
-    }
     const issueState = fetchIssueState(issue, options.repo, runGh);
     if (issueState.error !== null || issueState.state === null) {
       stories.push({
@@ -585,7 +582,22 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
+    // Closed origin: do not reclaim/delete a finalize branch for finished work (#4919).
     if (issueState.state === "closed" || issueState.protectedUmbrella) {
+      continue;
+    }
+    if (claim.exists && claim.stale) {
+      stories.push({
+        issue,
+        productPr,
+        relPath,
+        state: "stale",
+        claimRef,
+        pairingKey: briefPairingKey(relPath),
+        planIdentity: briefPlanIdentity(plan),
+        detail: `stale claim ageMs=${String(claim.ageMs)}`,
+        blocks: true,
+      });
       continue;
     }
     stories.push({
@@ -657,20 +669,6 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    if (claim.exists && claim.stale) {
-      stories.push({
-        issue,
-        productPr,
-        relPath,
-        state: "stale",
-        claimRef,
-        pairingKey: key,
-        planIdentity: identity,
-        detail: `stale claim ageMs=${String(claim.ageMs)} (close-owed window)`,
-        blocks: true,
-      });
-      continue;
-    }
     const issueState = fetchIssueState(issue, options.repo, runGh);
     if (issueState.error !== null || issueState.state === null) {
       stories.push({
@@ -686,7 +684,22 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
+    // Closed (or protected) origin: do not reclaim/delete the finalize branch (#4919).
     if (issueState.state === "closed" || issueState.protectedUmbrella) {
+      continue;
+    }
+    if (claim.exists && claim.stale) {
+      stories.push({
+        issue,
+        productPr,
+        relPath,
+        state: "stale",
+        claimRef,
+        pairingKey: key,
+        planIdentity: identity,
+        detail: `stale claim ageMs=${String(claim.ageMs)} (close-owed window)`,
+        blocks: true,
+      });
       continue;
     }
     stories.push({

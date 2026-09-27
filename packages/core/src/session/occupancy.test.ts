@@ -71,6 +71,13 @@ import {
 import { READ_ONLY_POSTURE, REARM_CEREMONY_TIER, runSessionStart } from "./session-start.js";
 import { verifySessionRitual, writeGateRitualOptions } from "./verify-session-ritual.js";
 
+/** #4919: occupancy fixtures are not tip-inventory cases; keep owed gate off the wire. */
+const emptyFinalizeOwedProbe = () => ({
+  lines: [] as const,
+  blocks: false,
+  unknown: false,
+});
+
 const TEST_WORKER_AUTH = {
   workerGithubAuthMode: "host-gh" as const,
   expectedPrincipal: { kind: "user" as const, login: "test-worker" },
@@ -1147,6 +1154,7 @@ describe("worktree occupancy lease (#3433)", () => {
         runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
         verifyTools: () => ({ exitCode: 0 }),
         runTriageWelcome: () => ({ exitCode: 0 }),
+        probeFinalizeOwed: emptyFinalizeOwedProbe,
       });
       expect(first.code).toBe(0);
       expect(readOccupancy(root)?.sessionId).toBe("first-sess");
@@ -1157,6 +1165,7 @@ describe("worktree occupancy lease (#3433)", () => {
         newSessionId: () => "second-sess",
         runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
         verifyTools: () => ({ exitCode: 0 }),
+        probeFinalizeOwed: emptyFinalizeOwedProbe,
       });
       expect(second.code).toBe(1);
       expect(second.lines.join("\n")).toContain("Worktree occupied by session first-sess");
@@ -1246,6 +1255,7 @@ describe("worktree occupancy lease (#3433)", () => {
         }),
         verifyTools: () => ({ exitCode: 0 }),
         runTriageWelcome: () => ({ exitCode: 0 }),
+        probeFinalizeOwed: emptyFinalizeOwedProbe,
       });
       expect(first.code).toBe(0);
       expect(first.lines.join("\n")).not.toContain("Worktree occupied");
@@ -1292,6 +1302,7 @@ describe("worktree occupancy lease (#3433)", () => {
         }),
         verifyTools: () => ({ exitCode: 0 }),
         runTriageWelcome: () => ({ exitCode: 0 }),
+        probeFinalizeOwed: emptyFinalizeOwedProbe,
       });
       expect(next.code).toBe(0);
       expect(next.lines.join("\n")).not.toContain("Worktree occupied");
@@ -1495,6 +1506,7 @@ describe("worktree occupancy lease (#3433)", () => {
         if (args.includes("--is-ancestor")) return { code: 0, stdout: "", stderr: "" };
         return { code: 0, stdout: "", stderr: "" };
       },
+      probeFinalizeOwed: emptyFinalizeOwedProbe,
     });
     expect(rearm.code).toBe(0);
     expect(readOccupancy(root)?.sessionId).toBe("seed-session");
