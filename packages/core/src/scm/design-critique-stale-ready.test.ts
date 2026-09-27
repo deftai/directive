@@ -306,11 +306,13 @@ describe("callers emit the shared mapping", () => {
 
   it("overlays mapping on standing ingest-ready proof-fail and skips it for a fresh write", () => {
     const frozen = loadFrozen4290();
+    // Unpinned live body: Target-digest admission must not hit live GH in unit tests (#4995).
+    const fetchIssueBody = (): string => frozen.body;
     const standing = new MapLabelClient();
     standing.seed(SCANNED_B, 4290, STANDING);
     const standingResult = runDesignCritiqueChip(
       ["--issue", "4290", "--chip", "ingest-ready", "--repo", SCANNED_B],
-      { client: standing, fetchComments: () => frozen.comments },
+      { client: standing, fetchComments: () => frozen.comments, fetchIssueBody },
     );
     expect(standingResult.exitCode).toBe(1);
     expect(standing.applyCalls).toHaveLength(0);
@@ -321,7 +323,7 @@ describe("callers emit the shared mapping", () => {
     fresh.seed(SCANNED_B, 4290, ["bug"]);
     const freshResult = runDesignCritiqueChip(
       ["--issue", "4290", "--chip", "ingest-ready", "--repo", SCANNED_B],
-      { client: fresh, fetchComments: () => frozen.comments },
+      { client: fresh, fetchComments: () => frozen.comments, fetchIssueBody },
     );
     expect(freshResult.exitCode).toBe(1);
     expect(fresh.applyCalls).toHaveLength(0);

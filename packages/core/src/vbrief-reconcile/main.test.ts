@@ -2,6 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  DesignCritiqueIngestBlockedError,
+  hashIssueBodyBytes,
+} from "../design-critique/completed-arc-record.js";
+import { GitHubBodyError } from "../intake/github-body.js";
 import * as scm from "../scm/call.js";
 import {
   computeDesiredLabels,
@@ -374,6 +379,67 @@ describe("labels SCM client", () => {
     expect(editArgs).toContain("area:cli");
     expect(editArgs).toContain("--add-label");
     expect(editArgs).not.toContain("design-critique:mechanism-shaped");
+  });
+
+  it("ScmLabelClient.apply refuses stale-target with zero issue edits (#4995)", () => {
+    const liveBody = "## Summary\n\nNo trailing newline";
+    const pinned = hashIssueBodyBytes(`${liveBody}\n`);
+    const comments = [
+      {
+        id: 5442939496,
+        body: `**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`,
+      },
+      { id: 5443106967, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+      {
+        id: 5443114746,
+        body:
+          "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+          "Bound contract: successor lean 5442939496, confirmed by operator, verified-claims table 5443106967.\n",
+      },
+    ];
+    const spy = vi.spyOn(scm, "call");
+    spy
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify(comments),
+        stderr: "",
+      })
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({ body: liveBody }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        // Overlay may read labels; chip is not standing — no edit either way.
+        stdout: JSON.stringify({ labels: [{ name: "bug" }] }),
+        stderr: "",
+      });
+    const client = new ScmLabelClient();
+    expect(() =>
+      client.apply("deftai/directive", 4995, ["design-critique:ingest-ready"], []),
+    ).toThrow(DesignCritiqueIngestBlockedError);
+    expect(spy.mock.calls.some((call) => (call[2] ?? []).includes("edit"))).toBe(false);
+  });
+
+  it("ScmLabelClient.apply refuses body fetch failure with zero issue edits (#4995)", () => {
+    const spy = vi.spyOn(scm, "call");
+    mockIngestReadyComments(spy).mockReturnValueOnce({
+      args: [],
+      returncode: 1,
+      stdout: "",
+      stderr: "gh api failed: GH_TOKEN required",
+    });
+    const client = new ScmLabelClient();
+    expect(() =>
+      client.apply("deftai/directive", 4995, ["design-critique:ingest-ready"], []),
+    ).toThrow(GitHubBodyError);
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(spy.mock.calls.some((call) => (call[2] ?? []).includes("edit"))).toBe(false);
   });
 
   it("labels unchanged and errors", () => {

@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashIssueBodyBytes, type ThreadComment } from "../design-critique/completed-arc-record.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "../design-critique/exclusive-chip.js";
 import { GitHubBodyError } from "../intake/github-body.js";
 import { IssueCommentFetchError } from "../intake/issue-ingest.js";
-import { ScmLabelError } from "../vbrief-reconcile/labels.js";
+import { ScmLabelClient, ScmLabelError } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
+import * as scm from "./call.js";
 import {
   CHIP_ALIASES,
   DESIGN_CRITIQUE_CHIP_USAGE,
@@ -246,6 +247,10 @@ describe("parseDesignCritiqueChipArgs", () => {
 });
 
 describe("runDesignCritiqueChip", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("replaces mechanism-shaped with ingest-ready in one apply", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
     const result = runDesignCritiqueChip(
@@ -565,5 +570,33 @@ describe("runDesignCritiqueChip", () => {
     const payload = JSON.parse(result.stdout) as { error: string; blocking: boolean };
     expect(payload.blocking).toBe(true);
     expect(payload.error).toMatch(/stale-target/);
+  });
+
+  it("does not re-enter ScmLabelClient ingest-ready gate after chip proof (#4995)", () => {
+    const spy = vi.spyOn(scm, "call");
+    spy
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({
+          labels: [{ name: "bug" }, { name: "design-critique:mechanism-shaped" }],
+        }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
+    const result = runDesignCritiqueChip(
+      ["--issue", "3637", "--chip", "ingest-ready", "--repo", "deftai/directive"],
+      {
+        client: new ScmLabelClient(),
+        fetchComments: completeFetch,
+        fetchIssueBody: unpinnedBodyFetch,
+      },
+    );
+    expect(result.exitCode).toBe(0);
+    // view + edit only; comments/body already supplied by seams (no second admit).
+    expect(spy).toHaveBeenCalledTimes(2);
+    const editArgs = spy.mock.calls[1]?.[2] ?? [];
+    expect(editArgs).toContain("edit");
+    expect(editArgs).toContain("design-critique:ingest-ready");
   });
 });

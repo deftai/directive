@@ -239,13 +239,22 @@ export function runDesignCritiqueChip(
   const client = seams.client ?? new ScmLabelClient();
   const fetchComments = seams.fetchComments ?? defaultFetchComments;
   const fetchBody = seams.fetchIssueBody ?? defaultFetchIssueBody;
+  // Chip path proves once above the write. ScmLabelClient.apply would re-fetch
+  // and re-admit; route the post-proof write through applyWithoutCatalogGate.
+  const writeClient: LabelClient =
+    client instanceof ScmLabelClient
+      ? {
+          fetchLabels: (r, n) => client.fetchLabels(r, n),
+          apply: (r, n, a, rem) => client.applyWithoutCatalogGate(r, n, a, rem),
+        }
+      : client;
   try {
     let applied: { remaining: string[]; add: readonly string[]; remove: readonly string[] };
     if (args.chip === "design-critique:ingest-ready") {
       const comments = fetchComments(repo, args.issue);
       const liveIssueBody = fetchBody(repo, args.issue);
       const outcome = applyIngestReadyRemainingSet(
-        client,
+        writeClient,
         repo,
         args.issue,
         comments,
@@ -279,7 +288,7 @@ export function runDesignCritiqueChip(
       }
       applied = outcome;
     } else {
-      applied = applyDesignCritiqueCatalogChip(client, repo, args.issue, args.chip);
+      applied = applyDesignCritiqueCatalogChip(writeClient, repo, args.issue, args.chip);
     }
     const payload = {
       repo,

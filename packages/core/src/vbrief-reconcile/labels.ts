@@ -93,6 +93,20 @@ export class ScmLabelClient implements LabelClient {
     return names;
   }
 
+  /**
+   * Remaining-set mutation without catalog-chip re-admission.
+   * Callers that already proved ingest-ready (chip verb) use this so the
+   * reconciler gate on apply() stays the sole proof for unproven writes (#4995).
+   */
+  applyWithoutCatalogGate(
+    repo: string,
+    issueNumber: number,
+    add: readonly string[],
+    remove: readonly string[],
+  ): void {
+    this.applyMut(repo, issueNumber, add, remove);
+  }
+
   apply(
     repo: string,
     issueNumber: number,
