@@ -10,18 +10,183 @@
     "narratives": {
       "Description": "bug(swarm): a merged Tracking story is finalized by hand, one brief at a time",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4919",
-      "Overview": "Leftover-complete for #4919 after product PR #5076. Bound Recut lean 5859532546 delivered: finalize-owed backstop, pending origin-close signal, session-start owed inventory. Queue-label workflow deferred to residual if needed.\n\nConfession: leftover-complete after product PR #5076 squash-merge on master.",
+      "Overview": "Leftover-complete for #4919 after product PR #5076. Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.\n\nConfession: leftover-complete after product PR #5076 squash-merge on master.",
       "Labels": "bug, swarm, agent-experience, process, source-of-truth, scm, area:cli, area:vbrief, design-critique:ingest-ready"
     },
     "items": [
       {
         "id": "clause.1",
-        "title": "One Tracking pull request and one story id bind that pull request's merge as delivery evidence Several pull requests in one finalize call are refused and the unpaired stories are named A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job `--allow-close` while that brief is in `xbrief/active/` still fails (#4628) Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl` Parked stories with no merged pull request, and protected staying-open umbrellas, stay open From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/` Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run CHANGELOG `[Unreleased]` entry on the implementing pull request",
+        "title": "One Tracking pull request and one story id bind that pull request's merge as delivery evidence",
         "status": "pending",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5076",
-          "recorded_at": "2026-09-27T23:17:26.673Z",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Several pull requests in one finalize call are refused and the unpaired stories are named",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "`--allow-close` while that brief is in `xbrief/active/` still fails (#4628)",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl`",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "Parked stories with no merged pull request, and protected staying-open umbrellas, stay open",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/`",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "CHANGELOG `[Unreleased]` entry on the implementing pull request",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5076",
+          "recorded_at": "2026-09-27T23:18:02.196Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       }
@@ -940,191 +1105,33 @@
       "productPullRequest": 5076
     },
     "acceptance": {
-      "commands": [
-        "task --version"
-      ],
-      "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived 16 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [
-        "bug(swarm): a merged Tracking story is finalized by hand, one brief at a time",
-        "bug(swarm): a merged Tracking story is finalized by hand, one brief at a time ## Summary A full-story pull request that says Tracking merges.",
-        "The issue stays open and the brief stays in `xbrief/active/`.",
-        "Nothing after the merge records that the story is owed, and the closer finishes the record by hand, one brief at a time.",
-        "When nobody does, the record is dropped.",
-        "This issue supersedes #4893.",
-        "That arc re-measured the diagnosis and held it; every one of its seven candidates was a merge-event workflow that had to reproduce a live session on a runner, and every one was blocked on the next piece of session state the runner did not have.",
-        "The owed unit here is the same.",
-        "The consumer is not a workflow.",
-        "It is the next mutation session, on any machine, of any maintainer.",
-        "#4864 is the bug this closes.",
-        "The product pull request stays Tracking.",
-        "GitHub closes only after the completed brief is on the delivery branch.",
-        "`--allow-close` while the brief is still in `xbrief/active/` stays refused.",
-        "Fixture The ten-story cohort in #4893 is the measured case: nine Tracking pull requests and one `Closes`, all merged on `swarm/ingest-ready/github.issue.*`, five briefs `plan.status: running` with bare plan items, four with no brief on master, one closed by keyword with no xBRIEF.",
-        "Landing its record by hand is not the remedy and is not an acceptance criterion.",
-        "Diagnosis, re-measured at `e0cc383ac` by three critics on #4893 (5778325479, 5778379879, 5778387313), and unchanged through `b6425115e`: - `evidenceByIssue.set` runs only for issues returned by `fetchClosingIssues` (`packages/core/src/swarm/finalize-cohort.ts`).",
-        "A Tracking body leaves the map empty.",
-        "`defaultEvidence` is set only when `validatedPrs.length === 1 && evidenceByIssue.size > 0`.",
-        "One Tracking pull request plus `--stories` does not inherit that pull request as delivery.",
-        "When the completed brief is not on `origin/<deliveryBranch>`, `closeOriginsAfterLeftoverComplete` pushes a warning, `ok` is `errors.length === 0`, and `buildResponse` prints `FINALIZE CLEAN`.",
-        "The `closing-keywords` job in `.github/workflows/branch-gate.yml` reads closing keywords only.",
-        "No `deft-story` reader exists.",
-        "Remedy The owed record is the delivery tip.",
-        "An active brief on `origin/<deliveryBranch>` that carries `plan.metadata.productPullRequest` is a story whose product pull request a human merged.",
-        "Both the command and the session-start gate read that one predicate.",
-        "Nothing is stored anywhere else.",
-        "Items 1 through 5 are the held contract from #4893 (lean 5782654200 items 1, 2, 3, 5, 6).",
-        "They survived every round of that arc without amendment and are carried here as written.",
-        "Delivery bind. One `--pr` and one `--stories` id bind that pull request's validated merge snapshot as delivery even when `closingIssuesReferences` is empty.",
-        "Several `--pr` values in one call stay refused, and the error names the unpaired stories.",
-        "One merge commit is not applied to every story (#3041).",
-        "Derived binding. `deft-story: N` on the product pull request is a cross-check against the `xbrief/active/` paths the pull request diff adds or changes relative to the merge base.",
-        "Zero matches, more than one match without disambiguation, a mismatch, duplicates, and post-check body drift refuse.",
-        "The checked issue, brief path, and merge snapshot are the tuple passed to `swarm:finalize-cohort`.",
-        "The value is digits only and reaches the command through an environment binding, not interpolation (#4893 5778325479 F2).",
-        "Brief on the product pull request. The `closing-keywords` job fails the product pull request when the `deft-story` line is missing, when the diff does not contain that brief, when a plan item lacks `x-directive/evidence` or a disposition, or when the active brief's `plan.metadata.productPullRequest` is not that pull request's number.",
-        "The author writes that field on the branch before merge.",
-        "The job admits the leftover shape: a diff entirely under `xbrief/` that removes an active file and adds the completed file.",
-        "`deft-close-intent: full` stays unauthorized.",
-        "Origin-close does not parse Tracking or Refs to decide whom to close (#4824).",
-        "Pending signal. When the completed brief is not yet on the delivery branch, finalize returns a pending signal that is not `EXIT_GATE_FAILED` and prints `FINALIZE INCOMPLETE` with `origin-close pending`.",
-        "`--emit-json` carries the leftover `prUrl`; a sweep failure carries `null` (#4893 5778325479 F3).",
-        "Scoped error. The not-on-origin error applies only to a story paired with a `--pr` in the same call.",
-        "Parked stories with no merged pull request stay a warning.",
-        "The protected staying-open umbrella check runs before the not-landed check, and those issues stay open (#4893 5778325479 F4).",
-        "`swarm:finalize-owed`. One command, run from any mutation session: - Fetches `origin/<deliveryBranch>` and works in a throwaway worktree detached at that tip, never in the operator's checkout.",
-        "Scans `xbrief/active/` on the tip.",
-        "A brief with `plan.metadata.productPullRequest` set and no completed twin on the tip is owed.",
-        "N comes from the brief's `github-issue` reference.",
-        "M comes from `productPullRequest`.",
-        "Claims each owed story by pushing a new ref `swarm/finalize/<N>`.",
-        "Ref creation on the remote is the lock: a rejected push means another maintainer holds that story, and the command skips it as in flight.",
-        "For each claimed story, runs `swarm:finalize-cohort --pr M --stories N` with `DEFT_ACTIVE_SCOPE` pinned to that brief (#4007), sequentially, in that one worktree.",
-        "Finalize's own merge and ancestry validation is the check that PR M merged.",
-        "Nothing else verifies merge state.",
-        "Opens one leftover pull request per story from that branch.",
-        "The diff is entirely under `xbrief/`.",
-        "`CHANGELOG.md` is not touched.",
-        "The command enables squash auto-merge on that pull request with the operator's own credential.",
-        "Product pull requests stay under the human-merge gate.",
-        "A completed brief on the tip with `productPullRequest` set, no active twin, and an open issue is close-owed.",
-        "The command runs finalize for it, which finds the completed brief on the delivery branch and REST-closes the issue.",
-        "Closing a closed issue is a no-op.",
-        "A branch `swarm/finalize/<N>` with no open pull request, or whose pull request is conflicted, while the story is still owed, is stale.",
-        "The command deletes the branch and re-derives from the current tip.",
-        "The command prints one line per story with its state.",
-        "An active brief with a completed twin beside it prints an anomaly and is not touched (#4863 on #4840).",
-        "Session-start gate. Mutation session start and re-arm run one bounded fetch of `origin/<deliveryBranch>` for this read.",
-        "The fetch does not set `allowOptionalNetwork` (#2991) and does not enable the release probe or the triage cache hydrate.",
-        "Read-only and requirements postures skip it.",
-        "A failed or timed-out fetch prints one repository-level line, `finalize owed: unknown`, and does not present a per-story list.",
-        "On a successful fetch, the same scan as item 6 runs.",
-        "Owed, close-owed, and stale stories block the start.",
-        "In flight stories are listed and do not block.",
-        "The two exits are `task swarm:finalize-owed`, or `--defer-owed <reason>`, which is written to this session's record so a deferral is a decision and not a lapse.",
-        "Under `yolo-standing: yes` the gate runs finalize-owed and continues.",
-        "This replaces the sentence in #4893 that adding another story does not delay the ones already merged: owed work blocks new work, and the delay is one command.",
-        "Queue label. A workflow on `push` to the delivery branch, permissions `issues: write` and `contents: read` only, running on the pushed tip's own workflow definition, adds `finalize-owed` to issue N for every active brief on the tip that carries `productPullRequest`, and removes it when the issue closes.",
-        "It checks out no pull request head, merges nothing, and holds no credential beyond `GITHUB_TOKEN`.",
-        "The label is how anyone sees the queue without a session.",
-        "Repository configuration this requires, stated once: \"Allow auto-merge\" enabled; a ruleset restricting pushes to `swarm/finalize/` to maintainers.",
-        "No new token, no new App.",
-        "Acceptance - [ ] One Tracking pull request and one story id bind that pull request's merge as delivery evidence - [ ] Several pull requests in one finalize call are refused and the unpaired stories are named - [ ] A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job - [ ] A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job - [ ] `--allow-close` while that brief is in `xbrief/active/` still fails (#4628) - [ ] Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl` - [ ] Parked stories with no merged pull request, and protected staying-open umbrellas, stay open - [ ] From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/` - [ ] Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight - [ ] A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes - [ ] After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch - [ ] Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record - [ ] A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list - [ ] The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission - [ ] The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run - [ ] CHANGELOG `[Unreleased]` entry on the implementing pull request ## Not this - The hand record for the #4893 fixture cohort.",
-        "That sweep can land first.",
-        "It does not close this issue.",
-        "Unattended finalization when no session ever returns.",
-        "That is a possible follow-on and is a trigger question, not a design question: a scheduled job that calls `swarm:finalize-owed`.",
-        "It is not a defect of this design.",
-        "A GitHub App installation token or PAT in any workflow.",
-        "`contents: write` or `pull-requests: write` in any workflow.",
-        "A workflow that merges any pull request.",
-        "Machine-merge allowlists, clean-worktree manifest equality, aggregate add/modify/delete manifests, a delivery-branch concurrency slot with recompute, a scheduled close-only pass, a `machine:finalize-cohort` session marker, or workflow-side issue-label reads.",
-        "All of #4893 lean 5782654200 items 4 and 7 through 11.",
-        "A leftover pull request that touches `CHANGELOG.md`.",
-        "Recutting the #3678 artifact-only allowlist.",
-        "Leftover pull requests take the full stack.",
-        "No merge-kind acceptance stamp.",
-        "No invoke keyed on `closingIssuesReferences` or on `verify:orphan-active`.",
-        "Making Tracking illegal.",
-        "`Closes` / `Fixes` / `Resolves` while the brief is still in `xbrief/active/`.",
-        "Scraping Tracking or Refs as the list of issues to close.",
-        "Reopening #4824, #4628, #3015, or #4839.",
-        "Supersedes #4893.",
-        "Refs #4864, #4824, #3791, #3015, #4628, #3041, #3240, #4007, #2991, #3678, #4863",
-        "One Tracking pull request and one story id bind that pull request's merge as delivery evidence",
-        "Several pull requests in one finalize call are refused and the unpaired stories are named",
-        "A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job",
-        "A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job",
-        "`--allow-close` while that brief is in `xbrief/active/` still fails (#4628)",
-        "Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl`",
-        "Parked stories with no merged pull request, and protected staying-open umbrellas, stay open",
-        "From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/`",
-        "Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight",
-        "A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes",
-        "After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch",
-        "Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record",
-        "A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list",
-        "The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission",
-        "The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run",
-        "CHANGELOG `[Unreleased]` entry on the implementing pull request"
-      ],
       "admitted_source_sentences": [
-        "One Tracking pull request and one story id bind that pull request's merge as delivery evidence Several pull requests in one finalize call are refused and the unpaired stories are named A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job `--allow-close` while that brief is in `xbrief/active/` still fails (#4628) Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl` Parked stories with no merged pull request, and protected staying-open umbrellas, stay open From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/` Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run CHANGELOG `[Unreleased]` entry on the implementing pull request"
+        "Leftover-complete for #4919 after product PR #5076.",
+        "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory."
       ],
-      "admitted_source_digest": "633be12b1096bee953a23a0c66270b85e1aa1f1432ed4efdc29342eed5630218",
+      "admitted_source_digest": "c98ef34c3900b3e15a7034ef636021c5ca8204accbafb600bac4faedab81dd77",
       "clauses": [
         {
           "id": 1,
-          "text": "One Tracking pull request and one story id bind that pull request's merge as delivery evidence Several pull requests in one finalize call are refused and the unpaired stories are named A product pull request without `deft-story: N`, whose diff does not contain that brief, with a bare plan item, or whose brief's `productPullRequest` is not that pull request's number, fails the closing-keywords job A leftover-shaped pull request (diff entirely under `xbrief/`, active removed, completed added) passes the closing-keywords job `--allow-close` while that brief is in `xbrief/active/` still fails (#4628) Origin-close before the completed brief is on the delivery branch exits with a code that is not `EXIT_GATE_FAILED`, prints `FINALIZE INCOMPLETE` and `origin-close pending`, and `--emit-json` carries the leftover `prUrl` Parked stories with no merged pull request, and protected staying-open umbrellas, stay open From a fresh mutation session with no prior state, `swarm:finalize-owed` finalizes every owed story on the tip, opens one leftover pull request per story with auto-merge enabled, and touches no file outside `xbrief/` Two maintainers running `swarm:finalize-owed` at the same time against the same owed story produce one leftover pull request; the second run reports the story as in flight A conflicted leftover pull request is reported as stale on the next run, its branch is recreated from the current tip, and the story finalizes After the leftover merges, the next `swarm:finalize-owed` reports the story close-owed, REST-closes the issue, and the active brief is gone from the delivery branch Mutation session start blocks on an owed, close-owed, or stale story, lists in-flight stories without blocking, and proceeds on `--defer-owed <reason>` with the reason in the session record A failed fetch at session start prints one repository-level `finalize owed: unknown` and no per-story list The `push` workflow labels issue N `finalize-owed` while its active brief carries `productPullRequest` and removes the label on close, with `issues: write` as its only write permission The ten-story fixture shape, recreated: one command, ten leftover pull requests, ten issues closed on the following run CHANGELOG `[Unreleased]` entry on the implementing pull request",
+          "text": "Leftover-complete for #4919 after product PR #5076.",
+          "artifact_path": null
+        },
+        {
+          "id": 2,
+          "text": "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory.",
           "artifact_path": null
         }
       ],
-      "ambiguity_attestation": "none_found",
+      "commands": [
+        "task --version"
+      ],
       "confessions": [
         "bug(swarm): a merged Tracking story is finalized by hand one brief at a time",
         "Confession: leftover-complete after product PR #5076 squash-merge on master.",
-        "bug(swarm): a merged Tracking story is finalized by hand, one brief at a time ## Summary A full-story pull request that says Tracking merges.",
-        "The issue stays open and the brief stays in `xbrief/active/`.",
-        "Nothing after the merge records that the story is owed, and the closer finishes the record by hand, one brief at a time.",
-        "When nobody does, the record is dropped.",
-        "This issue supersedes #4893.",
-        "That arc re-measured the diagnosis and held it; every one of its seven candidates was a merge-event workflow that had to reproduce a live session on a runner, and every one was blocked on the next piece of session state the runner did not have.",
-        "The owed unit here is the same.",
-        "The consumer is not a workflow.",
-        "It is the next mutation session, on any machine, of any maintainer.",
-        "#4864 is the bug this closes.",
-        "The product pull request stays Tracking.",
-        "GitHub closes only after the completed brief is on the delivery branch.",
-        "`--allow-close` while the brief is still in `xbrief/active/` stays refused.",
-        "Fixture The ten-story cohort in #4893 is the measured case: nine Tracking pull requests and one `Closes`, all merged on `swarm/ingest-ready/github.issue.*`, five briefs `plan.status: running` with bare plan items, four with no brief on master, one closed by keyword with no xBRIEF.",
-        "Landing its record by hand is not the remedy and is not an acceptance criterion.",
-        "Diagnosis, re-measured at `e0cc383ac` by three critics on #4893 (5778325479, 5778379879, 5778387313), and unchanged through `b6425115e`: - `evidenceByIssue.set` runs only for issues returned by `fetchClosingIssues` (`packages/core/src/swarm/finalize-cohort.ts`).",
-        "A Tracking body leaves the map empty.",
-        "`defaultEvidence` is set only when `validatedPrs.length === 1 && evidenceByIssue.size > 0`.",
-        "One Tracking pull request plus `--stories` does not inherit that pull request as delivery.",
-        "When the completed brief is not on `origin/<deliveryBranch>`, `closeOriginsAfterLeftoverComplete` pushes a warning, `ok` is `errors.length === 0`, and `buildResponse` prints `FINALIZE CLEAN`.",
-        "The `closing-keywords` job in `.github/workflows/branch-gate.yml` reads closing keywords only.",
-        "No `deft-story` reader exists.",
-        "Remedy The owed record is the delivery tip.",
-        "An active brief on `origin/<deliveryBranch>` that carries `plan.metadata.productPullRequest` is a story whose product pull request a human merged.",
-        "Both the command and the session-start gate read that one predicate.",
-        "Nothing is stored anywhere else.",
-        "Items 1 through 5 are the held contract from #4893 (lean 5782654200 items 1, 2, 3, 5, 6).",
-        "They survived every round of that arc without amendment and are carried here as written.",
-        "Delivery bind. One `--pr` and one `--stories` id bind that pull request's validated merge snapshot as delivery even when `closingIssuesReferences` is empty.",
-        "Several `--pr` values in one call stay refused, and the error names the unpaired stories.",
-        "One merge commit is not applied to every story (#3041).",
-        "Derived binding. `deft-story: N` on the product pull request is a cross-check against the `xbrief/active/` paths the pull request diff adds or changes relative to the merge base.",
-        "Zero matches, more than one match without disambiguation, a mismatch, duplicates, and post-check body drift refuse.",
-        "The checked issue, brief path, and merge snapshot are the tuple passed to `swarm:finalize-cohort`.",
-        "The value is digits only and reaches the command through an environment binding, not interpolation (#4893 5778325479 F2).",
-        "Brief on the product pull request. The `closing-keywords` job fails the product pull request when the `deft-story` line is missing, when the diff does not contain that brief, when a plan item lacks `x-directive/evidence` or a disposition, or when the active brief's `plan.metadata.productPullRequest` is not that pull request's number.",
-        "The author writes that field on the branch before merge.",
-        "The job admits the leftover shape: a diff entirely under `xbrief/` that removes an active file and adds the completed file.",
-        "`deft-close-intent: full` stays unauthorized.",
-        "Origin-close does not parse Tracking or Refs to decide whom to close (#4824)."
-      ]
+        "Leftover-complete for #4919 after product PR #5076.",
+        "Bound Recut lean 5859532546 delivered finalize-owed backstop, pending origin-close signal, and session-start owed inventory."
+      ],
+      "sentences": []
     },
     "id": "github.issue.5544930037",
     "updated": "2026-09-27T21:12:51Z"
