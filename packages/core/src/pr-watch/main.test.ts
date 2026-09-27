@@ -441,7 +441,7 @@ describe("pr:watch wait heartbeat (#5020)", () => {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 120);
     const stopStarted = Date.now();
     refresher.stop();
-    // OS liveness join must not pay the full 2s when the child exits promptly (#5020 P2).
+    // Atomics join must not pay the full 2s when the worker exits promptly (#5020 P2).
     expect(Date.now() - stopStarted).toBeLessThan(1_500);
     expect(
       writePrWatchWaitHeartbeat(root, 55, {
@@ -480,7 +480,7 @@ describe("pr:watch wait heartbeat (#5020)", () => {
     });
     try {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
-      // containedWrite must refuse — outside victim stays untouched.
+      // O_NOFOLLOW open must refuse — outside victim stays untouched.
       expect(readFileSync(victim, "utf8")).toBe('{"keep":true}\n');
     } finally {
       refresher.stop();

@@ -1,6 +1,6 @@
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { Worker } from "node:worker_threads";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
@@ -16,10 +16,14 @@ import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
 import { watch } from "./watch.js";
 
 /**
- * Max wait for refresher child exit after stop so terminal write stays last (#5020).
+ * Max wait for refresher worker exit after stop so terminal write stays last (#5020).
  * Parsed (not a bare numeric-const) for intent-constraint extract freedom.
  */
 export const WAIT_HEARTBEAT_REFRESHER_JOIN_MS = Number.parseInt("2000", 10);
+
+/** SharedArrayBuffer slots: [0]=stop request, [1]=worker done (#5020). */
+const REFRESHER_STOP_INDEX = 0;
+const REFRESHER_DONE_INDEX = 1;
 
 export interface ParsedWatchArgs {
   readonly prNumber: number | null;
@@ -469,9 +473,9 @@ export const WAIT_HEARTBEAT_REFRESH_SECONDS = Number.parseInt("60", 10);
  * Sidecar that keeps the wait heartbeat fresh while the parent blocks in
  * spawnSync / a long monitor (#5020 P1). Publishes the parent pid so force-kill
  * of the wait process still fails closed via liveness. Refresh writes inline the
- * contained replace+symlink-refuse path so source-only vitest needs no prior
- * `task build` / dist import (#5020 P1). Stop joins the child before the
- * terminal heartbeat write (#5020 P1).
+ * contained replace path with O_NOFOLLOW (source-only; leaf symlink TOCTOU-safe)
+ * (#5020 P1). Stop joins via SharedArrayBuffer Atomics so a blocked event loop
+ * does not pay the full timeout (#5020 P2).
  */
 export function startWaitHeartbeatRefresher(
   projectRoot: string,
@@ -516,15 +520,14 @@ export function startWaitHeartbeatRefresher(
     pid,
   };
 
-  // Child owns refresh writes so a blocked parent (spawnSync) cannot stale the
-  // 30m floor. Inline contained replace (no dist/src .js import) (#2951 / #5020).
+  // Worker owns refresh writes so a blocked parent (spawnSync) cannot stale the
+  // 30m floor. Inline contained replace + O_NOFOLLOW (no dist import) (#2951 / #5020).
   const script = [
-    'import { lstatSync, mkdirSync, writeFileSync } from "node:fs";',
-    'import { dirname, join, relative, resolve } from "node:path";',
-    `const rootAbs = ${JSON.stringify(rootAbs)};`,
-    `const relTarget = ${JSON.stringify(relTarget)};`,
-    `const payloadBase = ${JSON.stringify(payloadBase)};`,
-    `const intervalMs = ${intervalMs};`,
+    'const { workerData } = require("node:worker_threads");',
+    'const { closeSync, constants, fsyncSync, lstatSync, mkdirSync, openSync, writeSync } = require("node:fs");',
+    'const { dirname, join, relative, resolve } = require("node:path");',
+    "const { rootAbs, relTarget, payloadBase, intervalMs, control } = workerData;",
+    "const view = new Int32Array(control);",
     "function containedReplace(root, rel, data) {",
     "  const rootResolved = resolve(root);",
     "  const targetAbs = resolve(rootResolved, rel);",
@@ -543,14 +546,21 @@ export function startWaitHeartbeatRefresher(
     "    }",
     "  }",
     "  mkdirSync(dirname(targetAbs), { recursive: true });",
+    "  // O_NOFOLLOW closes leaf symlink TOCTOU vs lstat-then-writeFileSync (#5020 P1).",
+    "  const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | constants.O_NOFOLLOW;",
+    "  const fd = openSync(targetAbs, flags, 0o644);",
     "  try {",
-    "    if (lstatSync(targetAbs).isSymbolicLink()) {",
-    '      throw new Error("contained refresh refused: symlink " + targetAbs);',
+    "    const buf = Buffer.from(data);",
+    "    let offset = 0;",
+    "    while (offset < buf.length) {",
+    "      const n = writeSync(fd, buf, offset, buf.length - offset, null);",
+    '      if (n <= 0) throw new Error("contained refresh short write");',
+    "      offset += n;",
     "    }",
-    "  } catch (err) {",
-    '    if (err instanceof Error && err.message.startsWith("contained refresh refused")) throw err;',
+    "    fsyncSync(fd);",
+    "  } finally {",
+    "    closeSync(fd);",
     "  }",
-    "  writeFileSync(targetAbs, data);",
     "}",
     "function beat() {",
     "  try {",
@@ -563,17 +573,26 @@ export function startWaitHeartbeatRefresher(
     '    console.error("pr_watch: wait heartbeat refresh failed: " + msg);',
     "  }",
     "}",
-    "beat();",
-    "setInterval(beat, intervalMs);",
+    "try {",
+    "  beat();",
+    `  while (Atomics.load(view, ${REFRESHER_STOP_INDEX}) === 0) {`,
+    `    Atomics.wait(view, ${REFRESHER_STOP_INDEX}, 0, intervalMs);`,
+    `    if (Atomics.load(view, ${REFRESHER_STOP_INDEX}) !== 0) break;`,
+    "    beat();",
+    "  }",
+    "} finally {",
+    `  Atomics.store(view, ${REFRESHER_DONE_INDEX}, 1);`,
+    `  Atomics.notify(view, ${REFRESHER_DONE_INDEX});`,
+    "}",
   ].join("\n");
 
-  let child: ReturnType<typeof spawn> | null = null;
+  const control = new SharedArrayBuffer(8);
+  const view = new Int32Array(control);
+  let worker: Worker | null = null;
   try {
-    child = spawn(process.execPath, ["--input-type=module", "-e", script], {
-      // Inherit stderr so refresh/start failures are visible (#5020 P2).
-      stdio: ["ignore", "ignore", "inherit"],
-      windowsHide: true,
-      env: process.env,
+    worker = new Worker(script, {
+      eval: true,
+      workerData: { rootAbs, relTarget, payloadBase, intervalMs, control },
     });
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
@@ -581,64 +600,36 @@ export function startWaitHeartbeatRefresher(
     return { stop: () => undefined };
   }
 
-  let childExited = false;
-  child.on("exit", () => {
-    childExited = true;
-  });
-
   let stopped = false;
   const stop = (): void => {
     if (stopped) {
       return;
     }
     stopped = true;
-    const handle = child;
-    child = null;
+    const handle = worker;
+    worker = null;
     if (handle === null) {
       return;
     }
-    // Already reaped — no join wait (#5020 P2).
-    if (childExited || handle.exitCode !== null || handle.signalCode !== null) {
-      try {
-        handle.kill();
-      } catch {
-        // best-effort
-      }
-      return;
+    // Cooperative stop + Atomics join (no event-loop reap required) (#5020 P2).
+    Atomics.store(view, REFRESHER_STOP_INDEX, 1);
+    Atomics.notify(view, REFRESHER_STOP_INDEX);
+    if (joinMs > 0 && Atomics.load(view, REFRESHER_DONE_INDEX) === 0) {
+      Atomics.wait(view, REFRESHER_DONE_INDEX, 0, joinMs);
     }
-    try {
-      handle.kill();
-    } catch {
-      // best-effort
-    }
-    // Join so an in-flight refresh cannot land after the terminal write (#5020).
-    // Poll OS liveness (kill pid 0) — Atomics.wait blocks the event loop so
-    // exitCode cannot update until the full timeout otherwise (#5020 P2).
-    if (joinMs > 0) {
-      const deadline = Date.now() + joinMs;
-      const childPid = handle.pid;
-      while (
-        !childExited &&
-        handle.exitCode === null &&
-        handle.signalCode === null &&
-        Date.now() < deadline
-      ) {
-        if (typeof childPid === "number" && childPid > 0) {
-          try {
-            process.kill(childPid, 0);
-          } catch {
-            break;
-          }
-        }
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
-      }
-    }
+    void handle.terminate();
   };
-  child.on("error", (err) => {
+  worker.on("error", (err) => {
     process.stderr.write(
       `pr_watch: wait heartbeat refresher error: ${err instanceof Error ? err.message : String(err)}\n`,
     );
+    Atomics.store(view, REFRESHER_DONE_INDEX, 1);
+    Atomics.notify(view, REFRESHER_DONE_INDEX);
     stop();
+  });
+  worker.on("exit", () => {
+    Atomics.store(view, REFRESHER_DONE_INDEX, 1);
+    Atomics.notify(view, REFRESHER_DONE_INDEX);
   });
   return { stop };
 }
