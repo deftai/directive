@@ -499,8 +499,11 @@
         "file_scope": [
           "packages/core/src/scope-provenance/evaluate.ts",
           "packages/core/src/scope-provenance/base-fence.ts",
-          "packages/cli/src/verify-scope-provenance.ts",
+          "packages/core/src/scope-provenance/base-fence.test.ts",
           "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "packages/core/src/scope-provenance/index.ts",
+          "packages/cli/src/verify-scope-provenance.ts",
           "CHANGELOG.md"
         ],
         "verify_commands": [

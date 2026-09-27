@@ -98,7 +98,18 @@ describe("evaluateProductionScopeFence (#4956)", () => {
 });
 
 describe("evaluateApprovedScopeMembership (#4774)", () => {
-  it("allows first-story xBRIEF-only (+ CHANGELOG) without merge-base mint", () => {
+  it("allows first-story when declared file_scope covers the change set", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts", "CHANGELOG.md"],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("fails closed when file_scope is empty/omitted (no declared allowlist)", () => {
     const hit = evaluateApprovedScopeMembership({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
@@ -106,10 +117,13 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
       baseApprovedFileScope: null,
       changedFiles: ["xbrief/active/story.xbrief.json", "CHANGELOG.md"],
     });
-    expect(hit).toBeNull();
+    expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(hit?.remediation).toMatch(/file_scope/i);
+    expect(hit?.remediation).toMatch(/not undeclared-by-design attestation/i);
+    expect(hit?.remediation).not.toMatch(/undeclared-by-design skip/i);
   });
 
-  it("fails closed when non-exempt product paths ride with no merge-base mint", () => {
+  it("fails closed when non-exempt product paths ride with no declared allowlist", () => {
     const hit = evaluateApprovedScopeMembership({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
       planId: "story-1",
@@ -121,10 +135,26 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
     expect(hit?.expandedPaths).toEqual(
       expect.arrayContaining(["packages/core/src/a.ts", ".gitignore"]),
     );
-    expect(hit?.remediation).toMatch(/merge base/i);
     expect(hit?.remediation).toMatch(/not undeclared-by-design attestation/i);
     expect(hit?.remediation).toMatch(/Same-PR approval rewrite stays fail-closed/i);
-    expect(hit?.remediation).not.toMatch(/undeclared-by-design skip/i);
+  });
+
+  it("peer coverage does not clear a missing own allowlist", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story-a.xbrief.json",
+      planId: "story-a",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: null,
+      peerXbriefRelPaths: ["xbrief/active/story-b.xbrief.json"],
+      peerApprovedFileScopes: [["packages/core/src/a.ts"]],
+      changedFiles: [
+        "xbrief/active/story-a.xbrief.json",
+        "xbrief/active/story-b.xbrief.json",
+        "packages/core/src/a.ts",
+      ],
+    });
+    expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(hit?.expandedPaths).toContain("packages/core/src/a.ts");
   });
 
   it("unions peer approved scopes so multi-story PRs do not flag peer files", () => {

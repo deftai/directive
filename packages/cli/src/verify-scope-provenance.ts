@@ -2,8 +2,9 @@
 /**
  * CLI for verify:scope-provenance (#3145 / #4956 / #4774).
  *
- * Membership against merge-base approved-scope is evaluated inside
- * evaluateScopeProvenance; this CLI only forwards --base-ref / --enforce.
+ * Membership against the declared allowlist (mint / brief file_scope) is
+ * evaluated inside evaluateScopeProvenance; this CLI only forwards
+ * --base-ref / --enforce.
  */
 import { resolve } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
