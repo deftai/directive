@@ -22,12 +22,7 @@ import {
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
 import { completeCohort, type SweepResult } from "./complete-cohort.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_GATE_FAILED,
-  EXIT_INCOMPLETE,
-  EXIT_OK,
-} from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import { completedBriefReferencesIssue, resolveStories } from "./launch.js";
 import { runText } from "./subprocess.js";
 
@@ -82,6 +77,11 @@ export interface FinalizeCohortArgs {
   readonly landProbeLimit?: number;
   /** Test seam. Omitted pauses use the production wait. */
   readonly sleep?: (ms: number) => void;
+  /**
+   * #4919 owed hand-off: after opening the leftover PR, enable auto-merge and
+   * return origin-close pending without waiting for land.
+   */
+  readonly handOffLeftover?: boolean;
 }
 
 function splitCsv(values: readonly string[]): string[] {
@@ -984,6 +984,30 @@ function pushAndOpenPr(
   return { ok: true, error: null, prUrl: create.stdout.trim() };
 }
 
+function enableLeftoverAutoMerge(
+  repo: string,
+  prNumber: number,
+  runGh: RunGhFn,
+): { ok: boolean; detail: string } {
+  const result = runGh([
+    "gh",
+    "pr",
+    "merge",
+    String(prNumber),
+    "--repo",
+    repo,
+    "--auto",
+    "--squash",
+  ]);
+  if (result.returncode !== 0) {
+    return {
+      ok: false,
+      detail: result.stderr.trim() || result.stdout.trim() || "auto-merge enable failed",
+    };
+  }
+  return { ok: true, detail: "auto-merge enabled" };
+}
+
 interface LifecycleCheckout {
   readonly checkout: string;
   readonly parent: string;
@@ -1619,11 +1643,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         pending,
         ok: !originFailed && !originPending,
         emitJson: args.emitJson ?? false,
-        exitCode: originFailed
-          ? EXIT_GATE_FAILED
-          : originPending
-            ? EXIT_INCOMPLETE
-            : EXIT_OK,
+        exitCode: originFailed ? EXIT_GATE_FAILED : originPending ? EXIT_INCOMPLETE : EXIT_OK,
       });
     }
     // When every closing ref was a benign skip and no real stories remain, the
@@ -1941,36 +1961,47 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       }
       const lifecyclePr = prUrl === null ? null : lifecyclePrNumber(prUrl);
       if (errors.length === 0 && repo !== null && lifecyclePr !== null) {
-        // requireHumanMerge is unchanged: wait, never merge the lifecycle pull request.
-        const landed = waitForLifecycleLand({
-          projectRoot,
-          deliveryBranch,
-          alternateBase,
-          repo,
-          prNumber: lifecyclePr,
-          completedRels,
-          runGh,
-          runGit,
-          probeLimit: resolveLandProbeLimit(args.landProbeLimit),
-          sleep: args.sleep,
-        });
-        if (!landed.ok) {
-          errors.push(landed.error);
+        const autoMerge = enableLeftoverAutoMerge(repo, lifecyclePr, runGh);
+        if (!autoMerge.ok) {
+          warnings.push(
+            `lifecycle PR #${String(lifecyclePr)}: auto-merge not enabled (${autoMerge.detail})`,
+          );
+        }
+        if (args.handOffLeftover === true) {
+          // Owed hand-off: leftover is open (auto-merge armed when possible); origin-close pending.
+          pendingOrigin = originClosePendingState(originIssues, deliveryBranch);
         } else {
-          const originClose = closeOriginsAfterLeftoverComplete({
-            projectRoot: closeRoot,
-            deliveryBranch: landed.branch,
-            originIssues,
-            prNumbers,
+          // requireHumanMerge is unchanged: wait, never merge the lifecycle pull request.
+          const landed = waitForLifecycleLand({
+            projectRoot,
+            deliveryBranch,
+            alternateBase,
             repo,
-            dryRun,
+            prNumber: lifecyclePr,
+            completedRels,
             runGh,
             runGit,
+            probeLimit: resolveLandProbeLimit(args.landProbeLimit),
+            sleep: args.sleep,
           });
-          errors.push(...originClose.errors);
-          warnings.push(...originClose.warnings);
-          if (originClose.pendingIssues.length > 0) {
-            pendingOrigin = originClosePendingState(originClose.pendingIssues, landed.branch);
+          if (!landed.ok) {
+            errors.push(landed.error);
+          } else {
+            const originClose = closeOriginsAfterLeftoverComplete({
+              projectRoot: closeRoot,
+              deliveryBranch: landed.branch,
+              originIssues,
+              prNumbers,
+              repo,
+              dryRun,
+              runGh,
+              runGit,
+            });
+            errors.push(...originClose.errors);
+            warnings.push(...originClose.warnings);
+            if (originClose.pendingIssues.length > 0) {
+              pendingOrigin = originClosePendingState(originClose.pendingIssues, landed.branch);
+            }
           }
         }
       } else if (errors.length === 0 && noOpenPr) {

@@ -42,13 +42,6 @@ import {
   resolveCeremonyStartTierProvenance,
 } from "../policy/ceremony-dial-escalation.js";
 import { maybeFormatCoverageCheckResumeDisclosure } from "../policy/coverage-debt.js";
-import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
-import {
-  discoverFinalizeOwed,
-  fetchDeliveryTipPrivate,
-  formatFinalizeOwedInventoryLines,
-  inventoryHasBlockingOwed,
-} from "../swarm/finalize-owed.js";
 import {
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
@@ -56,6 +49,7 @@ import {
   formatDeftDirectiveDisableMessage,
   isDeftDirectiveDisableActive,
 } from "../policy/deft-directive-disable.js";
+import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import {
   detectNoDeftDirective,
@@ -81,6 +75,13 @@ import {
 } from "../scm/readiness.js";
 import { workClaimSessionScanLines } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
+import {
+  discoverFinalizeOwed,
+  fetchDeliveryTipPrivate,
+  formatFinalizeOwedInventoryLines,
+  inventoryHasBlockingOwed,
+} from "../swarm/finalize-owed.js";
+import { parseGitHubRemoteRepo } from "../text/redos-safe.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { emitSessionValueReadback } from "../value/readback.js";
@@ -539,17 +540,42 @@ function restampSteps(
  * Private tip fetch (not allowOptionalNetwork). Prints full inventory on any
  * non-backlog hit; blocks mutation on owed/close-owed/stale unless deferred.
  */
+function resolveFinalizeOwedRepo(
+  projectRoot: string,
+  env: NodeJS.ProcessEnv,
+  runGit: GitRunner,
+): string {
+  const fromEnv = (env.GH_REPO ?? env.GITHUB_REPOSITORY ?? "").trim();
+  if (fromEnv.length > 0) {
+    return fromEnv;
+  }
+  const remote = runGit(projectRoot, ["remote", "get-url", "origin"]);
+  if (remote.code !== 0 || remote.stdout.trim().length === 0) {
+    return "";
+  }
+  return parseGitHubRemoteRepo(remote.stdout.trim()) ?? "";
+}
+
 export function evaluateFinalizeOwedSessionGate(
   projectRoot: string,
   options: Pick<SessionStartOptions, "probeFinalizeOwed" | "runGit" | "env" | "deferOwedReason">,
-): { lines: string[]; blocks: boolean; unknown: boolean; deferred: boolean } {
+): {
+  lines: string[];
+  blocks: boolean;
+  unknown: boolean;
+  deferred: boolean;
+  deferReason: string | null;
+} {
+  const deferReason =
+    typeof options.deferOwedReason === "string" && options.deferOwedReason.trim().length > 0
+      ? options.deferOwedReason.trim()
+      : null;
+  const deferred = deferReason !== null;
   if (options.probeFinalizeOwed !== undefined) {
     const probed = options.probeFinalizeOwed(projectRoot);
-    const deferred =
-      typeof options.deferOwedReason === "string" && options.deferOwedReason.trim().length > 0;
     const lines = [...probed.lines];
-    if (probed.blocks && deferred) {
-      lines.push(`finalize owed deferred: ${options.deferOwedReason!.trim()}`);
+    if (probed.blocks && deferred && deferReason !== null) {
+      lines.push(`finalize owed deferred: ${deferReason}`);
     }
     if (probed.blocks && !deferred) {
       lines.push(
@@ -561,11 +587,11 @@ export function evaluateFinalizeOwedSessionGate(
       blocks: probed.blocks && !deferred,
       unknown: probed.unknown,
       deferred,
+      deferReason: deferred ? deferReason : null,
     };
   }
   const runGit = options.runGit ?? defaultGitRunner;
   const env = options.env ?? process.env;
-  const repo = (env.GH_REPO ?? env.GITHUB_REPOSITORY ?? "").trim();
   const delivery = resolveDeliveryBranch(projectRoot, runGit).branch;
   const fetched = fetchDeliveryTipPrivate(projectRoot, delivery, runGit);
   if (fetched.tip === null) {
@@ -574,14 +600,34 @@ export function evaluateFinalizeOwedSessionGate(
       blocks: false,
       unknown: true,
       deferred: false,
+      deferReason: null,
     };
   }
+  const repo = resolveFinalizeOwedRepo(projectRoot, env, runGit);
   if (repo.length === 0) {
+    // Fail closed: tip is known but mutation cannot inventory owed without a repo (#4919).
+    const lines = [
+      "finalize owed: repo required (set GH_REPO / GITHUB_REPOSITORY or configure origin)",
+      "finalize owed blocks mutation: run `task swarm:finalize-owed` or pass --defer-owed <reason>",
+    ];
+    if (deferred && deferReason !== null) {
+      return {
+        lines: [
+          "finalize owed: repo required (set GH_REPO / GITHUB_REPOSITORY or configure origin)",
+          `finalize owed deferred: ${deferReason}`,
+        ],
+        blocks: false,
+        unknown: true,
+        deferred: true,
+        deferReason,
+      };
+    }
     return {
-      lines: ["finalize owed: unknown"],
-      blocks: false,
+      lines,
+      blocks: true,
       unknown: true,
       deferred: false,
+      deferReason: null,
     };
   }
   const inventory = discoverFinalizeOwed(projectRoot, {
@@ -591,11 +637,9 @@ export function evaluateFinalizeOwedSessionGate(
     runGit,
   });
   const lines = formatFinalizeOwedInventoryLines(inventory);
-  const deferred =
-    typeof options.deferOwedReason === "string" && options.deferOwedReason.trim().length > 0;
   const blocking = inventoryHasBlockingOwed(inventory);
-  if (blocking && deferred) {
-    lines.push(`finalize owed deferred: ${options.deferOwedReason!.trim()}`);
+  if (blocking && deferred && deferReason !== null) {
+    lines.push(`finalize owed deferred: ${deferReason}`);
   }
   if (blocking && !deferred) {
     lines.push(
@@ -607,6 +651,7 @@ export function evaluateFinalizeOwedSessionGate(
     blocks: blocking && !deferred,
     unknown: false,
     deferred,
+    deferReason: deferred ? deferReason : null,
   };
 }
 
@@ -1415,6 +1460,15 @@ function runSessionRearm(
       gatedSteps,
     }),
     ceremony_tier: REARM_CEREMONY_TIER,
+    ...(owedGate.deferReason !== null
+      ? {
+          finalize_owed: ritualStep({
+            ok: true,
+            deferredReason: owedGate.deferReason,
+            message: `finalize owed deferred: ${owedGate.deferReason}`,
+          }),
+        }
+      : {}),
   };
   let statePath: string;
   try {
@@ -2231,6 +2285,15 @@ export function runSessionStart(
     ceremony_dial: dialDict,
     // #3282: durable preflight snapshot for harness / later check degraded mode.
     ...(preflightDict !== null ? { toolchain_preflight: preflightDict } : {}),
+    ...(owedGate.deferReason !== null
+      ? {
+          finalize_owed: ritualStep({
+            ok: true,
+            deferredReason: owedGate.deferReason,
+            message: `finalize owed deferred: ${owedGate.deferReason}`,
+          }),
+        }
+      : {}),
   };
   let statePath: string;
   try {

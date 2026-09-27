@@ -46,17 +46,23 @@ export function isLeftoverShapedDiff(files: readonly PrDiffPath[]): boolean {
       return false;
     }
     const status = file.status.toLowerCase();
-    if (
-      (status === "removed" || status === "renamed" || status.startsWith("r")) &&
-      /\/active\//.test(p)
-    ) {
-      removedActive = true;
+    // Extra proposed/pending churn disqualifies the leftover exception (#4919).
+    if (/\/(proposed|pending)\//.test(p)) {
+      return false;
     }
-    if (
-      (status === "added" || status === "renamed" || status.startsWith("r")) &&
-      /\/completed\//.test(p)
-    ) {
-      addedCompleted = true;
+    if (/\/active\//.test(p)) {
+      if (status === "removed" || status === "renamed" || status.startsWith("r")) {
+        removedActive = true;
+      } else {
+        return false;
+      }
+    }
+    if (/\/completed\//.test(p)) {
+      if (status === "added" || status === "renamed" || status.startsWith("r")) {
+        addedCompleted = true;
+      } else {
+        return false;
+      }
     }
   }
   return removedActive && addedCompleted;
@@ -98,35 +104,48 @@ export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean
 }
 
 function fetchPrFiles(pr: number, repo: string, runGh: RunGhFn): PrDiffPath[] | null {
-  const result = runGh(["gh", "api", `repos/${repo}/pulls/${String(pr)}/files?per_page=100`]);
-  if (result.returncode !== 0) {
-    process.stderr.write(
-      `Error: gh REST failed fetching PR #${pr} files: ${result.stderr.trim()}\n`,
-    );
-    return null;
-  }
-  try {
-    const payload: unknown = JSON.parse(result.stdout);
-    if (!Array.isArray(payload)) {
-      process.stderr.write(`Error: PR #${pr} files payload is not an array\n`);
+  const out: PrDiffPath[] = [];
+  // Paginate beyond page 1 so later nonterminal briefs cannot bypass admission (#4919).
+  for (let page = 1; page <= 30; page += 1) {
+    const result = runGh([
+      "gh",
+      "api",
+      `repos/${repo}/pulls/${String(pr)}/files?per_page=100&page=${String(page)}`,
+    ]);
+    if (result.returncode !== 0) {
+      process.stderr.write(
+        `Error: gh REST failed fetching PR #${pr} files page ${String(page)}: ${result.stderr.trim()}\n`,
+      );
       return null;
     }
-    const out: PrDiffPath[] = [];
-    for (const item of payload) {
-      if (typeof item !== "object" || item === null) continue;
-      const rec = item as Record<string, unknown>;
-      const path = typeof rec.filename === "string" ? rec.filename : "";
-      const status = typeof rec.status === "string" ? rec.status : "";
-      if (path.length > 0) {
-        out.push({ path, status });
+    try {
+      const payload: unknown = JSON.parse(result.stdout);
+      if (!Array.isArray(payload)) {
+        process.stderr.write(`Error: PR #${pr} files payload is not an array\n`);
+        return null;
       }
+      if (payload.length === 0) {
+        break;
+      }
+      for (const item of payload) {
+        if (typeof item !== "object" || item === null) continue;
+        const rec = item as Record<string, unknown>;
+        const path = typeof rec.filename === "string" ? rec.filename : "";
+        const status = typeof rec.status === "string" ? rec.status : "";
+        if (path.length > 0) {
+          out.push({ path, status });
+        }
+      }
+      if (payload.length < 100) {
+        break;
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`Error: failed to parse PR #${pr} files: ${message}\n`);
+      return null;
     }
-    return out;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`Error: failed to parse PR #${pr} files: ${message}\n`);
-    return null;
   }
+  return out;
 }
 
 function briefHasMatchingProductPr(
@@ -182,6 +201,79 @@ function briefHasMatchingProductPr(
   };
 }
 
+function changedNonterminalBriefPaths(files: readonly PrDiffPath[]): string[] {
+  const out: string[] = [];
+  for (const file of files) {
+    const p = file.path.replace(/\\/g, "/");
+    if (!/^(xbrief|vbrief)\/(proposed|pending|active)\//.test(p)) {
+      continue;
+    }
+    const status = file.status.toLowerCase();
+    if (status === "removed") {
+      continue;
+    }
+    out.push(p);
+  }
+  return out;
+}
+
+function bindChangedBriefPath(args: {
+  readonly projectRoot: string;
+  readonly relPath: string;
+  readonly prNumber: number;
+  readonly repo: string;
+  readonly marks: readonly number[];
+}): { ok: boolean; detail: string } {
+  const full = join(args.projectRoot, args.relPath);
+  if (!existsSync(full)) {
+    return {
+      ok: false,
+      detail: `changed nonterminal brief ${args.relPath} missing on checkout`,
+    };
+  }
+  try {
+    const raw: unknown = JSON.parse(readFileSync(full, "utf8"));
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return { ok: false, detail: `changed brief ${args.relPath} is not a JSON object` };
+    }
+    const plan = (raw as Record<string, unknown>).plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      return { ok: false, detail: `changed brief ${args.relPath} lacks plan` };
+    }
+    const planObj = plan as Record<string, unknown>;
+    const { issues } = collectGithubRefs(planObj, args.repo);
+    const matchedIssues = issues
+      .filter((ref) => ref.repo.toLowerCase() === args.repo.toLowerCase())
+      .map((ref) => ref.number);
+    if (matchedIssues.length === 0) {
+      return {
+        ok: false,
+        detail: `changed brief ${args.relPath} has no issue ref for ${args.repo}`,
+      };
+    }
+    const stamped = productPullRequestFromPlan(planObj);
+    if (stamped !== args.prNumber) {
+      return {
+        ok: false,
+        detail: `changed brief ${args.relPath} lacks metadata.productPullRequest=${String(args.prNumber)}`,
+      };
+    }
+    const bound = matchedIssues.some((n) => args.marks.includes(n));
+    if (!bound) {
+      return {
+        ok: false,
+        detail: `changed brief ${args.relPath} issue #${String(matchedIssues[0])} is not covered by deft-story marks`,
+      };
+    }
+    return { ok: true, detail: args.relPath };
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      detail: `changed brief ${args.relPath}: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 /**
  * Pre-merge full-story mark producer/admission (#4919 / #4864).
  * Leftover-shaped diffs pass. Skip-active proposed|pending→completed refuses.
@@ -207,11 +299,8 @@ export function evaluateFullStoryMarkAdmission(args: {
       ],
     };
   }
-  const touchesNonterminalBrief = args.files.some((f) => {
-    const p = f.path.replace(/\\/g, "/");
-    return /^(xbrief|vbrief)\/(proposed|pending|active)\//.test(p);
-  });
-  if (!touchesNonterminalBrief || args.prNumber === null) {
+  const changedNonterminal = changedNonterminalBriefPaths(args.files);
+  if (changedNonterminal.length === 0 || args.prNumber === null) {
     return { ok: true, messages };
   }
   const marks = parseAllDeftStoryMarks(args.bodyText ?? "");
@@ -222,6 +311,19 @@ export function evaluateFullStoryMarkAdmission(args: {
         "FAIL: product pull request touches nonterminal xBRIEF without `deft-story: N` (#4864 / #4919).",
       ],
     };
+  }
+  // Each changed nonterminal path must itself bind; a stamped sibling cannot satisfy (#4919).
+  for (const relPath of changedNonterminal) {
+    const bind = bindChangedBriefPath({
+      projectRoot: args.projectRoot,
+      relPath,
+      prNumber: args.prNumber,
+      repo: args.repo,
+      marks,
+    });
+    if (!bind.ok) {
+      messages.push(`FAIL: ${bind.detail}`);
+    }
   }
   for (const issue of marks) {
     const bind = briefHasMatchingProductPr(args.projectRoot, issue, args.prNumber, args.repo);

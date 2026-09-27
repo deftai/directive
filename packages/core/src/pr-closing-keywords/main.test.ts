@@ -684,6 +684,67 @@ describe("full-story mark admission shapes (#4919)", () => {
     });
     expect(skip.ok).toBe(false);
   });
+
+  it("refuses leftover exception when unrelated nonterminal briefs also change", () => {
+    expect(
+      isLeftoverShapedDiff([
+        { status: "removed", path: "xbrief/active/story.xbrief.json" },
+        { status: "added", path: "xbrief/completed/story.xbrief.json" },
+        { status: "modified", path: "xbrief/proposed/other.xbrief.json" },
+      ]),
+    ).toBe(false);
+  });
+
+  it("requires each changed nonterminal brief path to bind productPullRequest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-admission-bind-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "bound.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "bound",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/55",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: 9 },
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "unbound.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "unbound",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/56",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateFullStoryMarkAdmission({
+      bodyText: "deft-story: 55\ndeft-story: 56\n",
+      prNumber: 9,
+      projectRoot: root,
+      repo: "deftai/directive",
+      files: [
+        { status: "modified", path: "xbrief/active/bound.xbrief.json" },
+        { status: "modified", path: "xbrief/active/unbound.xbrief.json" },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.messages.join("\n")).toContain("unbound.xbrief.json");
+    rmSync(root, { recursive: true, force: true });
+  });
 });
 
 describe("full-story close intent mark (#4864)", () => {

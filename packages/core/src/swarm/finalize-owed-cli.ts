@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
 import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
-import { finalizeOwed, type FinalizeOwedArgs } from "./finalize-owed.js";
+import { type FinalizeOwedArgs, finalizeOwed } from "./finalize-owed.js";
 
 export interface ParsedFinalizeOwedArgv extends FinalizeOwedArgs {
   readonly help: boolean;

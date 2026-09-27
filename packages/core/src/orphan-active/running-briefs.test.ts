@@ -77,9 +77,7 @@ describe("listActiveRunningBriefs (#4628)", () => {
 
 describe("brief twin identity (#4919)", () => {
   it("pairs by basename family, not issue number", () => {
-    expect(briefPairingKey("xbrief/active/story-a.xbrief.json")).toBe(
-      "xbrief/story-a.xbrief.json",
-    );
+    expect(briefPairingKey("xbrief/active/story-a.xbrief.json")).toBe("xbrief/story-a.xbrief.json");
     expect(briefPairingKey("xbrief/completed/story-a.xbrief.json")).toBe(
       "xbrief/story-a.xbrief.json",
     );

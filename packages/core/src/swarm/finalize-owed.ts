@@ -18,18 +18,9 @@ import {
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import { defaultGitRunner, timedGitRunner, type GitRunner } from "../session/git.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_GATE_FAILED,
-  EXIT_INCOMPLETE,
-  EXIT_OK,
-} from "./constants.js";
-import {
-  finalizeClaimRef,
-  finalizeCohort,
-  type FinalizeCohortResult,
-} from "./finalize-cohort.js";
+import { defaultGitRunner, type GitRunner, timedGitRunner } from "../session/git.js";
+import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
+import { type FinalizeCohortResult, finalizeClaimRef, finalizeCohort } from "./finalize-cohort.js";
 
 export const FINALIZE_OWED_LABEL = "finalize-owed";
 
@@ -166,10 +157,7 @@ function readTipPlan(
   }
 }
 
-function issueFromPlan(
-  plan: Record<string, unknown>,
-  expectedRepo: string | null,
-): number | null {
+function issueFromPlan(plan: Record<string, unknown>, expectedRepo: string | null): number | null {
   const [repo, number] = extractIssueRef(plan);
   if (number === null || !Number.isInteger(number) || number <= 0) {
     return null;
@@ -226,7 +214,11 @@ function fetchIssueState(
   if (parsed === null) {
     return { state: null, protectedUmbrella: false, error: `invalid repo: ${repo}` };
   }
-  const result = runGh(["gh", "api", `repos/${parsed.owner}/${parsed.name}/issues/${String(issue)}`]);
+  const result = runGh([
+    "gh",
+    "api",
+    `repos/${parsed.owner}/${parsed.name}/issues/${String(issue)}`,
+  ]);
   if (result.returncode !== 0) {
     return {
       state: null,
@@ -276,8 +268,7 @@ function listOpenFinalizePrs(
   if (parsed === null) {
     return { headRefs: new Set(), error: `invalid repo: ${repo}` };
   }
-  const path =
-    `repos/${parsed.owner}/${parsed.name}/pulls?state=open&per_page=100&head=${parsed.owner}:swarm/finalize`;
+  const path = `repos/${parsed.owner}/${parsed.name}/pulls?state=open&per_page=100&head=${parsed.owner}:swarm/finalize`;
   // GitHub head filter needs owner:branch; list and filter client-side for prefix.
   const listed = runGh([
     "gh",
@@ -329,14 +320,26 @@ function remoteClaimMeta(
   if (sha.length === 0) {
     return { exists: false, stale: false, ageMs: null };
   }
-  const committer = runGit(projectRoot, ["log", "-1", "--format=%ct", sha]);
+  // Privately fetch the claim tip; ls-remote alone leaves objects missing locally.
+  const privateRef = `refs/deft/finalize-owed-claim/${claimRef.replace(/\//g, "-")}`;
+  const fetch = runGit(projectRoot, [
+    "fetch",
+    "origin",
+    `refs/heads/${claimRef}:${privateRef}`,
+    "--force",
+  ]);
+  if (fetch.code !== 0) {
+    // Remote ref found but unreachable → abandoned / reclaimable (#4919).
+    return { exists: true, stale: true, ageMs: null };
+  }
+  // Claim marker commit uses committer time (not delivery-tip author age).
+  const committer = runGit(projectRoot, ["log", "-1", "--format=%ct", privateRef]);
   if (committer.code !== 0) {
-    // Unknown remote liveness is not stale (#4919).
-    return { exists: true, stale: false, ageMs: null };
+    return { exists: true, stale: true, ageMs: null };
   }
   const ts = Number.parseInt(committer.stdout.trim(), 10);
   if (!Number.isFinite(ts)) {
-    return { exists: true, stale: false, ageMs: null };
+    return { exists: true, stale: true, ageMs: null };
   }
   const ageMs = Math.max(0, nowMs - ts * 1000);
   return { exists: true, stale: ageMs >= FINALIZE_CLAIM_STALE_MS, ageMs };
@@ -347,6 +350,7 @@ function snapshotAccepts(
   repo: string,
   deliveryBranch: string,
   projectRoot: string,
+  tipSha: string,
   runGh: RunGhFn,
   runGit: GitRunner,
 ): { ok: boolean; detail: string } {
@@ -354,7 +358,11 @@ function snapshotAccepts(
   if (parsed === null) {
     return { ok: false, detail: "invalid repo" };
   }
-  const result = runGh(["gh", "api", `repos/${parsed.owner}/${parsed.name}/pulls/${String(productPr)}`]);
+  const result = runGh([
+    "gh",
+    "api",
+    `repos/${parsed.owner}/${parsed.name}/pulls/${String(productPr)}`,
+  ]);
   if (result.returncode !== 0) {
     return { ok: false, detail: "product PR fetch failed" };
   }
@@ -380,12 +388,8 @@ function snapshotAccepts(
     if (mergeSha.length === 0) {
       return { ok: false, detail: "product PR missing merge_commit_sha" };
     }
-    const ancestor = runGit(projectRoot, [
-      "merge-base",
-      "--is-ancestor",
-      mergeSha,
-      `origin/${deliveryBranch}`,
-    ]);
+    // Ancestry against the privately fetched tip, not a stale origin/<branch> (#4919).
+    const ancestor = runGit(projectRoot, ["merge-base", "--is-ancestor", mergeSha, tipSha]);
     if (ancestor.code !== 0) {
       return { ok: false, detail: "merge commit not ancestor of delivery tip" };
     }
@@ -478,6 +482,7 @@ export function discoverFinalizeOwed(
       options.repo,
       options.deliveryBranch,
       projectRoot,
+      options.tip,
       runGh,
       runGit,
     );
@@ -671,12 +676,39 @@ function tryClaimRef(
   tipSha: string,
   runGit: GitRunner,
 ): { claimed: boolean; detail: string } {
+  // Marker commit so claim age uses claim creation time, not delivery-tip age (#4919).
+  const tree = runGit(projectRoot, ["rev-parse", `${tipSha}^{tree}`]);
+  if (tree.code !== 0 || tree.stdout.trim().length === 0) {
+    return {
+      claimed: false,
+      detail: tree.stderr.trim() || tree.stdout.trim() || "claim tree resolve failed",
+    };
+  }
+  const marker = runGit(projectRoot, [
+    "-c",
+    "user.name=deft-finalize-owed",
+    "-c",
+    "user.email=finalize-owed@localhost",
+    "commit-tree",
+    tree.stdout.trim(),
+    "-p",
+    tipSha,
+    "-m",
+    `deft finalize-owed claim ${claimRef}`,
+  ]);
+  if (marker.code !== 0 || marker.stdout.trim().length === 0) {
+    return {
+      claimed: false,
+      detail: marker.stderr.trim() || marker.stdout.trim() || "claim marker commit failed",
+    };
+  }
+  const claimSha = marker.stdout.trim();
   // Create-only: empty expected OID means remote ref must be absent (#4919).
   const push = runGit(projectRoot, [
     "push",
     `--force-with-lease=refs/heads/${claimRef}:`,
     "origin",
-    `${tipSha}:refs/heads/${claimRef}`,
+    `${claimSha}:refs/heads/${claimRef}`,
   ]);
   if (push.code !== 0) {
     return {
@@ -741,11 +773,7 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
       ? args.deliveryBranch.trim()
       : policyDelivery.branch;
 
-  const repo =
-    args.repo ??
-    process.env.GH_REPO ??
-    process.env.GITHUB_REPOSITORY ??
-    null;
+  const repo = args.repo ?? process.env.GH_REPO ?? process.env.GITHUB_REPOSITORY ?? null;
   if (repo === null || repo.trim().length === 0) {
     return respondFinalizeOwed({
       delivery_branch: deliveryBranch,
@@ -833,9 +861,16 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
 
     const claim = tryClaimRef(projectRoot, story.claimRef, fetched.tip, runGit);
     if (!claim.claimed) {
-      warnings.push(`#${String(story.issue)}: in flight (${claim.detail})`);
-      skipped.push(story.issue);
-      continue;
+      if (story.state === "close-owed") {
+        // Existing finalize branch must not block close-only finalizer (#4919).
+        warnings.push(
+          `#${String(story.issue)}: close-owed proceeding without new claim (${claim.detail})`,
+        );
+      } else {
+        warnings.push(`#${String(story.issue)}: in flight (${claim.detail})`);
+        skipped.push(story.issue);
+        continue;
+      }
     }
 
     const runFinalize =
@@ -849,8 +884,9 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
           deliveryBranch,
           label: null,
           noOpenPr: false,
-          // Hand-off leftover by default; wait-through-land is explicit (#4919).
-          landProbeLimit: waitThroughLand ? undefined : 1,
+          // Default: open leftover, enable auto-merge, hand off as pending.
+          // --wait-through-land owns the land wait instead (#4919).
+          handOffLeftover: !waitThroughLand,
           sleep: waitThroughLand ? undefined : () => {},
           runGh,
           runGit: (cmd, options) => {

@@ -1163,9 +1163,9 @@ describe("finalizeCohort", () => {
     expect(result.stdout).toContain("FINALIZE INCOMPLETE");
     expect(result.stdout).toContain("origin-close pending");
     expect(ghCalls.some((c) => c.includes("PATCH"))).toBe(false);
-    expect(
-      result.result.warnings.some((w) => w.includes("leftover-complete not on origin")),
-    ).toBe(false);
+    expect(result.result.warnings.some((w) => w.includes("leftover-complete not on origin"))).toBe(
+      false,
+    );
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1805,7 +1805,8 @@ describe("finalizeCohort", () => {
     expect(result.exitCode).not.toBe(0);
     expect(result.result.errors.some((e) => e.includes("does not merge"))).toBe(true);
     expect(ghCalls.some((cmd) => cmd.includes("PATCH"))).toBe(false);
-    expect(ghCalls.some((cmd) => cmd.includes("merge"))).toBe(false);
+    // --auto arms GitHub; the command still does not merge the leftover itself (#4919).
+    expect(ghCalls.some((cmd) => cmd.includes("merge") && !cmd.includes("--auto"))).toBe(false);
     expect(existsSync(storyPath)).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
@@ -1848,7 +1849,8 @@ describe("finalizeCohort", () => {
         (cmd) => cmd.includes("PATCH") && cmd.some((part) => part.includes("/issues/4937")),
       ),
     ).toBe(true);
-    expect(ghCalls.some((cmd) => cmd.includes("merge"))).toBe(false);
+    // --auto arms GitHub; the command still does not merge the leftover itself (#4919).
+    expect(ghCalls.some((cmd) => cmd.includes("merge") && !cmd.includes("--auto"))).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
 

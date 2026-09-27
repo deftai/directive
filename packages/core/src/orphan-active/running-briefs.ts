@@ -124,10 +124,18 @@ export function completedTwinRelPath(relPath: string): string | null {
   if (base.length === 0) {
     return null;
   }
-  if (n.startsWith("xbrief/proposed/") || n.startsWith("xbrief/pending/") || n.startsWith("xbrief/active/")) {
+  if (
+    n.startsWith("xbrief/proposed/") ||
+    n.startsWith("xbrief/pending/") ||
+    n.startsWith("xbrief/active/")
+  ) {
     return `xbrief/completed/${base}`;
   }
-  if (n.startsWith("vbrief/proposed/") || n.startsWith("vbrief/pending/") || n.startsWith("vbrief/active/")) {
+  if (
+    n.startsWith("vbrief/proposed/") ||
+    n.startsWith("vbrief/pending/") ||
+    n.startsWith("vbrief/active/")
+  ) {
     return `vbrief/completed/${base}`;
   }
   return null;

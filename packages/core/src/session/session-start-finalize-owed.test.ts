@@ -25,6 +25,7 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     });
     expect(result.blocks).toBe(false);
     expect(result.deferred).toBe(true);
+    expect(result.deferReason).toBe("finishing unrelated hotfix");
     expect(result.lines.join("\n")).toContain("deferred");
   });
 
@@ -38,5 +39,29 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     });
     expect(result.unknown).toBe(true);
     expect(result.blocks).toBe(false);
+  });
+
+  it("fails closed when tip fetch works but repo cannot be resolved", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      env: {},
+      runGit: (_cwd, args) => {
+        if (args[0] === "fetch") {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        if (args[0] === "rev-parse") {
+          return { code: 0, stdout: "TIPSHA\n", stderr: "" };
+        }
+        if (args[0] === "remote") {
+          return { code: 1, stdout: "", stderr: "no remote" };
+        }
+        if (args[0] === "symbolic-ref" || args.includes("--abbrev-ref")) {
+          return { code: 0, stdout: "master\n", stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(result.blocks).toBe(true);
+    expect(result.unknown).toBe(true);
+    expect(result.lines.join("\n")).toContain("repo required");
   });
 });
