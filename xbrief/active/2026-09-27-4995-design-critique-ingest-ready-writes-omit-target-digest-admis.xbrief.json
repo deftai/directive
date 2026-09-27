@@ -1,0 +1,316 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4995",
+    "updated": "2026-09-27T18:29:34Z"
+  },
+  "plan": {
+    "title": "design-critique: ingest-ready writes omit target-digest admission",
+    "status": "running",
+    "narratives": {
+      "Description": "design-critique: ingest-ready writes omit target-digest admission",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4995",
+      "Overview": "\n\n1. At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).\n2. On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.\n3. Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).\n4. Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc\n\n\n"
+    },
+    "items": [
+      {
+        "title": "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
+        "status": "pending",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "recorded_at": "2026-09-27T20:08:05Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.",
+        "status": "pending",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-stale-ready.test.ts",
+          "recorded_at": "2026-09-27T20:08:05Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
+        "status": "pending",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "recorded_at": "2026-09-27T20:08:05Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "title": "Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
+        "status": "pending",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-reconcile/main.test.ts",
+          "recorded_at": "2026-09-27T20:08:05Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4995",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4995: design-critique: ingest-ready writes omit target-digest admission"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "design-critique: ingest-ready writes omit target-digest admission",
+        "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation.",
+        "Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
+        "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target.",
+        "Exact match permits the existing ready transition.",
+        "Body/comment fetch failure refuses the write without reporting readiness.",
+        "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics.",
+        "Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
+        "Both ready-write callers must exercise the shared proof; neither may bypass digest admission.",
+        "Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc"
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.",
+          "artifact_path": "packages/core/src/scm/design-critique-stale-ready.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).",
+          "artifact_path": "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.",
+          "artifact_path": "packages/core/src/vbrief-reconcile/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because the guarded ingest-ready writer proves completed-arc on the live comment thread but does not apply target-digest admission, so it can stamp design-critique:ingest-ready while issue:ingest would reject the same issue as stale-target.\n\ncharter: refutation\nrefutation-target: It is acceptable that proveLiveThreadCompletedArcForIngestReady / applyIngestReadyRemainingSet stamp design-critique:ingest-ready after evaluateCompletedArcRecord alone, without evaluateTargetDigestAdmission on the live REST issue body, because digest admission is an ingest-only gate and the chip is list state.\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator continued the evaluate/label/arc campaign with recommended N standing. This is a concrete gate-composition defect on the shared ready-label write (distinct from #4970 standing-label diagnosis). Recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. ingest-ready write can succeed (completed-arc complete) while the cited lean Target-digest mismatches the live REST body (stale-target), including the measured trailing-newline hash class.\nP2. Chip verb and label reconciler share a write proof that omits digest admission; neither caller currently forces evaluateTargetDigestAdmission before label mutation.\nP3. Distinct from #4970 (standing labels after later gates); this child binds admission at the new ready-label write boundary without auto body edits, silent digest normalize, or sweeping standing labels. Preserve #4700 completed-arc/pain checks and unpinned semantics.\n\ndest: C:\\Users\\msada\\.grok\\worktrees\\deft-directive\\issue-4995-dc\norigin-ref: origin/HEAD\ndispatch-sha: d9b031c1a352b0d09f00f85028db9673d36ddd6f\npin-kind: origin-default\ntarget-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc\n\nPin reads use git show d9b031c1a352b0d09f00f85028db9673d36ddd6f. Adjacent to #4970 / #4700 / #4243. This host spawn schema has no process_only field, so the single Grok seat is the grok CLI. Not dual-launched.\r\n\n",
+          "id": 5858037824,
+          "html_url": "https://github.com/deftai/directive/issues/4995#issuecomment-5858037824",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:18:46Z",
+          "updated_at": "2026-09-27T17:18:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound: 1 critic. Fresh critic. Seat: grok. Launcher: grok.\nId ceiling (inclusive): 5858037824. SHA at dispatch: d9b031c1a352b0d09f00f85028db9673d36ddd6f (HEAD matches; pin reads via git show).\n\nRefutation target under test: it is acceptable that proveLiveThreadCompletedArcForIngestReady / applyIngestReadyRemainingSet stamp design-critique:ingest-ready after evaluateCompletedArcRecord alone, without evaluateTargetDigestAdmission on the live REST issue body, because digest admission is an ingest-only gate and the chip is list state.\n\n## Digest-is-ingest-only already fails for standing list state\nblocks-the-design\nEvidence: At d9b031c1a352b0d09f00f85028db9673d36ddd6f, `git show` on `packages/core/src/design-critique/completed-arc-record.ts` shows `proveLiveThreadCompletedArcForIngestReady` returns only `evaluateCompletedArcRecord({ comments })`, and `applyIngestReadyRemainingSet` takes `(client, repo, issueNumber, comments)` with no live-body input and zero calls to `evaluateTargetDigestAdmission` before `writeDesignCritiqueCatalogRemainingSet(..., \"design-critique:ingest-ready\")`. `git grep evaluateTargetDigestAdmission` at that SHA hits `issue-ingest.ts` and `scm/design-critique-stale-ready.ts`. The stale-ready path, on a complete record, calls `evaluateTargetDigestAdmission({ citedLeanBody, liveIssueBody: viewed.body })` and reports mismatch as a standing ingest-ready problem. Chip usage text and #4700 comments already refuse ingest-ready writes unless live-thread completed-arc is complete; both `runDesignCritiqueChip` and `ScmLabelClient.apply` exclusive fold call the same thin helper. Issue body verified evidence on #4988: complete + stale-target concurrently, and `applyIngestReadyRemainingSet` still returned ok with a mocked label write.\nFailure mode: Binding the target keeps the shared ingest-ready write authority able to mint a catalog chip that the product's own standing-list scanner already classifies as digest-stale on the same live REST body, while `issue:ingest` refuses that body as stale-target. Operators and punchlist treat the chip as ingest-ready list state; the later verb then fails on a stamp that the write helper already had enough cited-lean + live-body inputs to refuse. Shared-state / injection lens: chip verb and label reconciler share one omit, so neither caller can force digest admission today.\nDisposition: The refutation target cannot bind. Write-time proof for ingest-ready must compose the existing `evaluateTargetDigestAdmission` against the live REST issue body (and the cited lean from the completed-arc verdict) at the shared `applyIngestReadyRemainingSet` boundary before any label mutation. Preserve current unpinned and #4700 completed-arc/pain semantics; refuse mismatch with zero writes; do not auto-edit bodies, silently normalize digest bytes, or sweep standing labels (#4970 stays diagnosis of already-standing chips).\n\n## List-state does not license minting known-false readiness\nsharpens-framing\nEvidence: Contract text at the dispatch SHA keeps catalog chips as list-visible convenience and ⊗ Treat the ingest-ready chip as clearance, and Keep chip design-critique:ingest-ready as list state. The same contract already required live-thread completed-arc proof before that remaining-set write (#4700). `applyDesignCritiqueCatalogChip` no-ops ingest-ready so the only write path is `applyIngestReadyRemainingSet`.\nFailure mode: Reading \"list state\" as permission to omit digest collapses #4700's write-time honesty pattern: completed-arc was composed at the chip write without turning the chip into clearance. Omitting digest while keeping completed-arc creates a half-honest list signal specifically for the #4243 pin the later verb enforces.\nDisposition: Keep list-state / not-clearance. State the bound remedy as composing the existing digest evaluator into the existing shared write proof, matching the issue proposed scope, rather than defending the omission as an ingest-only concern.\n\n## Road-not-taken: post-mint #4970 scan as the only digest control\nfootnote\nEvidence: `scm:issue:design-critique-stale-ready` is read-only and already applies digest admission to standing ingest-ready candidates; ingest separately refuses stale-target.\nFailure mode if chosen as the exclusive control: the write still succeeds first, so list and punchlist show ready until a later scan or ingest. That is recovery after false mint, not admission at the shared write.\nDisposition: Inventory only. Prefer refuse-before-write at `applyIngestReadyRemainingSet` over scan-after-mint as the primary control for new ready-label writes.\n\nThe refutation target does not survive.\r\n\n",
+          "id": 5858056580,
+          "html_url": "https://github.com/deftai/directive/issues/4995#issuecomment-5858056580",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:21:26Z",
+          "updated_at": "2026-09-27T17:21:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe ingest-ready writer can stamp design-critique:ingest-ready after completed-arc alone while issue:ingest and the stale-ready scanner would call the same live body stale-target. Digest admission is not ingest-only for that shared write. Confirming this map means the Bound remedy list is the build contract. The same parent wrote the Stop 1 warrant and this map. Critic 5858056580 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target does not survive. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5858037824\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: d9b031c1a352b0d09f00f85028db9673d36ddd6f\n\n## Takes\n\n- 5858056580 Digest-is-ingest-only already fails for standing list state — accept-into-contract\n- 5858056580 List-state does not license minting known-false readiness — accept-into-contract\n- 5858056580 Road-not-taken: post-mint #4970 scan as the only digest control — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. At the shared applyIngestReadyRemainingSet / proveLiveThreadCompletedArcForIngestReady write boundary used by scm:issue:design-critique-chip ingest-ready and the label reconciler, compose evaluateCompletedArcRecord with evaluateTargetDigestAdmission against the live REST issue body and the cited lean from the completed-arc verdict before any label mutation. Reuse the existing evaluator; acquire live body via the canonical SCM surface (no cache/caller assertion substitute for live proof).\n2. On digest mismatch (including the measured trailing-newline hash class): zero label writes; report stale-target. Exact match permits the existing ready transition. Body/comment fetch failure refuses the write without reporting readiness.\n3. Preserve #4700 completed-arc/pain checks and current unpinned-record semantics. Do not auto-edit bodies, silently normalize digest bytes, or sweep/remove standing labels (#4970 remains diagnosis of already-standing chips).\n4. Both ready-write callers must exercise the shared proof; neither may bypass digest admission. Tests + CHANGELOG cover frozen mismatch fixture, exact match, trailing-newline class without live GitHub dependence, and dual-caller coverage.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc\n\n## Parent-side substantiation\n\nThe critic blocked digest-as-ingest-only. Item 1 composes the existing admission at the shared write. Item 2 is the refuse-before-write behavior. Item 3 fences #4700/#4970. Item 4 locks both callers and tests.\n\naudit:compose-digest-at-ready-write sha=d9b031c1a352b0d09f00f85028db9673d36ddd6f pointer=comment:5858056580 reading=asserted\naudit:refuse-before-write-no-sweep sha=d9b031c1a352b0d09f00f85028db9673d36ddd6f pointer=comment:5858056580 reading=asserted\r\n\n",
+          "id": 5858060122,
+          "html_url": "https://github.com/deftai/directive/issues/4995#issuecomment-5858060122",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:21:56Z",
+          "updated_at": "2026-09-27T17:21:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\n\nRound: 4 Pass-4 audit (pain-audit of relieves). Fresh critic.\nSeat: grok. Launcher: grok.\nId ceiling (inclusive): 5858060122. SHA at dispatch: d9b031c1a352b0d09f00f85028db9673d36ddd6f (HEAD matches; pin reads via git show).\nBind lean under audit: 5858060122. Round-1 critic in envelope: 5858056580.\nStop 1 pains: 5858037824.\n\n## P1 covered by refuse-before-write on mismatch\nfootnote\nEvidence: At d9b031c1a352b0d09f00f85028db9673d36ddd6f, `applyIngestReadyRemainingSet` proves only via `proveLiveThreadCompletedArcForIngestReady` → `evaluateCompletedArcRecord`, then writes ingest-ready with no live-body argument and zero calls to `evaluateTargetDigestAdmission`. Bound remedy item 1 composes that existing evaluator against the live REST body and the cited lean from the completed-arc verdict before mutation; item 2 names zero label writes plus stale-target report on mismatch, including the measured trailing-newline hash class, and exact match for the ready transition. `evaluateTargetDigestAdmission` already compares `hashIssueBodyBytes(liveIssueBody)` to the pinned digest and returns blocked/stale-target on mismatch; unpinned stays a separate status. Critic 5858056580's blocking take (digest-is-ingest-only fails for standing list state) is the same compose-at-write shape.\nFailure mode if under-covered: ready stamp could still succeed on a complete+stale-target thread. That mode is closed by items 1–2 as written.\nDisposition: Asserted coverage for P1 stands. Harvest unchanged.\n\n## P2 covered by shared-boundary dual-caller lock\nfootnote\nEvidence: Pin-read callers at this SHA both route ingest-ready through `applyIngestReadyRemainingSet`: `packages/core/src/scm/design-critique-chip.ts` (`runDesignCritiqueChip`) and `packages/core/src/vbrief-reconcile/labels.ts` (`ScmLabelClient.apply` exclusive fold). Bound remedy item 1 names that shared write boundary for both; item 4 requires both callers exercise the shared proof and forbids bypass, with tests covering dual-caller coverage. Round-1 critic already noted the shared omit under the injection/shared-state lens.\nFailure mode if under-covered: one caller could still mint ready without digest admission. Item 4 closes that bypass as part of the bind list.\nDisposition: Asserted coverage for P2 stands. Harvest unchanged.\n\n## P3 covered by #4700 preserve and #4970 fence\nfootnote\nEvidence: Bound remedy item 3 keeps #4700 completed-arc/pain checks and current unpinned-record semantics, and forbids auto body edits, silent digest normalize, and sweep/remove of standing labels, with #4970 remaining diagnosis of already-standing chips. Item 2's refuse-before-write is admission at the new ready-label write, matching Stop 1 P3 and the round-1 road-not-taken (post-mint stale-ready scan is recovery after false mint, not this child's primary control). Existing `evaluateTargetDigestAdmission` unpinned path and `scm/design-critique-stale-ready.ts` read-only scanner stay adjacent rather than collapsed into this write.\nFailure mode if under-covered: the child would widen into standing-label sweep or silent normalize. Item 3 fences that collapse.\nDisposition: Asserted coverage for P3 stands. Harvest unchanged.\n\n## Result-shape note for stale-target report\nfootnote\nEvidence: Today's `IngestReadyRemainingSetResult` failure arm carries only `CompletedArcVerdict`. Item 2 requires reporting stale-target on digest mismatch; implement will need a channel for that report (widen the result, throw a typed proof error, or equivalent) while still returning zero writes.\nFailure mode: implement ambiguity only; the Bound remedy list already states the required behavior.\nDisposition: Does not change harvested Bound remedy items 1–4. Bindable as written.\n\nCensus: four footnotes; zero blocks-the-design; zero sharpens-framing. Bound remedy items 1–4 cover pain-P1, pain-P2, and pain-P3 by composing digest admission at the shared ready write without collapsing into #4970.\r\n\n",
+          "id": 5858074405,
+          "html_url": "https://github.com/deftai/directive/issues/4995#issuecomment-5858074405",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:23:56Z",
+          "updated_at": "2026-09-27T17:23:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\ningest-ready can stamp after completed-arc alone while the live body is stale-target for issue:ingest. Bound remedy composes evaluateTargetDigestAdmission at the shared applyIngestReadyRemainingSet write used by chip and reconciler, refuses mismatch before label mutation, preserves #4700, and leaves #4970 as standing-label diagnosis. Pain-audit 5858074405 of relieves P1-P3 was footnote-only. The same parent wrote the Stop 1 warrant.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5858060122.\r\n\n",
+          "id": 5858077253,
+          "html_url": "https://github.com/deftai/directive/issues/4995#issuecomment-5858077253",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-27T17:24:21Z",
+          "updated_at": "2026-09-27T17:24:21Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe guarded ingest-ready writer proves that the live comment thread has a completed arc, but does not apply target-digest admission. It can therefore stamp a fresh `design-critique:ingest-ready` label while `issue:ingest` would reject the same issue as `stale-target`.\n\nThis is distinct from #4970: that issue addresses previously accepted records invalidated by later gates and the diagnosis of standing labels. This issue covers the admission check for a new ready-label write.\n\n## Verified evidence\n\nVerified on 2026-09-23 against source commit `cae371d0161bb7c03df0ab9fc312c477f7c524cc`, using live REST body and comments for #4988.\n\n- `evaluateCompletedArcRecord` returns `complete`.\n- `evaluateTargetDigestAdmission` on its cited lean and exact REST issue body returns `blocked / stale-target`.\n- Current body SHA-256: `33284bb9c42e930a72ccdf8cf9f0b6407d90c43ec6881259130b0e18ee8138a5`.\n- Pinned digest: `bca90f1dd0c0d288c4f6192e79941b1e9eccbeb4f76e245c9c5ab671b4a6b7bb`.\n- Hashing that body with one additional trailing newline produces the pinned digest. This explains the observed mismatch without establishing when or how it was authored.\n- Calling `applyIngestReadyRemainingSet` with that live thread and a fake label client initially containing `bug` plus `design-critique:mechanism-shaped` returns `ok: true` and makes one mocked apply: add ingest-ready, remove mechanism-shaped.\n- No live labels were changed by the reproduction.\n\nThe source path is `packages/core/src/design-critique/completed-arc-record.ts`: `proveLiveThreadCompletedArcForIngestReady` calls only `evaluateCompletedArcRecord`; the write helper has no live-body input. Ingest additionally checks `evaluateTargetDigestAdmission` in `packages/core/src/intake/issue-ingest.ts`.\n\nEarlier evidence: [#4970 round-4 audit](https://github.com/deftai/directive/issues/4970#issuecomment-5803103366). Prior write-proof scope: #4700.\n\n## Proposed scope\n\nCompose existing completed-record and exact-live-body digest admission at the shared ready-label write boundary used by both the chip verb and the label reconciler. Reuse the existing evaluator rather than duplicate its parsing. Acquire the live issue body through the canonical SCM surface; cache or caller assertions must not replace live proof.\n\nPreserve #4700's completed-arc/pain checks and current digest semantics, including the documented handling of unpinned records. Refuse a digest mismatch before label mutation. Do not add automatic body edits, silently normalize digest bytes, or sweep/remove standing labels.\n\n## Acceptance criteria\n\n- A frozen complete-thread fixture with a mismatching pinned digest causes zero label writes and reports stale-target.\n- Exact matching body/digest permits the existing ready transition.\n- The trailing-newline mismatch above is covered without live GitHub dependence.\n- Both ready-write callers exercise the shared proof; neither can bypass digest admission.\n- Body/comment fetch failure refuses the write without reporting readiness.\n- Existing completed-arc failures and documented unpinned behavior retain their current semantics.\n\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5560699607,
+        "origin": "deftai/directive#4995",
+        "id": "github.issue.5560699607"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2d17b3c58f4b7f273e41b8f2dbd7304354168c408fcbde7f33c0050986f600cc"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/design-critique/exclusive-chip.ts",
+          "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "packages/core/src/design-critique/stale-ingest-ready-diagnostic.ts",
+          "packages/core/src/design-critique/stale-ingest-ready-diagnostic.test.ts",
+          "CHANGELOG.md",
+          "packages/core/src/scm/design-critique-chip.ts",
+          "packages/core/src/vbrief-reconcile/labels.ts",
+          "packages/core/src/scm/design-critique-stale-ready.test.ts",
+          "packages/core/src/scm/design-critique-chip.test.ts",
+          "packages/core/src/vbrief-reconcile/main.test.ts"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "PR opened Tracking #4995",
+          "ingest-ready write refuses stale-target before label mutation"
+        ],
+        "depends_on": [],
+        "conflict_group": "ingest-ready-target-digest",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "default"
+      }
+    },
+    "id": "github.issue.5560699607",
+    "updated": "2026-09-27T18:29:34Z"
+  }
+}
