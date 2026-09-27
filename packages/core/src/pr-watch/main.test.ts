@@ -480,7 +480,7 @@ describe("pr:watch wait heartbeat (#5020)", () => {
     });
     try {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
-      // O_NOFOLLOW open must refuse — outside victim stays untouched.
+      // containedWrite must refuse the leaf symlink — outside victim stays untouched.
       expect(readFileSync(victim, "utf8")).toBe('{"keep":true}\n');
     } finally {
       refresher.stop();

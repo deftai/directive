@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
@@ -14,6 +15,11 @@ import {
 } from "./constants.js";
 import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
 import { watch } from "./watch.js";
+import {
+  REFRESHER_DONE_INDEX,
+  REFRESHER_STOP_INDEX,
+  type WaitHeartbeatRefresherWorkerData,
+} from "./wait-heartbeat-refresher-worker.js";
 
 /**
  * Max wait for refresher worker exit after stop so terminal write stays last (#5020).
@@ -21,9 +27,21 @@ import { watch } from "./watch.js";
  */
 export const WAIT_HEARTBEAT_REFRESHER_JOIN_MS = Number.parseInt("2000", 10);
 
-/** SharedArrayBuffer slots: [0]=stop request, [1]=worker done (#5020). */
-const REFRESHER_STOP_INDEX = 0;
-const REFRESHER_DONE_INDEX = 1;
+/** Resolve refresher worker path (src→dist when vitest loads .ts) (#5020). */
+function resolveWaitHeartbeatRefresherWorkerPath(): string {
+  const local = fileURLToPath(new URL("./wait-heartbeat-refresher-worker.js", import.meta.url));
+  const srcSegment = `${sep}src${sep}`;
+  const srcIdx = local.indexOf(srcSegment);
+  const distPath =
+    srcIdx === -1
+      ? local
+      : `${local.slice(0, srcIdx)}${sep}dist${sep}${local.slice(srcIdx + srcSegment.length)}`;
+  const chosen = existsSync(local) ? local : distPath;
+  if (!existsSync(chosen)) {
+    throw new Error(`wait-heartbeat refresher worker missing at ${local} or ${distPath}`);
+  }
+  return chosen;
+}
 
 export interface ParsedWatchArgs {
   readonly prNumber: number | null;
@@ -472,9 +490,9 @@ export const WAIT_HEARTBEAT_REFRESH_SECONDS = Number.parseInt("60", 10);
 /**
  * Sidecar that keeps the wait heartbeat fresh while the parent blocks in
  * spawnSync / a long monitor (#5020 P1). Publishes the parent pid so force-kill
- * of the wait process still fails closed via liveness. Refresh writes inline the
- * contained replace path with O_NOFOLLOW (source-only; leaf symlink TOCTOU-safe)
- * (#5020 P1). Stop joins via SharedArrayBuffer Atomics so a blocked event loop
+ * of the wait process still fails closed via liveness. Refresh writes route
+ * through {@link containedWrite} (symlink refuse / contained replace) (#2951 /
+ * #5020 P1). Stop joins via SharedArrayBuffer Atomics so a blocked event loop
  * does not pay the full timeout (#5020 P2).
  */
 export function startWaitHeartbeatRefresher(
@@ -520,80 +538,29 @@ export function startWaitHeartbeatRefresher(
     pid,
   };
 
-  // Worker owns refresh writes so a blocked parent (spawnSync) cannot stale the
-  // 30m floor. Inline contained replace + O_NOFOLLOW (no dist import) (#2951 / #5020).
-  const script = [
-    'const { workerData } = require("node:worker_threads");',
-    'const { closeSync, constants, fsyncSync, lstatSync, mkdirSync, openSync, writeSync } = require("node:fs");',
-    'const { dirname, join, relative, resolve } = require("node:path");',
-    "const { rootAbs, relTarget, payloadBase, intervalMs, control } = workerData;",
-    "const view = new Int32Array(control);",
-    "function containedReplace(root, rel, data) {",
-    "  const rootResolved = resolve(root);",
-    "  const targetAbs = resolve(rootResolved, rel);",
-    "  const checked = relative(rootResolved, targetAbs);",
-    '  if (checked.startsWith("..") || checked.length === 0) {',
-    '    throw new Error("contained refresh refused: escape");',
-    "  }",
-    "  const segments = checked.split(/[\\\\/]+/).filter((s) => s.length > 0);",
-    "  let current = rootResolved;",
-    "  for (const segment of segments) {",
-    "    current = join(current, segment);",
-    "    let info;",
-    "    try { info = lstatSync(current); } catch { break; }",
-    "    if (info.isSymbolicLink()) {",
-    '      throw new Error("contained refresh refused: symlink " + current);',
-    "    }",
-    "  }",
-    "  mkdirSync(dirname(targetAbs), { recursive: true });",
-    "  // O_NOFOLLOW closes leaf symlink TOCTOU vs lstat-then-writeFileSync (#5020 P1).",
-    "  const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | constants.O_NOFOLLOW;",
-    "  const fd = openSync(targetAbs, flags, 0o644);",
-    "  try {",
-    "    const buf = Buffer.from(data);",
-    "    let offset = 0;",
-    "    while (offset < buf.length) {",
-    "      const n = writeSync(fd, buf, offset, buf.length - offset, null);",
-    '      if (n <= 0) throw new Error("contained refresh short write");',
-    "      offset += n;",
-    "    }",
-    "    fsyncSync(fd);",
-    "  } finally {",
-    "    closeSync(fd);",
-    "  }",
-    "}",
-    "function beat() {",
-    "  try {",
-    "    const payload = Object.assign({}, payloadBase, {",
-    "      last_heartbeat_at: new Date().toISOString(),",
-    "    });",
-    '    containedReplace(rootAbs, relTarget, JSON.stringify(payload) + "\\n");',
-    "  } catch (err) {",
-    "    const msg = err instanceof Error ? err.message : String(err);",
-    '    console.error("pr_watch: wait heartbeat refresh failed: " + msg);',
-    "  }",
-    "}",
-    "try {",
-    "  beat();",
-    `  while (Atomics.load(view, ${REFRESHER_STOP_INDEX}) === 0) {`,
-    `    Atomics.wait(view, ${REFRESHER_STOP_INDEX}, 0, intervalMs);`,
-    `    if (Atomics.load(view, ${REFRESHER_STOP_INDEX}) !== 0) break;`,
-    "    beat();",
-    "  }",
-    "} finally {",
-    `  Atomics.store(view, ${REFRESHER_DONE_INDEX}, 1);`,
-    `  Atomics.notify(view, ${REFRESHER_DONE_INDEX});`,
-    "}",
-  ].join("\n");
+  let workerPath: string;
+  try {
+    workerPath = resolveWaitHeartbeatRefresherWorkerPath();
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`pr_watch: wait heartbeat refresher failed to start: ${detail}\n`);
+    return { stop: () => undefined };
+  }
 
+  // Worker owns refresh writes so a blocked parent (spawnSync) cannot stale the
+  // 30m floor. Routes through containedWrite (#2951 / #5020).
   const control = new SharedArrayBuffer(8);
   const view = new Int32Array(control);
+  const workerData: WaitHeartbeatRefresherWorkerData = {
+    rootAbs,
+    relTarget,
+    payloadBase,
+    intervalMs,
+    control,
+  };
   let worker: Worker | null = null;
   try {
-    worker = new Worker(script, {
-      eval: true,
-      workerData: { rootAbs, relTarget, payloadBase, intervalMs, control },
-    });
+    worker = new Worker(workerPath, { workerData });
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     process.stderr.write(`pr_watch: wait heartbeat refresher failed to start: ${detail}\n`);
