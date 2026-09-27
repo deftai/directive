@@ -70,4 +70,43 @@ describe("inventoryDefaultSurfaces (#4545)", () => {
     writeFileSync(join(helperDir, "actions.ts"), "export function fileEscalation() {}\n", "utf8");
     expect(inventoryDefaultSurfaces(root)).toEqual([]);
   });
+
+  it("finds nested monorepo app actions like apps/web/src/app/actions.ts", () => {
+    const root = mkdtempSync(join(tmpdir(), "osl-inv-mono-"));
+    const actionsDir = join(root, "apps", "web", "src", "app");
+    mkdirSync(actionsDir, { recursive: true });
+    writeFileSync(
+      join(actionsDir, "actions.ts"),
+      "export async function addVehicleAction() {}\n",
+      "utf8",
+    );
+    mkdirSync(join(root, "apps", "web", "src", "app", "vehicles", "new"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(root, "apps", "web", "src", "app", "vehicles", "new", "page.tsx"),
+      "export default function Page() {}",
+      "utf8",
+    );
+
+    const surfaces = inventoryDefaultSurfaces(root);
+    const ids = surfaces.map((s) => `${s.kind}:${s.id}`);
+    expect(ids).toEqual(
+      expect.arrayContaining(["server-action:addVehicleAction", "page:/vehicles/new"]),
+    );
+  });
+
+  it("inventories the exported alias name for export { local as public }", () => {
+    const root = mkdtempSync(join(tmpdir(), "osl-inv-alias-"));
+    const actionsDir = join(root, "app", "actions");
+    mkdirSync(actionsDir, { recursive: true });
+    writeFileSync(
+      join(actionsDir, "actions.ts"),
+      ["async function localAction() {}", "export { localAction as publicAction }"].join("\n"),
+      "utf8",
+    );
+
+    const ids = inventoryDefaultSurfaces(root).map((s) => s.id);
+    expect(ids).toEqual(["publicAction"]);
+  });
 });

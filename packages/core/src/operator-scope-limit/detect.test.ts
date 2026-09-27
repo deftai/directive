@@ -28,4 +28,28 @@ describe("detect (#4545)", () => {
     ].join("\n");
     expect(extractRequirementLines(prompt)).toEqual(["add vehicle"]);
   });
+
+  it("treats Features not included / Must not ship as exclusion headers", () => {
+    const prompt = [
+      "Requirements:",
+      "- add vehicle",
+      "",
+      "Features not included:",
+      "- delete vehicle",
+      "",
+      "Must not ship:",
+      "- update vehicle",
+    ].join("\n");
+    expect(extractRequirementLines(prompt)).toEqual(["add vehicle"]);
+  });
+
+  it("does not let a Do not include sentence drop later requirements", () => {
+    const prompt = [
+      "Requirements:",
+      "- add vehicle",
+      "Do not include analytics dashboards.",
+      "- update mileage",
+    ].join("\n");
+    expect(extractRequirementLines(prompt)).toEqual(["add vehicle", "update mileage"]);
+  });
 });

@@ -7,30 +7,30 @@ const SKIP_DIR_RE =
 
 /** App-router action layouts only — not package-local actions.ts helpers. */
 const ACTION_FILE_GLOBS = [
-  "app/**/actions.ts",
-  "app/**/actions.tsx",
-  "app/**/actions.js",
-  "app/**/actions.jsx",
-  "app/actions/**/*.ts",
-  "app/actions/**/*.tsx",
-  "app/actions/**/*.js",
-  "app/actions/**/*.jsx",
-  "app/**/actions/**/*.ts",
-  "app/**/actions/**/*.tsx",
-  "app/**/actions/**/*.js",
-  "app/**/actions/**/*.jsx",
-  "src/app/**/actions.ts",
-  "src/app/**/actions.tsx",
-  "src/app/**/actions.js",
-  "src/app/**/actions.jsx",
-  "src/app/actions/**/*.ts",
-  "src/app/actions/**/*.tsx",
-  "src/app/actions/**/*.js",
-  "src/app/actions/**/*.jsx",
-  "src/app/**/actions/**/*.ts",
-  "src/app/**/actions/**/*.tsx",
-  "src/app/**/actions/**/*.js",
-  "src/app/**/actions/**/*.jsx",
+  "**/app/**/actions.ts",
+  "**/app/**/actions.tsx",
+  "**/app/**/actions.js",
+  "**/app/**/actions.jsx",
+  "**/app/actions/**/*.ts",
+  "**/app/actions/**/*.tsx",
+  "**/app/actions/**/*.js",
+  "**/app/actions/**/*.jsx",
+  "**/app/**/actions/**/*.ts",
+  "**/app/**/actions/**/*.tsx",
+  "**/app/**/actions/**/*.js",
+  "**/app/**/actions/**/*.jsx",
+  "**/src/app/**/actions.ts",
+  "**/src/app/**/actions.tsx",
+  "**/src/app/**/actions.js",
+  "**/src/app/**/actions.jsx",
+  "**/src/app/actions/**/*.ts",
+  "**/src/app/actions/**/*.tsx",
+  "**/src/app/actions/**/*.js",
+  "**/src/app/actions/**/*.jsx",
+  "**/src/app/**/actions/**/*.ts",
+  "**/src/app/**/actions/**/*.tsx",
+  "**/src/app/**/actions/**/*.js",
+  "**/src/app/**/actions/**/*.jsx",
 ] as const;
 
 const PAGE_GLOBS = [
@@ -150,9 +150,10 @@ function collectExportedNames(source: string): string[] {
     for (const part of body.split(",")) {
       const token = part.trim();
       if (token.length === 0 || token.startsWith("type ")) continue;
-      // `name` or `name as alias` — inventory the local binding being exported.
-      const local = token.split(/\s+as\s+/i)[0]?.trim();
-      push(local);
+      // `name` or `local as exported` — inventory the public export name.
+      const asParts = token.split(/\s+as\s+/i);
+      const exported = asParts[asParts.length - 1]?.trim();
+      push(exported);
     }
     brace = EXPORT_BRACE_LIST.exec(source);
   }

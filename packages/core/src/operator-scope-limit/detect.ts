@@ -34,9 +34,10 @@ export function detectScopeLimitPhrase(prompt: string): DetectedScopeLimit | nul
  * Scans the whole prompt so an early ceiling phrase (`Initial version only:`
  * then `- add vehicle`) still keeps requirements that follow it. Scope-limit
  * sentences themselves are filtered out. Lines under exclusion headers
- * (`Out of scope:`, `Excluded:`, …) are not recorded as requirements, so a
- * shipped excluded action still warns. `beforeIndex` is accepted for call
- * compatibility and ignored for truncation.
+ * (`Out of scope:`, `Features not included:`, `Must not ship:`, …) are not
+ * recorded as requirements, so a shipped excluded action still warns.
+ * Sentence-shaped "Do not include …" lines do not open an exclusion block.
+ * `beforeIndex` is accepted for call compatibility and ignored for truncation.
  */
 export function extractRequirementLines(
   prompt: string,
@@ -80,21 +81,22 @@ export function extractRequirementLines(
 const REQUIREMENT_VERB =
   /^(add|update|create|delete|remove|list|view|get|set|edit|record|track)\b/i;
 
-/** Section headers that mark excluded / not-required content. */
+/** Section headers that mark excluded / not-required content (whole line). */
 const EXCLUSION_HEADER =
-  /^(out of scope|excluded|exclusions|not in scope|do not include|beyond scope|non[- ]goals?)\b/i;
+  /^(out of scope|excluded|exclusions|not in scope|do not include|beyond scope|non[- ]goals?|features not included|must not ship)\s*:?\s*$/i;
 
-/** Section headers that resume recording requirements. */
-const INCLUSION_HEADER = /^(requirements?|in scope|must|scope|accepted|include|features?)\b/i;
+/** Section headers that resume recording requirements (whole line). */
+const INCLUSION_HEADER =
+  /^(requirements?|in scope|must|scope|accepted|include|features?)\s*:?\s*$/i;
 
 function classifySectionHeader(line: string): "exclusion" | "inclusion" | null {
-  // Only treat short header-shaped lines (optional trailing colon).
-  const header = line.replace(/:\s*$/, "").trim();
-  if (header.length === 0 || header.length > 40) return null;
   // Bullet bodies are never section headers.
   if (/^[-*•]\s+/.test(line) || /^\d+[.)]\s+/.test(line)) return null;
-  if (EXCLUSION_HEADER.test(header)) return "exclusion";
-  if (INCLUSION_HEADER.test(header)) return "inclusion";
+  // Whole-line headers only — a short "Do not include …" sentence must not
+  // open an exclusion block that drops later genuine requirements.
+  if (line.length === 0 || line.length > 40) return null;
+  if (EXCLUSION_HEADER.test(line)) return "exclusion";
+  if (INCLUSION_HEADER.test(line)) return "inclusion";
   return null;
 }
 
