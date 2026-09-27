@@ -6,7 +6,15 @@ import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
 import { DirectiveGitHubAppStore } from "../one-pr-unit/store.js";
 import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
-import { cmdPrCheckClosingKeywords, parseAllowList, parseArgs, run } from "./main.js";
+import {
+  cmdPrCheckClosingKeywords,
+  fullStoryCloseIntentFromBody,
+  parseAllDeftStoryMarks,
+  parseAllowList,
+  parseArgs,
+  parseDeftStoryMark,
+  run,
+} from "./main.js";
 import type { RunGhFn } from "./types.js";
 
 describe("parseAllowList", () => {
@@ -612,5 +620,63 @@ describe("--allow-close running-for-N refuse (#4628)", () => {
       EXIT_OK,
     );
     stderr.mockRestore();
+  });
+});
+
+describe("full-story close intent mark (#4864)", () => {
+  it("parses deft-story: N and ignores deft-close-intent: full", () => {
+    expect(parseDeftStoryMark("Tracking #55\n\ndeft-story: 55\n")).toBe(55);
+    expect(parseDeftStoryMark("Tracking #55\n\ndeft-close-intent: full\n")).toBeNull();
+    expect(parseAllDeftStoryMarks("deft-story: 10\ndeft-story: 20\n")).toEqual([10, 20]);
+    expect(fullStoryCloseIntentFromBody("Refs #9\ndeft-story: 9\n")).toEqual({
+      issue: 9,
+      source: "deft-story",
+    });
+  });
+
+  it("Tracking + deft-story still passes while --allow-close is refused for a running brief", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-full-story-mark-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-55.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "story",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/55",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const trackingBody = join(root, "tracking.md");
+    writeFileSync(trackingBody, "Tracking #55\n\ndeft-story: 55\n", "utf8");
+    expect(
+      run(["--body-file", trackingBody, "--repo", "deftai/directive", "--project-root", root]),
+    ).toBe(EXIT_OK);
+
+    const closesBody = join(root, "closes.md");
+    writeFileSync(closesBody, "Closes #55\n\ndeft-story: 55\n", "utf8");
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(
+      run([
+        "--body-file",
+        closesBody,
+        "--allow-close",
+        "55",
+        "--repo",
+        "deftai/directive",
+        "--project-root",
+        root,
+      ]),
+    ).toBe(EXIT_HITS_FOUND);
+    expect(stderr.mock.calls.join("")).toContain("Tracking");
+    stderr.mockRestore();
+    rmSync(root, { recursive: true, force: true });
   });
 });

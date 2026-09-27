@@ -39,3 +39,13 @@ export interface ParsedArgs {
   readonly projectRoot: string | null;
   readonly error?: string;
 }
+
+/**
+ * Full-story close intent recorded at PR open (#4864).
+ * Body line `deft-story: N` (digits only). Not `--allow-close` and not Closes/Fixes/Resolves.
+ * Finalize consumes this after leftover-complete; `deft-close-intent: full` stays unauthorized.
+ */
+export interface FullStoryCloseIntent {
+  readonly issue: number;
+  readonly source: "deft-story";
+}

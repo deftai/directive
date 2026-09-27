@@ -6,7 +6,9 @@ import { extractIssueRef } from "../capacity/backfill.js";
 import { composeDocsImpactBody, verifyDocsImpactBodyFile } from "../docs/docs-impact.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
+import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
@@ -331,6 +333,7 @@ function completedBriefRelpathForIssue(projectRoot: string, issue: number): stri
 function collectOriginIssueNumbers(
   storyPaths: readonly string[],
   storyTokens: readonly string[],
+  extraIssues: readonly number[] = [],
 ): number[] {
   const issues = new Set<number>();
   for (const path of storyPaths) {
@@ -343,6 +346,57 @@ function collectOriginIssueNumbers(
     const token = raw.trim();
     if (/^\d+$/.test(token)) {
       issues.add(Number(token));
+    }
+  }
+  for (const issue of extraIssues) {
+    if (Number.isInteger(issue) && issue > 0) {
+      issues.add(issue);
+    }
+  }
+  return [...issues].sort((a, b) => a - b);
+}
+
+/**
+ * Completed briefs whose metadata.productPullRequest matches a product PR (#4864).
+ * Equivalent durable mark to PR-body `deft-story: N`.
+ */
+function collectProductPullRequestOrigins(
+  projectRoot: string,
+  prNumbers: readonly number[],
+): number[] {
+  if (prNumbers.length === 0) {
+    return [];
+  }
+  const prSet = new Set(prNumbers);
+  const issues = new Set<number>();
+  const completedDir = resolve(projectRoot, "xbrief", "completed");
+  if (!existsSync(completedDir)) {
+    return [];
+  }
+  for (const name of readdirSync(completedDir)) {
+    if (!name.endsWith(".json")) {
+      continue;
+    }
+    const full = resolve(completedDir, name);
+    try {
+      const raw = JSON.parse(readFileSync(full, "utf8")) as unknown;
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        continue;
+      }
+      const plan = (raw as Record<string, unknown>).plan;
+      if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+        continue;
+      }
+      const productPr = productPullRequestFromPlan(plan as Record<string, unknown>);
+      if (productPr === null || !prSet.has(productPr)) {
+        continue;
+      }
+      const issue = githubIssueFromBrief(full);
+      if (issue !== null) {
+        issues.add(issue);
+      }
+    } catch {
+      /* unreadable completed brief — skip */
     }
   }
   return [...issues].sort((a, b) => a - b);
@@ -1171,6 +1225,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const evidenceByIssue = new Map<number, DeliveryEvidenceInput>();
   const validatedEvidence = new Map<number, DeliveryEvidenceInput>();
   const validatedPrs: number[] = [];
+  /** Full-story close intent from PR-body `deft-story: N` (#4864). Not Tracking/Refs scrape. */
+  const fullStoryCloseIssues = new Set<number>();
   let closingLookupFailed = false;
 
   if (prNumbers.length > 0 && errors.length === 0) {
@@ -1237,6 +1293,12 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           closingIssues.add(issue);
           evidenceByIssue.set(issue, prEvidence);
         }
+
+        const prBody = typeof snap.payload.body === "string" ? snap.payload.body : "";
+        for (const issue of parseAllDeftStoryMarks(prBody)) {
+          fullStoryCloseIssues.add(issue);
+          evidenceByIssue.set(issue, prEvidence);
+        }
       }
     }
   }
@@ -1245,8 +1307,22 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     errors.push(...deliveryErrors);
   }
 
-  if (storyTokens.length === 0 && closingIssues.size === 0) {
-    errors.push("empty cohort: pass --pr <numbers> and/or --stories <ids|paths>.");
+  const productPrOrigins = collectProductPullRequestOrigins(projectRoot, validatedPrs);
+  for (const issue of productPrOrigins) {
+    fullStoryCloseIssues.add(issue);
+    if (validatedPrs.length === 1) {
+      const sole = validatedEvidence.get(validatedPrs[0] as number);
+      if (sole !== undefined) {
+        evidenceByIssue.set(issue, sole);
+      }
+    }
+  }
+
+  if (storyTokens.length === 0 && closingIssues.size === 0 && fullStoryCloseIssues.size === 0) {
+    errors.push(
+      "empty cohort: pass --pr <numbers> and/or --stories <ids|paths> " +
+        "(or record full-story close intent via deft-story: N / productPullRequest).",
+    );
   }
 
   const warnings: string[] = [];
@@ -1333,7 +1409,34 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
   }
 
-  const originIssues = collectOriginIssueNumbers(storyPaths, storyTokens);
+  // Full-story marks (#4864): same active-story attach; completed-only stays for origin-close.
+  for (const issue of [...fullStoryCloseIssues].sort((a, b) => a - b)) {
+    if (closingIssues.has(issue)) {
+      continue;
+    }
+    const resolved = resolveStories(projectRoot, [String(issue)]);
+    if (resolved.resolved.length > 0) {
+      for (const story of resolved.resolved) {
+        addStory(story.path);
+      }
+      continue;
+    }
+    const noActiveBrief = resolved.errors.some((e) => e.includes("no active story references"));
+    if (!noActiveBrief) {
+      errors.push(...resolved.errors);
+      continue;
+    }
+    const completedBrief = completedBriefReferencesIssue(projectRoot, issue);
+    if (!completedBrief && !fetchIssueClosed(issue, repo, runGh)) {
+      errors.push(
+        `#${issue}: full-story close intent recorded but no active or completed brief references this issue (#4864).`,
+      );
+    }
+  }
+
+  const originIssues = collectOriginIssueNumbers(storyPaths, storyTokens, [
+    ...fullStoryCloseIssues,
+  ]);
 
   if (storyPaths.length === 0) {
     if (errors.length === 0 && originIssues.length > 0) {
@@ -1460,6 +1563,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   // Single-PR cohorts: every story inherits that PR's evidence when issue binding misses
   // (operator --stories + one --pr is the common finalize path).
   // Empty closingIssuesReferences: the one validated snapshot is evidence for the given N.
+  // Full-story `deft-story: N` / productPullRequest is the same bind (#4864).
   // N alone and M alone are not that invocation.
   let defaultEvidence: DeliveryEvidenceInput | null = null;
   if (validatedPrs.length === 1 && evidenceByIssue.size > 0) {
@@ -1468,7 +1572,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     validatedPrs.length === 1 &&
     closingIssues.size === 0 &&
     !closingLookupFailed &&
-    storyTokens.length > 0
+    (storyTokens.length > 0 || fullStoryCloseIssues.size > 0)
   ) {
     const solePr = validatedPrs[0];
     defaultEvidence = solePr === undefined ? null : (validatedEvidence.get(solePr) ?? null);

@@ -65,3 +65,26 @@ export function listActiveRunningBriefs(projectRoot: string): ActiveRunningBrief
   }
   return listActiveRunningBriefsFromLifecycleRoot(lifecycleRoot);
 }
+
+/**
+ * Brief-side full-story mark (#4864 / #4919): plan.metadata.productPullRequest.
+ * Equivalent durable mark to PR-body `deft-story: N`. Digits-only; null when absent.
+ */
+export function productPullRequestFromPlan(plan: Record<string, unknown>): number | null {
+  const metadata = plan.metadata;
+  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) {
+    return null;
+  }
+  const raw = (metadata as Record<string, unknown>).productPullRequest;
+  if (typeof raw === "number" && Number.isInteger(raw) && raw > 0) {
+    return raw;
+  }
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const n = Number(trimmed);
+      return n > 0 ? n : null;
+    }
+  }
+  return null;
+}

@@ -1188,6 +1188,136 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("origin-closes from PR-body deft-story mark after leftover land without --stories (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-deft-story-"));
+    writeCompletedStory(project, "story-4864", 4864);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        5100: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #4864\n\ndeft-story: 4864\n",
+        },
+      },
+      { 4864: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5100],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4864.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4864"))),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("origin-closes from completed brief productPullRequest mark (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-product-pr-"));
+    const completed = join(project, "xbrief", "completed", "story-4864.xbrief.json");
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      completed,
+      JSON.stringify({
+        plan: {
+          id: "story-4864",
+          title: "story-4864",
+          status: "done",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/4864",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: 5101 },
+          items: [{ id: "i1", title: "t", status: "done" }],
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "Project",
+          status: "running",
+          policy: { allowDirectCommitsToMaster: false, wipCap: 10 },
+        },
+      }),
+      "utf8",
+    );
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        5101: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #4864\n",
+        },
+      },
+      { 4864: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5101],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-4864.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4864"))),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("keeps protected umbrella open even with deft-story mark (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-umbrella-mark-"));
+    writeCompletedStory(project, "story-701", 701);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5102],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh(
+        {
+          5102: {
+            merged: true,
+            closingIssues: [],
+            body: "Tracking #701\n\ndeft-story: 701\n",
+          },
+        },
+        { 701: "open" },
+        { 701: { labels: ["type:umbrella"], title: "Layer 3 umbrella" } },
+      ),
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-701.xbrief.json"] }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.warnings.some((w) => w.includes("protected staying-OPEN umbrella"))).toBe(
+      true,
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("uses the validated snapshot as delivery evidence when closing refs are empty (#4937)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-empty-closing-"));
     const storyPath = writeActiveStory(project, "story-4937", 4937);

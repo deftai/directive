@@ -16,7 +16,48 @@ import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { findAllClosingKeywordHits, findHits, renderHit } from "./detect.js";
 import { defaultRunGh, fetchPrBody, fetchPrCommitMessages } from "./gh.js";
 import { readCommitsFile, readTextFile } from "./io.js";
-import type { ClosingKeywordMode, Hit, ParsedArgs, RunGhFn } from "./types.js";
+import type {
+  ClosingKeywordMode,
+  FullStoryCloseIntent,
+  Hit,
+  ParsedArgs,
+  RunGhFn,
+} from "./types.js";
+
+/**
+ * Parse PR-body full-story close intent (#4864): a line `deft-story: N` (digits only).
+ * Not an authorization path for Closes/Fixes/Resolves; `--allow-close` stays CLI-only.
+ * `deft-close-intent: full` is intentionally ignored here (stays unauthorized).
+ */
+export function parseDeftStoryMark(text: string): number | null {
+  const re = /^\s*deft-story:\s*(\d+)\s*$/gim;
+  const match = re.exec(text);
+  if (match === null) {
+    return null;
+  }
+  const n = Number(match[1]);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/** All distinct `deft-story: N` marks in text (#4864). */
+export function parseAllDeftStoryMarks(text: string): number[] {
+  const re = /^\s*deft-story:\s*(\d+)\s*$/gim;
+  const out = new Set<number>();
+  let match = re.exec(text);
+  while (match !== null) {
+    const n = Number(match[1]);
+    if (Number.isInteger(n) && n > 0) {
+      out.add(n);
+    }
+    match = re.exec(text);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+export function fullStoryCloseIntentFromBody(text: string): FullStoryCloseIntent | null {
+  const issue = parseDeftStoryMark(text);
+  return issue === null ? null : { issue, source: "deft-story" };
+}
 
 export function parseAllowList(values: readonly string[]): Set<number> {
   const out = new Set<number>();
