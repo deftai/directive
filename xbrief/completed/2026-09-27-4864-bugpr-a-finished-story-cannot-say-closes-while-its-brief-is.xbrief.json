@@ -453,7 +453,8 @@
       "lifecycleWrite": {
         "action": "complete",
         "writtenAt": "2026-09-27T20:26:33Z"
-      }
+      },
+      "productPullRequest": 5071
     },
     "id": "github.issue.5540187641",
     "updated": "2026-09-27T20:26:33Z"
