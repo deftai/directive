@@ -14,12 +14,12 @@ import {
   WATCH_HELP,
 } from "./constants.js";
 import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
-import { watch } from "./watch.js";
 import {
   REFRESHER_DONE_INDEX,
   REFRESHER_STOP_INDEX,
   type WaitHeartbeatRefresherWorkerData,
 } from "./wait-heartbeat-refresher-worker.js";
+import { watch } from "./watch.js";
 
 /**
  * Max wait for refresher worker exit after stop so terminal write stays last (#5020).
