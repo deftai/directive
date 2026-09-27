@@ -12,6 +12,7 @@ export {
   attachPlanAcceptance,
   buildAcceptanceFromIntakeCapture,
   digestAdmittedSourceSentences,
+  extractAdmittedSourceSentencesFromText,
   readAdmittedSourceDigest,
   readAdmittedSourceSentences,
   readPlanAcceptance,

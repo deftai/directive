@@ -56,7 +56,6 @@ import {
   type ClauseWalkResult,
   countUnverifiedAdjudicableClauses,
   evaluateStatementSentenceCoverage,
-  extractStatementSentences,
   formatClauseWalkMessage,
   readDeclaredArtifactScope,
   UNMAPPED_STATEMENT_SENTENCE_CAUSE,
@@ -69,6 +68,7 @@ import {
 } from "../verify-ac/evaluate.js";
 import {
   digestAdmittedSourceSentences,
+  extractAdmittedSourceSentencesFromText,
   readAdmittedSourceDigest,
   readAdmittedSourceSentences,
   readPlanAcceptance,
@@ -1397,7 +1397,10 @@ function resolveAdmittedSourceIdentities(
         message: `verify:ac admitted-source digest (#5055): ${fetched.reason}`,
       };
     }
-    const identities = extractStatementSentences(fetched.text).map(normalizeIdentityText);
+    // Same quarantine-aware extract as the first-ingest pin (#5055 P1).
+    const identities = extractAdmittedSourceSentencesFromText(fetched.text).map(
+      normalizeIdentityText,
+    );
     if (identities.length === 0) {
       if (recordedDigest !== null) {
         return {
@@ -1505,7 +1508,10 @@ function applyAdmittedSourceIdentityGate(
             ),
       };
     }
-    const liveIdentities = extractStatementSentences(fetched.text).map(normalizeIdentityText);
+    // Quarantine-aware: match pin extract so unchanged bodies do not mismatch.
+    const liveIdentities = extractAdmittedSourceSentencesFromText(fetched.text).map(
+      normalizeIdentityText,
+    );
     const liveDigest = digestAdmittedSourceSentences(liveIdentities);
     const expectedDigest = resolved.digest ?? digestAdmittedSourceSentences(resolved.identities);
     if (liveDigest !== expectedDigest) {

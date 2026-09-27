@@ -6,6 +6,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { scan } from "../cache/scanner.js";
 import {
   attachLiteralAcceptanceCommands,
   evaluateStampAcceptanceSafety,
@@ -392,6 +393,27 @@ function statementSentencesOnPlan(plan: Record<string, unknown>): string[] {
 }
 
 /**
+ * Quarantine-aware admitted-source sentence extract (#5055).
+ * Same transform as body-normative intake (`scan` → fence injection-shaped
+ * sections) so pin and live REST compare share one identity set. Re-scanning an
+ * already-fenced Overview is idempotent for extractable sentences.
+ */
+export function extractAdmittedSourceSentencesFromText(text: string): string[] {
+  const transformed = scan(text).transformed_content;
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const sentence of extractStatementSentences(transformed.trim())) {
+    const key = sentence.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(sentence);
+  }
+  return out;
+}
+
+/**
  * Admitted-source sentences for the first-ingest pin (#5055 Bound).
  * Body-normative: Overview is the issue-body copy. Spec-path: Overview is the
  * Bound-remedy harvest. Title/items are not the admitted-source selector — mixing
@@ -403,17 +425,7 @@ function admittedSourceSentencesOnPlan(plan: Record<string, unknown>): string[] 
   if (!isNonEmptyString(overview)) {
     return [];
   }
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const sentence of extractStatementSentences(overview.trim())) {
-    const key = sentence.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-    seen.add(key);
-    out.push(sentence);
-  }
-  return out;
+  return extractAdmittedSourceSentencesFromText(overview);
 }
 
 function preservedAcceptanceList(
