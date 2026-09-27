@@ -357,49 +357,103 @@ function collectOriginIssueNumbers(
 }
 
 /**
- * Completed briefs whose metadata.productPullRequest matches a product PR (#4864).
- * Equivalent durable mark to PR-body `deft-story: N`.
+ * Briefs (active or completed) whose metadata.productPullRequest matches a
+ * product PR (#4864). Equivalent durable mark to PR-body `deft-story: N`.
+ * Active is required so `--pr N` can discover intent before leftover-complete.
  */
 function collectProductPullRequestOrigins(
   projectRoot: string,
   prNumbers: readonly number[],
-): number[] {
+): { issue: number; productPr: number }[] {
   if (prNumbers.length === 0) {
     return [];
   }
   const prSet = new Set(prNumbers);
-  const issues = new Set<number>();
-  const completedDir = resolve(projectRoot, "xbrief", "completed");
-  if (!existsSync(completedDir)) {
-    return [];
-  }
-  for (const name of readdirSync(completedDir)) {
-    if (!name.endsWith(".json")) {
+  const byIssue = new Map<number, number>();
+  for (const folder of [
+    "xbrief/active",
+    "xbrief/completed",
+    "vbrief/active",
+    "vbrief/completed",
+  ] as const) {
+    const dir = resolve(projectRoot, folder);
+    if (!existsSync(dir)) {
       continue;
     }
-    const full = resolve(completedDir, name);
-    try {
-      const raw = JSON.parse(readFileSync(full, "utf8")) as unknown;
-      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".json")) {
         continue;
       }
-      const plan = (raw as Record<string, unknown>).plan;
-      if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-        continue;
+      const full = resolve(dir, name);
+      try {
+        const raw = JSON.parse(readFileSync(full, "utf8")) as unknown;
+        if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+          continue;
+        }
+        const plan = (raw as Record<string, unknown>).plan;
+        if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+          continue;
+        }
+        const productPr = productPullRequestFromPlan(plan as Record<string, unknown>);
+        if (productPr === null || !prSet.has(productPr)) {
+          continue;
+        }
+        const issue = githubIssueFromBrief(full);
+        if (issue !== null) {
+          byIssue.set(issue, productPr);
+        }
+      } catch {
+        /* unreadable brief — skip */
       }
-      const productPr = productPullRequestFromPlan(plan as Record<string, unknown>);
-      if (productPr === null || !prSet.has(productPr)) {
-        continue;
-      }
-      const issue = githubIssueFromBrief(full);
-      if (issue !== null) {
-        issues.add(issue);
-      }
-    } catch {
-      /* unreadable completed brief — skip */
     }
   }
-  return [...issues].sort((a, b) => a - b);
+  return [...byIssue.entries()]
+    .map(([issue, productPr]) => ({ issue, productPr }))
+    .sort((a, b) => a.issue - b.issue);
+}
+
+/**
+ * PR-body `deft-story: N` may origin-close only when this PR binds delivery for N:
+ * an active brief for N, or a completed brief with metadata.productPullRequest = PR.
+ */
+function deftStoryMarkBindsDelivery(
+  projectRoot: string,
+  issue: number,
+  prNumber: number,
+): boolean {
+  const resolved = resolveStories(projectRoot, [String(issue)]);
+  if (resolved.resolved.length > 0) {
+    return true;
+  }
+  for (const folder of ["xbrief/completed", "vbrief/completed"] as const) {
+    const dir = resolve(projectRoot, folder);
+    if (!existsSync(dir)) {
+      continue;
+    }
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(".json")) {
+        continue;
+      }
+      const full = resolve(dir, name);
+      try {
+        if (githubIssueFromBrief(full) !== issue) {
+          continue;
+        }
+        const raw = JSON.parse(readFileSync(full, "utf8")) as unknown;
+        if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+          continue;
+        }
+        const plan = (raw as Record<string, unknown>).plan;
+        if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+          continue;
+        }
+        return productPullRequestFromPlan(plan as Record<string, unknown>) === prNumber;
+      } catch {
+        /* unreadable completed brief — try next */
+      }
+    }
+  }
+  return false;
 }
 
 function listLandedCompletedRelpaths(
@@ -1296,6 +1350,14 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
 
         const prBody = typeof snap.payload.body === "string" ? snap.payload.body : "";
         for (const issue of parseAllDeftStoryMarks(prBody)) {
+          if (!deftStoryMarkBindsDelivery(projectRoot, issue, prNumber)) {
+            errors.push(
+              `#${String(issue)}: deft-story mark on PR #${String(prNumber)} does not bind PR delivery ` +
+                `(need an active brief for #${String(issue)}, or a completed brief with ` +
+                `metadata.productPullRequest=${String(prNumber)}) (#4864).`,
+            );
+            continue;
+          }
           fullStoryCloseIssues.add(issue);
           evidenceByIssue.set(issue, prEvidence);
         }
@@ -1308,13 +1370,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   }
 
   const productPrOrigins = collectProductPullRequestOrigins(projectRoot, validatedPrs);
-  for (const issue of productPrOrigins) {
+  for (const { issue, productPr } of productPrOrigins) {
     fullStoryCloseIssues.add(issue);
-    if (validatedPrs.length === 1) {
-      const sole = validatedEvidence.get(validatedPrs[0] as number);
-      if (sole !== undefined) {
-        evidenceByIssue.set(issue, sole);
-      }
+    const bound = validatedEvidence.get(productPr);
+    if (bound !== undefined) {
+      evidenceByIssue.set(issue, bound);
     }
   }
 

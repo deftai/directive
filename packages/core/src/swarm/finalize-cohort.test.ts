@@ -27,7 +27,7 @@ function writeActiveStory(
   project: string,
   storyId: string,
   issueNumber: number,
-  opts: { deliveryBranch?: string } = {},
+  opts: { deliveryBranch?: string; productPullRequest?: number } = {},
 ): string {
   const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
   mkdirSync(join(project, "xbrief", "active"), { recursive: true });
@@ -59,6 +59,9 @@ function writeActiveStory(
             type: "x-xbrief/github-issue",
           },
         ],
+        ...(opts.productPullRequest !== undefined
+          ? { metadata: { productPullRequest: opts.productPullRequest } }
+          : {}),
         items: [{ id: "i1", title: "t", status: "pending" }],
       },
     }),
@@ -67,7 +70,12 @@ function writeActiveStory(
   return full;
 }
 
-function writeCompletedStory(project: string, storyId: string, issueNumber: number): string {
+function writeCompletedStory(
+  project: string,
+  storyId: string,
+  issueNumber: number,
+  opts: { productPullRequest?: number } = {},
+): string {
   const full = join(project, "xbrief", "completed", `${storyId}.xbrief.json`);
   mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
   writeFileSync(
@@ -83,6 +91,9 @@ function writeCompletedStory(project: string, storyId: string, issueNumber: numb
             type: "x-xbrief/github-issue",
           },
         ],
+        ...(opts.productPullRequest !== undefined
+          ? { metadata: { productPullRequest: opts.productPullRequest } }
+          : {}),
         items: [{ id: "i1", title: "t", status: "done" }],
       },
     }),
@@ -1190,7 +1201,7 @@ describe("finalizeCohort", () => {
 
   it("origin-closes from PR-body deft-story mark after leftover land without --stories (#4864)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-deft-story-"));
-    writeCompletedStory(project, "story-4864", 4864);
+    writeCompletedStory(project, "story-4864", 4864, { productPullRequest: 5100 });
     const ghCalls: string[][] = [];
     const runGh = mockRunGh(
       {
@@ -1220,6 +1231,76 @@ describe("finalizeCohort", () => {
     expect(
       ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/4864"))),
     ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses deft-story mark that does not bind PR delivery for an unrelated completed issue (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-unbound-mark-"));
+    writeCompletedStory(project, "story-9999", 9999);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        5200: {
+          merged: true,
+          closingIssues: [],
+          body: "Tracking #4864\n\ndeft-story: 9999\n",
+        },
+      },
+      { 9999: "open", 4864: "open" },
+    );
+    const capturing: RunGhFn = (cmd) => {
+      ghCalls.push([...cmd]);
+      return runGh(cmd);
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5200],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: capturing,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-9999.xbrief.json"] }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(
+      result.result.errors.some(
+        (e) => e.includes("does not bind PR delivery") && e.includes("#9999"),
+      ),
+    ).toBe(true);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/9999"))),
+    ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("discovers active brief productPullRequest so --pr alone is a non-empty cohort (#4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-active-product-pr-"));
+    const storyPath = writeActiveStory(project, "story-4864", 4864, {
+      productPullRequest: 5300,
+    });
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [5300],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        5300: { merged: true, closingIssues: [], body: "Tracking #4864\n", baseRef: "master" },
+      }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.story_paths).toContain(storyPath);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({
+        assumeEvidenceValidated: true,
+        deliveryEvidence: expect.objectContaining({ prNumber: 5300 }),
+      }),
+    );
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1290,7 +1371,7 @@ describe("finalizeCohort", () => {
 
   it("keeps protected umbrella open even with deft-story mark (#4864)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-umbrella-mark-"));
-    writeCompletedStory(project, "story-701", 701);
+    writeCompletedStory(project, "story-701", 701, { productPullRequest: 5102 });
     const result = finalizeCohort({
       projectRoot: project,
       prNumbers: [5102],
