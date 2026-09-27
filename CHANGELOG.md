@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **fix(verify:ac): admitted-source sentence identities survive Overview rewrite and sentence-list deletion (Refs #5055).** First ingest pins `admitted_source_sentences` (+ digest). Removal from the inspected clause set fails closed; confession is not restoration; same-text clause restores visibility. Digest mismatch / forge-outage refuse. Spec-path refused body stays out of the pin.
 - **fix(doctor): already-installed skip compares the PATH Directive version to the pin (Tracking #4539).**
 - **docs(agents): raise agentsMdBudget.absoluteMaxBytes 20552→20600 for #4539 session-routing bootstrap ladder.** Skip only when the discovered global/PATH version matches the expected pin; a stale engine no longer silently skips. Refs #3610.
 - **fix(literal-ac): closed node --test argv grammar (Tracking #4978).** Literal acceptance admits node only through exact --test with a closed reporter allow-set; quoted dash tokens and module-loading --test-global-setup are refused. Refs #4751.

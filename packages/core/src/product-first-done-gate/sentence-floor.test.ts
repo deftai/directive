@@ -17,9 +17,20 @@ import {
   extractStatementSentences,
   stampDerivedClausesOnAcceptance,
 } from "../verify-ac/clauses.js";
-import { stampAcceptanceFromLiteralCapture } from "./acceptance.js";
+import {
+  ADMITTED_SOURCE_DIGEST_KEY,
+  ADMITTED_SOURCE_SENTENCES_KEY,
+  digestAdmittedSourceSentences,
+  stampAcceptanceFromLiteralCapture,
+} from "./acceptance.js";
 import { resolveAcceptanceGateProfile } from "./acceptance-resolver.js";
-import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
+import {
+  ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE,
+  ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
+  ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE,
+  evaluateVerifyAcFromPath,
+  evaluateVerifyAcFromPlan,
+} from "./evaluate.js";
 
 const EXISTENCE = {
   id: 1,
@@ -665,5 +676,258 @@ describe("statement sentence floor (#3550)", () => {
     expect(result.message).toContain(
       "plan.acceptance.sentences must be an array of non-empty strings",
     );
+  });
+});
+
+const PRESENTATION_RESTRICTION =
+  "Presentation changes only; do not change persistence or backend processing.";
+
+function presentationRestrictionBody(): string {
+  return [
+    "Ship a useful UI outcome.",
+    PRESENTATION_RESTRICTION,
+    "",
+    "## Acceptance Criteria",
+    "- probe.txt exists",
+    '- probe.txt contains "marker-token-3550"',
+    "",
+  ].join("\n");
+}
+
+function presentationRestrictionBrief(): Record<string, unknown> {
+  const [vbrief] = buildIssueVbrief(
+    {
+      number: 5055,
+      title: "Useful UI outcome",
+      body: presentationRestrictionBody(),
+      labels: [],
+    },
+    "proposed",
+    "https://github.com/deftai/directive",
+  );
+  return vbrief.plan as Record<string, unknown>;
+}
+
+describe("admitted-source identity floor (#5055)", () => {
+  it("pins admitted-source sentences on first ingest stamp", () => {
+    const plan = presentationRestrictionBrief();
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[];
+    expect(pinned).toEqual(expect.arrayContaining([PRESENTATION_RESTRICTION]));
+    expect(acceptance[ADMITTED_SOURCE_DIGEST_KEY]).toBe(digestAdmittedSourceSentences(pinned));
+  });
+
+  it("fails closed on Overview rewrite plus stored sentence list deleted (P1 recipe)", () => {
+    const plan = presentationRestrictionBrief();
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = [...(acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[])];
+    plan.narratives = {
+      ...(plan.narratives as Record<string, unknown>),
+      Overview: "Ship a useful UI outcome assembled from derived item titles only.",
+      Description: "Useful UI outcome",
+    };
+    delete acceptance.sentences;
+    expect(Object.hasOwn(acceptance, "sentences")).toBe(false);
+    expect(acceptance[ADMITTED_SOURCE_SENTENCES_KEY]).toEqual(pinned);
+
+    bindProbeClauses(plan);
+    const result = evaluateVerifyAcFromPlan(plan, baseOptions(writeProbeRoot()));
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(1);
+    expect(result.resolution).toBe("fail");
+    expect(result.cause).toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
+    expect(result.message).toContain(PRESENTATION_RESTRICTION);
+    expect(result.message).toContain("Confession is not restoration");
+  });
+
+  it("fails closed when the stored list is emptied or set undefined", () => {
+    const root = writeProbeRoot();
+    for (const sentences of [[] as string[], undefined]) {
+      const plan = presentationRestrictionBrief();
+      plan.narratives = {
+        ...(plan.narratives as Record<string, unknown>),
+        Overview: "Ship a useful UI outcome assembled from derived item titles only.",
+      };
+      bindProbeClauses(plan);
+      const acceptance = plan.acceptance as Record<string, unknown>;
+      if (sentences === undefined) {
+        acceptance.sentences = undefined;
+      } else {
+        acceptance.sentences = sentences;
+      }
+      const result = evaluateVerifyAcFromPlan(plan, baseOptions(root));
+      expect(result.ok).toBe(false);
+      expect(result.cause).toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
+      expect(result.message).toContain(PRESENTATION_RESTRICTION);
+    }
+  });
+
+  it("fails closed when an admitted identity is only confessed", () => {
+    const plan = presentationRestrictionBrief();
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    acceptance.confessions = [PRESENTATION_RESTRICTION];
+    // Map every other sentence so confession is the only cover for the restriction.
+    const pinned = acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[];
+    const clauses = (acceptance.clauses as { text: string; artifact_path: string | null }[]) ?? [];
+    let nextId = clauses.length + 1;
+    for (const text of pinned) {
+      if (text === PRESENTATION_RESTRICTION) {
+        continue;
+      }
+      if (clauses.some((clause) => clause.text === text)) {
+        continue;
+      }
+      clauses.push({
+        id: nextId,
+        text,
+        artifact_path: "probe.txt",
+        ambiguous: false,
+      } as never);
+      nextId += 1;
+    }
+    acceptance.clauses = clauses;
+    acceptance.sentences = pinned;
+
+    const result = evaluateVerifyAcFromPlan(plan, baseOptions(writeProbeRoot()));
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
+    expect(result.message).toContain(PRESENTATION_RESTRICTION);
+  });
+
+  it("passes when the restriction is restored as a same-text clause", () => {
+    const plan = presentationRestrictionBrief();
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[];
+    const clauses = (acceptance.clauses as { text: string; artifact_path: string | null }[]) ?? [];
+    let nextId = clauses.length + 1;
+    for (const text of pinned) {
+      if (clauses.some((clause) => clause.text === text)) {
+        continue;
+      }
+      clauses.push({
+        id: nextId,
+        text,
+        artifact_path: "probe.txt",
+        ambiguous: false,
+      } as never);
+      nextId += 1;
+    }
+    acceptance.clauses = clauses;
+    acceptance.sentences = pinned;
+
+    const result = evaluateVerifyAcFromPlan(plan, baseOptions(writeProbeRoot()));
+    expect(result.ok).toBe(true);
+    expect(result.cause).not.toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
+  });
+
+  it("refuses a digest mismatch against live REST", () => {
+    const plan = presentationRestrictionBrief();
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[];
+    const clauses = (acceptance.clauses as { text: string; artifact_path: string | null }[]) ?? [];
+    let nextId = clauses.length + 1;
+    for (const text of pinned) {
+      if (clauses.some((clause) => clause.text === text)) {
+        continue;
+      }
+      clauses.push({
+        id: nextId,
+        text,
+        artifact_path: "probe.txt",
+        ambiguous: false,
+      } as never);
+      nextId += 1;
+    }
+    acceptance.clauses = clauses;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      fetchAdmittedSourceText: () => ({
+        ok: true,
+        text: "A different admitted source that must not match the pin.",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+    expect(result.message).toContain("disagrees with live REST");
+  });
+
+  it("fails closed when live REST is unavailable for digest comparison", () => {
+    const plan = presentationRestrictionBrief();
+    bindProbeClauses(plan);
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      fetchAdmittedSourceText: () => ({
+        ok: false,
+        reason: "forge outage: rate limited",
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE);
+    expect(result.message).toContain("forge outage");
+  });
+
+  it("excludes Spec-path refused body prose from the admitted-source pin", () => {
+    const harvestText = [
+      "Do the positive remedy only.",
+      "probe.txt exists",
+      'probe.txt contains "marker-token-3550"',
+    ].join("\n");
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 5055,
+        title: "Spec-path harvest",
+        body: presentationRestrictionBody(),
+        labels: [],
+      },
+      "proposed",
+      "https://github.com/deftai/directive",
+      {
+        specPathHarvest: {
+          sourceText: harvestText,
+          items: [
+            { title: "Do the positive remedy only.", status: "pending" },
+            { title: "probe.txt exists", status: "pending" },
+            { title: 'probe.txt contains "marker-token-3550"', status: "pending" },
+          ],
+        },
+      },
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[];
+    expect(pinned).not.toContain(PRESENTATION_RESTRICTION);
+    expect(pinned).toEqual(expect.arrayContaining(["Do the positive remedy only."]));
+    expect((plan.narratives as Record<string, string>).Overview).not.toContain(
+      PRESENTATION_RESTRICTION,
+    );
+  });
+
+  it("recovers deleted working-tree pins from the merge-base copy", () => {
+    const plan = presentationRestrictionBrief();
+    plan.narratives = {
+      ...(plan.narratives as Record<string, unknown>),
+      Overview: "Ship a useful UI outcome assembled from derived item titles only.",
+    };
+    bindProbeClauses(plan);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    const pinned = [...(acceptance[ADMITTED_SOURCE_SENTENCES_KEY] as string[])];
+    delete acceptance[ADMITTED_SOURCE_SENTENCES_KEY];
+    delete acceptance[ADMITTED_SOURCE_DIGEST_KEY];
+    delete acceptance.sentences;
+
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: {
+        sentences: pinned,
+        digest: digestAdmittedSourceSentences(pinned),
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE);
+    expect(result.message).toContain(PRESENTATION_RESTRICTION);
   });
 });

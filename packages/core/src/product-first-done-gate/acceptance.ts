@@ -5,6 +5,7 @@
  * Interoperates with #3267 plan.metadata.literal_acceptance_commands.
  */
 
+import { createHash } from "node:crypto";
 import {
   attachLiteralAcceptanceCommands,
   evaluateStampAcceptanceSafety,
@@ -25,6 +26,11 @@ import {
   PLAN_ACCEPTANCE_KEY,
   type PlanAcceptance,
 } from "./types.js";
+
+/** First-ingest identity list for admitted-source sentences (#5055). */
+export const ADMITTED_SOURCE_SENTENCES_KEY = "admitted_source_sentences" as const;
+/** sha256 of the canonical admitted-source sentence join (#5055). */
+export const ADMITTED_SOURCE_DIGEST_KEY = "admitted_source_digest" as const;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -100,6 +106,21 @@ export function validatePlanAcceptance(value: unknown): string[] {
     errors.push("plan.acceptance.clauses must be an array");
   }
   errors.push(...acceptanceSentenceListErrors(rec));
+  if (
+    ADMITTED_SOURCE_SENTENCES_KEY in rec &&
+    rec[ADMITTED_SOURCE_SENTENCES_KEY] !== undefined &&
+    readNonEmptyStringListLocal(rec[ADMITTED_SOURCE_SENTENCES_KEY]) === null
+  ) {
+    errors.push("plan.acceptance.admitted_source_sentences must be an array of non-empty strings");
+  }
+  if (
+    ADMITTED_SOURCE_DIGEST_KEY in rec &&
+    rec[ADMITTED_SOURCE_DIGEST_KEY] !== undefined &&
+    (typeof rec[ADMITTED_SOURCE_DIGEST_KEY] !== "string" ||
+      rec[ADMITTED_SOURCE_DIGEST_KEY].trim().length === 0)
+  ) {
+    errors.push("plan.acceptance.admitted_source_digest must be a non-empty string");
+  }
   if (Array.isArray(rec.clauses)) {
     rec.clauses.forEach((entry, index) => {
       const row = asRecord(entry);
@@ -372,13 +393,62 @@ function statementSentencesOnPlan(plan: Record<string, unknown>): string[] {
 
 function preservedAcceptanceList(
   previous: Record<string, unknown> | null,
-  key: "sentences" | "confessions",
+  key: "sentences" | "confessions" | typeof ADMITTED_SOURCE_SENTENCES_KEY | typeof ADMITTED_SOURCE_DIGEST_KEY,
 ): unknown {
   if (previous === null || !Object.hasOwn(previous, key)) {
     return undefined;
   }
   const value = previous[key];
   return value === undefined ? undefined : value;
+}
+
+function readNonEmptyStringListLocal(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const out: string[] = [];
+  for (const entry of value) {
+    if (!isNonEmptyString(entry)) {
+      return null;
+    }
+    out.push(entry.trim().replace(/\s+/g, " "));
+  }
+  return out;
+}
+
+/** Canonical digest for an admitted-source sentence identity list (#5055). */
+export function digestAdmittedSourceSentences(sentences: readonly string[]): string {
+  const canonical = sentences.map((s) => s.trim().replace(/\s+/g, " ")).join("\n");
+  return createHash("sha256").update(canonical, "utf8").digest("hex");
+}
+
+/**
+ * Read a non-empty admitted-source identity list from an acceptance block.
+ * Empty arrays are treated as absent so recovery can use merge-base / REST (#5055).
+ */
+export function readAdmittedSourceSentences(acceptance: unknown): string[] | null {
+  const rec = asRecord(acceptance);
+  if (rec === null) {
+    return null;
+  }
+  if (!Object.hasOwn(rec, ADMITTED_SOURCE_SENTENCES_KEY)) {
+    return null;
+  }
+  const list = readNonEmptyStringListLocal(rec[ADMITTED_SOURCE_SENTENCES_KEY]);
+  if (list === null || list.length === 0) {
+    return null;
+  }
+  return list;
+}
+
+/** Read a stored admitted-source digest when present (#5055). */
+export function readAdmittedSourceDigest(acceptance: unknown): string | null {
+  const rec = asRecord(acceptance);
+  if (rec === null) {
+    return null;
+  }
+  const digest = rec[ADMITTED_SOURCE_DIGEST_KEY];
+  return isNonEmptyString(digest) ? digest.trim() : null;
 }
 
 function rawStampCommandStrings(plan: Record<string, unknown>): string[] {
@@ -462,17 +532,40 @@ export function stampAcceptanceFromLiteralCapture(
   // #3550: the sentence list is text on the brief. A restamp keeps one that
   // is already there. Intake populates it from the statement when it is absent.
   const keptSentences = preservedAcceptanceList(previous, "sentences");
+  let mintedSentences: string[] | undefined;
   if (keptSentences !== undefined) {
     serializable.sentences = keptSentences;
   } else {
     const sentences = statementSentencesOnPlan(plan);
     if (sentences.length > 0) {
       serializable.sentences = sentences;
+      mintedSentences = sentences;
     }
   }
   const keptConfessions = preservedAcceptanceList(previous, "confessions");
   if (keptConfessions !== undefined) {
     serializable.confessions = keptConfessions;
+  }
+  // #5055: pin admitted-source identities only on first acceptance stamp.
+  // A later restamp never remints from live narratives (regenerate-from-live
+  // is a fail-closed path, not a new pin).
+  const keptAdmitted = preservedAcceptanceList(previous, ADMITTED_SOURCE_SENTENCES_KEY);
+  const keptDigest = preservedAcceptanceList(previous, ADMITTED_SOURCE_DIGEST_KEY);
+  if (keptAdmitted !== undefined) {
+    serializable[ADMITTED_SOURCE_SENTENCES_KEY] = keptAdmitted;
+    if (keptDigest !== undefined) {
+      serializable[ADMITTED_SOURCE_DIGEST_KEY] = keptDigest;
+    }
+  } else if (previous === null) {
+    const pin =
+      mintedSentences ??
+      (Array.isArray(serializable.sentences)
+        ? readNonEmptyStringListLocal(serializable.sentences) ?? undefined
+        : undefined);
+    if (pin !== undefined && pin.length > 0) {
+      serializable[ADMITTED_SOURCE_SENTENCES_KEY] = pin;
+      serializable[ADMITTED_SOURCE_DIGEST_KEY] = digestAdmittedSourceSentences(pin);
+    }
   }
   return {
     ...plan,

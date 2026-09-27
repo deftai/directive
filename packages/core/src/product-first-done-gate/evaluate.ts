@@ -9,7 +9,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import {
   emitAcceptanceStampFromPlan,
   MISSING_AMBIGUITY_ATTESTATION_CAUSE,
@@ -45,7 +45,7 @@ import {
   resolveScopeIdForAcReuse,
   snapshotFromReuseFields,
 } from "../session/ac-pass-reuse.js";
-import { gitHead } from "../session/git.js";
+import { defaultGitRunner, gitHead } from "../session/git.js";
 import { hashProductState } from "../session/product-state-hash.js";
 import {
   type AcServedFrom,
@@ -56,6 +56,7 @@ import {
   type ClauseWalkResult,
   countUnverifiedAdjudicableClauses,
   evaluateStatementSentenceCoverage,
+  extractStatementSentences,
   formatClauseWalkMessage,
   readDeclaredArtifactScope,
   UNMAPPED_STATEMENT_SENTENCE_CAUSE,
@@ -67,6 +68,9 @@ import {
   mergeOracleVerdict,
 } from "../verify-ac/evaluate.js";
 import {
+  digestAdmittedSourceSentences,
+  readAdmittedSourceDigest,
+  readAdmittedSourceSentences,
   readPlanAcceptance,
   STATEMENT_SENTENCE_NARRATIVE_KEYS,
   stampAcceptanceFromLiteralCapture,
@@ -175,7 +179,30 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
   readonly reuseMode?: "auto" | "bank" | "never";
   readonly sessionId?: string | null;
   readonly productPaths?: readonly string[];
+  /**
+   * Merge-base copy of the admitted-source pin (#5055). Tests inject; production
+   * may resolve via git show of the brief. Null means "looked up, absent".
+   */
+  readonly admittedSourceMergeBase?: {
+    readonly sentences: readonly string[];
+    readonly digest?: string | null;
+  } | null;
+  /**
+   * Live admitted-source text at the ingest-recorded revision (#5055).
+   * Returned failure on outage — do not skip. Tests inject.
+   */
+  readonly fetchAdmittedSourceText?: () =>
+    | { readonly ok: true; readonly text: string }
+    | { readonly ok: false; readonly reason: string };
 }
+
+/** Cause when an admitted-source identity left the inspected clause set (#5055). */
+export const ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE = "admitted_source_identity_removed" as const;
+/** Cause when the working-tree pin digest disagrees with live REST / merge-base (#5055). */
+export const ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE = "admitted_source_digest_mismatch" as const;
+/** Cause when digest comparison cannot reach live REST / forge (#5055). */
+export const ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE =
+  "admitted_source_digest_unavailable" as const;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -1106,7 +1133,7 @@ function applyOracle(
       next = { ...next, resolution: "fail" };
     }
   }
-  next = applyStatementSentenceFloor(next, plan, options.quiet === true);
+  next = applyStatementSentenceFloor(next, plan, options);
   const servedFrom = next.servedFrom ?? "executed";
   let missReason = next.missReason;
   if (servedFrom === "executed" && (missReason === undefined || missReason.length === 0)) {
@@ -1206,51 +1233,246 @@ function acceptanceForSentenceFloor(plan: Record<string, unknown>, walked: unkno
   return current;
 }
 
+function normalizeIdentityText(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function formatMissingAdmittedIdentities(missing: readonly string[]): string {
+  return [
+    `verify:ac admitted-source identity (#5055): ${missing.length} identity(ies) removed from the inspected clause set`,
+    "Confession is not restoration; restore as a same-text clause or amend via authz:grant (#3110).",
+    ...missing.map((text) => `  - ${text}`),
+  ].join("\n");
+}
+
+/**
+ * Resolve the authoritative admitted-source identity list (#5055).
+ * Prefer merge-base pin when supplied, else working-tree pin, else live REST
+ * extract. Empty / deleted working-tree pins do not remint from live narratives.
+ */
+function resolveAdmittedSourceIdentities(
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions,
+):
+  | {
+      readonly ok: true;
+      readonly identities: readonly string[];
+      readonly digest: string | null;
+      /** Live REST digest check applies only to a working-tree pin (#5055). */
+      readonly compareLiveDigest: boolean;
+    }
+  | { readonly ok: false; readonly cause: string; readonly message: string } {
+  const mergeBase = options.admittedSourceMergeBase;
+  if (mergeBase !== undefined && mergeBase !== null && mergeBase.sentences.length > 0) {
+    const identities = mergeBase.sentences.map(normalizeIdentityText);
+    return {
+      ok: true,
+      identities,
+      digest:
+        typeof mergeBase.digest === "string" && mergeBase.digest.trim().length > 0
+          ? mergeBase.digest.trim()
+          : digestAdmittedSourceSentences(identities),
+      // Spec-path harvest pins must not be compared to the raw issue body.
+      compareLiveDigest: false,
+    };
+  }
+
+  const working = readAdmittedSourceSentences(plan.acceptance);
+  if (working !== null) {
+    return {
+      ok: true,
+      identities: working,
+      digest: readAdmittedSourceDigest(plan.acceptance),
+      compareLiveDigest: true,
+    };
+  }
+
+  // Pin deleted / emptied: recover from live REST when no merge-base pin exists.
+  if (options.fetchAdmittedSourceText !== undefined) {
+    const fetched = options.fetchAdmittedSourceText();
+    if (!fetched.ok) {
+      return {
+        ok: false,
+        cause: ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
+        message: `verify:ac admitted-source digest (#5055): ${fetched.reason}`,
+      };
+    }
+    const identities = extractStatementSentences(fetched.text).map(normalizeIdentityText);
+    if (identities.length === 0) {
+      return { ok: true, identities: [], digest: null, compareLiveDigest: false };
+    }
+    return {
+      ok: true,
+      identities,
+      digest: digestAdmittedSourceSentences(identities),
+      // Recovered from live bytes already — no second comparison.
+      compareLiveDigest: false,
+    };
+  }
+
+  // No pin and no external reference: nothing to enforce (pre-#5055 briefs).
+  return { ok: true, identities: [], digest: null, compareLiveDigest: false };
+}
+
+function applyAdmittedSourceIdentityGate(
+  result: VerifyAcResult,
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions,
+): VerifyAcResult {
+  if (result.resolution === "config" || result.resolution === "skipped") {
+    return result;
+  }
+  const quiet = options.quiet === true;
+  const resolved = resolveAdmittedSourceIdentities(plan, options);
+  if (!resolved.ok) {
+    return {
+      ...result,
+      ok: false,
+      code: result.code === 2 ? 2 : 1,
+      resolution: "fail",
+      cause: resolved.cause,
+      message: quiet ? "" : joinFloorMessage(resolved.message, result.message),
+    };
+  }
+  if (resolved.identities.length === 0) {
+    return result;
+  }
+
+  // Digest comparison against live REST for a working-tree pin (#5055).
+  // Merge-base recovery and live-recovery skips this — Spec-path harvest must
+  // not be compared to the raw refused issue body.
+  if (resolved.compareLiveDigest && options.fetchAdmittedSourceText !== undefined) {
+    const fetched = options.fetchAdmittedSourceText();
+    if (!fetched.ok) {
+      return {
+        ...result,
+        ok: false,
+        code: result.code === 2 ? 2 : 1,
+        resolution: "fail",
+        cause: ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
+        message: quiet
+          ? ""
+          : joinFloorMessage(
+              `verify:ac admitted-source digest (#5055): ${fetched.reason}`,
+              result.message,
+            ),
+      };
+    }
+    const liveIdentities = extractStatementSentences(fetched.text).map(normalizeIdentityText);
+    const liveDigest = digestAdmittedSourceSentences(liveIdentities);
+    const expectedDigest = resolved.digest ?? digestAdmittedSourceSentences(resolved.identities);
+    if (liveDigest !== expectedDigest) {
+      return {
+        ...result,
+        ok: false,
+        code: result.code === 2 ? 2 : 1,
+        resolution: "fail",
+        cause: ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE,
+        message: quiet
+          ? ""
+          : joinFloorMessage(
+              "verify:ac admitted-source digest (#5055): working pin disagrees with live REST at the ingest-recorded revision",
+              result.message,
+            ),
+      };
+    }
+  }
+
+  const inspectedAcceptance = acceptanceForSentenceFloor(plan, result.acceptance);
+  const inspectedRec = asPlanRecord(inspectedAcceptance);
+  const inspectedSentences = new Set(
+    (Array.isArray(inspectedRec?.sentences) ? inspectedRec.sentences : [])
+      .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+      .map(normalizeIdentityText),
+  );
+  const clauseTexts = new Set(
+    (result.acceptance.clauses ?? []).map((clause) => normalizeIdentityText(clause.text)),
+  );
+  const confessionTexts = new Set(
+    (Array.isArray(inspectedRec?.confessions) ? inspectedRec.confessions : [])
+      .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+      .map(normalizeIdentityText),
+  );
+
+  // Removed from the inspected set, or covered only by confession (#5055).
+  // Ordinary unmapped (still listed, not confessed) stays on the #3550 cause.
+  const missing = resolved.identities.filter((text) => {
+    if (clauseTexts.has(text)) {
+      return false;
+    }
+    if (!inspectedSentences.has(text)) {
+      return true;
+    }
+    return confessionTexts.has(text);
+  });
+  if (missing.length === 0) {
+    return result;
+  }
+  const floor = formatMissingAdmittedIdentities(missing);
+  return {
+    ...result,
+    ok: false,
+    code: result.code === 2 ? 2 : 1,
+    resolution: "fail",
+    cause: ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE,
+    message: quiet
+      ? result.ok
+        ? ""
+        : result.message
+      : joinFloorMessage(floor, result.message),
+  };
+}
+
 /**
  * Fail closed when a sentence on the brief is neither a clause nor a confession.
  * Runs for every reader that reaches the oracle walk. Does not read a file (#3550).
+ * Admitted-source identities additionally require clause restoration (#5055).
  */
 function applyStatementSentenceFloor(
   result: VerifyAcResult,
   plan: Record<string, unknown>,
-  quiet: boolean,
+  options: EvaluateVerifyAcOptions,
 ): VerifyAcResult {
+  const quiet = options.quiet === true;
   const coverage = evaluateStatementSentenceCoverage(
     acceptanceForSentenceFloor(plan, result.acceptance),
     result.acceptance.clauses ?? [],
   );
   // No list means the brief has no statement sentences. Clauseless plans and
   // plans with no narrative body do not enter the production stamp.
-  if (!coverage.hasSentenceList) {
-    return result;
-  }
-  const counted: VerifyAcResult = {
-    ...result,
-    behavioralClauseCount: coverage.behavioralClauseCount,
-    unmappedSentenceCount: coverage.unmappedSentenceCount,
-  };
-  if (
-    coverage.unmappedSentenceCount === 0 ||
-    result.resolution === "config" ||
-    result.resolution === "skipped"
-  ) {
-    return counted;
-  }
-  const floor = formatUnmappedSentenceFloor(coverage.unmapped);
-  if (!result.ok) {
-    return {
-      ...counted,
-      message: quiet ? result.message : joinFloorMessage(floor, result.message),
+  let next: VerifyAcResult = result;
+  if (coverage.hasSentenceList) {
+    const counted: VerifyAcResult = {
+      ...result,
+      behavioralClauseCount: coverage.behavioralClauseCount,
+      unmappedSentenceCount: coverage.unmappedSentenceCount,
     };
+    if (
+      coverage.unmappedSentenceCount === 0 ||
+      result.resolution === "config" ||
+      result.resolution === "skipped"
+    ) {
+      next = counted;
+    } else {
+      const floor = formatUnmappedSentenceFloor(coverage.unmapped);
+      if (!result.ok) {
+        next = {
+          ...counted,
+          message: quiet ? result.message : joinFloorMessage(floor, result.message),
+        };
+      } else {
+        next = {
+          ...counted,
+          ok: false,
+          code: result.code === 2 ? 2 : 1,
+          resolution: "fail",
+          cause: UNMAPPED_STATEMENT_SENTENCE_CAUSE,
+          message: quiet ? "" : joinFloorMessage(floor, result.message),
+        };
+      }
+    }
   }
-  return {
-    ...counted,
-    ok: false,
-    code: result.code === 2 ? 2 : 1,
-    resolution: "fail",
-    cause: UNMAPPED_STATEMENT_SENTENCE_CAUSE,
-    message: quiet ? "" : joinFloorMessage(floor, result.message),
-  };
+  return applyAdmittedSourceIdentityGate(next, plan, options);
 }
 
 function annotate(
@@ -1299,6 +1521,62 @@ function annotate(
 }
 
 /**
+ * Load admitted-source pin from the merge-base copy of this brief (#5055).
+ * Returned null when absent or unreadable — caller may fall through to live REST.
+ */
+function loadAdmittedSourceFromMergeBase(
+  projectRoot: string,
+  xbriefPath: string,
+): { readonly sentences: readonly string[]; readonly digest: string | null } | null {
+  const rel = relative(projectRoot, xbriefPath).replace(/\\/g, "/");
+  if (rel.length === 0 || rel.startsWith("..")) {
+    return null;
+  }
+  const baseRef =
+    process.env.DEFT_BASE_REF?.trim() ||
+    process.env.GITHUB_BASE_REF?.trim() ||
+    "origin/master";
+  const left = baseRef.includes("/") ? baseRef : `origin/${baseRef}`;
+  const mb = defaultGitRunner(projectRoot, ["merge-base", left, "HEAD"]);
+  if (mb.code !== 0) {
+    const fallback = defaultGitRunner(projectRoot, ["merge-base", "origin/main", "HEAD"]);
+    if (fallback.code !== 0) {
+      return null;
+    }
+    const shown = defaultGitRunner(projectRoot, ["show", `${fallback.stdout.trim()}:${rel}`]);
+    if (shown.code !== 0 || shown.stdout.trim().length === 0) {
+      return null;
+    }
+    return parseAdmittedSourceFromBriefText(shown.stdout);
+  }
+  const shown = defaultGitRunner(projectRoot, ["show", `${mb.stdout.trim()}:${rel}`]);
+  if (shown.code !== 0 || shown.stdout.trim().length === 0) {
+    return null;
+  }
+  return parseAdmittedSourceFromBriefText(shown.stdout);
+}
+
+function parseAdmittedSourceFromBriefText(
+  text: string,
+): { readonly sentences: readonly string[]; readonly digest: string | null } | null {
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    const root = asRecord(parsed);
+    const plan = asRecord(root?.plan);
+    const sentences = readAdmittedSourceSentences(plan?.acceptance);
+    if (sentences === null) {
+      return null;
+    }
+    return {
+      sentences,
+      digest: readAdmittedSourceDigest(plan?.acceptance),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Evaluate from xBRIEF path.
  */
 export function evaluateVerifyAcFromPath(
@@ -1334,10 +1612,19 @@ export function evaluateVerifyAcFromPath(
   // Path-relative keys stay unique across xbrief/ vs vbrief/ and duplicate plan.id (#3337 Greptile).
   const oracleScopeKey =
     options.oracleScopeKey?.trim() || resolveOracleScopeKey(plan, abs, projectRoot);
+  let admittedSourceMergeBase = options.admittedSourceMergeBase;
+  // #5055: when the working-tree pin is gone, recover from merge-base before the walk.
+  if (admittedSourceMergeBase === undefined && readAdmittedSourceSentences(plan.acceptance) === null) {
+    const fromBase = loadAdmittedSourceFromMergeBase(projectRoot, abs);
+    if (fromBase !== null) {
+      admittedSourceMergeBase = fromBase;
+    }
+  }
   const emitOptions: EvaluateVerifyAcOptions = {
     ...options,
     oracleScopeKey,
     observedAcceptance: plan.acceptance,
+    ...(admittedSourceMergeBase !== undefined ? { admittedSourceMergeBase } : {}),
   };
   const result = evaluateVerifyAcFromPlan(plan, {
     ...emitOptions,
