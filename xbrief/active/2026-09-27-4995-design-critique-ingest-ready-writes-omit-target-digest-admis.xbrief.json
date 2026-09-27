@@ -20,7 +20,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
-          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
@@ -31,7 +31,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
-          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
@@ -42,7 +42,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
-          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       },
@@ -53,7 +53,73 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/5070",
-          "recorded_at": "2026-09-27T20:16:04.768Z",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
+          "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/5070",
+          "recorded_at": "2026-09-27T20:24:10.085Z",
           "recorded_by": "host:grok:v1:MDFhMGUzZWEtNmFjOS03YzczLTkyMjktZDYxOGY3MGUxZTFi"
         }
       }
@@ -364,7 +430,24 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "default"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5070,
+        "prBase": null,
+        "mergeCommit": "1c261c70a6da37f3e3a436cabeaa916806ea255c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c6133fe3ab30c95890073815b2d15bae9d9d94e6",
+        "verifiedAt": "2026-09-27T20:22:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered"
     },
     "id": "github.issue.5560699607",
     "updated": "2026-09-27T18:29:34Z"
