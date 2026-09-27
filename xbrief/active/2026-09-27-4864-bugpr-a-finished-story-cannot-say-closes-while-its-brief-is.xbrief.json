@@ -238,7 +238,8 @@
       ],
       "admitted_source_digest": "3d5535380c9e42edf03d8bb61385562c37948998d53e7527ceeb534ab6351434",
       "confessions": [
-        "Confession: leftover-complete after product PR #5071 squash-merge on master."
+        "Confession: leftover-complete after product PR #5071 squash-merge on master.",
+        "bug(pr): a finished story cannot say Closes while its brief is still active"
       ]
     },
     "metadata": {
