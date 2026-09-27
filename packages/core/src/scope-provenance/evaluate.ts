@@ -1,11 +1,18 @@
 /**
- * verify:scope-provenance evaluation (#3145 / #4956).
+ * verify:scope-provenance evaluation (#3145 / #4956 / #4774).
  *
  * Path fence (#4956): the active brief's `file_scope` on the merge base is the
  * precommitment. Changed production files are checked against that base list
  * plus a concrete-file allowance (floor 2, cap 5). Test-root paths spend
  * nothing. Head brief edits do not widen the fence. Proceed writes no
- * `.deft/approved-scope` digest and must not demand `scope:record-approved-scope`.
+ * `.deft/approved-scope` digest for that fence and must not demand
+ * `scope:record-approved-scope` as remint remediation.
+ *
+ * Membership (#4774): when an active xBRIEF is in the change set, the allowlist
+ * SoT is merge-base `.deft/approved-scope/<plan-id>.json` fileScope (never live
+ * HEAD file_scope). Missing merge-base approved-scope fails closed. Closed
+ * exemption after a mint exists includes the bound active xBRIEF path.
+ * Same-PR approval rewrite stays fail-closed.
  *
  * Intent-pin checks (#3385) remain for existing base-committed records.
  *
@@ -17,7 +24,11 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
-import { evaluateProductionScopeFence, pathMatchesFileScope } from "./base-fence.js";
+import {
+  evaluateApprovedScopeMembership,
+  evaluateProductionScopeFence,
+  pathMatchesFileScope,
+} from "./base-fence.js";
 import {
   type ApprovedScopeRecord,
   approvedScopeIntentRel,
@@ -36,6 +47,7 @@ export type ScopeProvenanceViolationKind =
   | "self-authorizing-scope-expansion"
   | "production-scope-over-budget"
   | "active-xbrief-modified-without-digest"
+  | "change-set-outside-approved-scope"
   | "digest-mismatch-without-renewal"
   | "intent-drift"
   | "unclassified-key"
@@ -76,6 +88,12 @@ export interface ScopeProvenanceOptions {
   readonly activeXbriefs?: ReadonlyMap<string, string>;
   /** Inject approved records (skips disk). */
   readonly approvedRecords?: readonly ApprovedScopeRecord[];
+  /**
+   * Inject merge-base approved-scope records keyed by planId (#4774 membership).
+   * When set, membership reads these instead of `git show` / readAtBase for the
+   * approval path. Absent key means missing on the merge base.
+   */
+  readonly baseApprovedRecords?: ReadonlyMap<string, ApprovedScopeRecord>;
   /** Inject renewed-approval stamps keyed by planId (test seam). */
   readonly renewedApprovals?: ReadonlyMap<string, ApprovedScopeRecord["humanApproval"]>;
   /** Inject `git show <base>:<rel>` (test seam; never working-tree). */
@@ -690,6 +708,79 @@ export function evaluateScopeProvenance(
           "active xBRIEF (#3145 / #3205). Proceed writes no approved-scope digest for scope (#4956).",
       });
       continue;
+    }
+
+    // Membership (#4774): allowlist SoT is merge-base approved-scope fileScope.
+    // Active xBRIEF in the change set with no merge-base record → fail closed.
+    let baseApprovedFileScope: readonly string[] | null = null;
+    let baseApprovedReadError: string | null = null;
+    if (planId !== null && approvalRecordRel !== null) {
+      if (options.baseApprovedRecords !== undefined) {
+        const injected = options.baseApprovedRecords.get(planId);
+        baseApprovedFileScope =
+          injected !== undefined ? normalizeFileScope(injected.fileScope) : null;
+      } else {
+        const approvalBaseRead = readAtBase(approvalRecordRel);
+        if (approvalBaseRead.kind === "error") {
+          baseApprovedReadError = approvalBaseRead.message;
+        } else if (approvalBaseRead.kind === "text") {
+          const parsed = parseApprovedScopeRecordRaw(approvalBaseRead.text);
+          if (
+            parsed !== null &&
+            isHumanApprovalStamp(parsed.humanApproval) &&
+            parsed.planId === planId &&
+            normalizeRepoRelPath(parsed.xbriefRelPath) === normalizeRepoRelPath(rel)
+          ) {
+            baseApprovedFileScope = normalizeFileScope(parsed.fileScope);
+          } else {
+            baseApprovedFileScope = null;
+          }
+        } else {
+          baseApprovedFileScope = null;
+        }
+      }
+    } else if (modified) {
+      // Modified active xBRIEF without resolvable planId / approval path → no mint.
+      baseApprovedFileScope = null;
+    }
+
+    if (baseApprovedReadError !== null && modified) {
+      findings.push({
+        xbriefRelPath: rel,
+        planId: planId ?? rel,
+        kind: "active-xbrief-modified-without-digest",
+        expandedPaths: [],
+        detail:
+          `merge-base approved-scope read failed for ${approvalRecordRel ?? "(unknown)"}: ` +
+          `${baseApprovedReadError}; fail closed (#4774)`,
+        remediation:
+          "Fix the merge-base git read for `.deft/approved-scope/<plan-id>.json` before landing " +
+          "a PR that carries the active xBRIEF (#4774).",
+      });
+      continue;
+    }
+
+    const membershipHit = evaluateApprovedScopeMembership({
+      xbriefRelPath: rel,
+      planId: planId ?? rel,
+      xbriefModifiedInChangeSet: modified,
+      baseApprovedFileScope: modified ? baseApprovedFileScope : null,
+      changedFiles: changed,
+    });
+    // Only emit membership when the xBRIEF is in the change set (helper no-ops otherwise).
+    if (membershipHit !== null) {
+      findings.push({
+        xbriefRelPath: membershipHit.xbriefRelPath,
+        planId: membershipHit.planId,
+        kind: membershipHit.kind,
+        expandedPaths: membershipHit.expandedPaths,
+        detail: membershipHit.detail,
+        remediation: membershipHit.remediation,
+      });
+      // Missing mint is decisive for C24; skip further fences for this brief.
+      if (membershipHit.kind === "active-xbrief-modified-without-digest") {
+        continue;
+      }
     }
 
     // Path fence (#4956): compare changed production files to the merge-base

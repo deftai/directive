@@ -1,10 +1,17 @@
 /**
- * Merge-base file_scope fence + production allowance (#4956).
+ * Merge-base file_scope fence + production allowance (#4956), plus change-set
+ * membership against merge-base approved-scope (#4774).
  *
- * Proceed writes no approved-scope digest. The fence is the active brief's
- * file_scope on the merge base (agent-authored precommitment). Test-root
- * paths pass free. Production extras spend a small concrete-file allowance
- * (floor 2, cap 5). Past the cap → split remediation, never remint.
+ * Proceed writes no approved-scope digest for the #4956 production fence. That
+ * fence is the active brief's file_scope on the merge base (agent-authored
+ * precommitment). Test-root paths pass free. Production extras spend a small
+ * concrete-file allowance (floor 2, cap 5). Past the cap → split remediation,
+ * never remint.
+ *
+ * Separately, #4774 membership compares the PR change set to merge-base
+ * `.deft/approved-scope/<plan-id>.json` fileScope (never live HEAD file_scope).
+ * An active xBRIEF in the change set with no merge-base approved-scope record
+ * fails closed — omitting file_scope is not undeclared-by-design attestation.
  */
 
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
@@ -178,5 +185,106 @@ export function evaluateProductionScopeFence(
     remediation: remediationForSplit(overflow),
     allowance,
     concreteBaseCount: concreteBase.length,
+  };
+}
+
+export type ApprovedScopeMembershipKind =
+  | "active-xbrief-modified-without-digest"
+  | "change-set-outside-approved-scope";
+
+export interface ApprovedScopeMembershipInput {
+  readonly xbriefRelPath: string;
+  readonly planId: string;
+  /** True when the bound active xBRIEF path is in the change set. */
+  readonly xbriefModifiedInChangeSet: boolean;
+  /**
+   * Merge-base approved-scope fileScope. Null means no usable record on the
+   * merge base (missing, malformed, or non-human stamp).
+   */
+  readonly baseApprovedFileScope: readonly string[] | null;
+  readonly changedFiles: readonly string[];
+}
+
+export interface ApprovedScopeMembershipFinding {
+  readonly xbriefRelPath: string;
+  readonly planId: string;
+  readonly kind: ApprovedScopeMembershipKind;
+  readonly expandedPaths: readonly string[];
+  readonly detail: string;
+  readonly remediation: string;
+}
+
+function remediationForMissingApprovedScope(planId: string): string {
+  return (
+    "Land a human-stamped `.deft/approved-scope/<plan-id>.json` on the merge base " +
+    `before a PR that carries the active xBRIEF (planId=${planId}). ` +
+    "Omitting file_scope is not undeclared-by-design attestation (#4774). " +
+    "Same-PR approval rewrite stays fail-closed (#3145 / #3205)."
+  );
+}
+
+function remediationForOutsideApprovedScope(extras: readonly string[]): string {
+  return (
+    "Remove or split paths outside the merge-base approved-scope fileScope, or land a " +
+    "renewed merge-base approval before widening. Live HEAD file_scope cannot authorize " +
+    `extras (#4774). Outside paths: ${extras.join(", ")}.`
+  );
+}
+
+/**
+ * PR change-set membership against merge-base approved-scope (#4774).
+ *
+ * Allowlist SoT is merge-base approved-scope fileScope, never live HEAD
+ * file_scope. Closed exemptions after a mint exists: the bound active xBRIEF
+ * path, plus CHANGELOG.md (existing free path). Missing merge-base record with
+ * the xBRIEF in the change set fails closed.
+ */
+export function evaluateApprovedScopeMembership(
+  input: ApprovedScopeMembershipInput,
+): ApprovedScopeMembershipFinding | null {
+  if (!input.xbriefModifiedInChangeSet) {
+    return null;
+  }
+
+  const xbriefRel = input.xbriefRelPath.replace(/\\/g, "/").replace(/^\.\//, "");
+
+  if (input.baseApprovedFileScope === null) {
+    return {
+      xbriefRelPath: xbriefRel,
+      planId: input.planId,
+      kind: "active-xbrief-modified-without-digest",
+      expandedPaths: [],
+      detail:
+        "active xBRIEF in change set without merge-base approved-scope record; " +
+        "fail closed (#4774 C24)",
+      remediation: remediationForMissingApprovedScope(input.planId),
+    };
+  }
+
+  const allow = normalizeFileScope(input.baseApprovedFileScope);
+  const extras: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of input.changedFiles) {
+    const rel = raw.replace(/\\/g, "/").replace(/^\.\//, "");
+    if (rel.length === 0 || seen.has(rel)) continue;
+    seen.add(rel);
+    if (rel === xbriefRel) continue;
+    if (rel === CHANGELOG_REL) continue;
+    if (pathMatchesFileScope(rel, allow)) continue;
+    extras.push(rel);
+  }
+
+  if (extras.length === 0) {
+    return null;
+  }
+
+  return {
+    xbriefRelPath: xbriefRel,
+    planId: input.planId,
+    kind: "change-set-outside-approved-scope",
+    expandedPaths: extras,
+    detail:
+      `changed paths outside merge-base approved-scope fileScope (#4774): ${extras.join(", ")}`,
+    remediation: remediationForOutsideApprovedScope(extras),
   };
 }

@@ -115,7 +115,7 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
     expect(result.message).toMatch(/clean/i);
   });
 
-  it("passes when the brief is new on the branch (no base fence / no mint)", () => {
+  it("fails closed when the brief is new on the branch with no merge-base approved-scope (#4774)", () => {
     root = initRepo();
     writeTracked(root, "README.md", "seed\n");
     commit(root, "base seed");
@@ -131,20 +131,29 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
     commit(root, "first PR with brief");
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
-    expect(result.exitCode).toBe(0);
-    expect(result.message).not.toMatch(/record-approved-scope/);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(result.findings[0]?.detail).toMatch(/#4774/);
   });
 
   it("fails when production extras exceed the base allowance", () => {
     root = initRepo();
     const planId = "story-1";
     const baseScope = ["packages/core/src/a.ts"];
+    const wideScope = [
+      "packages/core/src/a.ts",
+      "packages/core/src/b.ts",
+      "packages/core/src/c.ts",
+      "packages/core/src/d.ts",
+    ];
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
       `${JSON.stringify(xbrief(planId, baseScope), null, 2)}\n`,
     );
     writeTracked(root, "packages/core/src/a.ts", "export const a = 1;\n");
+    // Wide mint on base so #4774 membership does not mask the #4956 fence.
+    writeTracked(root, `.deft/approved-scope/${planId}.json`, approvalJson(planId, wideScope));
     commit(root, "base");
     git(root, ["branch", "base"]);
 
@@ -153,16 +162,7 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
     writeTracked(
       root,
       "xbrief/active/story.xbrief.json",
-      `${JSON.stringify(
-        xbrief(planId, [
-          "packages/core/src/a.ts",
-          "packages/core/src/b.ts",
-          "packages/core/src/c.ts",
-          "packages/core/src/d.ts",
-        ]),
-        null,
-        2,
-      )}\n`,
+      `${JSON.stringify(xbrief(planId, wideScope), null, 2)}\n`,
     );
     writeTracked(root, "packages/core/src/b.ts", "export const b = 1;\n");
     writeTracked(root, "packages/core/src/c.ts", "export const c = 1;\n");
@@ -171,8 +171,9 @@ describe("evaluateScopeProvenance real-Git base-brief fence (#4956)", () => {
 
     const result = evaluateScopeProvenance(root, { baseRef: "base", enforce: true });
     expect(result.exitCode).toBe(1);
-    expect(result.findings[0]?.kind).toBe("production-scope-over-budget");
-    expect(result.findings[0]?.remediation).not.toMatch(/--kind renewed-approval/);
+    expect(result.findings.some((f) => f.kind === "production-scope-over-budget")).toBe(true);
+    const fence = result.findings.find((f) => f.kind === "production-scope-over-budget");
+    expect(fence?.remediation).not.toMatch(/--kind renewed-approval/);
   });
 
   it("fails when approval is rewritten in the same change set", () => {
