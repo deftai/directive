@@ -439,7 +439,10 @@ describe("pr:watch wait heartbeat (#5020)", () => {
       joinMs: 2_000,
     });
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 120);
+    const stopStarted = Date.now();
     refresher.stop();
+    // OS liveness join must not pay the full 2s when the child exits promptly (#5020 P2).
+    expect(Date.now() - stopStarted).toBeLessThan(1_500);
     expect(
       writePrWatchWaitHeartbeat(root, 55, {
         phase: "terminal",

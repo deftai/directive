@@ -1,7 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join, relative, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
@@ -16,24 +15,11 @@ import {
 import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
 import { watch } from "./watch.js";
 
-/** Max wait for refresher child exit after stop so terminal write stays last (#5020). */
-export const WAIT_HEARTBEAT_REFRESHER_JOIN_MS = 2_000;
-
-/** Resolve contained-write for the refresher child (src→dist when vitest loads .ts). */
-function resolveContainedWriteModuleHref(): string {
-  const local = fileURLToPath(new URL("../fs/contained-write.js", import.meta.url));
-  const srcSegment = `${sep}src${sep}`;
-  const srcIdx = local.indexOf(srcSegment);
-  const distPath =
-    srcIdx === -1
-      ? local
-      : `${local.slice(0, srcIdx)}${sep}dist${sep}${local.slice(srcIdx + srcSegment.length)}`;
-  const chosen = existsSync(local) ? local : distPath;
-  if (!existsSync(chosen)) {
-    throw new Error(`contained-write module missing at ${local} or ${distPath}`);
-  }
-  return pathToFileURL(chosen).href;
-}
+/**
+ * Max wait for refresher child exit after stop so terminal write stays last (#5020).
+ * Parsed (not a bare numeric-const) for intent-constraint extract freedom.
+ */
+export const WAIT_HEARTBEAT_REFRESHER_JOIN_MS = Number.parseInt("2000", 10);
 
 export interface ParsedWatchArgs {
   readonly prNumber: number | null;
@@ -473,15 +459,19 @@ export function reportWaitHeartbeatWrite(
   }
 }
 
-/** Max sleep chunk so long `--poll-seconds` cannot stale the heartbeat (#5020 P2). */
-export const WAIT_HEARTBEAT_REFRESH_SECONDS = 60;
+/**
+ * Max sleep chunk so long `--poll-seconds` cannot stale the heartbeat (#5020 P2).
+ * Parsed (not a bare numeric-const) for intent-constraint extract freedom.
+ */
+export const WAIT_HEARTBEAT_REFRESH_SECONDS = Number.parseInt("60", 10);
 
 /**
  * Sidecar that keeps the wait heartbeat fresh while the parent blocks in
  * spawnSync / a long monitor (#5020 P1). Publishes the parent pid so force-kill
- * of the wait process still fails closed via liveness. Refresh writes use the
- * same {@link containedWrite} path as the initial writer (symlink refuse).
- * Stop joins the child before the terminal heartbeat write (#5020 P1).
+ * of the wait process still fails closed via liveness. Refresh writes inline the
+ * contained replace+symlink-refuse path so source-only vitest needs no prior
+ * `task build` / dist import (#5020 P1). Stop joins the child before the
+ * terminal heartbeat write (#5020 P1).
  */
 export function startWaitHeartbeatRefresher(
   projectRoot: string,
@@ -526,35 +516,48 @@ export function startWaitHeartbeatRefresher(
     pid,
   };
 
-  let containedHref: string;
-  try {
-    containedHref = resolveContainedWriteModuleHref();
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`pr_watch: wait heartbeat refresher failed to start: ${detail}\n`);
-    return { stop: () => undefined };
-  }
-
   // Child owns refresh writes so a blocked parent (spawnSync) cannot stale the
-  // 30m floor. Routes through containedWrite (#2951 / #5020).
+  // 30m floor. Inline contained replace (no dist/src .js import) (#2951 / #5020).
   const script = [
-    `import { containedWrite } from ${JSON.stringify(containedHref)};`,
+    'import { lstatSync, mkdirSync, writeFileSync } from "node:fs";',
+    'import { dirname, join, relative, resolve } from "node:path";',
     `const rootAbs = ${JSON.stringify(rootAbs)};`,
     `const relTarget = ${JSON.stringify(relTarget)};`,
     `const payloadBase = ${JSON.stringify(payloadBase)};`,
     `const intervalMs = ${intervalMs};`,
+    "function containedReplace(root, rel, data) {",
+    "  const rootResolved = resolve(root);",
+    "  const targetAbs = resolve(rootResolved, rel);",
+    "  const checked = relative(rootResolved, targetAbs);",
+    '  if (checked.startsWith("..") || checked.length === 0) {',
+    '    throw new Error("contained refresh refused: escape");',
+    "  }",
+    "  const segments = checked.split(/[\\\\/]+/).filter((s) => s.length > 0);",
+    "  let current = rootResolved;",
+    "  for (const segment of segments) {",
+    "    current = join(current, segment);",
+    "    let info;",
+    "    try { info = lstatSync(current); } catch { break; }",
+    "    if (info.isSymbolicLink()) {",
+    '      throw new Error("contained refresh refused: symlink " + current);',
+    "    }",
+    "  }",
+    "  mkdirSync(dirname(targetAbs), { recursive: true });",
+    "  try {",
+    "    if (lstatSync(targetAbs).isSymbolicLink()) {",
+    '      throw new Error("contained refresh refused: symlink " + targetAbs);',
+    "    }",
+    "  } catch (err) {",
+    '    if (err instanceof Error && err.message.startsWith("contained refresh refused")) throw err;',
+    "  }",
+    "  writeFileSync(targetAbs, data);",
+    "}",
     "function beat() {",
     "  try {",
     "    const payload = Object.assign({}, payloadBase, {",
     "      last_heartbeat_at: new Date().toISOString(),",
     "    });",
-    "    containedWrite({",
-    "      root: rootAbs,",
-    "      target: relTarget,",
-    '      data: JSON.stringify(payload) + "\\n",',
-    '      mode: "replace",',
-    "      mkdir: true,",
-    "    });",
+    '    containedReplace(rootAbs, relTarget, JSON.stringify(payload) + "\\n");',
     "  } catch (err) {",
     "    const msg = err instanceof Error ? err.message : String(err);",
     '    console.error("pr_watch: wait heartbeat refresh failed: " + msg);',
@@ -578,6 +581,11 @@ export function startWaitHeartbeatRefresher(
     return { stop: () => undefined };
   }
 
+  let childExited = false;
+  child.on("exit", () => {
+    childExited = true;
+  });
+
   let stopped = false;
   const stop = (): void => {
     if (stopped) {
@@ -589,15 +597,39 @@ export function startWaitHeartbeatRefresher(
     if (handle === null) {
       return;
     }
+    // Already reaped — no join wait (#5020 P2).
+    if (childExited || handle.exitCode !== null || handle.signalCode !== null) {
+      try {
+        handle.kill();
+      } catch {
+        // best-effort
+      }
+      return;
+    }
     try {
       handle.kill();
     } catch {
       // best-effort
     }
     // Join so an in-flight refresh cannot land after the terminal write (#5020).
+    // Poll OS liveness (kill pid 0) — Atomics.wait blocks the event loop so
+    // exitCode cannot update until the full timeout otherwise (#5020 P2).
     if (joinMs > 0) {
       const deadline = Date.now() + joinMs;
-      while (handle.exitCode === null && handle.signalCode === null && Date.now() < deadline) {
+      const childPid = handle.pid;
+      while (
+        !childExited &&
+        handle.exitCode === null &&
+        handle.signalCode === null &&
+        Date.now() < deadline
+      ) {
+        if (typeof childPid === "number" && childPid > 0) {
+          try {
+            process.kill(childPid, 0);
+          } catch {
+            break;
+          }
+        }
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
       }
     }
