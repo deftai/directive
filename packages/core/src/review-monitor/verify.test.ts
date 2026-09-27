@@ -2,6 +2,12 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  bindLivePhaseCorrectWait,
+  evaluateMergePathArm,
+  writePrWatchWaitHeartbeat,
+} from "../pr-watch/main.js";
+import { DEFAULT_STALE_MINUTES } from "./constants.js";
 import { computeExpiresAt, renderReviewOwnerComment } from "./lease-comment.js";
 import { probeMonitoringTier } from "./tier-detection.js";
 import {
@@ -312,5 +318,66 @@ describe("evaluateReviewMonitorGate", () => {
     expect(result.exitCode).toBe(1);
     expect(result.heartbeatActive).toBe(true);
     expect(result.message).toContain("local subagent heartbeat is present");
+  });
+
+  it("wait exit while lease sticky leaves --merge-path-arm --live-wait unarmed (#5020)", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-dead-wait-"));
+    writePrWatchWaitHeartbeat(root, 5020, { phase: "polling" });
+    expect(hasActivePollingHeartbeat(root, 5020)).toBe(true);
+    writePrWatchWaitHeartbeat(root, 5020, { phase: "terminal", terminalState: "exited" });
+    expect(hasActivePollingHeartbeat(root, 5020)).toBe(false);
+
+    const result = evaluateReviewMonitorGate({
+      pr: 5020,
+      projectRoot: root,
+      repo: "deftai/directive",
+      callSite: "solo",
+      environ: { GROK_BUILD: "1" },
+      seams: {
+        fetchComments: () => [
+          {
+            id: 1,
+            body: activeLeaseComment("owner", "monitor-5020"),
+            htmlUrl: "",
+            updatedAt: NOW.toISOString(),
+            authorLogin: "owner",
+            authorAssociation: "MEMBER",
+          },
+        ],
+      },
+      now: NOW,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.monitorRecord).not.toBeNull();
+    expect(result.heartbeatActive).toBe(false);
+
+    const liveBind = bindLivePhaseCorrectWait({
+      liveWaitFlag: true,
+      tierIs1: true,
+      leaseEvidence: result.monitorRecord !== null,
+      heartbeatActive: result.heartbeatActive,
+      pr: 5020,
+    });
+    expect(liveBind.livePhaseCorrectWait).toBe(false);
+    expect(liveBind.reason).toBe("missing_process_liveness");
+    const arm = evaluateMergePathArm({
+      livePhaseCorrectWait: liveBind.livePhaseCorrectWait,
+      explicitFinish: false,
+      stickyLeaseActive: true,
+    });
+    expect(arm.armed).toBe(false);
+  });
+
+  it("DEFAULT_STALE_MINUTES remains abandonment hygiene, not wait liveness (#5020)", () => {
+    expect(DEFAULT_STALE_MINUTES).toBe(30);
+    // Dead-wait unarm is heartbeat/process-liveness, not TTL expiry.
+    const bound = bindLivePhaseCorrectWait({
+      liveWaitFlag: true,
+      tierIs1: true,
+      leaseEvidence: true,
+      heartbeatActive: false,
+      pr: 1,
+    });
+    expect(bound.reason).toBe("missing_process_liveness");
   });
 });

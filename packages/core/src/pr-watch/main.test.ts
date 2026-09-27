@@ -1,4 +1,8 @@
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { hasActivePollingHeartbeat } from "../review-monitor/verify.js";
 import {
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
@@ -8,6 +12,7 @@ import {
   WATCH_HELP,
 } from "./constants.js";
 import {
+  bindLivePhaseCorrectWait,
   emitWatchJson,
   evaluateMergePathArm,
   formatWatchHelp,
@@ -15,8 +20,10 @@ import {
   parsePrWatchJsonStdoutLineSplit,
   parseWatchArgs,
   printWatchHuman,
+  prWatchHeartbeatAgentId,
   runWatch,
   watchResultToJson,
+  writePrWatchWaitHeartbeat,
 } from "./main.js";
 import type { WatchProbe, WatchResult } from "./types.js";
 
@@ -260,6 +267,139 @@ describe("evaluateMergePathArm (#4882)", () => {
     });
     expect(result.armed).toBe(false);
     expect(result.reason).toBe("unarmed_stand_down");
+  });
+});
+
+describe("bindLivePhaseCorrectWait (#5020)", () => {
+  it("Tier 1 lease+flag without heartbeat stays unbound (dead-wait sticky lease)", () => {
+    const bound = bindLivePhaseCorrectWait({
+      liveWaitFlag: true,
+      tierIs1: true,
+      leaseEvidence: true,
+      heartbeatActive: false,
+      pr: 5020,
+    });
+    expect(bound.livePhaseCorrectWait).toBe(false);
+    expect(bound.reason).toBe("missing_process_liveness");
+    expect(bound.message).toMatch(/process-liveness|#5020|lease\+flag/);
+    const arm = evaluateMergePathArm({
+      livePhaseCorrectWait: bound.livePhaseCorrectWait,
+      explicitFinish: false,
+      stickyLeaseActive: true,
+    });
+    expect(arm.armed).toBe(false);
+  });
+
+  it("Tier 1 lease + active heartbeat arms live-wait", () => {
+    const bound = bindLivePhaseCorrectWait({
+      liveWaitFlag: true,
+      tierIs1: true,
+      leaseEvidence: true,
+      heartbeatActive: true,
+      pr: 5020,
+    });
+    expect(bound.livePhaseCorrectWait).toBe(true);
+    expect(bound.reason).toBe("live");
+  });
+
+  it("Tier 1 live-wait without lease stays unbound (#5018)", () => {
+    const bound = bindLivePhaseCorrectWait({
+      liveWaitFlag: true,
+      tierIs1: true,
+      leaseEvidence: false,
+      heartbeatActive: true,
+      pr: 88,
+    });
+    expect(bound.livePhaseCorrectWait).toBe(false);
+    expect(bound.reason).toBe("missing_lease");
+  });
+
+  it("leftover durable-wait cannot complete on lease+flag attestation alone", () => {
+    // Wording honesty lock (#5020 / Greptile #5019 class): bind refuses the
+    // attestation-only conjunct that leftover twins must not stamp complete.
+    const attestationOnly = bindLivePhaseCorrectWait({
+      liveWaitFlag: true,
+      tierIs1: true,
+      leaseEvidence: true,
+      heartbeatActive: false,
+      pr: 5019,
+    });
+    expect(attestationOnly.livePhaseCorrectWait).toBe(false);
+    expect(attestationOnly.message).toMatch(/lease\+flag alone is not/);
+  });
+});
+
+describe("pr:watch wait heartbeat (#5020)", () => {
+  it("writePrWatchWaitHeartbeat is observed by hasActivePollingHeartbeat then clears on terminal", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-"));
+    const live = writePrWatchWaitHeartbeat(root, 77, { phase: "polling" });
+    expect(live.ok).toBe(true);
+    expect(hasActivePollingHeartbeat(root, 77)).toBe(true);
+    const done = writePrWatchWaitHeartbeat(root, 77, {
+      phase: "terminal",
+      terminalState: "exited",
+    });
+    expect(done.ok).toBe(true);
+    expect(hasActivePollingHeartbeat(root, 77)).toBe(false);
+    const payload = JSON.parse(
+      readFileSync(
+        join(root, ".deft-scratch", "subagent-status", `${prWatchHeartbeatAgentId(77)}.json`),
+        "utf8",
+      ),
+    ) as { phase: string; terminal_state: string | null };
+    expect(payload.phase).toBe("terminal");
+    expect(payload.terminal_state).toBe("exited");
+  });
+
+  it("writePrWatchWaitHeartbeat returns failures for invalid pr / empty terminal_state", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-hb-bad-"));
+    expect(writePrWatchWaitHeartbeat(root, 0, { phase: "polling" }).ok).toBe(false);
+    expect(
+      writePrWatchWaitHeartbeat(root, 9, { phase: "terminal", terminalState: "   " }).ok,
+    ).toBe(false);
+  });
+
+  it("bindLivePhaseCorrectWait missing flag stays unbound; non-Tier1 flag binds", () => {
+    expect(
+      bindLivePhaseCorrectWait({
+        liveWaitFlag: false,
+        tierIs1: true,
+        leaseEvidence: true,
+        heartbeatActive: true,
+        pr: 1,
+      }).reason,
+    ).toBe("missing_flag");
+    expect(
+      bindLivePhaseCorrectWait({
+        liveWaitFlag: true,
+        tierIs1: false,
+        leaseEvidence: false,
+        heartbeatActive: false,
+        pr: 1,
+      }).livePhaseCorrectWait,
+    ).toBe(true);
+  });
+
+  it("runWatch marks the wait heartbeat terminal when the wait exits", () => {
+    const root = mkdtempSync(join(tmpdir(), "pr-watch-run-hb-"));
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = runWatch(
+      ["77", "--one-shot", "--json", "--project-root", root, "--repo", "deftai/directive"],
+      {
+        probeFn: () => makeProbe({ isClean: true }),
+        sleepFn: () => undefined,
+      },
+    );
+    expect(code).toBe(EXIT_CLEAN);
+    expect(hasActivePollingHeartbeat(root, 77)).toBe(false);
+    const payload = JSON.parse(
+      readFileSync(
+        join(root, ".deft-scratch", "subagent-status", `${prWatchHeartbeatAgentId(77)}.json`),
+        "utf8",
+      ),
+    ) as { phase: string };
+    expect(payload.phase).toBe("terminal");
   });
 });
 

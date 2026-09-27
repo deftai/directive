@@ -2,6 +2,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  bindLivePhaseCorrectWait,
   evaluateMergePathArm,
   type MergePathArmResult,
 } from "@deftai/directive-core/dist/pr-watch/main.js";
@@ -151,10 +152,11 @@ export function run(argv: readonly string[]): number {
   if (args.help) {
     process.stdout.write(REVIEW_MONITOR_HELP);
     process.stdout.write(
-      "\n#4882 merge-path arm observer (optional):\n" +
+      "\n#4882 / #5020 merge-path arm observer (optional):\n" +
         "  --merge-path-arm       Fail closed when neither live wait nor explicit finish\n" +
-        "  --live-wait            Attest a still-running phase-correct wait for this PR\n" +
-        "                         (Tier 1: bound to gate lease evidence for --pr)\n" +
+        "  --live-wait            Require still-running wait evidence for this PR\n" +
+        "                         (Tier 1: lease + active polling heartbeat / process-liveness;\n" +
+        "                         lease+flag alone is not armed — #5020)\n" +
         "  --explicit-finish      Attest option-C BLOCKED/FAILED finish for this PR\n" +
         "  --sticky-lease         Attest a fresh sticky lease (not sufficient alone)\n" +
         "  Prefer Approach 1 / native pr:watch; homemade line-parsed --json is not an arm.\n",
@@ -187,22 +189,31 @@ export function run(argv: readonly string[]): number {
 
   let arm: MergePathArmResult | null = null;
   if (args.mergePathArm) {
-    // Bind --live-wait to gate-observed lease evidence on Tier 1 for this PR.
-    // Bare flags must not arm when Tier 1 requires a lease and none is present.
+    // Bind --live-wait to lease (#5018) + process-liveness heartbeat (#5020) on Tier 1.
     const leaseEvidence = result.monitorRecord !== null;
-    const liveBound = args.liveWait && (!isTier1(result.tier) || leaseEvidence);
+    const liveBind = bindLivePhaseCorrectWait({
+      liveWaitFlag: args.liveWait,
+      tierIs1: isTier1(result.tier),
+      leaseEvidence,
+      heartbeatActive: result.heartbeatActive,
+      pr: args.pr,
+    });
     arm = evaluateMergePathArm({
-      livePhaseCorrectWait: liveBound,
+      livePhaseCorrectWait: liveBind.livePhaseCorrectWait,
       explicitFinish: args.explicitFinish,
       stickyLeaseActive: args.stickyLease || leaseEvidence,
     });
-    if (args.liveWait && !liveBound && !args.explicitFinish && !arm.armed) {
+    if (
+      args.liveWait &&
+      !liveBind.livePhaseCorrectWait &&
+      !args.explicitFinish &&
+      !arm.armed &&
+      liveBind.message !== null
+    ) {
       arm = {
         armed: false,
         reason: "unarmed_stand_down",
-        message:
-          `unarmed stand-down: --live-wait attestation unbound to lease evidence ` +
-          `for PR #${args.pr} (Tier 1); sticky lease alone is not a live arm (#4882)`,
+        message: liveBind.message,
       };
     }
   }
@@ -218,6 +229,7 @@ export function run(argv: readonly string[]): number {
         explicit_finish: args.explicitFinish,
         sticky_lease: args.stickyLease,
         lease_evidence: result.monitorRecord !== null,
+        heartbeat_active: result.heartbeatActive,
       };
       // Combined gate+arm: unarmed fails closed even when the monitor gate is ready.
       if (!arm.armed && result.exitCode !== EXIT_CONFIG_ERROR) {

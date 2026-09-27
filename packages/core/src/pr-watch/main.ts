@@ -1,7 +1,8 @@
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { platformStatusUrlsForWeather } from "../pr-merge-readiness/platform-status.js";
+import { defaultSubagentStatusDir } from "../review-monitor/record.js";
 import {
   DEFAULT_MAX_WAIT_MINUTES,
   DEFAULT_POLL_SECONDS,
@@ -9,7 +10,7 @@ import {
   EXIT_TERMINAL_ERROR,
   WATCH_HELP,
 } from "./constants.js";
-import type { WatchOptions, WatchResult } from "./types.js";
+import type { SleepFn, WatchOptions, WatchResult } from "./types.js";
 import { watch } from "./watch.js";
 
 export interface ParsedWatchArgs {
@@ -245,6 +246,8 @@ export interface MergePathArmInput {
    * Still-running phase-correct wait for THIS PR: blocking `pr:watch` /
    * Approach 1 child (pre-CLEAN) or `pr:wait-mergeable-and-merge` (post-CLEAN).
    * Homemade / line-parsed wrappers and background-shell claims are NOT this.
+   * Callers MUST derive this via {@link bindLivePhaseCorrectWait} (#5020) —
+   * lease+flag attestation alone is not still-running proof.
    */
   readonly livePhaseCorrectWait: boolean;
   /** Explicit option-C finish (BLOCKED / FAILED with operator-visible handback). */
@@ -263,6 +266,61 @@ export interface MergePathArmResult {
   readonly armed: boolean;
   readonly reason: MergePathArmReason;
   readonly message: string;
+}
+
+/**
+ * Bind `--live-wait` to process-liveness evidence (#5020), keeping #5018
+ * Tier-1 lease binding. Returned failure reasons (no throw).
+ *
+ * Tier 1: flag + sticky lease + active polling heartbeat for this PR.
+ * Non-Tier 1: flag alone (Approach 3 in-process attestation path retained).
+ * Lease TTL is abandonment hygiene only — not wait liveness.
+ */
+export type LiveWaitBindReason =
+  | "live"
+  | "missing_flag"
+  | "missing_lease"
+  | "missing_process_liveness";
+
+export interface LiveWaitBindResult {
+  readonly livePhaseCorrectWait: boolean;
+  readonly reason: LiveWaitBindReason;
+  readonly message: string | null;
+}
+
+export function bindLivePhaseCorrectWait(input: {
+  readonly liveWaitFlag: boolean;
+  readonly tierIs1: boolean;
+  readonly leaseEvidence: boolean;
+  readonly heartbeatActive: boolean;
+  readonly pr: number;
+}): LiveWaitBindResult {
+  if (!input.liveWaitFlag) {
+    return { livePhaseCorrectWait: false, reason: "missing_flag", message: null };
+  }
+  if (!input.tierIs1) {
+    return { livePhaseCorrectWait: true, reason: "live", message: null };
+  }
+  if (!input.leaseEvidence) {
+    return {
+      livePhaseCorrectWait: false,
+      reason: "missing_lease",
+      message:
+        `unarmed stand-down: --live-wait attestation unbound to lease evidence ` +
+        `for PR #${input.pr} (Tier 1); sticky lease alone is not a live arm (#4882)`,
+    };
+  }
+  if (!input.heartbeatActive) {
+    return {
+      livePhaseCorrectWait: false,
+      reason: "missing_process_liveness",
+      message:
+        `unarmed stand-down: --live-wait for PR #${input.pr} has lease evidence but no ` +
+        `still-running wait identity (active polling heartbeat); lease+flag alone is not ` +
+        `process-liveness (#5020)`,
+    };
+  }
+  return { livePhaseCorrectWait: true, reason: "live", message: null };
 }
 
 /**
@@ -293,6 +351,74 @@ export function evaluateMergePathArm(input: MergePathArmInput): MergePathArmResu
     reason: "unarmed_stand_down",
     message: `unarmed stand-down: ${leaseNote}no live phase-correct wait and no explicit finish for this PR (#4882)`,
   };
+}
+
+/** Stable agent_id / filename stem for the native `pr:watch` wait heartbeat (#5020). */
+export function prWatchHeartbeatAgentId(pr: number): string {
+  return `pr-watch-${pr}`;
+}
+
+export type PrWatchHeartbeatWriteResult =
+  | { readonly ok: true; readonly path: string }
+  | { readonly ok: false; readonly reason: string };
+
+/**
+ * Host-visible wait identity for blocking `pr:watch` (#5020). Writes the same
+ * `.deft-scratch/subagent-status/<id>.json` shape that `hasActivePollingHeartbeat`
+ * / `verify:subagent-alive` already read — not a third poller family. Terminal
+ * phase clears liveness so the identity cannot outlive the wait process.
+ */
+export function writePrWatchWaitHeartbeat(
+  projectRoot: string,
+  pr: number,
+  options: {
+    readonly phase?: "polling" | "starting" | "terminal";
+    readonly terminalState?: string | null;
+    readonly now?: Date;
+    readonly parentId?: string;
+    readonly lastMessage?: string;
+  } = {},
+): PrWatchHeartbeatWriteResult {
+  if (!Number.isInteger(pr) || pr <= 0) {
+    return { ok: false, reason: `invalid pr for wait heartbeat: ${pr}` };
+  }
+  const phase = options.phase ?? "polling";
+  const terminalState =
+    phase === "terminal" ? (options.terminalState ?? "exited") : (options.terminalState ?? null);
+  if (phase === "terminal" && (terminalState === null || terminalState.trim() === "")) {
+    return { ok: false, reason: "terminal wait heartbeat requires terminal_state" };
+  }
+  const agentId = prWatchHeartbeatAgentId(pr);
+  const dir = defaultSubagentStatusDir(projectRoot);
+  const path = join(dir, `${agentId}.json`);
+  const now = options.now ?? new Date();
+  const payload = {
+    agent_id: agentId,
+    parent_id: options.parentId ?? "pr-watch",
+    last_heartbeat_at: now.toISOString(),
+    last_message:
+      options.lastMessage ?? (phase === "terminal" ? "pr:watch exited" : "pr:watch polling"),
+    phase,
+    terminal_state: terminalState,
+    pr_number: pr,
+  };
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path, `${JSON.stringify(payload)}\n`, "utf8");
+    return { ok: true, path };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return { ok: false, reason: `wait heartbeat write failed: ${detail}` };
+  }
+}
+
+function defaultWatchSleep(seconds: number): void {
+  const ms = Math.max(0, Math.trunc(seconds * 1000));
+  if (ms === 0) {
+    return;
+  }
+  const shared = new Int32Array(new SharedArrayBuffer(4));
+  Atomics.wait(shared, 0, 0, ms);
 }
 
 export function printWatchHuman(result: WatchResult): string {
@@ -359,17 +485,27 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
     process.chdir(target);
   }
 
+  const projectRoot = args.projectRoot !== null ? resolve(args.projectRoot) : process.cwd();
+  const prNumber = args.prNumber as number;
+  // Arm hasActivePollingHeartbeat for this PR while the wait is alive (#5020).
+  writePrWatchWaitHeartbeat(projectRoot, prNumber, { phase: "polling" });
+  const baseSleep: SleepFn = options.sleepFn ?? defaultWatchSleep;
+  const sleepFn: SleepFn = (seconds) => {
+    writePrWatchWaitHeartbeat(projectRoot, prNumber, { phase: "polling" });
+    baseSleep(seconds);
+  };
+
   try {
-    const result = watch(args.prNumber as number, args.repo ?? process.env.GH_REPO ?? null, {
+    const result = watch(prNumber, args.repo ?? process.env.GH_REPO ?? null, {
       maxWaitMinutes: args.maxWaitMinutes,
       pollSeconds: args.pollSeconds,
       oneShot: args.oneShot,
       runGh: options.runGh ?? defaultRunGh,
-      sleepFn: options.sleepFn,
+      sleepFn,
       clockFn: options.clockFn,
       probeFn: options.probeFn,
       stallThreshold: options.stallThreshold,
-      projectRoot: args.projectRoot ?? process.cwd(),
+      projectRoot,
     });
 
     if (args.emitJson) {
@@ -379,6 +515,11 @@ export function runWatch(argv: readonly string[], options: RunWatchOptions = {})
     }
     return result.exitCode;
   } finally {
+    // Clear liveness so a sticky lease cannot outlive the wait process (#5020).
+    writePrWatchWaitHeartbeat(projectRoot, prNumber, {
+      phase: "terminal",
+      terminalState: "exited",
+    });
     if (restoreCwd !== null) {
       process.chdir(restoreCwd);
     }
