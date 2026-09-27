@@ -21,6 +21,7 @@ import {
   formatStaleIngestReadyDiagnostic,
   INGEST_READY_CHIP,
 } from "../design-critique/stale-ingest-ready-diagnostic.js";
+import { fetchIssueBody, GitHubBodyError } from "../intake/github-body.js";
 import { fetchIssueComments, IssueCommentFetchError } from "../intake/issue-ingest.js";
 import { parseGithubOwnerRepo } from "../policy/sync-default.js";
 import { ScmLabelClient } from "../vbrief-reconcile/labels.js";
@@ -37,7 +38,8 @@ export const DESIGN_CRITIQUE_CHIP_USAGE =
   "usage: scm issue design-critique-chip --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME] [--json]\n" +
   "       Parent attach of design-critique:ingest-ready / in-progress / later-arc mechanism-shaped.\n" +
   "       Closed catalog remaining-set replace. One write. Other facets stay.\n" +
-  "       ingest-ready fetches comments and refuses unless live-thread evaluateCompletedArcRecord is complete.\n" +
+  "       ingest-ready fetches comments + live REST body and refuses unless completed-arc is complete\n" +
+  "       and Target-digest admission matches (or is unpinned). Digest mismatch reports stale-target.\n" +
   "       Proof-fail is blocking. Apply miss after a passing proof is non-blocking convenience; ingest is not blocked.\n";
 
 export const CHIP_ALIASES: Readonly<Record<string, DesignCritiqueCatalogChip>> = {
@@ -62,6 +64,8 @@ export interface DesignCritiqueChipSeams {
   readonly resolveDefaultRepo?: () => string | null;
   /** Live-thread comments for ingest-ready proof. Default: fetchIssueComments. */
   readonly fetchComments?: (repo: string, issueNumber: number) => readonly ThreadComment[];
+  /** Live REST issue body for Target-digest admission (#4995). Default: fetchIssueBody. */
+  readonly fetchIssueBody?: (repo: string, issueNumber: number) => string;
 }
 
 export interface DesignCritiqueChipResult {
@@ -167,6 +171,10 @@ function defaultFetchComments(repo: string, issueNumber: number): ThreadComment[
   return threadCommentsFromIssueComments(fetchIssueComments(repo, issueNumber));
 }
 
+function defaultFetchIssueBody(repo: string, issueNumber: number): string {
+  return fetchIssueBody(repo, issueNumber);
+}
+
 function proofFailResult(
   args: DesignCritiqueChipArgs,
   repo: string,
@@ -189,8 +197,9 @@ function proofFailResult(
 
 /**
  * GET current labels, remaining-set replace via applyDesignCritiqueCatalogChip.
- * ingest-ready remaining-set proves live-thread evaluateCompletedArcRecord first (#4700).
- * mechanism-shaped and in-progress stay labels-only. One LabelClient.apply write.
+ * ingest-ready remaining-set proves live-thread completed-arc + Target-digest
+ * admission first (#4700 / #4995). mechanism-shaped and in-progress stay
+ * labels-only. One LabelClient.apply write.
  */
 export function runDesignCritiqueChip(
   extra: readonly string[],
@@ -229,11 +238,19 @@ export function runDesignCritiqueChip(
 
   const client = seams.client ?? new ScmLabelClient();
   const fetchComments = seams.fetchComments ?? defaultFetchComments;
+  const fetchBody = seams.fetchIssueBody ?? defaultFetchIssueBody;
   try {
     let applied: { remaining: string[]; add: readonly string[]; remove: readonly string[] };
     if (args.chip === "design-critique:ingest-ready") {
       const comments = fetchComments(repo, args.issue);
-      const outcome = applyIngestReadyRemainingSet(client, repo, args.issue, comments);
+      const liveIssueBody = fetchBody(repo, args.issue);
+      const outcome = applyIngestReadyRemainingSet(
+        client,
+        repo,
+        args.issue,
+        comments,
+        liveIssueBody,
+      );
       if (!outcome.ok) {
         const proofErr = new IngestReadyCompletedArcProofError(
           args.issue,
@@ -252,6 +269,9 @@ export function runDesignCritiqueChip(
             issueNumber: args.issue,
             labels: standingLabels,
             verdict: outcome.verdict,
+            digestAdmission: outcome.digestAdmission,
+            liveIssueBody: outcome.liveIssueBody,
+            citedLeanBody: outcome.citedLeanBody,
           }).text;
           return proofFailResult(args, repo, new Error(`${proofErr.message}\n${overlay}`));
         }
@@ -289,7 +309,8 @@ export function runDesignCritiqueChip(
     const proofFail =
       err instanceof IngestReadyCompletedArcProofError ||
       err instanceof DesignCritiqueIngestBlockedError ||
-      err instanceof IssueCommentFetchError;
+      err instanceof IssueCommentFetchError ||
+      err instanceof GitHubBodyError;
     const payload = {
       repo,
       issue: args.issue,

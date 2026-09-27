@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   applyIngestReadyRemainingSet,
-  assertCompletedArcAllowsIngest,
+  DesignCritiqueIngestBlockedError,
   setPendingIngestDiagnosticOverlay,
   threadCommentsFromIssueComments,
 } from "../design-critique/completed-arc-record.js";
@@ -14,6 +14,7 @@ import {
   formatStaleIngestReadyDiagnostic,
   INGEST_READY_CHIP,
 } from "../design-critique/stale-ingest-ready-diagnostic.js";
+import { fetchIssueBody } from "../intake/github-body.js";
 import { fetchIssueComments } from "../intake/issue-ingest.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
@@ -116,7 +117,14 @@ export class ScmLabelClient implements LabelClient {
       };
       if (nextChip === "design-critique:ingest-ready") {
         const comments = threadCommentsFromIssueComments(fetchIssueComments(repo, issueNumber));
-        const outcome = applyIngestReadyRemainingSet(inner, repo, issueNumber, comments);
+        const liveIssueBody = fetchIssueBody(repo, issueNumber);
+        const outcome = applyIngestReadyRemainingSet(
+          inner,
+          repo,
+          issueNumber,
+          comments,
+          liveIssueBody,
+        );
         if (!outcome.ok) {
           if (outcome.verdict.status === "blocked") {
             let overlay: string | undefined;
@@ -128,13 +136,20 @@ export class ScmLabelClient implements LabelClient {
                   issueNumber,
                   labels: currentLabels,
                   verdict: outcome.verdict,
+                  digestAdmission: outcome.digestAdmission,
+                  liveIssueBody: outcome.liveIssueBody,
+                  citedLeanBody: outcome.citedLeanBody,
                 }).text;
               }
             } catch {
               overlay = undefined;
             }
             setPendingIngestDiagnosticOverlay(overlay);
-            assertCompletedArcAllowsIngest({ issueNumber, comments });
+            throw new DesignCritiqueIngestBlockedError(
+              issueNumber,
+              outcome.verdict.reason,
+              outcome.verdict.detail,
+            );
           }
           if (!applied && (restAdd.length > 0 || restRemove.length > 0)) {
             this.applyMut(repo, issueNumber, restAdd, restRemove);

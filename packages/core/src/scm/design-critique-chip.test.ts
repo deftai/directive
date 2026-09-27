@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { ThreadComment } from "../design-critique/completed-arc-record.js";
+import { hashIssueBodyBytes, type ThreadComment } from "../design-critique/completed-arc-record.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "../design-critique/exclusive-chip.js";
+import { GitHubBodyError } from "../intake/github-body.js";
 import { IssueCommentFetchError } from "../intake/issue-ingest.js";
 import { ScmLabelError } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
@@ -54,6 +55,8 @@ const unresolvedPainComments: ThreadComment[] = [
 ];
 
 const completeFetch = (): readonly ThreadComment[] => completeComments;
+/** Unpinned lean fixtures: any live body admits (#4995). */
+const unpinnedBodyFetch = (): string => "## Summary\n\nunpinned live body";
 
 class FakeLabelClient implements LabelClient {
   labels: string[];
@@ -247,7 +250,7 @@ describe("runDesignCritiqueChip", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
     const result = runDesignCritiqueChip(
       ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
-      { client, fetchComments: completeFetch },
+      { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toHaveLength(1);
@@ -301,7 +304,7 @@ describe("runDesignCritiqueChip", () => {
     const client = new FakeLabelClient(["process", "design-critique:ingest-ready"]);
     const result = runDesignCritiqueChip(
       ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive"],
-      { client, fetchComments: completeFetch },
+      { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toHaveLength(0);
@@ -366,7 +369,7 @@ describe("runDesignCritiqueChip", () => {
     };
     const result = runDesignCritiqueChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive"],
-      { client, fetchComments: completeFetch },
+      { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(result.stdout).not.toContain("already exclusive");
@@ -384,12 +387,38 @@ describe("runDesignCritiqueChip", () => {
         fetchComments: () => {
           throw new IssueCommentFetchError("deftai/directive", 1, "page 1 failed");
         },
+        fetchIssueBody: unpinnedBodyFetch,
       },
     );
     expect(result.exitCode).toBe(1);
     expect(client.applyCalls).toHaveLength(0);
     const payload = JSON.parse(result.stdout) as { miss: boolean; blocking: boolean };
     expect(payload).toMatchObject({ miss: false, blocking: true });
+    expect(result.stdout).not.toContain("chip apply missed");
+  });
+
+  it("treats ingest-ready body fetch failure as blocking proof-fail (#4995)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = runDesignCritiqueChip(
+      ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
+      {
+        client,
+        fetchComments: completeFetch,
+        fetchIssueBody: () => {
+          throw new GitHubBodyError("live REST body fetch failed");
+        },
+      },
+    );
+    expect(result.exitCode).toBe(1);
+    expect(client.applyCalls).toHaveLength(0);
+    const payload = JSON.parse(result.stdout) as {
+      miss: boolean;
+      blocking: boolean;
+      applied: boolean;
+      error: string;
+    };
+    expect(payload).toMatchObject({ applied: false, miss: false, blocking: true });
+    expect(payload.error).toMatch(/live REST body fetch failed/);
     expect(result.stdout).not.toContain("chip apply missed");
   });
 
@@ -404,6 +433,7 @@ describe("runDesignCritiqueChip", () => {
       client,
       resolveDefaultRepo: () => "deftai/directive",
       fetchComments: completeFetch,
+      fetchIssueBody: unpinnedBodyFetch,
     });
     expect(result.exitCode).toBe(0);
     const payload = JSON.parse(result.stdout) as { repo: string };
@@ -431,7 +461,7 @@ describe("runDesignCritiqueChip", () => {
     };
     const result = runDesignCritiqueChip(
       ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
-      { client, fetchComments: completeFetch },
+      { client, fetchComments: completeFetch, fetchIssueBody: unpinnedBodyFetch },
     );
     expect(result.exitCode).toBe(0);
     expect(result.stdout).not.toContain("already exclusive");
@@ -470,7 +500,11 @@ describe("runDesignCritiqueChip", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
     const result = runDesignCritiqueChip(
       ["--issue", "652", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
-      { client, fetchComments: () => malformedCanonicalComments },
+      {
+        client,
+        fetchComments: () => malformedCanonicalComments,
+        fetchIssueBody: unpinnedBodyFetch,
+      },
     );
     expect(result.exitCode).toBe(1);
     expect(client.applyCalls).toHaveLength(0);
@@ -488,11 +522,48 @@ describe("runDesignCritiqueChip", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
     const result = runDesignCritiqueChip(
       ["--issue", "657", "--chip", "ingest-ready", "--repo", "deftai/directive"],
-      { client, fetchComments: () => unresolvedPainComments },
+      {
+        client,
+        fetchComments: () => unresolvedPainComments,
+        fetchIssueBody: unpinnedBodyFetch,
+      },
     );
     expect(result.exitCode).toBe(1);
     expect(client.applyCalls).toHaveLength(0);
     expect(result.stderr).toMatch(/unresolved-pain-audit/);
     expect(result.stderr).not.toMatch(/chip apply missed/);
+  });
+
+  it("chip caller refuses stale-target digest mismatch with zero writes (#4995)", () => {
+    const liveBody = "## Summary\n\nNo trailing newline";
+    const pinned = hashIssueBodyBytes(`${liveBody}\n`);
+    const comments: ThreadComment[] = [
+      {
+        id: LEAN_ID,
+        body: `**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`,
+      },
+      { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+      {
+        id: SYNTHESIS_ID,
+        body:
+          "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+          `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+      },
+    ];
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+    const result = runDesignCritiqueChip(
+      ["--issue", "4995", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
+      {
+        client,
+        fetchComments: () => comments,
+        fetchIssueBody: () => liveBody,
+      },
+    );
+    expect(result.exitCode).toBe(1);
+    expect(client.applyCalls).toHaveLength(0);
+    const payload = JSON.parse(result.stdout) as { error: string; blocking: boolean };
+    expect(payload.blocking).toBe(true);
+    expect(payload.error).toMatch(/stale-target/);
   });
 });

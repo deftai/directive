@@ -79,7 +79,7 @@ export function designCritiqueChipApplyDelta(
 
 /**
  * Inner remaining-set write. ingest-ready callers MUST prove first via
- * applyIngestReadyRemainingSet (#4700).
+ * applyIngestReadyRemainingSet (#4700 / #4995).
  */
 export function writeDesignCritiqueCatalogRemainingSet(
   client: LabelClient,
@@ -102,7 +102,7 @@ export function writeDesignCritiqueCatalogRemainingSet(
 /**
  * Exclusive catalog-chip write via LabelClient.apply. GET current, then one
  * apply(add, remove). Does not PUT a naive full wipe.
- * ingest-ready remaining-set is applyIngestReadyRemainingSet only (#4700).
+ * ingest-ready remaining-set is applyIngestReadyRemainingSet only (#4700 / #4995).
  */
 export function applyDesignCritiqueCatalogChip(
   client: LabelClient,

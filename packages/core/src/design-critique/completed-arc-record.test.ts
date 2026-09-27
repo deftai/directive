@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
+  applyIngestReadyRemainingSet,
   assertCompletedArcAllowsIngest,
   COMPLETED_ARC_BLOCK_REASONS,
   DesignCritiqueIngestBlockedError,
@@ -1207,6 +1209,87 @@ describe("Target-digest admission (#4243)", () => {
     expect(
       evaluateTargetDigestAdmission({ citedLeanBody: cited, liveIssueBody: restBody }),
     ).toMatchObject({ status: "blocked", reason: "stale-target" });
+  });
+});
+
+describe("applyIngestReadyRemainingSet Target-digest admission (#4995)", () => {
+  class FakeLabelClient implements LabelClient {
+    labels: string[];
+    applyCalls: Array<{ add: readonly string[]; remove: readonly string[] }> = [];
+
+    constructor(labels: string[]) {
+      this.labels = [...labels];
+    }
+
+    fetchLabels(_repo: string, _issueNumber: number): string[] {
+      return [...this.labels];
+    }
+
+    apply(
+      _repo: string,
+      _issueNumber: number,
+      add: readonly string[],
+      remove: readonly string[],
+    ): void {
+      this.applyCalls.push({ add: [...add], remove: [...remove] });
+      const next = new Set(this.labels);
+      for (const name of remove) next.delete(name);
+      for (const name of add) next.add(name);
+      this.labels = [...next];
+    }
+  }
+
+  const completeThread = (leanBody: string): ThreadComment[] => [
+    { id: LEAN_ID, body: leanBody },
+    table,
+    synthesis,
+  ];
+
+  it("frozen mismatch fixture reports stale-target with zero writes", () => {
+    const liveBody = "## Summary\n\nNo trailing newline";
+    const pinned = hashIssueBodyBytes(`${liveBody}\n`);
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      4988,
+      completeThread(`**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`),
+      liveBody,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.verdict).toMatchObject({ status: "blocked", reason: "stale-target" });
+      expect(result.digestAdmission).toMatchObject({ status: "blocked", reason: "stale-target" });
+    }
+    expect(client.applyCalls).toHaveLength(0);
+  });
+
+  it("exact match permits the ready transition", () => {
+    const liveBody = "## Summary\n\nExact match body";
+    const digest = hashIssueBodyBytes(liveBody);
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      4995,
+      completeThread(`**Lean:** pin.\n\nTarget-digest: sha256:${digest}\n`),
+      liveBody,
+    );
+    expect(result.ok).toBe(true);
+    expect(client.applyCalls).toHaveLength(1);
+  });
+
+  it("unpinned complete record still writes (preserve #4243 / #4700)", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      3637,
+      completeThread("**Lean:** legacy unpinned.\n"),
+      "## any body",
+    );
+    expect(result.ok).toBe(true);
+    expect(client.applyCalls).toHaveLength(1);
   });
 });
 

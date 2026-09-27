@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
-import { applyIngestReadyRemainingSet, type ThreadComment } from "./completed-arc-record.js";
+import {
+  applyIngestReadyRemainingSet,
+  hashIssueBodyBytes,
+  type ThreadComment,
+} from "./completed-arc-record.js";
 import {
   applyDesignCritiqueCatalogChip,
   DESIGN_CRITIQUE_CATALOG_CHIPS,
@@ -13,6 +17,9 @@ import {
 const LEAN_ID = 5442939496;
 const TABLE_ID = 5443106967;
 const SYNTHESIS_ID = 5443114746;
+
+/** Unpinned complete-thread fixture body (no Target-digest on lean). */
+const UNPINNED_LIVE_BODY = "## Summary\n\nunpinned live body";
 
 const completeComments: ThreadComment[] = [
   { id: LEAN_ID, body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n" },
@@ -152,7 +159,13 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
 
   it("apply is a single LabelClient.apply with add and remove together", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
-    const result = applyIngestReadyRemainingSet(client, "deftai/directive", 3637, completeComments);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      3637,
+      completeComments,
+      UNPINNED_LIVE_BODY,
+    );
     expect(client.applyCalls).toHaveLength(1);
     expect(client.applyCalls[0]).toEqual({
       add: ["design-critique:ingest-ready"],
@@ -169,7 +182,13 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
 
   it("skips apply when the remaining set is already exclusive", () => {
     const client = new FakeLabelClient(["process", "design-critique:ingest-ready"]);
-    applyIngestReadyRemainingSet(client, "deftai/directive", 3642, completeComments);
+    applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      3642,
+      completeComments,
+      UNPINNED_LIVE_BODY,
+    );
     expect(client.applyCalls).toHaveLength(0);
   });
 
@@ -195,7 +214,13 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
       "design-critique:mechanism-shaped",
       "design-critique:ingest-ready",
     ]);
-    applyIngestReadyRemainingSet(client, "deftai/directive", 3637, completeComments);
+    applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      3637,
+      completeComments,
+      UNPINNED_LIVE_BODY,
+    );
     expect(client.applyCalls).toEqual([{ add: [], remove: ["design-critique:mechanism-shaped"] }]);
   });
 
@@ -220,6 +245,7 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
       "deftai/directive",
       652,
       malformedCanonicalComments,
+      UNPINNED_LIVE_BODY,
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -236,6 +262,7 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
       "deftai/directive",
       657,
       unresolvedPainComments,
+      UNPINNED_LIVE_BODY,
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -247,10 +274,114 @@ describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
 
   it("comments present is not complete for ingest-ready remaining-set (#4700)", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = applyIngestReadyRemainingSet(client, "deftai/directive", 4700, [
-      { id: 1, body: "role: critic\n\n## Finding 1\n" },
-    ]);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      4700,
+      [{ id: 1, body: "role: critic\n\n## Finding 1\n" }],
+      UNPINNED_LIVE_BODY,
+    );
     expect(result.ok).toBe(false);
+    expect(client.applyCalls).toHaveLength(0);
+  });
+
+  it("refuses digest mismatch with zero label writes (#4995)", () => {
+    const liveBody = "## Summary\n\nNo trailing newline";
+    const pinned = hashIssueBodyBytes(`${liveBody}\n`);
+    const comments: ThreadComment[] = [
+      {
+        id: LEAN_ID,
+        body: `**Lean:** pin.\n\nTarget-digest: sha256:${pinned}\n`,
+      },
+      { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+      {
+        id: SYNTHESIS_ID,
+        body:
+          "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+          `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+      },
+    ];
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      4995,
+      comments,
+      liveBody,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.verdict).toMatchObject({ status: "blocked", reason: "stale-target" });
+      expect(result.digestAdmission).toMatchObject({ status: "blocked", reason: "stale-target" });
+    }
+    expect(client.applyCalls).toHaveLength(0);
+    expect(client.labels).toEqual(["bug", "design-critique:mechanism-shaped"]);
+  });
+
+  it("exact matching Target-digest permits the ready transition (#4995)", () => {
+    const liveBody = "## Summary\n\nExact match body";
+    const digest = hashIssueBodyBytes(liveBody);
+    const comments: ThreadComment[] = [
+      {
+        id: LEAN_ID,
+        body: `**Lean:** pin.\n\nTarget-digest: sha256:${digest}\n`,
+      },
+      { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+      {
+        id: SYNTHESIS_ID,
+        body:
+          "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+          `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+      },
+    ];
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped"]);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      4995,
+      comments,
+      liveBody,
+    );
+    expect(result.ok).toBe(true);
+    expect(client.applyCalls).toHaveLength(1);
+    expect(client.applyCalls[0]).toEqual({
+      add: ["design-critique:ingest-ready"],
+      remove: ["design-critique:mechanism-shaped"],
+    });
+  });
+
+  it("trailing-newline digest class refuses without live GitHub (#4995)", () => {
+    const liveBody = "issue body bytes";
+    const newlineDigest = hashIssueBodyBytes(`${liveBody}\n`);
+    const comments: ThreadComment[] = [
+      {
+        id: LEAN_ID,
+        body: `**Lean:** pin.\n\nTarget-digest: sha256:${newlineDigest}\n`,
+      },
+      { id: TABLE_ID, body: "## Verified-claims table\n\n| Verified claim | Result |\n" },
+      {
+        id: SYNTHESIS_ID,
+        body:
+          "model: grok-4.6\nrole: parent\n\n" +
+          "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+          `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n`,
+      },
+    ];
+    const client = new FakeLabelClient(["bug"]);
+    const result = applyIngestReadyRemainingSet(
+      client,
+      "deftai/directive",
+      4988,
+      comments,
+      liveBody,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.verdict).toMatchObject({ status: "blocked", reason: "stale-target" });
+      expect(result.digestAdmission?.detail).toMatch(/does not match Target-digest/);
+    }
     expect(client.applyCalls).toHaveLength(0);
   });
 
