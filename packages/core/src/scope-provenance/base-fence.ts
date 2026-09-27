@@ -11,9 +11,10 @@
  * Separately, #4774 membership compares the PR change set to the merge-base
  * approved-scope allowlist only. Empty mint is authoritative; missing mint
  * fails closed — not undeclared-by-design attestation, and not PR-authored
- * file_scope self-authorization. Peer allowlists union only for peers whose
- * xBRIEF also changed and that carry their own non-empty mint; peer coverage
- * never clears a missing own allowlist.
+ * file_scope self-authorization. Peer path exemptions require the peer still
+ * present and verified by the caller; peer allowlists union only for peers
+ * whose xBRIEF also changed and that carry their own non-empty mint; peer
+ * coverage never clears a missing own allowlist.
  */
 
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
@@ -249,10 +250,11 @@ function remediationForOutsideApprovedScope(extras: readonly string[]): string {
  * PR change-set membership against a declared allowlist (#4774).
  *
  * Caller supplies the merge-base approved-scope allowlist. Closed exemptions:
- * the bound active xBRIEF path, peer active xBRIEF paths that also changed,
- * plus CHANGELOG.md. No declared allowlist fails closed; peer coverage must
- * not clear that miss. Peer allowlists union only when this story already has
- * its own non-empty allowlist.
+ * the bound active xBRIEF path, peer active xBRIEF paths still present and
+ * verified (caller must not pass deleted/malformed peers), plus CHANGELOG.md.
+ * No declared allowlist fails closed; peer coverage must not clear that miss.
+ * Peer allowlists union only when this story already has its own non-empty
+ * allowlist.
  */
 export function evaluateApprovedScopeMembership(
   input: ApprovedScopeMembershipInput,

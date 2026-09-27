@@ -503,6 +503,47 @@ describe("evaluateScopeProvenance membership (#4774)", () => {
     expect(result.exitCode).toBe(0);
     expect(result.findings.some((f) => f.kind === "change-set-outside-approved-scope")).toBe(false);
   });
+
+  it("does not exempt a deleted peer active brief from membership (#4774)", () => {
+    const approvedA = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story-a.xbrief.json",
+      payload: xbrief("story-a", ["packages/core/src/a.ts"]),
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    // Story A modified in-scope; peer B deleted (in change set, absent from active/).
+    const result = evaluateScopeProvenance("/tmp/proj-deleted-peer", {
+      changedFiles: [
+        "xbrief/active/story-a.xbrief.json",
+        "xbrief/active/story-b.xbrief.json",
+        "packages/core/src/a.ts",
+      ],
+      activeXbriefs: new Map([
+        [
+          "xbrief/active/story-a.xbrief.json",
+          JSON.stringify(xbrief("story-a", ["packages/core/src/a.ts"])),
+        ],
+      ]),
+      approvedRecords: [approvedA],
+      baseApprovedRecords: new Map([["story-a", approvedA]]),
+      baseXbriefs: new Map([
+        [
+          "xbrief/active/story-a.xbrief.json",
+          JSON.stringify(xbrief("story-a", ["packages/core/src/a.ts"])),
+        ],
+        [
+          "xbrief/active/story-b.xbrief.json",
+          JSON.stringify(xbrief("story-b", ["packages/core/src/b.ts"])),
+        ],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    const hit = result.findings.find((f) => f.kind === "change-set-outside-approved-scope");
+    expect(hit?.expandedPaths).toContain("xbrief/active/story-b.xbrief.json");
+  });
 });
 
 describe("evaluateScopeProvenance base-brief fence (#4956)", () => {

@@ -11,9 +11,10 @@
  * Membership (#4774): when an active xBRIEF is in the change set, the allowlist
  * is the merge-base approved-scope record only (including an authoritative empty
  * fileScope). Missing mint fails closed — PR-authored or merge-base brief
- * file_scope must not self-authorize. Peer allowlists union only for peers
- * whose xBRIEF also changed and that have their own non-empty mint; peer
- * coverage never clears a missing own allowlist. Same-PR approval rewrite
+ * file_scope must not self-authorize. Peer path exemptions and allowlist unions
+ * apply only to peers still present in active/ and successfully parsed, with a
+ * non-empty mint for scope union; deleted or malformed peers are not exempt.
+ * Peer coverage never clears a missing own allowlist. Same-PR approval rewrite
  * stays fail-closed.
  *
  * Intent-pin checks (#3385) remain for existing base-committed records.
@@ -777,13 +778,9 @@ export function evaluateScopeProvenance(
 
     const peerXbriefRelPaths: string[] = [];
     const peerApprovedFileScopes: string[][] = [];
-    // Exempt sibling active-xBRIEF paths in the change set (incl. deletions).
-    for (const rawChanged of changed) {
-      const peerRel = normalizeRepoRelPath(rawChanged);
-      if (peerRel === normalizeRepoRelPath(rel)) continue;
-      if (!peerRel.startsWith("xbrief/active/") || !peerRel.endsWith(".xbrief.json")) continue;
-      if (!peerXbriefRelPaths.includes(peerRel)) peerXbriefRelPaths.push(peerRel);
-    }
+    // Exempt only peers still present and parseable. Deleted peer paths stay in
+    // this story's membership extras (fail closed); malformed peers are not
+    // exempt — their own loop fails closed on unreadable JSON.
     if (activeEntries.length > 1) {
       for (const other of activeEntries) {
         if (other.rel === rel) continue;
@@ -793,7 +790,7 @@ export function evaluateScopeProvenance(
         try {
           otherPayload = JSON.parse(other.raw) as unknown;
         } catch {
-          // Malformed peer: path may still be exempt above; own loop fails closed.
+          // Malformed peer: do not exempt; own loop fails closed.
           continue;
         }
         if (!peerXbriefRelPaths.includes(other.rel)) peerXbriefRelPaths.push(other.rel);

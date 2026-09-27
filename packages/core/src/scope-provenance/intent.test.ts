@@ -323,6 +323,7 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(payload)]]),
       approvedRecords: [minted.record],
+      baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
       readAtBase: (rel) => (rel.endsWith(".intent.json") ? JSON.stringify(minted.preimage) : null),
       enforce: true,
     });
@@ -381,6 +382,7 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(live)]]),
       approvedRecords: [{ ...approved, xbriefBodyDigest: "dead-field" }],
+      baseApprovedRecords: new Map([[approved.planId, approved]]),
       readAtBase: (rel) =>
         rel === "xbrief/active/story.xbrief.json"
           ? JSON.stringify({
@@ -403,12 +405,15 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
       payload: { plan: { id: "story-1", metadata: { swarm: { file_scope: ["src/a.ts"] } } } },
       humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-16T00:00:00Z" },
     });
+    // Keep plan.id unique so membership can bind the merge-base mint; duplicate
+    // another key so the tokenizer still fails closed (#3385 / #4774).
     const raw =
-      '{"plan":{"id":"story-1","id":"other","metadata":{"swarm":{"file_scope":["src/a.ts"]}}}}';
+      '{"plan":{"id":"story-1","title":"a","title":"b","metadata":{"swarm":{"file_scope":["src/a.ts"]}}}}';
     const result = evaluateScopeProvenance("/tmp/dup-3385", {
       changedFiles: ["xbrief/active/story.xbrief.json"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", raw]]),
       approvedRecords: [approved],
+      baseApprovedRecords: new Map([[approved.planId, approved]]),
     });
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "duplicate-key")).toBe(true);
@@ -433,6 +438,7 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(payload)]]),
       approvedRecords: [minted.record],
+      baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
       baseRef: "origin/master",
       readAtBase: (rel) => {
         if (rel.endsWith(".intent.json")) throw new Error("git show preimage interrupted");
@@ -506,6 +512,7 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(payload)]]),
       approvedRecords: [minted.record],
+      baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
       readAtBase: () => null,
       enforce: true,
     });
@@ -530,6 +537,7 @@ describe("verify intent authority (#3385 R2–R6 / F4)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(payload)]]),
       approvedRecords: [minted.record],
+      baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
       readAtBase: (rel) =>
         rel.endsWith(".intent.json")
           ? JSON.stringify({ ...minted.preimage, plan: { ...minted.preimage.plan, title: "nope" } })
@@ -593,6 +601,7 @@ describe("canonical evidence while still active (#4059)", () => {
       changedFiles: ["xbrief/active/story.xbrief.json"],
       activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(live)]]),
       approvedRecords: [minted.record],
+      baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
       readAtBase: (rel) => (rel.endsWith(".intent.json") ? JSON.stringify(minted.preimage) : null),
       enforce: true,
     });
