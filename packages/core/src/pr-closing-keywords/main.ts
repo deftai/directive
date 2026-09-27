@@ -1,4 +1,5 @@
-import { execFileSync, existsSync, readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
@@ -96,11 +97,7 @@ export function isSkipActiveDeliveryShape(files: readonly PrDiffPath[]): boolean
   return removedProposedOrPending && addedCompleted && !removedActive && !touchesNonBrief;
 }
 
-function fetchPrFiles(
-  pr: number,
-  repo: string,
-  runGh: RunGhFn,
-): PrDiffPath[] | null {
+function fetchPrFiles(pr: number, repo: string, runGh: RunGhFn): PrDiffPath[] | null {
   const result = runGh(["gh", "api", `repos/${repo}/pulls/${String(pr)}/files?per_page=100`]);
   if (result.returncode !== 0) {
     process.stderr.write(
