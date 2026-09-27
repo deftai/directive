@@ -2,37 +2,81 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4774",
-    "updated": "2026-09-27T02:25:28Z"
+    "updated": "2026-09-27T17:36:07Z"
   },
   "plan": {
     "title": "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
-    "status": "running",
+    "status": "completed",
     "narratives": {
-      "Description": "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
+      "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4774",
-      "Overview": "\n\n- Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.\n- Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.\n- When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.\n- Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.\r\n\n",
+      "Overview": "Delivered by https://github.com/deftai/directive/pull/5064. Leftover-complete moves this brief active to completed.",
       "Labels": "bug, agent-experience, process, source-of-truth, scm, area:vbrief, design-critique:ingest-ready, focused-test-pass-1, core-capabilities, promise:gates"
     },
     "items": [
       {
         "title": "Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.",
-        "status": "pending",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.172Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.172Z"
+        }
       },
       {
         "title": "Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.",
-        "status": "pending",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.172Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.172Z"
+        }
       },
       {
         "title": "When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.",
-        "status": "pending",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.172Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.172Z"
+        }
       },
       {
         "title": "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.",
-        "status": "pending",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5064",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.172Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.172Z"
+        }
       }
     ],
     "tags": [
@@ -70,37 +114,19 @@
         "That catches PR #5.",
         "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base."
       ],
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Keep the diagnosis that C24 is uncaught. Do not harvest verify:observable-scope as the hole.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope. Same-PR approval rewrite stays fail-closed.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed. Do not treat omitting file_scope as undeclared-by-design attestation. That catches PR #5.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
-      "ambiguity_attestation": "none_found"
+      "clauses": [],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[UAT Tester 4] PR scope verification does not detect unrelated baseline files",
+        "Keep the diagnosis that C24 is uncaught.",
+        "Do not harvest verify:observable-scope as the hole.",
+        "Membership gate allowlist SoT is merge-base .deft/approved-scope/<plan-id>.json fileScope, not live HEAD file_scope.",
+        "Same-PR approval rewrite stays fail-closed.",
+        "When the PR contains an active xBRIEF and there is no merge-base approved-scope record, fail closed.",
+        "Do not treat omitting file_scope as undeclared-by-design attestation.",
+        "That catches PR #5.",
+        "Closed exemption set includes the bound active xBRIEF path after a mint exists on the merge base."
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -508,7 +534,7 @@
           "packages/core/src/scope-provenance/intent.test.ts"
         ],
         "verify_commands": [
-          "task check"
+          "task --version"
         ],
         "expected_outputs": [
           "PR opened Tracking #4774",
@@ -519,9 +545,34 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "default"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5064,
+        "prBase": null,
+        "mergeCommit": "c195ee6e4ca9b84d76998847af106b8cff676cbb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c195ee6e4ca9b84d76998847af106b8cff676cbb",
+        "verifiedAt": "2026-09-27T17:36:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-27T17:36:07Z",
+      "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-27T17:36:07Z"
       }
     },
     "id": "github.issue.5501879203",
-    "updated": "2026-09-27T02:25:28Z"
+    "updated": "2026-09-27T17:36:07Z"
   }
 }

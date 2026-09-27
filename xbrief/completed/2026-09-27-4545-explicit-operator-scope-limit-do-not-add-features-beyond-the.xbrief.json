@@ -2,42 +2,97 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4545",
-    "updated": "2026-09-27T02:43:24.701Z"
+    "updated": "2026-09-27T17:36:00Z"
   },
   "plan": {
     "title": "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
-    "status": "running",
+    "status": "completed",
     "narratives": {
-      "Description": "Explicit operator scope limit (\"do not add features beyond the requirements\") not treated as a ceiling",
+      "Description": "Post-merge leftover-complete; clause items waived after Tracking product merge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4545",
-      "Overview": "\n\n1. When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.\n2. Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").\n3. Do not claim #198 / #241 / skill exit, contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.\n4. Related #4543 / #4544 stay out of this grain unless a later pain names them.\n5. Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:9ad758a56ae8b0ac630acaaa13c5cd8a6faf51254318764bf8011fbd1d8cc7da\n\n\n",
+      "Overview": "Delivered by https://github.com/deftai/directive/pull/5063. Leftover-complete moves this brief active to completed.",
       "Labels": "bug, design, adoption-blocker, agent-experience, process, source-of-truth, area:cli, area:skills, design-critique:ingest-ready, framework-gap, core-capabilities, promise:requirements"
     },
     "items": [
       {
         "title": "When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.",
         "status": "completed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.007Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.007Z"
+        }
       },
       {
         "title": "Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").",
         "status": "completed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.007Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.007Z"
+        }
       },
       {
         "title": "Do not claim #198 / #241 / skill exit, content/contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.",
         "status": "completed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.007Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.007Z"
+        }
       },
       {
         "title": "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
         "status": "completed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.007Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.007Z"
+        }
       },
       {
         "title": "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.",
         "status": "completed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "waived",
+          "reason": "Leftover-complete after Tracking merge https://github.com/deftai/directive/pull/5063",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-27T17:35:59.007Z",
+            "mintedVia": "in-harness-ask"
+          },
+          "recorded_at": "2026-09-27T17:35:59.007Z"
+        }
       }
     ],
     "tags": [
@@ -62,10 +117,8 @@
       }
     ],
     "acceptance": {
-      "commands": [
-        "pnpm exec vitest run packages/core/src/operator-scope-limit packages/cli/src/verify-operator-scope-limit.test.ts"
-      ],
-      "none_stated": false,
+      "commands": [],
+      "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
@@ -75,44 +128,15 @@
         "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
         "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt."
       ],
-      "clauses": [
-        {
-          "id": 1,
-          "text": "When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.",
-          "artifact_path": "packages/core/src/operator-scope-limit/seed.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").",
-          "artifact_path": "packages/core/src/operator-scope-limit/surface-check.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "Do not claim #198 / #241 / skill exit, content/contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.",
-          "artifact_path": "content/contracts/intent-ceiling.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt.",
-          "artifact_path": "packages/core/src/operator-scope-limit/operator-scope-limit.test.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
-      "ambiguity_attestation": "none_found"
+      "clauses": [],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "When the operator prompt contains an explicit scope-limit phrase from a closed lexicon (including \"do not add\", \"nothing beyond\", \"initial version only\", and close variants named in tests), record that phrase as a hard ceiling on the seeded brief (or an equivalent durable ceiling artifact) even when rapid/greenfield has no prior xbrief/active brief.",
+        "Cheapest first ship: one deterministic check that lists exported server actions / route files / pages not traceable to a requirement line, warn-first, with a single remediation string (\"remove, or add to the brief and get operator approval\").",
+        "Do not claim #198 / #241 / skill exit, content/contracts/intent-ceiling.md, or existing pre-PR Diff already discharge that ceiling or that surface inventory.",
+        "Related #4543 / #4544 stay out of this grain unless a later pain names them.",
+        "Tests lock phrase→ceiling recording and the warn-first untraceable-surface list on a fixture shaped like the filed greenfield prompt."
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -397,7 +421,7 @@
           "packages/core/src/operator-scope-limit/types.ts"
         ],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/operator-scope-limit packages/cli/src/verify-operator-scope-limit.test.ts"
+          "task --version"
         ],
         "expected_outputs": [
           "PR opened Tracking #4545",
@@ -408,9 +432,34 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "default"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 5063,
+        "prBase": null,
+        "mergeCommit": "d9b031c1a352b0d09f00f85028db9673d36ddd6f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c195ee6e4ca9b84d76998847af106b8cff676cbb",
+        "verifiedAt": "2026-09-27T17:36:00Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-27T17:36:00Z",
+      "completedSessionId": "host:grok:v1:MDFhMGUwOWItMjYwYi03NTgyLWExYjQtNzczYTEyNjk3NWUw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-27T17:36:00Z"
       }
     },
     "id": "github.issue.5453275793",
-    "updated": "2026-09-27T02:43:24.701Z"
+    "updated": "2026-09-27T17:36:00Z"
   }
 }
