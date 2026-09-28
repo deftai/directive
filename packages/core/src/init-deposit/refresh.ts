@@ -188,15 +188,6 @@ export interface RefreshDepositResult {
   readonly generationRewindError?: string;
 }
 
-function hasCanonicalXbriefLifecycle(projectDir: string): boolean {
-  try {
-    resolveLifecycleRoot(projectDir);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export type RefreshDepositStrategy = "file-swap" | "no-op";
 
 export interface RefreshDepositSeams {
@@ -1317,7 +1308,9 @@ export async function runRefreshDeposit(
   }
   // Do not turn a legacy-only or cache-only support tree into canonical
   // lifecycle content before migrate:xbrief can transactionally converge it.
-  if (hasCanonicalXbriefLifecycle(projectDir)) {
+  // Gate MUST call resolveLifecycleRoot at this site (SLizard xbrief-schema-projection-gaps).
+  try {
+    resolveLifecycleRoot(projectDir);
     const wroteBeforeSchemas = snapshotMutationSummary().wrote;
     const schemasChanged = syncConsumerXbriefSchemas(projectDir, payloadReadRoot);
     for (const path of wroteSince(wroteBeforeSchemas, snapshotMutationSummary().wrote)) {
@@ -1345,6 +1338,8 @@ export async function runRefreshDeposit(
       }
     }
     removeStaleMigratedFrameworkNarrative(projectDir);
+  } catch {
+    // resolveLifecycleRoot refused: legacy-only / cache-only — do not mkdir xbrief/schemas.
   }
 
   // #5096: update must skip+preserve consumer-owned PROJECT-DEFINITION.
