@@ -108,36 +108,9 @@
       }
     ],
     "acceptance": {
-      "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [],
-      "admitted_source_sentences": [
-        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
-        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
-        "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
-        "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
-        "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
-        "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
-        "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
-        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1"
-      ],
-      "admitted_source_digest": "743e7cb5c49be55d210ef48fb002822a97fe593f3d1eaa727e4df3e81a456f58",
-      "clauses": [],
-      "ambiguity_attestation": "none_found",
-      "confessions": [
-        "bug(hooks,verify): readiness recovery must not concatenate UNUSED_HOST_HOOKS_RECOVERY on matcher drift (leftover from #4574)",
-        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from evaluateAgentHooks missing-or-drifted recovery (agent-hooks.ts production append).",
-        "Remove UNUSED_HOST_HOOKS_RECOVERY concatenation from agent-hook-readiness live-probe failure when non-timeout (agent-hook-readiness.ts production append).",
-        "Invert the positive test locks that currently require those messages to contain disable-host-hooks (agent-hooks.test.ts missing-host opt-out recovery case; agent-hook-readiness.test.ts live-denial case) to .not.toContain(\"disable-host-hooks\"), mirroring the existing timeout-only negative.",
-        "Once both production call sites are gone, delete UNUSED_HOST_HOOKS_RECOVERY and its string-only host-hooks.test.ts locks.",
-        "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path.",
-        "Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery.",
-        "Non-goals: do not retarget #4574 remainder (a); do not change mergeNestedConfig shared DIRECT_WRITE_HOOK_MATCHER writer; do not widen into coverage recovery or timeout-only copy.",
-        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d9115fc088d4152a8ef18a3055dc032770415881599c36b9b66070529c83bfc1",
-        "Keep HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE on the unconfirmed disable-host-hooks path. Keep opted-out hosts installed; do not teach disable-other-host as Grok matcher recovery."
-      ]
+      "source_rung": "stated",
+      "commands": []
     },
     "metadata": {
       "intended_placement": {

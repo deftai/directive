@@ -98,56 +98,9 @@
       }
     ],
     "acceptance": {
-      "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [],
-      "admitted_source_sentences": [
-        "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path.",
-        "Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent).",
-        "Not a general bot-merge remint.",
-        "Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`.",
-        "Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
-        "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship.",
-        "Residual windows (deferred / read-only / no soon session) stay explicit.",
-        "Update issue/AC prose on ingest to match.",
-        "Do not re-open a deftai/directive-only merge-event workflow.",
-        "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped and a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”).",
-        "Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937).",
-        "Empty-`prRefs` closed-origin-only stays out of first ship (item 4).",
-        "Keep `verify:orphan-active` a detector only.",
-        "AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable.",
-        "Optional one-time mark migration stays out of first ship unless required for that compose.",
-        "Out of this issue: merge-kind acceptance evidence (#5105); growing orphan-active into a writer; closed-origin-only unmarked discovery with empty prRefs; re-binding the retracted dest-overlay/--stories harvest blocked by 5732662100 except as already shipped by #4937/#4864/#4919.",
-        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7"
-      ],
-      "admitted_source_digest": "6f9431f2ae0ec55a0bdba63eb5094ebfe641f023ff21981da475289d5bc160e3",
-      "clauses": [],
-      "ambiguity_attestation": "none_found",
-      "confessions": [
-        "feat(lifecycle): automate the post-merge brief sweep and stamp the evidence a merge can honestly produce",
-        "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path.",
-        "Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent).",
-        "Not a general bot-merge remint.",
-        "Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`.",
-        "Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
-        "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship.",
-        "Residual windows (deferred / read-only / no soon session) stay explicit.",
-        "Update issue/AC prose on ingest to match.",
-        "Do not re-open a deftai/directive-only merge-event workflow.",
-        "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped and a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”).",
-        "Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937).",
-        "Empty-`prRefs` closed-origin-only stays out of first ship (item 4).",
-        "Keep `verify:orphan-active` a detector only.",
-        "AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable.",
-        "Optional one-time mark migration stays out of first ship unless required for that compose.",
-        "Out of this issue: merge-kind acceptance evidence (#5105); growing orphan-active into a writer; closed-origin-only unmarked discovery with empty prRefs; re-binding the retracted dest-overlay/--stories harvest blocked by 5732662100 except as already shipped by #4937/#4864/#4919.",
-        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:6e2719378436f011dd62562fcfd7b705ff01804583dafac625886e98688137a7",
-        "Close P1 with a lifecycle-only bot-merge carve-out consumed by finalize-cohort’s existing `evaluateAgentMerge` → `enableLeftoverAutoMerge` path. Membership is fail-closed on the durable finalize PR class (`swarm/finalize/*` or equivalent). Not a general bot-merge remint. Land must also name the human-merge stack that holds the hang: either a fail-closed branch-protection / ruleset exception for that same durable finalize class so required-reviewer hosts can actually auto-land, or an explicit recorded first-ship assumption that surface-3 does not require a human reviewer on `swarm/finalize/*`. Do not treat `FINALIZE_CLAIM_STALE_MS` claim-stale as PR-stale.",
-        "Close P2 by recording that next-session finalize-owed + session-start blocking (#4919), together with live-closer leftover-complete (#4937), is the accepted discharge of this issue’s original automatic post-merge / one-CI-run ask for first ship. Residual windows (deferred / read-only / no soon session) stay explicit. Update issue/AC prose on ingest to match. Do not re-open a deftai/directive-only merge-event workflow.",
-        "Close P3 by composing the existing orphan-active signature into owed discovery when `productPullRequest` is absent: admit first ship when the signature shows shipped and a merged PR number is present in `prRefs` for the derive (do not key compose on `assessOrphanSignature` reason-string equality for “linked PR is merged”). Derive `productPr` from that prRefs merged PR and the issue from brief origin, then call the existing finalizeOwed → finalizeCohort path (`prNumbers` + `storyTokens`; empty-closing delivery evidence via #4937). Empty-`prRefs` closed-origin-only stays out of first ship (item 4). Keep `verify:orphan-active` a detector only. AC must prove an unmarked stuck brief with a merged linked PR (Shinran7 issue 6 / PR 7 shape on an upgraded package acceptable) becomes inventory-visible and finalize-clearable. Optional one-time mark migration stays out of first ship unless required for that compose."
-      ]
+      "source_rung": "stated",
+      "commands": []
     },
     "metadata": {
       "intended_placement": {

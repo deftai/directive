@@ -116,55 +116,9 @@
       }
     ],
     "acceptance": {
-      "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [],
-      "admitted_source_sentences": [
-        "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
-        "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
-        "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
-        "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
-        "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
-        "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
-        "Do not auto-stamp merge from keywords or empty-axis alone.",
-        "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
-        "kind: test cannot point at a non-test artifact).",
-        "recorded_by remains non-authoritative control.",
-        "skipAcceptanceEvidenceGate stays without a production caller.",
-        "CHANGELOG [Unreleased] entry.",
-        "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
-        "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
-        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e"
-      ],
-      "admitted_source_digest": "4550c27a06d3216cf00b50096f768bfff9dc12983daf8b6b3fc71257ec7d73db",
-      "clauses": [],
-      "ambiguity_attestation": "none_found",
-      "confessions": [
-        "feat(lifecycle): merge-kind acceptance evidence needs an explicit declaration, not keyword inference",
-        "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES.",
-        "Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
-        "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape).",
-        "Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence).",
-        "Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
-        "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one.",
-        "Do not auto-stamp merge from keywords or empty-axis alone.",
-        "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g.",
-        "kind: test cannot point at a non-test artifact).",
-        "recorded_by remains non-authoritative control.",
-        "skipAcceptanceEvidenceGate stays without a production caller.",
-        "CHANGELOG [Unreleased] entry.",
-        "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change.",
-        "Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps.",
-        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b6770debe364b01621150072e93308931ebf9fe4d8ef1aced0d7da0d412b918e",
-        "Add explicit merge as a declarable requirement on requires / requiredEvidenceKind / acceptanceAxis without placing merge inside STRICT_ACCEPTANCE_AXES. Suitability dual: a declared merge requirement accepts kind: merge; kind: merge is suitable only when merge is explicitly declared — empty-axis / undeclared must refuse kind: merge.",
-        "Add a merge-kind stamp sibling that stamps only criteria that explicitly declare merge, with a pointer verified as an ancestor of the refreshed delivery tip (verifyDeliveryAncestry shape). Give that sibling a production caller on the persist/bind → complete / acceptance stamp path (and/or scope:stamp-evidence). Inventory stampMatchAnyFileEvidence / scope:stamp-evidence as the live #4840 writer; say what happens to unused stampDeclaredTestEvidence (#4732) — wire both or retire/document the orphan helper.",
-        "Empty-axis over-accept: criteria that are inferred-only or undeclared stay unattested; the run fails visibly naming each one. Do not auto-stamp merge from keywords or empty-axis alone.",
-        "Stamp-time kind-versus-pointer coherence for human and agent stamps alike, extending uatPointerShapeError (e.g. kind: test cannot point at a non-test artifact). recorded_by remains non-authoritative control.",
-        "skipAcceptanceEvidenceGate stays without a production caller. CHANGELOG [Unreleased] entry.",
-        "Non-goals: #3791 post-merge lifecycle move; #3781 pre-merge attestable; #3041 delivery-evidence requirement change. Do not entangle DeliveryEvidence ancestry rewrite with acceptance kind: merge stamps."
-      ]
+      "source_rung": "stated",
+      "commands": []
     },
     "metadata": {
       "intended_placement": {

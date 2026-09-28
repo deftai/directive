@@ -96,43 +96,9 @@
       }
     ],
     "acceptance": {
-      "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
-      "sentences": [],
-      "admitted_source_sentences": [
-        "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
-        "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
-        "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
-        "Keep Codex trust as its own axis (manual-review-required).",
-        "Do not treat Trust-all as sufficient for this exit-1 class.",
-        "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
-        "It does not substitute for items 1–2.",
-        "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
-        "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
-        "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320"
-      ],
-      "admitted_source_digest": "d222aa0921e91468c27baf4a963b7784b3442041a4058d0d604c14bdd9b66473",
-      "clauses": [],
-      "ambiguity_attestation": "none_found",
-      "confessions": [
-        "[UAT Tester 1] Trusted Codex hooks exit 1 until PowerShell execution policy is loosened",
-        "Do not bind “outside doctor path” or “no product change once Trust-all.” After install/deposit, the Codex host path that runs deposited deft-hook commands must reach a non-.ps1 entry (the #4654 .cmd-reachability class) under Restricted PowerShell without ExecutionPolicy Bypass.",
-        "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted.",
-        "Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
-        "Keep Codex trust as its own axis (manual-review-required).",
-        "Do not treat Trust-all as sufficient for this exit-1 class.",
-        "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662.",
-        "It does not substitute for items 1–2.",
-        "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails.",
-        "CHANGELOG Unreleased if not already covered by #4654 ship notes.",
-        "relieves: P1 relieves: P2 Target-digest: sha256:dc0d2924a68c7bbf53767d65eb76601b2da1c66a3dba456005b3ccc18dd1c320",
-        "Doctor / live-probe readiness must not report registered-and-functional when the PowerShell-visible deft-hook cannot run under Restricted. Fail closed or name a clear next step that states Restricted / .ps1 vs .cmd reachability (or the shipped #4654 postinstall), not reinstall-only and not Bypass.",
-        "Keep Codex trust as its own axis (manual-review-required). Do not treat Trust-all as sufficient for this exit-1 class.",
-        "Adjacent README RemoteSigned / *.cmd cold-start copy stays on open #4662. It does not substitute for items 1–2.",
-        "Tests lock the Restricted Get-Command / .cmd reachability for deft-hook as used by Codex deposit, and doctor honesty when that path fails. CHANGELOG Unreleased if not already covered by #4654 ship notes."
-      ]
+      "source_rung": "stated",
+      "commands": []
     },
     "metadata": {
       "intended_placement": {
