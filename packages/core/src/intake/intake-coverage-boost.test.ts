@@ -286,7 +286,9 @@ describe("intake coverage boost", () => {
         },
       );
       expect(summary.total).toBe(1);
-      expect(summary.notices).toEqual([]);
+      expect(summary.notices).toEqual([
+        expect.stringContaining("plan.items is empty after body harvest"),
+      ]);
       rmSync(dir, { recursive: true, force: true });
     });
 
