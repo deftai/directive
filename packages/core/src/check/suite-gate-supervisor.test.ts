@@ -98,6 +98,9 @@ describe("selectFailureSignalLines / suiteActuallyRan", () => {
 });
 
 describe("pruneSuiteTees", () => {
+  // Prune requires age > SUITE_TEE_HANG_CEILING_MS (= RELEASE_CHECK_TIMEOUT_MS, 60m under #5091).
+  const agedBeyondHangCeilingMs = 70 * 60 * 1000;
+
   it("spares an aged tee whose owning pid is live", () => {
     const root = freshRoot();
     const runId = `${process.pid}-abcd1234`;
@@ -105,7 +108,7 @@ describe("pruneSuiteTees", () => {
     const abs = join(root, ...rel.split("/"));
     mkdirSync(join(abs, ".."), { recursive: true });
     writeFileSync(abs, "live\n", "utf8");
-    touchTeeMtime(abs, Date.now() - 50 * 60 * 1000);
+    touchTeeMtime(abs, Date.now() - agedBeyondHangCeilingMs);
     const removed = pruneSuiteTees({
       projectRoot: root,
       nowMs: Date.now(),
@@ -122,7 +125,7 @@ describe("pruneSuiteTees", () => {
     const abs = join(root, ...rel.split("/"));
     mkdirSync(join(abs, ".."), { recursive: true });
     writeFileSync(abs, "stale\n", "utf8");
-    touchTeeMtime(abs, Date.now() - 50 * 60 * 1000);
+    touchTeeMtime(abs, Date.now() - agedBeyondHangCeilingMs);
     const removed = pruneSuiteTees({
       projectRoot: root,
       nowMs: Date.now(),

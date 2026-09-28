@@ -1,0 +1,108 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5091",
+    "updated": "2026-09-28T08:33:01Z"
+  },
+  "plan": {
+    "title": "chore(release): raise Windows Step 5 hang detector 45→60m for suite growth",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(release): raise Windows Step 5 hang detector 45→60m for suite growth",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5091",
+      "Overview": "## Summary\nAfter #5084/#5086/#5089, Windows `task release` Step 5 progresses but exceeds the 45m hang detector (`RELEASE_CHECK_TIMEOUT_MS`). Tee still wrote spawn-heavy timeline files when exit 124 fired. Suite growth: occupancy suites now complete instead of early hook-timeout skip.\n\n## Acceptance\n- [ ] Raise `RELEASE_CHECK_TIMEOUT_MS` 45→60 minutes; update pin test + RELEASING.md / CHANGELOG.\n- [ ] Deliberate gate change (same class as #5024).\n\nBlocks 0.119.10.\r\n\n",
+      "Labels": "chore"
+    },
+    "items": [
+      {
+        "title": "Raise `RELEASE_CHECK_TIMEOUT_MS` 45→60 minutes; update pin test + RELEASING.md / CHANGELOG.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Deliberate gate change (same class as #5024).",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "tags": [
+      "chore"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5091",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5091: chore(release): raise Windows Step 5 hang detector 45→60m for suite growth"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 2 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "chore(release): raise Windows Step 5 hang detector 45→60m for suite growth",
+        "Summary After #5084/#5086/#5089, Windows `task release` Step 5 progresses but exceeds the 45m hang detector (`RELEASE_CHECK_TIMEOUT_MS`).",
+        "Tee still wrote spawn-heavy timeline files when exit 124 fired.",
+        "Suite growth: occupancy suites now complete instead of early hook-timeout skip.",
+        "Acceptance - [ ] Raise `RELEASE_CHECK_TIMEOUT_MS` 45→60 minutes; update pin test + RELEASING.md / CHANGELOG.",
+        "[ ] Deliberate gate change (same class as #5024).",
+        "Blocks 0.119.10.",
+        "Raise `RELEASE_CHECK_TIMEOUT_MS` 45→60 minutes; update pin test + RELEASING.md / CHANGELOG.",
+        "Deliberate gate change (same class as #5024)."
+      ],
+      "admitted_source_sentences": [
+        "Summary After #5084/#5086/#5089, Windows `task release` Step 5 progresses but exceeds the 45m hang detector (`RELEASE_CHECK_TIMEOUT_MS`).",
+        "Tee still wrote spawn-heavy timeline files when exit 124 fired.",
+        "Suite growth: occupancy suites now complete instead of early hook-timeout skip.",
+        "Acceptance - [ ] Raise `RELEASE_CHECK_TIMEOUT_MS` 45→60 minutes; update pin test + RELEASING.md / CHANGELOG.",
+        "[ ] Deliberate gate change (same class as #5024).",
+        "Blocks 0.119.10."
+      ],
+      "admitted_source_digest": "13f55051514862bc6e161b79e3367595de7074719f39ca3917428231cddd03af",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Raise `RELEASE_CHECK_TIMEOUT_MS` 45→60 minutes; update pin test + RELEASING.md / CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Deliberate gate change (same class as #5024).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5611317817,
+        "origin": "deftai/directive#5091",
+        "id": "github.issue.5611317817"
+      }
+    },
+    "id": "github.issue.5611317817",
+    "updated": "2026-09-28T08:33:01Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "60",
+          "unit": "minutes",
+          "rejectionScope": "operation",
+          "rationale": "Deliberate Windows release Step 5 hang-detector raise 45→60 for suite growth (#5091); operator Scott approved in-harness. Matches RELEASE_CHECK_TIMEOUT_MINUTES and RELEASE_CHECK_TIMEOUT_MS = 60 * 60 * 1000."
+        }
+      ]
+    }
+  }
+}
