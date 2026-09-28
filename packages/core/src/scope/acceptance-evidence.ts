@@ -304,18 +304,29 @@ export function isAcceptanceDispositionKind(value: unknown): value is Acceptance
 /**
  * Infer strict axes a criterion requires from explicit fields and title/Acceptance text.
  * Explicit `requires` / `requiredEvidenceKind` / `acceptanceAxis` wins when valid.
- * Explicit `merge` short-circuits to [] (declarable outside STRICT_ACCEPTANCE_AXES; #5105).
+ * Merge-only declaration short-circuits free-text to [] (#5105). When merge AND a
+ * strict axis are both declared (e.g. requires=merge + acceptanceAxis=smoke), keep
+ * the strict axis — do not hide it behind the merge short-circuit (Greptile P1).
  */
 export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
+  let sawMerge = false;
+  let explicitStrict: StrictAcceptanceAxis | null = null;
   for (const raw of readExplicitAcceptanceRequirementFields(item)) {
     if (typeof raw !== "string") continue;
     const norm = normalizeRequirementToken(raw);
     if (norm === MERGE_ACCEPTANCE_REQUIREMENT) {
-      return [];
+      sawMerge = true;
+      continue;
     }
-    if (STRICT_AXIS_SET.has(norm)) {
-      return [norm as StrictAcceptanceAxis];
+    if (STRICT_AXIS_SET.has(norm) && explicitStrict === null) {
+      explicitStrict = norm as StrictAcceptanceAxis;
     }
+  }
+  if (explicitStrict !== null) {
+    return [explicitStrict];
+  }
+  if (sawMerge) {
+    return [];
   }
 
   const narrative = asRecord(item.narrative);

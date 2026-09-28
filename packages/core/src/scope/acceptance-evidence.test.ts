@@ -153,6 +153,52 @@ describe("acceptance evidence inference (#3240)", () => {
     expect(inferRequiredStrictAxes({ requires: "smoke" })).toEqual(["smoke"]);
   });
 
+  it("keeps explicit strict axis when merge is also declared (#5105 Greptile P1)", () => {
+    // requires=merge alone still short-circuits free-text; co-declared acceptanceAxis
+    // must not be hidden — otherwise kind:merge could complete a smoke criterion.
+    expect(
+      inferRequiredStrictAxes({
+        [ACCEPTANCE_REQUIRES_KEY]: "merge",
+        "x-directive/acceptanceAxis": "smoke",
+      }),
+    ).toEqual(["smoke"]);
+    expect(
+      inferRequiredStrictAxes({
+        [ACCEPTANCE_REQUIRES_KEY]: "merge",
+        acceptanceAxis: "uat",
+      }),
+    ).toEqual(["uat"]);
+    expect(
+      isEvidenceKindSuitable("merge", ["smoke"], {
+        mergeDeclared: itemDeclaresMergeRequirement({
+          [ACCEPTANCE_REQUIRES_KEY]: "merge",
+          "x-directive/acceptanceAxis": "smoke",
+        }),
+      }),
+    ).toBe(false);
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          {
+            title: "Smoke after merge",
+            status: "pending",
+            [ACCEPTANCE_REQUIRES_KEY]: "merge",
+            "x-directive/acceptanceAxis": "smoke",
+          },
+          {
+            kind: "merge",
+            pointer: "abc1234",
+            recorded_at: "2026-09-28T12:00:00Z",
+            recorded_by: "ci",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("invalid");
+    expect(gate.reports[0]?.detail).toMatch(/smoke|not suitable|merge\/review/i);
+  });
+
   it("rejects single-axis evidence when multiple strict axes are required", () => {
     // "Smoke after deploy" infers both axes — one kind cannot cover both (#3240 P1).
     expect(isEvidenceKindSuitable("smoke", ["smoke", "deploy"])).toBe(false);
