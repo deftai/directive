@@ -9,8 +9,10 @@ import {
   applyClauseDerivationToPlan,
   applyClauseQualityForIngest,
   applyClauseQualityToPlan,
+  applyEmptyAfterHarvestNoticeForIngest,
   CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
   collectTaskStatementFromPlan,
+  EMPTY_AFTER_HARVEST_REMEDIATION,
   emitAcceptanceStampFromPlan,
   evaluateAmbiguityAttestation,
   isMaterialAcceptanceChange,
@@ -577,6 +579,29 @@ describe("statement traceability (#3398)", () => {
     expect(acc.clauses).toBeUndefined();
     expect(acc.derived_reason).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
     expect(acc.quality_notice).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+  });
+
+  it("empty-after-harvest writer persists remediation when plan.items is empty (#4671)", () => {
+    const emptyPlan: Record<string, unknown> = {
+      title: "husk",
+      items: [],
+      acceptance: { commands: [], none_stated: true },
+    };
+    const emptyResult = applyEmptyAfterHarvestNoticeForIngest(emptyPlan);
+    expect(emptyResult.applied).toBe(true);
+    expect(emptyResult.notice).toBe(EMPTY_AFTER_HARVEST_REMEDIATION);
+    expect((emptyPlan.acceptance as { quality_notice: string }).quality_notice).toBe(
+      EMPTY_AFTER_HARVEST_REMEDIATION,
+    );
+
+    const filledPlan: Record<string, unknown> = {
+      title: "filled",
+      items: [{ title: "one", status: "proposed" }],
+      acceptance: { commands: [], none_stated: true },
+    };
+    const filledResult = applyEmptyAfterHarvestNoticeForIngest(filledPlan);
+    expect(filledResult.applied).toBe(false);
+    expect((filledPlan.acceptance as { quality_notice?: string }).quality_notice).toBeUndefined();
   });
 
   it("keeps refused-stamp remediation on the plan when derivation quality rejects (#3398)", async () => {

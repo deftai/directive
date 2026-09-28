@@ -48,6 +48,19 @@ import {
 } from "./issue-ingest.js";
 import { extractBoundRemedyHarvest } from "./markdown-scanners.js";
 
+/** Tester 1 Issue A body from nheroux-bit/show-env-report-uat#1 (#4671). */
+const TESTER1_ISSUE_A_BODY = [
+  "show-env-report prints an environment report to stdout.",
+  "Requirements:",
+  "1. The report is valid JSON.",
+  "2. It contains `os`, `nodeVersion`, and `cwd`.",
+  "3. It contains a `generatedAt` field with the current time in ISO 8601 format.",
+].join("\n");
+
+/** Tester 1 Issue B bare prose — stays #4374 (#4671). */
+const TESTER1_ISSUE_B_BODY =
+  "--help prints usage and exits with code 0. Tests cover both commands.";
+
 function completed(stdout: string, stderr: string, returncode: number): CompletedProcess {
   return { stdout, stderr, returncode };
 }
@@ -164,6 +177,79 @@ describe("buildIssueVbrief", () => {
     };
     expect(metadata.intended_placement?.schema).toBe(INTENDED_PLACEMENT_SCHEMA);
     expect(metadata.intended_placement?.files).toEqual([]);
+  });
+
+  it("Issue A: Requirements: harvest yields items + derived clauses; CREATED is non-silent only on empty (#4671)", () => {
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 1,
+        title: "Issue A",
+        url: "https://github.com/nheroux-bit/show-env-report-uat/issues/1",
+        body: TESTER1_ISSUE_A_BODY,
+        labels: [],
+      },
+      "proposed",
+      "https://github.com/nheroux-bit/show-env-report-uat",
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    const items = plan.items as { title: string }[];
+    expect(items.map((i) => i.title)).toEqual([
+      "The report is valid JSON.",
+      "It contains `os`, `nodeVersion`, and `cwd`.",
+      "It contains a `generatedAt` field with the current time in ISO 8601 format.",
+    ]);
+    const acceptance = plan.acceptance as {
+      none_stated: boolean;
+      source_rung: string;
+      quality_notice?: string;
+      clauses: { text: string }[];
+    };
+    expect(acceptance.none_stated).toBe(true);
+    expect(acceptance.source_rung).toBe("derived");
+    expect(acceptance.clauses.map((c) => c.text)).toEqual([
+      "The report is valid JSON.",
+      "It contains `os`, `nodeVersion`, and `cwd`.",
+      "It contains a `generatedAt` field with the current time in ISO 8601 format.",
+    ]);
+    expect(acceptance.quality_notice ?? "").not.toContain("plan.items is empty after body harvest");
+    expect(formatIngestCreatedMessage("proposed", "issue-a.xbrief.json", plan)).toBe(
+      "CREATED proposed/issue-a.xbrief.json",
+    );
+  });
+
+  it("Issue B: bare prose stays empty items with mandatory empty-after-harvest CREATED notice (#4671)", () => {
+    const commentRequirements = {
+      id: 99,
+      body: "Requirements:\n1. must not lift from comment thread",
+      user: { login: "commenter" },
+      created_at: "2026-09-16T00:00:00Z",
+      updated_at: "2026-09-16T00:00:00Z",
+      html_url: "https://github.com/o/r/issues/2#issuecomment-99",
+      author_association: "NONE",
+    };
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 2,
+        title: "Issue B",
+        url: "https://github.com/nheroux-bit/show-env-report-uat/issues/2",
+        body: TESTER1_ISSUE_B_BODY,
+        labels: [],
+        [ISSUE_COMMENT_THREAD_KEY]: [commentRequirements],
+      },
+      "proposed",
+      "https://github.com/nheroux-bit/show-env-report-uat",
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    expect(plan.items).toEqual([]);
+    const acceptance = plan.acceptance as { quality_notice?: string; none_stated?: boolean };
+    expect(acceptance.quality_notice).toMatch(/plan\.items is empty after body harvest/);
+    expect(formatIngestCreatedMessage("proposed", "issue-b.xbrief.json", plan)).toContain(
+      "plan.items is empty after body harvest",
+    );
+    // Body-only harvest: comment-thread Requirements: must not become plan.items.
+    expect(composeOverviewWithComments(TESTER1_ISSUE_B_BODY, [commentRequirements])).toContain(
+      "must not lift from comment thread",
+    );
   });
 
   it("derives numbered clauses at intake when no commands are stated (#3323)", () => {
@@ -929,6 +1015,36 @@ describe("extractCrossRefs", () => {
 describe("extractPlanItems", () => {
   it("returns empty for body without structure", () => {
     expect(extractPlanItems("Just prose, no checklist.")).toEqual([]);
+  });
+
+  it("harvests Tester 1 Issue A numbered list under whole-line Requirements: (#4671)", () => {
+    expect(extractPlanItems(TESTER1_ISSUE_A_BODY)).toEqual([
+      { title: "The report is valid JSON.", status: "proposed" },
+      { title: "It contains `os`, `nodeVersion`, and `cwd`.", status: "proposed" },
+      {
+        title: "It contains a `generatedAt` field with the current time in ISO 8601 format.",
+        status: "proposed",
+      },
+    ]);
+  });
+
+  it("locks Requirements: case-insensitive whole-line colon-label; rejects singular and inline (#4671)", () => {
+    expect(extractPlanItems("requirements:\n1. lower-case label\n")).toEqual([
+      { title: "lower-case label", status: "proposed" },
+    ]);
+    expect(extractPlanItems("Requirement:\n1. singular\n")).toEqual([]);
+    expect(extractPlanItems("Requirements: inline remainder\n1. not harvested\n")).toEqual([]);
+  });
+
+  it("terminates Requirements: slice at next ATX heading or same-shape Label: (#4671)", () => {
+    const withHeading = ["Requirements:", "1. keep me", "## Later", "1. drop me"].join("\n");
+    expect(extractPlanItems(withHeading).map((i) => i.title)).toEqual(["keep me"]);
+    const withLabel = ["Requirements:", "1. keep me", "Notes:", "1. drop me"].join("\n");
+    expect(extractPlanItems(withLabel).map((i) => i.title)).toEqual(["keep me"]);
+  });
+
+  it("leaves bare-prose Issue B empty (stays #4374) (#4671)", () => {
+    expect(extractPlanItems(TESTER1_ISSUE_B_BODY)).toEqual([]);
   });
 
   it("preserves inline code in acceptance-criteria checkbox titles (#1269 shape)", () => {

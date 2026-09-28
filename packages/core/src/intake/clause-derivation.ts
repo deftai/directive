@@ -362,6 +362,35 @@ export function applyClauseQualityForIngest(plan: Record<string, unknown>): Clau
   return quality;
 }
 
+/**
+ * Dedicated empty-after-harvest ingest writer (#4671).
+ * Persists and prints a concrete remediation when plan.items is still empty after
+ * checkbox / Acceptance Criteria / Requirements: harvest. Distinct from
+ * applyClauseQualityForIngest empty-clause silence.
+ */
+export const EMPTY_AFTER_HARVEST_REMEDIATION =
+  "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374.";
+
+export function applyEmptyAfterHarvestNoticeForIngest(
+  plan: Record<string, unknown>,
+): ClauseDerivationResult {
+  const items = Array.isArray(plan.items) ? plan.items : [];
+  if (items.length > 0) {
+    return { applied: false, clauses: readAcceptanceClauses(plan.acceptance), notice: "" };
+  }
+  const existing = asRecord(plan.acceptance);
+  const notice = EMPTY_AFTER_HARVEST_REMEDIATION;
+  plan.acceptance = {
+    ...(existing ?? { none_stated: true, commands: [] }),
+    quality_notice: notice,
+  };
+  return {
+    applied: true,
+    clauses: readAcceptanceClauses(plan.acceptance),
+    notice,
+  };
+}
+
 function formatAmbiguousClauseNotice(clauses: readonly AcceptanceClause[]): string {
   const flagged = clauses.filter((clause) => clause.ambiguous);
   const lines = [
