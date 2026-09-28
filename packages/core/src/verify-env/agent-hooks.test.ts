@@ -111,16 +111,13 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).toContain("disabled: Claude");
   });
 
-  it("offers hostHooks opt-out recovery for an enabled missing host", () => {
+  it("does not teach disable-host-hooks as recovery for an enabled missing host", () => {
     const result = evaluateAgentHooks(project());
 
     expect(result.code).toBe(1);
-    expect(result.message).toContain("deft policy:show --field=hostHooks");
-    expect(result.message).toContain("deft policy:disable-host-hooks");
-    expect(result.message).toContain("--confirm");
-    expect(result.message).toContain("deft-hook pre-execution guardrails");
+    expect(result.message).not.toContain("disable-host-hooks");
     expect(result.message).not.toContain("hostHooks.<host> = false");
-    expect(result.message).not.toContain("disable-host-hooks -- --host");
+    expect(result.message).toContain("writeAgentHookDeposit");
   });
 
   it("fails closed on a tool-surface gap the registration check cannot see (#3987)", () => {

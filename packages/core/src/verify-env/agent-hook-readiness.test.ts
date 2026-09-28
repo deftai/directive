@@ -214,10 +214,8 @@ describe("evaluateAgentHookReadiness", () => {
       "non-functional",
     );
     expect(result.hosts.find((entry) => entry.host === "claude")?.functionality).toBe("not-run");
-    expect(result.message).toContain("deft policy:disable-host-hooks");
-    expect(result.message).toContain("deft-hook pre-execution guardrails");
+    expect(result.message).not.toContain("disable-host-hooks");
     expect(result.message).not.toContain("hostHooks.<host> = false");
-    expect(result.message).not.toContain("disable-host-hooks -- --host");
     expect(result.stream).toBe("stderr");
   });
 

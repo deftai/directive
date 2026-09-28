@@ -14,10 +14,7 @@ import {
   inspectHostToolCoverage,
 } from "../init-deposit/host-tool-coverage.js";
 import type { HostHooksPolicy } from "../policy/host-hooks.js";
-import {
-  loadHostHooksPolicyFromProject,
-  UNUSED_HOST_HOOKS_RECOVERY,
-} from "../policy/host-hooks.js";
+import { loadHostHooksPolicyFromProject } from "../policy/host-hooks.js";
 import { compareSemver, readPin } from "../resolution/pin.js";
 import {
   type AgentHookLiveProbeResult,
@@ -157,8 +154,7 @@ export function evaluateAgentHooks(
         unhealthy
           .map((entry) => `  - ${entry.host}: ${entry.status} at ${entry.path} — ${entry.detail}`)
           .join("\n") +
-        recovery +
-        UNUSED_HOST_HOOKS_RECOVERY,
+        recovery,
       stream: "stderr",
       registrations,
       coverage,

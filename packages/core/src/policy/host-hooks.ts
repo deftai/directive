@@ -50,13 +50,6 @@ export const HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE =
   "(human high-trust bypass).\n" +
   "  \u2022 Changes are recorded to meta/policy-changes.log for auditability.";
 
-export const UNUSED_HOST_HOOKS_RECOVERY =
-  "If an affected host is unused, inspect `" +
-  policyColonInvocation("show", " --field=hostHooks") +
-  "`, then run `" +
-  disableHostHooksInvocation() +
-  "`. That removes deft-hook pre-execution guardrails for that host and the result is tracked.";
-
 /** Per-host Directive hook deposit toggles (#2752). */
 export type HostHooksPolicy = Record<HookHost, boolean>;
 

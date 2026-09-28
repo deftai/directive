@@ -14,7 +14,6 @@ import {
   loadHostHooksPolicyFromProject,
   parseHookHost,
   resolveHostHooksPolicy,
-  UNUSED_HOST_HOOKS_RECOVERY,
   validateHostHooks,
 } from "./host-hooks.js";
 import { inspectOnePolicy } from "./index.js";
@@ -158,15 +157,11 @@ describe("hostHooks policy (#2752)", () => {
     expect(result.stdout).toContain("Config error");
   });
 
-  it("unused-host recovery names the confirm verb and guardrail cost", () => {
-    expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("deft policy:disable-host-hooks");
-    expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("--confirm");
-    expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("deft-hook pre-execution guardrails");
-    expect(UNUSED_HOST_HOOKS_RECOVERY).not.toContain("hostHooks.<host> = false");
+  it("disable-host-hooks invocation names the confirm verb without go-task --", () => {
     expect(disableHostHooksInvocation()).toBe(
       "deft policy:disable-host-hooks --host <host> --confirm",
     );
     expect(disableHostHooksInvocation()).not.toContain(" -- --");
-    expect(UNUSED_HOST_HOOKS_RECOVERY).not.toContain("disable-host-hooks -- --host");
+    expect(disableHostHooksInvocation()).not.toContain("disable-host-hooks -- --host");
   });
 });

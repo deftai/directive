@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(hooks,verify): readiness recovery no longer concatenates UNUSED_HOST_HOOKS_RECOVERY on matcher drift (Tracking #5110).** Missing/drifted evaluateAgentHooks and non-timeout live readiness no longer teach `disable-host-hooks` as Grok matcher recovery; capability-cost disclosure stays on the unconfirmed disable verb. Leftover of #4574.
 - **fix(design-critique): negated ingest no longer selects checkout (#5111).** `do not ingest` / `don't ingest` / similar resolve to `no-ingest`; bare `ingest` still selects checkout.
 - **fix(lifecycle): merge declaration no longer hides co-declared smoke/strict axes (#5105).** Explicit `x-directive/requires: merge` plus `x-directive/acceptanceAxis: smoke` (or another strict axis) still requires the strict-axis evidence; merge alone cannot complete the criterion.
 

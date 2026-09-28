@@ -3,10 +3,7 @@ import { resolveFrameworkRootForProject } from "../doctor/paths.js";
 import type { HookHost } from "../hooks/dispatcher.js";
 import type { AgentHookInspection } from "../init-deposit/agent-hooks.js";
 import type { HostHooksPolicy } from "../policy/host-hooks.js";
-import {
-  loadHostHooksPolicyFromProject,
-  UNUSED_HOST_HOOKS_RECOVERY,
-} from "../policy/host-hooks.js";
+import { loadHostHooksPolicyFromProject } from "../policy/host-hooks.js";
 import { type AgentHookHealthResult, evaluateAgentHooks } from "./agent-hooks.js";
 import {
   type AgentHookLiveProbeResult,
@@ -228,15 +225,12 @@ export function evaluateAgentHookReadiness(
   const trustReview = policy.codex
     ? "\n  Codex trust: manual-review-required. The live probe validates the shim and codec, not host interception."
     : "";
-  const unusedHostRecovery =
-    liveProbe.code === 0 || timeoutOnly ? "" : `\n  ${UNUSED_HOST_HOOKS_RECOVERY}`;
   return {
     code: liveProbe.code,
     message:
       `${liveProbe.code === 0 ? "✓" : "❌"} deft agent hook readiness: ${liveProbe.message}\n` +
       renderHosts(evaluatedHosts) +
-      trustReview +
-      unusedHostRecovery,
+      trustReview,
     stream: liveProbe.code === 0 ? "stdout" : "stderr",
     skipped: false,
     liveStatus,
