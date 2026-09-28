@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import {
   DIRECT_WRITE_TOOL_NAMES,
+  GROK_MUTATION_TOOL_CATALOG,
   isDirectWriteTool,
   isSpawnTool,
   SPAWN_TOOL_NAMES,
@@ -802,6 +803,108 @@ describe("inspectAgentHookDeposit", () => {
     expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "cursor")).toMatchObject({
       status: "drifted",
     });
+  });
+
+  it("keeps grok healthy when direct-write matcher lacks EditNotebook but has catalog tokens (#4574)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const grokPath = join(root, ".grok/hooks/deft.json");
+    const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+    };
+    const withoutEditNotebook = DIRECT_WRITE_HOOK_MATCHER.replace(
+      "|EditNotebook|edit_notebook",
+      "",
+    );
+    expect(withoutEditNotebook).not.toBe(DIRECT_WRITE_HOOK_MATCHER);
+    expect(withoutEditNotebook.split("|")).toEqual(
+      expect.arrayContaining([...GROK_MUTATION_TOOL_CATALOG.directWrite]),
+    );
+    grok.hooks.PreToolUse = grok.hooks.PreToolUse.map((entry) =>
+      entry.matcher === DIRECT_WRITE_HOOK_MATCHER
+        ? { ...entry, matcher: withoutEditNotebook }
+        : entry,
+    );
+    writeFileSync(grokPath, `${JSON.stringify(grok, null, 2)}\n`, "utf8");
+
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "healthy",
+    });
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "claude")).toMatchObject({
+      status: "healthy",
+    });
+  });
+
+  it("marks grok drifted when a GROK_MUTATION_TOOL_CATALOG.directWrite token is missing (#4574)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const grokPath = join(root, ".grok/hooks/deft.json");
+    const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+    };
+    const missingSearchReplace = DIRECT_WRITE_HOOK_MATCHER.replace("|search_replace", "");
+    grok.hooks.PreToolUse = grok.hooks.PreToolUse.map((entry) =>
+      entry.matcher === DIRECT_WRITE_HOOK_MATCHER
+        ? { ...entry, matcher: missingSearchReplace }
+        : entry,
+    );
+    writeFileSync(grokPath, `${JSON.stringify(grok, null, 2)}\n`, "utf8");
+
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "drifted",
+    });
+  });
+
+  it("does not use write|search_replace exact-equality as the grok registration bar (#4574)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const grokPath = join(root, ".grok/hooks/deft.json");
+    const grok = JSON.parse(readFileSync(grokPath, "utf8")) as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+    };
+    // Longer union that still carries catalog tokens — token presence, not exact bar.
+    const longerThanCatalogBar = `${DIRECT_WRITE_HOOK_MATCHER}|ExtraWriteAlias`;
+    expect(longerThanCatalogBar).not.toBe("write|search_replace");
+    grok.hooks.PreToolUse = grok.hooks.PreToolUse.map((entry) =>
+      entry.matcher === DIRECT_WRITE_HOOK_MATCHER
+        ? { ...entry, matcher: longerThanCatalogBar }
+        : entry,
+    );
+    writeFileSync(grokPath, `${JSON.stringify(grok, null, 2)}\n`, "utf8");
+
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "grok")).toMatchObject({
+      status: "healthy",
+    });
+  });
+
+  it("keeps claude on exact-equality for DIRECT_WRITE_HOOK_MATCHER (#4574)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const claudePath = join(root, ".claude/settings.json");
+    const claude = JSON.parse(readFileSync(claudePath, "utf8")) as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+    };
+    const withoutEditNotebook = DIRECT_WRITE_HOOK_MATCHER.replace(
+      "|EditNotebook|edit_notebook",
+      "",
+    );
+    claude.hooks.PreToolUse = claude.hooks.PreToolUse.map((entry) =>
+      entry.matcher === DIRECT_WRITE_HOOK_MATCHER
+        ? { ...entry, matcher: withoutEditNotebook }
+        : entry,
+    );
+    writeFileSync(claudePath, `${JSON.stringify(claude, null, 2)}\n`, "utf8");
+
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "claude")).toMatchObject({
+      status: "drifted",
+    });
+  });
+
+  it("still deposits shared DIRECT_WRITE_HOOK_MATCHER for grok merge writer (#4574)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const grok = readFileSync(join(root, ".grok/hooks/deft.json"), "utf8");
+    expect(grok).toContain(`"matcher": "${DIRECT_WRITE_HOOK_MATCHER}"`);
   });
 
   it("treats non-array event collections as registration drift", () => {
