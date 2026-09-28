@@ -310,11 +310,16 @@ export interface UnmarkedFinalizeAdmit {
 
 /**
  * First-ship unmarked compose for finalize-owed (#3791 P3).
- * When `productPullRequest` is absent, admit only if the orphan signature shows
- * shipped **and** `prRefs` carries a confirmed-merged PR for the derive.
+ * When `productPullRequest` is absent, admit only if a confirmed-merged PR in
+ * `prRefs` shares the delivery repository with the origin issue.
  * Does not key compose on reason-string equality for "linked PR is merged".
  * Empty-`prRefs` closed-origin-only stays out (returns null). Detector-only for
  * `verify:orphan-active` — this helper is a pure derive for owed discovery.
+ *
+ * Same-repo / delivery-repository identity must hold for the PR used in
+ * admission (cross-repo PR+issue pairing is refused). `firstMergedPrRef` is the
+ * sole merge probe for this derive — a second orphan-signature re-probe must
+ * not drop the already-confirmed shipped admission while the origin stays open.
  */
 export function deriveUnmarkedFinalizeAdmit(
   plan: Record<string, unknown>,
@@ -325,26 +330,21 @@ export function deriveUnmarkedFinalizeAdmit(
   if (prs.length === 0) {
     return null;
   }
-  const merged = firstMergedPrRef(prs, runGh);
+  const repoLower = defaultRepo.toLowerCase();
+  // Fail closed: only PRs in the delivery repository may admit (#3791 Greptile).
+  const sameRepoPrs = prs.filter((pr) => pr.repo.toLowerCase() === repoLower);
+  if (sameRepoPrs.length === 0) {
+    return null;
+  }
+  // Single merge probe — confirmed merge is the shipped evidence for compose.
+  // Do not re-call assessOrphanSignature / fetchPrMerged here (#3791 Greptile).
+  const merged = firstMergedPrRef(sameRepoPrs, runGh);
   if (merged === null) {
     return null;
   }
-  const tally = new BasisTally();
-  const ctx: ResolveContext = {
-    projectRoot: "",
-    runGh,
-    skipGh: false,
-    nowMs: Date.now(),
-    inventory: new OpenIssueInventory(runGh),
-  };
-  // Kind === shipped (not reason-string equality) so closed-origin short-circuit
-  // cases that still carry derivable prRefs remain admitted (#3791).
-  const assessment = assessOrphanSignature(issues, prs, ctx, null, tally);
-  if (!assessment.orphaned || assessment.kind !== "shipped") {
-    return null;
-  }
-  const repoLower = defaultRepo.toLowerCase();
-  const origin = issues.find((ref) => ref.repo.toLowerCase() === repoLower) ?? issues[0] ?? null;
+  // Origin issue must also be in the delivery repository — never pair a foreign
+  // merged PR with a delivery-repo issue (or vice versa).
+  const origin = issues.find((ref) => ref.repo.toLowerCase() === repoLower) ?? null;
   if (origin === null) {
     return null;
   }

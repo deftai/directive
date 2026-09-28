@@ -23,6 +23,7 @@ import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { runTransition } from "../scope/transition.js";
 import { EXIT_CONFIG_ERROR, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
+  evaluateFinalizeClassMergeCarveOut,
   FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
   finalizeClaimRef,
   finalizeCohort,
@@ -1894,6 +1895,11 @@ describe("finalizeCohort", () => {
     try {
       expect(isDurableFinalizeHeadRef("swarm/finalize/story-4919")).toBe(true);
       expect(isDurableFinalizeHeadRef("feature/other")).toBe(false);
+      const carveOut = evaluateFinalizeClassMergeCarveOut("swarm/finalize/story-4919");
+      expect(carveOut.allowed).toBe(true);
+      expect(carveOut.assumption).toBe(FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION);
+      expect(evaluateFinalizeClassMergeCarveOut("feature/other").allowed).toBe(false);
+      expect(evaluateFinalizeClassMergeCarveOut("swarm/finalize/").allowed).toBe(false);
       const result = finalizeCohort({
         projectRoot: project,
         storyTokens: [storyPath],
@@ -2499,6 +2505,89 @@ describe("unmarked finalize compose from orphan signature (#3791 P3)", () => {
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
     expect(deriveUnmarkedFinalizeAdmit(plan, "deftai/directive", runGh)).toBeNull();
+  });
+
+  it("refuses cross-repo PR/issue pairing for unmarked admit (#3791)", () => {
+    const plan = {
+      title: "cross-repo",
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/6",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/other-org/other-repo/pull/7",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    };
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("other-org/other-repo/pulls/7")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ merged_at: "2026-09-01T00:00:00Z" }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("deftai/directive/issues/6")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ state: "open", labels: [] }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
+    };
+    expect(deriveUnmarkedFinalizeAdmit(plan, "deftai/directive", runGh)).toBeNull();
+  });
+
+  it("keeps confirmed merge admission when a later PR lookup would fail (#3791)", () => {
+    const plan = {
+      title: "single-probe",
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/6",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/deftai/directive/pull/7",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    };
+    let pullLookups = 0;
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/pulls/7")) {
+        pullLookups += 1;
+        // Only the first probe succeeds; a second assessOrphanSignature-style
+        // re-probe would fail — admission must still hold.
+        if (pullLookups === 1) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ merged_at: "2026-09-01T00:00:00Z" }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "transient" };
+      }
+      if (joined.includes("/issues/6")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ state: "open", labels: [] }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
+    };
+    const admit = deriveUnmarkedFinalizeAdmit(plan, "deftai/directive", runGh);
+    expect(admit).not.toBeNull();
+    expect(admit?.productPr).toBe(7);
+    expect(admit?.issue).toBe(6);
+    expect(pullLookups).toBe(1);
   });
 
   it("makes an unmarked stuck brief inventory-visible and finalize-clearable", () => {

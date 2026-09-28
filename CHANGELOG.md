@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **fix(lifecycle): merge declaration no longer hides co-declared smoke/strict axes (#5105).** Explicit `x-directive/requires: merge` plus `x-directive/acceptanceAxis: smoke` (or another strict axis) still requires the strict-axis evidence; merge alone cannot complete the criterion.
 
+- **fix(lifecycle): harden #3791 unmarked compose + finalize carve-out residual.** Carve-out goes through `evaluateFinalizeClassMergeCarveOut` (durable `swarm/finalize/*` membership + recorded first-ship assumption), not a bare branch-prefix. Unmarked admit requires same-repo delivery identity for PR and origin issue; `firstMergedPrRef` is the sole merge probe so a second lookup failure cannot drop confirmed admission. Tracking #3791 / PR #5113.
+
 ### Removed
 
 ## [0.119.10] - 2026-09-28

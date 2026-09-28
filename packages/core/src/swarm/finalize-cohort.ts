@@ -829,6 +829,34 @@ export function isDurableFinalizeHeadRef(headRef: string | null | undefined): bo
   );
 }
 
+/**
+ * Documented lifecycle-only bot-merge override for leftover finalize (#3791 P1).
+ * Consults fail-closed durable-class membership **and** the recorded first-ship
+ * assumption — not a bare branch-prefix alone, and not a general bot-merge remint.
+ */
+export interface FinalizeClassMergeCarveOut {
+  readonly allowed: boolean;
+  readonly assumption: string | null;
+  readonly reason: string;
+}
+
+export function evaluateFinalizeClassMergeCarveOut(
+  headRef: string | null | undefined,
+): FinalizeClassMergeCarveOut {
+  if (!isDurableFinalizeHeadRef(headRef)) {
+    return {
+      allowed: false,
+      assumption: null,
+      reason: "head is not a durable swarm/finalize/* leftover",
+    };
+  }
+  return {
+    allowed: true,
+    assumption: FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
+    reason: "lifecycle-only finalize-class carve-out (#3791)",
+  };
+}
+
 function storySlugs(storyPaths: readonly string[]): string {
   return storyPaths
     .map((p) => {
@@ -1988,27 +2016,29 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       if (errors.length === 0 && repo !== null && lifecyclePr !== null) {
         // Arm GitHub auto-merge when agent merge is allowed (#4919 / #1193), or via the
         // lifecycle-only finalize-class carve-out (#3791). Not a general bot-merge remint.
+        // Carve-out consults evaluateFinalizeClassMergeCarveOut (durable class + recorded
+        // first-ship assumption), not a bare branch-prefix alone.
         // First-ship discharge of the original one-CI-run ask remains next-session
         // finalize-owed + session-start blocking (#4919) with live-closer leftover-complete
         // (#4937); residual windows (deferred / read-only / no soon session) stay explicit.
         const agentMerge = evaluateAgentMerge(projectRoot);
-        const finalizeClassOk = isDurableFinalizeHeadRef(branch);
-        if (agentMerge.allowed || finalizeClassOk) {
+        const finalizeCarveOut = evaluateFinalizeClassMergeCarveOut(branch);
+        if (agentMerge.allowed || finalizeCarveOut.allowed) {
           const autoMerge = enableLeftoverAutoMerge(repo, lifecyclePr, runGh);
           if (!autoMerge.ok) {
             warnings.push(
               `lifecycle PR #${String(lifecyclePr)}: auto-merge not enabled (${autoMerge.detail})`,
             );
-          } else if (!agentMerge.allowed && finalizeClassOk) {
+          } else if (!agentMerge.allowed && finalizeCarveOut.allowed) {
             warnings.push(
-              `lifecycle PR #${String(lifecyclePr)}: auto-merge via finalize-class carve-out; ` +
-                FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
+              `lifecycle PR #${String(lifecyclePr)}: auto-merge via ${finalizeCarveOut.reason}; ` +
+                (finalizeCarveOut.assumption ?? FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION),
             );
           }
         } else {
           warnings.push(
             `lifecycle PR #${String(lifecyclePr)}: auto-merge skipped (requireHumanMerge; ` +
-              "hand-off without auto-merge)",
+              `${finalizeCarveOut.reason}; hand-off without auto-merge)`,
           );
         }
         if (args.handOffLeftover === true) {
