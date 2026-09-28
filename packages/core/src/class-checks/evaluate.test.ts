@@ -322,6 +322,28 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.findings.some((f) => f.kind === "production-references-test-root")).toBe(true);
   });
 
+  it("allows GitHub Actions workflows to reference declared fixture roots (#5097)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: [".github/workflows/ci.yml"],
+      baseTestBoundaryPolicy: baseTb({
+        sourceRoots: ["src/**"],
+        testRoots: ["tests/**"],
+        fixtureRoots: ["tests/fixtures/**"],
+      }),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        [
+          ".github/workflows/ci.yml",
+          "Copy-Item tests\\fixtures\\pre_cutover_customized\\* $fixtureDir -Recurse\n",
+        ],
+      ]),
+    });
+    expect(
+      result.findings.filter((f) => f.kind === "production-references-test-root"),
+    ).toHaveLength(0);
+  });
+
   it("fails closed on malformed merge-base PROJECT-DEFINITION classChecks", () => {
     const badJson = parseClassChecksFromProjectDefinition("{ not json");
     expect(badJson.ok).toBe(false);

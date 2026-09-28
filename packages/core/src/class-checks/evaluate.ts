@@ -504,6 +504,10 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function isGithubWorkflowPath(relPath: string): boolean {
+  return /(^|\/)\.github\/workflows\//i.test(relPath.replace(/\\/g, "/"));
+}
+
 function scanProductionReferences(
   relPath: string,
   content: string,
@@ -516,6 +520,11 @@ function scanProductionReferences(
     return null;
   }
   if (isUnderAnyRoot(relPath, policy.testRoots) || isUnderAnyRoot(relPath, policy.fixtureRoots)) {
+    return null;
+  }
+  // CI workflows may stage declared fixtures (and run tests). Class 2 targets
+  // shipped production/deploy paths, not .github/workflows harness steps (#5097).
+  if (isGithubWorkflowPath(relPath)) {
     return null;
   }
   const underSource = isUnderAnyRoot(relPath, policy.sourceRoots);
