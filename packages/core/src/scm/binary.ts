@@ -38,13 +38,18 @@ export function preferWin32WhichHit(
 
 /** Default PATH lookup mirroring Python `shutil.which`. Uses the
  * platform-native resolver (`where` on Windows, `which` elsewhere) so
- * executable resolution works cross-platform. */
-export function defaultWhich(name: string): string | null {
+ * executable resolution works cross-platform.
+ * Optional `env` lets callers resolve against a child PATH (#5081 Greptile). */
+export function defaultWhich(
+  name: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
   const locator = process.platform === "win32" ? "where" : "which";
   try {
     const result = execFileSync(locator, [name], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
+      env,
     });
     // `where` may return multiple lines; prefer a PATHEXT hit in the first dir (#5081).
     return preferWin32WhichHit(result.split(/\r?\n/));
@@ -54,8 +59,8 @@ export function defaultWhich(name: string): string | null {
 }
 
 /**
- * Win32 `.cmd` / `.bat` shims need `shell: true`; native `.exe` does not.
- * Without the shell, `spawnSync(gh.cmd, …)` returns EINVAL (status null → exit 1)
+ * Win32 `.cmd` / `.bat` shims need a cmd.exe /c line; native `.exe` does not.
+ * Without that, `spawnSync(gh.cmd, …)` returns EINVAL (status null → exit 1)
  * and deep SCM `/user` validation fails (#5081).
  */
 export function scmSpawnNeedsShell(
@@ -65,8 +70,8 @@ export function scmSpawnNeedsShell(
   return platform === "win32" && /\.(?:cmd|bat)$/i.test(command);
 }
 
-/** Quote spaced win32 paths so `shell: true` does not split on `Program Files`. */
-function quoteWin32CommandForShell(command: string): string {
+/** Quote spaced win32 paths so cmd.exe does not split on `Program Files`. */
+export function quoteWin32CommandForShell(command: string): string {
   if (!command.includes(" ")) {
     return command;
   }
@@ -80,31 +85,64 @@ function quoteWin32CommandForShell(command: string): string {
 }
 
 /**
- * spawnSync wrapper for SCM binaries: applies win32 `.cmd`/`.bat` shell (#5081).
- * Bare names on win32 are re-resolved via `defaultWhich` so a PATH-prepended
- * `gh.cmd` wins over a later host `gh.exe` (SearchPath otherwise steals).
+ * Escape one argv token for cmd.exe /c so metacharacters cannot open a
+ * second command (#5081 Greptile P1: unescaped `&` in labels).
+ */
+export function escapeWin32CmdArg(arg: string): string {
+  if (arg.length === 0) {
+    return '""';
+  }
+  if (!/[\s"&<>|^%!()]/.test(arg)) {
+    return arg;
+  }
+  return `"${arg.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Build a single cmd.exe /c command line for a `.cmd`/`.bat` binary + args.
+ */
+export function buildWin32CmdLine(command: string, args: readonly string[]): string {
+  return [quoteWin32CommandForShell(command), ...args.map(escapeWin32CmdArg)].join(" ");
+}
+
+/**
+ * spawnSync wrapper for SCM binaries: applies win32 `.cmd`/`.bat` via
+ * `cmd.exe /d /s /c` with escaped args (#5081). Bare names on win32 are
+ * re-resolved via `defaultWhich` against `options.env` PATH so a
+ * PATH-prepended `gh.cmd` wins over a later host `gh.exe`.
  */
 export function spawnScmBinary(
   command: string,
   args: readonly string[],
   options: SpawnSyncOptions = {},
 ): SpawnSyncReturns<string | Buffer> {
+  const environ =
+    options.env !== undefined
+      ? (options.env as NodeJS.ProcessEnv)
+      : process.env;
   let resolved = command;
   if (
     process.platform === "win32" &&
     !/[\\/]/.test(command) &&
     !/\.(?:exe|cmd|bat|com)$/i.test(command)
   ) {
-    const fromPath = defaultWhich(command);
+    const fromPath = defaultWhich(command, environ);
     if (fromPath !== null) {
       resolved = fromPath;
     }
   }
-  const shell = scmSpawnNeedsShell(resolved);
-  const spawnCmd = shell ? quoteWin32CommandForShell(resolved) : resolved;
-  return spawnSync(spawnCmd, [...args], {
+  if (scmSpawnNeedsShell(resolved)) {
+    const comspec = environ.ComSpec ?? process.env.ComSpec ?? "cmd.exe";
+    return spawnSync(comspec, ["/d", "/s", "/c", buildWin32CmdLine(resolved, args)], {
+      ...options,
+      env: environ,
+      shell: false,
+      windowsHide: options.windowsHide ?? true,
+    });
+  }
+  return spawnSync(resolved, [...args], {
     ...options,
-    shell,
+    env: environ,
     windowsHide: options.windowsHide ?? true,
   });
 }

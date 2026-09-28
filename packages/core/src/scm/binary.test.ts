@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { defaultWhich, preferWin32WhichHit, resolveBinary, scmSpawnNeedsShell } from "./binary.js";
+import {
+  buildWin32CmdLine,
+  defaultWhich,
+  escapeWin32CmdArg,
+  preferWin32WhichHit,
+  resolveBinary,
+  scmSpawnNeedsShell,
+} from "./binary.js";
 import { BINARY_PREFERENCE } from "./constants.js";
 import { ScmStubError } from "./errors.js";
 
@@ -67,5 +74,22 @@ describe("scmSpawnNeedsShell (#5081)", () => {
   it("never requires shell on non-win32", () => {
     expect(scmSpawnNeedsShell("/tmp/gh.cmd", "linux")).toBe(false);
     expect(scmSpawnNeedsShell("/tmp/gh.bat", "darwin")).toBe(false);
+  });
+});
+
+describe("escapeWin32CmdArg / buildWin32CmdLine (#5081)", () => {
+  it("quotes args that contain cmd metacharacters", () => {
+    expect(escapeWin32CmdArg("plain")).toBe("plain");
+    expect(escapeWin32CmdArg("a&b")).toBe('"a&b"');
+    expect(escapeWin32CmdArg('say "hi"')).toBe('"say ""hi"""');
+  });
+
+  it("builds a single /c line with a quoted .cmd path and escaped args", () => {
+    expect(buildWin32CmdLine("C:\\shim\\gh.cmd", ["api", "user", "a&b"])).toBe(
+      'C:\\shim\\gh.cmd api user "a&b"',
+    );
+    expect(buildWin32CmdLine("C:\\Program Files\\GitHub CLI\\gh.cmd", ["auth", "status"])).toBe(
+      '"C:\\Program Files\\GitHub CLI\\gh.cmd" auth status',
+    );
   });
 });
