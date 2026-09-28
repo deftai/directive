@@ -2658,7 +2658,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       expect(payload.version_marker_writes).toEqual(
         expect.arrayContaining(["xbrief/.deft-version"]),
       );
-      const ledger = payload.skipped_consumer_projections as Array<Record<string, string>>;
+      const ledger = payload.consumer_projections as Array<Record<string, string>>;
       expect(ledger).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -2684,8 +2684,14 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
           }),
         ]),
       );
+      const skippedOnly = payload.skipped_consumer_projections as Array<Record<string, string>>;
       expect(
-        ledger.some(
+        skippedOnly.every(
+          (entry) => entry.disposition === "skipped" || entry.disposition === "refused",
+        ),
+      ).toBe(true);
+      expect(
+        skippedOnly.some(
           (entry) =>
             entry.path === "xbrief/PROJECT-DEFINITION.xbrief.json" &&
             entry.disposition === "skipped",

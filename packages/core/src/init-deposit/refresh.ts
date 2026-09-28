@@ -700,7 +700,12 @@ export function buildUpdateSummaryJson(input: {
     missing_tools: [],
     maintainer_mode: false,
     maintainer_tools: [],
-    skipped_consumer_projections: ledger.map((entry) => ({ ...entry })),
+    // Full ledger (skip/refuse/rewrite). Name kept for #5096 observability.
+    consumer_projections: ledger.map((entry) => ({ ...entry })),
+    // Legacy key: skipped + refused only (not rewritten).
+    skipped_consumer_projections: ledger
+      .filter((entry) => entry.disposition === "skipped" || entry.disposition === "refused")
+      .map((entry) => ({ ...entry })),
     pin_writes: ledger.filter((entry) => entry.write_class === "pin").map((entry) => entry.path),
     version_marker_writes: ledger
       .filter((entry) => entry.write_class === "version-marker")
