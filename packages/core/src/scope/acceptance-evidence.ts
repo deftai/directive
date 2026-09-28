@@ -29,12 +29,14 @@ import {
   type EvaluateVerifyAcOptions,
   evaluateVerifyAcFromPlan,
 } from "../product-first-done-gate/evaluate.js";
+import { type GitRunner } from "../session/git.js";
 import {
   isMatchAnyFilePointer,
   readAcceptanceClauses,
   readDeclaredArtifactScope,
   stripInlineMarkdownBold,
 } from "../verify-ac/clauses.js";
+import { verifyDeliveryAncestry } from "./delivery-evidence.js";
 import { utcNowIso } from "./vbrief-json.js";
 
 /** Canonical namespaced key for typed acceptance evidence (#3305 / #1620). */
@@ -64,10 +66,15 @@ export type AcceptanceDispositionKind = (typeof ACCEPTANCE_DISPOSITIONS)[number]
 /**
  * Axes that merge/review evidence alone cannot satisfy.
  * Matches epic #3237 Q3 suitability rule.
+ * `merge` is declarable on requires / requiredEvidenceKind / acceptanceAxis
+ * but MUST stay outside this set (#5105) — folding it in would reject kind:merge.
  */
 export const STRICT_ACCEPTANCE_AXES = ["deploy", "smoke", "uat", "observed_behavior"] as const;
 
 export type StrictAcceptanceAxis = (typeof STRICT_ACCEPTANCE_AXES)[number];
+
+/** Explicit field token for a merge evidence requirement (#5105). Not a strict axis. */
+export const MERGE_ACCEPTANCE_REQUIREMENT = "merge" as const;
 
 const EVIDENCE_KIND_SET = new Set<string>(ACCEPTANCE_EVIDENCE_KINDS);
 const DISPOSITION_SET = new Set<string>(ACCEPTANCE_DISPOSITIONS);
@@ -90,6 +97,14 @@ const UAT_EVIDENCE_ROOT = "uat-evidence";
 export const UAT_POINTER_SHAPE_REMEDIATION =
   "evidence kind mismatch: kind 'uat' with a test/source pointer — point at a UAT probe " +
   "artifact (uat-evidence/**), or relabel 'test' (#4563)";
+
+export const TEST_POINTER_SHAPE_REMEDIATION =
+  "evidence kind mismatch: kind 'test' with a non-test artifact pointer — point at a test " +
+  "or declared code file, not markdown/CHANGELOG/PR prose (#5105)";
+
+export const MERGE_POINTER_SHAPE_REMEDIATION =
+  "evidence kind mismatch: kind 'merge' with a non-commit pointer — point at a git commit " +
+  "sha (7–40 hex) that is an ancestor of the delivery tip (#5105)";
 
 /** Item statuses that still represent unfinished acceptance work (#2862 / #3240). */
 const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
@@ -191,6 +206,77 @@ function uatPointerShapeError(pointer: string): string | null {
   return denied ? UAT_POINTER_SHAPE_REMEDIATION : null;
 }
 
+/**
+ * kind:test must not point at markdown / CHANGELOG / bare PR prose (#5105).
+ * Declared source files (including #4840 matchAny stamps) remain allowed.
+ */
+function testPointerShapeError(pointer: string): string | null {
+  const p = posixPointer(pointer);
+  if (/\.md$/i.test(p) || /(^|\/)changelog(\.md)?$/i.test(p) || /^pr\s*#?\d+$/i.test(p)) {
+    return TEST_POINTER_SHAPE_REMEDIATION;
+  }
+  return null;
+}
+
+/** kind:merge pointer must be a git commit sha (7–40 hex) (#5105). */
+function mergePointerShapeError(pointer: string): string | null {
+  const p = pointer.trim();
+  if (/^[0-9a-f]{7,40}$/i.test(p)) {
+    return null;
+  }
+  return MERGE_POINTER_SHAPE_REMEDIATION;
+}
+
+/**
+ * Stamp-time kind-versus-pointer coherence for human and agent stamps (#5105).
+ * Extends uatPointerShapeError; recorded_by stays non-authoritative.
+ */
+export function evidencePointerShapeError(
+  kind: AcceptanceEvidenceKind,
+  pointer: string,
+): string | null {
+  if (kind === "uat") {
+    return uatPointerShapeError(pointer);
+  }
+  if (kind === "test") {
+    return testPointerShapeError(pointer);
+  }
+  if (kind === "merge") {
+    return mergePointerShapeError(pointer);
+  }
+  return null;
+}
+
+function readExplicitAcceptanceRequirementFields(
+  item: Record<string, unknown>,
+): readonly unknown[] {
+  return [
+    item.requires,
+    item.requiredEvidenceKind,
+    item.required_evidence_kind,
+    item.acceptanceAxis,
+    item.acceptance_axis,
+  ];
+}
+
+function normalizeRequirementToken(raw: string): string {
+  return raw.trim().toLowerCase().replace(/-/g, "_");
+}
+
+/**
+ * True when the criterion explicitly declares merge on requires /
+ * requiredEvidenceKind / acceptanceAxis (#5105). Never inferred from keywords.
+ */
+export function itemDeclaresMergeRequirement(item: Record<string, unknown>): boolean {
+  for (const raw of readExplicitAcceptanceRequirementFields(item)) {
+    if (typeof raw !== "string") continue;
+    if (normalizeRequirementToken(raw) === MERGE_ACCEPTANCE_REQUIREMENT) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function isAcceptanceEvidenceKind(value: unknown): value is AcceptanceEvidenceKind {
   return typeof value === "string" && EVIDENCE_KIND_SET.has(value.trim().toLowerCase());
 }
@@ -202,18 +288,15 @@ export function isAcceptanceDispositionKind(value: unknown): value is Acceptance
 /**
  * Infer strict axes a criterion requires from explicit fields and title/Acceptance text.
  * Explicit `requires` / `requiredEvidenceKind` / `acceptanceAxis` wins when valid.
+ * Explicit `merge` short-circuits to [] (declarable outside STRICT_ACCEPTANCE_AXES; #5105).
  */
 export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
-  const explicit = [
-    item.requires,
-    item.requiredEvidenceKind,
-    item.required_evidence_kind,
-    item.acceptanceAxis,
-    item.acceptance_axis,
-  ];
-  for (const raw of explicit) {
+  for (const raw of readExplicitAcceptanceRequirementFields(item)) {
     if (typeof raw !== "string") continue;
-    const norm = raw.trim().toLowerCase().replace(/-/g, "_");
+    const norm = normalizeRequirementToken(raw);
+    if (norm === MERGE_ACCEPTANCE_REQUIREMENT) {
+      return [];
+    }
     if (STRICT_AXIS_SET.has(norm)) {
       return [norm as StrictAcceptanceAxis];
     }
@@ -255,6 +338,10 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
  * Whether evidence.kind is suitable for the criterion's required strict axes.
  * merge and review never satisfy smoke/UAT/deploy/observed_behavior.
  *
+ * Suitability dual for merge (#5105): a declared merge requirement accepts
+ * kind:merge; kind:merge is suitable only when merge is explicitly declared —
+ * empty-axis / undeclared must refuse kind:merge.
+ *
  * A single evidence.kind covers only that axis. When free-text inference yields
  * multiple axes (e.g. "smoke after deploy"), every required axis must match the
  * same kind — which is only possible when the axes are identical. Otherwise use
@@ -264,11 +351,16 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
 export function isEvidenceKindSuitable(
   kind: AcceptanceEvidenceKind,
   requiredAxes: readonly StrictAcceptanceAxis[],
+  options: { readonly mergeDeclared?: boolean } = {},
 ): boolean {
+  const mergeDeclared = options.mergeDeclared === true;
+  if (kind === "merge") {
+    return mergeDeclared && requiredAxes.length === 0;
+  }
   if (requiredAxes.length === 0) {
     return true;
   }
-  if (kind === "merge" || kind === "review") {
+  if (kind === "review") {
     return false;
   }
   // All required strict axes must be covered by this single evidence kind.
@@ -319,11 +411,12 @@ function parseEvidence(raw: unknown):
   if (!isNonEmptyString(obj.recorded_by)) {
     return { ok: false, message: "evidence.recorded_by is required" };
   }
-  if (kindRaw === "uat") {
-    const shape = uatPointerShapeError(obj.pointer.trim());
-    if (shape !== null) {
-      return { ok: false, message: shape };
-    }
+  const shape = evidencePointerShapeError(
+    kindRaw as AcceptanceEvidenceKind,
+    obj.pointer.trim(),
+  );
+  if (shape !== null) {
+    return { ok: false, message: shape };
   }
   return {
     ok: true,
@@ -604,10 +697,15 @@ export interface StampDeclaredTestEvidenceResult {
 }
 
 /**
- * Production stamp writer that is not scope:complete (#4732).
+ * Exact-member kind:test helper (#4732).
  * Records kind:test only when the clause already has an exact declared file_scope
  * member (or that member copied onto artifact_path by #4008). Does not read PR
  * paths, verify_commands, or issue/comment prose (#3835).
+ *
+ * Inventory (#5105 / #4840): live production kind:test writer is
+ * stampMatchAnyFileEvidence via scope:stamp-evidence. This helper stays exported
+ * for exact-member callers and tests; it has no production CLI caller (documented
+ * #4732 orphan — not wired here).
  */
 export function stampDeclaredTestEvidence(
   plan: Record<string, unknown>,
@@ -721,6 +819,159 @@ export function stampMatchAnyFileEvidence(
     stampedIds.push(itemIdKey(item) ?? clauseKeyedItemId(clause.id));
   }
   return { stampedIds, skipped };
+}
+
+export type MergeAncestryVerifier = (
+  projectRoot: string,
+  mergeCommit: string,
+  deliveryBranch: string,
+  runGit?: GitRunner,
+) => { ok: boolean; error: string | null; remoteTip: string | null };
+
+export interface StampDeclaredMergeEvidenceOptions {
+  readonly recorded_by: string;
+  readonly recorded_at?: string;
+  readonly mergeCommit: string;
+  readonly projectRoot: string;
+  readonly deliveryBranch: string;
+  readonly verifyAncestry?: MergeAncestryVerifier;
+  readonly runGit?: GitRunner;
+}
+
+/**
+ * Merge-kind stamp sibling (#5105). Stamps only criteria that explicitly declare
+ * merge. Pointer is the merge commit after verifyDeliveryAncestry-shaped check
+ * against the refreshed delivery tip. Never auto-stamps from keywords or
+ * empty-axis alone.
+ *
+ * Production caller: evaluateAcceptanceEvidenceGate reads completionProvenance
+ * (delivery gate stamps it before acceptance on the complete path) and invokes
+ * this helper. Live kind:test writer remains stampMatchAnyFileEvidence /
+ * scope:stamp-evidence (#4840); stampDeclaredTestEvidence stays the #4732 orphan.
+ */
+export function stampDeclaredMergeEvidence(
+  plan: Record<string, unknown>,
+  options: StampDeclaredMergeEvidenceOptions,
+): StampDeclaredTestEvidenceResult {
+  const recordedBy = typeof options.recorded_by === "string" ? options.recorded_by.trim() : "";
+  const recordedAt =
+    typeof options.recorded_at === "string" && options.recorded_at.trim().length > 0
+      ? options.recorded_at.trim()
+      : utcNowIso();
+  const mergeCommit =
+    typeof options.mergeCommit === "string" ? options.mergeCommit.trim() : "";
+  const deliveryBranch =
+    typeof options.deliveryBranch === "string" ? options.deliveryBranch.trim() : "";
+  const projectRoot =
+    typeof options.projectRoot === "string" ? options.projectRoot.trim() : "";
+  const clauses = readAcceptanceClauses(plan.acceptance);
+  const stampedIds: string[] = [];
+  const skipped: StampDeclaredTestEvidenceSkip[] = [];
+  if (recordedBy.length === 0) {
+    for (const clause of clauses) {
+      skipped.push({ clauseId: clause.id, reason: "recorded_by-required" });
+    }
+    return { stampedIds, skipped };
+  }
+  if (mergeCommit.length === 0 || deliveryBranch.length === 0 || projectRoot.length === 0) {
+    for (const clause of clauses) {
+      skipped.push({ clauseId: clause.id, reason: "merge-pointer-required" });
+    }
+    return { stampedIds, skipped };
+  }
+  const shape = mergePointerShapeError(mergeCommit);
+  if (shape !== null) {
+    for (const clause of clauses) {
+      skipped.push({ clauseId: clause.id, reason: "merge-pointer-shape" });
+    }
+    return { stampedIds, skipped };
+  }
+  const verify = options.verifyAncestry ?? verifyDeliveryAncestry;
+  const ancestry = verify(projectRoot, mergeCommit, deliveryBranch, options.runGit);
+  if (!ancestry.ok) {
+    for (const clause of clauses) {
+      skipped.push({ clauseId: clause.id, reason: "ancestry-failed" });
+    }
+    return { stampedIds, skipped };
+  }
+  for (const clause of clauses) {
+    const item = findClauseKeyedItem(plan.items, clause.id);
+    if (item === null) {
+      skipped.push({ clauseId: clause.id, reason: "unbound" });
+      continue;
+    }
+    const fields = readNamespacedAcceptanceFields(item);
+    if (fields.hasEvidence || fields.hasDisposition) {
+      skipped.push({ clauseId: clause.id, reason: "already-stamped" });
+      continue;
+    }
+    if (!itemDeclaresMergeRequirement(item)) {
+      skipped.push({ clauseId: clause.id, reason: "undeclared-merge" });
+      continue;
+    }
+    if (inferRequiredStrictAxes(item).length > 0) {
+      skipped.push({ clauseId: clause.id, reason: "strict-axis" });
+      continue;
+    }
+    stampNamespacedEvidence(item, {
+      kind: "merge",
+      pointer: mergeCommit,
+      recorded_at: recordedAt,
+      recorded_by: recordedBy,
+    });
+    stampedIds.push(itemIdKey(item) ?? clauseKeyedItemId(clause.id));
+  }
+  return { stampedIds, skipped };
+}
+
+function readCompletionProvenance(
+  plan: Record<string, unknown>,
+): Record<string, unknown> | null {
+  const metadata = asRecord(plan.metadata);
+  if (metadata === null) {
+    return null;
+  }
+  return asRecord(metadata.completionProvenance);
+}
+
+/**
+ * Complete-path production caller for stampDeclaredMergeEvidence (#5105).
+ * Runs only when delivery completionProvenance already carries mergeCommit +
+ * deliveryBranch (ancestry was verified by the delivery gate).
+ */
+function autoStampMergeFromCompletionProvenance(
+  plan: Record<string, unknown>,
+  options: EvaluateAcceptanceEvidenceGateOptions,
+): void {
+  const prov = readCompletionProvenance(plan);
+  if (prov === null) {
+    return;
+  }
+  const mergeCommit = typeof prov.mergeCommit === "string" ? prov.mergeCommit.trim() : "";
+  const deliveryBranch =
+    typeof prov.deliveryBranch === "string" ? prov.deliveryBranch.trim() : "";
+  if (mergeCommit.length === 0 || deliveryBranch.length === 0) {
+    return;
+  }
+  const projectRoot =
+    typeof options.projectRoot === "string" && options.projectRoot.trim().length > 0
+      ? options.projectRoot.trim()
+      : process.cwd();
+  const recordedBy =
+    typeof options.recorded_by === "string" && options.recorded_by.trim().length > 0
+      ? options.recorded_by.trim()
+      : typeof prov.verifier === "string" && prov.verifier.trim().length > 0
+        ? prov.verifier.trim()
+        : "scope:complete";
+  stampDeclaredMergeEvidence(plan, {
+    recorded_by: recordedBy,
+    recorded_at: options.recorded_at,
+    mergeCommit,
+    projectRoot,
+    deliveryBranch,
+    verifyAncestry: options.verifyAncestry,
+    runGit: options.runGit,
+  });
 }
 
 export interface PersistClauseKeyedPendingItemsResult {
@@ -1076,14 +1327,20 @@ function evaluateOneItem(
     return { path, title, outcome: "invalid", detail: parsed.message };
   }
   const requiredAxes = inferRequiredStrictAxes(item);
-  if (!isEvidenceKindSuitable(parsed.record.kind, requiredAxes)) {
+  const mergeDeclared = itemDeclaresMergeRequirement(item);
+  if (!isEvidenceKindSuitable(parsed.record.kind, requiredAxes, { mergeDeclared })) {
     const axes = requiredAxes.length > 0 ? requiredAxes.join("|") : "(none)";
+    const mergeHint =
+      parsed.record.kind === "merge" && !mergeDeclared
+        ? ` kind:merge requires explicit requires|requiredEvidenceKind|acceptanceAxis=merge (#5105);`
+        : "";
     return {
       path,
       title,
       outcome: "invalid",
       detail:
-        `evidence.kind=${parsed.record.kind} is not suitable for required axis/axes [${axes}]; ` +
+        `evidence.kind=${parsed.record.kind} is not suitable for required axis/axes [${axes}];` +
+        `${mergeHint} ` +
         `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior (#3240)`,
       evidence: parsed.record,
     };
@@ -1211,9 +1468,20 @@ export function evaluateScopeCompleteAcceptanceWalk(
  * Fail closed when any non-terminal plan item lacks suitable evidence or a human-origin disposition.
  * Read-only: does not stamp x-directive/evidence (#4732).
  */
+export interface EvaluateAcceptanceEvidenceGateOptions {
+  readonly projectRoot?: string;
+  readonly runGit?: GitRunner;
+  readonly verifyAncestry?: MergeAncestryVerifier;
+  readonly recorded_by?: string;
+  readonly recorded_at?: string;
+}
+
 export function evaluateAcceptanceEvidenceGate(
   plan: Record<string, unknown>,
+  options: EvaluateAcceptanceEvidenceGateOptions = {},
 ): AcceptanceEvidenceGateResult {
+  // Production merge-kind stamp on the complete path (#5105).
+  autoStampMergeFromCompletionProvenance(plan, options);
   const reports: CriterionAcceptanceReport[] = [];
   walkItems(plan.items, "items", reports, clauseBindingKeysFromPlan(plan));
 

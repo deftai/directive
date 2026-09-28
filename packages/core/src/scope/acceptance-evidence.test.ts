@@ -28,13 +28,17 @@ import {
   formatScopeStatus,
   inferRequiredStrictAxes,
   isEvidenceKindSuitable,
+  itemDeclaresMergeRequirement,
+  MERGE_POINTER_SHAPE_REMEDIATION,
   persistClauseKeyedPendingItems,
   readNamespacedAcceptanceFields,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
+  stampDeclaredMergeEvidence,
   stampDeclaredTestEvidence,
   stampMatchAnyFileEvidence,
   stampNamespacedDisposition,
   stampNamespacedEvidence,
+  TEST_POINTER_SHAPE_REMEDIATION,
   UAT_POINTER_SHAPE_REMEDIATION,
 } from "./acceptance-evidence.js";
 import { promotePath } from "./promote-path.js";
@@ -131,7 +135,20 @@ describe("acceptance evidence inference (#3240)", () => {
     expect(isEvidenceKindSuitable("merge", ["smoke"])).toBe(false);
     expect(isEvidenceKindSuitable("review", ["uat"])).toBe(false);
     expect(isEvidenceKindSuitable("smoke", ["smoke"])).toBe(true);
-    expect(isEvidenceKindSuitable("merge", [])).toBe(true);
+    // Empty-axis / undeclared must refuse kind:merge (#5105 dual).
+    expect(isEvidenceKindSuitable("merge", [])).toBe(false);
+    expect(isEvidenceKindSuitable("merge", [], { mergeDeclared: true })).toBe(true);
+  });
+
+  it("admits explicit merge outside STRICT_ACCEPTANCE_AXES (#5105)", () => {
+    expect(itemDeclaresMergeRequirement({ requires: "merge" })).toBe(true);
+    expect(itemDeclaresMergeRequirement({ requiredEvidenceKind: "merge" })).toBe(true);
+    expect(itemDeclaresMergeRequirement({ acceptanceAxis: "merge" })).toBe(true);
+    expect(itemDeclaresMergeRequirement({ title: "merge lands on master" })).toBe(false);
+    expect(inferRequiredStrictAxes({ requires: "merge", title: "smoke after deploy" })).toEqual(
+      [],
+    );
+    expect(inferRequiredStrictAxes({ requires: "smoke" })).toEqual(["smoke"]);
   });
 
   it("rejects single-axis evidence when multiple strict axes are required", () => {
@@ -280,7 +297,7 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
         },
         {
           kind: "merge",
-          pointer: "merge:abc123",
+          pointer: "abc1234",
           recorded_at: "2026-08-10T12:00:00Z",
           recorded_by: "ci",
         },
@@ -290,6 +307,47 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/not suitable|merge\/review|smoke/i);
     expect(readFileSync(file, "utf8")).toContain("pending");
+  });
+
+  it("refuses undeclared kind:merge on empty-axis criteria (#5105)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "Works for solo and external contributions.", status: "pending" },
+          {
+            kind: "merge",
+            pointer: "abc1234",
+            recorded_at: "2026-09-28T12:00:00Z",
+            recorded_by: "ci",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("invalid");
+    expect(gate.reports[0]?.detail).toMatch(/explicit requires|kind:merge|#5105/i);
+  });
+
+  it("accepts declared merge with kind:merge sha pointer (#5105)", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          {
+            title: "Merge lands on delivery",
+            status: "pending",
+            requires: "merge",
+          },
+          {
+            kind: "merge",
+            pointer: "abc1234",
+            recorded_at: "2026-09-28T12:00:00Z",
+            recorded_by: "ci",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.reports[0]?.outcome).toBe("evidence");
   });
 
   it("allows waived disposition with human-origin provenance without full evidence", () => {
@@ -1688,7 +1746,7 @@ describe("#4732 ingest/promote clause-id bind and declared test stamp", () => {
           { title: "UAT sign-off", status: "pending" },
           {
             kind: "merge",
-            pointer: "merge:abc",
+            pointer: "abc1234",
             recorded_at: "2026-09-17T12:00:00Z",
             recorded_by: "ci",
           },
@@ -2087,5 +2145,183 @@ describe("fence evidence.pointer (#4840)", () => {
     const listing = formatAcceptanceCompletionListing(gate.reports);
     expect(listing).toContain(`pointer=${fenceUntrustedAcceptanceText(inject)}`);
     expect(listing).not.toMatch(/pointer=«untrusted:[^»]*\n/);
+  });
+});
+
+describe("kind-versus-pointer coherence (#5105)", () => {
+  it("refuses kind:test pointing at markdown or CHANGELOG", () => {
+    for (const pointer of ["docs/note.md", "CHANGELOG.md", "PR 5105"]) {
+      const gate = evaluateAcceptanceEvidenceGate({
+        items: [
+          withEvidence(
+            { title: "unit", status: "pending" },
+            {
+              kind: "test",
+              pointer,
+              recorded_at: "2026-09-28T12:00:00Z",
+              recorded_by: "t",
+            },
+          ),
+        ],
+      });
+      expect({ pointer, ok: gate.ok, detail: gate.reports[0]?.detail }).toEqual({
+        pointer,
+        ok: false,
+        detail: TEST_POINTER_SHAPE_REMEDIATION,
+      });
+    }
+  });
+
+  it("refuses kind:merge with a non-sha pointer", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "merge declared", status: "pending", requires: "merge" },
+          {
+            kind: "merge",
+            pointer: "merge:not-a-sha",
+            recorded_at: "2026-09-28T12:00:00Z",
+            recorded_by: "t",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.detail).toBe(MERGE_POINTER_SHAPE_REMEDIATION);
+  });
+});
+
+describe("stampDeclaredMergeEvidence (#5105)", () => {
+  it("stamps only explicitly merge-declared criteria after ancestry verify", () => {
+    const mergeItem: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Merge tip ancestry",
+      status: "pending",
+      requires: "merge",
+    };
+    const emptyItem: Record<string, unknown> = {
+      id: clauseKeyedItemId(2),
+      title: "Behavioral undeclared",
+      status: "pending",
+    };
+    const plan: Record<string, unknown> = {
+      items: [mergeItem, emptyItem],
+      acceptance: {
+        clauses: [
+          { id: 1, text: "Merge tip ancestry", artifact_path: null, ambiguous: false },
+          { id: 2, text: "Behavioral undeclared", artifact_path: null, ambiguous: false },
+        ],
+      },
+    };
+    const result = stampDeclaredMergeEvidence(plan, {
+      recorded_by: "scope:complete",
+      recorded_at: "2026-09-28T12:00:00Z",
+      mergeCommit: "abcdef1",
+      projectRoot: "/repo",
+      deliveryBranch: "master",
+      verifyAncestry: () => ({ ok: true, error: null, remoteTip: "tipsha" }),
+    });
+    expect(result.stampedIds).toEqual([clauseKeyedItemId(1)]);
+    expect(mergeItem[ACCEPTANCE_EVIDENCE_KEY]).toEqual({
+      kind: "merge",
+      pointer: "abcdef1",
+      recorded_at: "2026-09-28T12:00:00Z",
+      recorded_by: "scope:complete",
+    });
+    expect(emptyItem[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+    expect(result.skipped).toEqual([{ clauseId: 2, reason: "undeclared-merge" }]);
+  });
+
+  it("does not stamp when ancestry fails or merge is undeclared", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Merge tip ancestry",
+      status: "pending",
+      requires: "merge",
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: {
+        clauses: [{ id: 1, text: "Merge tip ancestry", artifact_path: null, ambiguous: false }],
+      },
+    };
+    expect(
+      stampDeclaredMergeEvidence(plan, {
+        recorded_by: "scope:complete",
+        recorded_at: "2026-09-28T12:00:00Z",
+        mergeCommit: "abcdef1",
+        projectRoot: "/repo",
+        deliveryBranch: "master",
+        verifyAncestry: () => ({ ok: false, error: "not ancestor", remoteTip: "tip" }),
+      }).skipped[0]?.reason,
+    ).toBe("ancestry-failed");
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("auto-stamps from completionProvenance inside evaluateAcceptanceEvidenceGate", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Merge tip ancestry",
+      status: "pending",
+      requires: "merge",
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: {
+        clauses: [{ id: 1, text: "Merge tip ancestry", artifact_path: null, ambiguous: false }],
+      },
+      metadata: {
+        completionProvenance: {
+          mergeCommit: "abcdef1",
+          deliveryBranch: "master",
+          verifier: "scope:complete",
+        },
+      },
+    };
+    const gate = evaluateAcceptanceEvidenceGate(plan, {
+      projectRoot: "/repo",
+      verifyAncestry: () => ({ ok: true, error: null, remoteTip: "tipsha" }),
+    });
+    expect(gate.ok).toBe(true);
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toMatchObject({
+      kind: "merge",
+      pointer: "abcdef1",
+      recorded_by: "scope:complete",
+    });
+  });
+
+  it("leaves empty-axis criteria unattested (visible remaining work)", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Works for solo and external contributions.",
+      status: "pending",
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: {
+        clauses: [
+          {
+            id: 1,
+            text: "Works for solo and external contributions.",
+            artifact_path: null,
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: {
+        completionProvenance: {
+          mergeCommit: "abcdef1",
+          deliveryBranch: "master",
+          verifier: "scope:complete",
+        },
+      },
+    };
+    const gate = evaluateAcceptanceEvidenceGate(plan, {
+      projectRoot: "/repo",
+      verifyAncestry: () => ({ ok: true, error: null, remoteTip: "tipsha" }),
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("missing");
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
   });
 });
