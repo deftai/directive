@@ -40,10 +40,7 @@ export function preferWin32WhichHit(
  * platform-native resolver (`where` on Windows, `which` elsewhere) so
  * executable resolution works cross-platform.
  * Optional `env` lets callers resolve against a child PATH (#5081 Greptile). */
-export function defaultWhich(
-  name: string,
-  env: NodeJS.ProcessEnv = process.env,
-): string | null {
+export function defaultWhich(name: string, env: NodeJS.ProcessEnv = process.env): string | null {
   const locator = process.platform === "win32" ? "where" : "which";
   try {
     const result = execFileSync(locator, [name], {
@@ -116,10 +113,7 @@ export function spawnScmBinary(
   args: readonly string[],
   options: SpawnSyncOptions = {},
 ): SpawnSyncReturns<string | Buffer> {
-  const environ =
-    options.env !== undefined
-      ? (options.env as NodeJS.ProcessEnv)
-      : process.env;
+  const environ = options.env !== undefined ? (options.env as NodeJS.ProcessEnv) : process.env;
   let resolved = command;
   if (
     process.platform === "win32" &&
