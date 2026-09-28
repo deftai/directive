@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5611317817",
+  "xbriefRelPath": "xbrief/active/2026-09-28-5091-chorerelease-raise-windows-step-5-hang-detector-4560m-for-su.xbrief.json",
+  "approvedAt": "2026-09-28T11:41:40Z",
+  "constraints": [
+    {
+      "value": "60",
+      "unit": "minutes",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-09-28T11:41:40Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "6c46a8aace0afcb1772c3e8a7eac6748aacf69a1cebb75096744d06a86dcf950"
+}
