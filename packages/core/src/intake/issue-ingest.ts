@@ -2322,8 +2322,12 @@ export function ingestBulk(
     const [result, path, msg] = ingested;
     const rel = path !== null ? path.replace(`${options.vbriefDir}/`, "").replace(/\\/g, "/") : "";
     (summary[result] as string[]).push(rel);
+    // Bulk already prints CREATED/DRY-RUN from the path list; keep notice body only.
     if (msg.includes("\n")) {
-      (summary.notices as string[]).push(msg);
+      const noticeBody = msg.slice(msg.indexOf("\n") + 1).trimEnd();
+      if (noticeBody.length > 0) {
+        (summary.notices as string[]).push(noticeBody);
+      }
     }
     if (result === "created" && path !== null) {
       const origin = originFromIssue(issue, options.repoUrl);

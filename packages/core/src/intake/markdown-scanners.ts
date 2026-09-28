@@ -259,19 +259,24 @@ function isRequirementsColonLabelLine(line: string): boolean {
   return /^requirements:\s*$/i.test(line.trim());
 }
 
-/** True for any ATX heading line (`#`…`######` + space or EOL). */
+/** True for any ATX heading line (0–3 leading spaces, `#`…`######` + space or EOL). */
 function isAtxHeadingLine(line: string): boolean {
-  if (!line.startsWith("#")) {
+  let i = 0;
+  while (i < line.length && i < 3 && line[i] === " ") {
+    i += 1;
+  }
+  if (i >= line.length || line[i] !== "#") {
     return false;
   }
   let hashes = 0;
-  while (hashes < line.length && line[hashes] === "#") {
+  while (i + hashes < line.length && line[i + hashes] === "#") {
     hashes += 1;
   }
   if (hashes < 1 || hashes > 6) {
     return false;
   }
-  return hashes >= line.length || line[hashes] === " ";
+  const after = i + hashes;
+  return after >= line.length || line[after] === " ";
 }
 
 /**
@@ -305,11 +310,19 @@ export function extractRequirementsSectionItems(text: string): CheckboxItem[] {
   if (text.length === 0) {
     return [];
   }
-  const match = findRequirementsColonLabel(text);
-  if (match === null) {
-    return [];
+  // Prefer the first non-empty Requirements: section when an earlier label is empty.
+  let offset = 0;
+  for (const line of text.split("\n")) {
+    if (isRequirementsColonLabelLine(line)) {
+      const match: ColonLabelMatch = { sectionStart: offset + line.length };
+      const items = parseListItems(sliceColonLabelSection(text, match));
+      if (items.length > 0) {
+        return items;
+      }
+    }
+    offset += line.length + 1;
   }
-  return parseListItems(sliceColonLabelSection(text, match));
+  return [];
 }
 
 /** Slice text until the next heading at the same or higher level. */

@@ -1043,6 +1043,25 @@ describe("extractPlanItems", () => {
     expect(extractPlanItems(withLabel).map((i) => i.title)).toEqual(["keep me"]);
   });
 
+  it("harvests a later non-empty Requirements: when the first section is empty (#4671)", () => {
+    const body = [
+      "Requirements:",
+      "",
+      "Notes:",
+      "1. not requirements",
+      "",
+      "Requirements:",
+      "1. real item",
+      "2. second item",
+    ].join("\n");
+    expect(extractPlanItems(body).map((i) => i.title)).toEqual(["real item", "second item"]);
+  });
+
+  it("stops Requirements: harvest at an indented ATX heading (0–3 spaces) (#4671)", () => {
+    const body = ["Requirements:", "1. keep me", "  ## Notes", "1. drop me"].join("\n");
+    expect(extractPlanItems(body).map((i) => i.title)).toEqual(["keep me"]);
+  });
+
   it("leaves bare-prose Issue B empty (stays #4374) (#4671)", () => {
     expect(extractPlanItems(TESTER1_ISSUE_B_BODY)).toEqual([]);
   });
