@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **fix(hooks,verify): readiness recovery no longer concatenates UNUSED_HOST_HOOKS_RECOVERY on matcher drift (Tracking #5110).** Missing/drifted evaluateAgentHooks and non-timeout live readiness no longer teach `disable-host-hooks` as Grok matcher recovery; capability-cost disclosure stays on the unconfirmed disable verb. Leftover of #4574.
 - **fix(design-critique): negated ingest no longer selects checkout (#5111).** `do not ingest` / `don't ingest` / similar resolve to `no-ingest`; bare `ingest` still selects checkout.
+- **fix(hooks,verify): missing-runtime readiness tip when `deft-hook` is off PATH (Tracking #5110).** Unavailable live readiness points at `npm i -g @deftai/directive` + doctor/update; does not restore disable-host-hooks for matcher drift.
+
 - **fix(lifecycle): merge declaration no longer hides co-declared smoke/strict axes (#5105).** Explicit `x-directive/requires: merge` plus `x-directive/acceptanceAxis: smoke` (or another strict axis) still requires the strict-axis evidence; merge alone cannot complete the criterion.
 
 - **fix(lifecycle): finalize leftover auto-merge requires bot-merge override (#3791 / PR #5113).** `evaluateFinalizeClassMergeCarveOut` arms only when durable `swarm/finalize/*` membership AND the documented #1193 bot-merge override (`policy:allow-bot-merge` / `DEFT_ALLOW_BOT_MERGE` / requireHumanMerge effective false) both hold. Branch prefix alone no longer bypasses requireHumanMerge; denied path names bot-merge policy or human merge. First-ship surface-3 assumption retained when the override is on.

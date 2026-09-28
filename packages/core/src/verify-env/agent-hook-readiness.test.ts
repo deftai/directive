@@ -197,6 +197,10 @@ describe("evaluateAgentHookReadiness", () => {
     expect(result.hosts.find((entry) => entry.host === "cursor")?.functionality).toBe(
       "unavailable",
     );
+    expect(result.message).toContain("npm i -g @deftai/directive");
+    expect(result.message).toContain("deft doctor --full");
+    expect(result.message).not.toContain("disable-host-hooks");
+    expect(result.message).not.toContain("hostHooks.<host>");
   });
 
   it("maps live denials and absent host results without conflating registration", () => {

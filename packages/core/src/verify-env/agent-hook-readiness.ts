@@ -225,12 +225,18 @@ export function evaluateAgentHookReadiness(
   const trustReview = policy.codex
     ? "\n  Codex trust: manual-review-required. The live probe validates the shim and codec, not host interception."
     : "";
+  // Missing-runtime tip only: do not restore UNUSED_HOST_HOOKS_RECOVERY for matcher drift.
+  const missingRuntimeTip =
+    liveStatus === "unavailable"
+      ? "\n  Recovery: install the Directive runtime so `deft-hook` is on PATH (`npm i -g @deftai/directive`), then run `deft doctor --full` / `deft update`."
+      : "";
   return {
     code: liveProbe.code,
     message:
       `${liveProbe.code === 0 ? "✓" : "❌"} deft agent hook readiness: ${liveProbe.message}\n` +
       renderHosts(evaluatedHosts) +
-      trustReview,
+      trustReview +
+      missingRuntimeTip,
     stream: liveProbe.code === 0 ? "stdout" : "stderr",
     skipped: false,
     liveStatus,
