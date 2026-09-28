@@ -511,8 +511,13 @@ function isGithubWorkflowPath(relPath: string): boolean {
 /** Release/publish workflows are production shipping surfaces — keep class 2. */
 function isShippingGithubWorkflow(relPath: string): boolean {
   const base = relPath.replace(/\\/g, "/").split("/").pop()?.toLowerCase() ?? "";
+  // Exact shipping workflow basenames only — do not treat release-check.yml /
+  // publish-test.yml CI harness names as shipping (#5097 / Greptile).
   return (
-    /^(release|npm-publish)(\.|$)/.test(base) || /(^|[.-])(release|publish)([.-]|$)/.test(base)
+    base === "release.yml" ||
+    base === "release.yaml" ||
+    base === "npm-publish.yml" ||
+    base === "npm-publish.yaml"
   );
 }
 
