@@ -165,9 +165,110 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Summary Windows `task release` Step 5 fails `worker-auth-cli.integration.test.ts` T5 (assigned host-gh admitted on ambiguous runtime).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Exit 2 with `SCM not ready: gh auth status passed but GitHub /user failed: exit 1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tip Linux TypeScript CI is green on the same SHA.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Evidence - Release cut `0.119.10` Step 5: `Tests 3 failed | 19172 passed` (2026-09-28).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Isolated: `pnpm exec vitest run packages/core/src/scm/worker-auth-cli.integration.test.ts` — T5 fails; T1/T2/T4/subdir pass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Repro stderr: `gh auth status passed but GitHub /user failed: exit 1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Fake-gh `calls.log` empty in a harness repro → product `which(\\\"gh\\\")` likely resolving the real host `gh.exe` instead of the PATH-prepended fake `gh.cmd`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Sibling false failures from `DEFT_SKIP_TS_BUILD=1` leaking into `ts-build-fresh.test.ts` (fixed by not exporting that env for Step 5; also harden the test to clear skip in fail cases).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Acceptance - [ ] T5 passes on win32 with the existing fake-gh PATH prepend (no host `gh.exe` steal).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "[ ] `ts-build-fresh` fail cases pass even when parent env has `DEFT_SKIP_TS_BUILD=1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "[ ] CHANGELOG [Unreleased] Fixed bullet.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "[ ] Windows `task release` Step 5 can proceed past this class (no T5 / ts-build-fresh env false fail).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Refs Blocks release `0.119.10`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Child of #5016 / #3663 worker-auth surface.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(scm,win32): worker-auth T5 fails Step 5 — host gh.exe wins over fake gh.cmd (/user exit 1)"
+      ]
     },
     "id": "github.issue.5608062460",
     "updated": "2026-09-28T01:45:10Z"
