@@ -1015,7 +1015,8 @@
       "lifecycleWrite": {
         "action": "cancel",
         "writtenAt": "2026-09-28T19:58:18Z"
-      }
+      },
+      "productPullRequest": 5118
     },
     "id": "github.issue.5466647322",
     "updated": "2026-09-28T19:58:18Z"

@@ -566,7 +566,8 @@
       "lifecycleWrite": {
         "action": "cancel",
         "writtenAt": "2026-09-28T18:04:21Z"
-      }
+      },
+      "productPullRequest": 4992
     },
     "acceptance": {
       "commands": [],

@@ -62,7 +62,9 @@
       "lifecycleWrite": {
         "action": "cancel",
         "writtenAt": "2026-09-28T22:29:40Z"
-      }
+      },
+      "productPullRequest": 5121,
+      "swarm": {}
     },
     "acceptance": {
       "none_stated": false,
