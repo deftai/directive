@@ -97,36 +97,7 @@
         "relieves: P1 relieves: P2 Target-digest: sha256:c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c"
       ],
       "admitted_source_digest": "fd1235546b8793046ad00962733cecab6f0d0195a30b6ba859209ce149b11d90",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Drop the “Directive need not document” conjunct. README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs. Do not invent a second in-process git substitute.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Replace “ad-hoc outside-sandbox approvals” with that durable operator action. Repeated per-verb Environment: local prompts do not discharge P2.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1. CHANGELOG Unreleased line.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
+      "clauses": [],
       "ambiguity_attestation": "none_found",
       "confessions": [
         "[UAT Tester 1] Codex sandbox EPERM on git for session:start, doctor ritual, ingest, and promote",
@@ -138,7 +109,10 @@
         "Optional implement detail: execGit may name EPERM with a Codex outside-sandbox tip; that is recovery copy shape after items 1–2, not a separate mechanism.",
         "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1.",
         "CHANGELOG Unreleased line.",
-        "relieves: P1 relieves: P2 Target-digest: sha256:c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c"
+        "relieves: P1 relieves: P2 Target-digest: sha256:c512baab6092d97b47cef24a4fc2738afcad2b017259075d04d865cd53e3b82c",
+        "Drop the “Directive need not document” conjunct. README and doctor/ritual recovery must name a concrete durable outside-sandbox approval path for ritual git under Codex (what to approve, once vs per session, where in the Codex TUI), reusing the existing Codex trust / Cursor sandbox remediation pattern already in swarm/preamble/docs. Do not invent a second in-process git substitute.",
+        "Replace “ad-hoc outside-sandbox approvals” with that durable operator action. Repeated per-verb Environment: local prompts do not discharge P2.",
+        "Tests or docs contract lock the presence of the Codex ritual-git recovery sentence on the README / doctor surfaces named in item 1. CHANGELOG Unreleased line."
       ]
     },
     "metadata": {

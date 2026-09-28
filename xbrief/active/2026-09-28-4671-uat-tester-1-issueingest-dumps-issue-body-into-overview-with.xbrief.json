@@ -67,8 +67,9 @@
       "swarm": {}
     },
     "acceptance": {
-      "none_stated": false,
-      "source_rung": "stated"
+      "none_stated": true,
+      "source_rung": "stated",
+      "commands": []
     },
     "id": "github.issue.5480360210",
     "updated": "2026-09-28T22:29:40Z"

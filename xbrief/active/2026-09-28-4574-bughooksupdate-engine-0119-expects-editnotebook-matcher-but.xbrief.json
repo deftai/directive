@@ -120,43 +120,7 @@
         "relieves: P1 Target-digest: sha256:3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73"
       ],
       "admitted_source_digest": "97346d9a0d11df09dfe3963ffb87b8211ae3df9372f0fc855d79ed5468f51883",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list). Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Keep SessionStart, compact, spawn, shell, and MCP on current registration health. Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "Do not change mergeNestedConfig's shared DIRECT_WRITE_HOOK_MATCHER writer.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "Keep inspectHostToolCoverage as the additional after-registration check.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "Non-goals: leftover (b) UNUSED_HOST_HOOKS_RECOVERY concatenation stays on #5110; missing .grok/hooks/deft.json remains missing before any matcher predicate; do not fork a grok-only merge writer.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
+      "clauses": [],
       "ambiguity_attestation": "none_found",
       "confessions": [
         "bug(hooks,update): engine 0.119 expects EditNotebook matcher but update leaves 0.116 grok hooks drifted/missing",
@@ -167,7 +131,9 @@
         "Do not change mergeNestedConfig's shared DIRECT_WRITE_HOOK_MATCHER writer.",
         "Keep inspectHostToolCoverage as the additional after-registration check.",
         "Non-goals: leftover (b) UNUSED_HOST_HOOKS_RECOVERY concatenation stays on #5110; missing .grok/hooks/deft.json remains missing before any matcher predicate; do not fork a grok-only merge writer.",
-        "relieves: P1 Target-digest: sha256:3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73"
+        "relieves: P1 Target-digest: sha256:3a5c5c78c96840bbf6ba3a0611e189fe4b02b9c4afdfa5a8db4ced234c54fb73",
+        "For host === \"grok\" only, change the direct-write conjunct of hasNestedRegistration: drop matcher === DIRECT_WRITE_HOOK_MATCHER; require the managed grok tool.before PreToolUse entry whose matcher satisfies matcherHasLiteralToken(matcher, token) for every name in HOST_TOOL_SURFACE_AUDIT.grok.mutation.directWrite (today write, search_replace; source from that catalog or GROK_MUTATION_TOOL_CATALOG.directWrite; do not mint a third string list). Explicitly refuse matcher === \"write|search_replace\" as the registration bar.",
+        "Keep SessionStart, compact, spawn, shell, and MCP on current registration health. Keep claude, cursor, and codex valid() paths on exact-equality over NESTED_PRE_TOOL_MATCHERS / hasCursorRegistration."
       ]
     },
     "metadata": {

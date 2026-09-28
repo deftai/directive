@@ -390,50 +390,7 @@
         "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
       ],
       "admitted_source_digest": "e856d1815581858fe597583fb78ae19332f6fc26ddaebd536bb28d8e0eeec0dd",
-      "clauses": [
-        {
-          "id": 1,
-          "text": "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only. Closed token `noyolo` clears standing (operator confirm/amend required). Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals). Add parser + fixtures; skill pointer names the default and the two opt-outs.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "Surfaces. `content/contracts/design-critique.md` (Run posture, Spend, Yolo standing); `packages/core/src/design-critique/run-posture.ts` (+ tests); `packages/core/src/design-critique/spend.ts` (+ tests); yolo-standing/`noyolo` parse (new or adjacent module); `content/skills/deft-directive-design-critique/SKILL.md` / pack source; content-contract / fixture locks.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 6,
-          "text": "Non-goals. Do not auto-ingest after ingest-ready. Do not change leftover-split consent. Do not replace Dual-stop or pain-audit gates. Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        }
-      ],
+      "clauses": [],
       "ambiguity_attestation": "none_found",
       "confessions": [
         "process(design-critique): default arc to yolo no-ingest + recommended Dual-stop; add ingest and noyolo",
@@ -461,7 +418,12 @@
         "Do not change leftover-split consent.",
         "Do not replace Dual-stop or pain-audit gates.",
         "Do not hard-code silence as N=1 when `spend-recommend:` is N≥3.",
-        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f"
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:d591411f0aff7d13c1bbf6ae22f3f7949d1e34bdaf36b1553bdabf24b68fdc1f",
+        "Closed spend recommendation source. Before Stop 1, parent records a closed line `spend-recommend: N=1` or `spend-recommend: N≥3` (same closed spend classes as today). That line is the Dual-stop recommendation input. On a bare arc launch with no `n=` / `panel` token, `parseOperatorSpend` / `evaluateSpendRecord` resolve spend from that recorded `spend-recommend:` value and Stop 1 records `spend:` plus `spend-ask: resolved`. Explicit `n=1` / `n=3` / `n≥3` still override. Ambiguous mixes still ask. ⊗ Treat silence as hard-coded N=1. ⊗ Resolve spend from issue/comment/skill English. Wire the recommend field into spend.ts (+ tests) and recut Spend (#4705) contract / content-contract locks that currently require a missing-token ask whenever no utterance token is present.",
+        "Run posture default. Generalize missing-token → `arc-mode: no-ingest` for all hosts (expand / skill-route through `resolveArcRunPostureForHost` semantics). Checkout tokens still win. Ambiguous mixes still ask. Recut contract/skill “else ask” pointers and fixtures that require an unconditional missing-posture ask.",
+        "`ingest` opt-out. Closed launch-utterance token `ingest` resolves to checkout posture only. Never write `arc-mode: ingest`. Keep Direct EXIT / completed-arc `task issue:ingest` as a later separate verb. Recut `ingest-is-not-posture` ask path and ⊗ Front-door mode `ingest` together with fixtures so the opt-out is real without collapsing arc-mode into ingest clearance.",
+        "`noyolo` + default yolo-standing. Bare arc defaults `yolo-standing:` on, treated as equivalent to a closed `yolo` token for the all-accept confirm conjunct only. Closed token `noyolo` clears standing (operator confirm/amend required). Leftover-split consent, pain coverage, and Handoff stay outside that conjunct (unchanged non-goals). Add parser + fixtures; skill pointer names the default and the two opt-outs.",
+        "Non-goals. Do not auto-ingest after ingest-ready. Do not change leftover-split consent. Do not replace Dual-stop or pain-audit gates. Do not hard-code silence as N=1 when `spend-recommend:` is N≥3."
       ]
     },
     "id": "github.issue.5619090776",
