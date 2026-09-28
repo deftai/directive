@@ -251,10 +251,18 @@ function ensurePolicyBlock(plan: Record<string, unknown>): Record<string, unknow
   return plan[PLAN_POLICY_KEY] as Record<string, unknown>;
 }
 
+/** Update must not rewrite consumer-owned PROJECT-DEFINITION (#5096 / #3029). */
+export const PROJECT_DEFINITION_CONSUMER_OWNED_SKIP = "project-definition-consumer-owned" as const;
+
 export interface RunOrgForceOnMigrationOptions {
   readonly autoEnable?: OrgAutoEnableOptions;
   readonly actor?: string;
   readonly now?: Date;
+  /**
+   * #5096: `skip` refuses PROJECT-DEFINITION mutation (update path).
+   * Default `allow` keeps install-time force-on (#2822).
+   */
+  readonly projectDefinitionMutation?: "allow" | "skip";
 }
 
 export interface OrgForceOnMigrationResult {
@@ -448,6 +456,16 @@ function applyForceOn(
     readonly existingMarker: OrgForceOnMarker | null;
   },
 ): OrgForceOnMigrationResult {
+  // #5096: update partitions PROJECT-DEFINITION as consumer-owned — skip+preserve.
+  if (options.projectDefinitionMutation === "skip") {
+    return {
+      ran: false,
+      skippedReason: PROJECT_DEFINITION_CONSUMER_OWNED_SKIP,
+      valueFeedbackChanged: false,
+      productSignalChanged: false,
+    };
+  }
+
   let valueFeedbackChanged = false;
   let productSignalChanged = false;
   let ran = false;

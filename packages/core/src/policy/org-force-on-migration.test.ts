@@ -18,6 +18,7 @@ import {
   isForceOnValueFeedbackBlock,
   ORG_FORCE_ON_MARKER_REL,
   productSignalInstallForceOnSource,
+  PROJECT_DEFINITION_CONSUMER_OWNED_SKIP,
   readOrgForceOnMarker,
   runOrgForceOnMigration,
   valueFeedbackInstallForceOnSource,
@@ -96,6 +97,34 @@ describe("runOrgForceOnMigration", () => {
     ) as { plan: Record<string, unknown> };
     const policyBlock = readPlanPolicy(pd.plan) as Record<string, unknown>;
     expect(policyBlock.valueFeedback).toEqual(FORCE_ON_VALUE_FEEDBACK_BLOCK);
+  });
+
+  it("skips PROJECT-DEFINITION mutation when projectDefinitionMutation=skip (#5096)", () => {
+    const root = makeTrustedRepo({
+      policy: {
+        valueFeedback: {
+          enabled: false,
+          emitEvents: false,
+          sessionLine: false,
+          upstreamPrompt: false,
+        },
+        productSignal: { enabled: false },
+      },
+    });
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const before = readFileSync(pdPath, "utf8");
+
+    const result = runOrgForceOnMigration(root, {
+      ...trustedAutoEnable,
+      projectDefinitionMutation: "skip",
+    });
+
+    expect(result.ran).toBe(false);
+    expect(result.skippedReason).toBe(PROJECT_DEFINITION_CONSUMER_OWNED_SKIP);
+    expect(result.valueFeedbackChanged).toBe(false);
+    expect(result.productSignalChanged).toBe(false);
+    expect(readFileSync(pdPath, "utf8")).toBe(before);
+    expect(existsSync(join(root, ORG_FORCE_ON_MARKER_REL))).toBe(false);
   });
 
   it("persists previous* snapshots on the marker at successful apply (#2903)", () => {

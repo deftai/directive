@@ -33,6 +33,7 @@ import {
   runInPortRecordMode,
 } from "../fs/mutation-ledger.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
+import { runOrgForceOnMigration } from "../policy/org-force-on-migration.js";
 import type { ClassifySeams } from "../resolution/index.js";
 import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
@@ -45,6 +46,7 @@ import {
   buildUpdateSummaryJson,
   buildVersionSkewNotice,
   depositRefreshPending,
+  formatConsumerProjectionLedger,
   formatPrettierSensitiveAnnounce,
   formatStagedIndexRow,
   frameworkRefreshSideEffects,
@@ -2557,6 +2559,146 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
         encoding: "utf8",
       }).trim();
       expect(hooksPath).toBe(".githooks");
+    },
+  );
+
+  it(
+    "partitions dirty-consumer projections: preserve PD, report pin+schemas (#5096)",
+    destContentionItTimeout(),
+    async () => {
+      const project = freshRoot("update-dirty-partition-5096-");
+      const contentRoot = installFakeContentPackage(project, "0.54.0");
+      initGitRepo(project);
+      writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+
+      mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+      mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
+      writeFileSync(
+        join(project, "xbrief", "active", "seed.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "fixture" },
+          plan: { title: "Seed", status: "running", items: [] },
+        }),
+        "utf8",
+      );
+      writeFileSync(join(project, "xbrief", ".deft-version"), "0.53.0\n", "utf8");
+      writeFileSync(
+        join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"),
+        "stale-consumer\n",
+        "utf8",
+      );
+      const pdBody = `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            title: "Consumer",
+            status: "running",
+            items: [],
+            policy: {
+              valueFeedback: {
+                enabled: false,
+                emitEvents: false,
+                sessionLine: false,
+                upstreamPrompt: false,
+              },
+              productSignal: { enabled: false },
+            },
+          },
+        },
+        null,
+        2,
+      )}\n`;
+      writeFileSync(join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"), pdBody, "utf8");
+      // Null pin so restoreNullPinAtRecordedDepositVersion reports a pin write.
+      writeFileSync(join(project, "package.json"), JSON.stringify({ private: true }, null, 2), "utf8");
+
+      execFileSync("git", ["add", "-A"], { cwd: project });
+      execFileSync("git", ["commit", "-m", "baseline consumer"], { cwd: project });
+      writeFileSync(join(project, "scratch.txt"), "operator work\n", "utf8");
+
+      const out: string[] = [];
+      const err: string[] = [];
+      const code = await runRefreshDepositCli({
+        projectDir: project,
+        jsonOut: true,
+        nonInteractive: true,
+        upgrade: true,
+        allowDirtyNoStage: true,
+        classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+        writeOut: (t) => out.push(t),
+        writeErr: (t) => err.push(t),
+        seams: {
+          resolveContentRoot: async () => contentRoot,
+          readEngineVersion: () => "0.54.0",
+          nowIso: () => "2026-09-28T12:00:00Z",
+          evaluateAgentHookReadiness: () => agentHookReadiness(),
+          runOrgForceOn: (root) =>
+            runOrgForceOnMigration(root, {
+              actor: "directive-update",
+              projectDefinitionMutation: "skip",
+              autoEnable: { repoResolver: () => "deftai/statusreport", useCache: false },
+            }),
+        },
+      });
+
+      expect(code).toBe(0);
+      expect(readFileSync(join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8")).toBe(
+        pdBody,
+      );
+      const payload = parseJsonObject(out.join(""));
+      expect(payload.allow_dirty_no_stage).toBe(true);
+      expect(payload.prettier_sensitive_rewrites).toEqual(
+        expect.arrayContaining(["xbrief/schemas/xbrief-core-0.8.schema.json"]),
+      );
+      expect(payload.pin_writes).toEqual(["package.json"]);
+      expect(payload.version_marker_writes).toEqual(
+        expect.arrayContaining(["xbrief/.deft-version"]),
+      );
+      const ledger = payload.skipped_consumer_projections as Array<Record<string, string>>;
+      expect(ledger).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: "package.json",
+            disposition: "rewritten",
+            write_class: "pin",
+          }),
+          expect.objectContaining({
+            path: "xbrief/schemas/xbrief-core-0.8.schema.json",
+            disposition: "rewritten",
+            write_class: "schema",
+          }),
+          expect.objectContaining({
+            path: "xbrief/PROJECT-DEFINITION.xbrief.json",
+            disposition: "skipped",
+            write_class: "project-definition",
+            reason: expect.stringContaining("#5096"),
+          }),
+          expect.objectContaining({
+            path: "xbrief/.deft-version",
+            disposition: "rewritten",
+            write_class: "version-marker",
+          }),
+        ]),
+      );
+      expect(
+        ledger.some(
+          (entry) =>
+            entry.path === "xbrief/PROJECT-DEFINITION.xbrief.json" &&
+            entry.disposition === "skipped",
+        ),
+      ).toBe(true);
+      const printed = err.join("");
+      expect(formatConsumerProjectionLedger([])).toBe("");
+      expect(printed).toContain("Consumer projection ledger (#5096)");
+      expect(printed).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+      expect(printed).toContain("package.json");
+      expect(
+        readFileSync(join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"), "utf8"),
+      ).toBe("current\n");
+      const pkg = JSON.parse(readFileSync(join(project, "package.json"), "utf8")) as {
+        devDependencies?: Record<string, string>;
+      };
+      expect(pkg.devDependencies?.[PIN_DEPENDENCY_NAME]).toBeTruthy();
     },
   );
 

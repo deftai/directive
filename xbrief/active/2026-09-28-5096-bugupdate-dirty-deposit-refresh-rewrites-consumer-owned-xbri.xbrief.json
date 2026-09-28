@@ -1,0 +1,411 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5096",
+    "updated": "2026-09-28T13:23:54Z"
+  },
+  "plan": {
+    "title": "bug(update): dirty deposit refresh rewrites consumer-owned xBRIEF files",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(update): dirty deposit refresh rewrites consumer-owned xBRIEF files",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5096",
+      "Overview": "\n\n1. Bind the always-on update projection set (schema sync, pin restore/reconstitute, org-force-on PROJECT-DEFINITION migration), not --allow-dirty-no-stage alone. Keep the dirty flag as dirty-tree unlock + no automatic git add / dirty dest plan only.\n2. Partition the three write classes before mutation policy:\n   - xbrief/schemas/*: remain installer-managed framework schema sync (#2595) with existing prettier-sensitive announce (#3395). Do not reverse #2595 in this issue. Always report rewritten schema paths clearly on human and --json output.\n   - package.json @deftai/directive pin: keep intentional null-pin restore / lagging-pin reconstitute (#4533 / #4710). Report pin writes separately from deposit refresh. Do not silently treat pin add/bump as an undocumented side effect.\n   - xbrief/PROJECT-DEFINITION.xbrief.json: treat as consumer-owned (#3029). Org-force-on injection of valueFeedback/productSignal (or equivalent) during update must refuse-before-mutation or skip+preserve bytes and report the skipped/refused path. Do not rewrite PROJECT-DEFINITION as a bundled side effect of deposit refresh.\n3. Implement a real skip/refuse ledger (replace literal skipped_consumer_projections: [] stub) that lists every consumer-facing projection path skipped, refused, or rewritten, including schemas and pin restores.\n4. Required version markers such as xbrief/.deft-version may still change for engine/content alignment when documented and reported separately from unintended consumer rewrites.\n5. Regression test: dirty consumer worktree with tracked xBRIEF schemas, PROJECT-DEFINITION.xbrief.json, and package.json. After deft update --allow-dirty-no-stage --yes --json, PROJECT-DEFINITION bytes are preserved (or refuse before mutation with clear report); package.json pin behavior matches the documented restore/reconstitute contract and is reported; schema rewrites if any are announced; no undocumented consumer rewrites ride along with deposit refresh.\n6. Non-goals / non-duplicates: #3631 provenance chore design; #4533 concurrent init race; #4706 stale deposit doctor; #4845 hook emptying. Do not invent a third poller or new swarm authority model.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:b967d74437b728566fd19bd86398d98cac4b61d5831fb694272eac4fe1aff9f4\n\n\n",
+      "Labels": "bug, doctor, agent-experience, process, source-of-truth, vendored-deposit, area:cli, area:vbrief, design-critique:ingest-ready, framework-gap, core-capabilities"
+    },
+    "items": [
+      {
+        "title": "Bind the always-on update projection set (schema sync, pin restore/reconstitute, org-force-on PROJECT-DEFINITION migration), not --allow-dirty-no-stage alone. Keep the dirty flag as dirty-tree unlock + no automatic git add / dirty dest plan only.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Partition the three write classes before mutation policy:",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "xbrief/schemas/*: remain installer-managed framework schema sync (#2595) with existing prettier-sensitive announce (#3395). Do not reverse #2595 in this issue. Always report rewritten schema paths clearly on human and --json output.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "package.json @deftai/directive pin: keep intentional null-pin restore / lagging-pin reconstitute (#4533 / #4710). Report pin writes separately from deposit refresh. Do not silently treat pin add/bump as an undocumented side effect.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "xbrief/PROJECT-DEFINITION.xbrief.json: treat as consumer-owned (#3029). Org-force-on injection of valueFeedback/productSignal (or equivalent) during update must refuse-before-mutation or skip+preserve bytes and report the skipped/refused path. Do not rewrite PROJECT-DEFINITION as a bundled side effect of deposit refresh.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Implement a real skip/refuse ledger (replace literal skipped_consumer_projections: [] stub) that lists every consumer-facing projection path skipped, refused, or rewritten, including schemas and pin restores.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Required version markers such as xbrief/.deft-version may still change for engine/content alignment when documented and reported separately from unintended consumer rewrites.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Regression test: dirty consumer worktree with tracked xBRIEF schemas, PROJECT-DEFINITION.xbrief.json, and package.json. After deft update --allow-dirty-no-stage --yes --json, PROJECT-DEFINITION bytes are preserved (or refuse before mutation with clear report); package.json pin behavior matches the documented restore/reconstitute contract and is reported; schema rewrites if any are announced; no undocumented consumer rewrites ride along with deposit refresh.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Non-goals / non-duplicates: #3631 provenance chore design; #4533 concurrent init race; #4706 stale deposit doctor; #4845 hook emptying. Do not invent a third poller or new swarm authority model.",
+        "status": "proposed",
+        "id": "clause.9"
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "process",
+      "source-of-truth",
+      "vendored-deposit",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5096",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5096: bug(update): dirty deposit refresh rewrites consumer-owned xBRIEF files"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(update): dirty deposit refresh rewrites consumer-owned xBRIEF files",
+        "Bind the always-on update projection set (schema sync, pin restore/reconstitute, org-force-on PROJECT-DEFINITION migration), not --allow-dirty-no-stage alone.",
+        "Keep the dirty flag as dirty-tree unlock + no automatic git add / dirty dest plan only.",
+        "Partition the three write classes before mutation policy: - xbrief/schemas/*: remain installer-managed framework schema sync (#2595) with existing prettier-sensitive announce (#3395).",
+        "Do not reverse #2595 in this issue.",
+        "Always report rewritten schema paths clearly on human and --json output.",
+        "package.json @deftai/directive pin: keep intentional null-pin restore / lagging-pin reconstitute (#4533 / #4710).",
+        "Report pin writes separately from deposit refresh.",
+        "Do not silently treat pin add/bump as an undocumented side effect.",
+        "xbrief/PROJECT-DEFINITION.xbrief.json: treat as consumer-owned (#3029).",
+        "Org-force-on injection of valueFeedback/productSignal (or equivalent) during update must refuse-before-mutation or skip+preserve bytes and report the skipped/refused path.",
+        "Do not rewrite PROJECT-DEFINITION as a bundled side effect of deposit refresh.",
+        "Implement a real skip/refuse ledger (replace literal skipped_consumer_projections: [] stub) that lists every consumer-facing projection path skipped, refused, or rewritten, including schemas and pin restores.",
+        "Required version markers such as xbrief/.deft-version may still change for engine/content alignment when documented and reported separately from unintended consumer rewrites.",
+        "Regression test: dirty consumer worktree with tracked xBRIEF schemas, PROJECT-DEFINITION.xbrief.json, and package.json.",
+        "After deft update --allow-dirty-no-stage --yes --json, PROJECT-DEFINITION bytes are preserved (or refuse before mutation with clear report); package.json pin behavior matches the documented restore/reconstitute contract and is reported; schema rewrites if any are announced; no undocumented consumer rewrites ride along with deposit refresh.",
+        "Non-goals / non-duplicates: #3631 provenance chore design; #4533 concurrent init race; #4706 stale deposit doctor; #4845 hook emptying.",
+        "Do not invent a third poller or new swarm authority model.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b967d74437b728566fd19bd86398d98cac4b61d5831fb694272eac4fe1aff9f4",
+        "Partition the three write classes before mutation policy:",
+        "xbrief/schemas/*: remain installer-managed framework schema sync (#2595) with existing prettier-sensitive announce (#3395)."
+      ],
+      "admitted_source_sentences": [
+        "Bind the always-on update projection set (schema sync, pin restore/reconstitute, org-force-on PROJECT-DEFINITION migration), not --allow-dirty-no-stage alone.",
+        "Keep the dirty flag as dirty-tree unlock + no automatic git add / dirty dest plan only.",
+        "Partition the three write classes before mutation policy: - xbrief/schemas/*: remain installer-managed framework schema sync (#2595) with existing prettier-sensitive announce (#3395).",
+        "Do not reverse #2595 in this issue.",
+        "Always report rewritten schema paths clearly on human and --json output.",
+        "package.json @deftai/directive pin: keep intentional null-pin restore / lagging-pin reconstitute (#4533 / #4710).",
+        "Report pin writes separately from deposit refresh.",
+        "Do not silently treat pin add/bump as an undocumented side effect.",
+        "xbrief/PROJECT-DEFINITION.xbrief.json: treat as consumer-owned (#3029).",
+        "Org-force-on injection of valueFeedback/productSignal (or equivalent) during update must refuse-before-mutation or skip+preserve bytes and report the skipped/refused path.",
+        "Do not rewrite PROJECT-DEFINITION as a bundled side effect of deposit refresh.",
+        "Implement a real skip/refuse ledger (replace literal skipped_consumer_projections: [] stub) that lists every consumer-facing projection path skipped, refused, or rewritten, including schemas and pin restores.",
+        "Required version markers such as xbrief/.deft-version may still change for engine/content alignment when documented and reported separately from unintended consumer rewrites.",
+        "Regression test: dirty consumer worktree with tracked xBRIEF schemas, PROJECT-DEFINITION.xbrief.json, and package.json.",
+        "After deft update --allow-dirty-no-stage --yes --json, PROJECT-DEFINITION bytes are preserved (or refuse before mutation with clear report); package.json pin behavior matches the documented restore/reconstitute contract and is reported; schema rewrites if any are announced; no undocumented consumer rewrites ride along with deposit refresh.",
+        "Non-goals / non-duplicates: #3631 provenance chore design; #4533 concurrent init race; #4706 stale deposit doctor; #4845 hook emptying.",
+        "Do not invent a third poller or new swarm authority model.",
+        "relieves: P1 relieves: P2 relieves: P3 Target-digest: sha256:b967d74437b728566fd19bd86398d98cac4b61d5831fb694272eac4fe1aff9f4"
+      ],
+      "admitted_source_digest": "2dbbc342db736e53471576aadaa68e51da9ea1760e2fe09c1453a57678ef76a1",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bind the always-on update projection set (schema sync, pin restore/reconstitute, org-force-on PROJECT-DEFINITION migration), not --allow-dirty-no-stage alone. Keep the dirty flag as dirty-tree unlock + no automatic git add / dirty dest plan only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Partition the three write classes before mutation policy:",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "xbrief/schemas/*: remain installer-managed framework schema sync (#2595) with existing prettier-sensitive announce (#3395). Do not reverse #2595 in this issue. Always report rewritten schema paths clearly on human and --json output.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "package.json @deftai/directive pin: keep intentional null-pin restore / lagging-pin reconstitute (#4533 / #4710). Report pin writes separately from deposit refresh. Do not silently treat pin add/bump as an undocumented side effect.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "xbrief/PROJECT-DEFINITION.xbrief.json: treat as consumer-owned (#3029). Org-force-on injection of valueFeedback/productSignal (or equivalent) during update must refuse-before-mutation or skip+preserve bytes and report the skipped/refused path. Do not rewrite PROJECT-DEFINITION as a bundled side effect of deposit refresh.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Implement a real skip/refuse ledger (replace literal skipped_consumer_projections: [] stub) that lists every consumer-facing projection path skipped, refused, or rewritten, including schemas and pin restores.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Required version markers such as xbrief/.deft-version may still change for engine/content alignment when documented and reported separately from unintended consumer rewrites.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Regression test: dirty consumer worktree with tracked xBRIEF schemas, PROJECT-DEFINITION.xbrief.json, and package.json. After deft update --allow-dirty-no-stage --yes --json, PROJECT-DEFINITION bytes are preserved (or refuse before mutation with clear report); package.json pin behavior matches the documented restore/reconstitute contract and is reported; schema rewrites if any are announced; no undocumented consumer rewrites ride along with deposit refresh.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Non-goals / non-duplicates: #3631 provenance chore design; #4533 concurrent init race; #4706 stale deposit doctor; #4845 hook emptying. Do not invent a third poller or new swarm authority model.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Current known state (2026-09-28 Stage A)\n\nStage A `task triage:evaluate -- 5096` on origin/master `caeabd47df46`:\n\n- validity: **still-open**\n- WIP / open PRs / duplicates: none\n- critique-recommend: false (before mechanism-shaped chip)\n- sink: `.deft-scratch/issue-eval/caeabd47df46/9f6a1ece-0896-4ee3-8474-aa0ceed2234b`\n\n### Live product gap\n\n`deft update --allow-dirty-no-stage --yes --json` on a dirty BestiMax consumer refreshed the deposit correctly and also rewrote consumer-owned `xbrief/schemas/*`, mutated `xbrief/PROJECT-DEFINITION.xbrief.json` (added policy objects), and added `@deftai/directive` to root `package.json` `devDependencies`. Related non-duplicates: #3631, #4533, #4706, #4845.\n\n### Spend recommendation\n\nConcrete update write-set / consumer-boundary defect with closed AC (refuse or skip+report; regression test). Recommended Dual-stop **N=1**. Operator asked for the same flow with recommend-n; spend recorded as N=1.\n\nCatalog facets applied. Chip: design-critique:mechanism-shaped.",
+          "id": 5870362174,
+          "html_url": "https://github.com/deftai/directive/issues/5096#issuecomment-5870362174",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T13:00:10Z",
+          "updated_at": "2026-09-28T13:00:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because deft update --allow-dirty-no-stage can refresh the framework deposit and also rewrite consumer-owned xBRIEF schemas, PROJECT-DEFINITION policy fields, and root package.json dependencies, so a successful upgrade leaves unrelated tracked consumer diffs.\n\ncharter: refutation\nrefutation-target: With --allow-dirty-no-stage, deft update may rewrite consumer-owned xBRIEF schemas, PROJECT-DEFINITION.xbrief.json policy objects, and root package.json dependencies as a side effect of refreshing the framework deposit, instead of limiting writes to the deposit/managed AGENTS/hooks (plus any separately reported required version marker).\n\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=1\nspend-ask: asked\n\nThe operator directed the same evaluate/label/arc flow with recommend n. This is a concrete update consumer-boundary defect with closed AC; recommended spend N=1.\n\npain: P1, P2, P3\n\nP1. deft update --allow-dirty-no-stage rewrites tracked consumer-owned xBRIEF schema files outside .deft/core during a deposit refresh.\nP2. The same update path mutates consumer PROJECT-DEFINITION.xbrief.json (e.g. injecting valueFeedback/productSignal) and/or adds @deftai/directive to root package.json devDependencies as a side effect of deposit refresh.\nP3. There is no fail-closed refuse-before-mutation or skip+report path that preserves those consumer-owned bytes and surfaces the skipped/refused paths clearly, with a regression test on a dirty consumer worktree.\n\ndest: C:\\\\Users\\\\msada\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-5096-dc\norigin-ref: origin/HEAD\ndispatch-sha: caeabd47df4680855043aa24c9372efce07f7f50\npin-kind: origin-default\ntarget-digest: sha256:b967d74437b728566fd19bd86398d98cac4b61d5831fb694272eac4fe1aff9f4\n\nPin reads use git show caeabd47df4680855043aa24c9372efce07f7f50. Single Grok seat. Not dual-launched. xbrief/.deft-version bump may remain intentional alignment and must be reported separately from unintended consumer rewrites.\n\n",
+          "id": 5870362480,
+          "html_url": "https://github.com/deftai/directive/issues/5096#issuecomment-5870362480",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T13:00:11Z",
+          "updated_at": "2026-09-28T13:10:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5096\ncharter: refutation\nround: 1 critic\nid-ceiling: 5870362480\ndispatch-sha: caeabd47df4680855043aa24c9372efce07f7f50\narc-mode: no-ingest\naudit-targets: none\nseat: grok\nlauncher: grok\n\nHEAD at dest equals `caeabd47df4680855043aa24c9372efce07f7f50` (`git rev-parse HEAD`). Reads pinned with `git show caeabd47df4680855043aa24c9372efce07f7f50:<path>`. In-ceiling thread: current-state 5870362174; Stop 1 write-back 5870362480.\n\n## Dirty flag is the unlocker, not the writer\nsharpens-framing\nEvidence: At the dispatch SHA, `decideUpdateGitGate` in `packages/core/src/init-deposit/update-git-preflight.ts` only lets a dirty tree proceed when `allowDirtyNoStage` is true; otherwise it refuses with `DIRTY_TREE_REFUSAL_MESSAGE`. `runRefreshDeposit` still always runs `reconstituteConsumerPinAndLock` / `restoreNullPinAtRecordedDepositVersion`, `syncConsumerXbriefSchemas` (when a canonical xBRIEF lifecycle exists), and `runOrgForceOnMigration` after the deposit step (`refresh.ts` around the `#2595` / `#2822` block). `--allow-dirty-no-stage` only disables automatic `git add` and prints the dirty dest plan.\nFailure mode: Binding the defect as unique to `--allow-dirty-no-stage` leaves the same write set on clean updates unaddressed, so a \"fixed\" dirty escape still ships consumer diffs on the ordinary happy path.\nDisposition: State the always-on projection set as the bound surface; keep the dirty flag as the reproduction unlocker and staging-skip behavior only.\n\n## Three write classes are not one accidental side effect\nsharpens-framing\nEvidence: `syncConsumerXbriefSchemas` documents \"framework-owned xBRIEF schemas\" and is listed under installer-managed `xbrief/schemas/` (`hygiene.ts` matchers; `#2595`). `refresh.ts` already announces those rewrites via `PRETTIER_SENSITIVE_CONSUMER_PREFIXES` / `prettierSensitiveRewrites` (`#3395`) after the write, rather than refusing them. Null-pin restore is intentional: `restoreNullPinAtRecordedDepositVersion` (`init-consumer-invariant.ts`, `#4533`) calls `ensurePackageJsonPin` when deposit is present and the pin is absent; lagging pins go through `reconstituteConsumerPinAndLock` (`#4710`). By contrast, hygiene tests lock `xbrief/PROJECT-DEFINITION.xbrief.json` as not installer-managed (`#3029` / `#1430`), while update still runs best-effort `runOrgForceOnMigration` that can inject `valueFeedback` / `productSignal` into that file (`org-force-on-migration.ts`, actor `directive-update`).\nFailure mode: Binding \"limit writes to deposit / managed AGENTS / hooks (+ reported version marker)\" as one undifferentiated refuse/skip rule would reverse shipped `#2595` schema sync and `#4533` pin restore unless those contracts are explicitly recut, while understating that PROJECT-DEFINITION is the class already classified as consumer-owned for staging/guard.\nDisposition: Partition the three paths before bind: schemas (installer-managed repair + prettier announce), package.json pin (consumer-invariant restore/reconstitute), and PROJECT-DEFINITION org-force-on (consumer-owned, not installer-managed). Name which writers stay, which refuse-before-mutation, and which skip+report.\n\n## Skip ledger is a stub today\nfootnote\nEvidence: JSON payloads in `refresh.ts` and `init-deposit.ts` emit `skipped_consumer_projections: []` as a literal empty array; no producer populates skipped paths for schemas, PROJECT-DEFINITION, or `package.json`. The only pre-write refuse for dirty trees is the whole-command git gate without `--allow-dirty-no-stage`.\nFailure mode: none for binding the premise as observation; this only notes that P3's skip+report shape has no live writer yet.\nDisposition: Useful for a later lean AC if skip+report is chosen; not a premise failure by itself.\n\n## Authority over consumer tree\nfootnote\nEvidence: Update mutates shared consumer files through `containedWrite` while the dirty escape leaves those mutations unstaged beside whatever dirt already existed. Schema sync, pin restore, and org-force-on change durable project state outside `.deft/core`.\nFailure mode: none beyond the framing already covered; no swarm/worktree identity change in this target.\nDisposition: Keep write-set authority explicit in the lean; no separate swarm control invented here.\n\nThe refutation target survives as an empirical write-set observation: with `--allow-dirty-no-stage`, update can rewrite `xbrief/schemas/*`, mutate PROJECT-DEFINITION policy objects, and add or bump a root `@deftai/directive` pin while refreshing the deposit. It does not survive as an undifferentiated claim that all three paths are accidental side effects that should collapse to deposit/AGENTS/hooks-only without partitioning against the existing `#2595`, `#3395`, `#4533`/`#4710`, and `#3029`/`#2822` mechanisms.\r\n\n",
+          "id": 5870422768,
+          "html_url": "https://github.com/deftai/directive/issues/5096#issuecomment-5870422768",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T13:04:03Z",
+          "updated_at": "2026-09-28T13:04:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWith --allow-dirty-no-stage, deft update can still rewrite xbrief/schemas, mutate PROJECT-DEFINITION policy objects, and add or bump a root @deftai/directive pin while refreshing the deposit. That write-set observation survives. The dirty flag is mainly the unlocker for a dirty tree and staging skip; the writers themselves also run on clean updates. Schemas are already installer-managed (#2595) with prettier announce (#3395); package.json pin restore is intentional (#4533/#4710); PROJECT-DEFINITION is consumer-owned (#3029) yet still receives org-force-on injection. Confirming this map means the Bound remedy list is the build contract. The same parent wrote Stop 1 5870362480. Critic 5870422768 checks the findings. Whether the list covers the three pains stays open until a later critic targets those cites.\n\n**Lean:** the refutation target survives in sharpened form. This map is the bind.\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 5870362480\narc-mode: no-ingest\nyolo-standing: yes\ndispatch-sha: caeabd47df4680855043aa24c9372efce07f7f50\n\n## Takes\n\n- 5870422768 Dirty flag is the unlocker, not the writer — accept-into-contract\n- 5870422768 Three write classes are not one accidental side effect — accept-into-contract\n- 5870422768 Skip ledger is a stub today — accept-into-contract\n- 5870422768 Authority over consumer tree — accept-into-contract\n\nSpec-path:\n\n## Bound remedy\n\n1. Bind the always-on update projection set (schema sync, pin restore/reconstitute, org-force-on PROJECT-DEFINITION migration), not --allow-dirty-no-stage alone. Keep the dirty flag as dirty-tree unlock + no automatic git add / dirty dest plan only.\n2. Partition the three write classes before mutation policy:\n   - xbrief/schemas/*: remain installer-managed framework schema sync (#2595) with existing prettier-sensitive announce (#3395). Do not reverse #2595 in this issue. Always report rewritten schema paths clearly on human and --json output.\n   - package.json @deftai/directive pin: keep intentional null-pin restore / lagging-pin reconstitute (#4533 / #4710). Report pin writes separately from deposit refresh. Do not silently treat pin add/bump as an undocumented side effect.\n   - xbrief/PROJECT-DEFINITION.xbrief.json: treat as consumer-owned (#3029). Org-force-on injection of valueFeedback/productSignal (or equivalent) during update must refuse-before-mutation or skip+preserve bytes and report the skipped/refused path. Do not rewrite PROJECT-DEFINITION as a bundled side effect of deposit refresh.\n3. Implement a real skip/refuse ledger (replace literal skipped_consumer_projections: [] stub) that lists every consumer-facing projection path skipped, refused, or rewritten, including schemas and pin restores.\n4. Required version markers such as xbrief/.deft-version may still change for engine/content alignment when documented and reported separately from unintended consumer rewrites.\n5. Regression test: dirty consumer worktree with tracked xBRIEF schemas, PROJECT-DEFINITION.xbrief.json, and package.json. After deft update --allow-dirty-no-stage --yes --json, PROJECT-DEFINITION bytes are preserved (or refuse before mutation with clear report); package.json pin behavior matches the documented restore/reconstitute contract and is reported; schema rewrites if any are announced; no undocumented consumer rewrites ride along with deposit refresh.\n6. Non-goals / non-duplicates: #3631 provenance chore design; #4533 concurrent init race; #4706 stale deposit doctor; #4845 hook emptying. Do not invent a third poller or new swarm authority model.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nTarget-digest: sha256:b967d74437b728566fd19bd86398d98cac4b61d5831fb694272eac4fe1aff9f4\n\n## Parent-side substantiation\n\nThe critic kept the measured write-set and required partitioning against shipped #2595/#3395/#4533/#4710/#3029 mechanisms. Item 2 is the first-ship product fence (PROJECT-DEFINITION refuse/skip; schemas+pin stay intentional with mandatory report). Items 3–5 close P3 observability and the requested regression. Item 1 prevents a dirty-only false fix.\n\naudit:partition-update-write-classes sha=caeabd47df4680855043aa24c9372efce07f7f50 pointer=comment:5870422768 reading=asserted\naudit:project-definition-refuse-or-skip sha=caeabd47df4680855043aa24c9372efce07f7f50 pointer=comment:5870422768 reading=asserted\n\n",
+          "id": 5870440296,
+          "html_url": "https://github.com/deftai/directive/issues/5096#issuecomment-5870440296",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T13:05:08Z",
+          "updated_at": "2026-09-28T13:10:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#5096\ncharter: refutation\nround: 4 Pass-4 audit\nid-ceiling: 5870440296\ndispatch-sha: caeabd47df4680855043aa24c9372efce07f7f50\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nseat: grok\nlauncher: grok\n\nHEAD at dest equals `caeabd47df4680855043aa24c9372efce07f7f50` (`git rev-parse HEAD`). Pin reads via `git show caeabd47df4680855043aa24c9372efce07f7f50:<path>`. In-ceiling: Stop 1 `5870362480`; critic `5870422768`; Bound lean `5870440296`.\n\n## P1 relief is reclassification, not announce-alone\nsharpens-framing\nEvidence: At the dispatch SHA, `runRefreshDeposit` still calls `syncConsumerXbriefSchemas` when a canonical xBRIEF lifecycle exists (`refresh.ts`), and hygiene already allowlists `{ prefix: \"xbrief/schemas/\" }` as installer-managed. Post-write announce already ships: `PRETTIER_SENSITIVE_CONSUMER_PREFIXES = [\"xbrief/schemas/\"]` plus `formatPrettierSensitiveAnnounce` / `prettier_sensitive_rewrites` (`#3395`). Bound lean item 2 keeps `#2595` schema sync and requires clear report; it does not refuse or byte-preserve schemas. Stop 1 still named those rewrites as P1 after that announce existed.\nFailure mode: Reading `relieves: P1` as \"add a louder report and schema diffs cease to be a defect\" over-credits announce. The same rewrite class already announced and still warranted P1. Without item 2's keep-installer-managed sentence, report alone does not cover P1.\nDisposition: Under the partition, `relieves: P1` holds because Bound remedy reclassifies schema sync as intentional installer-managed work with mandatory report, not because report is new. Keep the keep-`#2595` clause load-bearing for the cite; do not harvest a schema refuse/skip.\n\n## P2 cite needs both partition halves\nsharpens-framing\nEvidence: Stop 1 P2 is a compound OR: PROJECT-DEFINITION policy injection and/or root `@deftai/directive` pin add. At the pin SHA, `runOrgForceOnMigration` (actor `directive-update`) can still mutate PROJECT-DEFINITION `valueFeedback` / `productSignal`, while `restoreNullPinAtRecordedDepositVersion` / `reconstituteConsumerPinAndLock` / `ensurePackageJsonPin` remain intentional pin writers (`#4533` / `#4710`). Bound lean item 2 fences only PROJECT-DEFINITION with refuse-before-mutation or skip+preserve, and keeps pin restore with separate report; items 3 and 5 put pin paths on the ledger and in the regression.\nFailure mode: Treating `relieves: P2` as satisfied by the PROJECT-DEFINITION fence alone leaves the package.json half as an undocumented side effect again if pin reporting is later dropped as \"already intentional.\"\nDisposition: The single P2 cite is honest only while both halves stay load-bearing (PD refuse/skip and mandatory separate pin report). No harvest change; do not collapse P2 onto the PD fence.\n\n## Ledger shape already matches partitioned P3\nfootnote\nEvidence: `skipped_consumer_projections` is still a literal `[]` stub in `refresh.ts` / `init-deposit.ts`. Bound lean items 2–3 and 5 add a real skip/refuse/rewrite ledger, PROJECT-DEFINITION preserve-or-refuse, and the dirty-worktree regression with partitioned assertions (PD preserved or refused; pin reported; schemas announced when rewritten).\nFailure mode: none for coverage under the partition; P3's \"preserve those consumer-owned bytes\" shrinks to the consumer-owned class (PROJECT-DEFINITION), while schemas/pin land in the rewritten/reported buckets item 3 already names.\nDisposition: `relieves: P3` tracks the Bound remedy as written; no extra fence required for this audit.\n\n## Shared-state authority stays on the partition\nfootnote\nEvidence: Update still mutates durable consumer-tree state outside `.deft/core` through `containedWrite` (schemas, pin, org-force-on). Bound lean items 1–2 assign which writers stay, which refuse/skip, and which must report; item 6 forbids a new swarm authority model.\nFailure mode: none beyond keeping write-set authority explicit in that partition.\nDisposition: Injection/swarm lens fires on shared consumer mutation; the Bound remedy already carries the control. No separate residual.\n\nUnder the stated partition (schemas installer-managed with report; PROJECT-DEFINITION refuse/skip; pin restore reported), Bound lean `5870440296` covers pain-P1, pain-P2, and pain-P3. The two sharpenings change how the cites load-bear; they do not retract the harvest.\r\n\n",
+          "id": 5870495707,
+          "html_url": "https://github.com/deftai/directive/issues/5096#issuecomment-5870495707",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T13:08:29Z",
+          "updated_at": "2026-09-28T13:08:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\ndeft update can rewrite xbrief/schemas, mutate PROJECT-DEFINITION, and bump a root @deftai/directive pin while refreshing the deposit. Bound remedy partitions those writers: keep schema sync (#2595) with mandatory report; keep pin restore with separate report; refuse or skip+preserve PROJECT-DEFINITION org-force-on; populate the skip/refuse ledger; add a dirty-consumer regression test. Pain-audit 5870495707 of lean 5870440296 was footnote-only for harvest (two load-bearing cite sharpenings, no harvest change). The same parent wrote Stop 1 5870362480. No product implement in this session — arc ends at ingest-ready.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5870440296.\n\n",
+          "id": 5870503284,
+          "html_url": "https://github.com/deftai/directive/issues/5096#issuecomment-5870503284",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-28T13:08:57Z",
+          "updated_at": "2026-09-28T13:08:57Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`deft update --allow-dirty-no-stage --yes --json` rewrote consumer-owned project files while refreshing the framework deposit. The update was run from the BestiMax consumer repository with only known, untracked product xBRIEF proposals/cancellation/decision records present; no tracked product changes were staged or intended.\n\nThis is separate from the expected framework refresh. The update correctly refreshed `.deft/core` to 0.119.9, refreshed the managed `AGENTS.md` section, and updated hook metadata. It also crossed the consumer/deposit boundary.\n\n## Reproduction\n\nEnvironment:\n\n- Consumer: `deftai/BestiMax`\n- HEAD: `d3cef6e` (`develop`, matching `origin/develop`)\n- Global package: `@deftai/directive@0.119.8`\n- Resolved engine: `@deftai/directive-core@0.119.9`\n- Existing repository content: 0.119.8\n- Worktree: dirty only with known untracked xBRIEF artifacts\n\nCommand:\n\n```text\ndeft update --allow-dirty-no-stage --yes --json\n```\n\nAfter the update, `git diff` showed these consumer-owned changes:\n\n- `xbrief/schemas/cache-meta.schema.json`\n- `xbrief/schemas/candidates.schema.json`\n- `xbrief/schemas/skills-pack.schema.json`\n- `xbrief/schemas/xbrief-core-0.8.schema.json`\n\nThose schema changes were formatting/normalization rewrites, but they were outside the framework deposit.\n\nThe update also:\n\n- Added `@deftai/directive: 0.119.9` to the root `package.json` `devDependencies`, despite the global npm install being the configured primary path.\n- Added `valueFeedback` and `productSignal` policy objects to `xbrief/PROJECT-DEFINITION.xbrief.json`.\n- Changed `xbrief/.deft-version` from `0.119.8` to `0.119.9`; this marker may be intentional for engine/content alignment and is listed separately from the unintended writes.\n\nThe known untracked product xBRIEFs were not staged, which is correct, but the tracked consumer changes still required manual restoration before review.\n\n## Expected behavior\n\nWith `--allow-dirty-no-stage`, the updater should preserve consumer-owned files and untracked product artifacts. Its write set should be limited to the framework-managed deposit, managed `AGENTS.md` content, and explicitly documented framework metadata/hooks. If a required consumer marker must change for version alignment, it should be reported separately and not be bundled with unrelated project rewrites.\n\n## Impact\n\nAn otherwise successful framework upgrade produces unrelated tracked diffs in project configuration and xBRIEF data. This creates review noise and can silently change project policy or dependency behavior. A consumer must manually restore the unintended files before committing the framework update.\n\n## Workaround\n\nRestore the unintended paths from the repository baseline, then rerun doctor:\n\n```text\ngit restore --source=HEAD -- package.json xbrief/PROJECT-DEFINITION.xbrief.json xbrief/schemas/\ndeft doctor --full\n```\n\nAfter restoration, `deft doctor --full` exited 0 with engine/content both at 0.119.9.\n\n## Requested fix\n\nAdd a regression test for a dirty consumer worktree containing tracked xBRIEF schemas, `xbrief/PROJECT-DEFINITION.xbrief.json`, and `package.json`. The update path should either:\n\n1. Refuse before mutation when its write set includes consumer-owned paths; or\n2. Skip those paths, preserve them byte-for-byte, and report the skipped paths clearly.\n\nThe test should assert that `deft update --allow-dirty-no-stage --yes --json` does not rewrite consumer-owned xBRIEF files or add a root dependency as a side effect of refreshing the framework deposit.\n\nRelated but non-duplicate reports checked:\n\n- #3631 — provenance model for framework chore changes; broader design discussion.\n- #4533 — concurrent `init` scaffolding overwrites `package.json`/`AGENTS.md`; different race and command.\n- #4706 — post-update stale deposit/doctor failures; different failure mode.\n- #4845 — destructive hook-file emptying; different file class and behavior.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5614805501,
+        "origin": "deftai/directive#5096",
+        "id": "github.issue.5614805501"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b967d74437b728566fd19bd86398d98cac4b61d5831fb694272eac4fe1aff9f4"
+      },
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/core/src/policy/org-force-on-migration.ts",
+          "packages/core/src/policy/org-force-on-migration.test.ts",
+          "packages/core/src/init-deposit/init-consumer-invariant.ts",
+          "packages/core/src/init-deposit/xbrief-projections.ts",
+          "packages/core/src/init-deposit/xbrief-projections.test.ts",
+          "CHANGELOG.md",
+          "packages/core/src/init-deposit/init-deposit.ts"
+        ]
+      }
+    },
+    "id": "github.issue.5614805501",
+    "updated": "2026-09-28T13:23:54Z"
+  }
+}
