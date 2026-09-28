@@ -9,7 +9,10 @@
  * Canonical item keys are namespaced under #1620 / #3305 (Option B):
  * - plan.items[].x-directive/evidence
  * - plan.items[].x-directive/disposition
+ * - plan.items[].x-directive/requires (merge / strict-axis declaration; #5105)
  * Bare `evidence` / `disposition` are not valid typed evidence (no dual-read).
+ * Bare `requires` / `requiredEvidenceKind` / `acceptanceAxis` still dual-read for
+ * declaration, but fail verify:vbrief-conformance — prefer the namespaced key.
  * ITEM_CORE is not expanded with bare keys; verify:vbrief-conformance rejects them.
  */
 
@@ -44,6 +47,13 @@ export const ACCEPTANCE_EVIDENCE_KEY = "x-directive/evidence" as const;
 
 /** Canonical namespaced key for human-origin disposition (#3305 / #1620). */
 export const ACCEPTANCE_DISPOSITION_KEY = "x-directive/disposition" as const;
+
+/**
+ * Canonical namespaced acceptance-requirement declaration (#5105 / #1620).
+ * Value is a single token (`merge` or a STRICT_ACCEPTANCE_AXES member).
+ * Prefer this over bare `requires` so briefs pass verify:vbrief-conformance.
+ */
+export const ACCEPTANCE_REQUIRES_KEY = "x-directive/requires" as const;
 
 /** Closed evidence kinds (locked Q3). */
 export const ACCEPTANCE_EVIDENCE_KINDS = [
@@ -251,6 +261,11 @@ function readExplicitAcceptanceRequirementFields(
   item: Record<string, unknown>,
 ): readonly unknown[] {
   return [
+    // Namespaced first — conformant declaration path (#5105 / #1620).
+    item[ACCEPTANCE_REQUIRES_KEY],
+    item["x-directive/requiredEvidenceKind"],
+    item["x-directive/acceptanceAxis"],
+    // Bare dual-read (fails vbrief-conformance; keep for migration / tests).
     item.requires,
     item.requiredEvidenceKind,
     item.required_evidence_kind,
@@ -264,8 +279,9 @@ function normalizeRequirementToken(raw: string): string {
 }
 
 /**
- * True when the criterion explicitly declares merge on requires /
- * requiredEvidenceKind / acceptanceAxis (#5105). Never inferred from keywords.
+ * True when the criterion explicitly declares merge on x-directive/requires
+ * (or bare dual-read requires / requiredEvidenceKind / acceptanceAxis) (#5105).
+ * Never inferred from keywords.
  */
 export function itemDeclaresMergeRequirement(item: Record<string, unknown>): boolean {
   for (const raw of readExplicitAcceptanceRequirementFields(item)) {
@@ -945,10 +961,16 @@ function autoStampMergeFromCompletionProvenance(
   if (mergeCommit.length === 0 || deliveryBranch.length === 0) {
     return;
   }
+  // Never fall back to process.cwd(): a wrong checkout leaves merge declarations
+  // unstamped or stamps against another repo (#5105 Greptile P1). Caller must pass
+  // projectRoot (scope:complete / transition derives it from the brief path).
   const projectRoot =
     typeof options.projectRoot === "string" && options.projectRoot.trim().length > 0
       ? options.projectRoot.trim()
-      : process.cwd();
+      : "";
+  if (projectRoot.length === 0) {
+    return;
+  }
   const recordedBy =
     typeof options.recorded_by === "string" && options.recorded_by.trim().length > 0
       ? options.recorded_by.trim()
@@ -1324,7 +1346,7 @@ function evaluateOneItem(
     const axes = requiredAxes.length > 0 ? requiredAxes.join("|") : "(none)";
     const mergeHint =
       parsed.record.kind === "merge" && !mergeDeclared
-        ? ` kind:merge requires explicit requires|requiredEvidenceKind|acceptanceAxis=merge (#5105);`
+        ? ` kind:merge requires explicit ${ACCEPTANCE_REQUIRES_KEY}=merge (#5105);`
         : "";
     return {
       path,

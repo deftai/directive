@@ -50,12 +50,14 @@ function bareItems(count: number): Record<string, unknown>[] {
 }
 
 function attestedItem(title: string): Record<string, unknown> {
+  // Empty-axis / undeclared criteria accept non-merge kinds (#5105 dual).
+  // kind:merge needs explicit x-directive/requires=merge + a commit-sha pointer.
   return {
     title,
     status: "proposed",
     "x-directive/evidence": {
-      kind: "merge",
-      pointer: `https://github.com/${REPO}/pull/3786`,
+      kind: "test",
+      pointer: "packages/core/src/pr-closeout-attestable/evaluate.test.ts",
       recorded_at: "2026-08-27T02:23:58Z",
       recorded_by: "swarm:finalize-cohort",
     },

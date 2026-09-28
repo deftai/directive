@@ -371,7 +371,10 @@ export function runTransition(
         return { ok: false, message: persistWrite.message };
       }
     }
-    const acceptanceGate = evaluateAcceptanceEvidenceGate(planObj);
+    const acceptanceGate = evaluateAcceptanceEvidenceGate(planObj, {
+      projectRoot,
+      runGit: options.runGit,
+    });
     acceptanceReports = acceptanceGate.reports;
     if (!acceptanceGate.ok) {
       return {

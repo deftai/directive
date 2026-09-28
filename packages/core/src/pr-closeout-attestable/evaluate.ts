@@ -393,7 +393,7 @@ export function evaluate(
     if (issue === undefined) {
       continue;
     }
-    const gate = evaluateAcceptanceEvidenceGate(brief.plan);
+    const gate = evaluateAcceptanceEvidenceGate(brief.plan, { projectRoot: root });
     if (gate.ok) {
       continue;
     }

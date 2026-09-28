@@ -243,7 +243,9 @@ function dryRunAcceptanceEvidenceGate(path: string): { ok: true } | { ok: false;
   }
   const clone = structuredClone(plan);
   persistClauseKeyedPendingItems(clone);
-  const gate = evaluateAcceptanceEvidenceGate(clone);
+  // path is …/xbrief/<lifecycle>/<file>; project root is two levels up.
+  const projectRoot = dirname(dirname(dirname(resolve(path))));
+  const gate = evaluateAcceptanceEvidenceGate(clone, { projectRoot });
   if (!gate.ok) {
     return { ok: false, detail: gate.message };
   }

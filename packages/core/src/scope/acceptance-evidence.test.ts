@@ -18,6 +18,7 @@ import { ITEM_CORE, scanVbrief } from "../vbrief-validate/conformance.js";
 import {
   ACCEPTANCE_DISPOSITION_KEY,
   ACCEPTANCE_EVIDENCE_KEY,
+  ACCEPTANCE_REQUIRES_KEY,
   bindPlanItemIdsToClauses,
   clauseKeyedItemId,
   evaluateAcceptanceEvidenceGate,
@@ -141,11 +142,14 @@ describe("acceptance evidence inference (#3240)", () => {
   });
 
   it("admits explicit merge outside STRICT_ACCEPTANCE_AXES (#5105)", () => {
+    expect(itemDeclaresMergeRequirement({ [ACCEPTANCE_REQUIRES_KEY]: "merge" })).toBe(true);
     expect(itemDeclaresMergeRequirement({ requires: "merge" })).toBe(true);
     expect(itemDeclaresMergeRequirement({ requiredEvidenceKind: "merge" })).toBe(true);
     expect(itemDeclaresMergeRequirement({ acceptanceAxis: "merge" })).toBe(true);
     expect(itemDeclaresMergeRequirement({ title: "merge lands on master" })).toBe(false);
-    expect(inferRequiredStrictAxes({ requires: "merge", title: "smoke after deploy" })).toEqual([]);
+    expect(
+      inferRequiredStrictAxes({ [ACCEPTANCE_REQUIRES_KEY]: "merge", title: "smoke after deploy" }),
+    ).toEqual([]);
     expect(inferRequiredStrictAxes({ requires: "smoke" })).toEqual(["smoke"]);
   });
 
@@ -333,7 +337,7 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
           {
             title: "Merge lands on delivery",
             status: "pending",
-            requires: "merge",
+            [ACCEPTANCE_REQUIRES_KEY]: "merge",
           },
           {
             kind: "merge",
@@ -2174,7 +2178,7 @@ describe("kind-versus-pointer coherence (#5105)", () => {
     const gate = evaluateAcceptanceEvidenceGate({
       items: [
         withEvidence(
-          { title: "merge declared", status: "pending", requires: "merge" },
+          { title: "merge declared", status: "pending", [ACCEPTANCE_REQUIRES_KEY]: "merge" },
           {
             kind: "merge",
             pointer: "merge:not-a-sha",
@@ -2195,7 +2199,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
       id: clauseKeyedItemId(1),
       title: "Merge tip ancestry",
       status: "pending",
-      requires: "merge",
+      [ACCEPTANCE_REQUIRES_KEY]: "merge",
     };
     const emptyItem: Record<string, unknown> = {
       id: clauseKeyedItemId(2),
@@ -2235,7 +2239,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
       id: clauseKeyedItemId(1),
       title: "Merge tip ancestry",
       status: "pending",
-      requires: "merge",
+      [ACCEPTANCE_REQUIRES_KEY]: "merge",
     };
     const plan: Record<string, unknown> = {
       items: [item],
@@ -2261,7 +2265,7 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
       id: clauseKeyedItemId(1),
       title: "Merge tip ancestry",
       status: "pending",
-      requires: "merge",
+      [ACCEPTANCE_REQUIRES_KEY]: "merge",
     };
     const plan: Record<string, unknown> = {
       items: [item],
@@ -2286,6 +2290,54 @@ describe("stampDeclaredMergeEvidence (#5105)", () => {
       pointer: "abcdef1",
       recorded_by: "scope:complete",
     });
+  });
+
+  it("skips auto-stamp when projectRoot is missing (no cwd fallback)", () => {
+    const item: Record<string, unknown> = {
+      id: clauseKeyedItemId(1),
+      title: "Merge tip ancestry",
+      status: "pending",
+      [ACCEPTANCE_REQUIRES_KEY]: "merge",
+    };
+    const plan: Record<string, unknown> = {
+      items: [item],
+      acceptance: {
+        clauses: [{ id: 1, text: "Merge tip ancestry", artifact_path: null, ambiguous: false }],
+      },
+      metadata: {
+        completionProvenance: {
+          mergeCommit: "abcdef1",
+          deliveryBranch: "master",
+          verifier: "scope:complete",
+        },
+      },
+    };
+    const gate = evaluateAcceptanceEvidenceGate(plan, {
+      verifyAncestry: () => ({ ok: true, error: null, remoteTip: "tipsha" }),
+    });
+    expect(gate.ok).toBe(false);
+    expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("namespaced merge declaration passes scanVbrief conformance", () => {
+    const item = {
+      id: "merge-declared",
+      title: "Merge tip ancestry",
+      status: "pending",
+      [ACCEPTANCE_REQUIRES_KEY]: "merge",
+      [ACCEPTANCE_EVIDENCE_KEY]: {
+        kind: "merge",
+        pointer: "abcdef1",
+        recorded_at: "2026-09-28T12:00:00Z",
+        recorded_by: "scope:complete",
+      },
+    };
+    const findings = scanVbrief("xbrief/active/merge-declared.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "merge-declared", status: "running", items: [item] },
+    });
+    expect(findings).toEqual([]);
+    expect(itemDeclaresMergeRequirement(item)).toBe(true);
   });
 
   it("leaves empty-axis criteria unattested (visible remaining work)", () => {

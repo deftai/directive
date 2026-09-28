@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **feat(lifecycle): explicit merge-kind acceptance evidence (#5105).** `requires` / `requiredEvidenceKind` / `acceptanceAxis` admit `merge` without folding it into `STRICT_ACCEPTANCE_AXES`. Suitability dual: declared merge accepts `kind:merge`; empty-axis / undeclared refuse `kind:merge`. `stampDeclaredMergeEvidence` stamps only merge-declared criteria with a delivery-tip ancestry pointer (`verifyDeliveryAncestry` shape); production caller is `evaluateAcceptanceEvidenceGate` via `completionProvenance` on the complete path. Live kind:test writer remains `stampMatchAnyFileEvidence` / `scope:stamp-evidence` (#4840); `stampDeclaredTestEvidence` stays the documented #4732 orphan. Stamp-time kind-versus-pointer coherence extends `uatPointerShapeError` to test/merge. `skipAcceptanceEvidenceGate` stays without a production caller. Refs #3791, #4732, #4840, #3240.
+- **feat(lifecycle): explicit merge-kind acceptance evidence (#5105).** Criteria may declare merge via `x-directive/requires` (outside the strict smoke/uat/deploy/observed_behavior axes). Declared merge stamps from delivery tip ancestry on `scope:complete`; undeclared empty-axis criteria still refuse bare `kind:merge`. Refs #3791, #3240.
 
 ### Changed
 
