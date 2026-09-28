@@ -162,7 +162,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=56e37e8ae956 refreshed=2026-09-28T21:25:58Z session=124ba61d99f6 -->
+<!-- deft:managed-section v3 sha=acb5cfc3641f refreshed=2026-09-28T21:26:31Z session=d1040c6c48d2 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -178,6 +178,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Opaque non-zero exit (usually 127) on every mutation = `deft-hook` is not executable on this host, not a Directive deny — no Directive code ran, and no in-session flag reaches it. Out of band: `deft policy:disable-host-hooks --host cursor --confirm`, or install the runtime (`npm i -g @deftai/directive@<pin>`). Depth: `.deft/core/docs/hook-runtime-unavailable.md`.
 ⊗ Hand-edit `failClosed` in `.cursor/hooks.json` — the next `deft update` rewrites it and silently re-arms the lockout.
+
+## Codex ritual-git recovery (#4664)
+
+! Codex sandbox EPERM on ritual `git` → approve outside-sandbox once for the session (`/approvals` / session trust). Depth: `.deft/core/contracts/agent-hook-readiness.md`. ⊗ Invent an in-process git substitute; ⊗ treat repeated per-verb prompts as Continuity discharge.
 
 ## Session routing (#2176)
 
@@ -298,7 +302,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Branch policy & branch verification
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md`. One origin/PR else one-PR-unit grant (not #1378/`--allow-close`).
-! Test placement + scope provenance (#3145 / #4956) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` fence; production allowance 2–5; test roots free), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
+! Scope gates (#3145 / #4956) — `deft verify:test-boundary` (warn-only), `deft verify:scope-provenance` (merge-base `file_scope` fence; production allowance 2–5; test roots free), `deft verify:consumer-check-contract`, `deft verify:evaluator-surface`, `deft verify:class-checks`, `deft verify:observable-scope`, `deft verify:intent-constraint`, `deft verify:durable-effect-acquisition`, `deft verify:consumer-test-lane` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`).
 ! After proceed: no scope ceremony (#4956). No approved-scope digest on proceed; head brief does not widen the fence; over-budget splits (no remint). Class checks #4980. #4383 still open. Depth: `docs/scope-provenance.md`.
 
 ## Branch Policy Disclosure (#746)
