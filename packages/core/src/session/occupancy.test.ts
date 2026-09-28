@@ -191,7 +191,8 @@ beforeAll(() => {
   tempRoot();
   otherRoot();
   ownedRitualRepo("owner", new Date("2026-08-17T12:00:00Z"));
-});
+}, 60_000 /* #5084 suite-load hookTimeout */);
+
 
 /**
  * Beat an owner's lease every half TTL until its claim age crosses the absolute

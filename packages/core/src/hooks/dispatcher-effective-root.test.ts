@@ -123,7 +123,8 @@ function nestedWorktreeFixture(): NestedFixture {
 beforeAll(() => {
   linkedFixture();
   nestedWorktreeFixture();
-});
+}, 60_000 /* #5084 suite-load hookTimeout */);
+
 
 /** Ready only for `readyRoot`; every other tree reports no active scope. */
 function scopeSeams(readyRoot: string | null): {

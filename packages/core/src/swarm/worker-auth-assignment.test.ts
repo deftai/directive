@@ -611,5 +611,5 @@ describe("worker-auth-assignment (#3663)", { timeout: 20_000 }, () => {
     expect(kept.assignment?.dispatch_id).toBe("dispatch-keep");
     const dropped = readWorkerAuthAssignment(other);
     expect(dropped).toEqual({ ok: true, assignment: null, commonDir: expect.any(String) });
-  });
+  }, 60_000 /* #5084 suite-load testTimeout */);
 });

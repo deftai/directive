@@ -100,7 +100,8 @@ function initRepo(): { root: string; head: string } {
 
 beforeAll(() => {
   initRepo();
-});
+}, 60_000 /* #5084 suite-load hookTimeout */);
+
 
 function capturedGitRun(projectRoot: string, args: readonly string[]): GitRunResult {
   const result = spawnSync("git", [...args], {
