@@ -63,8 +63,8 @@ import {
   NO_DEFT_DIRECTIVE_INCONSISTENT_POLICY,
 } from "../policy/no-deft-directive.js";
 import {
-  PROJECT_DEFINITION_CONSUMER_OWNED_SKIP,
   type OrgForceOnMigrationResult,
+  PROJECT_DEFINITION_CONSUMER_OWNED_SKIP,
   runOrgForceOnMigration,
 } from "../policy/org-force-on-migration.js";
 import { PROJECT_DEFINITION_REL_PATH, projectDefinitionPath } from "../policy/resolve.js";
@@ -701,9 +701,7 @@ export function buildUpdateSummaryJson(input: {
     maintainer_mode: false,
     maintainer_tools: [],
     skipped_consumer_projections: ledger.map((entry) => ({ ...entry })),
-    pin_writes: ledger
-      .filter((entry) => entry.write_class === "pin")
-      .map((entry) => entry.path),
+    pin_writes: ledger.filter((entry) => entry.write_class === "pin").map((entry) => entry.path),
     version_marker_writes: ledger
       .filter((entry) => entry.write_class === "version-marker")
       .map((entry) => entry.path),

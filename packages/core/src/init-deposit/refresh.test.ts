@@ -2610,7 +2610,11 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       )}\n`;
       writeFileSync(join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"), pdBody, "utf8");
       // Null pin so restoreNullPinAtRecordedDepositVersion reports a pin write.
-      writeFileSync(join(project, "package.json"), JSON.stringify({ private: true }, null, 2), "utf8");
+      writeFileSync(
+        join(project, "package.json"),
+        JSON.stringify({ private: true }, null, 2),
+        "utf8",
+      );
 
       execFileSync("git", ["add", "-A"], { cwd: project });
       execFileSync("git", ["commit", "-m", "baseline consumer"], { cwd: project });
