@@ -390,7 +390,7 @@ describe("worker-auth-assignment (#3663)", { timeout: 20_000 }, () => {
     expect(keptOuter.ok).toBe(true);
     if (!keptOuter.ok) return;
     expect(keptOuter.assignment?.dispatch_id).toBe("dispatch-outer");
-  });
+  }, 60_000 /* #5086 suite-load testTimeout */);
 
   it("reclaims a dead-pid lock without waiting for mtime", () => {
     const { main, worktree } = linkedPair();

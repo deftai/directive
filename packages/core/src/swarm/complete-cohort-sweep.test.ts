@@ -378,7 +378,7 @@ describe("complete cohort live sweep with mocked transition", () => {
   });
 
   it("cleans owner-bound worker auth assignments on terminal close-out", {
-    timeout: 20_000,
+    timeout: 60_000, // #5086 suite-load testTimeout
   }, () => {
     const project = mkdtempSync(join(tmpdir(), "sw-auth-clean-"));
     gitInitIfNeeded(project);

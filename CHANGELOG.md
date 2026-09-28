@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SCM readiness trusts provisioned GitHub credentials and enforces explicit worker assignments (#5016).** Unassigned processes use gh's effective source for the target host. Runtime/socket labels no longer select credentials. Assigned host-gh refuses an applicable ambient token; assigned injected-token still requires delivery correlation and the expected user. Installation authentication may be admitted without claiming App identity when no user is required. `runGhMerge` runs a fresh assignment/auth preflight. Refs #3693, #3663.
 
 ### Fixed
+- **test(win32): raise two more Step 5 suite-load testTimeouts (Tracking #5086).**
 - **test(win32): raise suite-load timeouts for occupancy hooks + worker-auth cleanup (Tracking #5084).** Step 5 under full ts:check-lane no longer fails closed on 10s beforeAll / 20s testTimeout flakes.
 
 - **fix(scm,win32): Windows SCM spawns PATH `gh.cmd` shims correctly (Tracking #5081).** Unblocks worker-auth T5 / release Step 5 when a fake or local `gh.cmd` is prepended. Refs #5016, #3663.
