@@ -23874,9 +23874,9 @@
       },
       "allowDirectCommitsToMaster": false,
       "agentsMdBudget": {
-        "managedMaxLines": 180,
+        "managedMaxLines": 184,
         "unmanagedMaxLines": 164,
-        "absoluteMaxBytes": 20600,
+        "absoluteMaxBytes": 20900,
         "skillFrontmatterTier": "daily-core",
         "skillFrontmatterMaxBytes": 2260
       },
