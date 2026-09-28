@@ -1237,7 +1237,7 @@ export async function runRefreshDeposit(
   }
 
   const consumerProjections: ConsumerProjectionLedgerEntry[] = [];
-  const wroteBeforePin = snapshotMutationSummary().wrote;
+  const wroteBeforeReconstitute = snapshotMutationSummary().wrote;
   const pinLockRefreshError = reconstituteConsumerPinAndLock(projectDir, contentVersion, io, seams);
   if (pinLockRefreshError !== null) {
     consumerProjections.push({
@@ -1264,21 +1264,30 @@ export async function runRefreshDeposit(
       pinLockRefreshError,
     };
   }
-  const nullPinRestored = restoreNullPinAtRecordedDepositVersion({
+  for (const path of wroteSince(wroteBeforeReconstitute, snapshotMutationSummary().wrote)) {
+    if (path === "package.json" || path.endsWith("/package.json")) {
+      consumerProjections.push({
+        path,
+        disposition: "rewritten",
+        write_class: "pin",
+        reason: "lagging-pin reconstitute (#4710)",
+      });
+    }
+  }
+  const wroteBeforeNullPin = snapshotMutationSummary().wrote;
+  restoreNullPinAtRecordedDepositVersion({
     projectDir,
     deftDir,
     recordedVersion: readRecordedDepositVersion(deftDir) ?? previousDepositVersion,
     io,
   });
-  for (const path of wroteSince(wroteBeforePin, snapshotMutationSummary().wrote)) {
+  for (const path of wroteSince(wroteBeforeNullPin, snapshotMutationSummary().wrote)) {
     if (path === "package.json" || path.endsWith("/package.json")) {
       consumerProjections.push({
-        path: "package.json",
+        path,
         disposition: "rewritten",
         write_class: "pin",
-        reason: nullPinRestored
-          ? "null-pin restore at recorded deposit version (#4533)"
-          : "lagging-pin reconstitute (#4710)",
+        reason: "null-pin restore at recorded deposit version (#4533)",
       });
     }
   }
